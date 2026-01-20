@@ -1,0 +1,63 @@
+homeimac@Homes-iMac RecipeRealm % sleep 8
+echo ""
+echo "=== PRODUCTION SERVER TEST ==="
+curl http://localhost:31888/api/health
+echo ""
+echo ""
+echo "=== LOGS ==="
+tail -50 ~/Library/Logs/ARUS/app.log
+
+=== PRODUCTION SERVER TEST ===
+curl: (7) Failed to connect to localhost port 31888 after 0 ms: Couldn't connect to server
+
+
+=== LOGS ===
+[SQLite Init] Initializing vessel mode database...
+[SQLite Init] Database initialized successfully with 131 tables (100% feature parity) at: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+✓ SQLite tables initialized
+==============================
+
+TEST 1: Database import only
+✅ Database imported successfully
+Mode: VESSEL
+[DEBUG] Module loaded successfully
+[DEBUG] Wrapper script starting...
+[DEBUG] Loading main server module...
+TEST 2: Database + Routes
+✅ Database OK
+✅ Routes OK
+[DEBUG] Module loaded successfully
+[DEBUG] Wrapper script starting...
+[DEBUG] Loading main server module...
+TEST 3: Database + Security
+✅ Database OK
+✅ Security OK
+[DEBUG] Module loaded successfully
+[DEBUG] Wrapper script starting...
+[DEBUG] Loading main server module...
+TEST 4: Database + Job Processors (TensorFlow)
+✅ Database OK
+✅ Job Processors OK
+[DEBUG] Module loaded successfully
+[DEBUG] Wrapper script starting...
+[DEBUG] Loading main server module...
+2025-10-23 12:17:53.428911: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 FMA
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+
+=== Database Configuration ===
+Deployment Mode: VESSEL (Offline-First)
+⚠ Turso Sync: Disabled (credentials not configured)
+  Running in offline-only mode without cloud sync
+  Set TURSO_SYNC_URL and TURSO_AUTH_TOKEN to enable sync
+→ Applying SQLite performance optimizations...
+✓ SQLite performance optimizations applied
+  • WAL mode enabled (better concurrency)
+  • Cache: 64MB
+  • Sync: NORMAL (safe with WAL)
+  • Foreign keys: ON
+✓ Local SQLite: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+→ Initializing SQLite database tables...
+[SQLite Init] Initializing vessel mode database...
+[SQLite Init] Database initialized successfully with 131 tables (100% feature parity) at: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+✓ SQLite tables initialized
+==============================

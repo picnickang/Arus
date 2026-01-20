@@ -1,0 +1,93 @@
+100% agree — retiring / gating legacy collectors is mandatory or you’ll get double-ingest (and idempotency keys won’t save you if the old path generates different keys).
+
+Here’s the cleanest way to do it without breaking shipboard ops: feature-flag + staged cutoff.
+
+Add this task: Decommission legacy collectors safely
+
+Goal
+
+Ensure exactly one ingestion path is active at a time:
+	•	Legacy mode: Node collectors ingest hardware → Postgres
+	•	Hybrid mode: C# agent → SQLite → bridge → Postgres
+
+Never both.
+
+⸻
+
+Implementation approach (recommended)
+
+1) Introduce a single “Ingestion Mode” switch
+
+Env var (or config):
+	•	ARUS_INGESTION_MODE=legacy|hybrid
+
+Default to legacy until you deploy agent+bridge everywhere.
+
+2) Gate all legacy collectors behind the switch
+
+At the entry point where you boot collectors (wherever you start server/j1939-collector, server/mqtt-ingestion, direct CAN listeners):
+
+const mode = process.env.ARUS_INGESTION_MODE ?? "legacy";
+
+if (mode === "legacy") {
+  startLegacyCollectors();
+} else {
+  // do NOT start any legacy collectors
+  startSqliteBridge();
+}
+
+Also hard-disable legacy ingestion endpoints if they exist (so no accidental starts).
+
+3) Make the UI reflect the mode (small but important)
+
+In your Agent Health panel (or settings):
+	•	Show: Ingestion Mode: Legacy / Hybrid
+	•	If mode is hybrid and legacy collectors are detected running, show a red warning.
+
+This prevents “why is it doubled?” confusion.
+
+⸻
+
+Hardening against accidental double ingest
+
+Even with flags, add a belt-and-suspenders guard:
+
+4) Add a “collector identity” field (optional but great)
+
+If your Postgres schema allows it, include:
+	•	ingested_by = 'legacy-node' | 'hybrid-bridge'
+
+Then you can alert if both appear in the last 5 minutes.
+
+If you can’t change schema, log/metric it:
+	•	arus_ingest_source{source="legacy"} gauge
+	•	arus_ingest_source{source="hybrid"} gauge
+
+5) Explicitly stop legacy services in deployment scripts
+	•	If you run legacy collectors under PM2/systemd/Windows Scheduled Task:
+	•	stop/disable them when switching to hybrid
+	•	Document it in the installer checklist.
+
+⸻
+
+Suggested rollout (safe)
+	1.	Deploy agent + bridge everywhere, but keep ARUS_INGESTION_MODE=legacy
+	2.	Verify Agent Health shows “recording frames to SQLite”
+	3.	Flip to hybrid on one vessel
+	4.	Confirm:
+	•	Postgres volume stable (no doubling)
+	•	Bridge backlog decreases
+	5.	Roll out fleet-wide
+
+⸻
+
+Task text you can paste into your plan
+
+Task 15: Feature-flag & retire legacy collectors
+	•	Add ARUS_INGESTION_MODE=legacy|hybrid (default legacy)
+	•	Gate legacy collectors (server/j1939-collector, server/mqtt-ingestion, direct CAN listeners) behind legacy
+	•	Start SQLite bridge only in hybrid
+	•	Add UI + metrics warning if legacy collectors run while hybrid is enabled
+	•	Update deployment scripts to stop/disable legacy processes when switching to hybrid
+
+If you tell me where those collectors are started (the exact bootstrap file), I’ll give you a precise patch (minimal diff) that disables them cleanly.

@@ -1,0 +1,438 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==========================================================
+REM ARUS – Sync Expansion: Schema + Reconciliation Jobs + UI
+REM Node.js/TypeScript (backend-node + frontend)
+REM - Adds normalized tables for: vessel, sensor registry, thresholds,
+REM model registry, reservations/POs, cost model, crew certs,
+REM schedule constraints, compliance docs, port calls, rollups.
+REM - Adds reconciliation jobs and status API
+REM - Adds UI cards: Sync Status + Data Quality
+REM - No auth changes
+REM ==========================================================
+
+if not exist "backend-node\src" (
+echo [ERROR] backend-node/src not found. Run at repo root.
+exit /b 1
+)
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+REM ----------------------------------------------------------
+REM 0) Migrations: new normalized tables (PG + SQLite)
+REM ----------------------------------------------------------
+if not exist "backend-node\migrations" mkdir backend-node\migrations
+
+> backend-node\migrations\096_sync_expansion.sql (
+echo -- Vessel master, asset hierarchy is out of scope here but reserve a minimal table
+echo CREATE TABLE IF NOT EXISTS vessel(
+echo id TEXT PRIMARY KEY,
+echo name TEXT,
+echo imo TEXT
+echo );
+echo
+echo -- Sensor registry (canonical sensor configs)
+echo CREATE TABLE IF NOT EXISTS sensor_registry(
+echo id TEXT PRIMARY KEY,
+echo vessel_id TEXT NOT NULL,
+echo kind TEXT NOT NULL,
+echo unit TEXT,
+echo calibration_date TIMESTAMPTZ,
+echo meta JSONB DEFAULT '{}'::jsonb
+echo );
+echo CREATE INDEX IF NOT EXISTS idx_sensor_reg_vessel ON sensor_registry(vessel_id);
+echo
+echo -- Thresholds and alarm rules (versioned)
+echo CREATE TABLE IF NOT EXISTS thresholds(
+echo id BIGSERIAL PRIMARY KEY,
+echo vessel_id TEXT NOT NULL,
+echo sensor_id TEXT NOT NULL,
+echo rule JSONB NOT NULL,
+echo version INT NOT NULL DEFAULT 1,
+echo active BOOLEAN NOT NULL DEFAULT TRUE,
+echo created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+echo );
+echo CREATE INDEX IF NOT EXISTS idx_thresholds_active ON thresholds(vessel_id, sensor_id, active);
+echo
+echo -- Model registry (PdM/RUL/anomaly)
+echo CREATE TABLE IF NOT EXISTS model_registry(
+echo id BIGSERIAL PRIMARY KEY,
+echo component_class TEXT NOT NULL,
+echo version TEXT NOT NULL,
+echo window_days INT,
+echo metrics JSONB,
+echo created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+echo );
+echo
+echo -- Reservations (stock allocations to WOs)
+echo CREATE TABLE IF NOT EXISTS reservations(
+echo id BIGSERIAL PRIMARY KEY,
+echo part_id TEXT NOT NULL,
+echo work_order_id TEXT NOT NULL,
+echo qty NUMERIC NOT NULL CHECK (qty >= 0),
+echo created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+echo );
+echo CREATE INDEX IF NOT EXISTS idx_resv_part ON reservations(part_id);
+echo CREATE INDEX IF NOT EXISTS idx_resv_wo ON reservations(work_order_id);
+echo
+echo -- Purchase Orders (basic)
+echo CREATE TABLE IF NOT EXISTS purchase_orders(
+echo id TEXT PRIMARY KEY,
+echo supplier_id TEXT NOT NULL,
+echo expected_date DATE,
+echo status TEXT NOT NULL DEFAULT 'open',
+echo payload JSONB
+echo );
+echo CREATE TABLE IF NOT EXISTS purchase_order_items(
+echo id BIGSERIAL PRIMARY KEY,
+echo po_id TEXT NOT NULL,
+echo part_id TEXT NOT NULL,
+echo qty NUMERIC NOT NULL CHECK (qty >= 0),
+echo unit_price NUMERIC
+echo );
+echo CREATE INDEX IF NOT EXISTS idx_poi_po ON purchase_order_items(po_id);
+echo
+echo -- Cost model (single row per tenant/env)
+echo CREATE TABLE IF NOT EXISTS cost_model(
+echo id TEXT PRIMARY KEY,
+echo currency TEXT,
+echo labor_rate_hr NUMERIC,
+echo downtime_cost_hr NUMERIC,
+echo updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+echo );
+echo
+echo -- Crew certifications
+echo CREATE TABLE IF NOT EXISTS crew_cert(
+echo id BIGSERIAL PRIMARY KEY,
+echo crew_id TEXT NOT NULL,
+echo cert_code TEXT NOT NULL,
+echo expiry DATE NOT NULL
+echo );
+echo CREATE INDEX IF NOT EXISTS idx_crew_cert_exp ON crew_cert(crew_id, expiry);
+echo
+echo -- Schedule constraints (port calls, drydock windows etc.)
+echo CREATE TABLE IF NOT EXISTS schedule_constraints(
+echo id BIGSERIAL PRIMARY KEY,
+echo vessel_id TEXT NOT NULL,
+echo kind TEXT NOT NULL, -- port_call|drydock|crew_limit|custom
+echo start TIMESTAMPTZ,
+echo "end" TIMESTAMPTZ,
+echo payload JSONB
+echo );
+echo CREATE INDEX IF NOT EXISTS idx_sched_c_v ON schedule_constraints(vessel_id, kind, start);
+echo
+echo -- Compliance docs (hash/audit)
+echo CREATE TABLE IF NOT EXISTS compliance_docs(
+echo id TEXT PRIMARY KEY,
+echo vessel_id TEXT NOT NULL,
+echo kind TEXT NOT NULL,
+echo created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+echo sha256 TEXT NOT NULL,
+echo meta JSONB
+echo );
+echo
+echo -- Port calls (simple)
+echo CREATE TABLE IF NOT EXISTS port_calls(
+echo id TEXT PRIMARY KEY,
+echo vessel_id TEXT NOT NULL,
+echo eta TIMESTAMPTZ,
+echo etd TIMESTAMPTZ,
+echo port_code TEXT,
+echo payload JSONB
+echo );
+echo CREATE INDEX IF NOT EXISTS idx_port_calls_v ON port_calls(vessel_id, eta, etd);
+echo
+echo -- Rollups (daily)
+echo CREATE TABLE IF NOT EXISTS rollups_daily(
+echo date DATE NOT NULL,
+echo vessel_id TEXT NOT NULL,
+echo metric TEXT NOT NULL,
+echo value NUMERIC,
+echo PRIMARY KEY (date, vessel_id, metric)
+echo );
+)
+
+> backend-node\migrations\sqlite_096_sync_expansion.sql (
+echo CREATE TABLE IF NOT EXISTS vessel(id TEXT PRIMARY KEY, name TEXT, imo TEXT);
+echo CREATE TABLE IF NOT EXISTS sensor_registry(
+echo id TEXT PRIMARY KEY,
+echo vessel_id TEXT NOT NULL,
+echo kind TEXT NOT NULL,
+echo unit TEXT,
+echo calibration_date TEXT,
+echo meta TEXT
+echo );
+echo CREATE INDEX IF NOT EXISTS idx_sensor_reg_vessel ON sensor_registry(vessel_id);
+echo CREATE TABLE IF NOT EXISTS thresholds(
+echo id INTEGER PRIMARY KEY AUTOINCREMENT,
+echo vessel_id TEXT NOT NULL,
+echo sensor_id TEXT NOT NULL,
+echo rule TEXT NOT NULL,
+echo version INTEGER NOT NULL DEFAULT 1,
+echo active INTEGER NOT NULL DEFAULT 1,
+echo created_at TEXT NOT NULL DEFAULT (datetime('now'))
+echo );
+echo CREATE INDEX IF NOT EXISTS idx_thresholds_active ON thresholds(vessel_id, sensor_id, active);
+echo CREATE TABLE IF NOT EXISTS model_registry(
+echo id INTEGER PRIMARY KEY AUTOINCREMENT,
+echo component_class TEXT NOT NULL,
+echo version TEXT NOT NULL,
+echo window_days INTEGER,
+echo metrics TEXT,
+echo created_at TEXT NOT NULL DEFAULT (datetime('now'))
+echo );
+echo CREATE TABLE IF NOT EXISTS reservations(
+echo id INTEGER PRIMARY KEY AUTOINCREMENT,
+echo part_id TEXT NOT NULL,
+echo work_order_id TEXT NOT NULL,
+echo qty REAL NOT NULL,
+echo created_at TEXT NOT NULL DEFAULT (datetime('now'))
+echo );
+echo CREATE INDEX IF NOT EXISTS idx_resv_part ON reservations(part_id);
+echo CREATE INDEX IF NOT EXISTS idx_resv_wo ON reservations(work_order_id);
+echo CREATE TABLE IF NOT EXISTS purchase_orders(
+echo id TEXT PRIMARY KEY,
+echo supplier_id TEXT NOT NULL,
+echo expected_date TEXT,
+echo status TEXT NOT NULL DEFAULT 'open',
+echo payload TEXT
+echo );
+echo CREATE TABLE IF NOT EXISTS purchase_order_items(
+echo id INTEGER PRIMARY KEY AUTOINCREMENT,
+echo po_id TEXT NOT NULL,
+echo part_id TEXT NOT NULL,
+echo qty REAL NOT NULL,
+echo unit_price REAL
+echo );
+echo CREATE INDEX IF NOT EXISTS idx_poi_po ON purchase_order_items(po_id);
+echo CREATE TABLE IF NOT EXISTS cost_model(
+echo id TEXT PRIMARY KEY,
+echo currency TEXT,
+echo labor_rate_hr REAL,
+echo downtime_cost_hr REAL,
+echo updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+echo );
+echo CREATE TABLE IF NOT EXISTS crew_cert(
+echo id INTEGER PRIMARY KEY AUTOINCREMENT,
+echo crew_id TEXT NOT NULL,
+echo cert_code TEXT NOT NULL,
+echo expiry TEXT NOT NULL
+echo );
+echo CREATE INDEX IF NOT EXISTS idx_crew_cert_exp ON crew_cert(crew_id, expiry);
+echo CREATE TABLE IF NOT EXISTS schedule_constraints(
+echo id INTEGER PRIMARY KEY AUTOINCREMENT,
+echo vessel_id TEXT NOT NULL,
+echo kind TEXT NOT NULL,
+echo start TEXT,
+echo "end" TEXT,
+echo payload TEXT
+echo );
+echo CREATE INDEX IF NOT EXISTS idx_sched_c_v ON schedule_constraints(vessel_id, kind, start);
+echo CREATE TABLE IF NOT EXISTS compliance_docs(
+echo id TEXT PRIMARY KEY,
+echo vessel_id TEXT NOT NULL,
+echo kind TEXT NOT NULL,
+echo created_at TEXT NOT NULL DEFAULT (datetime('now')),
+echo sha256 TEXT NOT NULL,
+echo meta TEXT
+echo );
+echo CREATE TABLE IF NOT EXISTS port_calls(
+echo id TEXT PRIMARY KEY,
+echo vessel_id TEXT NOT NULL,
+echo eta TEXT,
+echo etd TEXT,
+echo port_code TEXT,
+echo payload TEXT
+echo );
+echo CREATE INDEX IF NOT EXISTS idx_port_calls_v ON port_calls(vessel_id, eta, etd);
+echo CREATE TABLE IF NOT EXISTS rollups_daily(
+echo date TEXT NOT NULL,
+echo vessel_id TEXT NOT NULL,
+echo metric TEXT NOT NULL,
+echo value REAL,
+echo PRIMARY KEY (date, vessel_id, metric)
+echo );
+)
+
+REM ----------------------------------------------------------
+REM 1) Backend jobs: reconciliation + status
+REM ----------------------------------------------------------
+> backend-node\src\sync.jobs.ts (
+echo import Database from "better-sqlite3";
+echo import { Pool } from "pg";
+echo
+echo const DATABASE_URL = process.env.DATABASE_URL||""; const USE_PG = !!DATABASE_URL;
+echo const SQLITE_PATH = process.env.SQLITE_PATH||"./data/arus.sqlite";
+echo
+echo function qlite(fn:(db:Database)=>any){ const db = new Database(SQLITE_PATH); try { return fn(db); } finally { db.close(); } }
+echo async function qpg<T=any>(sql:string, params:any[]=[]):Promise<T[]>{ const pool=new Pool({connectionString: DATABASE_URL}); const c=await pool.connect(); try{ const r=await c.query(sql,params); return r.rows as any; } finally{ c.release(); await pool.end(); } }
+echo
+echo export type DataIssue = { code:string; msg:string; ref?:any };
+echo export type JobResult = { ok:boolean; issues: DataIssue[]; stats?:Record<string,number> };
+echo
+echo export async function reconcileAll(): Promise<JobResult>{
+echo const issues: DataIssue[] = [];
+echo let stats: Record<string,number> = {};
+echo
+echo async function partStockAlignment(){
+echo if (USE_PG){
+echo await qpg("UPDATE stock SET unit_value=parts.unit_cost FROM parts WHERE stock.part_id=parts.id AND stock.unit_value<>parts.unit_cost");
+echo } else {
+echo qlite(db=> db.prepare("UPDATE stock SET unit_value=(SELECT unit_cost FROM parts WHERE parts.id=stock.part_id) WHERE EXISTS(SELECT 1 FROM parts WHERE parts.id=stock.part_id) AND unit_value<>(SELECT unit_cost FROM parts WHERE parts.id=stock.part_id)").run());
+echo }
+echo }
+echo
+echo async function reservationsNotExceedStock(){
+echo if (USE_PG){
+echo const rows = await qpg("SELECT s.part_id, COALESCE(SUM(r.qty),0) AS reserved, COALESCE(MIN(s.on_hand),0) AS on_hand FROM reservations r JOIN stock s ON s.part_id=r.part_id GROUP BY s.part_id");
+echo for(const r of rows){ if (Number(r.reserved)>Number(r.on_hand)) issues.push({code:"RESV_GT_STOCK", msg:\`Reservations exceed stock for part \${r.part_id}\`, ref:r}); }
+echo } else {
+echo qlite(db=>{ const q = db.prepare("SELECT s.part_id, IFNULL((SELECT SUM(qty) FROM reservations WHERE part_id=s.part_id),0) reserved, s.on_hand on_hand FROM stock s"); for(const r of q.iterate()) { if (Number(r.reserved)>Number(r.on_hand)) issues.push({code:"RESV_GT_STOCK", msg:`Reservations exceed stock for part ${r.part_id}`, ref:r}); } });
+echo }
+echo }
+echo
+echo async function workOrdersWaitingOnPO(){
+echo if (USE_PG){
+echo const rows = await qpg("SELECT r.work_order_id, r.part_id, poi.qty, po.expected_date FROM reservations r JOIN purchase_order_items poi ON poi.part_id=r.part_id JOIN purchase_orders po ON po.id=poi.po_id WHERE po.status='open'");
+echo for(const r of rows){ issues.push({code:"WO_WAIT_PO", msg:\`WO \${r.work_order_id} relies on PO; ETA \${r.expected_date}\`, ref:r}); }
+echo } else {
+echo qlite(db=>{ const q = db.prepare("SELECT r.work_order_id, r.part_id, poi.qty qty, po.expected_date expected_date FROM reservations r JOIN purchase_order_items poi ON poi.part_id=r.part_id JOIN purchase_orders po ON po.id=poi.po_id WHERE po.status='open'"); for(const r of q.iterate()){ issues.push({code:"WO_WAIT_PO", msg:`WO ${r.work_order_id} relies on PO; ETA ${r.expected_date}`, ref:r}); } });
+echo }
+echo }
+echo
+echo async function crewCertExpiries(){
+echo if (USE_PG){
+echo const rows = await qpg("SELECT crew_id, cert_code, expiry FROM crew_cert WHERE expiry <= CURRENT_DATE + INTERVAL '30 days'");
+echo for(const r of rows){ issues.push({code:"CERT_EXPIRY", msg:\`Cert \${r.cert_code} expires \${r.expiry}\`, ref:r}); }
+echo } else {
+echo qlite(db=>{ const q = db.prepare("SELECT crew_id, cert_code, expiry FROM crew_cert"); const today = new Date(); const horizon = new Date(today.getTime()+30*86400000); for(const r of q.iterate()){ const exp = new Date(r.expiry); if (exp<=horizon) issues.push({code:"CERT_EXPIRY", msg:`Cert ${r.cert_code} expires ${r.expiry}`, ref:r}); } });
+echo }
+echo }
+echo
+echo async function thresholdConflicts(){
+echo if (USE_PG){
+echo const rows = await qpg("SELECT vessel_id, sensor_id, COUNT(*) cnt FROM thresholds WHERE active=TRUE GROUP BY vessel_id, sensor_id HAVING COUNT(*)>1");
+echo for(const r of rows){ issues.push({code:"THRESH_CONFLICT", msg:\`Multiple active thresholds for \${r.sensor_id}\`, ref:r}); }
+echo } else {
+echo qlite(db=>{ const rows = db.prepare("SELECT vessel_id, sensor_id, COUNT(*) cnt FROM thresholds WHERE active=1 GROUP BY vessel_id, sensor_id HAVING cnt>1").all(); for(const r of rows){ issues.push({code:"THRESH_CONFLICT", msg:`Multiple active thresholds for ${r.sensor_id}`, ref:r}); }});
+echo }
+echo }
+echo
+echo await partStockAlignment();
+echo await reservationsNotExceedStock();
+echo await workOrdersWaitingOnPO();
+echo await crewCertExpiries();
+echo await thresholdConflicts();
+echo
+echo stats = { issues: issues.length };
+echo return { ok:true, issues, stats };
+echo }
+echo
+echo export async function rollupDailyMetric(dateISO:string, metric:string, vessel_id:string, value:number){
+echo if (USE_PG){
+echo await qpg("INSERT INTO rollups_daily(date,vessel_id,metric,value) VALUES($1,$2,$3,$4) ON CONFLICT (date,vessel_id,metric) DO UPDATE SET value=EXCLUDED.value", [dateISO, vessel_id, metric, value]);
+echo } else {
+echo qlite(db=> db.prepare("INSERT INTO rollups_daily(date,vessel_id,metric,value) VALUES(?,?,?,?) ON CONFLICT(date,vessel_id,metric) DO UPDATE SET value=excluded.value").run(dateISO, vessel_id, metric, value));
+echo }
+echo }
+)
+
+REM ----------------------------------------------------------
+REM 2) Backend API: jobs + status routes
+REM ----------------------------------------------------------
+> backend-node\src\index.sync.jobs.ts (
+echo import express from "express";
+echo import { reconcileAll } from "./sync.jobs.js";
+echo
+echo export function mountSyncJobs(v1: express.Router){
+echo v1.get("/api/sync/status", async (_req,res)=> {
+echo const r = await reconcileAll(); // quick pass for now
+echo res.json(r);
+echo });
+echo v1.post("/api/sync/jobs/run", async (_req,res)=> {
+echo const r = await reconcileAll();
+echo res.json(r);
+echo });
+echo }
+)
+
+%PS% ^
+"$f='backend-node/src/index.ts'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace '(app\.use\(\"/v1\", v1\);)','import { mountSyncJobs } from \"./index.sync.jobs.js\";\nmountSyncJobs(v1);\n$1';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ----------------------------------------------------------
+REM 3) Frontend: Sync Status + Data Quality cards
+REM ----------------------------------------------------------
+if not exist "frontend\src" (
+echo [WARN] frontend/src not found; skipping UI hook (backend ready).
+) else (
+> frontend\src\components\SyncStatus.tsx (
+echo import React, { useEffect, useState } from "react";
+echo const BASE = (import.meta as any).env.VITE_API_URL || "http://localhost:8001";
+echo
+echo export default function SyncStatus(){
+echo const [data,setData] = useState<any>(null);
+echo const [loading,setLoading] = useState(true);
+echo useEffect(()=>{ fetch(\`\${BASE}/v1/api/sync/status\`).then(r=>r.json()).then(j=>{ setData(j); setLoading(false); }); },[]);
+echo if (loading) return <div className="card"><h2>Sync Status</h2><div>Loading…</div></div>;
+echo return (
+echo <div className="card">
+echo <h2>Sync Status</h2>
+echo <div>Issues: {data?.stats?.issues ?? 0}</div>
+echo {data?.issues?.length>0 && (
+echo <ul style={{fontSize:12, marginTop:8}}>
+echo {data.issues.map((i:any,idx:number)=> <li key={idx}>{i.code}: {i.msg}</li>)}
+echo </ul>
+echo )}
+echo </div>
+echo );
+echo }
+)
+> frontend\src\components\DataQuality.tsx (
+echo import React, { useState } from "react";
+echo const BASE = (import.meta as any).env.VITE_API_URL || "http://localhost:8001";
+echo
+echo export default function DataQuality(){
+echo const [msg,setMsg] = useState("");
+echo async function run(){ const r = await fetch(\`\${BASE}/v1/api/sync/jobs/run\`, {method:'POST'}).then(r=>r.json()); setMsg(JSON.stringify(r,null,2)); }
+echo return (
+echo <div className="card">
+echo <h2>Data Quality</h2>
+echo <button onClick={run}>Run Reconciliation Now</button>
+echo {msg && <pre style={{marginTop:8, fontSize:12, background:'#f8fafc', padding:8, borderRadius:6, overflow:'auto'}}>{msg}</pre>}
+echo </div>
+echo );
+echo }
+)
+%PS% ^
+"$f='frontend/src/App.tsx'; $t=Get-Content -Raw $f;" ^
+"$t = 'import SyncStatus from \"./components/SyncStatus\";\nimport DataQuality from \"./components/DataQuality\";\n'+$t;" ^
+"$t = $t -replace '(</div>\s*)$',' <SyncStatus />\n <DataQuality />\n$1';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+)
+
+echo.
+echo ==========================================================
+echo ✅ Sync Expansion patch applied.
+echo ----------------------------------------------------------
+echo Backend:
+echo Migrations: 096_sync_expansion.sql / sqlite_096_sync_expansion.sql
+echo Routes:
+echo GET /v1/api/sync/status
+echo POST /v1/api/sync/jobs/run
+echo Frontend:
+echo - Sync Status card
+echo - Data Quality card (run now + results)
+echo ----------------------------------------------------------
+echo Next:
+echo cd backend-node && npm run migrate && npm run build && npm run dev
+echo cd ../frontend && npm install && npm run dev
+echo
+echo Notes:
+echo - Reconciliation jobs currently check: parts vs stock price alignment,
+echo reservations vs on_hand, WOs waiting on open POs, crew cert expiries,
+echo and multiple active thresholds per sensor.
+echo - Extend jobs with more business rules as needed.
+echo ==========================================================
+endlocal

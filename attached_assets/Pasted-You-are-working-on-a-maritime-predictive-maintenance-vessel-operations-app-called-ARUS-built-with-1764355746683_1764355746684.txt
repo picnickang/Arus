@@ -1,0 +1,367 @@
+You are working on a maritime predictive-maintenance / vessel-operations app called ARUS, built with:
+
+Electron desktop shell
+
+Node.js/TypeScript backend (Express-style server, esbuild, VESSEL embedded mode)
+
+React + Vite frontend
+
+SQLite / libSQL / PostgreSQL hybrid via an ORM (e.g. Drizzle)
+
+Telemetry ingestion (MQTT, simulators, ML analytics, digital twin)
+
+Existing modules: maintenance, equipment registry, work orders, crew management, hours of rest, analytics, predictive maintenance, etc.
+
+
+
+The goal of this task is to implement and wire up ONLY the logbook features that can be fully auto-filled using existing or easily added telemetry and APIs. Before coding, you MUST:
+
+Scan the entire repository and architecture for anything related to:
+
+Deck logs, bridge logs, engine logs, fuel/emissions logs, vibration/condition monitoring logs, vessel track logs, or “logbook”
+
+Telemetry ingestion pipelines, vessel simulators, analytics aggregators
+
+Existing tables that might already store similar data (positions, engine snapshots, alerts, etc.)
+
+Avoid duplication and conflicts:
+
+DO NOT introduce new tables, APIs, or React pages that duplicate existing features.
+
+Prefer extending or reusing existing schemas / services where they already cover the same concepts.
+
+If similar functionality already exists, upgrade and integrate instead of rebuilding.
+
+1. Identify Which Logs Can Be Fully Auto-Filled
+
+
+
+Based on the current codebase, determine which of the following can be fully auto-generated from data already available (telemetry + APIs), with NO mandatory manual input:
+
+Automated Deck Log (Bridge log)
+
+Time, vessel, position (lat/lon), COG/SOG, heading
+
+Weather/sea state (from integrated weather provider or StormGeo API if present)
+
+Basic navigation status (at sea / in port / maneuvering) derived from speed + position behavior
+
+Automated Engine Room Log
+
+Time, vessel, engine parameters (RPM, load, pressures, temperatures)
+
+Which engines/generators are running
+
+Running hours (auto-computed from telemetry)
+
+Key alarms / warnings
+
+Fuel / Emissions Log
+
+Time, vessel, fuel consumption estimate per period (from flow meters / engine telemetry if present)
+
+Engine load vs. fuel use
+
+Basic CO₂ emission estimate using standard factors
+
+Condition Monitoring / Vibration Log
+
+Time, vessel, asset (engine/gearbox/shaft/bearing/etc.)
+
+Aggregated vibration or health metrics over time
+
+ML anomaly scores where available
+
+AIS-like Track / Position Log
+
+Time series of position, heading, speed per vessel, at a configured interval
+
+This may already exist in telemetry tables but not exposed as a logbook
+
+
+
+TASK A:
+
+List which of the above are already partially implemented and where (file paths, table names, modules).
+
+For each, specify what’s missing to make them a proper, self-contained logbook module (schema, APIs, exports, UI, retention, etc.).
+
+Propose a minimal unified architecture for these auto-filled logs that fits the existing design.
+
+2. Architecture & Schema Design (Respect Existing DB Setup)
+
+
+
+Design or refine schema for the following entities, reusing existing tables where possible:
+
+deck_logs (or equivalent)
+
+engine_logs
+
+fuel_emissions_logs
+
+condition_monitoring_logs (or reuse existing CM tables / ML metrics)
+
+track_logs (if not already modeled)
+
+
+
+For each:
+
+Ensure each log entry is scoped to:
+
+vessel_id
+
+timestamp in UTC
+
+Store raw data + derived metrics:
+
+Example: engine_logs store both raw telemetry snapshot and derived “engine load category”
+
+Respect the hybrid SQLite/libSQL/PostgreSQL design:
+
+Make sure schemas and migrations work in both local embedded vessel mode and cloud/central mode.
+
+Add/confirm indexes for time-series queries (vessel_id + timestamp, etc.).
+
+Confirm how these logs sync between local and cloud DB using the existing sync layer (Turso/libSQL/etc.) and ensure no conflicts.
+
+
+
+TASK B:
+
+Generate or update migrations, schema definitions, and any ORM models for these tables.
+
+Explicitly note where you are extending vs. creating new schema.
+
+3. Telemetry → Logbook Pipelines (Back-End)
+
+
+
+Create or refine background jobs / streaming processors that consume telemetry and produce log entries:
+
+Deck Log Auto-Fill
+
+At a configurable interval (e.g. every 15 minutes or on significant change):
+
+Take latest navigation telemetry snapshot.
+
+Optionally call configured weather API / StormGeo if the app already supports this.
+
+Write a deck_logs entry only if:
+
+There is a meaningful change from the last log, OR
+
+It’s time for a periodic entry.
+
+Ensure logic supports embedded/offline mode (queue entries locally if no cloud).
+
+Engine Room Log Auto-Fill
+
+Use existing engine telemetry stream:
+
+Snapshots at defined interval or on status change (engine start/stop, major parameter change).
+
+Compute and store running hours and state per engine/generator.
+
+Ensure idempotence: prevent duplicate log entries when replaying buffered telemetry.
+
+Fuel / Emissions Log Auto-Fill
+
+Use available data:
+
+Fuel flow meters, engine load, or fallback estimates based on running hours + engine rating.
+
+Store per-period totals (e.g. 1h or 15min windows) per vessel.
+
+Include CO₂ estimate using standard emission factor constants.
+
+Condition Monitoring Log Auto-Fill
+
+Aggregate raw vibration/CM telemetry and ML scores into periodic summaries:
+
+Max/avg RMS, kurtosis, spectral indicators, ML anomaly score.
+
+Only log when:
+
+New data available OR
+
+Anomaly or threshold exceeded.
+
+Track Log Auto-Fill
+
+Persist an AIS-like track for each vessel (if not already persisted):
+
+Regular position/time snapshots.
+
+Don’t write duplicate points when position hasn’t changed meaningfully.
+
+
+
+TASK C:
+
+Implement or refine these pipelines in the existing telemetry/digital-twin/analytics services, NOT as a separate, conflicting system.
+
+Add clear configs/env variables for:
+
+Sampling intervals
+
+Retention time windows
+
+Feature toggles (on/off per module)
+
+4. API Layer & Authorization
+
+
+
+For each log type, ensure there are:
+
+REST or WebSocket endpoints to:
+
+Query paginated logs by vessel and time range.
+
+Download logs in CSV/XLSX (where existing export utilities exist, reuse them).
+
+Tenant isolation & org security:
+
+All routes must enforce x-org-id / org scoping, consistent with current TENANT_ISOLATION_SUCCESS middleware.
+
+Rate limiting:
+
+Avoid spamming logs endpoints (especially for large time windows); apply or reuse existing rate limiter.
+
+
+
+TASK D:
+
+Add/adjust backend routes for these logs under /api/logs/* or reuse existing naming conventions.
+
+Ensure tests exist (unit/integration) for:
+
+Correct org scoping
+
+Correct filtering by vessel/time
+
+Handling of missing data
+
+5. Frontend UX: Viewing & Exporting Auto-Filled Logs
+
+
+
+Update the React/Electron frontend to provide clear, non-cluttered views for these auto-filled logs:
+
+Deck Log View
+
+Per vessel, time-filtered table plus optional timeline or map (if map component exists).
+
+Columns: time, position, COG/SOG, weather, notes (read-only if fully auto-filled, with optional manual override if architecture allows).
+
+Engine Log View
+
+Per vessel, time-series table + sparkline charts (if chart components exist).
+
+Show key engine parameters and running state.
+
+Fuel/Emissions Log View
+
+Simple table with per-period fuel consumption and CO₂ estimates.
+
+Include aggregated totals per day/voyage.
+
+Condition Monitoring Log View
+
+Asset-centric view (engine, gearbox, etc.).
+
+Show trend indicators and highlight anomalies.
+
+Track Log View
+
+If a map or route visualization component already exists, reuse it.
+
+Otherwise, provide a simple table with time + position.
+
+
+
+TASK E:
+
+Reuse existing Shadcn/Recharts/UI components already present in the app where possible.
+
+Make sure these views:
+
+Are discoverable via the existing navigation
+
+Respect theme/layout conventions
+
+Support export (CSV/PDF/XLSX) where existing export utilities are already used.
+
+6. Performance, Storage & Retention
+
+
+
+Implement or verify:
+
+Reasonable retention and pruning policies for each log (e.g. keep detailed telemetry for 90 days, logs for 365 days).
+
+Efficient queries:
+
+Use indexes and pagination.
+
+Avoid unbounded date range queries.
+
+Embedded mode considerations:
+
+Ensure ARUS runs smoothly on a typical vessel PC or laptop with live telemetry and logging turned on.
+
+
+
+TASK F:
+
+Add or update any pruning jobs / schedulers to manage log table growth.
+
+Add basic performance tests or benchmarks if existing infra supports it.
+
+7. Validation, Tests, and Developer Documentation
+
+
+
+Finally:
+
+Add/extend automated tests that validate:
+
+Telemetry → log pipelines create correct entries.
+
+Logs are correctly scoped by org_id and vessel_id.
+
+Export functions produce correct, human-readable logbook formats.
+
+Add or update developer documentation (in README or docs directory) explaining:
+
+Which logs are auto-filled,
+
+Where their code lives (backend + frontend),
+
+How they depend on telemetry, weather APIs, and sync,
+
+How to enable/disable or configure them.
+
+
+
+TASK G:
+
+Summarize, in a short markdown note in the repo, what you have implemented/modified so the next developer can quickly understand the auto-filled log system.
+
+IMPORTANT CONSTRAINTS
+
+Do NOT break existing features: before changing any module, quickly scan its usage across the codebase.
+
+Prefer extension over replacement: If there’s already a “log-like” feature, align with it instead of inventing a parallel system.
+
+Keep the implementation compatible with multi-device use (desktop + possible mobile wrappers) and the hybrid SQLite/libSQL/Postgres stack.
+
+
+
+When you’re done, provide:
+
+A brief summary of what you changed and where (file paths, modules).
+
+Any follow-up suggestions if deeper refactors are needed beyond this prompt.

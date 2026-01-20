@@ -1,0 +1,321 @@
+{
+  "trees": [
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "critical",
+        "samples": 6,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": false,
+        "featureIndex": 1,
+        "featureName": "maxTemperature",
+        "threshold": 252.32,
+        "left": {
+          "isLeaf": true,
+          "prediction": "healthy",
+          "samples": 1,
+          "impurity": 0
+        },
+        "right": {
+          "isLeaf": true,
+          "prediction": "critical",
+          "samples": 5,
+          "impurity": 0
+        },
+        "samples": 6,
+        "impurity": 0.2777777777777777
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": false,
+        "featureIndex": 5,
+        "featureName": "stdVibration",
+        "threshold": 0.270208156671165,
+        "left": {
+          "isLeaf": true,
+          "prediction": "healthy",
+          "samples": 1,
+          "impurity": 0
+        },
+        "right": {
+          "isLeaf": true,
+          "prediction": "critical",
+          "samples": 5,
+          "impurity": 0
+        },
+        "samples": 6,
+        "impurity": 0.2777777777777777
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "critical",
+        "samples": 6,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "critical",
+        "samples": 6,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "critical",
+        "samples": 6,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "critical",
+        "samples": 6,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "critical",
+        "samples": 6,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": false,
+        "featureIndex": 5,
+        "featureName": "stdVibration",
+        "threshold": 0.2756390064797327,
+        "left": {
+          "isLeaf": true,
+          "prediction": "healthy",
+          "samples": 2,
+          "impurity": 0
+        },
+        "right": {
+          "isLeaf": true,
+          "prediction": "critical",
+          "samples": 4,
+          "impurity": 0
+        },
+        "samples": 6,
+        "impurity": 0.4444444444444445
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "critical",
+        "samples": 6,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "critical",
+        "samples": 6,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": false,
+        "featureIndex": 7,
+        "featureName": "minPressure",
+        "threshold": 46.31,
+        "left": {
+          "isLeaf": true,
+          "prediction": "critical",
+          "samples": 4,
+          "impurity": 0
+        },
+        "right": {
+          "isLeaf": true,
+          "prediction": "healthy",
+          "samples": 2,
+          "impurity": 0
+        },
+        "samples": 6,
+        "impurity": 0.4444444444444444
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "critical",
+        "samples": 6,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "critical",
+        "samples": 6,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "critical",
+        "samples": 6,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "critical",
+        "samples": 6,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": false,
+        "featureIndex": 0,
+        "featureName": "avgTemperature",
+        "threshold": 158.6884957627119,
+        "left": {
+          "isLeaf": true,
+          "prediction": "healthy",
+          "samples": 1,
+          "impurity": 0
+        },
+        "right": {
+          "isLeaf": true,
+          "prediction": "critical",
+          "samples": 5,
+          "impurity": 0
+        },
+        "samples": 6,
+        "impurity": 0.2777777777777777
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": false,
+        "featureIndex": 5,
+        "featureName": "stdVibration",
+        "threshold": 0.2756390064797327,
+        "left": {
+          "isLeaf": true,
+          "prediction": "healthy",
+          "samples": 1,
+          "impurity": 0
+        },
+        "right": {
+          "isLeaf": true,
+          "prediction": "critical",
+          "samples": 5,
+          "impurity": 0
+        },
+        "samples": 6,
+        "impurity": 0.2777777777777777
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": false,
+        "featureIndex": 6,
+        "featureName": "avgPressure",
+        "threshold": 51.650042372881344,
+        "left": {
+          "isLeaf": true,
+          "prediction": "critical",
+          "samples": 5,
+          "impurity": 0
+        },
+        "right": {
+          "isLeaf": true,
+          "prediction": "healthy",
+          "samples": 1,
+          "impurity": 0
+        },
+        "samples": 6,
+        "impurity": 0.2777777777777777
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": false,
+        "featureIndex": 7,
+        "featureName": "minPressure",
+        "threshold": 46.31,
+        "left": {
+          "isLeaf": true,
+          "prediction": "critical",
+          "samples": 5,
+          "impurity": 0
+        },
+        "right": {
+          "isLeaf": true,
+          "prediction": "healthy",
+          "samples": 1,
+          "impurity": 0
+        },
+        "samples": 6,
+        "impurity": 0.2777777777777777
+      },
+      "featureImportances": {}
+    }
+  ],
+  "config": {
+    "numTrees": 20,
+    "maxDepth": 8,
+    "minSamplesSplit": 3,
+    "maxFeatures": 6,
+    "bootstrapSampleRatio": 0.8
+  },
+  "featureNames": [
+    "avgTemperature",
+    "maxTemperature",
+    "stdTemperature",
+    "avgVibration",
+    "maxVibration",
+    "stdVibration",
+    "avgPressure",
+    "minPressure",
+    "operatingHours",
+    "cycleCount",
+    "maintenanceAge",
+    "failureHistory"
+  ],
+  "classLabels": [
+    "critical",
+    "healthy"
+  ]
+}

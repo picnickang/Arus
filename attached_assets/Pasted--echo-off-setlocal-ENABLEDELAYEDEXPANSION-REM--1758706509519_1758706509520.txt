@@ -1,0 +1,233 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==========================================================
+REM ARUS UI Patch: STCW Grid Axis Labels (0000..2300 on X, 1..31 on Y)
+REM Replaces frontend/src/components/HoursOfRest.tsx
+REM ==========================================================
+
+if not exist "frontend\src\components" (
+echo [ERROR] frontend\src\components not found. Run in repo root.
+exit /b 1
+)
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+%PS% "$code=@'
+import { useEffect, useMemo, useState } from \"react\";
+const BASE = (import.meta as any).env.VITE_API_URL || 'http://localhost:8000';
+
+type DayRow = { date:string } & Record<`h${number}`, number>;
+
+const MONTHS = [
+{label:\"JANUARY\", days:31},{label:\"FEBRUARY\", days:29},{label:\"MARCH\", days:31},
+{label:\"APRIL\", days:30},{label:\"MAY\", days:31},{label:\"JUNE\", days:30},
+{label:\"JULY\", days:31},{label:\"AUGUST\", days:31},{label:\"SEPTEMBER\", days:30},
+{label:\"OCTOBER\", days:31},{label:\"NOVEMBER\", days:30},{label:\"DECEMBER\", days:31}
+];
+
+function ymd(year:number, mIdx:number, d:number){
+return new Date(Date.UTC(year, mIdx, d)).toISOString().slice(0,10);
+}
+
+function emptyMonth(year:number, monthLabel:string): DayRow[] {
+const idx = MONTHS.findIndex(m=>m.label===monthLabel);
+const days = idx===1 ? ((year%4===0 && (year%100!==0 || year%400===0)) ? 29 : 28) : MONTHS[idx].days;
+const rows: DayRow[] = [];
+for(let d=1; d<=days; d++){
+const row: any = {date: ymd(year, idx, d)};
+for(let h=0; h<24; h++) row[`h${h}`]=0; // 1=REST, 0=WORK
+rows.push(row as DayRow);
+}
+return rows;
+}
+
+function toCSV(rows: DayRow[]): string {
+if(!rows.length) return '';
+const header = ['date', ...Array.from({length:24},(_,i)=>`h${i}`)];
+const lines = [header.join(',')];
+for(const r of rows){ lines.push(header.map(k=>String((r as any)[k] ?? '')).join(',')); }
+return lines.join('\\n');
+}
+
+function parseCSV(text:string): DayRow[] {
+const lines = text.trim().split(/\\r?\\n/);
+if(lines.length<2) return [];
+const header = lines[0].split(',').map(s=>s.trim());
+const out: DayRow[] = [];
+for(let i=1;i<lines.length;i++){
+const col = lines[i].split(',');
+const row: any = {};
+header.forEach((h,j)=> row[h]= j<col.length ? (h==='date'? col[j] : Number(col[j]||0)) : (h==='date'?'':0));
+out.push(row as DayRow);
+}
+return out;
+}
+
+function sum24(r:DayRow){ let s=0; for(let h=0;h<24;h++) s+= (r as any)[`h${h}`]||0; return s; }
+function chunks(r:DayRow): Array<[number,number]> {
+const segs: Array<[number,number]> = []; let cur = -1;
+for(let h=0; h<24; h++){
+const v = (r as any)[`h${h}`] || 0;
+if(v===1 && cur===-1) cur=h;
+if((v===0 || h===23) && cur!==-1){ const end = (v===0) ? h : 24; segs.push([cur,end]); cur=-1; }
+}
+return segs;
+}
+function splitOK(r:DayRow){ const segs = chunks(r); const one6 = segs.some(([a,b])=> (b-a)>=6); return segs.length<=2 && one6; }
+function minRest24Around(idx:number, rows:DayRow[]){
+const flat:number[]=[]; rows.forEach(r=>{ for(let h=0;h<24;h++) flat.push((r as any)[`h${h}`]||0); });
+const base = idx*24; let minv=999;
+for(let k=1;k<=24;k++){ const start=Math.max(0,base+k-24), end=base+k; const v = flat.slice(start,end).reduce((a,b)=>a+b,0); if(v<minv) minv=v; }
+return minv;
+}
+
+export default function HoursOfRest(){
+const thisYear = new Date().getUTCFullYear();
+const [meta,setMeta]=useState<any>({vessel_id:\"GREEN BELAIT\",crew_id:\"c_lee\",crew_name:\"C. Lee\",rank:\"Chief Eng\",month:\"AUGUST\",year:thisYear});
+const [rows,setRows]=useState<DayRow[]>(()=>emptyMonth(thisYear, \"AUGUST\"));
+const [csv,setCsv]=useState<string>(''); const [result,setResult]=useState<any>(null);
+const [mode,setMode]=useState<'GRID'|'CSV'>('GRID'); const [paint,setPaint]=useState<0|1>(1);
+
+useEffect(()=>{ setRows(emptyMonth(meta.year, meta.month)); }, [meta.year, meta.month]);
+
+const compliance = useMemo(()=> rows.map((r,i)=>({
+date: r.date, restTotal: sum24(r), minRest24: minRest24Around(i, rows), splitOK: splitOK(r),
+dayOK: (minRest24Around(i, rows) >= 10) && splitOK(r)
+})), [rows]);
+
+function toggleCell(dIdx:number, h:number){
+const next = rows.map((r,i)=> i===dIdx ? {...r, [`h${h}`]: ((r as any)[`h${h}`]===1?0:1)} as any : r);
+setRows(next);
+}
+function paintCell(dIdx:number, h:number){
+const next = rows.map((r,i)=> i===dIdx ? {...r, [`h${h}`]: paint} as any : r);
+setRows(next);
+}
+function onDrag(e:React.MouseEvent, dIdx:number, h:number){ if(e.buttons!==1) return; paintCell(dIdx,h); }
+
+function exportCSV(){ setCsv(toCSV(rows)); setMode('CSV'); }
+function importCSV(){ if(!csv.trim()) return; const parsed=parseCSV(csv); if(parsed.length) setRows(parsed); setMode('GRID'); }
+function fillAllRest(){ setRows(rows.map(r=>{ const x:any={...r}; for(let h=0;h<24;h++) x[`h${h}`]=1; return x; })); }
+function clearAll(){ setRows(rows.map(r=>{ const x:any={...r}; for(let h=0;h<24;h++) x[`h${h}`]=0; return x; })); }
+
+async function upload(){
+const body = { sheet: meta, rows };
+const idem = (crypto as any)?.randomUUID?.() || String(Math.random());
+const r = await fetch(`${BASE}/api/crew/rest/import`, {method:'POST', headers:{'Content-Type':'application/json','Idempotency-Key': idem}, body: JSON.stringify(body)});
+const j = await r.json(); setResult(j);
+}
+async function runCheck(){
+const r = await fetch(`${BASE}/api/crew/rest/check`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({rows})});
+setResult(await r.json());
+}
+async function exportPdf(){
+const q = new URLSearchParams({crew_id: meta.crew_id, year: String(meta.year), month: meta.month});
+const r = await fetch(`${BASE}/api/crew/rest/export_pdf?${q.toString()}`); const j = await r.json();
+alert(j.ok?`PDF at ${j.path}`:JSON.stringify(j));
+}
+
+// Layout constants
+const hourW = 24, cellH = 18, hdrH = 26;
+const hours = Array.from({length:24},(_,i)=> i);
+const hourLabel = (h:number)=> `${String(h).padStart(2,'0')}00`; // 0000..2300
+
+// Determine days for Y labels
+const monthIdx = MONTHS.findIndex(m=>m.label===meta.month);
+const daysInMonth = rows.length; // already computed by emptyMonth
+const dayNum = (iso:string)=> Number(iso.slice(-2));
+
+return (
+<div className=\"card\">
+<h2>Hours of Rest (STCW) — Grid</h2>
+
+{/* Meta inputs */}
+<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:6}}>
+<input placeholder='Vessel' value={meta.vessel_id||''} onChange={e=>setMeta({...meta,vessel_id:e.target.value})}/>
+<input placeholder='Crew ID' value={meta.crew_id||''} onChange={e=>setMeta({...meta,crew_id:e.target.value})}/>
+<input placeholder='Crew Name' value={meta.crew_name||''} onChange={e=>setMeta({...meta,crew_name:e.target.value})}/>
+<input placeholder='Rank' value={meta.rank||''} onChange={e=>setMeta({...meta,rank:e.target.value})}/>
+<select value={meta.month} onChange={e=>setMeta({...meta,month:e.target.value})}>
+{MONTHS.map(m=> <option key={m.label} value={m.label}>{m.label}</option>)}
+</select>
+<input type='number' placeholder='Year' value={meta.year||2025} onChange={e=>setMeta({...meta,year:Number(e.target.value)||2025})}/>
+</div>
+
+{/* Toolbar */}
+<div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',marginTop:8}}>
+<label>Paint:</label>
+<button onClick={()=>setPaint(1)} style={{background: paint===1?'#059669':''}}>REST</button>
+<button onClick={()=>setPaint(0)} style={{background: paint===0?'#b91c1c':''}}>WORK</button>
+<button onClick={fillAllRest}>Fill All REST</button>
+<button onClick={clearAll}>Clear All</button>
+<button onClick={upload}>Upload</button>
+<button onClick={runCheck}>Check</button>
+<button onClick={exportPdf}>Export PDF</button>
+<button onClick={exportCSV}>Export CSV</button>
+<button onClick={importCSV}>Import CSV → Grid</button>
+<span style={{marginLeft:'auto',fontSize:12,color:'#334155'}}>Rule: ≥10h rest/24h, ≥77h rest/7d, ≤2 rest blocks/day with one ≥6h</span>
+</div>
+
+{/* Month banner row */}
+<div style={{marginTop:8, fontSize:12, color:'#334155'}}>
+<b>Month:</b> {meta.month} &nbsp; <b>Hours:</b> mark REST periods with green cells (1), WORK is red (0)
+</div>
+
+{/* Grid */}
+<div style={{overflowX:'auto',marginTop:6}}>
+{/* Header with 0000..2300 */}
+<div style={{display:'grid',gridTemplateColumns:`80px repeat(24, ${hourW}px) 70px 70px`, alignItems:'center'}}>
+<div style={{textAlign:'center',height:hdrH,lineHeight:`${hdrH}px`,background:'#f1f5f9'}}>Day</div>
+{hours.map(h=><div key={h} style={{textAlign:'center',height:hdrH,lineHeight:`${hdrH}px`,fontSize:12,background:'#f1f5f9'}}>{hourLabel(h)}</div>)}
+<div style={{textAlign:'center',background:'#f1f5f9'}}>Rest/24</div>
+<div style={{textAlign:'center',background:'#f1f5f9'}}>Min24</div>
+</div>
+
+{/* Rows with Y = 1..days */}
+{rows.map((r,ri)=>{
+const c = compliance[ri];
+const vRest = c?.restTotal ?? 0;
+const vMin = c?.minRest24 ?? 0;
+const dayIndex = dayNum(r.date); // 1..N
+return (
+<div key={r.date} style={{display:'grid',gridTemplateColumns:`80px repeat(24, ${hourW}px) 70px 70px`}}>
+{/* Y-axis label */}
+<div style={{fontSize:12,padding:'2px 4px',background:'#fff',textAlign:'center'}}>{dayIndex}</div>
+{/* 24 hours */}
+{hours.map(h=>{
+const v = (r as any)[`h${h}`]||0;
+const bg = v===1 ? '#dcfce7' : '#fee2e2';
+return <div key={h}
+onMouseDown={(e)=>{ e.preventDefault(); toggleCell(ri,h); }}
+onMouseMove={(e)=>onDrag(e,ri,h)}
+style={{width:hourW,height:cellH,background:bg,border:'1px solid #e2e8f0',cursor:'crosshair'}}/>;
+})}
+{/* Rest totals */}
+<div style={{textAlign:'center',fontSize:12,background: vRest>=10?'#e2e8f0':'#ffe4e6'}}>{vRest}</div>
+<div style={{textAlign:'center',fontSize:12,background: vMin>=10?'#e2e8f0':'#ffe4e6'}}>{vMin.toFixed(0)}</div>
+{/* daily stripe */}
+<div style={{gridColumn:`1 / span 26`, height:2, background: c?.dayOK ? '#10b981' : '#ef4444'}}></div>
+</div>
+);
+})}
+</div>
+
+{/* CSV panel (optional view) */}
+{mode==='CSV' && <>
+<div style={{marginTop:12}}>
+<label>CSV (date,h0..h23):</label>
+<textarea style={{width:'100%',height:160}} value={csv} onChange={e=>setCsv(e.target.value)} />
+</div>
+</>}
+
+{result && <pre className='text-xs' style={{background:'#ecfeff',padding:8,marginTop:8,borderRadius:6,overflow:'auto'}}>{JSON.stringify(result,null,2)}</pre>}
+</div>
+);
+}
+'@; Set-Content -Encoding UTF8 frontend/src/components/HoursOfRest.tsx $code"
+
+echo.
+echo ==========================================================
+echo [OK] HoR grid axes updated: X=0000..2300, Y=1..days with month banner.
+echo Rebuild frontend: npm -C frontend run dev
+echo ==========================================================
+endlocal

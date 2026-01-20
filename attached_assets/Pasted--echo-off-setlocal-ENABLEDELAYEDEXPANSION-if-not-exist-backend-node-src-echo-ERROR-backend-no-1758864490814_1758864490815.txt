@@ -1,0 +1,280 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+
+if not exist "backend-node\src" (
+echo [ERROR] backend-node/src not found. Run from repo root.
+exit /b 1
+)
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+REM ============================
+REM 1) Backend: crew routes
+REM ============================
+> backend-node\src\index.crew.ts (
+echo import express from "express";
+echo import path from "node:path";
+echo import { Pool } from "pg";
+echo import Database from "better-sqlite3";
+echo
+echo const DATABASE_URL = process.env.DATABASE_URL || "";
+echo const USE_PG = !!DATABASE_URL;
+echo
+echo async function qpg<T=any>(sql:string, params:any[]=[]): Promise<T[]>{
+echo const { Pool } = await import("pg");
+echo const pool = new Pool({ connectionString: DATABASE_URL });
+echo const c = await pool.connect(); try { const r = await c.query(sql, params); return r.rows as any; } finally { c.release(); await pool.end(); }
+echo }
+echo function qlite<T=any>(sql:string, params:any[]=[]): T[]{
+echo const db = new Database(path.join(process.cwd(),"data","arus.sqlite"));
+echo const rows = db.prepare(sql).all(...params); db.close(); return rows as any;
+echo }
+echo function runlite(sql:string, params:any[]=[]){
+echo const db = new Database(path.join(process.cwd(),"data","arus.sqlite"));
+echo const stmt = db.prepare(sql); const r = stmt.run(...params); db.close(); return r;
+echo }
+echo
+echo export function mountCrew(v1: express.Router){
+echo // List crew (optional filter by vessel_id)
+echo v1.get("/api/crew", async (req,res)=>{
+echo const vessel = req.query.vessel_id ? String(req.query.vessel_id) : "";
+echo if (USE_PG){
+echo const rows = vessel
+echo ? await qpg("SELECT id,name,rank,vessel_id,on_duty,created_at FROM crew WHERE vessel_id=$1 ORDER BY COALESCE(name,id)", [vessel])
+echo : await qpg("SELECT id,name,rank,vessel_id,on_duty,created_at FROM crew ORDER BY COALESCE(name,id)");
+echo return res.json(rows);
+echo } else {
+echo const rows = vessel
+echo ? qlite("SELECT id,name,rank,vessel_id,on_duty,created_at FROM crew WHERE vessel_id=? ORDER BY COALESCE(name,id)", [vessel])
+echo : qlite("SELECT id,name,rank,vessel_id,on_duty,created_at FROM crew ORDER BY COALESCE(name,id)");
+echo return res.json(rows);
+echo }
+echo });
+echo
+echo // Create crew
+echo v1.post("/api/crew", async (req,res)=>{
+echo const { id, name, rank, vessel_id, on_duty } = req.body||{};
+echo if (!id) return res.status(400).json({ok:false, error:"id required"});
+echo if (USE_PG){
+echo try{
+echo await qpg("INSERT INTO crew(id,name,rank,vessel_id,on_duty) VALUES($1,$2,$3,$4,$5)", [id, name||null, rank||null, vessel_id||null, on_duty?1:0]);
+echo return res.json({ok:true});
+echo } catch(e:any){ return res.status(400).json({ok:false, error:e?.message||String(e)}); }
+echo } else {
+echo try{
+echo runlite("INSERT INTO crew(id,name,rank,vessel_id,on_duty,created_at) VALUES(?,?,?,?,?,datetime('now'))", [id, name||null, rank||null, vessel_id||null, on_duty?1:0]);
+echo return res.json({ok:true});
+echo } catch(e:any){ return res.status(400).json({ok:false, error:e?.message||String(e)}); }
+echo }
+echo });
+echo
+echo // Edit crew (partial update)
+echo v1.patch("/api/crew/:id", async (req,res)=>{
+echo const id = String(req.params.id);
+echo const { name, rank, vessel_id, on_duty } = req.body||{};
+echo if (USE_PG){
+echo try{
+echo await qpg("UPDATE crew SET name=COALESCE($2,name), rank=COALESCE($3,rank), vessel_id=COALESCE($4,vessel_id), on_duty=COALESCE($5,on_duty) WHERE id=$1", [id, name, rank, vessel_id, (on_duty===undefined? undefined : (on_duty?1:0))]);
+echo return res.json({ok:true});
+echo } catch(e:any){ return res.status(400).json({ok:false, error:e?.message||String(e)}); }
+echo } else {
+echo try{
+echo const row = qlite("SELECT * FROM crew WHERE id=?", [id])[0];
+echo if (!row) return res.status(404).json({ok:false, error:"not found"});
+echo runlite("UPDATE crew SET name=?, rank=?, vessel_id=?, on_duty=? WHERE id=?", [name??row.name, rank??row.rank, vessel_id??row.vessel_id, (on_duty===undefined? row.on_duty : (on_duty?1:0)), id]);
+echo return res.json({ok:true});
+echo } catch(e:any){ return res.status(400).json({ok:false, error:e?.message||String(e)}); }
+echo }
+echo });
+echo
+echo // Delete crew
+echo v1.delete("/api/crew/:id", async (req,res)=>{
+echo const id = String(req.params.id);
+echo if (USE_PG){
+echo await qpg("DELETE FROM crew WHERE id=$1", [id]);
+echo } else {
+echo runlite("DELETE FROM crew WHERE id=?", [id]);
+echo }
+echo return res.json({ok:true});
+echo });
+echo
+echo // Reassign crew to vessel
+echo v1.post("/api/crew/:id/reassign", async (req,res)=>{
+echo const id = String(req.params.id);
+echo const vessel_id = String(req.body?.vessel_id||"");
+echo if (!vessel_id) return res.status(400).json({ok:false, error:"vessel_id required"});
+echo if (USE_PG){
+echo try{
+echo await qpg("UPDATE crew SET vessel_id=$2 WHERE id=$1", [id, vessel_id]);
+echo return res.json({ok:true});
+echo } catch(e:any){ return res.status(400).json({ok:false, error:e?.message||String(e)}); }
+echo } else {
+echo try{ runlite("UPDATE crew SET vessel_id=? WHERE id=?", [vessel_id, id]); return res.json({ok:true}); }
+echo catch(e:any){ return res.status(400).json({ok:false, error:e?.message||String(e)}); }
+echo }
+echo });
+echo
+echo // Toggle duty
+echo v1.post("/api/crew/:id/toggle-duty", async (req,res)=>{
+echo const id = String(req.params.id);
+echo if (USE_PG){
+echo const rows = await qpg<{on_duty:number}>("SELECT on_duty FROM crew WHERE id=$1", [id]);
+echo if (!rows.length) return res.status(404).json({ok:false, error:"not found"});
+echo const next = rows[0].on_duty ? 0 : 1;
+echo await qpg("UPDATE crew SET on_duty=$2 WHERE id=$1", [id, next]);
+echo return res.json({ok:true, on_duty: next});
+echo } else {
+echo const row:any = qlite("SELECT on_duty FROM crew WHERE id=?", [id])[0];
+echo if (!row) return res.status(404).json({ok:false, error:"not found"});
+echo const next = row.on_duty ? 0 : 1;
+echo runlite("UPDATE crew SET on_duty=? WHERE id=?", [next, id]);
+echo return res.json({ok:true, on_duty: next});
+echo }
+echo });
+echo }
+)
+
+REM Wire the crew router into /v1
+%PS% ^
+"$f='backend-node/src/index.ts'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace '(app\\.use\\(\"/v1\", v1\\);)','import { mountCrew } from \"./index.crew.js\";\nmountCrew(v1);\n$1';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ============================
+REM 2) Frontend: CrewManagement
+REM ============================
+if not exist "frontend\src" (
+echo [WARN] frontend/src not found; skipping UI (backend is ready).
+) else (
+> frontend\src\components\CrewManagement.tsx (
+echo import React, { useEffect, useMemo, useState } from "react";
+echo const BASE = (import.meta as any).env.VITE_API_URL || "http://localhost:8001";
+echo type Crew = { id:string; name?:string; rank?:string; vessel_id?:string|null; on_duty?:number };
+echo type Vessel = { id:string; name?:string|null };
+echo
+echo export default function CrewManagement(){
+echo const [vessels,setVessels]=useState<Vessel[]>([]);
+echo const [crew,setCrew]=useState<Crew[]>([]);
+echo const [filterVessel,setFilterVessel]=useState<string>("");
+echo
+echo const [newId,setNewId]=useState(\"\"), [newName,setNewName]=useState(\"\"), [newRank,setNewRank]=useState(\"\"), [newVessel,setNewVessel]=useState(\"\");
+echo
+echo async function loadVessels(){ const r = await fetch(\`\${BASE}/v1/api/vessels\`).then(r=>r.json()); setVessels(r||[]); }
+echo async function loadCrew(){
+echo const qs = filterVessel? \`?vessel_id=\${encodeURIComponent(filterVessel)}\` : \"\";
+echo const r = await fetch(\`\${BASE}/v1/api/crew\${qs}\`).then(r=>r.json()); setCrew(r||[]);
+echo }
+echo
+echo useEffect(()=>{ loadVessels(); },[]);
+echo useEffect(()=>{ loadCrew(); },[filterVessel]);
+echo
+echo async function addCrew(e:React.FormEvent){ e.preventDefault();
+echo if(!newId) return alert('Crew ID required');
+echo const body = { id:newId, name:newName||undefined, rank:newRank||undefined, vessel_id:newVessel||undefined };
+echo const r = await fetch(\`\${BASE}/v1/api/crew\`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+echo if(!r.ok){ alert('Create failed'); return; }
+echo setNewId(\"\"); setNewName(\"\"); setNewRank(\"\"); setNewVessel(\"\"); loadCrew();
+echo }
+echo
+echo async function saveRow(c:Crew){
+echo const r = await fetch(\`\${BASE}/v1/api/crew/\${encodeURIComponent(c.id)}\`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name:c.name, rank:c.rank, vessel_id:c.vessel_id, on_duty:c.on_duty }) });
+echo if(!r.ok) alert('Update failed');
+echo }
+echo async function reassign(id:string, vessel_id:string){
+echo const r = await fetch(\`\${BASE}/v1/api/crew/\${encodeURIComponent(id)}/reassign\`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ vessel_id }) });
+echo if(!r.ok) alert('Reassign failed'); else loadCrew();
+echo }
+echo async function toggle(id:string){
+echo const r = await fetch(\`\${BASE}/v1/api/crew/\${encodeURIComponent(id)}/toggle-duty\`, { method:'POST' });
+echo if(!r.ok) alert('Toggle failed'); else loadCrew();
+echo }
+echo async function remove(id:string){
+echo if(!confirm('Remove crew member?')) return;
+echo const r = await fetch(\`\${BASE}/v1/api/crew/\${encodeURIComponent(id)}\`, { method:'DELETE' });
+echo if(!r.ok) alert('Delete failed'); else loadCrew();
+echo }
+echo
+echo return (
+echo <div className="card">
+echo <h2>Crew Management</h2>
+echo
+echo <div style={{display:'flex',gap:8,alignItems:'center',margin:'6px 0',flexWrap:'wrap'}}>
+echo <label>Vessel:</label>
+echo <select value={filterVessel} onChange={e=>setFilterVessel(e.target.value)}>
+echo <option value="">(All)</option>
+echo {vessels.map(v=>(<option key={v.id} value={v.id}>{v.id}</option>))}
+echo </select>
+echo <button onClick={loadCrew} style={{marginLeft:'auto'}}>Refresh</button>
+echo </div>
+echo
+echo <table style={{width:'100%',fontSize:12,borderCollapse:'collapse',marginTop:6}}>
+echo <thead><tr style={{background:'#f1f5f9'}}><th>ID</th><th>Name</th><th>Rank</th><th>Vessel</th><th>On Duty</th><th>Actions</th></tr></thead>
+echo <tbody>
+echo {crew.map(c=>(
+echo <tr key={c.id}>
+echo <td style={{padding:'4px'}}>{c.id}</td>
+echo <td><input value={c.name||\"\"} onChange={e=>{ c.name=e.target.value; setCrew([...crew]); }} onBlur={()=>saveRow(c)} /></td>
+echo <td><input value={c.rank||\"\"} onChange={e=>{ c.rank=e.target.value; setCrew([...crew]); }} onBlur={()=>saveRow(c)} /></td>
+echo <td>
+echo <select value={c.vessel_id||\"\"} onChange={e=>{ const v=e.target.value; c.vessel_id=v; setCrew([...crew]); reassign(c.id, v); }}>
+echo <option value=\"\">(Unassigned)</option>
+echo {vessels.map(v=>(<option key={v.id} value={v.id}>{v.id}</option>))}
+echo </select>
+echo </td>
+echo <td>
+echo <label style={{display:'inline-flex',alignItems:'center',gap:6}}>
+echo <input type="checkbox" checked={!!c.on_duty} onChange={()=>toggle(c.id)} />
+echo {c.on_duty? 'On' : 'Off'}
+echo </label>
+echo </td>
+echo <td>
+echo <button onClick={()=>saveRow(c)}>Save</button>
+echo <button style={{marginLeft:6,color:'#b91c1c'}} onClick={()=>remove(c.id)}>Delete</button>
+echo </td>
+echo </tr>
+echo ))}
+echo {crew.length===0 && <tr><td colSpan={6} style={{padding:'6px',color:'#64748b'}}>No crew.</td></tr>}
+echo </tbody>
+echo </table>
+echo
+echo <h3 style={{marginTop:12}}>Add Crew</h3>
+echo <form onSubmit={addCrew} style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+echo <input placeholder="id" value={newId} onChange={e=>setNewId(e.target.value)} />
+echo <input placeholder="name" value={newName} onChange={e=>setNewName(e.target.value)} />
+echo <input placeholder="rank" value={newRank} onChange={e=>setNewRank(e.target.value)} />
+echo <select value={newVessel} onChange={e=>setNewVessel(e.target.value)}>
+echo <option value="">(Unassigned)</option>
+echo {vessels.map(v=>(<option key={v.id} value={v.id}>{v.id}</option>))}
+echo </select>
+echo <button type="submit">Add</button>
+echo </form>
+echo </div>
+echo );
+echo }
+)
+
+REM Mount into App
+%PS% ^
+"$f='frontend/src/App.tsx'; if (Test-Path $f) { $t=Get-Content -Raw $f; if ($t -notmatch 'CrewManagement'){ $t='import CrewManagement from \"./components/CrewManagement\";\n'+$t; $t=$t -replace '(</div>\\s*)$',' <CrewManagement />\n$1'; Set-Content -Encoding UTF8 $f $t; Write-Host '[OK] App.tsx patched with CrewManagement'; } else { Write-Host '[INFO] CrewManagement already referenced'; } } else { Write-Host '[WARN] frontend/src/App.tsx missing; skipped UI mount.' }"
+)
+
+echo.
+echo ==================================================
+echo ✅ Crew Management (edit/remove/reassign/toggle) added.
+echo --------------------------------------------------
+echo Backend:
+echo GET /v1/api/crew[?vessel_id=...]
+echo POST /v1/api/crew
+echo PATCH /v1/api/crew/:id
+echo DELETE /v1/api/crew/:id
+echo POST /v1/api/crew/:id/reassign { vessel_id }
+echo POST /v1/api/crew/:id/toggle-duty
+echo Frontend:
+echo - CrewManagement card with vessel filter, inline edits,
+echo reassign dropdown, on/off duty toggle, delete, and add form.
+echo --------------------------------------------------
+echo Next:
+echo cd backend-node && npm run build || npm run dev
+echo cd ../frontend && npm run dev
+echo ==================================================
+endlocal

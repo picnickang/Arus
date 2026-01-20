@@ -1,0 +1,184 @@
+You are a senior full-stack engineer, QA lead, and SRE working in this Replit project.
+
+Goal: Verify and fix ALL critical paths of the ARUS app so that:
+- All forms for Parts, Vessels, Equipment, and Sensors can CREATE/EDIT/DELETE successfully.
+- AI/ML tools generate valid insights & reports (PdM, baselines, thresholds, RUL, anomalies).
+- LLM features function with graceful fallbacks and cost/latency tracking.
+- All tables & charts render, paginate, sort, filter, and stay in sync in near-real-time.
+- Cross-component business logic is correct (inventory ↔ work orders ↔ equipment ↔ sensors ↔ alerts).
+- A reproducible test harness validates all of the above on each run.
+
+### 0) Project assumptions
+- Backend: Node/Express + Drizzle (Postgres + optional SQLite for vessel/offline), Redis, MQTT/WebSocket
+- Frontend: React + TanStack Query, shadcn/ui, lucide-react, recharts (or similar)
+- PdM modules: vibration/pump analytics, baselines, thresholds, alerting, digital twin hooks
+- LLM: OpenAI/Anthropic (env-driven), with fallback & cost tracking
+
+If anything differs, auto-detect and adapt.
+
+---
+
+### 1) Environment bootstrap (idempotent)
+- Ensure `.env.local` or `.env` includes:
+- DATABASE_URL, REDIS_URL
+- MQTT_BROKER_URL (or fallback to offline queue mode)
+- OPENAI_API_KEY and/or ANTHROPIC_API_KEY (LLM fallback chain)
+- VESSEL_ID, ORG_ID=default-org-id
+- Verify DB connectivity; run pending Drizzle migrations. If schema drift is detected, generate safe migrations (no destructive data loss) and apply.
+- If Timescale features are unavailable, keep current fallbacks.
+
+Artifacts:
+- `logs/bootstrap.log`
+- `db/migrations/*` if generated
+
+---
+
+### 2) Static & type checks
+- Run TypeScript and ESLint across `server`, `client`, and any `shared` packages.
+- Auto-fix missing/incorrect imports, bad module paths, and obvious typing issues.
+- Confirm shared types sync across server/client (`@shared/schema`).
+
+Artifacts:
+- `reports/static-checks.md` with error summaries and fixed files list.
+
+---
+
+### 3) Core CRUD forms — **Parts / Vessels / Equipment / Sensors**
+Implement or fix the following user flows **end-to-end** (client → API → DB → UI refresh):
+
+(A) Parts
+- Form fields: vendor, part name, SKU/code, unitCost, unit, reorderLevel, notes.
+- Validate: required fields, numeric ranges, duplicate SKU protection per org.
+- Actions: create, update, delete; stock linkage maintained.
+- Sorting/filtering: vendor (SORTABLE), name, cost, updatedAt.
+- Side effects: creating part does not silently create stock; reservation checks use partId.
+
+(B) Vessels
+- Fields: name, IMO/registration, status, location, notes.
+- Unique (name, org) rule; soft delete supported.
+- On delete: protect if equipment still attached.
+
+(C) Equipment
+- Fields: equipment type, vesselId, manufacturer/model, installDate, status.
+- On create/update: auto-invoke EquipmentAnalyticsService to create default **sensor configs** & alert configs for that type (engine, pump, compressor, generator, hvac, boiler).
+- Sensor coverage helper surfaces missing sensors in UI.
+
+(D) Sensors
+- Fields: equipmentId, sensorType, unit, sampleRateHz, thresholds (warnLo/Hi, critLo/Hi), enabled.
+- Validate sampleRate bounds, threshold ordering, and unit compatibility.
+- On enable/disable: recalc active thresholds; conflicts prevented (one active per device/sensor).
+
+Implementation notes:
+- All forms must use TanStack Query mutations with optimistic updates + server-side validation messages.
+- Show toasts for success/error; disable buttons during pending requests.
+- Real-time: on create/update/delete, broadcast an event and **invalidate relevant query keys** (use your `useRealtimeSync` hook mapping).
+
+Artifacts:
+- Cypress specs: `e2e/forms.parts.cy.ts`, `e2e/forms.vessels.cy.ts`, `e2e/forms.equipment.cy.ts`, `e2e/forms.sensors.cy.ts`
+- Unit tests for validators: `client/tests/validators/*.test.ts`
+
+---
+
+### 4) AI/ML pipeline checks (PdM)
+Validate and (if needed) implement the following:
+
+- Baselines: set/refresh when enough samples exist; store baseline metadata.
+- Anomaly detection: detect high vibration/temperature vs baseline with hysteresis & EMA smoothing.
+- Thresholds: ensure no duplicate active thresholds per device/sensor; conflicts reported & autofixed.
+- RUL estimation: deterministic on test data; expose via `/api/pdm/estimates` and dashboard cards.
+- Alerts: critical/warning levels; debounced to prevent spam; persisted and visible in “Recent Alerts”.
+- MQTT reliable sync: publish **state** (retained) + **event** (sequenced) topics per entity.
+- WebSocket remains for non-critical live UI updates.
+
+Create a deterministic **fixture set**:
+- Use `server/scripts/setup-test-equipment.ts` and seed telemetry (healthy vs failing assets).
+- Add script: `server/scripts/seed-pdm-fixtures.ts` that seeds minimal signals to trigger 1 warning & 1 critical path.
+
+Artifacts:
+- `reports/pdm-validation.md` with sample inputs, outputs, and screenshots JSON
+- API Contract tests: `server/tests/pdm.contract.test.ts`
+
+---
+
+### 5) LLM functionality & fallbacks
+- Add an LLM service that supports provider chain: OpenAI → Anthropic → local mock.
+- Provide config: temperature, maxTokens, retry with jitter, timeout guards.
+- Cost/latency tracking table + `/api/llm/health`.
+- Generate two report types via API & UI:
+1) **Vessel Health Report** (audience: executive/technical) with scenarios & ROI (if flags enabled)
+2) **PdM Alert Explanation** (explain why alert fired; link to raw signals)
+- If API keys missing, show **helpful UI state** with a “Configure LLM” CTA.
+
+Artifacts:
+- `server/tests/llm.smoke.test.ts`
+- `reports/llm-validation.md` with sample prompts/responses and redactions.
+
+---
+
+### 6) Tables & charts: correctness + UX
+- All tables must support: sort, filter, pagination, column visibility, CSV export.
+- Ensure **Vendor** column in Parts is **sortable** and **filterable** (string collate; case-insensitive).
+- Charts (recharts or similar): no runtime errors, empty-state messaging, loading & error states, and time-range selectors.
+- Accessibility: row focus ring, keyboard nav on forms, aria-labels for buttons.
+
+Artifacts:
+- Visual regression for key pages (Baseline screenshots): `e2e/visual/*.png`
+- `client/tests/tables-charts.render.test.tsx`
+
+---
+
+### 7) Cross-component logic (business rules)
+Implement tests to enforce these invariants:
+
+- Creating **Equipment** with known type auto-creates appropriate **SensorConfigurations** and **AlertConfigurations** (from templates).
+- Disabling a sensor removes it from PdM contribution but preserves history.
+- Changing thresholds immediately affects alert evaluations.
+- Parts ↔ Stock: price alignment job keeps `stock.unitCost = parts.standardCost`; reservations never exceed on-hand; pending work orders point to open POs.
+- Sync journal/outbox captures **create/update/delete/reconcile** operations; processPendingEvents marks processed and increments attempts on failure.
+- Reconciliation summary exposes totals and critical counts for the dashboard.
+
+Artifacts:
+- `server/tests/business-rules.test.ts`
+- `reports/reconciliation-summary.json`
+
+---
+
+### 8) Observability & health
+- Add `/api/sync/status` and `/api/sync/health` endpoints if missing, returning:
+- journal totals, pending/failed events, recent activity counts, last reconciliation, and PdM pack heartbeat.
+- Expose MQTT metrics: connection, queue depth/utilization, publish failures, reconnection attempts.
+- Add frontend **Sync Admin** page tiles with badges: Healthy / Issues / Critical.
+
+Artifacts:
+- `reports/health-check.md`
+- Postman collection: `docs/api/ARUS.postman_collection.json`
+
+---
+
+### 9) E2E test plan runner
+- Create `pnpm test:e2e` that boots server + client, seeds fixtures, then runs Cypress headless.
+- CI-like runner script `tools/run-full-audit.ts` that:
+1) Boots env & migrates
+2) Seeds fixtures
+3) Runs unit + contract + e2e tests
+4) Writes a single Markdown **Audit Report** with pass/fail summary and links to artifacts
+
+Artifacts:
+- `reports/Audit_Report_<timestamp>.md` (final)
+- Exit code non-zero if any critical path fails.
+
+---
+
+### 10) Deliverables
+- All fixes committed.
+- A single **README_AUDIT.md** explaining how to re-run the audit:
+- `pnpm bootstrap && pnpm dev`
+- `pnpm test:unit && pnpm test:contract && pnpm test:e2e`
+- `pnpm audit:arus` (alias of `tools/run-full-audit.ts`)
+
+Now:
+1) Apply safe code fixes.
+2) Implement any missing endpoints or UI behaviors required above.
+3) Generate tests and run them.
+4) Produce all artifacts under `/reports` and `/docs`.
+5) Print the path to the final Audit Report and a terse PASS/FAIL summary.

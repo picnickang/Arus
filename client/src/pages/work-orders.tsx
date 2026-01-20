@@ -1,0 +1,125 @@
+import { Plus, Trash2, Package, FileText, Wrench } from "lucide-react";
+import { WorkOrderRequestsTab } from "@/components/work-orders/WorkOrderRequestsTab";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { WorkOrderFilterPanel, VirtualizedWorkOrderTable, WorkOrderDetailDrawer, WorkOrderFormDialog, WorkOrderCloneDialog } from "@/components/work-orders";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+import { formatDistanceToNow } from "date-fns";
+import { TableSkeleton } from "@/components/shared/TableSkeleton";
+import { MultiPartSelector } from "@/components/MultiPartSelector";
+import { useWorkOrdersPageData, getWorkOrderDuration, getPriorityColor, getPriorityLabel, getStatusColor } from "@/features/work-orders";
+import { PermissionGate } from "@/components/PermissionGate";
+
+export default function WorkOrders() {
+  const {
+    workOrders, vessels, equipment, allCrewMembers, isLoading, error,
+    selectedOrder, viewModalOpen, setViewModalOpen, formDialogOpen, setFormDialogOpen, formDialogMode,
+    defaultVesselId, defaultEquipmentId, sortColumn, sortDirection, filters, setFilters,
+    drawerOpen, drawerOrder, cloneDialogOpen, cloneOrder,
+    filteredAndSortedWorkOrders, openOrders, completedOrders, highPriorityOrders, hasActiveFilters,
+    createMutation, updateMutation, clearAllMutation, completeWorkOrderMutation, queryClient,
+    getEquipmentName, getVesselName,
+    handleViewOrder, handleEditOrder, handleDeleteOrder, handleCreateOrder,
+    handleClearAllOrders, handleFormSubmit, handleSort,
+    closeDrawer, closeCloneDialog, onCloneSuccess,
+  } = useWorkOrdersPageData();
+
+  if (isLoading) {return (
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-center"><div className="space-y-2"><Skeleton className="h-8 w-48" /><Skeleton className="h-4 w-96" /></div><Skeleton className="h-10 w-40" /></div>
+      <Card><CardContent><TableSkeleton rows={10} columns={8} /></CardContent></Card>
+    </div>
+  );}
+
+  if (error) { const message = (error)?.message ?? "Unknown error"; return <div className="flex items-center justify-center min-h-screen"><div className="text-destructive">Error loading work orders: {message}</div></div>; }
+
+  return (
+    <div className="min-h-screen">
+      <div className="px-6 py-4 flex flex-wrap items-center justify-end gap-3">
+        <PermissionGate resource="work_orders" action="delete">
+          <Button variant="destructive" data-testid="button-clear-all-work-orders" onClick={handleClearAllOrders} disabled={clearAllMutation.isPending || !workOrders?.length}><Trash2 className="mr-2 h-4 w-4" />{clearAllMutation.isPending ? "Clearing..." : "Clear All"}</Button>
+        </PermissionGate>
+        <PermissionGate resource="work_orders" action="create">
+          <Button className="bg-primary text-primary-foreground hover:bg-primary/90" data-testid="button-create-work-order" onClick={handleCreateOrder}><Plus className="mr-2 h-4 w-4" />Create Work Order</Button>
+        </PermissionGate>
+      </div>
+
+      <div className="p-6 space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <StatCard label="Total Orders" value={workOrders?.length || 0} testId="stat-total-orders" />
+          <StatCard label="Open" value={openOrders.length} testId="stat-open-orders" className="text-chart-2" />
+          <StatCard label="High Priority" value={highPriorityOrders.length} testId="stat-high-priority-orders" className="text-destructive" />
+          <StatCard label="Completed" value={completedOrders.length} testId="stat-completed-orders" className="text-chart-3" />
+        </div>
+
+        <div className="flex gap-6">
+          <WorkOrderFilterPanel filters={filters} onFiltersChange={setFilters} />
+          <div className="flex-1 min-w-0">
+            <div className="mb-4 flex items-center justify-between">
+              <div><h3 className="text-lg font-semibold">Work Order Management</h3><p className="text-sm text-muted-foreground">Track and manage maintenance work orders across your fleet{hasActiveFilters && ` (${filteredAndSortedWorkOrders.length} filtered results)`}</p></div>
+            </div>
+            <VirtualizedWorkOrderTable workOrders={filteredAndSortedWorkOrders} equipment={equipment} vessels={vessels} crew={allCrewMembers} isLoading={isLoading} onView={handleViewOrder} onEdit={handleEditOrder} onDelete={handleDeleteOrder} sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
+          </div>
+        </div>
+      </div>
+
+      <WorkOrderDetailDrawer workOrder={drawerOrder} open={drawerOpen} onClose={closeDrawer} equipment={equipment} vessels={vessels} crew={allCrewMembers} onComplete={(id) => { completeWorkOrderMutation.mutate(id); closeDrawer(); }} onEdit={(_order) => { closeDrawer(); handleEditOrder(_order); }} onClone={(_order) => { closeDrawer(); closeCloneDialog(true); }} isCompleting={completeWorkOrderMutation.isPending} />
+      <WorkOrderCloneDialog workOrder={cloneOrder} open={cloneDialogOpen} onOpenChange={closeCloneDialog} onSuccess={onCloneSuccess} />
+
+      <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto" data-testid="order-detail-panel">
+          <DialogHeader><DialogTitle>Work Order {selectedOrder?.woNumber || selectedOrder?.id}</DialogTitle><DialogDescription>Manage work order and parts for {selectedOrder && getEquipmentName(selectedOrder.equipmentId)}</DialogDescription></DialogHeader>
+          {selectedOrder && <ViewOrderTabs order={selectedOrder} getEquipmentName={getEquipmentName} getVesselName={getVesselName} onComplete={() => completeWorkOrderMutation.mutate(selectedOrder.id)} isCompleting={completeWorkOrderMutation.isPending} onClose={() => setViewModalOpen(false)} queryClient={queryClient} />}
+        </DialogContent>
+      </Dialog>
+
+      <WorkOrderFormDialog open={formDialogOpen} onOpenChange={setFormDialogOpen} mode={formDialogMode} workOrder={selectedOrder} onSubmit={handleFormSubmit} isSubmitting={createMutation.isPending || updateMutation.isPending} defaultVesselId={defaultVesselId} defaultEquipmentId={defaultEquipmentId} />
+    </div>
+  );
+}
+
+function StatCard({ label, value, testId, className = "text-foreground" }: { label: string; value: number; testId: string; className?: string }) {
+  return <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-sm">{label}</p><p className={`text-2xl font-bold mt-1 ${className}`} data-testid={testId}>{value}</p></div></div></CardContent></Card>;
+}
+
+function ViewOrderTabs({ order, getEquipmentName, getVesselName, onComplete, isCompleting, onClose, queryClient }: { order: WorkOrder; getEquipmentName: (id: string) => string; getVesselName: (id: string | null) => string; onComplete: () => void; isCompleting: boolean; onClose: () => void; queryClient: { invalidateQueries: (options: { queryKey: string[] }) => void } }) {
+  return (
+    <Tabs defaultValue="details" className="w-full">
+      <TabsList className="grid w-full grid-cols-3">
+        <TabsTrigger value="details" className="flex items-center gap-2"><FileText className="h-4 w-4" />Order Details</TabsTrigger>
+        <TabsTrigger value="requests" className="flex items-center gap-2" data-testid="tab-requests"><Wrench className="h-4 w-4" />Service & Purchase Requests</TabsTrigger>
+        <TabsTrigger value="parts" className="flex items-center gap-2"><Package className="h-4 w-4" />Parts Management</TabsTrigger>
+      </TabsList>
+      <TabsContent value="details" className="space-y-4 mt-6">
+        <div className="grid grid-cols-2 gap-6">
+          <div><Label className="text-sm font-medium">Order ID</Label><p className="text-sm text-muted-foreground font-mono">{order.woNumber || order.id}</p></div>
+          <div><Label className="text-sm font-medium">Vessel</Label><p className="text-sm text-muted-foreground font-semibold">{getVesselName(order.vesselId)}</p></div>
+          <div><Label className="text-sm font-medium">Equipment</Label><p className="text-sm text-muted-foreground">{getEquipmentName(order.equipmentId)}</p></div>
+          <div><Label className="text-sm font-medium">Duration</Label><p className="text-sm text-muted-foreground font-semibold">{getWorkOrderDuration(order)}</p></div>
+          <div><Label className="text-sm font-medium">Priority</Label><Badge className={getPriorityColor(order.priority)}>{getPriorityLabel(order.priority)}</Badge></div>
+          <div><Label className="text-sm font-medium">Status</Label><Badge className={getStatusColor(order.status)}>{order.status.replace("_", " ").replace(/\b\w/g, (l: string) => l.toUpperCase())}</Badge></div>
+          <div className="col-span-2"><Label className="text-sm font-medium">Reason</Label><p className="text-sm text-muted-foreground">{order.reason || "No reason provided"}</p></div>
+          <div className="col-span-2"><Label className="text-sm font-medium">Description</Label><p className="text-sm text-muted-foreground" data-testid="text-order-description">{order.description || "No description provided"}</p></div>
+          <div><Label className="text-sm font-medium">Created</Label><p className="text-sm text-muted-foreground">{order.createdAt ? formatDistanceToNow(new Date(order.createdAt), { addSuffix: true }) : "Unknown"}</p></div>
+          {order.actualDowntimeHours && <div><Label className="text-sm font-medium">Actual Downtime</Label><p className="text-sm text-muted-foreground">{order.actualDowntimeHours}h</p></div>}
+        </div>
+        <div className="flex justify-end gap-2 pt-4">
+          {order.status !== "completed" && <Button onClick={onComplete} disabled={isCompleting} variant="default" data-testid="button-complete-work-order">{isCompleting ? "Completing..." : "Complete Work Order"}</Button>}
+          <Button variant="outline" onClick={onClose}>Close</Button>
+        </div>
+      </TabsContent>
+      <TabsContent value="requests" className="mt-6">
+        <WorkOrderRequestsTab workOrderId={order.id} isReadOnly={order.status === "completed"} />
+        <div className="flex justify-end pt-4"><Button variant="outline" onClick={onClose}>Close</Button></div>
+      </TabsContent>
+      <TabsContent value="parts" className="mt-6">
+        <MultiPartSelector workOrderId={order.id} onPartsAdded={() => { queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] }); }} />
+        <div className="flex justify-end pt-4"><Button variant="outline" onClick={onClose}>Close</Button></div>
+      </TabsContent>
+    </Tabs>
+  );
+}

@@ -1,0 +1,32 @@
+{
+  "config": {
+    "sequenceLength": 7,
+    "featureCount": 1,
+    "lstmUnits": 32,
+    "dropoutRate": 0.2,
+    "learningRate": 0.001,
+    "epochs": 20,
+    "batchSize": 64,
+    "useEarlyStopping": true,
+    "earlyStoppingPatience": 5,
+    "verbose": true
+  },
+  "featureNames": [
+    "flow_rate"
+  ],
+  "normalizationParams": {
+    "mean": [
+      10.944751517341082
+    ],
+    "std": [
+      36.996962007667705
+    ]
+  },
+  "trainingMetrics": {
+    "loss": 0.17807160317897797,
+    "accuracy": 0.9991642236709595,
+    "precision": 0,
+    "recall": 0,
+    "f1Score": 0
+  }
+}

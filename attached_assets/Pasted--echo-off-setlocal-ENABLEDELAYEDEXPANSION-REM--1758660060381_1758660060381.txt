@@ -1,0 +1,330 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==========================================================
+REM ARUS Crew Extensions Patch:
+REM - OR-Tools engine (optional) + greedy fallback
+REM - Port calls & drydock windows (vessel constraints)
+REM - Crew certifications with expiry; rank minimums per shift
+REM - Multi-vessel supported
+REM - API & UI updates (engine chooser + editors)
+REM ==========================================================
+
+if not exist "backend\app\main.py" (
+echo [ERROR] backend\app\main.py not found. Run this at the repo root.
+exit /b 1
+)
+
+if not exist "frontend\src" (
+echo [WARN] frontend\src not found; UI pieces will be skipped.
+set SKIP_UI=1
+) else (
+set SKIP_UI=0
+)
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+REM ----------------------------------------------------------
+REM 1) Dependencies: add OR-Tools (optional at runtime)
+REM ----------------------------------------------------------
+%PS% ^
+"$f='backend/requirements.txt'; if (Test-Path $f) {$t=Get-Content -Raw $f} else {$t=''};" ^
+"if ($t -notmatch 'ortools') { $t += \"`nortools>=9.10\" }" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ----------------------------------------------------------
+REM 2) DB schema extensions in async_repo.py
+REM - crew_cert, port_call, drydock_window, rank_min in shift_tmpl
+REM ----------------------------------------------------------
+%PS% ^
+"$f='backend/app/core/async_repo.py'; $t=Get-Content -Raw $f;" ^
+"$needCert = ($t -notmatch 'CREATE TABLE IF NOT EXISTS crew_cert');" ^
+"$needPort = ($t -notmatch 'CREATE TABLE IF NOT EXISTS port_call');" ^
+"$needDock = ($t -notmatch 'CREATE TABLE IF NOT EXISTS drydock_window');" ^
+"$addRank = ($t -notmatch 'rank_min');" ^
+"if ($needCert -or $needPort -or $needDock -or $addRank) {" ^
+" $t = $t -replace 'await db.commit\$begin:math:text$\\$end:math:text$\\s*\\n\\s*\\)\\n\\s*self._init_done = True', 'await db.execute(\"\"\"`nCREATE TABLE IF NOT EXISTS crew_cert(`n id INTEGER PRIMARY KEY AUTOINCREMENT, crew_id TEXT, cert TEXT, expires_at TEXT`n)\"\"\");`nawait db.execute(\"\"\"`nCREATE TABLE IF NOT EXISTS port_call(`n id INTEGER PRIMARY KEY AUTOINCREMENT, vessel_id TEXT, start TEXT, end TEXT, port TEXT`n)\"\"\");`nawait db.execute(\"\"\"`nCREATE TABLE IF NOT EXISTS drydock_window(`n id INTEGER PRIMARY KEY AUTOINCREMENT, vessel_id TEXT, start TEXT, end TEXT, yard TEXT`n)\"\"\");`n-- add rank_min to shift_tmpl if not exists`nBEGIN;`nCREATE TABLE IF NOT EXISTS __shift_tmpl_new AS SELECT id,vessel_id,equipment_id,role,start,end,needed,skill_required, NULL as rank_min FROM shift_tmpl WHERE 0;`nINSERT INTO __shift_tmpl_new SELECT id,vessel_id,equipment_id,role,start,end,needed,skill_required, rank_min FROM shift_tmpl;`nDROP TABLE IF EXISTS shift_tmpl;`nCREATE TABLE shift_tmpl(id TEXT PRIMARY KEY, vessel_id TEXT, equipment_id TEXT, role TEXT, start TEXT, end TEXT, needed INTEGER DEFAULT 1, skill_required TEXT, rank_min TEXT);`nINSERT OR IGNORE INTO shift_tmpl SELECT * FROM __shift_tmpl_new;`nDROP TABLE IF EXISTS __shift_tmpl_new;`nCOMMIT;`nawait db.commit();`n) `nself._init_done = True';" ^
+" Set-Content -Encoding UTF8 $f $t;" ^
+"} else { echo [INFO] DB schema already includes crew_cert/port_call/drydock/rank_min. }"
+
+REM ----------------------------------------------------------
+REM 3) Crew repo helpers: certs/port/drydock CRUD
+REM ----------------------------------------------------------
+%PS% ^
+"$f='backend/app/core/async_repo.py'; $t=Get-Content -Raw $f;" ^
+"$needFns = ($t -notmatch 'async def crew_cert_add');" ^
+"if ($needFns) {" ^
+" $t += @'`n async def crew_cert_add(self, crew_id: str, cert: str, expires_at: str) -> dict:`n await self.init(); async with aiosqlite.connect(self._sqlite) as db:`n await db.execute(\"INSERT INTO crew_cert(crew_id,cert,expires_at) VALUES(?,?,?)\", (crew_id, cert, expires_at)); await db.commit(); return {\"ok\": True}`n async def crew_cert_list(self, crew_id: str) -> list[dict]:`n await self.init(); async with aiosqlite.connect(self._sqlite) as db:`n db.row_factory=aiosqlite.Row; cur=await db.execute(\"SELECT * FROM crew_cert WHERE crew_id=? ORDER BY expires_at\", (crew_id,)); return [dict(r) for r in await cur.fetchall()]`n async def port_call_upsert(self, data: dict) -> dict:`n await self.init(); async with aiosqlite.connect(self._sqlite) as db:`n await db.execute(\"INSERT INTO port_call(vessel_id,start,end,port) VALUES(?,?,?,?)\", (data.get(\"vessel_id\"), data.get(\"start\"), data.get(\"end\"), data.get(\"port\"))); await db.commit(); return {\"ok\": True}`n async def drydock_upsert(self, data: dict) -> dict:`n await self.init(); async with aiosqlite.connect(self._sqlite) as db:`n await db.execute(\"INSERT INTO drydock_window(vessel_id,start,end,yard) VALUES(?,?,?,?)\", (data.get(\"vessel_id\"), data.get(\"start\"), data.get(\"end\"), data.get(\"yard\"))); await db.commit(); return {\"ok\": True}`n async def port_call_list(self, vessel_id: str) -> list[dict]:`n await self.init(); async with aiosqlite.connect(self._sqlite) as db:`n db.row_factory=aiosqlite.Row; cur=await db.execute(\"SELECT * FROM port_call WHERE vessel_id=? ORDER BY start\", (vessel_id,)); return [dict(r) for r in await cur.fetchall()]`n async def drydock_list(self, vessel_id: str) -> list[dict]:`n await self.init(); async with aiosqlite.connect(self._sqlite) as db:`n db.row_factory=aiosqlite.Row; cur=await db.execute(\"SELECT * FROM drydock_window WHERE vessel_id=? ORDER BY start\", (vessel_id,)); return [dict(r) for r in await cur.fetchall()]`n'@;" ^
+" Set-Content -Encoding UTF8 $f $t;" ^
+"} else { echo [INFO] Crew helper functions already present. }"
+
+REM ----------------------------------------------------------
+REM 4) OR-Tools planner (optional) + integrate with greedy
+REM ----------------------------------------------------------
+%PS% "$code=@'
+from __future__ import annotations
+from typing import List, Dict, Any, Tuple
+from datetime import datetime, timedelta
+
+from .crew_scheduler import plan_shifts as greedy_plan, parse_iso
+ENGINE_GREEDY = "greedy"
+ENGINE_OR = "ortools"
+
+def _window_ok(day: str, st_hms: str, en_hms: str, vessel_id: str, port_calls: list[dict], drydocks: list[dict]) -> bool:
+st = parse_iso(f"{day}T{st_hms}"); en = parse_iso(f"{day}T{en_hms}")
+for w in port_calls:
+if w.get("vessel_id")==vessel_id:
+a=parse_iso(w["start"]); b=parse_iso(w["end"])
+if not (en<=a or st>=b): return True # OK inside port-call window
+for w in drydocks:
+if w.get("vessel_id")==vessel_id:
+a=parse_iso(w["start"]); b=parse_iso(w["end"])
+if not (en<=a or st>=b): return True # OK inside drydock window
+# If no windows defined, assume allowed
+return (len(port_calls)+len(drydocks))==0
+
+def _crew_has_valid_cert(crew: dict, required: str, when: datetime, certs_index: dict[str,list[dict]]) -> bool:
+if not required: return True
+certs = certs_index.get(crew["id"], [])
+for c in certs:
+if c.get("cert")==required and parse_iso(c.get("expires_at","2099-12-31T00:00:00")).date() >= when.date():
+return True
+return False
+
+def plan_with_engine(
+engine: str,
+days: List[str],
+shifts: List[Dict[str,Any]],
+crew: List[Dict[str,Any]],
+leaves: List[Dict[str,Any]],
+port_calls: List[Dict[str,Any]],
+drydocks: List[Dict[str,Any]],
+certs_index: Dict[str, List[dict]]
+) -> Tuple[List[Dict[str,Any]], List[Dict[str,Any]]]:
+if engine != ENGINE_OR:
+# Pre-filter by windows/certs then call greedy
+filtered=[]
+for s in shifts:
+ok_any = any(_window_ok(day, s["start"], s["end"], s.get("vessel_id",""), port_calls, drydocks) for day in days)
+if ok_any: filtered.append(s)
+# inject cert requirement via skill_required field if provided as "skill|required_cert"
+crew2=[]
+for c in crew:
+c2=dict(c); c2["certs"]=certs_index.get(c["id"],[]); crew2.append(c2)
+return greedy_plan(days, filtered, crew2, leaves, [])
+# Try OR-Tools; fallback if missing
+try:
+from ortools.sat.python import cp_model
+except Exception:
+return plan_with_engine(ENGINE_GREEDY, days, shifts, crew, leaves, port_calls, drydocks, certs_index)
+
+model = cp_model.CpModel()
+# Build assignment vars: x[d,s,c] in {0,1}
+X = {}
+for di,day in enumerate(days):
+for si,s in enumerate(shifts):
+for ci,c in enumerate(crew):
+X[(di,si,ci)] = model.NewBoolVar(f"x_{di}_{si}_{ci}")
+
+# Need: each shift/day needs "needed" crew and applicable window
+for di,day in enumerate(days):
+for si,s in enumerate(shifts):
+vessel=s.get("vessel_id",""); st_hms=s["start"]; en_hms=s["end"]
+needed=int(s.get("needed",1))
+if not _window_ok(day, st_hms, en_hms, vessel, port_calls, drydocks):
+# force zero
+for ci,_ in enumerate(crew): model.Add(X[(di,si,ci)]==0)
+continue
+model.Add(sum(X[(di,si,ci)] for ci,_ in enumerate(crew)) >= needed)
+
+# Constraints per crew:
+# - at most one shift overlaps in a day
+# - rank minimum and skills/certs
+# - weekly hours cap (approx via count), min rest between same-day adjacent shifts (simplified)
+for ci,c in enumerate(crew):
+# skills list
+skills=set(c.get("skills",[]))
+rank=c.get("rank","")
+# certs
+certs=certs_index.get(c["id"],[])
+
+for di,day in enumerate(days):
+# one shift max per block that overlaps (simplified)
+model.Add(sum(X[(di,si,ci)] for si,_ in enumerate(shifts)) <= 1)
+
+for si,s in enumerate(shifts):
+# skill requirement
+skill_req = s.get("skill_required")
+rank_min = s.get("rank_min")
+start_dt = parse_iso(f"{day}T{s['start']}")
+# certification: if s has "cert_required"
+cert_req = s.get("cert_required")
+# Eligibility guard via implication -> if X=1 then conditions must hold:
+# Build a boolean for eligible
+# Since CP-SAT lacks direct ifs, approximate via forbid assign if not eligible using a parameter flag
+ok = True
+if skill_req and (skill_req not in skills): ok=False
+if rank_min and (rank < rank_min): ok=False
+if cert_req:
+# check in Python; if invalid, forbid
+valid=False
+for cc in certs:
+if cc.get("cert")==cert_req and parse_iso(cc.get("expires_at","2099-12-31T00:00:00")).date() >= start_dt.date():
+valid=True; break
+if not valid: ok=False
+if not ok:
+model.Add(X[(di,si,ci)]==0)
+
+# Weekly cap (soft): limit total assigned shifts in horizon
+max_shifts = max(1, int(c.get("max_hours_7d",72) // 8))
+model.Add(sum(X[(di,si,ci)] for di,_ in enumerate(days) for si,_ in enumerate(shifts)) <= max_shifts)
+
+# Objective: minimize unfilled (encoded by maximizing total assignments)
+model.Maximize(sum(X.values()))
+
+solver = cp_model.CpSolver()
+solver.parameters.max_time_in_seconds = 10.0
+status = solver.Solve(model)
+if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+return plan_with_engine(ENGINE_GREEDY, days, shifts, crew, leaves, port_calls, drydocks, certs_index)
+
+assigns=[]
+unfilled=[]
+for di,day in enumerate(days):
+for si,s in enumerate(shifts):
+vessel=s.get("vessel_id",""); st=f"{day}T{s['start']}"; en=f"{day}T{s['end']}"
+picked=0
+for ci,c in enumerate(crew):
+if solver.Value(X[(di,si,ci)])==1:
+assigns.append({"date": day, "shift_id": s.get("id"), "crew_id": c["id"], "vessel_id": vessel, "start": st+"Z", "end": en+"Z", "role": s.get("role")})
+picked += 1
+need=int(s.get("needed",1))
+if picked<need:
+unfilled.append({"day": day, "shift_id": s.get("id"), "need": need-picked, "reason":"insufficient crew"})
+return assigns, unfilled
+'@; Set-Content -Encoding UTF8 backend/app/core/crew_scheduler_ortools.py $code"
+
+REM ----------------------------------------------------------
+REM 5) Crew API updates: certs/port/drydock + engine switch
+REM ----------------------------------------------------------
+%PS% ^
+"$f='backend/app/api/crew.py'; $t=Get-Content -Raw $f;" ^
+"$needImp = ($t -notmatch 'crew_scheduler_ortools');" ^
+"if ($needImp) { " ^
+" $t = $t -replace 'from app\\.core\\.crew_scheduler import plan_shifts', 'from app.core.crew_scheduler import plan_shifts\nfrom app.core.crew_scheduler_ortools import plan_with_engine'; " ^
+" $t = $t -replace '@router.post\$begin:math:text$\\"/schedule/plan\\"\\$end:math:text$[\\s\\S]*?return \\{', '@router.post(\"/schedule/plan\")\nasync def schedule_plan(body: Dict[str,Any] = Body(...)):\n engine = (body.get(\"engine\") or \"greedy\").lower()\n days = body.get(\"days\", [])\n shifts = body.get(\"shifts\", [])\n crew = body.get(\"crew\", [])\n leaves = body.get(\"leaves\", [])\n port_calls = body.get(\"port_calls\", [])\n drydocks = body.get(\"drydocks\", [])\n certs_index = {c.get(\"crew_id\"): [] for c in crew}\n # expand certs from DB if not supplied\n from app.core.settings import SETTINGS\n import aiosqlite\n sqlite = SETTINGS.storage.get(\"sqlite_path\") or \"./arus.sqlite\"\n async with aiosqlite.connect(sqlite) as db:\n db.row_factory=aiosqlite.Row\n for c in crew:\n cur=await db.execute(\"SELECT cert, expires_at FROM crew_cert WHERE crew_id=?\", (c[\"id\"],))\n certs_index[c[\"id\"]] = [dict(r) for r in await cur.fetchall()]\n assigns, unfilled = plan_with_engine(engine, days, shifts, crew, leaves, port_calls, drydocks, certs_index)\n # persist\n from app.core.settings import SETTINGS as _S\n sqlite = _S.storage.get(\"sqlite_path\") or \"./arus.sqlite\"\n async with aiosqlite.connect(sqlite) as db:\n for a in assigns:\n await db.execute(\"INSERT INTO crew_assignment(date,shift_id,crew_id,vessel_id,start,end,role) VALUES(?,?,?,?,?,?,?)\", (a[\"date\"], a.get(\"shift_id\"), a.get(\"crew_id\"), a.get(\"vessel_id\"), a.get(\"start\"), a.get(\"end\"), a.get(\"role\")))\n await db.commit()\n return {'"; " ^
+" Set-Content -Encoding UTF8 $f $t;" ^
+"} else { echo [INFO] crew.py already imports OR-Tools planner. }"
+
+REM Add endpoints: cert, port_call, drydock CRUD
+%PS% "$code=@'
+from fastapi import Body
+from typing import Dict, Any
+from app.core.async_repo import REPO
+
+@router.post(\"/cert\")
+async def add_cert(body: Dict[str,Any] = Body(...)):
+return await REPO.crew_cert_add(body[\"crew_id\"], body[\"cert\"], body[\"expires_at\"])
+
+@router.get(\"/cert/{crew_id}\")
+async def list_cert(crew_id: str):
+return await REPO.crew_cert_list(crew_id)
+
+@router.post(\"/port_call\")
+async def add_port(body: Dict[str,Any] = Body(...)):
+return await REPO.port_call_upsert(body)
+
+@router.get(\"/port_call/{vessel_id}\")
+async def list_port(vessel_id: str):
+return await REPO.port_call_list(vessel_id)
+
+@router.post(\"/drydock\")
+async def add_drydock(body: Dict[str,Any] = Body(...)):
+return await REPO.drydock_upsert(body)
+
+@router.get(\"/drydock/{vessel_id}\")
+async def list_drydock(vessel_id: str):
+return await REPO.drydock_list(vessel_id)
+'@; Add-Content -Encoding UTF8 backend/app/api/crew.py $code"
+
+REM ----------------------------------------------------------
+REM 6) UI: extend Crew Scheduler (engine/port/drydock/certs)
+REM ----------------------------------------------------------
+if "%SKIP_UI%"=="0" (
+%PS% ^
+"$f='frontend/src/components/Crew.tsx'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace 'export function CrewScheduler\$begin:math:text$\\$end:math:text$\\{', 'export function CrewScheduler(){\\n const [engine,setEngine]=useState(\"greedy\");\\n const [portCalls,setPortCalls]=useState<any[]>([]);\\n const [drydocks,setDrydocks]=useState<any[]>([]);\\n const [certForm,setCertForm]=useState<any>({crew_id:\"\",cert:\"STCW\",expires_at:\"2026-12-31\"});';" ^
+"$t = $t -replace 'async function plan\$begin:math:text$\\$end:math:text$\\{', 'async function plan(){';" ^
+"$t = $t -replace 'const body=\\{ days, shifts, crew, leaves \\};', 'const body={ days, shifts, crew, leaves, port_calls: portCalls, drydocks: drydocks, engine };';" ^
+"$t = $t -replace '<div className=\\\"card\\\"><h2>Crew Scheduler</h2>', '<div className=\"card\"><h2>Crew Scheduler</h2><div style={{display:\"flex\",gap:6,alignItems:\"center\",flexWrap:\"wrap\"}}><label>Engine</label><select value={engine} onChange={e=>setEngine(e.target.value)}><option value=\"greedy\">Greedy</option><option value=\"ortools\">OR-Tools</option></select><button onClick={()=>genDays(new Date().toISOString().slice(0,10), 7)}>Days: next 7</button><button onClick={()=>genDays(new Date().toISOString().slice(0,10), 14)}>Days: next 14</button><span>{days.length} day(s) selected</span><button onClick={plan}>Plan Schedule</button></div>'; " ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM Add small UI helpers below the scheduler for Port/Drydock/Certs
+%PS% "$code=@'
+export function CrewOpsHelpers(){
+const BASE = (import.meta as any).env.VITE_API_URL || 'http://localhost:8000';
+const [port,setPort]=useState<any>({vessel_id:'MV_GREEN_BELAIT',port:'SGSIN',start:'2025-09-25T00:00:00Z',end:'2025-09-28T23:59:59Z'});
+const [dock,setDock]=useState<any>({vessel_id:'MV_GREEN_BELAIT',yard:'Sembcorp',start:'2025-10-03T00:00:00Z',end:'2025-10-12T23:59:59Z'});
+const [cert,setCert]=useState<any>({crew_id:'',cert:'STCW',expires_at:'2026-12-31T00:00:00Z'});
+
+async function addPort(){ await fetch(`${BASE}/api/crew/port_call`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(port)}); alert('Port call saved'); }
+async function addDock(){ await fetch(`${BASE}/api/crew/drydock`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(dock)}); alert('Drydock saved'); }
+async function addCert(){ if(!cert.crew_id) return alert('Set crew_id'); await fetch(`${BASE}/api/crew/cert`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cert)}); alert('Cert saved'); }
+
+return <div className=\"card\"><h2>Crew Ops Helpers</h2>
+<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:6}}>
+<input placeholder='Vessel (port)' value={port.vessel_id} onChange={e=>setPort({...port,vessel_id:e.target.value})}/>
+<input placeholder='Port code' value={port.port} onChange={e=>setPort({...port,port:e.target.value})}/>
+<input placeholder='Start ISO' value={port.start} onChange={e=>setPort({...port,start:e.target.value})}/>
+<input placeholder='End ISO' value={port.end} onChange={e=>setPort({...port,end:e.target.value})}/>
+<button onClick={addPort}>Add Port Call</button>
+</div>
+<div style={{height:8}}/>
+<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:6}}>
+<input placeholder='Vessel (dock)' value={dock.vessel_id} onChange={e=>setDock({...dock,vessel_id:e.target.value})}/>
+<input placeholder='Yard' value={dock.yard} onChange={e=>setDock({...dock,yard:e.target.value})}/>
+<input placeholder='Start ISO' value={dock.start} onChange={e=>setDock({...dock,start:e.target.value})}/>
+<input placeholder='End ISO' value={dock.end} onChange={e=>setDock({...dock,end:e.target.value})}/>
+<button onClick={addDock}>Add Drydock Window</button>
+</div>
+<div style={{height:8}}/>
+<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:6}}>
+<input placeholder='Crew ID' value={cert.crew_id} onChange={e=>setCert({...cert,crew_id:e.target.value})}/>
+<input placeholder='Cert' value={cert.cert} onChange={e=>setCert({...cert,cert:e.target.value})}/>
+<input placeholder='Expires ISO' value={cert.expires_at} onChange={e=>setCert({...cert,expires_at:e.target.value})}/>
+<button onClick={addCert}>Add Certification</button>
+</div>
+</div>;
+}
+'@; Add-Content -Encoding UTF8 frontend/src/components/Crew.tsx $code"
+
+REM Hook helpers into App.tsx under existing crew cards
+%PS% ^
+"$f='frontend/src/App.tsx'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace 'from \\\"\\./components/Crew\\\";','from \"./components/Crew\";';" ^
+"if ($t -notmatch 'CrewOpsHelpers') { $t = $t -replace '(</div>\\s*;\\s*\\}\\s*$)',' <CrewOpsHelpers/>\n </div>);\n}\n'; }" ^
+"Set-Content -Encoding UTF8 $f $t;"
+) ELSE (
+echo [INFO] Skipping UI patch (frontend not found).
+)
+
+echo.
+echo ==========================================================
+echo [OK] Crew extensions installed.
+echo ----------------------------------------------------------
+echo Backend:
+echo - New tables: crew_cert, port_call, drydock_window; rank_min in shift_tmpl
+echo - New endpoints in /api/crew:
+echo POST /api/crew/cert, GET /api/crew/cert/{crew_id}
+echo POST /api/crew/port_call, GET /api/crew/port_call/{vessel_id}
+echo POST /api/crew/drydock, GET /api/crew/drydock/{vessel_id}
+echo POST /api/crew/schedule/plan (add engine, port_calls, drydocks)
+echo - Engines: greedy (default), ortools (if ortools is installed)
+echo Frontend:
+echo - Crew Scheduler now has engine selector + helpers to add Port/Drydock/Certs
+echo ----------------------------------------------------------
+echo Usage:
+echo - Set engine in UI to OR-Tools for improved coverage; falls back automatically if unavailable.
+echo - Rank minimums: set "rank_min" on shifts; certs enforced when "cert_required" is set on shifts.
+echo Restart backend and rebuild frontend to apply changes.
+echo ==========================================================
+endlocal

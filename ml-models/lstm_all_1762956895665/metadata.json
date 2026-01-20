@@ -1,0 +1,32 @@
+{
+  "config": {
+    "sequenceLength": 7,
+    "featureCount": 1,
+    "lstmUnits": 32,
+    "dropoutRate": 0.2,
+    "learningRate": 0.001,
+    "epochs": 20,
+    "batchSize": 64,
+    "useEarlyStopping": true,
+    "earlyStoppingPatience": 5,
+    "verbose": true
+  },
+  "featureNames": [
+    "vibration"
+  ],
+  "normalizationParams": {
+    "mean": [
+      0.001583011583011583
+    ],
+    "std": [
+      0.04409759995092939
+    ]
+  },
+  "trainingMetrics": {
+    "loss": 0.4652058482170105,
+    "accuracy": 1,
+    "precision": 0,
+    "recall": 0,
+    "f1Score": 0
+  }
+}

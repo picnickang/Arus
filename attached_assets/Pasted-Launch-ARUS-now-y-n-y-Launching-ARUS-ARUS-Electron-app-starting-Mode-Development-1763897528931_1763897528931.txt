@@ -1,0 +1,189 @@
+Launch ARUS now? (y/n): y
+🚀 Launching ARUS...
+🎬 ARUS Electron app starting...
+🔧 Mode: Development
+🖥️  Platform: darwin
+🚀 Starting ARUS embedded server...
+🔌 Allocated port: 5000
+📂 Project root: /Users/homeimac/Downloads/RecipeRealm
+📂 Dev server path: /Users/homeimac/Downloads/RecipeRealm/server/index-wrapper.js
+🔧 Dev command: node /Users/homeimac/Downloads/RecipeRealm/server/index-wrapper.js
+ℹ️  Using wrapper to handle async IIFE initialization
+✅ Server process spawned with PID 47680
+[Health Check] Connection error: 
+[Server:47680] 🚀 Loading ARUS server...
+⏳ Waiting for server... (3/30)
+[Health Check] Connection error: 
+⏳ Waiting for server... (6/30)
+⏳ Waiting for server... (9/30)
+[Server:47680:Error] objc[47680]: Class GNotificationCenterDelegate is implemented in both /Users/homeimac/Downloads/RecipeRealm/node_modules/@xenova/transformers/node_modules/sharp/vendor/8.14.5/darwin-x64/lib/libvips-cpp.42.dylib (0x14cd82fa0) and /Users/homeimac/Downloads/RecipeRealm/node_modules/@img/sharp-libvips-darwin-x64/lib/libvips-cpp.8.17.3.dylib (0x14e0eab30). One of the two will be used. Which one is undefined.
+[Health Check] Connection error: 
+⏳ Waiting for server... (12/30)
+⏳ Waiting for server... (15/30)
+[Health Check] Connection error: 
+⏳ Waiting for server... (18/30)
+[Server:47680:Error] 2025-11-23 19:31:09.601180: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 FMA
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+[Health Check] Connection error: 
+⏳ Waiting for server... (21/30)
+[Server:47680] === Database Configuration ===
+Deployment Mode: VESSEL (Offline-First)
+[Server:47680:Error] [ML Analytics] Disabled: database not initialized (embedded/local mode)
+[Server:47680] ℹ️  DB Utils: Running in local mode - some utilities disabled
+[Server:47680] [MQTT Reliable Sync] Service initialized
+  Broker: mqtt://localhost:1883
+  Vessel ID: vessel_default
+[Server:47680] QoS Level: 1
+  Max Queue Size: 10000
+  Queue Dir: /Users/homeimac/Downloads/RecipeRealm/.mqtt-queue
+  TLS Enabled: false
+[Server:47680] → Starting module imports...
+✓ All module imports completed successfully
+[Server:47680] → IIFE started - beginning initialization...
+
+=== ARUS Environment Configuration ===
+Environment: Embedded (iOS/macOS)
+Node Environment: development
+Deployment Mode: VESSEL (Offline-First)
+ℹ Database: Running in local/embedded mode (PostgreSQL optional)
+[Server:47680] ✓ Security: Generated secure session secret for embedded mode
+ℹ Sync: Running offline-only (embedded deployment)
+ℹ Object Storage: Disabled (not in Replit environment)
+ℹ AI Features: OpenAI API key not set (AI reports disabled)
+======================================
+
+→ Environment validated successfully
+→ Starting application initialization...
+[Server:47680:Error] [WARN ] 2025-11-23T11:31:12.740Z [Turso Sync] Cloud sync not configured - running offline-only Set TURSO_SYNC_URL and TURSO_AUTH_TOKEN to enable cloud sync
+Offline-only mode is normal for desktop/vessel deployments
+[Server:47680] → Applying SQLite performance optimizations...
+[Server:47680] ✅ Server loaded successfully, HTTP server is running
+[Server:47680] ✓ SQLite performance optimizations applied
+  • WAL mode enabled (better concurrency)
+  • Cache: 64MB
+  • Sync: NORMAL (safe with WAL)
+  • Foreign keys: ON
+[Server:47680] ✓ Local SQLite: /Users/homeimac/Downloads/RecipeRealm/data/vessel-local.db
+[Server:47680] → Initializing SQLite database tables...
+[Server:47680] [SQLite Init] Initializing vessel mode database...
+[Server:47680] [SQLite Init] Database initialized successfully with 131 tables (100% feature parity) at: /Users/homeimac/Downloads/RecipeRealm/data/vessel-local.db
+✓ SQLite tables initialized
+==============================
+
+→ Setting up middleware...
+[Server:47680] ✓ Middleware configured
+→ Registering routes...
+[Server:47680] [INFO] 2025-11-23T11:31:12.854Z Observability metrics initialized { nodeVersion: 'v24.11.0', platform: 'darwin', arch: 'x64' }
+[Server:47680] [DTC Integration] Service initialized
+[Server:47680] [KB Routes] Knowledge Base API routes registered
+[Server:47680] [Cache] Inventory cache enabled (host: localhost:6379)
+[Cache] Analytics cache enabled (host: localhost:6379)
+[Server:47680] [Analytics Routes] Mounted with Redis caching support
+[Analytics Routes] Data reconciliation endpoints registered
+[Analytics Routes] Redis caching ENABLED (5min default TTL)
+[Server:47680] [MQTT Ingestion] Service initialized
+[MQTT Ingestion] Stream processing started
+[Server:47680] [Digital Twin] Service initialized
+[Server:47680] [Digital Twin] Real-time update scheduler started
+[Server:47680:Error] [Digital Twin] Disabled: database not initialized (embedded/local mode)
+[Server:47680:Error] [Enhanced LLM] Disabled: database not initialized (embedded/local mode)
+[Server:47680] 🔍 Database performance monitoring started
+✓ Routes registered
+[Server:47680] → Initializing database...
+[Server:47680:Error] Database initialization failed: TypeError: Cannot read properties of null (reading 'select')
+    at initializeDatabase (file:///Users/homeimac/Downloads/RecipeRealm/server/index.js:19671:14)
+    at file:///Users/homeimac/Downloads/RecipeRealm/server/index.js:87933:11
+⚠️ Embedded/local mode: Continuing despite initialization error
+[Server:47680] ✓ Database initialized successfully
+→ Initializing job queue...
+[Server:47680] ✅ Server listening on port 5000 (initialization continuing in background...)
+[Server:47680] ✓ Created /tmp/kb-uploads directory
+⚠ Skipping job queue initialization (no DATABASE_URL)
+→ Initializing ML threshold calibrator...
+[ThresholdCalibrator] Initialized
+✓ ML threshold calibrator initialized
+→ Initializing vessel telemetry simulator...
+[VesselSimulator] Service initialized
+✓ Vessel telemetry simulator initialized
+→ Initializing ML dataset mixer...
+[DatasetMixer] Service initialized
+✓ ML dataset mixer initialized
+→ Starting sync services...
+[Telemetry Pruning] Service initialized
+  Schedule: 0 2 * * * (UTC)
+  Retention periods:
+    • Raw telemetry: 90 days
+    • Aggregates: 365 days
+    • Data quality: 180 days
+✓ Telemetry pruning service started
+[MQTT Reliable Sync] Starting...
+  Connecting to broker: mqtt://localhost:1883
+[Server:47680:Error] [Sync Manager] Cannot start - libSQL client not initialized
+[Telemetry Pruning] Disabled: database not initialized (embedded/local mode)
+[Server:47680] [MQTT Reliable Sync] Queue directory initialized: /Users/homeimac/Downloads/RecipeRealm/.mqtt-queue
+[Server:47680] Client ID: arus_sync_vessel_default (stable for durable session)
+[Server:47680] [MQTT Reliable Sync] Client offline
+✅ Server is ready and healthy at http://localhost:5000/livez
+🔒 CSP Mode: Development (Relaxed)
+🔗 Electron loading URL: http://localhost:5000
+✅ Application started successfully
+[47670:1123/193114.692434:ERROR:CONSOLE:1] "Request Autofill.enable failed. {"code":-32601,"message":"'Autofill.enable' wasn't found"}", source: devtools://devtools/bundled/core/protocol_client/protocol_client.js (1)
+[47670:1123/193114.692595:ERROR:CONSOLE:1] "Request Autofill.setAddresses failed. {"code":-32601,"message":"'Autofill.setAddresses' wasn't found"}", source: devtools://devtools/bundled/core/protocol_client/protocol_client.js (1)
+[Server:47680] [MQTT Reliable Sync] Reconnecting... (attempt 1, queue: 0)
+[Server:47680:Error] [WARN ] 2025-11-23T11:31:23.160Z [MQTT Reliable Sync] ⚠ Broker connection timeout - running in offline mode Messages will be queued for delivery when broker becomes available
+This is expected for desktop/vessel deployments without MQTT broker
+[Server:47680] ✓ MQTT reliable sync ready
+ℹ️  Embedded mode: Background jobs and schedulers disabled for stability
+ℹ️  Background jobs disabled (embedded/standalone mode)
+ℹ️  Schedulers disabled (embedded/standalone mode)
+→ Initializing auto-replan policy...
+[Server:47680] [Auto-Replan] Policy initialized with config: {
+  RUL_DAYS_CRITICAL: 9,
+  RISK_REPLAN_LEVEL: 'high',
+  AUTO_REPLAN_DAYS: 7
+}
+✓ Auto-replan policy initialized
+→ Initializing patching system...
+[Server:47680] [ConfigManager] Watching /Users/homeimac/Downloads/RecipeRealm/.env for changes
+[Server:47680] [ConfigManager] Watching /Users/homeimac/Downloads/RecipeRealm/.env for changes
+✓ Config file watcher started
+[Server:47680] 🔄 Update scheduler configured (checking every 6 hours)
+✓ Update scheduler configured
+→ Setting up static file serving (embedded mode - HMR disabled)...
+[Server:47680] [Static] Candidate roots: [
+  '/Users/homeimac/Downloads/RecipeRealm/dist',
+  '/Users/homeimac/Downloads/RecipeRealm/dist/public',
+  '/Users/homeimac/Downloads/RecipeRealm/client/dist'
+]
+[Static] Checking: /Users/homeimac/Downloads/RecipeRealm/dist
+[Static]   - Directory exists: YES
+[Static]   - Has index.html: YES
+[Static] ✓ Selected frontend build from: /Users/homeimac/Downloads/RecipeRealm/dist
+[Server:47680] [Static] Contents of staticRoot (11 items): assets, icon-192.png, icon-192.png.TODO, icon-192.svg, icon-512.png, icon-512.png.TODO, icon-512.svg, index.html, manifest.json, public...
+[Server:47680] [Static] ✓ express.static() configured for: /Users/homeimac/Downloads/RecipeRealm/dist
+[Static] ✓ Explicit root route (GET /) configured
+[Server:47680] [Static] ✓ SPA fallback route (GET *) configured
+✓ Static file serving fully configured from: /Users/homeimac/Downloads/RecipeRealm/dist
+[Static] ✓ Final 404 handler registered
+[Static] ✓ Error handler registered (after SPA fallback)
+[Server:47680] ✅ 7:31:23 PM [express] Application initialization complete
+🚀 ARUS application is now live!
+[Server:47680] [MQTT Reliable Sync] Reconnecting... (attempt 2, queue: 0)
+[Server:47680] [MQTT Reliable Sync] Reconnecting... (attempt 3, queue: 0)
+🪟 All windows closed
+📴 Stopping embedded server...
+🧹 Cleaning up process tree for PID 47680...
+⚠️  POSIX group kill failed, using tree-kill fallback
+✅ Process tree killed successfully
+[Server:47680] ↩ SIGTERM received. Shutting down gracefully...
+[Server:47680] [MQTT Reliable Sync] Stopped
+[Telemetry Pruning] Stopped
+[Server:47680] ✓ Graceful shutdown complete
+📴 Server exited (code: 0, signal: null)
+homeimac@Homes-iMac RecipeRealm % ls -lh arus-electron-mac-FINAL.tar.gz
+-rw-r--r--@ 1 homeimac  staff   4.0M Nov 23 11:19 arus-electron-mac-FINAL.tar.gz
+homeimac@Homes-iMac RecipeRealm % grep -o 'index-.*\.js' dist/index.html
+index-DvZ77ZfH.js
+homeimac@Homes-iMac RecipeRealm % ls dist/assets/index-*.js
+dist/assets/index-DvZ77ZfH.js
+homeimac@Homes-iMac RecipeRealm % 

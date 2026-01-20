@@ -1,0 +1,36 @@
+/**
+ * Crew Alert Evaluators - Manning Compliance
+ * Evaluates minimum safe manning alerts
+ */
+
+import { storage } from "../../../storage.js";
+import { alertSettingsService } from "../settings-service.js";
+import type { CrewAlertResult, EvaluationContext } from "./types.js";
+import { getSeverityFromMinSeverity } from "./helpers.js";
+
+export async function evaluateManningComplianceAlerts(ctx: EvaluationContext): Promise<CrewAlertResult[]> {
+  const results: CrewAlertResult[] = [];
+  const now = ctx.now || new Date();
+
+  const settings = await alertSettingsService.getCrewAlertSettings(ctx.orgId, ctx.vesselId || null);
+  if (!settings?.manningComplianceEnabled) { return results; }
+
+  const vessels = ctx.vesselId ? [await storage.getVessel(ctx.vesselId)] : await storage.getVessels(ctx.orgId);
+
+  for (const vessel of vessels) {
+    if (!vessel) { continue; }
+    const minSafeManning = ('minSafeManning' in vessel && typeof vessel.minSafeManning === 'number') ? vessel.minSafeManning : 0;
+    if (minSafeManning === 0) { continue; }
+
+    const vesselCrew = await storage.getCrewByVessel(vessel.id);
+    const activeCrew = vesselCrew.filter((c) => c.status === "active" || c.status === "onboard");
+    const currentManning = activeCrew.length;
+
+    if (currentManning < minSafeManning) {
+      const severity = getSeverityFromMinSeverity(settings.manningMinSeverity);
+      results.push({ triggered: true, alertType: "manning_below_minimum", alertKey: `manning_below_minimum_${vessel.id}`, severity, title: "Below Minimum Safe Manning", message: `Vessel ${vessel.name} has ${currentManning} crew, below minimum of ${minSafeManning}`, entityId: vessel.id, entityType: "vessel", metadata: { vesselId: vessel.id, vesselName: vessel.name, currentManning, minimumManning: minSafeManning, shortage: minSafeManning - currentManning } });
+    }
+  }
+
+  return results;
+}

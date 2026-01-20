@@ -1,0 +1,233 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==========================================================
+REM ARUS – Inventory multi-part WOs + Catalogue↔Stock alignment
+REM Node.js/TypeScript (backend-node + frontend)
+REM - Work orders: multi-part add/update, cost recompute
+REM - Stock seeding: ensure every Part has a Stock row (zero qty ok)
+REM - API: list parts with stock (left join; zero fallback)
+REM - UI: simple Work Order editor with multi-part picker
+REM - No auth changes
+REM ==========================================================
+
+if not exist "backend-node\src" (
+echo [ERROR] backend-node/src not found. Run at repo root.
+exit /b 1
+)
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+REM ----------------------------------------------------------
+REM 0) Migrations: (idempotent) helper views/indices
+REM ----------------------------------------------------------
+if not exist "backend-node\migrations" mkdir backend-node\migrations
+
+> backend-node\migrations\097_inventory_align.sql (
+echo -- Optional helper view (Postgres) for parts with stock (zero fallback via LEFT JOIN)
+echo CREATE VIEW IF NOT EXISTS v_parts_with_stock AS
+echo SELECT p.id as part_id, p.part_number, p.name, p.unit_cost,
+echo COALESCE(s.on_hand,0) as on_hand,
+echo COALESCE(s.reserve,0) as reserve,
+echo COALESCE(s.unit_value, p.unit_cost) as unit_value,
+echo COALESCE(s.min_level,0) as min_level,
+echo COALESCE(s.max_level,0) as max_level
+echo FROM parts p
+echo LEFT JOIN stock s ON s.part_id = p.id;
+)
+
+> backend-node\migrations\sqlite_097_inventory_align.sql (
+echo -- SQLite: create the view similarly
+echo CREATE VIEW IF NOT EXISTS v_parts_with_stock AS
+echo SELECT p.id as part_id, p.part_number, p.name, p.unit_cost,
+echo IFNULL(s.on_hand,0) as on_hand,
+echo IFNULL(s.reserve,0) as reserve,
+echo IFNULL(s.unit_value, p.unit_cost) as unit_value,
+echo IFNULL(s.min_level,0) as min_level,
+echo IFNULL(s.max_level,0) as max_level
+echo FROM parts p
+echo LEFT JOIN stock s ON s.part_id = p.id;
+)
+
+REM ----------------------------------------------------------
+REM 1) Backend: inventory service (seed stock + list join)
+REM ----------------------------------------------------------
+> backend-node\src\inventory.service.ts (
+echo import Database from "better-sqlite3";
+echo import { Pool } from "pg";
+echo
+echo const DATABASE_URL = process.env.DATABASE_URL||""; const USE_PG = !!DATABASE_URL;
+echo const SQLITE_PATH = process.env.SQLITE_PATH||"./data/arus.sqlite";
+echo function qlite(fn:(db:Database)=>any){ const db = new Database(SQLITE_PATH); try { return fn(db); } finally { db.close(); } }
+echo async function qpg<T=any>(sql:string, params:any[]=[]):Promise<T[]>{ const pool=new Pool({connectionString: DATABASE_URL}); const c=await pool.connect(); try{ const r=await c.query(sql,params); return r.rows as any; } finally{ c.release(); await pool.end(); } }
+echo
+echo export async function seedMissingStockRows(): Promise<{created:number}>{
+echo let created = 0;
+echo if (USE_PG){
+echo const rows = await qpg<{id:string; unit_cost:number}>("SELECT id, unit_cost FROM parts WHERE id NOT IN (SELECT part_id FROM stock)");
+echo for(const r of rows){ await qpg("INSERT INTO stock(id,part_id,on_hand,reserve,unit_value,min_level,max_level) VALUES($1,$2,0,0,$3,0,0)", [\`STK-\${r.id}\`, r.id, r.unit_cost]); created++; }
+echo } else {
+echo qlite(db=>{ const missing = db.prepare("SELECT id, unit_cost FROM parts WHERE id NOT IN (SELECT part_id FROM stock)").all(); const ins = db.prepare("INSERT INTO stock(id,part_id,on_hand,reserve,unit_value,min_level,max_level) VALUES(?,?,?,?,?,?,?)"); for(const r of missing){ ins.run(\`STK-\${r.id}\`, r.id, 0,0, r.unit_cost,0,0); created++; } });
+echo }
+echo return { created };
+echo }
+echo
+echo export async function listPartsWithStock(): Promise<any[]>{
+echo if (USE_PG){ return await qpg("SELECT * FROM v_parts_with_stock"); }
+echo return qlite(db=> db.prepare("SELECT * FROM v_parts_with_stock").all());
+echo }
+)
+
+REM ----------------------------------------------------------
+REM 2) Backend API: routes for seeding and listing; WO upsert supports multi-parts
+REM ----------------------------------------------------------
+> backend-node\src\index.inventory.ts (
+echo import express from "express";
+echo import { listPartsWithStock, seedMissingStockRows } from "./inventory.service.js";
+echo import { upsert } from "./sync.service.js";
+echo
+echo export function mountInventory(v1: express.Router){
+echo v1.get("/api/inventory/parts-with-stock", async (_req,res)=> {
+echo const rows = await listPartsWithStock();
+echo res.json({ items: rows });
+echo });
+echo v1.post("/api/inventory/seed-stock", async (_req,res)=> {
+echo const r = await seedMissingStockRows();
+echo res.json({ ok:true, ...r });
+echo });
+echo v1.post("/api/workorders/upsert", async (req,res)=> {
+echo const body = req.body||{};
+echo if (!body.id || !body.vessel_id || !body.title){ return res.status(400).json({ ok:false, error:"id, vessel_id, title required" }); }
+echo // Multi-parts allowed: { parts:[{part_id, qty}, ...] }
+echo const r = await upsert("work_order" as any, body);
+echo res.json({ ok:true, ...r });
+echo });
+echo }
+)
+
+%PS% ^
+"$f='backend-node/src/index.ts'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace '(app\\.use\\(\"/v1\", v1\\);)','import { mountInventory } from \"./index.inventory.js\";\nmountInventory(v1);\n$1';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ----------------------------------------------------------
+REM 3) Backend: strengthen upsertWorkOrder for multi-part cost calc
+REM ----------------------------------------------------------
+%PS% ^
+"$f='backend-node/src/sync.service.ts'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace 'let partsCost = 0;','let partsCost = 0; const dedup = new Map<string,number>(); if (w.parts?.length){ for(const i of w.parts){ if(!i) continue; const prev = dedup.get(i.part_id)||0; dedup.set(i.part_id, prev + (i.qty||0)); } w.parts = Array.from(dedup, ([part_id, qty])=>({part_id, qty})); }';" ^
+"$t = $t -replace 'if \\(w\\.parts\\?\\.length\\)\\{[\\s\\S]*?\\}','if (w.parts?.length){ if (USE_PG){ const ids = w.parts.map(p=>p.part_id); const rows = await qpg<{id:string; unit_cost:number}>(\"SELECT id, unit_cost FROM parts WHERE id = ANY($1)\", [ids]); const map = new Map(rows.map(r=>[r.id, r.unit_cost])); for(const i of w.parts){ partsCost += (map.get(i.part_id)||0) * (i.qty||0); } } else { const costs:Record<string,number> = {}; qlite(db=>{ const stmt = db.prepare(\"SELECT id, unit_cost FROM parts WHERE id IN (\" + w.parts!.map(()=>\"?\").join(\",\") + \")\"); if (w.parts!.length){ for(const r of stmt.all(...w.parts!.map(x=>x.part_id))){ costs[r.id]=r.unit_cost; } } }); for(const i of w.parts){ partsCost += (costs[i.part_id]||0) * (i.qty||0); } } }';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ----------------------------------------------------------
+REM 4) Frontend: Work Order editor (multi-part picker) + Inventory alignment buttons
+REM ----------------------------------------------------------
+if not exist "frontend\src" (
+echo [WARN] frontend/src not found; skipping UI (backend ready).
+) else (
+> frontend\src\components\WorkOrderEditor.tsx (
+echo import React, { useEffect, useMemo, useState } from "react";
+echo const BASE = (import.meta as any).env.VITE_API_URL || "http://localhost:8001";
+echo
+echo type PartRow = { part_id:string; part_number:string; name:string; unit_cost:number; on_hand:number; reserve:number };
+echo
+echo export default function WorkOrderEditor(){
+echo const [parts,setParts] = useState<PartRow[]>([]);
+echo const [vessel,setVessel]=useState(""); const [woId,setWoId]=useState(""); const [title,setTitle]=useState("");
+echo const [basket,setBasket]=useState<{part_id:string; qty:number}[]>([]);
+echo const [msg,setMsg]=useState("");
+echo useEffect(()=>{ load(); },[]);
+echo async function load(){ const j = await fetch(\`\${BASE}/v1/api/inventory/parts-with-stock\`).then(r=>r.json()); setParts(j.items||[]); }
+echo function add(part_id:string){ const cur=basket.find(x=>x.part_id===part_id); if(cur){ cur.qty+=1; setBasket([...basket]); } else { setBasket([...basket,{part_id, qty:1}]); } }
+echo function setQty(part_id:string, q:number){ setBasket(basket.map(b=> b.part_id===part_id ? {...b, qty: Math.max(0, Math.floor(q||0))}: b)); }
+echo async function save(){ if(!woId||!vessel||!title){ setMsg("id, vessel, title required"); return; } const clean = basket.filter(b=>b.qty>0); const body = { id: woId, vessel_id: vessel, title, parts: clean, est_hours: 0, cost_per_hour: 0, est_downtime_h: 0 }; const r = await fetch(\`\${BASE}/v1/api/workorders/upsert\`, { method:"POST", headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)}); const j = await r.json(); setMsg(JSON.stringify(j,null,2)); }
+echo const byName = useMemo(()=>parts.slice().sort((a,b)=> a.name.localeCompare(b.name)),[parts]);
+echo return (
+echo <div className="card">
+echo <h2>Work Order Editor (Multi-Part)</h2>
+echo <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8}}>
+echo <input placeholder="WO ID" value={woId} onChange={e=>setWoId(e.target.value)} />
+echo <input placeholder="Vessel ID" value={vessel} onChange={e=>setVessel(e.target.value)} />
+echo <input placeholder="Title" value={title} onChange={e=>setTitle(e.target.value)} />
+echo </div>
+echo <div style={{marginTop:8}}>
+echo <table className="text-xs w-full border">
+echo <thead><tr><th>Part #</th><th>Name</th><th>Unit Cost</th><th>On Hand</th><th>Add</th></tr></thead>
+echo <tbody>
+echo {byName.map(p=>(
+echo <tr key={p.part_id}>
+echo <td>{p.part_number}</td>
+echo <td>{p.name}</td>
+echo <td>{p.unit_cost}</td>
+echo <td>{p.on_hand}</td>
+echo <td><button onClick={()=>add(p.part_id)}>Add</button></td>
+echo </tr>
+echo ))}
+echo </tbody>
+echo </table>
+echo </div>
+echo <div style={{marginTop:8}}>
+echo <h3>Selected Parts</h3>
+echo {basket.length===0? <div style={{fontSize:12,color:'#64748b'}}>No parts added.</div>:
+echo <table className="text-xs w-full border">
+echo <thead><tr><th>Part</th><th>Qty</th></tr></thead>
+echo <tbody>
+echo {basket.map(b=>{
+echo const p = parts.find(x=>x.part_id===b.part_id);
+echo return (
+echo <tr key={b.part_id}>
+echo <td>{p?.part_number||b.part_id} — {p?.name||''}</td>
+echo <td><input type="number" value={b.qty} onChange={e=>setQty(b.part_id, Number(e.target.value))} style={{width:80}}/></td>
+echo </tr>
+echo );
+echo })}
+echo </tbody>
+echo </table>
+echo }
+echo </div>
+echo <div style={{marginTop:8, display:'flex', gap:8}}>
+echo <button onClick={save}>Save Work Order</button>
+echo <button onClick={async()=>{ const r = await fetch(\`\${BASE}/v1/api/inventory/seed-stock\`,{method:'POST'}).then(r=>r.json()); setMsg("Seed: "+JSON.stringify(r)); load(); }}>Sync Parts→Stock (seed zero rows)</button>
+echo </div>
+echo {msg && <pre style={{marginTop:8, fontSize:12, background:'#f8fafc', padding:8, borderRadius:6, overflow:'auto'}}>{msg}</pre>}
+echo </div>
+echo );
+echo }
+)
+
+%PS% ^
+"$f='frontend/src/App.tsx'; $t=Get-Content -Raw $f;" ^
+"$t = 'import WorkOrderEditor from \"./components/WorkOrderEditor\";\n'+$t;" ^
+"$t = $t -replace '(</div>\\s*)$',' <WorkOrderEditor />\n$1';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+)
+
+echo.
+echo ==========================================================
+echo ✅ Multi-part WO + Catalogue↔Stock alignment patch applied.
+echo ----------------------------------------------------------
+echo Backend:
+echo - inventory.service.ts (seed missing stock rows, list parts with stock)
+echo - index.inventory.ts (routes: /api/inventory/* and /api/workorders/upsert)
+echo - sync.service.ts (multi-part dedupe + cost recompute)
+echo - migrations 097 (views for parts-with-stock)
+echo Frontend:
+echo - WorkOrderEditor.tsx (pick multiple parts, edit qty, save WO)
+echo - App.tsx mounted editor
+echo ----------------------------------------------------------
+echo Next:
+echo cd backend-node && npm run migrate && npm run build && npm run dev
+echo cd ../frontend && npm install && npm run dev
+echo
+echo Quick tests:
+echo curl -sS http://localhost:8001/v1/api/inventory/parts-with-stock
+echo curl -sS -X POST http://localhost:8001/v1/api/inventory/seed-stock
+echo curl -sS -X POST http://localhost:8001/v1/api/workorders/upsert ^
+echo -H "Content-Type: application/json" ^
+echo -d "{\"id\":\"WO-001\",\"vessel_id\":\"VES-01\",\"title\":\"Main engine service\",\"parts\":[{\"part_id\":\"PART-123\",\"qty\":2},{\"part_id\":\"PART-456\",\"qty\":4}]}"
+echo ----------------------------------------------------------
+echo Behaviour:
+echo - ALL catalogue parts appear in Stock via view + seeding (zero qty allowed).
+echo - Work Orders accept multiple parts and compute total cost from catalogue.
+echo - Stock and Catalogue lists will never diverge in the UI joins.
+echo ==========================================================
+endlocal

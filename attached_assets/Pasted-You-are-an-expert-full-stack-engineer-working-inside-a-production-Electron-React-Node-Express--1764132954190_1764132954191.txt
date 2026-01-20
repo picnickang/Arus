@@ -1,0 +1,342 @@
+You are an expert full-stack engineer working inside a production Electron + React + Node/Express + SQLite/PostgreSQL app for marine predictive maintenance (ARUS).
+
+
+
+0. Understand the architecture 
+
+before
+
+ changing anything
+
+Scan the repo and briefly map:
+
+Frontend framework and structure (likely React + TypeScript + Vite).
+
+Backend/API (Node/Express server in server/).
+
+Database layer:
+
+Local/offline SQLite for vessel/desktop mode.
+
+Optional remote PostgreSQL/Turso/LibSQL for cloud mode.
+
+Where inventory/parts features currently live:
+
+React pages/components for inventory & parts.
+
+API routes and services for inventory.
+
+DB schema / Drizzle models or SQL for inventory & parts.
+
+Do NOT change anything yet.
+
+Summarize in comments (or a small markdown file docs/inventory-overhaul-notes.md):
+
+Frontend inventory entry point (main Inventory page/component).
+
+API endpoints used for inventory (list, detail, search, filters).
+
+DB tables related to inventory (e.g., parts, stock, locations, vessels, suppliers).
+
+Any existing pagination, search, or filter logic.
+
+How offline/embedded mode interacts with inventory data.
+
+
+
+Only proceed once you’ve confirmed that your planned changes do not duplicate existing features and will fit the current architecture (React, Electron, dual DB, offline-first).
+
+1. Goals of this overhaul (inventory UX + performance)
+
+
+
+Implement and/or refine an Inventory Management UI/UX that:
+
+Handles very large parts lists smoothly
+
+Inventory lists can contain tens of thousands of parts.
+
+UX must be smooth on vessel laptops with limited resources.
+
+Use virtualized lists (e.g., react-window or react-virtualized) for main tables if not already present.
+
+Powerful filtering & search
+
+Filter by:
+
+Vessel
+
+System/Category (Engine, Hydraulic, Electrical, Navigation, etc.)
+
+Criticality (critical, high, normal, low)
+
+Stock level (e.g., below minimum, zero, overstock)
+
+Supplier (if available)
+
+Support full-text search on Part No, Name, Description.
+
+Provide Saved Filters/Views (e.g., “Hydraulic critical parts”, “Engine room low stock”).
+
+Better layout for very long lists
+
+Main view: virtualized table with:
+
+Columns like: Part No, Description, Category, Vessel, Location, Stock Qty, Min Qty, Criticality, Actions.
+
+Support:
+
+Column resizing (if manageable).
+
+Column visibility toggles.
+
+Sticky header.
+
+Contextual detail view (drawer/modal)
+
+Clicking a row should open a slide-in drawer or modal with:
+
+Part details (specs, vendor, images if available).
+
+Stock levels across vessels/locations.
+
+Recent usage (linked work orders).
+
+Buttons: “Add to Work Order”, “Mark as Critical”, “View Alternatives”.
+
+Great UX for very long lists
+
+Smart pagination / infinite scroll in combination with virtualization.
+
+Clear empty state & loading states.
+
+Keyboard shortcuts (optional but nice): up/down to move, Enter to open part.
+
+Performance & offline mode
+
+All heavy inventory queries should:
+
+Use efficient DB queries & proper indexes.
+
+Work correctly in embedded/offline SQLite mode.
+
+Avoid overfetching or hammering /api/inventory or related endpoints (respect rate limits and reduce polling).
+
+2. Implementation tasks
+
+
+
+2.1. Identify inventory code
+
+Find the main inventory UI:
+
+Something like: client/src/features/inventory-management or similarly named modules.
+
+Find inventory API routes:
+
+e.g., /api/inventory, /api/parts, /api/stock, etc.
+
+Find DB models/tables for parts/stock:
+
+E.g., parts, inventory_items, stock_levels, vessels, locations, etc.
+
+
+
+Document these briefly in docs/inventory-overhaul-notes.md.
+
+
+
+2.2. Virtualized inventory table
+
+If not already in use, add a virtualized table implementation:
+
+Prefer tiny, battle-tested libs (e.g., react-window) or leverage existing internal components if present.
+
+Implement a component like InventoryTableVirtualized that:
+
+Accepts rows, columns, loading state, and row click handlers.
+
+Handles row rendering + sticky header.
+
+Integrate it into the existing inventory page, re-using existing state management (React Query/Zustand/Redux, etc.) instead of inventing a new pattern.
+
+
+
+2.3. Filter + search panel
+
+Create a left sidebar filter panel:
+
+Filter fields:
+
+Vessel (multi-select).
+
+Category/System (multi-select).
+
+Criticality.
+
+Stock status (below min, zero, in stock).
+
+Supplier (if available).
+
+Support saving named filter presets.
+
+Wire filters to API calls:
+
+Prefer server-side filtering if the API supports it.
+
+If not, introduce query params for /api/inventory and implement secure, performant filters on the backend.
+
+Ensure the filters are reflected in the URL/query params so they’re sharable and persisted on refresh, if consistent with existing routing patterns.
+
+
+
+2.4. Part detail drawer
+
+Add a PartDetailDrawer or similar component:
+
+Slide-in panel from the right in desktop; modal on small screens.
+
+Shows:
+
+Part core info (name, PN, description, category, tags).
+
+Stock per vessel/location.
+
+Recent work orders where this part was used.
+
+Actions:
+
+Add to existing work order.
+
+Create new work order with this part.
+
+Mark/unmark as critical.
+
+Reuse existing APIs for work orders & equipment whenever possible instead of creating redundant endpoints.
+
+
+
+2.5. Backend/API enhancements (if needed)
+
+For inventory-related endpoints:
+
+Implement pagination + filtering + search cleanly.
+
+Ensure index usage and efficient SQL on both:
+
+SQLite (embedded).
+
+PostgreSQL/libSQL/Turso (cloud).
+
+Confirm that inventory endpoints properly respect the org/tenant isolation and x-org-id headers used elsewhere.
+
+Add or refine DB indexes for:
+
+Part number.
+
+Category.
+
+Vessel.
+
+Criticality.
+
+Stock level conditions (if appropriate).
+
+3. Dual-DB & offline-first considerations
+
+Before changing any schema or queries:
+
+Confirm how migrations are handled (Drizzle migrations? custom scripts?).
+
+Confirm how SQLite and PostgreSQL schemas are kept in sync.
+
+Any schema changes needed for better inventory (e.g., adding a field for categories or indexes) must:
+
+Be implemented via the existing migration system.
+
+Work in embedded SQLite mode without breaking startup.
+
+Avoid blocking the app if the cloud database is not configured (offline mode must stay robust).
+
+4. UX improvements for long lists
+
+
+
+Implement or verify the following usability enhancements:
+
+Quick search box at the top of inventory:
+
+Debounced search on Part No, Description.
+
+Tags/chips for filters, easily clearable.
+
+Clear indicators when filters produce 0 results.
+
+Responsiveness:
+
+Good layout at 1366x768 and tablet portrait/landscape.
+
+Accessible focus handling:
+
+Keyboard navigation across rows and filter controls.
+
+5. Safety, tests, and review
+
+Do NOT break existing features.
+
+Reuse existing components, hooks, and patterns wherever reasonable.
+
+If you must refactor, keep changes well-scoped and maintain backwards compatibility.
+
+Add or update tests:
+
+Unit tests for filter logic & API helpers.
+
+Integration/API tests (or at least manual test scripts) for inventory endpoints.
+
+Basic UI test coverage if the project already uses Cypress/Playwright/RTL.
+
+Add a short docs/inventory-overhaul-notes.md section that:
+
+Summarizes the new UX.
+
+Lists any new dependencies (e.g., virtualization lib).
+
+Shows example API query patterns (filters & pagination).
+
+Mentions any migration steps.
+
+6. Deliverables
+
+
+
+At the end, I expect:
+
+Updated inventory UI that:
+
+Is virtualized and smooth for huge lists.
+
+Has powerful filters and search.
+
+Uses a detail drawer for deep part info and actions.
+
+Backend & DB updates (if needed) that:
+
+Respect dual DB (SQLite + Postgres/libSQL).
+
+Maintain offline-first behavior.
+
+Tests added or updated to cover new logic.
+
+A concise summary (docs/inventory-overhaul-notes.md) explaining:
+
+What changed.
+
+How to use the new inventory features.
+
+Any known limitations.
+
+
+
+Please proceed step by step, narrate your findings as comments or docs where helpful, and ensure each change integrates cleanly with the existing architecture and does not duplicate existing functionality.
+

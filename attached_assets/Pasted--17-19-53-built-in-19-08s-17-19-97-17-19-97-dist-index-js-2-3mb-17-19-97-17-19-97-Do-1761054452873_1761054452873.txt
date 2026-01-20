@@ -1,0 +1,57 @@
+#17 19.53 ✓ built in 19.08s
+#17 19.97 
+#17 19.97   dist/index.js  2.3mb ⚠️
+#17 19.97 
+#17 19.97 ⚡ Done in 297ms
+#17 DONE 79.2s
+#18 [production 7/8] COPY --from=builder /app/dist ./dist
+#18 DONE 4.8s
+#19 [production 8/8] RUN chown -R arus:nodejs /app
+#19 DONE 396.6s
+#20 exporting to docker image format
+#20 exporting layers
+#20 exporting layers 40.6s done
+#20 exporting manifest sha256:1065f76328b68d3ecb1deaa4d96c13c59cdb582422a4be391b59f8c41cad5ff0 done
+#20 exporting config sha256:d3ac66964a0bdfc59422e749d366f35822671da9839805af21a17b5fdd7c4bec done
+#20 DONE 44.8s
+#21 exporting cache to client directory
+#21 preparing build cache for export
+#21 writing cache image manifest sha256:8ba01258bb6486623e2ff2d3f091fa8e2213b6c525a6794de43c1d215e3d0b9c 0.1s done
+#21 DONE 229.1s
+Pushing image to registry...
+Upload succeeded
+==> Deploying...
+==> No open ports detected, continuing to scan...
+==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+node:internal/modules/esm/resolve:873
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'vite' imported from /app/dist/index.js
+    at packageResolve (node:internal/modules/esm/resolve:873:9)
+    at moduleResolve (node:internal/modules/esm/resolve:946:18)
+    at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:708:12)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:657:25)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:640:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:264:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:168:49) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+Node.js v20.19.5
+==> Exited with status 1
+==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+node:internal/modules/esm/resolve:873
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'vite' imported from /app/dist/index.js
+    at packageResolve (node:internal/modules/esm/resolve:873:9)
+    at moduleResolve (node:internal/modules/esm/resolve:946:18)
+    at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:708:12)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:657:25)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:640:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:264:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:168:49) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+Node.js v20.19.5

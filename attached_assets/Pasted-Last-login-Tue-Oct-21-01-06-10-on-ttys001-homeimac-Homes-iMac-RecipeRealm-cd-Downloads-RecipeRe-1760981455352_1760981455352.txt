@@ -1,0 +1,47 @@
+Last login: Tue Oct 21 01:06:10 on ttys001
+homeimac@Homes-iMac RecipeRealm % cd ~/Downloads/RecipeRealm  # (or RecipeRealm-3, whatever the new download is)
+chmod +x skip-build-macos.sh
+./skip-build-macos.sh
+zsh: unknown sort specifier
+homeimac@Homes-iMac RecipeRealm % chmod +x skip-build-macos.sh
+./skip-build-macos.sh
+🎯 ARUS macOS Build - Pre-built Server
+=======================================
+
+✅ Found pre-built server: dist/index.js
+-rw-r--r--@ 1 homeimac  staff   2.3M Oct 20 17:10 dist/index.js
+
+Step 1: Fixing package.json...
+✅ package.json fixed
+
+Step 2: Removing optional cpu-features...
+✅ cpu-features removed
+
+Step 3: Rebuilding native modules for Electron...
+  • preparing       moduleName=@serialport/bindings-cpp arch=x64
+  • finished        moduleName=@serialport/bindings-cpp arch=x64
+  • preparing       moduleName=@tensorflow/tfjs-node arch=x64
+  • finished        moduleName=@tensorflow/tfjs-node arch=x64
+  • preparing       moduleName=bufferutil arch=x64
+  • finished        moduleName=bufferutil arch=x64
+  • completed installing native dependencies
+
+Step 4: Creating build configuration...
+
+Step 5: Building macOS installer...
+  • electron-builder  version=26.0.12 os=21.6.0
+  • loaded configuration  file=/Users/homeimac/Downloads/RecipeRealm/electron-builder-bundled.yml
+  • writing effective config  file=dist/electron/builder-effective-config.yaml
+  • executing @electron/rebuild  electronVersion=38.3.0 arch=x64 buildFromSource=false appDir=./
+  • installing native dependencies  arch=x64
+  • preparing       moduleName=@serialport/bindings-cpp arch=x64
+  • finished        moduleName=@serialport/bindings-cpp arch=x64
+  • preparing       moduleName=@tensorflow/tfjs-node arch=x64
+  • finished        moduleName=@tensorflow/tfjs-node arch=x64
+  • preparing       moduleName=bufferutil arch=x64
+  • finished        moduleName=bufferutil arch=x64
+  • completed installing native dependencies
+  • packaging       platform=darwin arch=x64 electron=38.3.0 appOutDir=dist/electron/mac
+  • default Electron icon is used  reason=application icon is not set
+  • skipped macOS code signing  reason=identity explicitly is set to null
+  • building        target=macOS tar.gz arch=x64 file=dist/electron/ARUS Marine Monitoring-1.0.0-mac.tar.gz

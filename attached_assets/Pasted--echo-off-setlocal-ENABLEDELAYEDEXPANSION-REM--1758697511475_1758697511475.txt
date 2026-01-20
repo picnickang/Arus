@@ -1,0 +1,171 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==========================================================
+REM ARUS Patch: HoR ↔ Scheduler Wiring
+REM - Backend: prepare_for_plan, schedule/plan compliance
+REM - Frontend: Validate STCW toggle, compliance summary,
+REM "Load from Proposed Plan" in HoR grid
+REM ==========================================================
+
+if not exist "backend\app\main.py" (
+echo [ERROR] backend\app\main.py not found. Run this at repo root.
+exit /b 1
+)
+
+if not exist "frontend\src" (
+echo [WARN] frontend\src not found; UI portions will be skipped.
+set SKIP_UI=1
+) else (
+set SKIP_UI=0
+)
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+REM ----------------------------------------------------------
+REM 1) Backend helper: HoR planner utilities
+REM ----------------------------------------------------------
+%PS% "$code=@'
+from __future__ import annotations
+from typing import Dict, Any, List, Tuple
+from datetime import datetime, timedelta
+from app.core.hours_of_rest import check_month
+
+def _iso_date(d: datetime) -> str:
+return d.strftime(\"%Y-%m-%d\")
+
+def _ym_from_date(date_str: str) -> Tuple[int,int]:
+d = datetime.fromisoformat(date_str)
+return d.year, d.month
+
+def _empty_rows_for_range(start_date: str, end_date: str) -> List[dict]:
+sd = datetime.fromisoformat(start_date)
+ed = datetime.fromisoformat(end_date)
+days=[]
+cur=sd
+while cur<=ed:
+r={\"date\": _iso_date(cur)}
+for h in range(24): r[f\"h{h}\"]=1 # default REST=1, work=0
+days.append(r)
+cur += timedelta(days=1)
+return days
+
+def _apply_assignments_as_work(rows: List[dict], assigns: List[dict]) -> List[dict]:
+# rows contain REST=1; mark assigned hours as WORK=0
+by_date={r[\"date\"]: r for r in rows}
+for a in assigns:
+d=a[\"date\"]
+if d not in by_date: continue
+st=datetime.fromisoformat(a[\"start\"].replace(\"Z\",\"\")); en=datetime.fromisoformat(a[\"end\"].replace(\"Z\",\"\")) # same date boundaries
+for h in range(st.hour, en.hour):
+key=f\"h{h}\"
+if key in by_date[d]:
+by_date[d][key]=0
+return list(by_date.values())
+
+def merge_history_with_plan(history_rows: List[dict], plan_assigns: List[dict], start_date: str, end_date: str) -> List[dict]:
+"""Build a rows array for [start_date, end_date] using history where present, otherwise default REST=1, then overlay plan as WORK=0."""
+# Start with defaults
+rows=_empty_rows_for_range(start_date, end_date)
+idx={r[\"date\"]: r for r in rows}
+# Put history (assume 1=rest,0=work same convention)
+for hr in history_rows:
+d=hr.get(\"date\")
+if d in idx:
+for h in range(24): idx[d][f\"h{h}\"]=int(hr.get(f\"h{h}\", idx[d][f\"h{h}\"]))
+# Apply plan
+rows2=_apply_assignments_as_work(list(idx.values()), plan_assigns)
+return rows2
+
+def summarize_hor_context(history_rows: List[dict]) -> Dict[str,Any]:
+"""Derive simple context (nights_this_week, min_rest_24 today)."""
+if not history_rows: return {\"rest_7d\":0,\"min_rest_24\":0,\"nights_this_week\":0}
+chk=check_month(history_rows[-7:] if len(history_rows)>7 else history_rows)
+rest7 = chk[\"rolling7d\"][-1][\"rest_7d\"] if chk.get(\"rolling7d\") else 0
+# nights_this_week: count hours with start 20-05 marked as work (0)
+nights=0
+for r in (history_rows[-7:] if len(history_rows)>7 else history_rows):
+for h in list(range(0,6))+list(range(20,24)):
+if int(r.get(f\"h{h}\",1))==0: nights += 1/8 # approximate per 8h watch = 1
+return {\"rest_7d\": rest7, \"min_rest_24\": chk[\"days\"][-1][\"min_rest_24\"] if chk.get(\"days\") else 0, \"nights_this_week\": int(nights)}
+'@; Set-Content -Encoding UTF8 backend/app/core/hor_plan_utils.py $code"
+
+REM ----------------------------------------------------------
+REM 2) Backend: crew_rest.prepare_for_plan endpoint
+REM ----------------------------------------------------------
+%PS% ^
+"$f='backend/app/api/crew_rest.py'; $t=Get-Content -Raw $f;" ^
+"$need = ($t -notmatch 'prepare_for_plan');" ^
+"if ($need) { " ^
+" $t = $t + @'`n@router.post(\"/prepare_for_plan\")`nasync def prepare_for_plan(body: Dict[str,Any] = Body(...)):`n \"\"\"Input: { crew:[{id, min_rest_h?}], range:{start,end} }. Returns HoR context per crew.\"\"\"`n crew = body.get(\"crew\", [])`n rng = body.get(\"range\", {})`n start = rng.get(\"start\")`n end = rng.get(\"end\")`n if not (crew and start and end): return {\"ok\": False, \"error\":\"missing crew/range\"}`n # fetch history rows for range (fallback to empty rest=1 if not found)`n from app.core.async_repo import REPO`n out={\"ok\": True, \"per_crew\": []}`n for c in crew:`n cid=c.get(\"id\");`n year, month = (int(start[:4]), start[5:7])`n sh, rows = await REPO.rest_fetch_month(cid, year, month)`n from app.core.hor_plan_utils import summarize_hor_context`n ctx = summarize_hor_context(rows)`n out[\"per_crew\"].append({\"crew_id\": cid, **ctx})`n return out`n'@; " ^
+" Set-Content -Encoding UTF8 $f $t;" ^
+"} else { echo [INFO] prepare_for_plan already present. }"
+
+REM ----------------------------------------------------------
+REM 3) Backend: enhance /api/crew/schedule/plan to validate STCW
+REM - returns { scheduled, unfilled, compliance:{overall_ok, per_crew[], rows_by_crew{}} }
+REM ----------------------------------------------------------
+%PS% ^
+"$f='backend/app/api/crew.py'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace 'assigns, unfilled = plan_with_engine\\([\\s\\S]*?\\)\\s*\\n\\s*# persist', 'validate = bool(body.get(\"validate_stcw\", False))\\n assigns, unfilled = plan_with_engine(engine, days, shifts, crew, leaves, port_calls, drydocks, certs_index, preferences=body.get(\"preferences\"))\\n compliance = {\"overall_ok\": True, \"per_crew\": [], \"rows_by_crew\": {}}\\n if validate:\\n # Build HoR rows per crew for planning horizon and check\\n from app.core.hor_plan_utils import merge_history_with_plan\\n from app.core.hours_of_rest import check_month\\n from app.core.async_repo import REPO as _REPO\\n horizon_start = days[0]; horizon_end = days[-1]\\n crew_ids = list({a.get(\"crew_id\") for a in assigns})\\n for cid in crew_ids:\\n # fetch month rows for start month (simple approach)\\n year=int(horizon_start[:4]); month=horizon_start[5:7]\\n sh, hist = await _REPO.rest_fetch_month(cid, year, month)\\n # merge\\n merged = merge_history_with_plan(hist, [a for a in assigns if a.get(\"crew_id\")==cid], horizon_start, horizon_end)\\n res = check_month(merged)\\n compliance[\"rows_by_crew\"][cid]=merged\\n compliance[\"per_crew\"].append({\"crew_id\": cid, \"ok\": bool(res.get(\"ok\", False)), \"details\": res})\\n compliance[\"overall_ok\"] = all(p.get(\"ok\") for p in compliance[\"per_crew\"])\\n # persist' " ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM Also return compliance in response (append to returned JSON)
+%PS% ^
+"$f='backend/app/api/crew.py'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace 'return \\{\\'scheduled\\'','return {\\'scheduled\\' :';" ^
+"$t = $t -replace '\\}\\s*$', ', \\'compliance\\': compliance }';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ----------------------------------------------------------
+REM 4) Frontend: Crew Scheduler toggle + compliance summary
+REM - Adds Validate STCW toggle and shows compliance result
+REM - Saves rows_by_crew into localStorage('hor_proposed_rows')
+REM ----------------------------------------------------------
+if "%SKIP_UI%"=="0" (
+%PS% ^
+"$f='frontend/src/components/Crew.tsx'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace 'export function CrewScheduler\\(\\)\\{', 'export function CrewScheduler(){\\n const [engine,setEngine]=useState(\"greedy\");\\n const [portCalls,setPortCalls]=useState<any[]>([]);\\n const [drydocks,setDrydocks]=useState<any[]>([]);\\n const [preferences,setPreferences]=useState<any>({weights:{unfilled:1000,fairness:20,night_over:10,consec_night:8,pref_off:6,vessel_mismatch:3},rules:{max_nights_per_week:4},per_crew:[]});\\n const [validate,setValidate]=useState<boolean>(true);';" ^
+"$t = $t -replace 'const body=\\{ days, shifts, crew, leaves, port_calls: portCalls, drydocks: drydocks, engine, preferences \\};', 'const body={ days, shifts, crew, leaves, port_calls: portCalls, drydocks: drydocks, engine, preferences, validate_stcw: validate };';" ^
+"$t = $t -replace 'const r=await fetch\\(`\\$\\{BASE\\}/api/crew/schedule/plan`[\\s\\S]*?setOut\\(await r.json\\(\\)\\);', 'const r=await fetch(`${BASE}/api/crew/schedule/plan`, {method:\\'POST\\',headers:{\\'Content-Type\\':\\'application/json\\'}, body: JSON.stringify(body)}); const j=await r.json(); setOut(j); try{ if(j && j.compliance && j.compliance.rows_by_crew){ localStorage.setItem(\\'hor_proposed_rows\\', JSON.stringify(j.compliance.rows_by_crew)); }}catch(e){}';" ^
+"$t = $t -replace 'Engine</label><select value=\\{engine\\}', 'Engine</label><select value={engine}'" ^
+"$t = $t -replace '</select><button onClick=\\{\\(\\)=>genDays[\\s\\S]*?Plan Schedule</button>', '</select><label style={{marginLeft:8}}><input type=\"checkbox\" checked={validate} onChange={e=>setValidate(e.target.checked)} /> Validate STCW</label><button onClick={()=>genDays(new Date().toISOString().slice(0,10), 7)}>Days: next 7</button><button onClick={()=>genDays(new Date().toISOString().slice(0,10), 14)}>Days: next 14</button><span>{days.length} day(s) selected</span><button onClick={plan}>Plan Schedule</button>'" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM Append a simple compliance summary under results
+%PS% ^
+"$f='frontend/src/components/Crew.tsx'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace '(<FairnessViz scheduled=\\{out\\.scheduled\\|\\|\\[\\]\\} crew=\\{crew\\|\\|\\[\\]\\} \\/>)([\\s\\S]*?\\}\\)\\s*;\\s*\\}\\s*$)', '$1\\n {out.compliance && <div className=\"card\"><h3>STCW Compliance Summary</h3><div>Overall: <b>{out.compliance.overall_ok?\"OK\":\"BREACH\"}</b></div><div style={{overflowX:\"auto\"}}><table className=\"text-xs\" style={{width:\"100%\"}}><thead><tr><th>Crew</th><th>OK</th><th>MinRest24 (last)</th><th>Rest7d (last)</th></tr></thead><tbody>{(out.compliance.per_crew||[]).map((p:any)=>(<tr key={p.crew_id}><td>{p.crew_id}</td><td>{String(p.ok)}</td><td>{p.details?.days?.slice(-1)[0]?.min_rest_24??\"-\"}</td><td>{p.details?.rolling7d?.slice(-1)[0]?.rest_7d??\"-\"}</td></tr>))}</tbody></table></div><small>Tip: Open the Hours-of-Rest card and use “Load from Proposed Plan” to inspect a crew’s grid.</small></div>} $2' " ^
+"Set-Content -Encoding UTF8 $f $t;"
+) ELSE (
+echo [INFO] Skipping UI (frontend not found).
+)
+
+REM ----------------------------------------------------------
+REM 5) Frontend: Hours-of-Rest grid -> Load from Proposed Plan
+REM ----------------------------------------------------------
+if "%SKIP_UI%"=="0" (
+%PS% ^
+"$f='frontend/src/components/HoursOfRest.tsx'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace 'export default function HoursOfRest\\(\\)\\{', 'export default function HoursOfRest(){\\n const [loadCrew,setLoadCrew]=useState<string>(\"c_lee\");';" ^
+"$t = $t -replace '(<div style=\\{\\{display:\\'flex\\',gap:8,alignItems:\\'center\\',flexWrap:\\'wrap\\',marginTop:8\\}\\}>[\\s\\S]*?)<span style=\\{\\{marginLeft:\\'auto\\',[\\s\\S]*?\\}\\}\\)>', '$1<select value={loadCrew} onChange={e=>setLoadCrew(e.target.value)}><option value=\"\">Crew to load</option><option value={meta.crew_id}>{meta.crew_id}</option></select><button onClick={()=>{ try{ const m=localStorage.getItem(\"hor_proposed_rows\"); if(!m){ alert(\"No proposed plan found.\"); return;} const map=JSON.parse(m||\"{}\"); const rr=map[loadCrew]; if(!rr){ alert(\"No rows for selected crew.\"); return;} setRows(rr); }catch(e){ alert(\"Failed to load plan rows\"); } }}>Load from Proposed Plan</button> <span style={{marginLeft:\"auto\",fontSize:12,color:\"#334155\"}}>'" ^
+"Set-Content -Encoding UTF8 $f $t;"
+) ELSE (
+echo [INFO] Skipping UI (frontend not found).
+)
+
+echo.
+echo ==========================================================
+echo [OK] HoR–Scheduler wiring complete.
+echo ----------------------------------------------------------
+echo Backend:
+echo - POST /api/crew/rest/prepare_for_plan
+echo - Enhanced POST /api/crew/schedule/plan with validate_stcw
+echo - Plan response now includes: compliance.overall_ok,
+echo compliance.per_crew[], and compliance.rows_by_crew{}
+echo Frontend:
+echo - Crew Scheduler: "Validate STCW" toggle + compliance summary
+echo - Hours of Rest: "Load from Proposed Plan" button
+echo ----------------------------------------------------------
+echo Re-run backend and rebuild frontend to apply changes.
+echo ==========================================================
+endlocal

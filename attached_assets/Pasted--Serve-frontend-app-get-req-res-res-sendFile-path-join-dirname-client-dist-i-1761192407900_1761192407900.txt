@@ -1,0 +1,237 @@
+// Serve frontend
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+});
+// Start server
+app.listen(PORT, HOST, () => {
+  console.log(`✅ ARUS Server running on http://localhost:${PORT}`);
+  console.log(`   Health check: http://localhost:${PORT}/api/health`);
+  console.log(`   Mode: ${process.env.LOCAL_MODE === 'true' ? 'VESSEL (Offline)' : 'CLOUD (Online)'}`);
+  console.log(`\n   Server is ready to accept connections.\n`);
+});
+// Error handlers
+process.on('uncaughtException', (error) => {
+  console.error('\n❌ FATAL ERROR:', error);
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('\n❌ UNHANDLED REJECTION:', reason);
+  process.exit(1);
+});
+EOF
+homeimac@Homes-iMac RecipeRealm % npx esbuild server/minimal-server.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js
+
+  dist/index.js  1.4kb
+
+⚡ Done in 7ms
+homeimac@Homes-iMac RecipeRealm % launchctl stop com.arus.app
+cp ~/Library/Application\ Support/ARUS/dist/index.js ~/Library/Application\ Support/ARUS/dist/index.js.backup
+cp dist/index.js ~/Library/Application\ Support/ARUS/dist/
+launchctl start com.arus.app
+homeimac@Homes-iMac RecipeRealm % sleep 5
+echo "Testing server..."
+curl http://localhost:31888/api/health
+echo ""
+echo ""
+echo "Checking logs..."
+tail -20 ~/Library/Logs/ARUS/app.log
+Testing server...
+{"status":"ok","mode":"VESSEL","timestamp":"2025-10-23T04:01:25.069Z","version":"1.0.0"}
+
+Checking logs...
+  • Foreign keys: ON
+✓ Local SQLite: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+→ Initializing SQLite database tables...
+[SQLite Init] Initializing vessel mode database...
+[SQLite Init] Database initialized successfully with 131 tables (100% feature parity) at: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+✓ SQLite tables initialized
+==============================
+
+[DEBUG] Wrapper script starting...
+[DEBUG] Loading main server module...
+
+=== ARUS Minimal Server v1.0 ===
+
+[DEBUG] Module loaded successfully
+✅ ARUS Server running on http://localhost:31888
+   Health check: http://localhost:31888/api/health
+   Mode: VESSEL (Offline)
+
+   Server is ready to accept connections.
+
+homeimac@Homes-iMac RecipeRealm % >....                                         
+app.use(express.json());
+app.use(express.static(path.join(__dirname, '../client/dist')));
+// Register all routes
+registerRoutes(app);
+// Start server
+app.listen(PORT, HOST, () => {
+  console.log(`\n✅ ARUS Server running on http://localhost:${PORT}`);
+  console.log(`   All imports successful - no crashes detected!\n`);
+
+  // Start background jobs after server is up
+  startBackgroundJobs().catch(console.error);
+});
+// Error handlers
+process.on('uncaughtException', (error) => {
+  console.error('\n❌ UNCAUGHT EXCEPTION:', error);
+  console.error('Stack:', error.stack);
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('\n❌ UNHANDLED REJECTION:', reason);
+  process.exit(1);
+});
+EOF
+homeimac@Homes-iMac RecipeRealm % npx esbuild server/diagnostic-server.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js
+
+  dist/index.js  2.3mb ⚠️
+
+⚡ Done in 188ms
+homeimac@Homes-iMac RecipeRealm % launchctl stop com.arus.app
+cp dist/index.js ~/Library/Application\ Support/ARUS/dist/
+launchctl start com.arus.app
+homeimac@Homes-iMac RecipeRealm % sleep 8
+echo "=== DIAGNOSTIC RESULTS ==="
+tail -40 ~/Library/Logs/ARUS/app.log
+=== DIAGNOSTIC RESULTS ===
+[SQLite Init] Initializing vessel mode database...
+[SQLite Init] Database initialized successfully with 131 tables (100% feature parity) at: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+✓ SQLite tables initialized
+==============================
+
+[DEBUG] Wrapper script starting...
+[DEBUG] Loading main server module...
+
+=== ARUS Minimal Server v1.0 ===
+
+[DEBUG] Module loaded successfully
+✅ ARUS Server running on http://localhost:31888
+   Health check: http://localhost:31888/api/health
+   Mode: VESSEL (Offline)
+
+   Server is ready to accept connections.
+
+[DEBUG] Wrapper script starting...
+[DEBUG] Loading main server module...
+2025-10-23 12:03:04.861267: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 FMA
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+
+=== Database Configuration ===
+Deployment Mode: VESSEL (Offline-First)
+⚠ Turso Sync: Disabled (credentials not configured)
+  Running in offline-only mode without cloud sync
+  Set TURSO_SYNC_URL and TURSO_AUTH_TOKEN to enable sync
+→ Applying SQLite performance optimizations...
+✓ SQLite performance optimizations applied
+  • WAL mode enabled (better concurrency)
+  • Cache: 64MB
+  • Sync: NORMAL (safe with WAL)
+  • Foreign keys: ON
+✓ Local SQLite: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+→ Initializing SQLite database tables...
+[SQLite Init] Initializing vessel mode database...
+[SQLite Init] Database initialized successfully with 131 tables (100% feature parity) at: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+✓ SQLite tables initialized
+==============================
+
+homeimac@Homes-iMac RecipeRealm % cat > server/test-db-only.ts << 'EOF'
+process.env.TF_CPP_MIN_LOG_LEVEL = '2';
+console.log('TEST 1: Database import only');
+import { db, isLocalMode } from './db-config.js';
+console.log('✅ Database imported successfully');
+console.log('Mode:', isLocalMode ? 'VESSEL' : 'CLOUD');
+setTimeout(() => process.exit(0), 2000);
+EOF
+homeimac@Homes-iMac RecipeRealm % npx esbuild server/test-db-only.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js
+launchctl stop com.arus.app
+cp dist/index.js ~/Library/Application\ Support/ARUS/dist/
+launchctl start com.arus.app
+sleep 5
+echo "=== TEST 1 RESULTS ==="
+tail -30 ~/Library/Logs/ARUS/app.log | grep -A20 "TEST 1"
+
+  dist/index.js  431.2kb
+
+⚡ Done in 21ms
+=== TEST 1 RESULTS ===
+TEST 1: Database import only
+✅ Database imported successfully
+Mode: VESSEL
+[DEBUG] Module loaded successfully
+homeimac@Homes-iMac RecipeRealm % cat > server/test-db-routes.ts << 'EOF'
+process.env.TF_CPP_MIN_LOG_LEVEL = '2';
+console.log('TEST 2: Database + Routes');
+import { db } from './db-config.js';
+console.log('✅ Database OK');
+import { registerRoutes } from './routes.js';
+console.log('✅ Routes OK');
+setTimeout(() => process.exit(0), 2000);
+EOF
+homeimac@Homes-iMac RecipeRealm % npx esbuild server/test-db-routes.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js
+launchctl stop com.arus.app
+cp dist/index.js ~/Library/Application\ Support/ARUS/dist/
+launchctl start com.arus.app
+sleep 5
+echo "=== TEST 2 RESULTS ==="
+tail -30 ~/Library/Logs/ARUS/app.log | grep -A20 "TEST 2"
+
+
+  dist/index.js  218b 
+
+⚡ Done in 3ms
+=== TEST 2 RESULTS ===
+TEST 2: Database + Routes
+✅ Database OK
+✅ Routes OK
+[DEBUG] Module loaded successfully
+homeimac@Homes-iMac RecipeRealm % cat > server/test-db-security.ts << 'EOF'
+process.env.TF_CPP_MIN_LOG_LEVEL = '2';
+console.log('TEST 3: Database + Security');
+import { db } from './db-config.js';
+console.log('✅ Database OK');
+import { additionalSecurityHeaders } from './security.js';
+console.log('✅ Security OK');
+setTimeout(() => process.exit(0), 2000);
+EOF
+homeimac@Homes-iMac RecipeRealm % npx esbuild server/test-db-security.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js
+launchctl stop com.arus.app
+cp dist/index.js ~/Library/Application\ Support/ARUS/dist/
+launchctl start com.arus.app
+sleep 5
+echo "=== TEST 3 RESULTS ==="
+tail -30 ~/Library/Logs/ARUS/app.log | grep -A20 "TEST 3"
+
+  dist/index.js  224b 
+
+⚡ Done in 3ms
+=== TEST 3 RESULTS ===
+TEST 3: Database + Security
+✅ Database OK
+✅ Security OK
+[DEBUG] Module loaded successfully
+homeimac@Homes-iMac RecipeRealm % cat > server/test-db-jobs.ts << 'EOF'
+process.env.TF_CPP_MIN_LOG_LEVEL = '2';
+console.log('TEST 4: Database + Job Processors (TensorFlow)');
+import { db } from './db-config.js';
+console.log('✅ Database OK');
+import { startBackgroundJobs } from './job-processors.js';
+console.log('✅ Job Processors OK');
+setTimeout(() => process.exit(0), 2000);
+EOF
+homeimac@Homes-iMac RecipeRealm % npx esbuild server/test-db-jobs.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js
+launchctl stop com.arus.app
+cp dist/index.js ~/Library/Application\ Support/ARUS/dist/
+launchctl start com.arus.app
+sleep 5
+echo "=== TEST 4 RESULTS ==="
+tail -30 ~/Library/Logs/ARUS/app.log | grep -A20 "TEST 4"
+
+  dist/index.js  245b 
+
+⚡ Done in 3ms
+=== TEST 4 RESULTS ===
+TEST 4: Database + Job Processors (TensorFlow)
+✅ Database OK
+✅ Job Processors OK
+[DEBUG] Module loaded successfully

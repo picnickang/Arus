@@ -1,0 +1,325 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==========================================================
+REM ARUS DB Hardening Patch (Postgres/Timescale + SQLite)
+REM - SQL migrations with versioning
+REM - Autodetect TimescaleDB; hypertable for telemetry
+REM - Constraints, FKs, indexes, retention config
+REM - Migration runner and DB health/retention utilities
+REM - Wires migrations into backend startup
+REM ==========================================================
+
+if not exist "backend-node\src" (
+echo [ERROR] backend-node/src not found. Run at repo root.
+exit /b 1
+)
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+REM 0) Ensure deps and scripts
+%PS% ^
+"$f='backend-node/package.json'; $json=(Get-Content -Raw $f | ConvertFrom-Json);" ^
+"$json.dependencies.'pg' = $json.dependencies.'pg' ?? '^8.12.0';" ^
+"$json.dependencies.'better-sqlite3' = $json.dependencies.'better-sqlite3' ?? '^9.4.0';" ^
+"$json.devDependencies.'tsx' = $json.devDependencies.'tsx' ?? '^4.19.0';" ^
+"$json.scripts.migrate = 'tsx src/db.migrate.ts';" ^
+"$json | ConvertTo-Json -Depth 10 | Set-Content -Encoding UTF8 $f;"
+
+REM 1) Migrations folder
+if not exist "backend-node\migrations" mkdir backend-node\migrations
+
+> backend-node\migrations\001_bootstrap.sql (
+echo -- Schema versioning
+echo CREATE TABLE IF NOT EXISTS schema_version(
+echo id INT PRIMARY KEY,
+echo name TEXT NOT NULL,
+echo applied_at TIMESTAMPTZ DEFAULT NOW()
+echo );
+)
+
+> backend-node\migrations\010_core_entities.sql (
+echo -- Core entities and constraints
+echo CREATE TABLE IF NOT EXISTS vessel(
+echo id TEXT PRIMARY KEY,
+echo name TEXT,
+echo imo TEXT,
+echo created_at TIMESTAMPTZ DEFAULT NOW()
+echo );
+echo
+echo CREATE TABLE IF NOT EXISTS crew(
+echo id TEXT PRIMARY KEY,
+echo name TEXT,
+echo rank TEXT,
+echo vessel_id TEXT REFERENCES vessel(id) ON DELETE SET NULL,
+echo on_duty INTEGER DEFAULT 0,
+echo created_at TIMESTAMPTZ DEFAULT NOW()
+echo );
+echo
+echo CREATE TABLE IF NOT EXISTS idempotency(
+echo key TEXT PRIMARY KEY,
+echo endpoint TEXT NOT NULL,
+echo ts TIMESTAMPTZ DEFAULT NOW()
+echo );
+echo
+echo CREATE TABLE IF NOT EXISTS sensor_types(
+echo id TEXT PRIMARY KEY,
+echo name TEXT NOT NULL,
+echo category TEXT NOT NULL,
+echo default_unit TEXT NOT NULL,
+echo units JSONB NOT NULL CHECK (jsonb_typeof(units)='array')
+echo );
+echo
+echo CREATE TABLE IF NOT EXISTS sensor_mapping(
+echo vessel_id TEXT NOT NULL REFERENCES vessel(id) ON DELETE CASCADE,
+echo src TEXT NOT NULL,
+echo sig TEXT NOT NULL,
+echo sensor_type_id TEXT NOT NULL REFERENCES sensor_types(id) ON DELETE RESTRICT,
+echo equipment TEXT,
+echo preferred_unit TEXT,
+echo updated_at TIMESTAMPTZ DEFAULT NOW(),
+echo PRIMARY KEY (vessel_id, src, sig)
+echo );
+echo
+echo CREATE TABLE IF NOT EXISTS discovered_signals(
+echo vessel_id TEXT NOT NULL REFERENCES vessel(id) ON DELETE CASCADE,
+echo src TEXT NOT NULL,
+echo sig TEXT NOT NULL,
+echo unit TEXT,
+echo first_seen TIMESTAMPTZ DEFAULT NOW(),
+echo last_seen TIMESTAMPTZ DEFAULT NOW(),
+echo samples INTEGER DEFAULT 0,
+echo PRIMARY KEY (vessel_id, src, sig)
+echo );
+)
+
+> backend-node\migrations\020_telemetry_pg.sql (
+echo -- Postgres / Timescale telemetry table
+echo CREATE TABLE IF NOT EXISTS telemetry(
+echo vessel_id TEXT NOT NULL REFERENCES vessel(id) ON DELETE CASCADE,
+echo ts TIMESTAMPTZ NOT NULL,
+echo src TEXT NOT NULL,
+echo sig TEXT NOT NULL,
+echo value DOUBLE PRECISION,
+echo unit TEXT,
+echo PRIMARY KEY (vessel_id, ts, src, sig)
+echo );
+echo
+echo CREATE INDEX IF NOT EXISTS idx_telemetry_vessel_ts ON telemetry (vessel_id, ts DESC);
+echo CREATE INDEX IF NOT EXISTS idx_telemetry_sig_ts ON telemetry (vessel_id, src, sig, ts DESC);
+)
+
+> backend-node\migrations\030_policies_config.sql (
+echo -- Retention / rollups configuration
+echo CREATE TABLE IF NOT EXISTS telemetry_policies(
+echo id SMALLINT PRIMARY KEY DEFAULT 1,
+echo retention_days INTEGER DEFAULT 365,
+echo rollup_enabled BOOLEAN DEFAULT TRUE,
+echo rollup_bucket TEXT DEFAULT '5 minutes'
+echo );
+echo INSERT INTO telemetry_policies(id) VALUES (1)
+echo ON CONFLICT (id) DO NOTHING;
+)
+
+> backend-node\migrations\040_timescale.sql (
+echo -- If TimescaleDB is available, convert to hypertable and create a continuous aggregate
+echo DO $$
+echo BEGIN
+echo IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'timescaledb') THEN
+echo PERFORM public.create_hypertable('telemetry','ts', if_not_exists => TRUE);
+echo -- Compression and retention policies can be managed by DBAs; this file stays idempotent.
+echo CREATE MATERIALIZED VIEW IF NOT EXISTS telemetry_5m
+echo WITH (timescaledb.continuous) AS
+echo SELECT
+echo vessel_id, src, sig,
+echo time_bucket(INTERVAL '5 minutes', ts) AS bucket,
+echo avg(value) AS avg_value,
+echo min(value) AS min_value,
+echo max(value) AS max_value,
+echo count(*) AS n
+echo FROM telemetry
+echo GROUP BY vessel_id, src, sig, time_bucket(INTERVAL '5 minutes', ts);
+echo END IF;
+echo END$$;
+)
+
+> backend-node\migrations\050_indexes.sql (
+echo -- Discovery and mapping helpers
+echo CREATE INDEX IF NOT EXISTS idx_discovered_last ON discovered_signals (vessel_id, last_seen DESC);
+echo CREATE INDEX IF NOT EXISTS idx_mapping_vessel_sig ON sensor_mapping (vessel_id, src, sig);
+)
+
+REM SQLite equivalents for local dev
+> backend-node\migrations\sqlite_020_telemetry.sql (
+echo -- SQLite telemetry table and indexes
+echo CREATE TABLE IF NOT EXISTS telemetry(
+echo vessel_id TEXT NOT NULL,
+echo ts TEXT NOT NULL,
+echo src TEXT NOT NULL,
+echo sig TEXT NOT NULL,
+echo value REAL,
+echo unit TEXT,
+echo PRIMARY KEY (vessel_id, ts, src, sig)
+echo );
+echo CREATE INDEX IF NOT EXISTS idx_telemetry_vessel_ts ON telemetry (vessel_id, ts);
+echo CREATE INDEX IF NOT EXISTS idx_telemetry_sig_ts ON telemetry (vessel_id, src, sig, ts);
+echo
+echo CREATE TABLE IF NOT EXISTS telemetry_policies(
+echo id INTEGER PRIMARY KEY,
+echo retention_days INTEGER DEFAULT 365,
+echo rollup_enabled INTEGER DEFAULT 1,
+echo rollup_bucket TEXT DEFAULT '5 minutes'
+echo );
+echo INSERT OR IGNORE INTO telemetry_policies(id) VALUES(1);
+)
+
+REM 3) Migration runner
+> backend-node\src\db.migrate.ts (
+echo import fs from "node:fs";
+echo import path from "node:path";
+echo import { Pool } from "pg";
+echo import Database from "better-sqlite3";
+echo
+echo const DATABASE_URL = process.env.DATABASE_URL || "";
+echo const USE_PG = !!DATABASE_URL;
+echo const MIG_DIR = path.join(process.cwd(), "backend-node", "migrations");
+echo
+echo type Mig = { id:number; file:string; sql:string };
+echo
+echo function loadMigrations(pgMode:boolean): Mig[] {
+echo const files = fs.readdirSync(MIG_DIR).filter(f => f.endsWith(".sql")).sort();
+echo const pgFiles = files.filter(f => !f.startsWith("sqlite_"));
+echo const sqliteFiles = files.filter(f => f.startsWith("sqlite_"));
+echo const pick = pgMode
+echo ? pgFiles
+echo : sqliteFiles.concat(pgFiles.filter(f => /^00[1|10|30|50]_/.test(f) || f.startsWith("001_") || f.startsWith("010_") || f.startsWith("030_") || f.startsWith("050_")));
+echo return pick.map(file => {
+echo const id = parseInt(file.split("_")[0], 10) || 0;
+echo const sql = fs.readFileSync(path.join(MIG_DIR,file), "utf8");
+echo return { id, file, sql };
+echo });
+echo }
+echo
+echo async function migratePg() {
+echo const pool = new Pool({ connectionString: DATABASE_URL, statement_timeout: 15000, idleTimeoutMillis: 30000, max: 15 });
+echo const client = await pool.connect();
+echo try {
+echo await client.query("BEGIN");
+echo await client.query("CREATE TABLE IF NOT EXISTS schema_version(id INT PRIMARY KEY, name TEXT NOT NULL, applied_at TIMESTAMPTZ DEFAULT NOW())");
+echo const applied = new Set((await client.query("SELECT id FROM schema_version")).rows.map(r=>Number(r.id)));
+echo for (const m of loadMigrations(true)) {
+echo if (applied.has(m.id)) continue;
+echo await client.query(m.sql);
+echo await client.query("INSERT INTO schema_version(id,name) VALUES($1,$2)", [m.id, m.file]);
+echo console.log("Applied", m.file);
+echo }
+echo await client.query("COMMIT");
+echo } catch (e:any) {
+echo await client.query("ROLLBACK");
+echo console.error("Migration failed:", e?.message||e);
+echo process.exit(1);
+echo } finally {
+echo client.release();
+echo await pool.end();
+echo }
+echo }
+echo
+echo function migrateSqlite() {
+echo const dbPath = path.join(process.cwd(), "data", "arus.sqlite");
+echo fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+echo const db = new Database(dbPath);
+echo db.pragma("journal_mode=WAL");
+echo db.exec("CREATE TABLE IF NOT EXISTS schema_version(id INT PRIMARY KEY, name TEXT NOT NULL, applied_at TEXT DEFAULT (datetime('now')))");
+echo const rows = db.prepare("SELECT id FROM schema_version").all();
+echo const applied = new Set(rows.map(r=>Number(r.id)));
+echo const tx = db.transaction((migs:Mig[]) => {
+echo for (const m of migs) {
+echo if (applied.has(m.id)) continue;
+echo db.exec(m.sql);
+echo db.prepare("INSERT INTO schema_version(id,name,applied_at) VALUES(?,?,datetime('now'))").run(m.id, m.file);
+echo console.log("Applied", m.file);
+echo }
+echo });
+echo tx(loadMigrations(false));
+echo db.close();
+echo }
+echo
+echo (async ()=>{
+echo if (USE_PG) await migratePg(); else migrateSqlite();
+echo })();
+)
+
+REM 4) DB utilities: retention & health
+> backend-node\src\db.util.ts (
+echo import { Pool } from "pg";
+echo import Database from "better-sqlite3";
+echo import path from "node:path";
+echo
+echo const DATABASE_URL = process.env.DATABASE_URL || "";
+echo const USE_PG = !!DATABASE_URL;
+echo
+echo export async function applyRetention() {
+echo if (USE_PG) {
+echo const pool = new Pool({ connectionString: DATABASE_URL });
+echo const c = await pool.connect();
+echo try {
+echo const pol = (await c.query("SELECT * FROM telemetry_policies WHERE id=1")).rows[0];
+echo if (!pol) return;
+echo const days = pol.retention_days || 365;
+echo await c.query("DELETE FROM telemetry WHERE ts < NOW() - ($1 || ' days')::INTERVAL", [String(days)]);
+echo } finally { c.release(); await pool.end(); }
+echo } else {
+echo const db = new Database(path.join(process.cwd(), "data", "arus.sqlite"));
+echo const days = db.prepare("SELECT retention_days FROM telemetry_policies WHERE id=1").get()?.retention_days || 365;
+echo const cutoff = new Date(Date.now() - days*86400*1000).toISOString();
+echo db.prepare("DELETE FROM telemetry WHERE ts < ?").run(cutoff);
+echo db.close();
+echo }
+echo }
+echo
+echo export async function dbHealth(): Promise<{ok:boolean; engine:'postgres'|'sqlite'; detail?:string}>{
+echo try{
+echo if (USE_PG) {
+echo const pool = new Pool({ connectionString: DATABASE_URL, statement_timeout: 5000 });
+echo const c = await pool.connect(); await c.query("SELECT 1"); c.release(); await pool.end();
+echo return {ok:true, engine:'postgres'};
+echo } else {
+echo const db = new Database(path.join(process.cwd(), "data", "arus.sqlite")); db.prepare("SELECT 1").get(); db.close();
+echo return {ok:true, engine:'sqlite'};
+echo }
+echo } catch(e:any){ return {ok:false, engine: USE_PG? 'postgres':'sqlite', detail: e?.message||String(e)} }
+echo }
+)
+
+REM 5) Wire utilities into backend startup (index.ts)
+%PS% ^
+"$f='backend-node/src/index.ts'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace 'import \\{ loggingMetrics, metricsHandler, INGEST_CNT \\} from \"\\.\\/obs\\.js\";', 'import { loggingMetrics, metricsHandler, INGEST_CNT } from \"./obs.js\";';" ^
+"$t = $t -replace 'const PORT = Number\\(process\\.env\\.PORT\\|\\|' ,'import { dbHealth } from \"./db.util.js\";' ;" ^
+"$t = $t -replace 'init\\(\\)\\.then\\(\\(\\)=> app\\.listen\\(PORT, \\(\\)=> console\\.log\\(''ARUS backend on :''\\+PORT\\)\\)\\);', 'init().then(async()=> { const h=await dbHealth(); console.log(\"DB health:\", h); app.listen(PORT, ()=>console.log(\"ARUS backend on :\"+PORT)); });';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM 6) Admin endpoint to trigger retention manually
+%PS% ^
+"$f='backend-node/src/index.ts'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace '(app\\.get\\('\\''/metrics'',''[\\s\\S]*?\\);)', '$1\nimport { applyRetention } from \"./db.util.js\";\napp.post('/api/admin/telemetry/retention/apply', async (_req,res)=>{ await applyRetention(); res.json({ok:true}); });';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+echo.
+echo ==========================================================
+echo ✅ DB Hardening patch applied.
+echo ----------------------------------------------------------
+echo Run:
+echo cd backend-node
+echo npm install
+echo npm run migrate
+echo npm run dev
+echo
+echo Cloud (Postgres/Timescale):
+echo set DATABASE_URL=postgres://USER:PASS@HOST:5432/DB
+echo npm run migrate
+echo npm run start
+echo
+echo Test retention:
+echo curl -X POST http://localhost:8001/api/admin/telemetry/retention/apply
+echo ==========================================================
+endlocal

@@ -1,0 +1,401 @@
+You are an expert full-stack engineer working inside this Replit project. The app is ARUS: an offline-first, multi-vessel marine predictive-maintenance and operations platform built with Electron + Node/Express + Vite/React + SQLite (vessel/local) and optional PostgreSQL/libSQL/Turso for cloud sync. It includes modules like work orders, maintenance schedules, inventory, telemetry, crew management, and logbooks (deck/engine room).
+
+
+
+I want to add StormGeo-aware deck logbook automation, but ONLY if it is compatible with the current architecture and doesn’t duplicate existing features.
+
+
+
+0. Project scan & architecture check (DO THIS FIRST)
+
+Fully scan the repository structure and codebase. Identify:
+
+Backend stack (Express entry point, server/index.ts, telemetry/logbook-related modules).
+
+Database layers (SQLite/libSQL/Drizzle schemas for local “vessel mode”, any PostgreSQL/Turso integration).
+
+Existing logbook modules:
+
+Deck log: tables, models, endpoints, React pages/components.
+
+Any existing “logbook automation”, “weather integration”, or “StormGeo”-like integration.
+
+Existing telemetry / external integrations that might already provide position or weather.
+
+Before implementing anything:
+
+Tell me clearly whether any StormGeo / weather-routing / external weather or position integration already exists.
+
+Tell me clearly whether there is already any auto-population of logbook entries from telemetry or external sources.
+
+If similar features exist, summarize them and decide if what I’m asking for should:
+
+(a) integrate with them,
+
+(b) extend them, or
+
+(c) be dropped/left as-is to avoid duplication.
+
+If you detect overlap, propose a minimal, non-breaking extension rather than a new, parallel system.
+
+
+
+Do NOT proceed with implementation until you’ve reasoned about compatibility and duplication. Explain your decision briefly in comments in the relevant files.
+
+1. Target feature: StormGeo-assisted deck logbook
+
+
+
+Goal:
+
+Use StormGeo data (or similar external routing/weather data) to pre-fill certain fields in the deck logbook per vessel, while keeping the logbook human-editable and fully functional when StormGeo data is unavailable. This must work in offline-first vessel mode and NOT break current behavior.
+
+
+
+1.1 Data model: snapshots
+
+If it does not already exist, design and implement a normalized snapshot layer for external routing/weather data, tentatively called stormgeo_snapshots (or a suitably named generic equivalent if “StormGeo” is too specific in the codebase). Requirements:
+
+Each snapshot row (for local SQLite/embedded DB) should contain at least:
+
+id (PK)
+
+vessel_id (FK to vessels table or equivalent)
+
+timestamp (ISO datetime)
+
+source (e.g. 'stormgeo' or generic 'routing_provider')
+
+Position: lat, lon
+
+Navigation: sog (speed over ground), cog (course over ground)
+
+Weather (nullable where not available): wind_dir, wind_speed, wave_height, visibility, pressure, air_temp
+
+Make schema definitions consistent with existing Drizzle/ORM schema patterns and any migration tooling used.
+
+Ensure the schema is compatible with both SQLite (vessel mode) and any remote libSQL/Postgres/Turso deployments, following current patterns (e.g. type mappings, migrations, seed logic).
+
+
+
+If a similar snapshot table already exists (e.g. telemetry or routing snapshots), extend it instead of creating a duplicate.
+
+
+
+1.2 Integration options: API vs. file import
+
+Implement the integration in an extensible way that can support:
+
+StormGeo API integration (if/when credentials are configured):
+
+Create a backend service module (e.g. stormgeoIntegrationService.ts) with:
+
+Config placeholders for API base URL, tokens, etc. (read from environment variables).
+
+Functions to fetch per-vessel snapshots and upsert them into stormgeo_snapshots.
+
+DO NOT hard-code credentials. Use .env variables consistent with the rest of the app.
+
+File import (if the user only has CSV/Excel/noon reports):
+
+Add an import endpoint, e.g. POST /api/stormgeo/import (or generic route), that:
+
+Accepts a file upload (CSV/Excel).
+
+Parses the file (use existing parsing utilities if present).
+
+Maps columns (time, lat, lon, SOG, COG, winds, waves, etc.) into stormgeo_snapshots.
+
+Provide a basic validation and error response pattern consistent with current API standards.
+
+Optionality:
+
+The application must still run perfectly if:
+
+No StormGeo API credentials are set.
+
+No StormGeo files are imported.
+
+In that case, simply skip snapshot retrieval and fall back to manual deck log entry.
+
+
+
+If any generic “external data import” layer already exists, integrate with it instead of reinventing it.
+
+
+
+1.3 Deck logbook UI & behavior
+
+Inspect the existing deck logbook implementation and integrate the new logic:
+
+When creating or editing a deck log entry for a particular vessel_id and timestamp:
+
+Query the stormgeo_snapshots table for the nearest snapshot to that time (within a reasonable window, e.g. ±60 minutes; use current patterns for time handling).
+
+Pre-fill the following fields as suggestions:
+
+Position: lat / lon
+
+Course/speed: COG / SOG
+
+Weather: wind, wave, visibility, etc., based on what’s available.
+
+Ensure the user can freely edit/override all fields before saving (for compliance).
+
+The final saved deck log entry should:
+
+Store the actual values (position, weather, etc.) in the logbook’s own tables.
+
+Optionally store metadata:
+
+auto_source = 'stormgeo' (or null)
+
+auto_snapshot_id = FK into stormgeo_snapshots (for traceability).
+
+
+
+Ensure:
+
+No breaking changes to existing logbook data models (migrations must preserve existing data).
+
+If no snapshot is found for the given time/vessel, the UI behaves exactly as before, with fully manual entry.
+
+2. Offline-first & sync behavior
+
+
+
+Respect the current offline-first, dual storage architecture:
+
+On the vessel/local SQLite side:
+
+Ensure stormgeo_snapshots and new deck-log metadata fields are usable entirely offline.
+
+If cloud sync (Turso/libSQL/Postgres) is active:
+
+Check whether snapshots and logbook tables are currently synced to cloud.
+
+If appropriate, ensure schema & sync rules are extended so snapshots and enhanced deck log entries replicate correctly.
+
+Do NOT introduce any design that makes the core logbook dependent on always-on connectivity.
+
+3. Backward compatibility & migrations
+
+Add any necessary migrations for:
+
+New stormgeo_snapshots table.
+
+New columns in deck log tables (e.g. auto_source, auto_snapshot_id).
+
+Confirm that:
+
+Existing logbook data remains valid.
+
+Older deployments can be upgraded without losing data.
+
+Where possible, include a small migration/test script or seed data that demonstrates the new feature end-to-end.
+
+4. Code quality & tests
+
+Follow existing project patterns for:
+
+File naming and module structure.
+
+Error handling and logging.
+
+Configuration via environment variables.
+
+Add or extend tests where the project already uses a test framework:
+
+At least:
+
+A unit/integration test for mapping StormGeo data -> stormgeo_snapshots.
+
+A test that verifies deck log entries are pre-filled from the nearest snapshot and remain editable.
+
+Add inline comments where decisions were made about:
+
+Time-window selection for “nearest snapshot”.
+
+Fallback behavior when no data is available.
+
+5. Final deliverables
+
+
+
+When you are done, provide:
+
+A short summary (in comments or a Markdown file) describing:
+
+Whether any existing StormGeo/weather/logbook automation was detected, and how you integrated with or extended it.
+
+The final schema for stormgeo_snapshots and any new deck log columns.
+
+How a developer or ops person would:
+
+Enable StormGeo API integration (if supported).
+
+Import StormGeo CSV/Excel reports.
+
+Pointers to:
+
+Backend files for the integration service and import routes.
+
+Frontend files/components where deck log auto-fill behavior is implemented.
+
+Any caveats or follow-up work you recommend (e.g. adding richer StormGeo fields later, better mapping for specific report formats).
+
+
+
+Now begin by scanning the repo and explaining, in comments or a short summary file, whether this feature fits the current architecture without duplication. Only then implement the minimal, compatible changes described above.
+
+
+
+REPLIT PROMPT — ADD STORMGEO SETTINGS PANEL + SECURE INTEGRATION CONFIG
+
+
+
+You are an expert full-stack engineer.
+
+Review the current ARUS architecture (Electron + React + Express + SQLite/Drizzle) and:
+
+
+
+0. Check for conflicts
+
+Scan for existing settings modules, schema, or integration frameworks.
+
+Check if any weather/routing/external integration already exists.
+
+Do not duplicate functionality; extend existing patterns if present.
+
+
+
+1. Build a StormGeo configuration system
+
+
+
+Implement these features ONLY if compatible with the existing architecture:
+
+
+
+A. Backend settings storage
+
+Create/update a settings table to store:
+
+stormgeo_enabled (boolean)
+
+stormgeo_api_base_url
+
+stormgeo_client_id
+
+stormgeo_client_secret (encrypted if you already use encryption)
+
+stormgeo_sync_interval
+
+vessel_id mapping table or JSON mapping field
+
+Follow the existing settings module patterns.
+
+Add REST endpoints:
+
+GET /api/settings/stormgeo
+
+POST /api/settings/stormgeo
+
+
+
+B. Secure handling
+
+Ensure that secrets never reach the React frontend except:
+
+flags (enabled/disabled)
+
+non-sensitive config values
+
+Keep secrets only in backend.
+
+
+
+C. Settings UI in React
+
+Create a new page:
+
+Settings → Integrations → StormGeo
+
+
+
+Elements:
+
+Toggle: Enable StormGeo Integration
+
+Inputs:
+
+API URL
+
+Client ID
+
+Client Secret (password field)
+
+Sync interval dropdown
+
+Vessel mapping UI:
+
+For each vessel → StormGeo Vessel ID field
+
+
+
+Follow current UI patterns (shadcn, tailwind, existing settings layout).
+
+
+
+D. Integration logic
+
+Build a small service: /server/integrations/stormgeoService.ts
+
+Add functions:
+
+fetchSnapshotsForVessel(vesselId)
+
+storeSnapshotInDB(snapshot)
+
+Respect offline mode: skip integration when settings not configured.
+
+Do NOT send warnings to UI; use server logs only.
+
+
+
+2. Deck log integration (stormgeo-assisted autopopulation)
+
+Auto-fill optional deck log fields (position, SOG, COG, weather).
+
+Add metadata: auto_source = ‘stormgeo’, snapshot_id.
+
+Ensure user can override fields.
+
+
+
+3. Multi-device compatibility & offline-first
+
+Ensure settings sync consistently across:
+
+SQLite local vessel database
+
+libSQL/Turso if sync enabled
+
+Test for conflicts or missing migrations.
+
+
+
+4. Provide final summary
+
+
+
+After implementing everything:
+
+Generate a list of created files.
+
+Summaries of all schema changes.
+
+Migration files.
+
+How to configure StormGeo inside the app.

@@ -1,0 +1,210 @@
+You are an expert full-stack engineer and architect helping me harden and finish a maritime predictive-maintenance and vessel-ops app built with:
+
+- Electron (desktop shell, offline-first)
+- TypeScript/Node backend (Express-style HTTP API, WebSocket, MQTT ingestion)
+- React/TypeScript frontend (ShadCN UI, React Query, Zod, etc.)
+- Hybrid storage: local SQLite (vessel/embedded mode) + optional PostgreSQL/libSQL/Turso for cloud sync
+- Telemetry ingestion (CAN/Modbus/MQTT), work orders, inventory, crew management, engine/deck logbooks, compliance reports, and AI/analytics hooks
+
+### OVERALL GOAL
+
+Do a **holistic readiness + hardening review** and then propose **minimal, high-leverage upgrades**. Only implement changes that:
+
+1. Align with the existing architecture and patterns
+2. Do **not** duplicate features that already exist
+3. Clearly improve robustness, safety, or maintainability
+
+If something is already implemented well, keep it and don’t reinvent it.
+
+---
+
+## PHASE 1 – DISCOVERY & ARCHITECTURE CHECK
+
+1. Scan the repo structure and code to understand:
+- Frontend stack (framework, state management, routing, API layer, form/validation patterns)
+- Backend stack (API framework, telemetry ingestion, background jobs/schedulers, sync services)
+- Database layer (ORM / query builder, migration strategy, where SQLite vs Postgres/libSQL are used)
+- Electron bootstrap, preload security settings, IPC boundaries, and how the embedded server is started
+
+2. Produce a short written **architecture summary**:
+- How data flows: telemetry → DB → analytics/health → work orders → logbooks → reports
+- Where offline mode vs cloud mode is handled
+- How multi-tenant / multi-org separation is enforced (x-org-id, vessel scoping, etc.)
+- Any obvious architectural smells (tight coupling, duplicate modules, dead code, etc.)
+
+3. Before changing anything:
+- List any **existing mechanisms** for:
+- Security/auth
+- Logging/audit trail
+- Backups/export/import
+- Testing
+- Config & feature flags
+- Explicitly note what’s **already good enough** vs what’s missing.
+
+Do NOT start refactors until this summary and gap analysis is done.
+
+---
+
+## PHASE 2 – SECURITY & TENANT ISOLATION
+
+Review and, if needed, improve:
+
+1. **API protection**
+- Ensure all sensitive routes enforce:
+- Auth (if present)
+- org/vessel scoping via headers or session (e.g. `x-org-id`, `vesselId`)
+- Confirm multi-tenant isolation: no cross-org data leakage.
+
+2. **Secrets management**
+- Confirm OpenAI / Turso / PostgreSQL / SMTP / MQTT / StormGeo / Aquametro FMCC credentials are **not**:
+- Hard-coded in code
+- Sent to the frontend
+- Logged in plaintext
+
+3. **Electron security**
+- Check BrowserWindow creation:
+- `nodeIntegration` disabled in renderers that load remote/local web content
+- `contextIsolation` enabled
+- Preload scripts minimal and safe
+- Content Security Policy:
+- Relaxed for dev, locked down for prod
+
+4. Implement only **targeted** fixes (small PR-style changes) where there are clear issues, and summarize them.
+
+---
+
+## PHASE 3 – LOGGING, AUDIT TRAIL & OBSERVABILITY
+
+1. Identify current logging setup (console logs, Winston/Pino/etc, custom logger).
+2. Where appropriate, improve to support:
+- Structured logs with correlation IDs (request ID, vessel ID, org ID, user ID)
+- Severity levels (info/warn/error/critical)
+3. Check for or add an **audit trail** for:
+- Work orders (created/updated/closed, by whom and when)
+- Engine & deck logbook entries (changes, sign/lock actions)
+- Crew schedules/hours of rest adjustments
+4. Make sure logs are not excessively noisy in hot telemetry paths.
+5. Implement logging/audit upgrades only where they integrate cleanly with existing patterns.
+
+---
+
+## PHASE 4 – DATABASE, BACKUPS & MIGRATIONS
+
+1. Review the database layer:
+- ORM/query builder (e.g. Drizzle/Prisma/custom)
+- How SQLite vs Postgres/libSQL are wired (vessel-local vs cloud)
+- Existing migrations and schema versioning
+
+2. Validate:
+- Schema consistency across embedded SQLite and cloud DB
+- That critical tables (telemetry, work orders, logbooks, crew, inventory) have indexes where needed
+- No obvious N+1 query patterns on hot paths
+
+3. Check **backup/export/import** story:
+- Is there a clear way to export:
+- Telemetry
+- Work orders
+- Engine/deck logs
+- Crew & hours of rest
+- Inventory
+- Is there an import path to bring data from older versions into newer versions?
+
+4. If gaps exist, propose a **minimal, versioned export/import system**, but:
+- First check if similar functionality already exists and re-use/extend it
+- Keep changes incremental, not a DB re-write
+
+---
+
+## PHASE 5 – TESTING & REGRESSION HARNESS
+
+1. Detect if there is already:
+- Unit test setup (Jest/Vitest/etc)
+- Integration or E2E testing (Playwright/Cypress/etc)
+
+2. At minimum, define or extend tests for:
+- Telemetry ingestion → DB → health/analytics calculation
+- Work order lifecycle
+- Engine & deck logbook autofill from telemetry
+- Crew scheduler + hours-of-rest rules
+
+3. If a basic test harness exists, extend it with a **small number of high-value tests** rather than starting from scratch.
+
+---
+
+## PHASE 6 – CONFIG, MULTI-TENANCY & RULES
+
+1. Check how app configuration is handled:
+- .env
+- JSON/YAML config files
+- Database-stored config
+2. Ensure that:
+- Org-specific and vessel-specific rules (thresholds, alert rules, email recipients, PdM policies) are data-driven.
+- There is a clear place to store:
+- Alert thresholds
+- Compliance rules
+- Notification routing (emails, roles)
+3. If configuration is scattered/hard-coded, propose a **unified config pattern** and apply it in a minimal way to the most important rules first.
+
+---
+
+## PHASE 7 – ML / PDM GOVERNANCE & EXPLAINABILITY
+
+1. Identify any existing ML or analytics modules:
+- Threshold-based anomaly detection
+- Predictive maintenance models
+- Health scoring
+
+2. Ensure:
+- Each alert or PdM suggestion can be traced:
+- Which signals triggered it
+- What thresholds/model version were involved
+- PdM suggestions are **advisory**, not auto-enforced (no silent auto-closing of work orders).
+
+3. Only add lightweight explainability fields or metadata; don’t introduce a heavy ML framework unless one is already in place.
+
+---
+
+## PHASE 8 – UX & OFFLINE/ONLINE BEHAVIOR
+
+1. Using the existing UI patterns, review:
+- Telemetry dashboards
+- Work orders & inventory flows
+- Engine/deck logbooks
+- Crew scheduler & hours of rest
+
+2. Ensure:
+- Offline-first behavior is clear (what works offline, what syncs later)
+- “Last synced at …” indicators where appropriate
+- Simple flows from:
+- Alarm → work order → logbook entry → report
+- UI remains usable on tablets/laptops (tap targets, forms, scroll behaviour)
+
+3. Suggest only **small UX improvements** that can be done inside current component patterns.
+
+---
+
+## PHASE 9 – DOCS & OPERATIONAL READINESS
+
+1. Generate or update brief documentation (markdown is fine) for:
+- Architecture overview (for future devs)
+- “How telemetry flows through the system”
+- “How sync and offline mode work”
+- “How to install and recover on a new machine”
+
+2. Keep docs synchronized with actual code; don’t describe features that don’t exist.
+
+---
+
+## IMPLEMENTATION RULES
+
+- Before making changes in any area, explicitly:
+1. Confirm what already exists and whether it’s sufficient.
+2. Explain why a change is necessary.
+3. Prefer small, composable improvements over big rewrites.
+
+- For each group of changes:
+- Show a short summary of what you’re about to modify.
+- Then apply the diff (code changes) step-by-step.
+- Keep changes consistent with existing style, stack, and conventions.
+
+Start with PHASE 1 (discovery & architecture summary), show me your findings and proposed priority list, then proceed through the phases in a sensible order.

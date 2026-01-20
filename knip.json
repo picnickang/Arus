@@ -1,0 +1,58 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "server/index.ts",
+    "client/src/main.tsx"
+  ],
+  "project": [
+    "server/**/*.ts",
+    "client/src/**/*.{ts,tsx}",
+    "shared/**/*.ts"
+  ],
+  "ignore": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/migrations/**",
+    "**/.replit/**",
+    "**/attached_assets/**",
+    "**/ios/**",
+    "**/tools/**",
+    "**/reports/**",
+    "**/*.test.ts",
+    "**/tests/**"
+  ],
+  "ignoreDependencies": [
+    "@types/*",
+    "@replit/*",
+    "tsx",
+    "autoprefixer",
+    "postcss",
+    "tailwindcss",
+    "tailwindcss-animate",
+    "tw-animate-css",
+    "esbuild",
+    "typescript",
+    "vite",
+    "@vitejs/plugin-react",
+    "@tailwindcss/*",
+    "drizzle-kit",
+    "eslint*",
+    "@eslint/*",
+    "@typescript-eslint/*",
+    "prettier",
+    "jest",
+    "ts-jest",
+    "@swc/*",
+    "supertest",
+    "jscpd",
+    "knip"
+  ],
+  "rules": {
+    "files": "warn",
+    "dependencies": "warn",
+    "unlisted": "off",
+    "binaries": "off",
+    "unresolved": "off"
+  }
+}

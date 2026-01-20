@@ -1,0 +1,345 @@
+You are an expert full-stack engineer (TypeScript/Node/React/Electron) and database architect.
+
+You are working on the ARUS predictive maintenance + fleet management app.
+
+
+
+The goal:
+
+Design and implement a “Digital Deck Logbook” feature (inspired by professional marine logbook systems like SeaLogs / K-Fleet / NOZZLE), but only if it fits the existing architecture and does not duplicate existing features.
+
+0. First: Understand the existing app & avoid duplication
+
+Scan the repo structure and briefly map out major parts of the app:
+
+Electron shell / main process
+
+Backend server (Node/Express + TypeScript, built with esbuild, server/index.ts etc.)
+
+Frontend (React + Vite, src or client folder)
+
+Databases:
+
+Local SQLite (offline-first vessel DB, ex: data/vessel-local.db)
+
+Optional PostgreSQL / Turso / libSQL for cloud sync and multi-org features
+
+Existing modules like:
+
+Maintenance / work orders / equipment health
+
+Inventory & parts
+
+Crew management, crew scheduler, hours of rest
+
+Telemetry ingestion & simulators
+
+Knowledge base, AI/ML analytics, sync services, etc.
+
+Check specifically if there is already any kind of:
+
+Deck log
+
+Engine log
+
+Voyage log / operational log
+
+Logbook-like tables or pages (daily vessel records, engine hours, remarks, etc.)
+
+Any export/import of logbook data
+
+Before adding anything, write a short summary (in comments or a markdown file, e.g. docs/digital-logbook-assessment.md) answering:
+
+What logbook/log-like features already exist? (list files, routes, components, tables)
+
+Is there a risk that a new “Digital Deck Logbook” module would duplicate an existing feature?
+
+If a logbook is partially implemented, describe how this new work should extend or refactor it instead of duplicating it.
+
+
+
+Only proceed with implementation if you can clearly justify how this feature:
+
+Fits the current architecture
+
+Does not overlap unnecessarily with existing modules
+
+Adds real value (e.g., structured daily logs, exports, compliance, links to telemetry and maintenance)
+
+1. Use the provided Excel template as the source of truth
+
+
+
+If the file DECK LOG BOOK UPDATE.xlsx (or similar) exists in the repo:
+
+Inspect it and infer the data model:
+
+Columns (e.g., date, time, position, weather, sea state, engine hours, fuel readings, remarks, etc.)
+
+Any sheet-level structure (multiple sheets? daily vs voyage? signatures?)
+
+Required vs optional fields.
+
+Create a short schema spec in a markdown file, e.g. docs/deck-logbook-schema.md, describing:
+
+Entities (e.g. DeckLogEntry, Voyage, Watch, etc.)
+
+Relationships (e.g. DeckLogEntry belongs to Vessel, references Crew on watch, maybe WorkOrders or Events)
+
+
+
+If the file is not present, assume a typical deck logbook layout (date, time, position, heading, speed, weather, sea/visibility, engine status, fuel/bunkers, remarks) and document your assumptions in that same markdown file.
+
+2. Design the data model (SQLite + optional Postgres/libSQL)
+
+Extend or create database models for the logbook:
+
+For SQLite (local vessel DB):
+
+New tables like:
+
+deck_log_entries
+
+Optionally voyages or watches
+
+Fields might include:
+
+id
+
+vessel_id
+
+log_date, log_time
+
+position_lat, position_lon
+
+heading, speed
+
+weather, sea_state, visibility
+
+engine_hours, generator_hours, fuel_remaining, etc.
+
+watch_officer_id, crew_on_watch (link to crew table if it exists)
+
+remarks
+
+Timestamps + sync metadata (created_at, updated_at, etc.)
+
+For Postgres / Turso / libSQL (if cloud sync is enabled):
+
+Mirror or adapt the logbook tables there, consistent with existing Drizzle-ORM / dual-write patterns.
+
+Ensure tenant isolation: every log entry must be tied to org_id and vessel_id per existing patterns.
+
+Make sure:
+
+Migrations are created properly (look at how current drizzling/migrations are done).
+
+Any “dual-write” or sync logic is extended cleanly for these new tables, reusing existing abstractions.
+
+You don’t break existing migrations or assume tables that don’t exist.
+
+3. API design – backend routes
+
+
+
+Add or extend backend APIs in the existing style (TypeScript + Express):
+
+GET /api/logbook/deck – list entries with pagination and filters:
+
+Filter options: vesselId, date range, watch, officer, etc.
+
+POST /api/logbook/deck – create a new entry.
+
+PUT /api/logbook/deck/:id – update an existing entry.
+
+DELETE /api/logbook/deck/:id – soft-delete if consistent with existing patterns.
+
+GET /api/logbook/deck/export – export entries to CSV/Excel/PDF using existing export utilities where possible.
+
+
+
+Requirements:
+
+Enforce tenant isolation and x-org-id headers in the same way as other APIs (see existing middleware logs like TENANT_ISOLATION_SUCCESS).
+
+Follow existing error handling and logging patterns.
+
+Implement rate-limit-friendly access (don’t spam queries like /api/equipment does in logs; use reasonable polling if needed).
+
+4. Frontend UX: Deck Logbook UI
+
+
+
+Add a new section/page in the frontend (React + Vite, with existing design system) for Deck Logbook.
+
+
+
+Requirements:
+
+Main Deck Logbook page:
+
+Table/grid view of entries with:
+
+Date, time, position, heading, speed, weather, sea/visibility, engine hours, remarks, officer.
+
+Filters:
+
+By vessel
+
+Date range
+
+Officer/crew
+
+Watch or shift
+
+Sorting by date/time.
+
+Entry form / editor:
+
+Create/edit form that matches the Excel template’s fields.
+
+Include validation (e.g. required fields, numeric ranges, lat/long format).
+
+Use existing UI primitives (table, dialog, form components, etc.) rather than inventing new ones.
+
+Export actions:
+
+Buttons/controls to export:
+
+CSV
+
+Maybe Excel or PDF using existing jspdf/autotable/html2canvas utilities, if already used elsewhere.
+
+Use consistent “Export” UX patterns established in other modules (e.g. analytics or reports).
+
+Integration with other modules (read-only, to start):
+
+If feasible, show a subtle link between logbook entries and:
+
+Telemetry (e.g. showing key metrics at the logged time)
+
+Maintenance / work orders (e.g. show if any work orders were opened on that date)
+
+Only if this can be done without complex refactors.
+
+5. Offline-first & sync behavior
+
+
+
+The app is designed for offline vessel mode with local SQLite and optional cloud sync. For the logbook:
+
+Ensure:
+
+Entries can be created/edited/offline and stored locally.
+
+When sync is configured, logbook entries are included in any existing vessel → cloud sync flows.
+
+Reuse existing sync abstractions (MQTT Reliable Sync, libSQL dual-write, etc.) instead of making new custom pipelines.
+
+Add simple conflict resolution logic:
+
+Prefer latest timestamp or use existing conflict resolution strategy if already implemented.
+
+Make sure /api/sync/pending-conflicts continues to work and includes logbook conflicts if relevant.
+
+6. Export/import & version safety
+
+
+
+The logbook is a core operational record. Implement:
+
+Export:
+
+Export logbook entries (for a date range & vessel) as:
+
+CSV
+
+If possible, Excel that approximates DECK LOG BOOK UPDATE.xlsx.
+
+Use existing export utility modules if available (exportUtils, jspdf, etc.).
+
+Import (optional but preferred):
+
+Ability to import from:
+
+CSV structured like the export format.
+
+Optionally the existing Excel template (if not too complex).
+
+Include validation and a clear error summary.
+
+Upgrade / migration safety:
+
+Document in docs/logbook-upgrade-notes.md how:
+
+Older versions of the app can export logbook data and re-import into newer schema.
+
+Schema migrations for logbook are applied in a backwards-compatible way where possible.
+
+7. Testing & QA
+
+
+
+Add tests and smoke checks:
+
+Backend:
+
+Unit tests for repository/service functions for deck_log_entries.
+
+API tests (if existing test infra is present).
+
+Frontend:
+
+Basic tests for the Deck Logbook page (render, filter, create/edit flows).
+
+Manual QA checklist (as markdown) that includes:
+
+Create/edit/delete log entry.
+
+Filter and sort.
+
+Export (and import, if implemented).
+
+Behavior when offline (simulated, if possible).
+
+Multi-device / multi-vessel scenarios.
+
+8. Deliverables
+
+
+
+When done, provide:
+
+A short architecture note (markdown) summarizing:
+
+What you found already in the app regarding logbook features.
+
+Why the new design is compatible and non-overlapping.
+
+The final data model and key routes/components.
+
+A concise CHANGELOG entry summarizing:
+
+New tables/migrations
+
+New APIs
+
+New frontend pages/components
+
+Any breaking changes or migration steps.
+
+Pointers to:
+
+Key backend files (routes/services/models).
+
+Key frontend files (pages/components/hooks).
+
+Important:
+
+At every major step (schema, API, UI, sync), first check the current architecture and patterns and reuse them instead of creating parallel systems.
+
+If something is already partially implemented (e.g. log-like tables), extend/refactor that instead of duplicating it.
+
+
+
+Start now by scanning the repo, documenting what exists, and then proceed with schema + API + UI only if the addition is justified and coherent.

@@ -1,0 +1,225 @@
+The key line is this from the sandbox console:
+
+
+
+Refused to apply style from ‘http://localhost:5000/assets/index-C8omU17M.css’ because its MIME type (‘text/html’) is not a supported stylesheet MIME type
+
+
+That means:
+
+You are loading http://localhost:5000/ and getting index.html ✅
+
+But when the browser asks for /assets/index-C8omU17M.css, Express is not sending a CSS file.
+
+Instead it’s returning HTML (very likely index.html again via the SPA fallback).
+
+
+
+So routing is basically:
+
+Request: / → index.html (fine)
+
+Request: /assets/index-C8omU17M.css
+
+Express hits your catch-all app.get('*') first and sends index.html instead of letting express.static serve the real CSS.
+
+Browser: “This is HTML, not CSS → reject it → blue screen, no styles.”
+
+
+
+We just need to make sure static file serving beats the SPA fallback for real files.
+
+Step 1 – Fix the Express routing order
+
+
+
+Open your server entry (server/index.ts before bundling) and find where the app is created and static + SPA are configured (this is the part that logs the [Static] Candidate roots messages).
+
+
+
+You want something like this exact structure:
+
+// server/index.ts (or wherever your Express app is created)
+
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// If you're using ESM:
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+
+// 1) API routes FIRST
+// (whatever your API router is called)
+app.use('/api', apiRouter); // adjust this line name if different
+
+// 2) Static files from the Vite build
+const staticRoot = path.join(__dirname, '..', 'dist');
+
+app.use(
+  express.static(staticRoot, {
+    index: 'index.html',
+  }),
+);
+
+/**
+ * 3) SPA fallback – ONLY for routes that:
+ *    - are NOT /api/*
+ *    - do NOT look like file requests (no extension)
+ */
+app.get('*', (req, res, next) => {
+  // Let /api/* and file requests like /assets/foo.css, /assets/app.js fall through
+  if (
+    req.path.startsWith('/api/') ||
+    path.extname(req.path) // has an extension => probably a real file
+  ) {
+    return next();
+  }
+
+  res.sendFile(path.join(staticRoot, 'index.html'));
+});
+
+/**
+ * 4) Final 404 handler
+ *    (for real misses like /api/does-not-exist or missing files)
+ */
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Not Found',
+    path: req.path,
+  });
+});
+Important bits:
+
+app.use(express.static(...)) must come before app.get('*', ...).
+
+The SPA fallback only runs when path.extname(req.path) is empty – i.e., URLs like /, /dashboard, /equipment/123, but not /assets/index-C8omU17M.css, /icon-192.png, etc.
+
+The final app.use((req, res) => ...) 404 should be last and must not send that old "Cannot GET /" string.
+
+
+
+If you see any code like this anywhere:
+
+app.get('*', (req, res) => {
+  res.status(404).send('Cannot GET ' + req.path);
+});
+Delete or convert it to the JSON 404 handler above and keep it after the SPA fallback.
+
+Step 2 – Quick sanity test without Electron
+
+
+
+After editing server/index.ts:
+
+npm run build:server
+node server/index.js
+In a separate terminal:
+
+cd /Users/homeimac/Downloads/RecipeRealm
+
+# Test root:
+curl -I http://localhost:5000/
+
+# Test the CSS directly (use the hash printed by Vite, e.g. index-C8omU17M.css):
+curl -I http://localhost:5000/assets/index-C8omU17M.css
+You want to see:
+
+For /:
+
+HTTP/1.1 200 OK
+
+Content-Type: text/html; charset=utf-8
+
+For /assets/index-C8omU17M.css:
+
+HTTP/1.1 200 OK
+
+Content-Type: text/css; charset=utf-8 (or at least text/css)
+
+
+
+If /assets/index-C8omU17M.css still shows Content-Type: text/html, the SPA fallback is still catching it. That means either:
+
+express.static is below your catch-all, or
+
+your app.get('*', ...) doesn’t have the path.extname(req.path) guard.
+
+Step 3 – Then run Electron
+
+
+
+Once the curl checks look right:
+
+npm run build:renderer
+node scripts/post-build.js
+npm run build:server
+npm run build:electron-main
+npx electron .
+At that point, Electron loading http://localhost:5000 will:
+
+get index.html for /
+
+get real JS/CSS assets for /assets/...
+
+stop complaining about “stylesheet MIME type text/html” and the blue screen will go away.
+
+
+
+The remaining warnings:
+
+Electron Security Warning (Insecure CSP) → normal in dev.
+
+Autofill.enable errors → just Chrome DevTools complaining, harmless.
+
+MQTT offline / Turso not configured / ML Analytics disabled → expected in your offline vessel mode.
+
+
+
+Those don’t block the UI.
+
+If you want a one-shot Replit patch prompt
+
+
+
+Here’s a copy-paste prompt you can give Replit to auto-fix server routing:
+
+I have a Node + Express + Vite + Electron app called ARUS. Vite builds the frontend into dist/public, then a script copies those files into dist/. The server logs show:
+
+[Static] Candidate roots: [ '<projectRoot>/dist', '<projectRoot>/dist/public', '<projectRoot>/client/dist' ]
+[Static] ✓ Selected frontend build from: <projectRoot>/dist
+[Static] ✓ express.static() configured for: <projectRoot>/dist
+[Static] ✓ SPA fallback route (GET *) configured
+[Static] ✓ Error handler registered (after SPA fallback)
+
+Electron loads http://localhost:5000 successfully, but in the browser console I get:
+
+Refused to apply style from 'http://localhost:5000/assets/index-C8omU17M.css' because its MIME type ('text/html') is not a supported stylesheet MIME type.
+
+That means the Express SPA fallback is returning index.html for /assets/*.css instead of letting express.static serve the actual CSS.
+
+Tasks:
+
+1. Open the main Express server file that esbuild bundles to server/index.js (currently server/index.ts).
+2. Ensure the routing order is:
+
+   - app.use('/api', apiRouter);          // API routes
+   - app.use(express.static(staticRoot)); // staticRoot must be <projectRoot>/dist
+   - app.get('*', (req, res, next) => {   // SPA fallback
+       if (req.path.startsWith('/api/') || path.extname(req.path)) {
+         return next(); // don't hijack /api or file requests like /assets/*.css
+       }
+       res.sendFile(path.join(staticRoot, 'index.html'));
+     });
+   - app.use((req, res) => {              // final 404 handler
+       res.status(404).json({ error: 'Not Found', path: req.path });
+     });
+
+3. Remove any other 404 middleware that sends 'Cannot GET ' + req.path, especially if it runs before express.static.
+4. Rebuild the server (npm run build:server) and verify that:
+   - curl -I http://localhost:5000/ returns Content-Type: text/html
+   - curl -I http://localhost:5000/assets/index-C8omU17M.css returns Content-Type: text/css
+
+Update server/index.ts (and any related files) to implement this behavior.

@@ -1,0 +1,67 @@
+Last login: Tue Nov 18 18:35:42 on ttys000
+homeimac@Homes-iMac RecipeRealm % npm install   
+
+up to date, audited 1958 packages in 5s
+
+307 packages are looking for funding
+  run `npm fund` for details
+
+22 vulnerabilities (6 moderate, 16 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+homeimac@Homes-iMac RecipeRealm % rm -f server/index.js
+rm -rf dist-electron
+rm -rf node_modules/.cache
+rm -rf .tsx-cache
+homeimac@Homes-iMac RecipeRealm % grep "import.*fs.*from" server/index.ts | head -1
+import * as fs from "fs"; // Use namespace import to avoid esbuild renaming issues
+homeimac@Homes-iMac RecipeRealm % sed -i.bak 's/import fs from "fs";/import * as fs from "fs";/' server/index.ts
+sed -i.bak 's/import fs from "fs";/import * as fs from "fs";/' server/sqlite-init.ts
+sed -i.bak 's/import fs from "fs";/import * as fs from "fs";/' server/db-config.ts
+sed -i.bak 's/import fs from "fs";/import * as fs from "fs";/' server/stcw-pdf-generator.ts
+sed -i.bak 's/import fs from "fs";/import * as fs from "fs";/' server/services/*.ts
+sed -i.bak 's/import fs from "fs";/import * as fs from "fs";/' server/production-server.ts
+sed -i.bak 's/import fs from "fs";/import * as fs from "fs";/' server/standalone-config.ts
+homeimac@Homes-iMac RecipeRealm % npm run build:server
+npx electron .
+
+> rest-express@1.0.0 build:server
+> esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=server/index.js --allow-overwrite
+
+
+  server/index.js  3.3mb ⚠️
+
+⚡ Done in 206ms
+homeimac@Homes-iMac RecipeRealm % npm install           
+
+up to date, audited 1958 packages in 4s
+
+307 packages are looking for funding
+  run `npm fund` for details
+
+22 vulnerabilities (6 moderate, 16 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+homeimac@Homes-iMac RecipeRealm % npm run build:server
+npx electron .
+
+> rest-express@1.0.0 build:server
+> esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=server/index.js --allow-overwrite
+
+
+  server/index.js  3.3mb ⚠️
+
+⚡ Done in 119ms
+homeimac@Homes-iMac RecipeRealm % 

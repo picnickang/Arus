@@ -1,0 +1,2 @@
+Run: convert -size 192x192 xc:#0ea5e9 -gravity center -pointsize 48 -fill white -annotate +0+0 "ARUS" client/public/icon-192.png
+Or use any image editor to create a 192x192 blue square with "ARUS" text

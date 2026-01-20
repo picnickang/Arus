@@ -1,0 +1,141 @@
+You are helping me harden and finish a complex hybrid AI marine predictive-maintenance app called ARUS in this repo. Before you change ANY code, I want you to do a full architecture discovery and only then decide if changes are necessary.
+
+### 0. Overall goal
+
+I need this app to support BOTH:
+1. Cloud / land mode using OpenAI (with OPENAI_API_KEY)
+2. Vessel / offline mode using the in-house local LLM (Xenova / ONNX / “Enhanced LLM”)
+
+And I want:
+- Clean switching between these modes (based on environment / flags)
+- Safe behavior when no LLM is configured (app should still run)
+- No broken migrations / DB errors
+- No unnecessary rewrites of working code
+
+If the architecture already supports this cleanly, just **summarize and confirm**. Only modify code where there are real gaps or bugs.
+
+---
+
+### 1. Architecture review (NO CHANGES YET)
+
+First, scan the entire repo and then summarize for me in the Replit chat:
+
+1. **LLM stack**
+- Where OpenAI is used (files, functions, main services).
+- Where the “Enhanced LLM” / local LLM is implemented (Xenova, ONNX, local inference, vector store).
+- How the app decides which LLM backend to use (env vars, feature flags, runtime checks).
+
+2. **Deployment modes**
+- How the app distinguishes between:
+- Cloud / Replit / server mode
+- Embedded / Electron / vessel offline mode
+- Which config/env fields control this (DEPLOYMENT_MODE, NODE_ENV, VESSEL vs CLOUD etc).
+
+3. **Database & storage**
+- How PostgreSQL (or Turso/libSQL) is used vs SQLite.
+- Which tables and migrations are required for:
+- Core app data (vessels, equipment, telemetry, alerts).
+- ML and analytics.
+- Knowledge Base / OCR / vector search.
+- Enhanced LLM / offline LLM.
+- Why errors like `db.execute is not a function` and `no such table: update_settings` can occur, and what code paths they come from.
+
+4. **API & rate limiting**
+- Where `/api/equipment`, `/api/equipment/health`, `/api/alerts/*`, `/api/sync/pending-conflicts` and related routes are implemented.
+- Where rate limiting and 429 responses (`RATE_LIMIT_GENERAL`) are configured.
+
+5. **Frontend & Electron**
+- How the frontend is built (Vite + React + TypeScript).
+- How Electron serves the built frontend (static dist, SPA fallback).
+- Any leftover dev/HMR assets that no longer exist but are still referenced.
+- How the Electron sandbox interacts with the backend and WebSocket layer.
+
+Give me a concise, bullet-point summary of all of the above first.
+
+---
+
+### 2. Decide if changes are needed
+
+Based on your review, decide what (if anything) is required to achieve this behavior:
+
+- Cloud / land mode:
+- Uses OpenAI when `OPENAI_API_KEY` is present.
+- Handles OpenAI errors gracefully (no crashes, clear error responses).
+- Can run without local LLM at all if we only want OpenAI.
+
+- Vessel / offline mode:
+- Can run completely without internet.
+- Uses **local Enhanced LLM** where possible (ONNX / Xenova) for:
+- Equipment / mission summaries
+- PdM narrative insights
+- Knowledge Base / OCR summaries (if available)
+- Does NOT require PostgreSQL / Turso / libSQL to be available.
+- Does NOT throw “database not initialized” errors for background jobs or enhanced LLM.
+
+- No-LLM mode:
+- If neither OpenAI nor Enhanced LLM is configured, core app still runs:
+- Data ingestion and telemetry simulator
+- Equipment / health views (non-AI metrics)
+- Maintenance schedules, crew, inventory, etc.
+- All AI endpoints should either:
+- Be clearly disabled with explicit, user-friendly messages, or
+- Be hidden from the UI.
+
+If this is already true, just tell me so and STOP. If not, continue to the next step.
+
+---
+
+### 3. Implement minimal, targeted fixes (if needed)
+
+ONLY if you find real gaps, make **minimal** code changes to add or fix:
+
+1. **LLM routing layer**
+- Centralize logic in one place (or confirm it already exists) that decides:
+- Use OpenAI when `OPENAI_API_KEY` is present AND we are in cloud/land mode.
+- Use local Enhanced LLM when in vessel/embedded mode and local model is available.
+- Gracefully degrade when neither is available.
+- Add clear feature flags / config names (and doc comments) so that future devs know:
+- How to force OpenAI-only mode.
+- How to force local-only mode.
+- How to disable AI entirely.
+
+2. **Database robustness for embedded mode**
+- Fix any `db.execute is not a function` errors by ensuring embedded/vessel mode:
+- Does NOT attempt to use libSQL/PostgreSQL client or cloud-only pools.
+- Uses SQLite-only where appropriate.
+- Wrap background jobs (update checks, sync health, digital twin, enhanced LLM) with:
+- Safe guards: if cloud DB is missing, skip or log a single warning.
+- Fix or guard the `update_settings` table access so that embedded mode does not crash or log noisy stack traces if that table is missing.
+
+3. **Enhanced LLM enabling**
+- Ensure the Enhanced LLM can be cleanly enabled in embedded mode when:
+- Required schema tables exist (vector store, KB index, etc).
+- Local model weights are present.
+- If preconditions are missing, log a clear warning and keep the app running.
+
+4. **Frontend & Electron robustness**
+- Remove or fix any references to non-existent dev assets that caused blue screens before (e.g., wrong asset paths, old index.js or CSS paths).
+- Confirm that Electron uses only the built `dist` assets (index.html + CSS/JS) and NOT dev-only HMR endpoints.
+- Ensure the WebSocket client behavior is stable in offline mode:
+- No crash loops.
+- Non-fatal retries when backend is unavailable.
+
+5. **No breaking changes**
+- Do NOT change the overall feature set or UX flows.
+- Do NOT rip out working code patterns; only harden and fix clearly broken paths.
+- Keep the codebase readable and consistent with existing style (TypeScript, naming, error handling).
+
+---
+
+### 4. Final deliverables
+
+When you are done, provide in the Replit chat:
+
+1. A short CHANGELOG of what you actually edited (files + main changes).
+2. A summary of:
+- How to run in cloud/OpenAI mode.
+- How to run in embedded/local-LLM mode.
+- How to run in no-LLM mode.
+3. Any remaining TODOs or limitations I should know about.
+
+Most important: **do the architecture review first**, and only change code where you see concrete, justified issues or missing pieces needed to support OpenAI + offline local LLM + no-LLM modes safely.

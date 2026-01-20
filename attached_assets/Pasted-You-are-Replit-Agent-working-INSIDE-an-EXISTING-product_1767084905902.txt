@@ -1,0 +1,218 @@
+You are Replit Agent working INSIDE an EXISTING production codebase.
+
+THIS PROMPT IS ONLY ABOUT SETTINGS.
+Do NOT refactor scheduling logic itself unless strictly required to support configurability.
+Do NOT change the stack, DB language, sync engine, or email system.
+
+Your goal is to introduce a **minimal, powerful, and safe settings layer** that allows admins to tune scheduling behavior without changing core logic.
+
+════════════════════════════════════
+ABSOLUTE RULES
+════════════════════════════════════
+- Reuse existing frameworks, DB language(s), ORM/query patterns, migrations, sync logic, auth, and UI components.
+- Settings must be ADDITIVE and backwards-compatible.
+- Preserve hybrid offline/online behavior (settings must work offline and sync normally).
+- Do NOT expose low-level or dangerous toggles.
+- Do NOT make core constraint logic adjustable — only thresholds, policies, and weights.
+- Respect existing role/permission system.
+
+════════════════════════════════════
+OBJECTIVE
+════════════════════════════════════
+Implement a **Scheduling Settings System** that allows administrators to configure:
+
+1) Notification behavior (crew/admin/both)
+2) Scheduling rules thresholds (hard vs soft)
+3) Rotation templates
+4) AI suggestion weighting (advanced)
+5) Publish vs draft behavior
+6) Minor UI defaults (optional)
+
+All settings must be:
+- centrally defined
+- versioned
+- testable
+- consumable by the scheduling domain
+- usable offline
+
+════════════════════════════════════
+PHASE 0 — DISCOVERY (MANDATORY)
+════════════════════════════════════
+Before writing any code:
+
+1) Identify:
+- Existing settings/config patterns in the repo
+- Any existing rulesets, policies, or feature flags
+- Where admin settings are currently stored (DB, JSON, env, etc.)
+- How offline data is synced today
+
+2) Output:
+- “Settings Architecture Snapshot”
+- What patterns will be reused (DO NOT invent new ones)
+
+STOP after discovery output.
+
+════════════════════════════════════
+SETTINGS THAT MUST BE IMPLEMENTED
+════════════════════════════════════
+
+A) NOTIFICATION SETTINGS (HIGH PRIORITY)
+Configurable per event:
+- Assignment Created
+- Assignment Updated
+- Assignment Cancelled
+- Schedule Published
+- Compliance Warning
+- Rest Hours Violation
+
+Per event, admin can choose recipients:
+- CREW
+- ADMIN
+- BOTH
+- NONE (disabled)
+
+Rules:
+- Must use EXISTING email alert system
+- Must respect existing notification preferences / opt-outs
+- Must create audit logs when emails are triggered
+
+B) SCHEDULING RULE SETTINGS
+Admin-adjustable thresholds ONLY (logic remains fixed):
+
+Examples:
+- Max consecutive onboard days
+- Minimum rest hours
+- Cert expiry warning window (days)
+- Overlap buffer (hours)
+
+Each rule must be configurable as:
+- HARD (blocks assignment)
+- SOFT (warning only)
+
+Rules must support scoping:
+- Global
+- Per vessel
+- Per client (if model exists)
+
+C) ROTATION TEMPLATES
+Admin can define:
+- Rotation patterns (e.g., 28/28, 35/35)
+- Default per vessel
+- Default per role/rank
+- Grace periods (+/- days)
+
+These are used by the scheduling engine but do not override constraints.
+
+D) AI SUGGESTION WEIGHTS (ADVANCED, ADMIN-ONLY)
+Expose numeric weights ONLY (no logic toggles):
+- Continuity preference
+- Fairness balancing
+- Fatigue penalty
+- Cert expiry proximity penalty
+
+Rules:
+- AI is assistive only
+- Weights influence scoring, not constraint enforcement
+- Hide behind “Advanced” UI section
+
+E) PUBLISH / DRAFT BEHAVIOR
+Admin-configurable:
+- Who can publish schedules
+- Whether crew sees drafts
+- Whether publish auto-sends notifications
+- Whether published schedules are locked
+
+F) OPTIONAL UI DEFAULTS (LOW RISK)
+Per-user or per-role:
+- Default date range (2w / 1m / 3m)
+- Row density (compact / comfortable)
+- Default filters
+
+════════════════════════════════════
+ARCHITECTURE REQUIREMENTS
+════════════════════════════════════
+
+1) SETTINGS MODULE
+Create a clear module boundary, e.g.:
+- /domain/settings (types, validation, defaults)
+- /data/settings (repo + offline/online adapters)
+- /services/settings (read/update/resolve logic)
+
+No scheduling logic here — settings only.
+
+2) SETTINGS RESOLUTION
+Implement:
+resolveEffectiveSettings(context) → merged settings
+
+Resolution order:
+1) Specific (vessel/client)
+2) Role-based
+3) Global defaults
+
+Must work offline using cached settings.
+
+3) VALIDATION
+- Validate settings on write
+- Prevent invalid ranges
+- Reject dangerous combinations (e.g., disabling all notifications silently)
+
+════════════════════════════════════
+UI REQUIREMENTS (ADMIN ONLY)
+════════════════════════════════════
+If admin settings UI already exists:
+- Extend it
+
+If not:
+- Create a minimal Admin → Scheduling Settings screen with:
+  1) Notifications matrix
+  2) Rules thresholds + HARD/SOFT toggle
+  3) Rotation templates
+  4) Advanced AI weights (collapsed by default)
+
+UI must:
+- Use existing components
+- Show current effective values
+- Require confirmation for changes
+- Save locally if offline and sync later
+
+════════════════════════════════════
+TESTING (MANDATORY)
+════════════════════════════════════
+You MUST add tests and run them.
+
+1) UNIT TESTS
+- Settings validation
+- Effective settings resolution
+- HARD vs SOFT rule behavior mapping
+
+2) INTEGRATION TESTS
+- Settings sync offline → online
+- Notification settings correctly affect email recipients
+- Rule threshold changes affect scheduling behavior deterministically
+
+3) UI TESTS (if supported)
+- Settings load
+- Save
+- Offline indicator
+- Permission enforcement
+
+Produce a final **SETTINGS TEST REPORT** with:
+- Commands run
+- Pass/fail status
+
+════════════════════════════════════
+DELIVERABLES
+════════════════════════════════════
+1) Settings Architecture Snapshot
+2) Implemented adjustable settings (as above)
+3) Minimal admin UI (if needed)
+4) Full test execution
+5) TEST REPORT
+
+════════════════════════════════════
+NOW START
+════════════════════════════════════
+1) Perform Phase 0 discovery and output findings
+2) Wait for approval
+3) Implement settings in small, modular steps
+4) Run tests and produce report

@@ -1,0 +1,179 @@
+
+Nick Ang <nickang01@gmail.com>
+5:32 AM (11 minutes ago)
+to me
+
+You are analyzing a hybrid database architecture in a complex Electron + Node + React marine predictive-maintenance app (ARUS).
+
+Your job:
+
+============================
+PART 0 — DO NOT CHANGE CODE YET
+============================
+First, scan the entire repository and produce a structured report covering ALL database-related systems.
+
+The app uses:
+- SQLite (embedded / vessel offline mode)
+- libSQL/Turso (optional cloud offline-sync layer)
+- PostgreSQL (full cloud deployments)
+- Drizzle ORM (for schema, migrations, queries)
+- Custom DB utilities for offline-first behavior
+- Background jobs, sync services, analytics, RAG, LLM services, telemetry ingestion
+
+You must identify and document:
+
+### 1. **All database clients**
+Locate and summarize the initialization code for:
+- SQLite client(s)
+- libSQL client(s)
+- PostgreSQL client(s)
+- Any fallback/tiered logic
+- Any accidental double-client usage
+
+### 2. **All schema definitions & migrations**
+Identify:
+- Tables required for cloud mode
+- Tables required for vessel mode
+- Tables required for:
+• Telemetry
+• Predictive maintenance analytics
+• Alerts
+• Maintenance schedules
+• Equipment registry
+• Knowledge Base (OCR + embeddings)
+• Vector search / RAG
+• Enhanced LLM
+• Digital Twin
+• Job queue
+• Update scheduler
+
+Flag any:
+
+- Missing tables (e.g., `update_settings`)
+- Tables used in code but not created in SQLite mode
+- Tables present in PostgreSQL but not SQLite
+- Misaligned Drizzle migrations
+- SQL queries referencing nonexistent columns
+- Queries that call `.execute()` on a client that doesn’t support it (e.g., SQLite wrapper)
+- Queries that assume Postgres syntax in SQLite mode
+
+### 3. **All runtime DB behavior**
+Identify code paths that differ between cloud & vessel mode:
+
+- Which services require PostgreSQL but still run under SQLite mode
+- Which background tasks should be disabled offline but are still active
+- Any logs like:
+- “db.execute is not a function”
+- “no such table: update_settings”
+- “database not initialized”
+- libSQL client not initialized
+- rate limits triggered by failing DB calls
+
+### 4. **Identify dangerous patterns**
+Flag anything that could cause:
+- Infinite retries
+- Crash loops
+- Partial migrations
+- Write failures with no fallback
+- Schema drift between environments
+- Races during DB initialization
+
+============================
+PART 1 — DECIDE WHAT MUST BE FIXED
+============================
+
+After reporting, determine what MUST be done so the database layer fully supports the app’s intended capabilities:
+
+### Vessel / Offline Mode (SQLite only)
+Must support:
+- Telemetry ingestion & aggregation
+- Equipment health & analytics
+- Alerts & schedules
+- Offline RAG (vector store)
+- Local LLM (Enhanced LLM)
+- Digital Twin (in limited local mode)
+- NO reliance on PostgreSQL or libSQL
+- No errors when background cloud-only jobs are disabled
+
+### Cloud Mode (PostgreSQL + optional Turso/libSQL)
+Must support:
+- Full analytics
+- High-volume telemetry
+- Multi-device sync
+- Multi-user access
+- OCR KB + embeddings
+- LLM routing (OpenAI + local fallback)
+
+### Shared Requirements
+- Zero crashes if one DB backend is missing
+- Migrations run correctly for BOTH DB engines
+- Queries work on SQLite (no PostgreSQL-only syntax)
+- No missing tables
+- Proper lazy initialization
+- Proper feature flags (don’t load cloud-only services offline)
+
+============================
+PART 2 — APPLY FIXES (ONLY IF REQUIRED)
+============================
+If (and only if) you find real issues, generate precise, minimal patches for:
+
+### 1. A unified DB initialization layer
+One function that:
+- Detects mode (vessel/cloud)
+- Selects correct DB client
+- Ensures all required tables exist
+- Wraps cloud-only failures in safe fallbacks
+
+### 2. Fix incompatible queries
+Rewrite only the queries that break SQLite:
+- Remove PostgreSQL-only syntax
+- Remove unsupported JOIN patterns
+- Replace `.execute()` usage with correct Drizzle pattern for SQLite
+
+### 3. Fix missing tables
+Create migration files for tables that do not exist in SQLite but are required, such as:
+- update_settings
+- vector_index
+- kb_documents
+- llm_cache
+- digital_twin tables
+- any tables the app references in logs or code
+
+### 4. Harden cloud + vessel split
+Ensure that vessel mode:
+- Never calls cloud-only migrations
+- Never initializes libSQL or PostgreSQL clients
+- Never runs cloud-only cron jobs
+- Never throws noisy errors in background loops
+- Uses its own schema set
+
+### 5. Fix sync + rate limiting loops
+If rate-limit 429 loops occur because DB calls fail, implement:
+- Debounce logic
+- Backoff
+- “disable service after repeated failure” safeguard
+
+============================
+PART 3 — FINAL DELIVERABLES
+============================
+
+After all fixes, produce:
+
+### Final Documentation
+1. **DB Architecture summary**
+2. **SQLite schema**
+3. **PostgreSQL schema**
+4. **Hybrid-mode compatibility table**
+5. **Services enabled in each mode**
+6. **How multi-device sync works**
+7. **How to reset/repair DB**
+8. **Remaining TODOs**
+
+### Final Outputs
+- Diff patches
+- File paths
+- Exact code blocks
+
+Make no changes outside database-related code unless absolutely required.
+
+Begin with Part 0: Full database architecture report.

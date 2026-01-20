@@ -1,0 +1,83 @@
+directories:
+  output: release
+  buildResources: build
+$schema: https://json.schemastore.org/electron-builder.json
+appId: com.arus.marine
+productName: ARUS Marine
+asar: true
+compression: maximum
+publish:
+  provider: github
+  owner: REPLACE_WITH_GITHUB_ORG
+  repo: REPLACE_WITH_REPO_NAME
+  releaseType: release
+files:
+  - filter:
+      - dist/**/*
+      - dist-electron/**/*
+      - server/**/*
+      - shared/**/*
+      - scripts/**/*
+      - package.json
+      - '!**/*.map'
+      - '!**/__tests__/**'
+      - '!**/test/**'
+      - '!**/*.test.*'
+      - '!**/*.spec.*'
+      - '!**/*.log'
+      - '!**/.env.local'
+      - '!**/.env.*.local'
+      - '!**/tsconfig.json'
+asarUnpack:
+  - server/**/*
+  - shared/**/*
+mac:
+  category: public.app-category.business
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+    - target: zip
+      arch:
+        - x64
+        - arm64
+  icon: build/icon.icns
+  darkModeSupport: true
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  minimumSystemVersion: 10.13.0
+  type: distribution
+  extendInfo:
+    NSRequiresAquaSystemAppearance: false
+    NSSupportsAutomaticGraphicsSwitching: true
+    LSMinimumSystemVersion: 10.13.0
+dmg:
+  contents:
+    - x: 130
+      'y': 220
+    - x: 410
+      'y': 220
+      type: link
+      path: /Applications
+  window:
+    width: 540
+    height: 380
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Utility
+win:
+  target:
+    - nsis
+    - portable
+  icon: build/icon.ico
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+electronVersion: 38.3.0

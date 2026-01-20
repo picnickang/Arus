@@ -1,0 +1,15 @@
+; Sample J1708/J1587 data log for simulation
+; Format: MID PID <data-bytes-hex...>
+; MID 128 (0x80) = Engine parameters
+
+; Engine RPM (PID 190 = 0xBE) - 1300 RPM
+80 BE 00 34 12
+
+; Coolant temperature (PID 110 = 0x6E) - 80°C
+80 6E 78
+
+; Oil pressure (PID 100 = 0x64) - 256 kPa  
+80 64 40
+
+; Fuel rate (PID 183 = 0xB7) - 25.6 L/h
+80 B7 40 1F

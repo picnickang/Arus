@@ -1,0 +1,462 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==========================================================
+REM ARUS one-shot installer:
+REM - Creates hybrid_ingest (HTTP/MQTT selectable) service
+REM - Adds backend manual telemetry import (CSV/JSON)
+REM - Adds frontend UI: Transport Settings + Manual Telemetry Upload
+REM ==========================================================
+
+REM ---- sanity checks (frontend/backend optional but recommended) ----
+if not exist "backend\app" (
+echo [ERROR] backend\app not found. Run this at your repo root.
+exit /b 1
+)
+if not exist "frontend\src" (
+echo [WARN] frontend\src not found. UI steps will be skipped.
+set SKIP_UI=1
+) else (
+set SKIP_UI=0
+)
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+REM ==========================================================
+REM 1) HYBRID INGEST SERVICE (HTTP/MQTT selectable)
+REM ==========================================================
+if not exist "hybrid_ingest" mkdir hybrid_ingest
+
+REM requirements.txt
+%PS% "$code=@'
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.9.2
+paho-mqtt==1.6.1
+psycopg2-binary==2.9.9
+python-dotenv==1.0.1
+'@; Set-Content -Encoding UTF8 hybrid_ingest/requirements.txt $code"
+
+REM .env.example
+%PS% "$code=@'
+# ---- Required ----
+PG_DSN=postgresql://USER:PASS@HOST:5432/DBNAME
+INGEST_TOKEN=replace-with-a-long-random-token
+
+# ---- Transport toggles (defaults) ----
+ENABLE_HTTP_INGEST=true
+ENABLE_MQTT_INGEST=false
+
+# ---- MQTT (only used if ENABLE_MQTT_INGEST=true) ----
+MQTT_HOST=
+MQTT_PORT=8883
+MQTT_USER=
+MQTT_PASS=
+MQTT_TOPIC=fleet/+/telemetry
+
+# ---- Server ----
+HOST=0.0.0.0
+PORT=8001
+'@; Set-Content -Encoding UTF8 hybrid_ingest/.env.example $code"
+
+REM init.sql
+%PS% "$code=@'
+CREATE TABLE IF NOT EXISTS telemetry(
+vessel text NOT NULL,
+ts timestamptz NOT NULL,
+src text NOT NULL,
+sig text NOT NULL,
+value double precision,
+unit text,
+PRIMARY KEY (vessel, ts, src, sig)
+);
+CREATE INDEX IF NOT EXISTS telemetry_q1 ON telemetry (vessel, src, sig, ts DESC);
+CREATE INDEX IF NOT EXISTS telemetry_ts_idx ON telemetry (ts DESC);
+'@; Set-Content -Encoding UTF8 hybrid_ingest/init.sql $code"
+
+REM hybrid_ingest.py (with CORS + runtime /settings to toggle HTTP/MQTT)
+%PS% "$code=@'
+import os, json, threading, hmac
+from datetime import datetime
+from typing import Optional, Union, List
+from fastapi import FastAPI, Header, HTTPException, Body
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+from paho.mqtt.client import Client as MqttClient
+from dotenv import load_dotenv
+import psycopg2
+from psycopg2.extras import execute_values
+from contextlib import contextmanager
+from threading import Lock
+
+load_dotenv()
+PG_DSN = os.getenv(\"PG_DSN\", \"\")
+API_TOKEN = os.getenv(\"INGEST_TOKEN\", \"\")
+HOST = os.getenv(\"HOST\", \"0.0.0.0\")
+PORT = int(os.getenv(\"PORT\", \"8001\"))
+
+ENABLE_HTTP_INGEST_DEFAULT = os.getenv(\"ENABLE_HTTP_INGEST\", \"true\").lower() == \"true\"
+ENABLE_MQTT_INGEST_DEFAULT = os.getenv(\"ENABLE_MQTT_INGEST\", \"false\").lower() == \"true\"
+
+MQTT_HOST = os.getenv(\"MQTT_HOST\", \"\")
+MQTT_PORT = int(os.getenv(\"MQTT_PORT\", \"8883\"))
+MQTT_USER = os.getenv(\"MQTT_USER\", \"\")
+MQTT_PASS = os.getenv(\"MQTT_PASS\", \"\")
+MQTT_TOPIC = os.getenv(\"MQTT_TOPIC\", \"fleet/+/telemetry\")
+
+if not PG_DSN: raise RuntimeError(\"PG_DSN is required (see .env.example)\")
+if not API_TOKEN: raise RuntimeError(\"INGEST_TOKEN is required (see .env.example)\")
+
+Number = Union[float, int]
+
+class Signal(BaseModel):
+src: str
+sig: str
+value: Optional[Number] = None
+unit: Optional[str] = None
+
+class Payload(BaseModel):
+vessel: str
+ts: int
+signals: List[Signal]
+
+class SettingsModel(BaseModel):
+enable_http_ingest: bool = Field(default=ENABLE_HTTP_INGEST_DEFAULT)
+enable_mqtt_ingest: bool = Field(default=ENABLE_MQTT_INGEST_DEFAULT)
+mqtt_host: str = Field(default=MQTT_HOST)
+mqtt_port: int = Field(default=MQTT_PORT)
+mqtt_user: str = Field(default=MQTT_USER)
+mqtt_pass: str = Field(default=MQTT_PASS)
+mqtt_topic: str = Field(default=MQTT_TOPIC)
+
+_settings_lock = Lock()
+_settings = SettingsModel()
+
+_mqtt_thread: Optional[threading.Thread] = None
+_mqtt_client: Optional[MqttClient] = None
+_mqtt_stop = threading.Event()
+
+def upsert_payload(p: Payload):
+if not p.signals: return
+rows = [(p.vessel, p.ts, s.src, s.sig, s.value, s.unit) for s in p.signals]
+sql = \"\"\"\nINSERT INTO telemetry (vessel, ts, src, sig, value, unit)\nVALUES %s\nON CONFLICT (vessel, ts, src, sig) DO UPDATE\nSET value = EXCLUDED.value, unit = EXCLUDED.unit\n\"\"\"\n
+with psycopg2.connect(PG_DSN) as conn, conn.cursor() as cur:
+execute_values(cur, sql, rows, page_size=1000, template=\"(%s, to_timestamp(%s), %s, %s, %s, %s)\")
+
+def _const_time_equal(a: str, b: str) -> bool:
+return hmac.compare_digest(a.encode(), b.encode())
+
+@contextmanager
+def _read_settings():
+with _settings_lock: yield _settings
+
+def _replace_settings(new_s: SettingsModel):
+global _settings
+with _settings_lock: _settings = new_s
+
+def _start_mqtt_worker():
+global _mqtt_thread, _mqtt_client
+with _read_settings() as s:
+if not s.enable_mqtt_ingest or not s.mqtt_host: return
+_mqtt_stop.clear()
+def worker():
+global _mqtt_client
+try:
+c = MqttClient(client_id=\"app-hybrid-subscriber\", clean_session=False)
+if s.mqtt_user or s.mqtt_pass: c.username_pw_set(s.mqtt_user, s.mqtt_pass)
+# c.tls_set() # enable with broker CA in production
+def on_connect(c,u,flags,rc):
+print(\"[mqtt] connected rc=\", rc); c.subscribe(s.mqtt_topic, qos=1)
+def on_message(c,u,msg):
+try:
+data = json.loads(msg.payload.decode(\"utf-8\"))
+upsert_payload(Payload(**data))
+except Exception as e:
+print(\"[mqtt] ingest error:\", e)
+c.on_connect = on_connect; c.on_message = on_message
+_mqtt_client = c; c.connect(s.mqtt_host, s.mqtt_port, keepalive=60)
+while not _mqtt_stop.is_set(): c.loop(timeout=1.0)
+try: c.disconnect()
+except Exception: pass
+print(\"[mqtt] stopped.\")
+except Exception as e:
+print(\"[mqtt] worker crashed:\", e)
+if _mqtt_thread and _mqtt_thread.is_alive(): return
+_mqtt_thread = threading.Thread(target=worker, daemon=True); _mqtt_thread.start(); print(\"[mqtt] worker started.\")
+
+def _stop_mqtt_worker():
+global _mqtt_thread, _mqtt_client
+_mqtt_stop.set()
+if _mqtt_client:
+try: _mqtt_client.disconnect()
+except Exception: pass
+if _mqtt_thread and _mqtt_thread.is_alive(): _mqtt_thread.join(timeout=5)
+_mqtt_thread = None
+
+app = FastAPI(title=\"Hybrid EFMS Ingest (HTTP/MQTT selectable)\")
+app.add_middleware(CORSMiddleware, allow_origins=[\"*\"], allow_credentials=False, allow_methods=[\"*\"], allow_headers=[\"*\"])
+
+@app.get(\"/health\")
+def health():
+with _read_settings() as s:
+return {\"ok\": True, \"time\": datetime.utcnow().isoformat()+\"Z\", \"http_ingest\": s.enable_http_ingest, \"mqtt_ingest\": s.enable_mqtt_ingest, \"mqtt_host\": s.mqtt_host, \"mqtt_topic\": s.mqtt_topic}
+
+@app.get(\"/settings\")
+def get_settings():
+with _read_settings() as s:
+d = s.dict(); 
+if d.get(\"mqtt_pass\"): d[\"mqtt_pass\"] = \"***\"
+return d
+
+@app.put(\"/settings\")
+def put_settings(new_values: SettingsModel = Body(...)):
+with _read_settings() as s: old = s
+_replace_settings(new_values)
+if not old.enable_mqtt_ingest and new_values.enable_mqtt_ingest: _start_mqtt_worker()
+elif old.enable_mqtt_ingest and not new_values.enable_mqtt_ingest: _stop_mqtt_worker()
+else:
+if new_values.enable_mqtt_ingest and (old.mqtt_host!=new_values.mqtt_host or old.mqtt_port!=new_values.mqtt_port or old.mqtt_user!=new_values.mqtt_user or (new_values.mqtt_pass and old.mqtt_pass!=new_values.mqtt_pass) or old.mqtt_topic!=new_values.mqtt_topic):
+_stop_mqtt_worker(); _start_mqtt_worker()
+return {\"ok\": True, \"applied\": get_settings()}
+
+@app.post(\"/ingest\")
+def ingest_http(p: Payload, authorization: str = Header(default=\"\")):
+with _read_settings() as s:
+if not s.enable_http_ingest: raise HTTPException(status_code=503, detail=\"HTTP ingest disabled by settings\")
+if not authorization.startswith(\"Bearer \"): raise HTTPException(401, detail=\"unauthorized\")
+tok = authorization[7:]
+if not _const_time_equal(tok, API_TOKEN): raise HTTPException(401, detail=\"unauthorized\")
+upsert_payload(p); return {\"ok\": True, \"count\": len(p.signals)}
+
+@app.on_event(\"startup\")
+def _startup():
+with _read_settings() as s:
+if s.enable_mqtt_ingest: _start_mqtt_worker()
+
+@app.on_event(\"shutdown\")
+def _shutdown(): _stop_mqtt_worker()
+
+if __name__ == \"__main__\":
+import uvicorn; uvicorn.run(app, host=HOST, port=PORT)
+'@; Set-Content -Encoding UTF8 hybrid_ingest/hybrid_ingest.py $code"
+
+REM ==========================================================
+REM 2) BACKEND: Manual telemetry import (CSV/JSON) + router include
+REM ==========================================================
+%PS% "$code=@'
+from __future__ import annotations
+from fastapi import APIRouter, Body, HTTPException, UploadFile, File
+from pydantic import BaseModel, Field
+from typing import List, Optional, Dict, Any
+from datetime import datetime
+import csv, io
+from app.core.async_repo import REPO
+
+router = APIRouter(prefix=\"/api/import/telemetry\", tags=[\"import\"])
+
+class TelemetryRow(BaseModel):
+ts: str
+equipment_id: str
+metric: str
+value: float
+unit: Optional[str] = None
+device_id: Optional[str] = None
+
+class TelemetryPayload(BaseModel):
+rows: List[TelemetryRow] = Field(default_factory=list)
+
+def _iso_ok(ts: str) -> str:
+if ts.endswith(\"Z\"): return ts
+try:
+datetime.fromisoformat(ts.replace(\"Z\",\"\")); 
+except Exception:
+raise HTTPException(400, detail=f\"bad timestamp: {ts}\")
+return ts+\"Z\"
+
+@router.post(\"/json\")
+async def import_json(payload: TelemetryPayload = Body(...)):
+await REPO.init()
+if not payload.rows: return {\"ok\": True, \"inserted\": 0}
+groups: Dict[tuple, Dict[str, float]] = {}
+units: Dict[tuple, Dict[str, str]] = {}
+for r in payload.rows:
+key = (_iso_ok(r.ts), r.device_id, r.equipment_id)
+groups.setdefault(key, {}); units.setdefault(key, {})
+groups[key][r.metric] = float(r.value)
+if r.unit: units[key][r.metric] = r.unit
+inserted = 0
+for (ts_iso, device_id, equipment_id), metrics in groups.items():
+inserted += await REPO.bulk_insert_telemetry(ts_iso, device_id, equipment_id, metrics, units[(ts_iso, device_id, equipment_id)])
+return {\"ok\": True, \"inserted\": inserted, \"groups\": len(groups)}
+
+@router.post(\"/csv\")
+async def import_csv(file: UploadFile = File(...)):
+await REPO.init()
+raw = (await file.read()).decode(\"utf-8-sig\")
+reader = csv.DictReader(io.StringIO(raw))
+rows: List[TelemetryRow] = []
+for i, rec in enumerate(reader, start=1):
+missing = [k for k in (\"ts\",\"equipment_id\",\"metric\",\"value\") if k not in rec or rec[k]==\"\"]
+if missing: raise HTTPException(400, detail=f\"row {i} missing: {','.join(missing)}\")
+rows.append(TelemetryRow(ts=rec[\"ts\"], equipment_id=rec[\"equipment_id\"], metric=rec[\"metric\"], value=float(rec[\"value\"]), unit=rec.get(\"unit\") or None, device_id=rec.get(\"device_id\") or None))
+return await import_json(TelemetryPayload(rows=rows))
+'@; Set-Content -Encoding UTF8 backend/app/api/import_telemetry.py $code"
+
+REM include router in backend/app/main.py
+%PS% ^
+"$f='backend/app/main.py'; $t=Get-Content -Raw $f;" ^
+"if ($t -notmatch 'from \\.api\\.import_telemetry import router as import_telemetry_router') {" ^
+" $t = $t -replace '(^from .*\\n)+', '$0from .api.import_telemetry import router as import_telemetry_router`n';" ^
+"}" ^
+"if ($t -notmatch 'app\\.include_router\$begin:math:text$import_telemetry_router\\$end:math:text$') {" ^
+" $t = $t -replace '(?s)(app\\.include_router\$begin:math:text$[^)]+\\$end:math:text$\\s*)$', '$0`napp.include_router(import_telemetry_router)';" ^
+"}" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ==========================================================
+REM 3) FRONTEND: Transport Settings + Manual Telemetry Upload
+REM ==========================================================
+if "%SKIP_UI%"=="0" (
+
+REM ingestApi.ts
+%PS% "$code=@'
+export const INGEST_BASE = (import.meta as any).env.VITE_INGEST_URL || \"http://localhost:8001\";
+export async function ingestApi<T=any>(path: string, opts: RequestInit = {}): Promise<T> {
+const res = await fetch(INGEST_BASE + path, { ...opts, headers: { \"Content-Type\":\"application/json\", ...(opts.headers||{}) }});
+if (!res.ok) { const txt = await res.text(); throw new Error(`${res.status} ${res.statusText} – ${txt}`); }
+return res.json() as Promise<T>;
+}
+'@; Set-Content -Encoding UTF8 frontend/src/ingestApi.ts $code"
+
+REM TransportSettings.tsx
+%PS% "$code=@'
+import { useEffect, useState } from \"react\";
+import { ingestApi } from \"../ingestApi\";
+type Settings = { enable_http_ingest:boolean; enable_mqtt_ingest:boolean; mqtt_host:string; mqtt_port:number; mqtt_user:string; mqtt_pass:string; mqtt_topic:string; };
+export default function TransportSettingsCard(){
+const [data,setData]=useState<Settings|null>(null); const [busy,setBusy]=useState(false); const [err,setErr]=useState<string|null>(null); const [ok,setOk]=useState<string|null>(null);
+async function load(){ try{ setErr(null); setData(await ingestApi<Settings>(\"/settings\")); }catch(e:any){ setErr(e.message||String(e)); } }
+useEffect(()=>{ load(); },[]);
+async function save(){ if(!data) return; setBusy(true); setOk(null); setErr(null);
+try{ const payload={...data, mqtt_pass:data.mqtt_pass===\"***\"?\"\":data.mqtt_pass}; await ingestApi(\"/settings\",{method:\"PUT\",body:JSON.stringify(payload)}); setOk(\"Settings updated\"); await load(); }
+catch(e:any){ setErr(e.message||String(e)); } finally{ setBusy(false); }
+}
+if(!data) return <div className=\"card\"><h2>Transport Settings</h2><div>Loading…</div>{err&&<div style={{color:'#dc2626'}}>{err}</div>}</div>;
+return <div className=\"card\"><h2>Transport Settings (HTTP / MQTT)</h2>
+<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:12,marginTop:8}}>
+<fieldset style={{border:'1px solid #e2e8f0',borderRadius:8,padding:12}}>
+<legend style={{fontWeight:600}}>Ingest Toggles</legend>
+<label style={{display:'block',marginBottom:8}}><input type=\"checkbox\" checked={data.enable_http_ingest} onChange={e=>setData({...data,enable_http_ingest:e.target.checked})}/> Enable HTTP /ingest</label>
+<label style={{display:'block'}}><input type=\"checkbox\" checked={data.enable_mqtt_ingest} onChange={e=>setData({...data,enable_mqtt_ingest:e.target.checked})}/> Enable MQTT subscriber</label>
+</fieldset>
+<fieldset style={{border:'1px solid #e2e8f0',borderRadius:8,padding:12}}>
+<legend style={{fontWeight:600}}>MQTT Broker</legend>
+<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+<div><label>Host</label><input value={data.mqtt_host||\"\"} onChange={e=>setData({...data,mqtt_host:e.target.value})} style={{width:'100%'}}/></div>
+<div><label>Port</label><input type=\"number\" value={data.mqtt_port||8883} onChange={e=>setData({...data,mqtt_port:parseInt(e.target.value||'8883',10)})} style={{width:'100%'}}/></div>
+<div><label>Username</label><input value={data.mqtt_user||\"\"} onChange={e=>setData({...data,mqtt_user:e.target.value})} style={{width:'100%'}}/></div>
+<div><label>Password</label><input type=\"password\" value={data.mqtt_pass||\"\"} onChange={e=>setData({...data,mqtt_pass:e.target.value})} placeholder=\"***\" style={{width:'100%'}}/></div>
+<div style={{gridColumn:'1 / -1'}}><label>Topic</label><input value={data.mqtt_topic||'fleet/+/telemetry'} onChange={e=>setData({...data,mqtt_topic:e.target.value})} style={{width:'100%'}}/><div style={{fontSize:12,color:'#475569',marginTop:4}}>Wildcard + allowed</div></div>
+</div>
+</fieldset>
+</div>
+<div style={{marginTop:12,display:'flex',gap:8}}><button onClick={save} disabled={busy} className=\"bg\">{busy?'Saving…':'Save Settings'}</button><button onClick={load} disabled={busy}>Reload</button></div>
+{ok&&<div style={{color:'#166534',marginTop:8}}>{ok}</div>}{err&&<div style={{color:'#dc2626',marginTop:8}}>{err}</div>}
+</div>;
+}
+'@; Set-Content -Encoding UTF8 frontend/src/components/TransportSettings.tsx $code"
+
+REM ManualTelemetryImport.tsx
+%PS% "$code=@'
+import { useState } from \"react\";
+export default function ManualTelemetryImport(){
+const [jsonFile,setJsonFile]=useState<File|null>(null); const [csvFile,setCsvFile]=useState<File|null>(null);
+const [busy,setBusy]=useState(false); const [out,setOut]=useState<any>(null); const [err,setErr]=useState<string|null>(null);
+const BASE=((import.meta as any).env.VITE_API_URL||'http://localhost:8000');
+async function upload(kind:\"json\"|\"csv\"){ setBusy(true); setErr(null); setOut(null);
+try{
+if(kind==='json'){ if(!jsonFile) throw new Error('Pick a JSON file'); const body=await jsonFile.text();
+const r=await fetch(BASE+'/api/import/telemetry/json',{method:'POST',headers:{'Content-Type':'application/json'},body}); if(!r.ok) throw new Error(await r.text()); setOut(await r.json()); }
+else { if(!csvFile) throw new Error('Pick a CSV file'); const fd=new FormData(); fd.append('file',csvFile);
+const r=await fetch(BASE+'/api/import/telemetry/csv',{method:'POST',body:fd}); if(!r.ok) throw new Error(await r.text()); setOut(await r.json()); }
+}catch(e:any){ setErr(e.message||String(e)); } finally { setBusy(false); }
+}
+return <div>
+<h3 style={{marginTop:0}}>Manual Telemetry Upload</h3>
+<div style={{display:'grid',gap:12,gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))'}}>
+<div><div style={{fontWeight:600}}>JSON</div><input type='file' accept='.json,application/json' onChange={e=>setJsonFile(e.target.files?.[0]||null)}/>
+<div style={{fontSize:12,color:'#475569',marginTop:6}}>Shape: {'{ rows:[{ ts, equipment_id, metric, value, unit?, device_id? }] }'}</div>
+<button disabled={busy} onClick={()=>upload('json')} style={{marginTop:6}}>Upload JSON</button></div>
+<div><div style={{fontWeight:600}}>CSV</div><input type='file' accept='.csv,text/csv' onChange={e=>setCsvFile(e.target.files?.[0]||null)}/>
+<div style={{fontSize:12,color:'#475569',marginTop:6}}>Headers: <code>ts,equipment_id,metric,value,unit,device_id</code></div>
+<button disabled={busy} onClick={()=>upload('csv')} style={{marginTop:6}}>Upload CSV</button></div>
+</div>
+{err&&<div style={{color:'#dc2626',marginTop:8}}>{err}</div>}
+{out&&<pre className='text-xs' style={{background:'#f1f5f9',padding:8,borderRadius:6,overflow:'auto',marginTop:8}}>{JSON.stringify(out,null,2)}</pre>}
+</div>;
+}
+'@; Set-Content -Encoding UTF8 frontend/src/components/ManualTelemetryImport.tsx $code"
+
+REM Patch App.tsx (overwrite with cards included)
+%PS% "$code=@'
+import { useState } from \"react\";
+import { api } from \"./api\";
+import { useSWRLite } from \"./hooks/useSWRLite\";
+import TransportSettingsCard from \"./components/TransportSettings\";
+import ManualTelemetryImport from \"./components/ManualTelemetryImport\";
+function Card({title, children}:{title:string, children:any}){ return <div className=\"card\"><h2>{title}</h2>{children}</div> }
+function EdgeStatus(){ const { data, error, loading } = useSWRLite<any[]>('edge:status', ()=> api('/api/edge/status'), 10000);
+if (loading) return <div>Loading…</div>; if (error) return <div style={{color:'#dc2626'}}>{error}</div>;
+return (<table className=\"text-xs\" style={{width:'100%'}}><thead><tr><th>Device</th><th>CPU%</th><th>Mem%</th><th>Disk GB</th><th>Buffer</th><th>SW</th><th>TS</th></tr></thead>
+<tbody>{(data||[]).map((d:any)=>(<tr key={d.device_id}><td>{d.device_id}</td><td>{d.cpu_pct??'–'}</td><td>{d.mem_pct??'–'}</td><td>{d.disk_free_gb??'–'}</td><td>{d.buffer_rows??'–'}</td><td>{d.sw_version??'–'}</td><td>{new Date(d.ts).toLocaleString()}</td></tr>))}</tbody></table>);}
+function Devices(){ const { data, error, loading } = useSWRLite<any[]>('devices', ()=> api('/api/devices'));
+if (loading) return <div>Loading…</div>; if (error) return <div style={{color:'#dc2626'}}>{error}</div>;
+return <ul>{(data||[]).map((d:any)=>(<li key={d.id}>{d.id} — {d.vessel??'n/a'}</li>))}</ul>;}
+function Settings(){ const { data, error, loading } = useSWRLite<any>('settings', ()=> api('/api/admin/settings'), 20000);
+if (loading) return <div>Loading…</div>; if (error) return <div style={{color:'#dc2626'}}>{error}</div>;
+return <pre className=\"text-xs\" style={{background:'#f1f5f9',padding:'8px',borderRadius:'6px',overflow:'auto'}}>{JSON.stringify(data, null, 2)}</pre>;}
+function Reports(){ const [text,setText]=useState<string>(\"\"); async function run(){ const r=await api('/api/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({equipment_id:'ENG1'})}); setText(JSON.stringify(r,null,2)); }
+return <div><button className=\"bg\" onClick={run}>Run Report</button>{text&&<pre className=\"text-xs\" style={{background:'#f1f5f9',padding:'8px',borderRadius:'6px',overflow:'auto',marginTop:'8px'}}>{text}</pre>}</div>;}
+function Overview(){ const [text,setText]=useState<string>(\"\"); async function run(){ const r=await api('/overview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({equipment_id:'ENG1'})}); setText(r.overview); }
+return <div><button className=\"bg\" onClick={run}>Generate LLM Overview</button>{text&&<pre className=\"text-xs\" style={{background:'#f1f5f9',padding:'8px',borderRadius:'6px',overflow:'auto',marginTop:'8px'}}>{text}</pre>}</div>; }
+export default function App(){
+return (<div style={{maxWidth:980,margin:'1rem auto'}}><h1>ARUS Fleet Console</h1>
+<TransportSettingsCard/>
+<Card title=\"Edge Status\"><EdgeStatus/></Card>
+<Card title=\"Devices\"><Devices/></Card>
+<Card title=\"Settings (masked)\"><Settings/></Card>
+<Card title=\"Reports (rule-based)\"><Reports/></Card>
+<Card title=\"Overview (LLM on-demand)\"><Overview/></Card>
+<Card title=\"Manual Telemetry Upload\"><ManualTelemetryImport/></Card>
+</div>);
+}
+'@; Set-Content -Encoding UTF8 frontend/src/App.tsx $code"
+) else (
+echo [INFO] Skipping UI patch (frontend not found).
+)
+
+echo.
+echo ==========================================================
+echo [OK] Install complete.
+echo ----------------------------------------------------------
+echo NEXT STEPS
+echo 1) Create hybrid_ingest/.env from template and set PG_DSN and INGEST_TOKEN
+echo copy hybrid_ingest\\.env.example hybrid_ingest\\.env
+echo 2) Install deps and run ingest service:
+echo cd hybrid_ingest
+echo python -m venv .venv ^&^& .venv\\Scripts\\pip install -r requirements.txt
+echo .venv\\Scripts\\uvicorn hybrid_ingest:app --host 0.0.0.0 --port 8001
+echo 3) Backend already exposes:
+echo POST /api/import/telemetry/json
+echo POST /api/import/telemetry/csv
+echo 4) Frontend (if present):
+echo set VITE_API_URL=http://localhost:8000
+echo set VITE_INGEST_URL=http://localhost:8001
+echo npm install ^& npm run dev
+echo ----------------------------------------------------------
+echo HTTP test:
+echo curl -X POST http://localhost:8001/ingest -H "Authorization: Bearer YOUR_TOKEN" -H "Content-Type: application/json" ^
+echo -d "{^"vessel^":^"TEST^",^"ts^":1737695802,^"signals^":[{^"src^":^"ME^",^"sig^":^"rpm^",^"value^":1200}]}"
+echo CSV import test:
+echo curl -F "file=@telemetry.csv" http://localhost:8000/api/import/telemetry/csv
+echo ==========================================================
+endlocal

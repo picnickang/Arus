@@ -1,0 +1,243 @@
+You are refactoring a single server file that mounts sensor routes and implements a Telemetry Pruning Service. Make small, safe changes that compile, don’t change public API paths, and harden reliability. Keep ESM imports.
+
+
+
+Goals
+
+Non-blocking, atomic JSON storage for config/data files with per-file locking.
+
+Stable IDs for unknown signals; delete by id, not index.
+
+Strict request validation (Zod).
+
+Protocol naming consistency and duplicate-prevention in mappings.
+
+Bootstrapped directories/files.
+
+Pruning scheduled at 02:00 local time (configurable) with SQLite/Postgres correctness.
+
+
+
+1) Introduce a tiny JSON store with locks + atomic writes
+
+
+
+Create a helper in this file (or server/lib/jsonStore.ts), then use it everywhere this file reads/writes JSON:
+
+import { promises as fsp } from "node:fs";
+import fs from "node:fs";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
+
+class JsonStore<T> {
+  constructor(private filePath: string, private defaultValue: T) {}
+  private static locks = new Map<string, Promise<void>>();
+
+  private async ensureDir() {
+    await fsp.mkdir(path.dirname(this.filePath), { recursive: true });
+  }
+
+  private async withLock<R>(fn: () => Promise<R>): Promise<R> {
+    const prev = JsonStore.locks.get(this.filePath) ?? Promise.resolve();
+    let release!: () => void;
+    const p = new Promise<void>((res) => (release = res));
+    JsonStore.locks.set(this.filePath, prev.then(() => p));
+    try { await prev; return await fn(); } finally { release(); if (JsonStore.locks.get(this.filePath) === p) JsonStore.locks.delete(this.filePath); }
+  }
+
+  async read(): Promise<T> {
+    await this.ensureDir();
+    try {
+      const raw = await fsp.readFile(this.filePath, "utf8");
+      return JSON.parse(raw) as T;
+    } catch {
+      return this.defaultValue;
+    }
+  }
+
+  async write(obj: T): Promise<void> {
+    await this.ensureDir();
+    const tmp = `${this.filePath}.tmp`;
+    const data = JSON.stringify(obj, null, 2);
+    await this.withLock(async () => {
+      await fsp.writeFile(tmp, data, "utf8");
+      await fsp.rename(tmp, this.filePath);
+    });
+  }
+}
+Replace all fs.readFileSync/writeFileSync with this store (async/await). Initialize:
+
+const unknownStore = new JsonStore<{ items: any[] }>(UNKNOWN_PATH, { items: [] });
+const j1939Store = new JsonStore<{ signals: any[] }>(J1939_MAP, { signals: [] });
+const j1587Store = new JsonStore<{ signals: any[] }>(J1587_MAP, { signals: [] });
+const tplStore    = new JsonStore<{ templates: any[] }>(TPL_PATH, { templates: [] });
+const regStore    = new JsonStore<{ entries: any[] }>(path.join(DATA_DIR, "sensor_registry.json"), { entries: [] });
+2) Add Zod validation for request bodies
+
+
+
+Install zod (or ensure it’s available) and add schemas:
+
+import { z } from "zod";
+
+const UnknownSignalIn = z.object({
+  vessel: z.string().min(1),
+  sig: z.string().min(1),
+  src: z.string().optional(),
+  unit: z.string().optional(),
+  spn: z.number().int().optional(),
+  pid: z.number().int().optional(),
+});
+
+const ApproveRuleIn = z.object({
+  protocol: z.enum(["j1939", "j1587"]), // use "j1587" consistently
+  rule: z.object({
+    sig: z.string().min(1),
+    src: z.string().optional(),
+    // J1939
+    pgn: z.number().int().optional(),
+    name: z.string().optional(),
+    spnRule: z.object({
+      spn: z.number().int(),
+      name: z.string().optional(),
+      scale: z.number().optional(),
+      offset: z.number().optional(),
+      unit: z.string().optional(),
+      formula: z.string().optional(),
+    }).optional(),
+    // J1587
+    pidRule: z.object({
+      pid: z.number().int(),
+      name: z.string().optional(),
+      unit: z.string().optional(),
+      scale: z.number().optional(),
+      offset: z.number().optional(),
+      formula: z.string().optional(),
+    }).optional(),
+  }),
+});
+
+const ApplyTemplateIn = z.object({
+  vessel_id: z.string().min(1),
+  sensor_id: z.string().min(1),
+  template_id: z.string().min(1),
+});
+Use schema.safeParse(req.body) and return 400 with details when invalid.
+
+
+
+3) Unknown signals: stable IDs + safe dedupe
+
+On POST /api/sensors/unknown, validate body. Generate id: randomUUID() and persist.
+
+Dedupe by a normalized key {vessel,sig,src} per vessel, not global.
+
+Replace DELETE /:index with DELETE /:id (keep index route temporarily but mark deprecated; both should work for backward compat).
+
+When approving, remove from unknown by id if provided; fallback to {vessel,sig,src} match only within same vessel.
+
+
+
+Example capture handler rewrite (sketch):
+
+app.post("/api/sensors/unknown", async (req, res) => {
+  const parsed = UnknownSignalIn.safeParse(req.body ?? {});
+  if (!parsed.success) return res.status(400).json({ ok:false, error: parsed.error.flatten() });
+
+  const body = parsed.data;
+  const doc = await unknownStore.read();
+  const key = JSON.stringify({ vessel: body.vessel, sig: body.sig, src: body.src ?? null });
+  const exists = doc.items.some(x => JSON.stringify({ vessel: x.vessel, sig: x.sig, src: x.src ?? null }) === key);
+  const guess = classifySignal({ sig: body.sig, unit: body.unit, spn: body.spn, pid: body.pid }) ?? null;
+
+  if (!exists) {
+    doc.items.push({ id: randomUUID(), ...body, guess, timestamp: new Date().toISOString() });
+    await unknownStore.write(doc);
+  }
+  res.json({ ok: true });
+});
+4) Approve flow: protocol + duplicates
+
+Normalize protocol to "j1939" or "j1587" (not "j1708").
+
+For J1939: find pgn, ensure spns array exists, don’t insert duplicate spn.
+
+For J1587: ensure no duplicate pid.
+
+After approval, remove the unknown by id if present; else match by {vessel,sig,src}.
+
+
+
+5) Templates & registry
+
+Validate template_id exists.
+
+Persist a normalized entry shape with {vessel_id, sensor_id, template_id, kind, unit, meta}.
+
+Upsert by (vessel_id, sensor_id, template_id) to avoid overwriting different kinds on same sensor.
+
+Return 201 on create, 200 on update.
+
+
+
+6) Convert all routes to async/await
+
+Swap each route body to async and use the async JsonStore.
+
+Replace console.error with structured context ([Sensors] op=applyTemplate vessel_id=... err=...).
+
+Keep response shapes the same where possible.
+
+
+
+7) Bootstrapping
+
+At module init, ensure CFG_DIR and DATA_DIR exist. If a JSON file is missing, the JsonStore default will be written on first write.
+
+Optionally expose a GET /api/sensors/health that returns { cfgDirExists, dataDirExists, files: {...} } for quick sanity checks.
+
+
+
+8) TelemetryPruningService improvements
+
+Add cron scheduling at 02:00 local (configurable):
+
+import cron from "node-cron";
+const PRUNE_CRON = process.env.PRUNE_CRON ?? "0 2 * * *"; // 02:00 daily
+start() should schedule with cron.schedule(PRUNE_CRON, () => this.performPruning(), { timezone: process.env.TZ ?? "UTC" }). Keep a reference to stop later.
+
+Ensure the SQLite column name matches your schema. If your equipment_telemetry table stores createdAt in ms under camelCase, align the SQL (or use equipmentTelemetrySqlite.createdAt with Drizzle in SQLite too).
+
+Wrap VACUUM behind PRAGMA wal_checkpoint(TRUNCATE) if WAL is enabled; skip VACUUM entirely unless rowsAffected >= THRESHOLD.
+
+Make performPruning() never throw—return a result object { success, telemetryDeleted, aggregatesDeleted, dataQualityDeleted, duration, error? }. Let callers decide how to surface failures.
+
+
+
+9) Tests / acceptance
+
+Add unit tests (or a smoke script) to verify:
+
+Unknown capture dedupes correctly per vessel and creates stable IDs.
+
+Approve inserts once (no dup SPN/PID) and removes the right unknown item.
+
+Template apply validates and upserts by (vessel_id,sensor_id,template_id).
+
+Pruning runs via cron and respects retention days in both SQLite and Postgres modes.
+
+
+
+Acceptance Criteria
+
+All routes run non-blocking (no sync fs).
+
+JSON files remain consistent under concurrent POSTs (atomic writes + per-file lock).
+
+Unknown approval removes the correct entry (by id).
+
+No duplicate SPN/PID entries on re-approval.
+
+Pruning runs at 02:00 (configurable), returns a structured result, and does not crash the process.
+
+If you want, I can also produce a quick patch (code diff) for the unknown-signals flow and the approve handler so you can drop it in directly.

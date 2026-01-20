@@ -1,0 +1,43 @@
+Building application first...
+
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+
+You are using Node.js 20.11.0. Vite requires Node.js version 20.19+ or 22.12+. Please upgrade your Node.js version.
+vite v7.1.11 building for production...
+✓ 3475 modules transformed.
+[plugin vite:reporter] 
+(!) /Users/homeimac/Downloads/RecipeRealm/client/src/pages/ai-insights.tsx is dynamically imported by /Users/homeimac/Downloads/RecipeRealm/client/src/pages/ml-ai-consolidated.tsx but also statically imported by /Users/homeimac/Downloads/RecipeRealm/client/src/App.tsx, dynamic import will not move module into another chunk.
+
+[plugin vite:reporter] 
+(!) /Users/homeimac/Downloads/RecipeRealm/client/src/pages/ml-training.tsx is dynamically imported by /Users/homeimac/Downloads/RecipeRealm/client/src/pages/ml-ai-consolidated.tsx but also statically imported by /Users/homeimac/Downloads/RecipeRealm/client/src/App.tsx, dynamic import will not move module into another chunk.
+
+../dist/public/index.html                              3.22 kB │ gzip:   1.10 kB
+../dist/public/assets/index-CPKYh9eg.css             117.61 kB │ gzip:  18.52 kB
+../dist/public/assets/purify.es-aGzT-_H7.js           22.15 kB │ gzip:   8.67 kB
+../dist/public/assets/index.es-Coy5f59O.js           159.37 kB │ gzip:  53.40 kB
+../dist/public/assets/html2canvas.esm-B0tyYwQk.js    202.36 kB │ gzip:  48.04 kB
+../dist/public/assets/jspdf.es.min-CLpP4Hi8.js       387.69 kB │ gzip: 127.20 kB
+../dist/public/assets/index-DRz-knMm.js            2,136.28 kB │ gzip: 531.37 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 12.92s
+
+  dist/index.js  2.3mb ⚠️
+
+⚡ Done in 147ms
+✓ Node.js runtime found (147M)
+✓ Node.js binary verified
+
+Cleaning previous builds...
+Building macOS app (this takes 3-5 minutes)...
+
+  • electron-builder  version=26.0.12 os=21.6.0
+  • loaded configuration  file=/Users/homeimac/Downloads/RecipeRealm/electron-builder.yml
+  • description is missed in the package.json  appPackageFile=/Users/homeimac/Downloads/RecipeRealm/package.json
+  • author is missed in the package.json  appPackageFile=/Users/homeimac/Downloads/RecipeRealm/package.json
+  ⨯ Package "electron" is only allowed in "devDependencies". Please remove it from the "dependencies" section in your package.json.
+Package "electron-builder" is only allowed in "devDependencies". Please remove it from the "dependencies" section in your package.json.

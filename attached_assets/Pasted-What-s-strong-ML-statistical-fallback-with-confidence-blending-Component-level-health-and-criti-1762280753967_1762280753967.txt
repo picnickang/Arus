@@ -1,0 +1,281 @@
+What’s strong
+
+ML + statistical fallback with confidence blending.
+
+Component-level health and critical metric flags.
+
+Hysteresis on risk (prevents alert flapping).
+
+Batch API already present.
+
+
+
+Key gaps to close (high impact, low risk)
+
+Mode-aware RUL (DP / Transit / Harbor / Standby) — different wear patterns & thresholds.
+
+Uncertainty you can trust — propagate confidence with data-quality score and ensemble variance.
+
+Survival/repair awareness — recent successful repair should reset / lift risk (right-censoring).
+
+Baseline drift & calibration — calibrate failure probability to observed base rates (isotonic/logistic recal).
+
+Data quality guardrails — missingness, staleness, unit drift → reduce confidence & raise “needs data” flag.
+
+Perf — reduce N+1 queries and compute in-DB aggregates for last 30d per component.
+
+Governance hooks — write a lineage/provenance crumb when RUL is produced.
+
+Unit/integration tests — deterministic seeds for trend and RUL bands.
+
+
+
+Below are drop-in snippets to add these without rewriting your engine.
+
+A) Add small utilities (paste as 
+
+server/utils/rul-utils.ts
+
+)
+
+export type OpMode = 'DP'|'TRANSIT'|'HARBOR'|'STANDBY'|'UNKNOWN';
+
+export function deriveOpMode(tags?: string[]): OpMode {
+  if (!tags || tags.length === 0) return 'UNKNOWN';
+  if (tags.includes('DP')) return 'DP';
+  if (tags.includes('TRANSIT')) return 'TRANSIT';
+  if (tags.includes('HARBOR')) return 'HARBOR';
+  if (tags.includes('STANDBY')) return 'STANDBY';
+  return 'UNKNOWN';
+}
+
+export function dataQualityScore(sampleCount: number, spanDays: number, missingPct: number, stalenessMin: number) {
+  // Simple 0..1 quality: more samples, wider span, lower missing, fresher data => higher
+  const qty = Math.min(1, sampleCount / 500);            // cap at 500 points
+  const span = Math.min(1, spanDays / 30);               // cap at 30 days
+  const miss = 1 - Math.min(1, missingPct);              // less missing is better
+  const fresh = Math.max(0, 1 - (stalenessMin / 1440));  // 0 after 24h stale
+  return Math.max(0, Math.min(1, 0.35*qty + 0.25*span + 0.25*miss + 0.15*fresh));
+}
+
+// Mode-aware threshold adjusters (tune empirically)
+export function modeThresholdMultiplier(mode: OpMode) {
+  switch(mode) {
+    case 'DP': return 0.85;       // stricter (fails earlier)
+    case 'TRANSIT': return 1.0;   // baseline
+    case 'HARBOR': return 1.1;    // slightly more lenient
+    case 'STANDBY': return 1.2;   // lenient
+    default: return 1.0;
+  }
+}
+
+// Simple isotonic-like calibration clamp (use real calibration later)
+export function calibrateFailureProb(p: number, baseRate: number) {
+  // pulls toward baseRate mildly to avoid overconfident extremes
+  const alpha = 0.2;
+  return Math.max(0.01, Math.min(0.99, (1-alpha)*p + alpha*baseRate));
+}
+B) Query optimizations & survival awareness (edit your RUL engine)
+
+Pull 30-day component aggregates in a single query.
+
+Consider last repair to right-censor trend (recent fix resets or lifts health).
+
+
+
+Add near your imports:
+
+import { deriveOpMode, dataQualityScore, modeThresholdMultiplier, calibrateFailureProb, OpMode } from "../utils/rul-utils.js";
+Replace your 30-day degradation fetch with an aggregate that also gets counts/missing/staleness (example Drizzle/SQL hybrid; adjust table/column names if needed):
+
+// Fetch last-30d degradation rows + data-quality aggregates per component
+const degradationData = await this.db.execute(sql`
+  SELECT d.*
+  FROM ${componentDegradation} d
+  WHERE d.equipment_id = ${equipmentId}
+    AND d.org_id = ${orgId}
+    AND d.measurement_timestamp >= NOW() - INTERVAL '30 days'
+  ORDER BY d.measurement_timestamp DESC
+`);
+
+const quality = await this.db.execute(sql`
+  WITH w AS (
+    SELECT component_type,
+           COUNT(*) AS n,
+           EXTRACT(EPOCH FROM (MAX(measurement_timestamp)-MIN(measurement_timestamp)))/86400 AS span_days,
+           AVG(CASE WHEN degradation_metric IS NULL THEN 1 ELSE 0 END) AS missing_pct,
+           EXTRACT(EPOCH FROM (NOW()-MAX(measurement_timestamp)))/60 AS staleness_min
+    FROM ${componentDegradation}
+    WHERE equipment_id = ${equipmentId} AND org_id = ${orgId}
+      AND measurement_timestamp >= NOW() - INTERVAL '30 days'
+    GROUP BY component_type
+  ) SELECT * FROM w;
+`);
+
+const lastRepair = await this.db
+  .select()
+  .from(failureHistory)
+  .where(and(
+    eq(failureHistory.equipmentId, equipmentId),
+    eq(failureHistory.orgId, orgId)
+  ))
+  .orderBy(desc(failureHistory.repairCompletedAt))
+  .limit(1);
+Right-censor trend if a recent repair exists (inside analyzeDegradationPattern call site, before you call it):
+
+const repairTs = lastRepair[0]?.repairCompletedAt as Date | undefined;
+const degDataForTrend = repairTs
+  ? degradationData.filter((d: any) => d.measurementTimestamp > repairTs)
+  : degradationData;
+
+const degradationPattern = this.analyzeDegradationPattern(degDataForTrend);
+Compute a data quality and mode for calibration (still in calculateRul):
+
+// Example: infer op-mode from latest equipmentTelemetry tags (optional)
+const latestModeRow = await this.db.execute(sql`
+  SELECT operating_mode, tags, ts
+  FROM ${equipmentTelemetry}
+  WHERE equipment_id=${equipmentId} AND org_id=${orgId}
+  ORDER BY ts DESC LIMIT 1
+`);
+const opMode: OpMode = deriveOpMode(latestModeRow?.rows?.[0]?.tags || []);
+const modeMult = modeThresholdMultiplier(opMode);
+
+// Build a simple per-equipment quality score (combine components)
+let q = 0.6; // default
+if (quality.rows?.length) {
+  const qs = quality.rows.map((r: any) =>
+    dataQualityScore(Number(r.n||0), Number(r.span_days||0), Number(r.missing_pct||0), Number(r.staleness_min||0))
+  );
+  q = qs.reduce((a:number,b:number)=>a+b,0)/qs.length;
+}
+C) Confidence & probability calibration (edit ML fusion block)
+
+
+
+Right after you compute failureProbability and confidenceScore, add:
+
+// Calibrate probability toward observed base rate for this equipment type
+const typeBaseFailureRateRow = await this.db.execute(sql`
+  SELECT COALESCE(SUM(CASE WHEN failed=1 THEN 1 ELSE 0 END)::float / NULLIF(COUNT(*),0), 0.05) AS base_rate
+  FROM ${failureHistory}
+  WHERE org_id=${orgId} AND equipment_type=${equipmentType}
+    AND event_timestamp >= NOW() - INTERVAL '365 days'
+`);
+const baseRate = Number(typeBaseFailureRateRow.rows?.[0]?.base_rate ?? 0.05);
+
+failureProbability = calibrateFailureProb(failureProbability, baseRate);
+
+// Propagate data-quality into confidence
+confidenceScore = Math.max(0.1, Math.min(0.99, confidenceScore * (0.6 + 0.4*q)));
+Make mode affect RUL days (stricter for DP, more lenient for standby):
+
+remainingDays = Math.round(remainingDays * modeMult);
+D) Risk bands that also respect quality (small tweak)
+
+
+
+Inside determineRiskLevel, lower bands when quality is poor. Easiest: pass a quality arg and widen buffers:
+
+private determineRiskLevel(
+  remainingDays: number, 
+  failureProbability: number,
+  healthIndex: number,
+  quality: number // 0..1
+): 'low'|'medium'|'high'|'critical' {
+  const BUFFER = 0.05 + (1-quality)*0.05; // up to +5% buffer if poor quality
+  const daysTilt = Math.round((1-quality)*3); // shrink days tolerance up to 3
+
+  if (failureProbability > (0.7 - BUFFER) || remainingDays < (7 + 2 - daysTilt) || healthIndex < (30 + 5)) return 'critical';
+  if (failureProbability > (0.4 - BUFFER) || remainingDays < (21 + 2 - daysTilt) || healthIndex < (60 + 5)) return 'high';
+  if (failureProbability > (0.2 - BUFFER) || remainingDays < (35 + 2 - daysTilt) || healthIndex < (80 + 5)) return 'medium';
+  return 'low';
+}
+…and call it with this.determineRiskLevel(remainingDays, failureProbability, healthIndex, q).
+
+E) Governance crumb (lineage/provenance)
+
+
+
+At the end of calculateRul, emit a small audit record (adjust table if you already have one):
+
+await this.db.insert(failurePredictions).values({
+  orgId,
+  equipmentId,
+  modelId: mlPredictions[0]?.modelId || null,
+  modelType: mlPredictions[0]?.modelType || 'hybrid',
+  predictionTimestamp: new Date(),
+  failureProbability,
+  predictedFailureDate: new Date(Date.now() + remainingDays*86400000),
+  confidence: confidenceScore,
+  // provenance hash could include inputs -> sha256(JSON.stringify({equipmentId, remainingDays, ...}))
+});
+F) Unit tests (outline)
+
+Trend regression: monotonic increasing degradation → finite timeToFailure; constant → Infinity.
+
+Mode multipliers: same inputs produce lower remainingDays in DP vs higher in STANDBY.
+
+Calibration: extreme ML probability pulled toward baseRate by α.
+
+Quality gating: poor quality pushes risk at most one band up (no ping-pong).
+
+One-shot Replit prompt to implement these + tests
+
+
+
+Copy–paste:
+
+REPLIT AI PROMPT — Upgrade RUL Engine (Mode-Aware, Calibrated, Survival-Aware, QoS)
+
+Context:
+- Code is in TypeScript/Node with Drizzle ORM.
+- We already have RUL engine in server/rul-engine.ts (or .js).
+- Goal: implement production-safe enhancements without breaking the public API.
+
+Tasks:
+1) Create server/utils/rul-utils.ts with:
+   - deriveOpMode(tags?: string[]): 'DP'|'TRANSIT'|'HARBOR'|'STANDBY'|'UNKNOWN'
+   - dataQualityScore(sampleCount, spanDays, missingPct, stalenessMin): number (0..1)
+   - modeThresholdMultiplier(mode): number
+   - calibrateFailureProb(p, baseRate): number
+   Export all. Add unit tests in tests/rul-utils.spec.ts.
+
+2) Edit server/rul-engine.(ts|js):
+   - Replace the 30d degradation fetch with a single SQL that pulls rows and an aggregate (n, span_days, missing_pct, staleness_min) by component (see snippet in chat).
+   - Fetch latest operating mode from equipmentTelemetry and derive mode via deriveOpMode(tags).
+   - If there is a recent repair in failureHistory.repairCompletedAt, right-censor degradationData for trend analysis.
+   - After ML/stats fusion, calibrate failureProbability toward base rate for the same equipmentType over last 365d (isotonic-like clamp via calibrateFailureProb).
+   - Blend confidence with dataQualityScore (q).
+   - Scale remainingDays by modeThresholdMultiplier(mode).
+   - Update determineRiskLevel signature to accept quality and widen buffers slightly when quality is poor (see snippet). Ensure all callers updated.
+   - At the end of calculateRul, write a provenance crumb (insert into failurePredictions with the final probability/date/confidence).
+
+3) Performance:
+   - Ensure all new SQLs use indexes on (org_id, equipment_id, measurement_timestamp).
+   - Add minimal try/catch around DB calls; fallback gracefully if aggregates unavailable.
+
+4) Tests:
+   - Add tests/rul-engine.spec.ts:
+     - Trend increasing → finite TTF; flat → Infinity.
+     - DP vs STANDBY produces smaller remainingDays for DP given same inputs.
+     - Calibration: probability 0.95 with baseRate 0.1 is pulled down; probability 0.05 with baseRate 0.3 is pulled up.
+     - Poor quality (q≈0.2) shifts risk band upward at most one level; high quality (q≈0.9) keeps original bands.
+   - Use fake in-memory DB or test doubles; seed tiny datasets.
+
+5) Lint & type safety:
+   - Fix types (OpMode), export signatures, no any-leaks in public surface.
+
+6) Deliverables:
+   - Modified server/rul-engine.(ts|js)
+   - New server/utils/rul-utils.ts
+   - tests/rul-utils.spec.ts and tests/rul-engine.spec.ts
+   - Update docs/audit/pdm_value_impact.md with a short bullet list:
+     * Mode-aware multipliers
+     * Probability calibration to base rates
+     * Right-censoring for recent repairs
+     * Data quality propagation
+     * Query consolidation (perf)
+   - All tests green: `npm test` passes.
+
+Execute fully. Do not generate placeholders; produce working code wired into the existing project structure. If file paths differ, search and adapt.

@@ -1,0 +1,175 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==========================================================
+REM ARUS UI Patch: Crew Fairness Visualization (no new deps)
+REM - Adds frontend/src/components/FairnessViz.tsx
+REM - Wires it into Crew Scheduler (shows when a plan result exists)
+REM ==========================================================
+
+if not exist "frontend\src" (
+echo [ERROR] frontend\src not found. Run this at your repo root where frontend exists.
+exit /b 1
+)
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+REM ----------------------------------------------------------
+REM 1) Create FairnessViz component (SVG bar charts + CSV export)
+REM ----------------------------------------------------------
+%PS% "$code=@'
+import React, { useMemo } from \"react\";
+
+type Assign = { date:string; shift_id?:string; crew_id:string; start:string; end:string; role?:string; vessel_id?:string };
+type Crew = { id:string; name?:string; rank?:string };
+
+function isNight(startISO: string) {
+// night if shift start hour >= 20 or < 6
+const hh = parseInt(startISO.slice(11,13), 10);
+return (hh >= 20) || (hh < 6);
+}
+
+function toCSV(rows: any[]): string {
+if (!rows.length) return '';
+const headers = Object.keys(rows[0]);
+const esc = (s:any)=>(''+s).replace(/\"/g,'\"\"');
+const lines = [headers.join(',')].concat(rows.map(r => headers.map(h=>`\"${esc(r[h] ?? '')}\"`).join(',')));
+return lines.join('\\n');
+}
+
+export default function FairnessViz({
+scheduled,
+crew
+}: {
+scheduled: Assign[];
+crew: Crew[];
+}) {
+const { totals, nights, spread, rows, maxVal } = useMemo(() => {
+const id2name: Record<string,string> = {};
+crew.forEach(c => { id2name[c.id] = c.name || c.id; });
+const t: Record<string, number> = {};
+const n: Record<string, number> = {};
+scheduled.forEach(a => {
+t[a.crew_id] = (t[a.crew_id]||0) + 1;
+if (isNight(a.start)) n[a.crew_id] = (n[a.crew_id]||0) + 1;
+});
+const ids = Array.from(new Set(crew.map(c=>c.id))).sort();
+const vals = ids.map(id => t[id]||0);
+const maxVal = Math.max(1, ...vals);
+const rows = ids.map(id => ({
+crew_id: id,
+crew: id2name[id] || id,
+total_shifts: t[id]||0,
+night_shifts: n[id]||0
+}));
+const nonZero = vals.length ? vals : [0];
+const spread = (Math.max(...nonZero) - Math.min(...nonZero));
+return { totals: t, nights: n, spread, rows, maxVal };
+}, [scheduled, crew]);
+
+function downloadCSV(){
+const csv = toCSV(rows);
+const blob = new Blob([csv], {type:'text/csv'});
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url; a.download = 'crew_schedule.csv';
+document.body.appendChild(a); a.click(); a.remove();
+URL.revokeObjectURL(url);
+}
+
+// Simple responsive SVG bar chart
+const barW = 22, gap = 10, leftPad = 120, topPad = 10, height = 180;
+const ids = crew.map(c=>c.id);
+const width = leftPad + ids.length * (barW*2 + gap) + 20;
+const scale = (v:number)=> (v / (maxVal||1)) * (height-40);
+
+return (
+<div className=\"card\">
+<h2>Crew Fairness & Workload</h2>
+<div style={{display:'flex',gap:12,alignItems:'center',flexWrap:'wrap'}}>
+<div><b>Fairness spread</b>: {spread} (max total − min total)</div>
+<button onClick={downloadCSV}>Export CSV</button>
+</div>
+
+<svg width={width} height={height} style={{maxWidth:'100%',height:'auto',background:'#fff',border:'1px solid #e2e8f0',borderRadius:6,marginTop:8}}>
+{/* Y-axis ticks */}
+<g transform={`translate(60,${topPad})`} fontSize=\"10\" fill=\"#334155\">
+{[0, maxVal].map((v,i)=>(
+<g key={i} transform={`translate(0,${height-40 - scale(v)})`}>
+<line x1={60} x2={width-20} y1={0} y2={0} stroke=\"#e2e8f0\"/>
+<text x={40} y={4} textAnchor=\"end\">{v}</text>
+</g>
+))}
+</g>
+{/* Bars */}
+<g transform={`translate(${leftPad},${topPad})`}>
+{ids.map((id, i) => {
+const x = i*(barW*2 + gap);
+const total = (totals[id]||0);
+const night = (nights[id]||0);
+const hT = scale(total);
+const hN = scale(night);
+return (
+<g key={id} transform={`translate(${x},0)`}>
+{/* Total bar */}
+<rect x={0} y={height-40 - hT} width={barW} height={hT} fill=\"#94a3b8\"/>
+{/* Night bar */}
+<rect x={barW+2} y={height-40 - hN} width={barW} height={hN} fill=\"#64748b\"/>
+{/* Labels */}
+<text x={barW} y={height-20} textAnchor=\"middle\" fontSize=\"10\" fill=\"#334155\">{id}</text>
+</g>
+);
+})}
+<text x={-40} y={12} fontSize=\"10\" fill=\"#334155\">shifts</text>
+</g>
+{/* Legend */}
+<g transform={`translate(${leftPad},${height-14})`} fontSize=\"10\" fill=\"#334155\">
+<rect x={0} y={-8} width={10} height={10} fill=\"#94a3b8\"/><text x={14} y={0}>Total</text>
+<rect x={60} y={-8} width={10} height={10} fill=\"#64748b\"/><text x={74} y={0}>Night</text>
+</g>
+</svg>
+
+<div style={{overflowX:'auto', marginTop:8}}>
+<table className='text-xs' style={{width:'100%'}}>
+<thead><tr><th>Crew</th><th>Total Shifts</th><th>Night Shifts</th></tr></thead>
+<tbody>
+{rows.map(r=>(
+<tr key={r.crew_id}>
+<td>{r.crew}</td>
+<td>{r.total_shifts}</td>
+<td>{r.night_shifts}</td>
+</tr>
+))}
+</tbody>
+</table>
+</div>
+</div>
+);
+}
+'@; Set-Content -Encoding UTF8 frontend/src/components/FairnessViz.tsx $code"
+
+REM ----------------------------------------------------------
+REM 2) Wire the new card into Crew Scheduler view
+REM - Import in Crew.tsx and render when a plan result exists
+REM ----------------------------------------------------------
+%PS% ^
+"$f='frontend/src/components/Crew.tsx'; $t=Get-Content -Raw $f;" ^
+"$imported = ($t -match 'FairnessViz');" ^
+"if (-not $imported) { $t = $t -replace 'from \\\"react\\\";','from \"react\";\\nimport FairnessViz from \"./FairnessViz\";'; }" ^
+"$t = $t -replace '(\\{out && <>[\\s\\S]*?\\</>\\s*\\}\\))','{out && <><h3>Scheduled</h3><table className=\\'text-xs\\' style=\\{{width:\\'100%\\'\\}}><thead><tr><th>date</th><th>shift</th><th>crew</th><th>start</th><th>end</th><th>role</th></tr></thead><tbody>{out.scheduled.map((a:any,i:number)=><tr key={i}><td>{a.date}</td><td>{a.shift_id}</td><td>{a.crew_id}</td><td>{a.start.slice(11,16)}</td><td>{a.end.slice(11,16)}</td><td>{a.role}</td></tr>)}</tbody></table>{out.unfilled?.length>0 && <><h3>Unfilled</h3><ul>{out.unfilled.map((u:any,i:number)=><li key={i}>{u.day} — {u.shift_id} (need {u.need}): {u.reason}</li>)}</ul></>}<FairnessViz scheduled={out.scheduled||[]} crew={crew||[]} /></>} )';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+echo.
+echo ==========================================================
+echo [OK] Fairness Visualization installed.
+echo ----------------------------------------------------------
+echo Frontend:
+echo - Added: src/components/FairnessViz.tsx
+echo - Crew Scheduler now renders FairnessViz after planning results
+echo What it shows:
+echo - Bars: Total vs Night shifts per crew
+echo - Fairness spread (max-min total)
+echo - CSV export button for schedule
+echo ----------------------------------------------------------
+echo Rebuild frontend: npm run dev (or build)
+echo ==========================================================
+endlocal

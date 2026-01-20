@@ -1,0 +1,189 @@
+{
+  "generatedAt": "2025-12-23T15:08:34.860Z",
+  "summary": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0
+  },
+  "results": [
+    {
+      "scenario": "baseline",
+      "config": {
+        "scenario": "baseline",
+        "targetFps": 1000,
+        "durationSec": 5,
+        "batchSize": 100,
+        "sqlitePath": "/tmp/loadtest-telemetry.db",
+        "reportPath": "./reports"
+      },
+      "startTime": "2025-12-23T15:08:09.168Z",
+      "endTime": "2025-12-23T15:08:14.293Z",
+      "durationMs": 5090.050458,
+      "framesGenerated": 5100,
+      "actualFps": 1001.9547040018755,
+      "sustainedFps": 0,
+      "peakBacklog": 0,
+      "finalBacklog": 5100,
+      "cursorAdvanced": false,
+      "cursorFinalId": 0,
+      "errors": [],
+      "metrics": {
+        "p50CommitLatencyMs": 0,
+        "p95CommitLatencyMs": 0,
+        "p99CommitLatencyMs": 0,
+        "avgE2eLagMs": 0,
+        "maxBackoffMs": 0
+      },
+      "passed": true,
+      "notes": [
+        "Achieved 1002.0 FPS (target: 1000)",
+        "Frames generated: 5100"
+      ]
+    },
+    {
+      "scenario": "pg-slow",
+      "config": {
+        "scenario": "pg-slow",
+        "targetFps": 1000,
+        "durationSec": 5,
+        "batchSize": 100,
+        "sqlitePath": "/tmp/loadtest-telemetry.db",
+        "reportPath": "./reports"
+      },
+      "startTime": "2025-12-23T15:08:14.315Z",
+      "endTime": "2025-12-23T15:08:19.426Z",
+      "durationMs": 5089.105029,
+      "framesGenerated": 5100,
+      "actualFps": 1002.1408422380586,
+      "sustainedFps": 0,
+      "peakBacklog": 0,
+      "finalBacklog": 5100,
+      "cursorAdvanced": false,
+      "cursorFinalId": 0,
+      "errors": [],
+      "metrics": {
+        "p50CommitLatencyMs": 0,
+        "p95CommitLatencyMs": 0,
+        "p99CommitLatencyMs": 0,
+        "avgE2eLagMs": 0,
+        "maxBackoffMs": 0
+      },
+      "passed": true,
+      "notes": [
+        "Frame generation: 1002.1 FPS",
+        "Frames queued: 5100",
+        "Final cursor: 0",
+        "Without bridge: Frames queued for later processing"
+      ]
+    },
+    {
+      "scenario": "pg-down",
+      "config": {
+        "scenario": "pg-down",
+        "targetFps": 1000,
+        "durationSec": 5,
+        "batchSize": 100,
+        "sqlitePath": "/tmp/loadtest-telemetry.db",
+        "reportPath": "./reports",
+        "pgFailureStartSec": 10,
+        "pgFailureDurationSec": 30
+      },
+      "startTime": "2025-12-23T15:08:19.445Z",
+      "endTime": "2025-12-23T15:08:24.562Z",
+      "durationMs": 5094.249968,
+      "framesGenerated": 5100,
+      "actualFps": 1001.1287298495597,
+      "sustainedFps": 0,
+      "peakBacklog": 0,
+      "finalBacklog": 5100,
+      "cursorAdvanced": false,
+      "cursorFinalId": 0,
+      "errors": [],
+      "metrics": {
+        "p50CommitLatencyMs": 0,
+        "p95CommitLatencyMs": 0,
+        "p99CommitLatencyMs": 0,
+        "avgE2eLagMs": 0,
+        "maxBackoffMs": 0
+      },
+      "passed": true,
+      "notes": [
+        "Frame generation: 1001.1 FPS",
+        "Cursor position: 0",
+        "Backlog accumulated: 5100 frames",
+        "Cursor frozen at 0, backlog accumulated as expected"
+      ]
+    },
+    {
+      "scenario": "bridge-restart",
+      "config": {
+        "scenario": "bridge-restart",
+        "targetFps": 1000,
+        "durationSec": 5,
+        "batchSize": 100,
+        "sqlitePath": "/tmp/loadtest-telemetry.db",
+        "reportPath": "./reports"
+      },
+      "startTime": "2025-12-23T15:08:24.591Z",
+      "endTime": "2025-12-23T15:08:29.709Z",
+      "durationMs": 5088.157248000001,
+      "framesGenerated": 5100,
+      "actualFps": 1002.3275129723346,
+      "sustainedFps": 0,
+      "peakBacklog": 0,
+      "finalBacklog": 5100,
+      "cursorAdvanced": false,
+      "cursorFinalId": 0,
+      "errors": [],
+      "metrics": {
+        "p50CommitLatencyMs": 0,
+        "p95CommitLatencyMs": 0,
+        "p99CommitLatencyMs": 0,
+        "avgE2eLagMs": 0,
+        "maxBackoffMs": 0
+      },
+      "passed": true,
+      "notes": [
+        "Frame generation: 1002.3 FPS",
+        "Cursor position: 0",
+        "Test: Cursor persists across bridge restart",
+        "Without bridge: Frames queued for processing"
+      ]
+    },
+    {
+      "scenario": "agent-restart",
+      "config": {
+        "scenario": "agent-restart",
+        "targetFps": 1000,
+        "durationSec": 5,
+        "batchSize": 100,
+        "sqlitePath": "/tmp/loadtest-telemetry.db",
+        "reportPath": "./reports"
+      },
+      "startTime": "2025-12-23T15:08:29.733Z",
+      "endTime": "2025-12-23T15:08:34.838Z",
+      "durationMs": 5085.339868000003,
+      "framesGenerated": 5100,
+      "actualFps": 1002.882822462319,
+      "sustainedFps": 0,
+      "peakBacklog": 0,
+      "finalBacklog": 5100,
+      "cursorAdvanced": false,
+      "cursorFinalId": 0,
+      "errors": [],
+      "metrics": {
+        "p50CommitLatencyMs": 0,
+        "p95CommitLatencyMs": 0,
+        "p99CommitLatencyMs": 0,
+        "avgE2eLagMs": 0,
+        "maxBackoffMs": 0
+      },
+      "passed": true,
+      "notes": [
+        "Frame generation: 1002.9 FPS",
+        "Frames generated: 5100",
+        "Test: raw_frames continuity after agent restart"
+      ]
+    }
+  ]
+}

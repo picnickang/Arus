@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package arus.telemetry;
+
+option csharp_namespace = "Arus.TelemetryAgent.Proto";
+
+message Empty {}
+
+message AgentStatus {
+  string service_version = 1;
+  string status = 2;
+  int64 unix_time_ms = 3;
+  int64 frames_written = 4;
+  int64 last_frame_unix_time_ms = 5;
+  int32 active_source_count = 6;
+}
+
+message Ack {
+  bool ok = 1;
+  string message = 2;
+}
+
+message SourceId {
+  string id = 1;
+}
+
+message SourceConfig {
+  string id = 1;
+  string type = 2;
+  string connection_string = 3;
+}
+
+message SourceList {
+  repeated SourceConfig sources = 1;
+}
+
+message IngestStats {
+  int64 unix_time_ms = 1;
+  int64 frames_written = 2;
+  int64 queue_depth = 3;
+  int64 last_frame_unix_time_ms = 4;
+  int64 disk_usage_bytes = 5;
+}
+
+service TelemetryAgent {
+  rpc GetStatus(Empty) returns (AgentStatus);
+  rpc StartSource(SourceConfig) returns (Ack);
+  rpc StopSource(SourceId) returns (Ack);
+  rpc ListSources(Empty) returns (SourceList);
+  rpc SubscribeStats(Empty) returns (stream IngestStats);
+}

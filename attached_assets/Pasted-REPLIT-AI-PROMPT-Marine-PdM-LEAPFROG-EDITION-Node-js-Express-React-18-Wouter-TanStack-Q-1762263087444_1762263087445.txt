@@ -1,0 +1,327 @@
+REPLIT AI PROMPT — Marine PdM “LEAPFROG EDITION” (Node.js + Express + React 18 + Wouter + TanStack Query)
+
+
+
+🎯 
+
+OBJECTIVE
+
+
+
+Audit, extend, and integrate all layers of the Marine Predictive Maintenance system into a next-generation platform matching or exceeding commercial suites
+
+(Kongsberg K-Fleet, Wärtsilä FOS, ABB OCTOPUS, ABS Wavesight, StormGeo).
+
+🧩 
+
+1 — ARCHITECTURE AUDIT + VALIDATION
+
+Run scripts/redundancy_score.js to map existing endpoints, models, and components.
+
+Preserve existing modules with NetScore < 2 (redundant or superior).
+
+Output → docs/audit_summary.md (table of features, status, reason to keep/replace).
+
+⚙️ 
+
+2 — BACKEND (Express + ONNX Runtime + TF.js + Context Fusion)
+
+
+
+Implement or extend these routes under /server/routes/:
+
+Endpoint
+
+Purpose
+
+Core Additions
+
+/api/fleet/summary
+
+Fleet grid + RAG health + coordinates
+
+Mini-map JSON feed + data-quality scores
+
+/api/vessels/:id/performance
+
+Vessel telemetry + VPS metrics
+
+4 charts (Load↔SFOC, Fuel↔Time, Power↔STW, Load Histogram) + baseline & fleet overlays
+
+/api/context/events
+
+Context Layer Engine (CLE)
+
+Event tagging (voyage, maintenance, weather), mode inference, confidence bands
+
+/api/anomalies
+
+PdM core engine
+
+Adaptive retraining trigger + root-cause attribution (SHAP/gradient) + cluster by subsystem
+
+/api/forecast
+
+7-day outlook & trend forecast
+
+Exponential smoothing + model uncertainty
+
+/api/alerts
+
+Anomaly alerts
+
+Ack/assign to crew → work orders flow
+
+/api/maintenance
+
+WO timeline (Gantt style)
+
+Integrate crew assignment + status updates
+
+/api/reports/cii / /reports/export
+
+Compliance tile & data export
+
+XLSX/CSV/JSON generation + CII grade
+
+/api/model/lineage
+
+Governance layer
+
+Model metadata (version, dataset, hash, RUL metric)
+
+/api/webhooks
+
+Partner integrations
+
+Subscribe to events (anomaly, WO, CII change)
+
+All endpoints log training metadata to checkpoints/lineage.json.
+
+🧠 
+
+3 — FRONTEND (React 18 + Wouter + TanStack Query + Tailwind)
+
+
+
+Create or update components under /client/src/:
+
+Route
+
+Component
+
+Key Features
+
+/
+
+FleetPage.tsx
+
+RAG grid + mini map (Leaflet) + filters + data-quality bars
+
+/vessel/:id
+
+PerformancePage.tsx
+
+4 VPS charts (Recharts) + baseline/fleet toggle + context bands + drag/drop metric correlation + event markers
+
+/alerts
+
+AlertsPage.tsx
+
+Table + Ack/Create WO + crew assign dropdown + severity color tags
+
+/maintenance
+
+MaintenancePage.tsx
+
+Interactive timeline (Gantt/Visx) + status filters + completion percent
+
+/reports
+
+ReportsPage.tsx
+
+CII tile + trend chart + export buttons
+
+/simulator
+
+SimulationPage.tsx
+
+Historical voyage replay + anomaly timeline
+
+/settings
+
+SettingsDrawer.tsx
+
+Chart toggles, thresholds, unit prefs (localStorage)
+
+/assistant
+
+CoPilotPanel.tsx
+
+Chat assistant with LLM prompt to explain anomalies, suggest actions
+
+/governance
+
+LineagePage.tsx
+
+Model version tree + dataset mix + audit trail download
+
+/map
+
+MapPage.tsx
+
+Full-screen fleet map + RAG pins + filter drawer
+
+All use TanStack Query for API fetch caching and Wouter for declarative routes.
+
+🌐 
+
+4 — INTELLIGENCE & DECISION SUPPORT
+
+
+
+Implement support modules under /server/ai/:
+
+rootCause.js → computes feature attribution weights for anomaly windows.
+
+recommendation.js → generates action suggestions (e.g., “reduce RPM 5%”).
+
+forecast.js → rolling 7-day trend and adaptive threshold forecast.
+
+opportunityIndex.js → combine severity × criticality × cost impact.
+
+
+
+Expose to front-end via /api/forecast, /api/recommendations.
+
+🔐 
+
+5 — GOVERNANCE & AUDIT LAYER
+
+
+
+Add under /server/governance/:
+
+lineageTracker.js → records model hash, date, profile, dataset source.
+
+eventProvenance.js → links alerts to raw telemetry hash (sha256).
+
+biasReport.js → scans dataset distribution per OEM.
+
+Generate dashboards under /client/src/pages/Governance.
+
+
+
+Output docs → docs/model_lineage.md, docs/bias_audit.md.
+
+🧭 
+
+6 — COLLABORATION & EDGE
+
+
+
+Add:
+
+/server/snapshot.js → generate shareable read-only dashboard URL.
+
+/server/connectors/amosBridge.js → simulate AMOS/Maximo integration.
+
+/client/public/sw.js → Service Worker for PWA offline mode.
+
+Docker edge.Dockerfile → minimal onboard deployment syncing when online.
+
+🎨 
+
+7 — UX POLISH & TRAINING
+
+
+
+Enhance UX consistency:
+
+Unified theme tokens (colors, fonts, spacing).
+
+Contextual tooltips with mini tutorials.
+
+Optional voice summary (TTS API integration).
+
+Gamified KPI badges for crew performance.
+
+🧪 
+
+8 — TEST & VALIDATION
+
+Run scripts/ping_endpoints.js → verify all API returns 200 + expected shape.
+
+Run scripts/test:acceptance → validate feature parity with plan.
+
+Run performance_harness.js → log endpoint latency & cache efficiency.
+
+Output → docs/acceptance_matrix.md, docs/performance_bench.md.
+
+📦 
+
+9 — DOCUMENTATION AUTOGENERATION
+
+
+
+Generate and save to /docs/:
+
+feature_matrix.md – planned vs implemented.
+
+leapfrog_summary.md – your advantage vs commercial suites.
+
+ui_extensions.md – new pages & components.
+
+roadmap_v2.md – priority sprints & effort estimates.
+
+changelog.md – auto generated from git history.
+
+✅ 
+
+SUCCESS CRITERIA
+
+All routes pass health check and latency < 1.5 s avg.
+
+UI pages load without error and show live data via TanStack Query.
+
+CLE renders event bands & sea-state chips on charts.
+
+Anomaly tooltips display root cause + confidence + recommended action.
+
+Lineage page shows complete model metadata chain.
+
+PWA offline sync operational on edge Docker instance.
+
+Docs generated in /docs/ and no redundancy flags > 2.
+
+🚀 
+
+COMMAND BLOCK
+
+# Install dependencies
+npm i
+
+# Run initial audit
+node scripts/redundancy_score.js
+
+# Execute leapfrog build
+npm run build:leapfrog
+
+# Verify and document
+node scripts/test:acceptance
+node scripts/generate_docs.js
+🌟 
+
+RESULT
+
+
+
+When complete, Replit should:
+
+Detect redundant/outdated features and safely upgrade.
+
+Implement core + advanced PdM features end-to-end.
+
+Deploy Express API + React frontend + PWA ready for onboard use.
+
+Produce a self-documenting Marine PdM platform that meets or exceeds the capabilities of every major commercial suite.

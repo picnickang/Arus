@@ -1,0 +1,227 @@
+You are Replit Agent working INSIDE an EXISTING codebase. There is an existing “Scheduler Board” feature (buttons: Dry Run / Execute Schedule, planning horizon, date range, run history, assignments, unfilled shifts). There is also a Manual Schedule Planner (timeline/grid) where users create/edit assignments. Right now these can behave like separate systems and confuse users.
+
+YOUR TASK: OVERHAUL the Scheduler Board into a safe, admin-only “Schedule Generator / Plan Simulator” that:
+- SIMULATES a schedule (no writes)
+- PREVIEWS the results (diff + explanations)
+- APPLIES results as DRAFT assignments (writes to the SAME Assignment store the Planner uses)
+- INTEGRATES with the Manual Planner so generated drafts appear immediately as blocks
+- NEVER overwrites PUBLISHED assignments
+- NEVER sends emails from the Generator
+- Preserves hybrid offline-first behavior (local write + queued sync)
+
+ABSOLUTE RULES
+- Do NOT start a new project. Work within the existing app.
+- Reuse existing stack, UI components, styling, state management, and routing.
+- Do NOT create a second assignment model/table/collection. Use the existing Assignment entity only.
+- Do NOT bypass existing SchedulingService/Repository for any write. All writes go through the same service used by the Manual Planner.
+- No breaking DB migrations. Additive fields only if strictly necessary.
+- Default visibility: Admin-only or behind a feature flag (disabled by default).
+- Mobile-first UI (bottom sheets). Desktop can use side panels.
+
+==========================================================
+PHASE 0 — DISCOVERY + DIAGNOSIS (MANDATORY, DO FIRST)
+==========================================================
+1) Locate file paths for:
+   - Scheduler Board route/page/component(s)
+   - Manual Planner route/page/component(s)
+   - Assignment data loading hooks/services/repos
+2) Identify the existing scheduler algorithm/AI code (if any), and what its current output structure is.
+3) Inspect the Assignment schema/entity fields and current statuses (draft/published/etc).
+4) Determine what “Execute Schedule” currently does:
+   - does it write assignments?
+   - can it overwrite?
+   - does it bypass services?
+5) Inspect offline/online hybrid sync approach:
+   - local store mechanism
+   - sync queue format
+   - how “Up to date / Syncing / Offline” is computed
+6) Output “Scheduler Board Diagnosis” including:
+   - file paths
+   - current behavior
+   - risks (overwrite, missing preview, not integrated, email risk, etc)
+   - proposed minimal schema additions (if any)
+ONLY AFTER THIS OUTPUT, IMPLEMENT.
+
+==========================================================
+PART A — ACCESS CONTROL + POSITIONING
+==========================================================
+A1) Admin-only access:
+- Use existing auth/role/permissions pattern.
+- Hide navigation entry unless admin OR feature flag enabled.
+- Guard the route to prevent direct URL access by non-admin.
+
+A2) Rename UI labels to avoid confusion with the main Planner:
+- “Scheduler Board” -> “Schedule Generator”
+- “Dry Run” -> “Simulate”
+- “Execute Schedule” -> “Apply as Draft”
+Add subtitle:
+  “Generates draft proposals. Does not publish or notify crew.”
+
+==========================================================
+PART B — SAFE DATA MODEL (RUNS + DRAFT GENERATED ASSIGNMENTS)
+==========================================================
+B1) Scheduler Run entity (audit trail)
+If a run model doesn’t exist, add an additive run store:
+SchedulerRun {
+  id: string,
+  createdAt: ISO string,
+  createdBy: userId,
+  dateStart: ISO date,
+  dateEnd: ISO date,
+  horizonDays: number,
+  mode: "SIMULATE" | "APPLY_DRAFT",
+  status: "SUCCESS" | "FAILED",
+  summary: { proposedCount, appliedCount, blockedCount, unfilledCount },
+  error?: string
+}
+This must persist offline-first and sync later using existing patterns.
+
+B2) Draft-generated assignment identification
+Generated drafts MUST be written into the SAME Assignment store the Planner uses and must be distinguishable:
+- Prefer using existing fields if present.
+- If missing, add ONLY minimal additive fields:
+  - assignments.status: enum that includes "DRAFT_GENERATED" (or reuse an existing status mechanism)
+  - assignments.generatedByRunId: nullable string
+If schema cannot change, use existing metadata/json column if present.
+
+B3) Non-destructive rule
+- Generator must NEVER overwrite or delete PUBLISHED assignments.
+- Generator must NEVER auto-email.
+- Applying drafts must only create new DRAFT_GENERATED assignments OR update existing DRAFT/DRAFT_GENERATED for the same slot if explicitly allowed by an advanced toggle AND never if published.
+
+==========================================================
+PART C — SIMULATE (NO WRITES) + PREVIEW (DIFF + EXPLANATIONS)
+==========================================================
+C1) Simulate must not write to assignments DB/store.
+Simulate produces in-memory (or stored as run-output) structures:
+- proposedAssignments[]: proposed Assignment-shaped objects
+- unfilledSlots[]: { vesselId, role/position, dateStart, dateEnd, reasons[] }
+- blockedProposals[]: proposals blocked by HARD constraints or collisions with published assignments
+- warnings[]: any SOFT constraints per proposal
+
+C2) Explanations (“why”)
+Each proposed assignment must include:
+- whySelected: string (<= 2 sentences)
+- checks: list of key constraints checked (rank/role, availability, rest/compliance, cert validity)
+- severity: NONE | SOFT | HARD (HARD proposals appear in blocked list, not apply list)
+
+C3) Preview UI
+Add/overhaul a tabbed preview in the Generator:
+- Preview Summary (diff):
+  - “Will create X generated drafts”
+  - “Blocked: Y”
+  - “Unfilled: Z”
+- Proposed Assignments (group by vessel)
+- Unfilled Slots (group by vessel/role with reasons)
+- Blocked/Conflicts (show why blocked)
+
+==========================================================
+PART D — APPLY AS DRAFT (REPLACES “EXECUTE SCHEDULE”)
+==========================================================
+D1) Apply as Draft writes assignments using the SAME service used by the Planner:
+- For each proposed assignment eligible to apply:
+  call SchedulingService.upsertAssignment(proposed with status=DRAFT_GENERATED, generatedByRunId=runId)
+- Enforce offline-first:
+  - write locally
+  - enqueue sync op
+  - update sync status indicator
+
+D2) Collision protection
+Before writing each proposed assignment:
+- If it overlaps any PUBLISHED assignment for that vessel/role window, DO NOT APPLY.
+- Add it to blocked list with reason “Overlaps published schedule”.
+(Do not overwrite, do not delete.)
+
+D3) Revert run (essential)
+Add “Revert this run” action:
+- Deletes ONLY assignments where generatedByRunId == runId AND status is draft/generated-draft.
+- Must not delete manual drafts or published assignments.
+- Must use SchedulingService delete path and enqueue sync ops.
+
+==========================================================
+PART E — INTEGRATE WITH MANUAL PLANNER (THE “SYNC” CONTRACT)
+==========================================================
+E0) INTEGRATION CONTRACT (MUST IMPLEMENT — DO NOT SKIP)
+- There is ONE Assignment store/source of truth.
+- The Generator MUST write generated drafts via the SAME SchedulingService.upsertAssignment used by the Manual Planner.
+- The Manual Planner MUST load and render assignments where status in (PUBLISHED, DRAFT, DRAFT_GENERATED) for the visible date range.
+- Generated drafts are identified by:
+  (status == DRAFT_GENERATED) OR (generatedByRunId != null)
+- After Apply as Draft, the Manual Planner must reflect changes immediately:
+  - either through shared local store subscription OR query invalidation/refetch
+  - no manual refresh required.
+
+E1) Planner rendering of generated drafts
+- Generated draft blocks must render distinctly:
+  - e.g., dashed border, “Generated” badge, slightly muted
+- Tapping a generated draft opens the same Edit Assignment sheet as normal:
+  - user can modify crew, dates, vessel (subject to constraints)
+  - edits preserve status DRAFT unless the user explicitly publishes later
+
+E2) Planner filter/toggle
+Add a simple filter in Planner:
+- Show: All | Published | Drafts | Generated
+Default: All (but generated are visually distinct)
+
+E3) Publish behavior (if publish exists)
+- Publishing should validate: no HARD constraints.
+- Only publish triggers notifications via existing email system.
+- Generator never triggers publish or email.
+
+==========================================================
+PART F — LIMIT SCOPE (SMALL FLEET FRIENDLY, TRUSTWORTHY)
+==========================================================
+F1) Default generator mode: “Fill Unassigned Only”
+- Only propose assignments for roles/slots that are currently unfilled in the selected window.
+- Do NOT reshuffle existing schedules.
+
+F2) Advanced Options (collapsed)
+- [ ] Allow updating existing DRAFT assignments (never published)
+- [ ] Suggest-only mode (no apply)
+- [ ] Strict mode (block any SOFT warnings too)
+
+==========================================================
+PART G — OFFLINE + SYNC
+==========================================================
+- Simulate works offline using local data.
+- Apply as Draft and Revert run:
+  - local writes
+  - enqueue sync ops
+  - sync status updated (“Syncing”, pending count)
+- Run history persists offline and syncs later.
+
+==========================================================
+TESTING (MANDATORY)
+==========================================================
+Add tests using existing framework:
+
+1) Simulate does NOT create assignments in the DB/store.
+2) Apply as Draft creates assignments in the SAME store used by Planner with:
+   - status DRAFT_GENERATED (or equivalent)
+   - generatedByRunId set
+3) Apply as Draft does NOT overwrite or delete published assignments.
+4) Revert run deletes ONLY assignments from that run (generatedByRunId==runId) and never published/manual drafts.
+5) Planner renders generated drafts with distinct styling.
+6) Planner updates immediately after Apply as Draft (store subscription or query invalidation).
+7) Non-admin cannot access Generator route or see nav item.
+
+Run the full test suite and provide a TEST REPORT:
+- commands run
+- pass/fail status
+
+==========================================================
+DELIVERABLE
+==========================================================
+- Scheduler Board is transformed into “Schedule Generator”:
+  - admin-only
+  - simulate + preview + apply-as-draft
+  - run history + revert
+  - safe (never overwrites published, never emails)
+  - integrated with Manual Planner via the Integration Contract
+- Tests passing.
+- Provide “What changed” including file paths and a short explanation of each.
+
+NOW START
+1) Output “Scheduler Board Diagnosis”
+2) Implement Parts A–G
+3) Run tests + output TEST REPORT

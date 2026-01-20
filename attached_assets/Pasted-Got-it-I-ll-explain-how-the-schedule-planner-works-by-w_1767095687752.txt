@@ -1,0 +1,251 @@
+Got it — I’ll explain how the schedule planner works by walking through the picture you generated, panel by panel, exactly as Replit should interpret it. Think of this as a visual execution guide.
+
+⸻
+
+1️⃣ Top Navigation Bar (Context + State)
+
+What you see
+	•	Tabs: Crew Roster | Schedule | Hours of Rest | Compliance
+	•	Status indicator: “Up to date” / Sync
+	•	Date range selector: Apr 29 – May 19, 2024
+
+How it works
+	•	The planner is scoped to the Schedule tab.
+	•	The date range controls:
+	•	which assignments are loaded
+	•	which constraint checks are evaluated
+	•	The sync indicator reflects hybrid state:
+	•	“Up to date” → no pending ops
+	•	“Syncing” → local ops queued
+	•	“Offline” → reads from local DB only
+
+👉 Replit rule:
+Every planner render depends on (date range × local store × sync state).
+
+⸻
+
+2️⃣ Left Column – Vessel Rows (Structural Backbone)
+
+What you see
+	•	Vessel names (e.g. Ocean Explorer, Liberty Voyager)
+	•	Each vessel is a row container
+	•	Crew names + roles listed under each vessel
+
+How it works
+	•	Each vessel row represents:
+
+Vessel → required positions → assignments
+
+
+	•	Rows are virtualized (only visible rows render).
+	•	Row height is fixed for scroll stability.
+
+👉 Replit rule:
+Rows are vessels. Do not mix crew across vessels visually.
+
+⸻
+
+3️⃣ Center Timeline – Assignment Blocks (Core Interaction Surface)
+
+What you see
+	•	Horizontal bars with:
+	•	crew name
+	•	role
+	•	color coding
+	•	Blocks span across days
+	•	Some blocks show warning icons (e.g. fatigue)
+
+How it works
+Each block is a single Assignment:
+
+Assignment {
+  crewId
+  vesselId
+  role
+  startDate
+  endDate
+  status (draft/published)
+}
+
+Block behaviors
+	•	Drag block → changes vessel or dates
+	•	Resize block edges → adjusts start/end
+	•	Hover → shows quick warnings
+	•	Click → opens Assignment Drawer
+
+Visual rules
+	•	Color = role or rank (existing design system)
+	•	Icons:
+	•	🔴 red = HARD constraint violation
+	•	🟠 amber = SOFT warning
+	•	Draft assignments look slightly muted
+
+👉 Replit rule:
+Blocks are optimistic UI: move first, validate second.
+
+⸻
+
+4️⃣ Constraint Warning Tooltip (Inline Feedback)
+
+What you see
+	•	Tooltip: “Fatigue Risk – Exceeds max onboard days (28 days)”
+
+How it works
+	•	On every create/move/resize:
+	1.	Planner calls checkConstraints(draftAssignment)
+	2.	Returns structured results
+	3.	UI overlays icons + tooltips
+
+Important
+	•	HARD ≠ allowed to publish
+	•	SOFT ≠ blocked, just warned
+
+👉 Replit rule:
+Planner never decides rules — it only displays domain results.
+
+⸻
+
+5️⃣ Right Panel – Assignment Drawer (Decision Center)
+
+What you see
+	•	Header: ASSIGNMENT: AMY FOSTER
+	•	Tabs:
+	•	Details
+	•	Constraints
+	•	AI Suggestions
+	•	Action button: Apply Changes
+
+⸻
+
+A) Details Tab
+
+Shows:
+	•	Crew name
+	•	Role
+	•	Vessel
+	•	Date range
+	•	Status (Draft/Published)
+
+👉 Replit rule:
+Purely descriptive. No logic here.
+
+⸻
+
+B) Constraints Tab
+
+Shows:
+	•	List of constraint results
+	•	Severity badges (SOFT/HARD)
+	•	Human-readable explanations
+
+👉 Replit rule:
+This is a rendering of domain output — do not recompute here.
+
+⸻
+
+C) AI Suggestions Tab
+
+Shows:
+	•	Ranked list of alternative crew
+	•	Each suggestion includes:
+	•	name
+	•	role match
+	•	warnings (if any)
+	•	“why” explanation
+
+Apply suggestion
+	•	Replaces crewId in assignment
+	•	Triggers same mutation pipeline as manual edit
+
+👉 Replit rule:
+Suggestions do not bypass constraints. They go through the same checks.
+
+⸻
+
+6️⃣ Crew Pool (Implicit in UI Logic)
+
+Even though not fully visible, the planner assumes a Crew Pool:
+
+How it works
+	•	When:
+	•	an empty slot is selected, or
+	•	AI Suggestions tab is opened
+	•	The planner:
+	1.	Pulls all crew from local store
+	2.	Filters by HARD constraints
+	3.	Ranks using scoring rules
+	4.	Displays top candidates
+
+👉 Replit rule:
+Crew Pool = filtered view, not a separate data source.
+
+⸻
+
+7️⃣ Apply Changes Button (Write Boundary)
+
+What it does
+	•	Commits the draft assignment changes.
+
+Under the hood
+	1.	UI calls SchedulingService.upsertAssignment()
+	2.	Assignment is saved locally
+	3.	Pending sync op is created
+	4.	Constraint state is stored
+	5.	Notifications are NOT sent yet (unless auto-publish)
+
+👉 Replit rule:
+This is the only write entry point from the planner.
+
+⸻
+
+8️⃣ Publish vs Draft (Lifecycle Control)
+
+Not shown explicitly, but implied
+
+Draft
+	•	Visible to admins
+	•	No emails sent
+	•	Can violate SOFT rules
+
+Publish
+	•	Validates zero HARD violations
+	•	Marks assignments as Published
+	•	Triggers notification events:
+	•	Crew / Admin / Both (from settings)
+	•	Uses existing email system
+
+👉 Replit rule:
+Publish = validation + notifications + audit.
+
+⸻
+
+9️⃣ Offline & Sync Indicators (Trust Layer)
+
+What you see
+	•	“Up to date” badge
+	•	Sync button
+
+How it works
+	•	Planner reads from local DB first
+	•	Writes always succeed locally
+	•	Sync status reflects queued ops
+	•	Conflicts surface visibly
+
+👉 Replit rule:
+Never block planner usage due to connectivity.
+
+⸻
+
+Mental Model Summary (One Sentence)
+
+The schedule planner is a vessel-based timeline where assignments are optimistically edited blocks, validated by a deterministic constraint engine, assisted by ranked suggestions, stored offline-first, and finalized through an explicit publish step that triggers notifications.
+
+⸻
+
+If you want next, I can:
+	•	turn this into Given / When / Then acceptance tests
+	•	annotate the image with numbered callouts
+	•	translate this into a state machine
+	•	or convert it into Replit TODO checklists per component
+
+Just tell me.

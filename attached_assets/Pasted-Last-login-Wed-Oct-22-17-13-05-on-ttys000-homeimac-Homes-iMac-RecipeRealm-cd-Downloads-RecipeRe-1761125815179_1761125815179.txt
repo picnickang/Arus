@@ -1,0 +1,39 @@
+Last login: Wed Oct 22 17:13:05 on ttys000
+homeimac@Homes-iMac RecipeRealm % cd ~/Downloads/RecipeRealm && \
+rm -f dist-standalone/temp.dmg ARUS-*.dmg && \
+VERSION=$(node -p "require('./package.json').version") && \
+DMG_NAME="ARUS-${VERSION}-macOS-universal.dmg" && \
+hdiutil create -srcfolder "dist-standalone/dmg-staging" -volname "ARUS Installer" -fs HFS+ -format UDZO -ov -o "$DMG_NAME" && \
+echo "✅ DMG created: $DMG_NAME" && \
+ls -lh "$DMG_NAME"
+zsh: no matches found: ARUS-*.dmg
+homeimac@Homes-iMac RecipeRealm % cd ~/Downloads/RecipeRealm && \
+rm -f dist-standalone/temp.dmg ARUS-*.dmg && \
+VERSION=$(node -p "require('./package.json').version") && \
+DMG_NAME="ARUS-${VERSION}-macOS-universal.dmg" && \
+hdiutil create -srcfolder "dist-standalone/dmg-staging" -volname "ARUS Installer" -fs HFS+ -format UDZO -ov -o "$DMG_NAME" && \
+echo "✅ DMG created: $DMG_NAME" && \
+ls -lh "$DMG_NAME"
+zsh: no matches found: ARUS-*.dmg
+homeimac@Homes-iMac RecipeRealm % # Check if the DMG was created
+ls -lh ~/Downloads/RecipeRealm/ARUS-*.dmg
+zsh: command not found: #
+zsh: no matches found: /Users/homeimac/Downloads/RecipeRealm/ARUS-*.dmg
+homeimac@Homes-iMac RecipeRealm % ls -la dist-standalone/dmg-staging/
+total 8
+drwxr-xr-x  5 homeimac  staff   160 Oct 22 16:36 .
+drwxr-xr-x  6 homeimac  staff   192 Oct 22 17:14 ..
+drwxr-xr-x  3 homeimac  staff    96 Oct 22 16:35 ARUS Installer.app
+-rw-r--r--  1 homeimac  staff  1985 Oct 22 16:36 README.txt
+drwxr-xr-x  3 homeimac  staff    96 Oct 22 16:36 Uninstall ARUS.app
+homeimac@Homes-iMac RecipeRealm % # Get the version
+node -p "require('./package.json').version"
+zsh: command not found: #
+1.0.0
+homeimac@Homes-iMac RecipeRealm % # Now create the DMG (run this after seeing the outputs above)
+VERSION=$(node -p "require('./package.json').version")
+DMG_NAME="ARUS-${VERSION}-macOS-universal.dmg"
+hdiutil create -srcfolder "dist-standalone/dmg-staging" -volname "ARUS Installer" -fs HFS+ -format UDZO -ov -o "$DMG_NAME"
+zsh: unknown username ' this after seei'
+................................................................
+2025-10-22 17:26:26.697 hdiutil[35019:1628905] -[DIHelperProxy(Thread) waitForHelperDone] timed out waiting for helper registration

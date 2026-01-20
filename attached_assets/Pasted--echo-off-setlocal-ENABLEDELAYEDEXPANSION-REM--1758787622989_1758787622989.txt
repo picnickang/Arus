@@ -1,0 +1,278 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==================================================================
+REM ARUS – Per-Sensor Configuration (Backend + Frontend)
+REM - Sensor config: sampling, scaling, validation, thresholds, EMA, notes
+REM - Ingest applies config; device UI can edit per-mapped sensor
+REM ==================================================================
+
+if not exist "backend-node\src" (
+echo [ERROR] backend-node\src not found. Please run the previous patches first.
+exit /b 1
+)
+
+REM -----------------------------
+REM 1) BACKEND: dal.ts – add schema + helpers + apply in ingest + CRUD
+REM -----------------------------
+powershell -NoProfile -ExecutionPolicy Bypass ^
+"$f='backend-node/src/dal.ts'; $t=Get-Content -Raw $f; " ^
+"$hasSchema = $t -match 'sensor_config\\('; $hasState = $t -match 'sensor_state\\('; " ^
+"$t = $t -replace 'CREATE TABLE IF NOT EXISTS sensor_mapping \\([\\s\\S]*?\\);', '$0'; " ^
+"$pgSchema = @'
+CREATE TABLE IF NOT EXISTS sensor_config(
+vessel_id TEXT, src TEXT, sig TEXT,
+enabled INTEGER DEFAULT 1,
+sample_rate_hz DOUBLE PRECISION,
+gain DOUBLE PRECISION DEFAULT 1.0,
+offset DOUBLE PRECISION DEFAULT 0.0,
+deadband DOUBLE PRECISION DEFAULT 0.0,
+min_valid DOUBLE PRECISION,
+max_valid DOUBLE PRECISION,
+warn_lo DOUBLE PRECISION, warn_hi DOUBLE PRECISION,
+crit_lo DOUBLE PRECISION, crit_hi DOUBLE PRECISION,
+hysteresis DOUBLE PRECISION DEFAULT 0.0,
+ema_alpha DOUBLE PRECISION,
+target_unit TEXT,
+notes TEXT,
+updated_at TIMESTAMPTZ DEFAULT NOW(),
+PRIMARY KEY(vessel_id,src,sig)
+);
+CREATE TABLE IF NOT EXISTS sensor_state(
+vessel_id TEXT, src TEXT, sig TEXT,
+last_value DOUBLE PRECISION,
+ema DOUBLE PRECISION,
+last_ts TIMESTAMPTZ,
+updated_at TIMESTAMPTZ DEFAULT NOW(),
+PRIMARY KEY(vessel_id,src,sig)
+);
+'@; " ^
+"$sqliteSchema = @'
+CREATE TABLE IF NOT EXISTS sensor_config(
+vessel_id TEXT, src TEXT, sig TEXT,
+enabled INTEGER DEFAULT 1,
+sample_rate_hz REAL,
+gain REAL DEFAULT 1.0,
+offset REAL DEFAULT 0.0,
+deadband REAL DEFAULT 0.0,
+min_valid REAL,
+max_valid REAL,
+warn_lo REAL, warn_hi REAL,
+crit_lo REAL, crit_hi REAL,
+hysteresis REAL DEFAULT 0.0,
+ema_alpha REAL,
+target_unit TEXT,
+notes TEXT,
+updated_at TEXT,
+PRIMARY KEY(vessel_id,src,sig)
+);
+CREATE TABLE IF NOT EXISTS sensor_state(
+vessel_id TEXT, src TEXT, sig TEXT,
+last_value REAL,
+ema REAL,
+last_ts TEXT,
+updated_at TEXT,
+PRIMARY KEY(vessel_id,src,sig)
+);
+'@; " ^
+"$t = $t -replace '(CREATE TABLE IF NOT EXISTS discovered_signals\\([\\s\\S]*?\\);\\s*CREATE TABLE IF NOT EXISTS telemetry\\([\\s\\S]*?\\);)', '$1`n'+$pgSchema; " ^
+"$t = $t -replace '(CREATE TABLE IF NOT EXISTS discovered_signals\$begin:math:text$[\\\\s\\\\S]*?\\$end:math:text$;\\s*CREATE TABLE IF NOT EXISTS telemetry\$begin:math:text$[\\\\s\\\\S]*?\\$end:math:text$;\\s*`\\);\\s*for \\(const t of SEED_TYPES\\)\\{)', '$1`n'+$sqliteSchema; " ^
+"$t = $t -replace 'export async function ingest\\([\\s\\S]*?\\n\\}\\n\\s*$', [IO.File]::ReadAllText('NUL'); " ^
+"$ingest = @'
+export async function getConfig(vessel:string, src:string, sig:string){
+if (USE_PG) return withPg(async(q)=> (await q.query(
+"SELECT * FROM sensor_config WHERE vessel_id=$1 AND src=$2 AND sig=$3",[vessel,src,sig])).rows[0]||null);
+return sqlite.prepare("SELECT * FROM sensor_config WHERE vessel_id=? AND src=? AND sig=?").get(vessel,src,sig) || null;
+}
+export async function upsertConfig(c:any){
+const now = USE_PG? 'NOW()' : "datetime('now')";
+const keys = ['vessel_id','src','sig','enabled','sample_rate_hz','gain','offset','deadband','min_valid','max_valid','warn_lo','warn_hi','crit_lo','crit_hi','hysteresis','ema_alpha','target_unit','notes'];
+const o:any = {}; for (const k of keys) if (k in c) o[k]=c[k];
+if (USE_PG){
+return withPg(async(q)=>{
+await q.query(`
+INSERT INTO sensor_config(vessel_id,src,sig,enabled,sample_rate_hz,gain,offset,deadband,min_valid,max_valid,warn_lo,warn_hi,crit_lo,crit_hi,hysteresis,ema_alpha,target_unit,notes,updated_at)
+VALUES($1,$2,$3,COALESCE($4,1),$5,COALESCE($6,1.0),COALESCE($7,0.0),COALESCE($8,0.0),$9,$10,$11,$12,$13,$14,COALESCE($15,0.0),$16,$17,$18,NOW())
+ON CONFLICT (vessel_id,src,sig) DO UPDATE SET
+enabled=COALESCE(EXCLUDED.enabled, sensor_config.enabled),
+sample_rate_hz=EXCLUDED.sample_rate_hz,
+gain=COALESCE(EXCLUDED.gain, sensor_config.gain),
+offset=COALESCE(EXCLUDED.offset, sensor_config.offset),
+deadband=COALESCE(EXCLUDED.deadband, sensor_config.deadband),
+min_valid=EXCLUDED.min_valid, max_valid=EXCLUDED.max_valid,
+warn_lo=EXCLUDED.warn_lo, warn_hi=EXCLUDED.warn_hi,
+crit_lo=EXCLUDED.crit_lo, crit_hi=EXCLUDED.crit_hi,
+hysteresis=COALESCE(EXCLUDED.hysteresis, sensor_config.hysteresis),
+ema_alpha=EXCLUDED.ema_alpha,
+target_unit=EXCLUDED.target_unit,
+notes=EXCLUDED.notes,
+updated_at=NOW()
+`, [o.vessel_id,o.src,o.sig,o.enabled,o.sample_rate_hz,o.gain,o.offset,o.deadband,o.min_valid,o.max_valid,o.warn_lo,o.warn_hi,o.crit_lo,o.crit_hi,o.hysteresis,o.ema_alpha,o.target_unit,o.notes]);
+});
+}
+sqlite.prepare(`
+INSERT OR REPLACE INTO sensor_config(vessel_id,src,sig,enabled,sample_rate_hz,gain,offset,deadband,min_valid,max_valid,warn_lo,warn_hi,crit_lo,crit_hi,hysteresis,ema_alpha,target_unit,notes,updated_at)
+VALUES(@vessel_id,@src,@sig,COALESCE(@enabled,1),@sample_rate_hz,COALESCE(@gain,1.0),COALESCE(@offset,0.0),COALESCE(@deadband,0.0),@min_valid,@max_valid,@warn_lo,@warn_hi,@crit_lo,@crit_hi,COALESCE(@hysteresis,0.0),@ema_alpha,@target_unit,@notes,datetime('now'))
+`).run(o);
+}
+export async function patchConfig(pk:{vessel_id:string;src:string;sig:string}, fields:any){
+const keys = ['enabled','sample_rate_hz','gain','offset','deadband','min_valid','max_valid','warn_lo','warn_hi','crit_lo','crit_hi','hysteresis','ema_alpha','target_unit','notes'];
+const setKeys = keys.filter(k=> k in fields);
+if (!setKeys.length) return;
+if (USE_PG){
+return withPg(async(q)=>{
+const parts = setKeys.map((k,i)=> `${k}=$${i+4}`);
+await q.query(`UPDATE sensor_config SET ${parts.join(', ')}, updated_at=NOW() WHERE vessel_id=$1 AND src=$2 AND sig=$3`, [pk.vessel_id,pk.src,pk.sig, ...setKeys.map(k=>fields[k])]);
+});
+}
+const parts = setKeys.map(k=> `${k}=@${k}`);
+sqlite.prepare(`UPDATE sensor_config SET ${parts.join(', ')}, updated_at=datetime('now') WHERE vessel_id=@vessel_id AND src=@src AND sig=@sig`)
+.run({...pk, ...Object.fromEntries(setKeys.map(k=>[k,fields[k]]))});
+}
+export async function deleteConfig(vessel_id:string, src:string, sig:string){
+if (USE_PG) return withPg(async(q)=> { await q.query('DELETE FROM sensor_config WHERE vessel_id=$1 AND src=$2 AND sig=$3',[vessel_id,src,sig]); });
+sqlite.prepare('DELETE FROM sensor_config WHERE vessel_id=? AND src=? AND sig=?').run(vessel_id,src,sig);
+}
+export async function listConfig(filter?:{vessel_id?:string;src?:string;sig?:string}){
+const where:string[]=[]; const vals:any[]=[];
+if (filter?.vessel_id){ where.push(USE_PG? 'vessel_id=$1':'vessel_id=?'); vals.push(filter.vessel_id); }
+if (filter?.src){ where.push((USE_PG? 'src=$':'src=?') + (USE_PG?(vals.length+1):'')); vals.push(filter.src); }
+if (filter?.sig){ where.push((USE_PG? 'sig=$':'sig=?') + (USE_PG?(vals.length+1):'')); vals.push(filter.sig); }
+const base='SELECT * FROM sensor_config'; const sql = where.length? base+' WHERE '+where.join(' AND ') : base;
+if (USE_PG) return withPg(async(q)=> (await q.query(sql, vals)).rows );
+return sqlite.prepare(sql.replaceAll('$1','?').replaceAll('$2','?').replaceAll('$3','?')).all(...vals);
+}
+
+// Helper: apply config rules to a value with state/hysteresis/ema
+function applyConfig(val:number|null|undefined, unit:string|null|undefined, cfg:any, state:any){
+if (val==null) return { keep:false, value:val, flags:[] as string[], ema: state?.ema ?? null };
+let x = Number(val);
+const flags:string[]=[];
+if (cfg?.enabled===0) return { keep:false, value:x, flags:['disabled'], ema: state?.ema ?? null };
+// scale
+const gain = (cfg?.gain ?? 1.0) * 1.0;
+const offset = (cfg?.offset ?? 0.0) * 1.0;
+x = x * gain + offset;
+// valid range
+if (cfg?.min_valid!=null && x < cfg.min_valid){ flags.push('below_min'); }
+if (cfg?.max_valid!=null && x > cfg.max_valid){ flags.push('above_max'); }
+// deadband
+const last = state?.last_value;
+if (cfg?.deadband!=null && last!=null){
+if (Math.abs(x - last) < cfg.deadband) return { keep:false, value:last, flags:['deadband'], ema: state?.ema ?? null };
+}
+// thresholds with hysteresis
+const H = cfg?.hysteresis ?? 0.0;
+const pushIf = (cond:boolean, name:string)=>{ if(cond && !flags.includes(name)) flags.push(name); };
+if (cfg?.crit_hi!=null) pushIf(x >= cfg.crit_hi, 'crit_hi');
+if (cfg?.crit_lo!=null) pushIf(x <= cfg.crit_lo, 'crit_lo');
+if (cfg?.warn_hi!=null && (cfg.crit_hi==null || x < cfg.crit_hi - H)) pushIf(x >= cfg.warn_hi, 'warn_hi');
+if (cfg?.warn_lo!=null && (cfg.crit_lo==null || x > cfg.crit_lo + H)) pushIf(x <= cfg.warn_lo, 'warn_lo');
+// EMA
+let ema = state?.ema ?? null;
+const alpha = cfg?.ema_alpha!=null ? Number(cfg.ema_alpha) : null;
+if (alpha && alpha>0 && alpha<1){
+ema = (ema==null) ? x : (alpha * x + (1 - alpha) * ema);
+}
+return { keep:true, value:x, flags, ema };
+}
+
+export async function ingest(payload:Payload){
+const vessel = norm(payload.vessel);
+if(!vessel) throw new Error('vessel required');
+if(!payload?.signals?.length) return {stored:0, discovered:0, unit_mismatch:0, flagged:0};
+if (USE_PG){
+await withPg(async(q)=>{ const v=await q.query('SELECT id FROM vessel WHERE id=$1',[vessel]); if(!v.rowCount) await q.query('INSERT INTO vessel(id,name) VALUES($1,$1)',[vessel]); });
+} else {
+const v = sqlite.prepare('SELECT id FROM vessel WHERE id=?').get(vessel); if(!v) sqlite.prepare('INSERT INTO vessel(id,name,created_at) VALUES(?,?,datetime(''now''))').run(vessel,vessel);
+}
+let stored=0, discovered=0, unit_mismatch=0, flagged=0;
+for (const s of payload.signals){
+const src=norm(s.src), sig=norm(s.sig); const unit = s.unit? String(s.unit): null;
+const tsISO = new Date(payload.ts*1000).toISOString();
+// mapping?
+let m:any;
+if (USE_PG) m = (await withPg(async(q)=> (await q.query('SELECT * FROM sensor_mapping WHERE vessel_id=$1 AND src=$2 AND sig=$3',[vessel,src,sig])).rows[0] ));
+else m = sqlite.prepare('SELECT * FROM sensor_mapping WHERE vessel_id=? AND src=? AND sig=?').get(vessel,src,sig);
+if (!m){
+// discovery
+if (USE_PG){
+await withPg(async(q)=>{ const ex = await q.query('SELECT samples FROM discovered_signals WHERE vessel_id=$1 AND src=$2 AND sig=$3',[vessel,src,sig]); if(ex.rowCount){ await q.query('UPDATE discovered_signals SET last_seen=NOW(), samples=samples+1, unit=COALESCE($4,unit) WHERE vessel_id=$1 AND src=$2 AND sig=$3',[vessel,src,sig,unit]); } else { await q.query('INSERT INTO discovered_signals(vessel_id,src,sig,unit,first_seen,last_seen,samples) VALUES($1,$2,$3,$4,NOW(),NOW(),1)',[vessel,src,sig,unit]); }});
+} else {
+const ex = sqlite.prepare('SELECT samples FROM discovered_signals WHERE vessel_id=? AND src=? AND sig=?').get(vessel,src,sig);
+if (ex) sqlite.prepare('UPDATE discovered_signals SET last_seen=datetime(''now''), samples=samples+1, unit=COALESCE(?,unit) WHERE vessel_id=? AND src=? AND sig=?').run(unit, vessel,src,sig);
+else sqlite.prepare('INSERT INTO discovered_signals(vessel_id,src,sig,unit,first_seen,last_seen,samples) VALUES(?,?,?,?,datetime(''now''),datetime(''now''),1)').run(vessel,src,sig,unit);
+}
+discovered++; // still store raw
+if (USE_PG) await withPg(async(q)=>{ await q.query('INSERT INTO telemetry(vessel_id,ts,src,sig,value,unit) VALUES($1,$2,$3,$4,$5,$6)',[vessel,tsISO,src,sig,s.value??null,unit]); });
+else sqlite.prepare('INSERT INTO telemetry(vessel_id,ts,src,sig,value,unit) VALUES(?,?,?,?,?,?)').run(vessel,tsISO,src,sig,s.value??null,unit);
+stored++;
+continue;
+}
+// unit check per mapped type
+let t:any;
+if (USE_PG) t = (await withPg(async(q)=> (await q.query('SELECT * FROM sensor_types WHERE id=$1',[m.sensor_type_id])).rows[0] ));
+else t = sqlite.prepare('SELECT * FROM sensor_types WHERE id=?').get(m.sensor_type_id);
+const allowed = parseUnits(t?.units)||[];
+if (unit && allowed.length && !allowed.map((u:string)=>u.toLowerCase()).includes(unit.toLowerCase())) unit_mismatch++;
+// fetch config + state
+const cfg = await getConfig(vessel,src,sig);
+let state:any;
+if (USE_PG) state = await withPg(async(q)=> (await q.query('SELECT * FROM sensor_state WHERE vessel_id=$1 AND src=$2 AND sig=$3',[vessel,src,sig])).rows[0]||null );
+else state = sqlite.prepare('SELECT * FROM sensor_state WHERE vessel_id=? AND src=? AND sig=?').get(vessel,src,sig) || null;
+// apply config
+const out = applyConfig(s.value, unit, cfg, state);
+if (out.flags.length) flagged += 1;
+if (!out.keep){
+// update state with timestamp, do not write telemetry duplicate
+if (USE_PG) await withPg(async(q)=>{ await q.query(`
+INSERT INTO sensor_state(vessel_id,src,sig,last_value,ema,last_ts,updated_at)
+VALUES($1,$2,$3,$4,$5,$6,NOW())
+ON CONFLICT (vessel_id,src,sig) DO UPDATE SET last_value=EXCLUDED.last_value, ema=EXCLUDED.ema, last_ts=EXCLUDED.last_ts, updated_at=NOW()
+`,[vessel,src,sig, state?.last_value ?? out.value, out.ema, tsISO]); });
+else sqlite.prepare(`
+INSERT OR REPLACE INTO sensor_state(vessel_id,src,sig,last_value,ema,last_ts,updated_at)
+VALUES(?,?,?,?,?,?,datetime('now'))
+`).run(vessel,src,sig, state?.last_value ?? out.value, out.ema, tsISO);
+continue;
+}
+// write telemetry (post-transform value)
+if (USE_PG) await withPg(async(q)=>{ await q.query('INSERT INTO telemetry(vessel_id,ts,src,sig,value,unit) VALUES($1,$2,$3,$4,$5,$6)',[vessel,tsISO,src,sig,out.value,unit]); });
+else sqlite.prepare('INSERT INTO telemetry(vessel_id,ts,src,sig,value,unit) VALUES(?,?,?,?,?,?)').run(vessel,tsISO,src,sig,out.value,unit);
+stored++;
+// upsert state
+if (USE_PG) await withPg(async(q)=>{ await q.query(`
+INSERT INTO sensor_state(vessel_id,src,sig,last_value,ema,last_ts,updated_at)
+VALUES($1,$2,$3,$4,$5,$6,NOW())
+ON CONFLICT (vessel_id,src,sig) DO UPDATE SET last_value=EXCLUDED.last_value, ema=EXCLUDED.ema, last_ts=EXCLUDED.last_ts, updated_at=NOW()
+`,[vessel,src,sig,out.value,out.ema,tsISO]); });
+else sqlite.prepare(`
+INSERT OR REPLACE INTO sensor_state(vessel_id,src,sig,last_value,ema,last_ts,updated_at)
+VALUES(?,?,?,?,?,?,datetime('now'))
+`).run(vessel,src,sig,out.value,out.ema,tsISO);
+}
+return {stored, discovered, unit_mismatch, flagged};
+}
+'@; " ^
+"$t = $t + \"`n\" + $ingest; " ^
+"Set-Content -Encoding UTF8 $f $t; Write-Host '[OK] backend-node/src/dal.ts updated with sensor config + ingest processing.'"
+
+REM -----------------------------
+REM 2) BACKEND: index.ts – routes for sensor config
+REM -----------------------------
+powershell -NoProfile -ExecutionPolicy Bypass ^
+"$f='backend-node/src/index.ts'; $t=Get-Content -Raw $f; " ^
+"$t = $t -replace 'from \\'\\.\\/dal\\.js\\'\\);', 'from \\'./dal.js\\');'; " ^
+"$t = $t -replace '\\}\\) from \\'\\.\\/dal\\.js\\'\\);', '} from \\'./dal.js\\');'; " ^
+"$t = $t -replace '(sensorTypesList, sensorTypeAdd,\\s*mappingsList, mappingUpsert, mappingDelete,\\s*discoveredList, ingest)', '$1, getConfig, upsertConfig, patchConfig, deleteConfig, listConfig'; " ^
+"$routes = @'
+/* ---- SENSOR CONFIG ---- */
+app.get('/api/sensors/config', async (req,res)=>{
+const filter:any = {};
+if (req.query.vessel_id) filter.vessel_id = String(req.query.vessel_id);
+if (req.query.src) filter.src = String(req.query.src);
+if (req.query.sig) filter.sig = String(req.query.sig);
+ok(res, await listConfig(filter));
+});
+app.post('/api/sensors/config', async (req,res)=>{
+const b=req.body||{};
+if(!b.vessel_id||!b.src||!b.sig) return res.status(400).json({ok:false,error:'vessel_id,src,sig

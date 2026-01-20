@@ -1,0 +1,241 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==========================================================
+REM ARUS Node.js/TypeScript Backend (HoR) - one-shot setup
+REM Creates backend-node/ with Express+TS, Zod, PDF, Metrics, Idempotency
+REM ==========================================================
+
+set APP=backend-node
+if exist "%APP%" (
+echo [INFO] %APP% already exists. Files may be overwritten.
+) else (
+mkdir "%APP%"
+)
+
+cd "%APP%"
+
+echo {^
+"name": "arus-node-backend",^
+"version": "1.0.0",^
+"type": "module",^
+"private": true,^
+"scripts": {^
+"dev": "tsx watch src/index.ts",^
+"build": "tsc -p tsconfig.json",^
+"start": "node dist/index.js"^
+},^
+"dependencies": {^
+"csv-parse": "^5.5.6",^
+"dayjs": "^1.11.13",^
+"express": "^4.19.2",^
+"pdfkit": "^0.15.0",^
+"pino-http": "^9.0.0",^
+"prom-client": "^15.1.3",^
+"zod": "^3.23.8",^
+"better-sqlite3": "^9.4.0"^
+},^
+"devDependencies": {^
+"@types/express": "^4.17.21",^
+"@types/node": "^22.5.4",^
+"tsx": "^4.19.0",^
+"typescript": "^5.4.5"^
+}^
+} > package.json
+
+echo {^
+"compilerOptions": {^
+"target": "ES2022",^
+"module": "ES2022",^
+"moduleResolution": "Bundler",^
+"outDir": "dist",^
+"rootDir": "src",^
+"strict": true,^
+"esModuleInterop": true,^
+"skipLibCheck": true^
+},^
+"include": ["src"]^
+} > tsconfig.json
+
+mkdir src
+mkdir -p data bundles
+
+REM ----------------------------- src/db.ts
+> src\db.ts (
+echo import Database from 'better-sqlite3';
+echo import fs from 'node:fs';
+echo const DB_PATH = process.env.SQLITE_PATH ?? 'data/arus.sqlite';
+echo fs.mkdirSync('data', { recursive: true });
+echo export const db = new Database(DB_PATH);
+echo db.pragma('journal_mode = WAL');
+echo // Schema
+echo db.exec(^
+echo `CREATE TABLE IF NOT EXISTS crew_rest_sheet(^
+echo id TEXT PRIMARY KEY,^
+echo vessel_id TEXT, crew_id TEXT, crew_name TEXT, rank TEXT,^
+echo month TEXT, year INTEGER, created_at TEXT^
+echo );^
+echo CREATE TABLE IF NOT EXISTS crew_rest_day(^
+echo sheet_id TEXT, date TEXT,^
+echo h0 INTEGER,h1 INTEGER,h2 INTEGER,h3 INTEGER,h4 INTEGER,h5 INTEGER,h6 INTEGER,h7 INTEGER,h8 INTEGER,h9 INTEGER,h10 INTEGER,h11 INTEGER,^
+echo h12 INTEGER,h13 INTEGER,h14 INTEGER,h15 INTEGER,h16 INTEGER,h17 INTEGER,h18 INTEGER,h19 INTEGER,h20 INTEGER,h21 INTEGER,h22 INTEGER,h23 INTEGER,^
+echo PRIMARY KEY(sheet_id,date)^
+echo );^
+echo CREATE INDEX IF NOT EXISTS idx_rest_day_date ON crew_rest_day(date);^
+echo CREATE TABLE IF NOT EXISTS idempotency(^
+echo key TEXT PRIMARY KEY, endpoint TEXT, ts TEXT^
+echo );`^
+echo );
+echo export function tx^<T^>(fn:()=>T):T { const t=db.transaction(fn); return t(); }
+)
+
+REM ----------------------------- src/utc.ts
+> src\utc.ts (
+echo import dayjs from 'dayjs';
+echo import utc from 'dayjs/plugin/utc.js';
+echo dayjs.extend(utc);
+echo export const nowISO = () => dayjs.utc().toISOString();
+echo export const toISODate = (d: string) => dayjs.utc(d).format('YYYY-MM-DD');
+echo export const ymd = (y:number,m:number,d:number)=> dayjs.utc().year(y).month(m).date(d).startOf('day').toISOString();
+)
+
+REM ----------------------------- src/hor.ts (rules + PDF)
+> src\hor.ts (
+echo import { PDFDocumentProxy } from 'pdfjs-dist';
+echo import PDFDocument from 'pdfkit';
+echo import fs from 'node:fs';
+echo export type DayRow = { date: string } ^& { [k: `h${'{'}number{'}'}`]: number };
+echo const MIN24 = 10; const MIN7D = 77;
+echo function chunks(r: DayRow){ const seg:number[][]=[]; let cur=-1; for(let h=0;h<24;h++){ const v=r[\`h${'{'}h{'}'}\`]??0; if(v===1&&cur==-1)cur=h; if((v===0||h===23)&&cur!=-1){seg.push([cur,(v===0)?h:24]);cur=-1;} } return seg;}
+echo function splitOK(r: DayRow){ const c=chunks(r); return c.length<=2 && c.some(([a,b])=> b-a>=6); }
+echo function minRest24Around(idx:number, rows:DayRow[]){ const flat:number[]=[]; rows.forEach(r=>{ for(let h=0;h<24;h++) flat.push(r[\`h${'{'}h{'}'}\`]??0);}); const base=idx*24; let m=999; for(let k=1;k<=24;k++){ const s=Math.max(0,base+k-24), e=base+k; let v=0; for(let i=s;i<e;i++) v+=flat[i]??0; if(v<m) m=v; } return m; }
+echo export function checkMonth(rows: DayRow[]){ const days = rows.map((r,i)=>{ const min24=minRest24Around(i,rows); const dayOK = min24>=MIN24 && splitOK(r); let rest=0; for(let h=0;h<24;h++) rest+=r[\`h${'{'}h{'}'}\`]??0; return {date:r.date, rest_total:rest, min_rest_24:min24, split_ok:splitOK(r), day_ok:dayOK};}); const rolling:any[]=[]; for(let i=0;i<rows.length;i++){ let tot=0; for(let j=Math.max(0,i-6); j<=i; j++){ for(let h=0;h<24;h++) tot+= rows[j][\`h${'{'}h{'}'}\`]??0; } rolling.push({end_date: rows[i].date, rest_7d: tot, ok: tot>=MIN7D}); } const ok = days.every(d=>d.day_ok) && rolling.every(x=>x.ok); return { ok, days, rolling7d: rolling }; }
+echo export function renderPdf(sheet:any, rows:DayRow[], outPath:string){ const doc = new PDFDocument({size:'A4', margin:36}); const stream=fs.createWriteStream(outPath); doc.pipe(stream); doc.fontSize(14).text('RECORD OF HOURS OF REST (STCW)', {align:'left'}); doc.moveDown(0.5).fontSize(10).text(\`Vessel: ${'${'}sheet.vessel_id{'}'} Crew: ${'${'}sheet.crew_name{'}'} Rank: ${'${'}sheet.rank{'}'}\`); doc.text(\`Month: ${'${'}sheet.month{'}'} ${'${'}sheet.year{'}'}\`); const left=40, top=120, cw=18, ch=12; doc.fontSize(8); for(let h=0;h<24;h++){ doc.text(String(h).padStart(2,'0')+'00', left+(h+1)*cw+2, top-12); } let y=top; rows.forEach((r)=>{ doc.text(r.date.slice(-2), left-20, y+2); for(let h=0;h<24;h++){ const x=left+(h+1)*cw; doc.rect(x,y,cw,ch).stroke(); if((r as any)[\`h${'{'}h{'}'}\`]==1){ doc.moveTo(x+2,y+2).lineTo(x+cw-2,y+ch-2).stroke(); doc.moveTo(x+2,y+ch-2).lineTo(x+cw-2,y+2).stroke(); } } y+=ch; if(y>760){ doc.addPage(); y=top; } }); doc.end(); return outPath; }
+)
+
+REM ----------------------------- src/schemas.ts
+> src\schemas.ts (
+echo import { z } from 'zod';
+echo export const UTCDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+echo export const HoRDay = z.object({ date: UTCDate, })
+echo .and(z.object(Object.fromEntries(Array.from({length:24},(_,i)=>[\`h${'%'}\${i}\`, z.number().int().min(0).max(1)] as const))));
+echo export const HoRSheetMeta = z.object({ vessel_id: z.string().min(1), crew_id: z.string().min(1), crew_name: z.string().min(1), rank: z.string().min(1), month: z.string().min(3), year: z.number().int() });
+echo export const HoRImport = z.object({ sheet: HoRSheetMeta, rows: z.array(HoRDay).max(62) });
+)
+
+REM ----------------------------- src/index.ts (server)
+> src\index.ts (
+echo import express from 'express';
+echo import pino from 'pino-http';
+echo import { collectDefaultMetrics, register, Counter } from 'prom-client';
+echo import { db, tx } from './db.js';
+echo import { HoRImport, HoRDay } from './schemas.js';
+echo import { checkMonth, renderPdf } from './hor.js';
+echo import { parse } from 'csv-parse';
+echo import fs from 'node:fs';
+echo import path from 'node:path';
+echo import crypto from 'node:crypto';
+echo
+echo const app = express();
+echo app.use(express.json({limit:'1mb'}));
+echo app.use(pino());
+echo collectDefaultMetrics();
+echo const HOR_IMPORT_CNT = new Counter({ name:'arus_hor_import_total', help:'HoR rows imported' });
+echo
+echo function ok(res:express.Response, data:any){ res.json(data); }
+echo
+echo function ensureIdem(key:string, endpoint:string):boolean {
+echo if(!key) return true;
+echo const row = db.prepare('SELECT key FROM idempotency WHERE key=?').get(key);
+echo if(row) return false;
+echo db.prepare('INSERT INTO idempotency(key,endpoint,ts) VALUES(?,?,datetime(''now''))').run(key, endpoint);
+echo return true;
+echo }
+echo
+echo // health
+echo app.get('/healthz', (_req,res)=> ok(res,{ok:true}));
+echo // metrics
+echo app.get('/metrics', async (_req,res)=>{ res.set('Content-Type', register.contentType); res.end(await register.metrics()); });
+echo
+echo // --- HoR import (JSON or CSV)
+echo app.post('/api/crew/rest/import', async (req,res)=>{
+echo const idem = (req.header('Idempotency-Key')||'').trim();
+echo if(!ensureIdem(idem, '/api/crew/rest/import')) return ok(res,{ok:true, duplicate:true});
+echo let rows:any[]=[];
+echo if(typeof req.body==='object' && 'csv' in req.body){ // CSV path
+echo const txt = String((req.body as any).csv||'');
+echo await new Promise<void>((resolve,reject)=>{
+echo const parser = parse(txt, {columns:true, trim:true}); rows=[];
+echo parser.on('readable', ()=>{ let r; while(r=parser.read()) rows.push(r); });
+echo parser.on('end', ()=>resolve()); parser.on('error', reject);
+echo });
+echo rows = rows.map(r=>{ const o:any={date:r.date}; for(let i=0;i<24;i++) o['h'+i]=Number(r['h'+i]||0); return o; });
+echo } else {
+echo const parsed = HoRImport.safeParse(req.body);
+echo if(!parsed.success) return res.status(400).json({ok:false, error: parsed.error.flatten()});
+echo rows = parsed.data.rows;
+echo const sheet = parsed.data.sheet;
+echo const id = 'rest_'+crypto.randomUUID();
+echo tx(()=>{ db.prepare('INSERT OR REPLACE INTO crew_rest_sheet(id,vessel_id,crew_id,crew_name,rank,month,year,created_at) VALUES(?,?,?,?,?,?,?,datetime(''now''))').run(id, sheet.vessel_id, sheet.crew_id, sheet.crew_name, sheet.rank, sheet.month, sheet.year); rows.forEach(r=>{ const vals = [id, r.date, ...Array.from({length:24},(_,i)=> r['h'+i]??0)]; db.prepare('INSERT OR REPLACE INTO crew_rest_day(sheet_id,date,h0,h1,h2,h3,h4,h5,h6,h7,h8,h9,h10,h11,h12,h13,h14,h15,h16,h17,h18,h19,h20,h21,h22,h23) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(...vals); }); });
+echo HOR_IMPORT_CNT.inc(rows.length);
+echo return ok(res,{ok:true, sheet_id:id, rows: rows.length});
+echo }
+echo // CSV path requires sheet meta in body.sheet
+echo const meta = (req.body as any).sheet;
+echo if(!meta) return res.status(400).json({ok:false, error:'sheet meta required for CSV'});
+echo const id = 'rest_'+crypto.randomUUID();
+echo tx(()=>{ db.prepare('INSERT OR REPLACE INTO crew_rest_sheet(id,vessel_id,crew_id,crew_name,rank,month,year,created_at) VALUES(?,?,?,?,?,?,?,datetime(''now''))').run(id, meta.vessel_id, meta.crew_id, meta.crew_name, meta.rank, meta.month, meta.year); rows.forEach(r=>{ const vals = [id, r.date, ...Array.from({length:24},(_,i)=> Number(r['h'+i]||0))]; db.prepare('INSERT OR REPLACE INTO crew_rest_day(sheet_id,date,h0,h1,h2,h3,h4,h5,h6,h7,h8,h9,h10,h11,h12,h13,h14,h15,h16,h17,h18,h19,h20,h21,h22,h23) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(...vals); }); });
+echo HOR_IMPORT_CNT.inc(rows.length);
+echo return ok(res,{ok:true, sheet_id:id, rows: rows.length});
+echo });
+echo
+echo // --- HoR check (inline rows or stored month)
+echo app.post('/api/crew/rest/check', async (req,res)=>{
+echo if(req.body && req.body.rows) {
+echo const rows = (req.body.rows as any[]).map(r=>({date:r.date, ...Object.fromEntries(Array.from({length:24},(_,i)=>['h'+i, Number(r['h'+i]||0)]))}));
+echo return ok(res, checkMonth(rows));
+echo }
+echo const { crew_id, year, month } = req.body||{};
+echo if(!crew_id || !year || !month) return res.status(400).json({ok:false, error:'crew_id, year, month required'});
+echo const sheet = db.prepare('SELECT id FROM crew_rest_sheet WHERE crew_id=? AND year=? AND month=? ORDER BY created_at DESC LIMIT 1').get(crew_id, year, month);
+echo if(!sheet) return res.json({ok:false, error:'no sheet'});
+echo const rows = db.prepare('SELECT * FROM crew_rest_day WHERE sheet_id=? ORDER BY date').all(sheet.id);
+echo return ok(res, checkMonth(rows as any));
+echo });
+echo
+echo // --- PDF export
+echo app.get('/api/crew/rest/export_pdf', async (req,res)=>{
+echo const { crew_id, year, month } = req.query as any;
+echo if(!crew_id || !year || !month) return res.status(400).json({ok:false, error:'crew_id, year, month required'});
+echo const sheet = db.prepare('SELECT * FROM crew_rest_sheet WHERE crew_id=? AND year=? AND month=? ORDER BY created_at DESC LIMIT 1').get(crew_id, Number(year), String(month));
+echo if(!sheet) return res.json({ok:false, error:'no sheet'});
+echo const rows = db.prepare('SELECT * FROM crew_rest_day WHERE sheet_id=? ORDER BY date').all(sheet.id);
+echo fs.mkdirSync('bundles', {recursive:true});
+echo const out = path.join('bundles', \`hours_rest_\${crew_id}_\${year}_\${month}.pdf\`);
+echo renderPdf(sheet, rows as any, out);
+echo return ok(res, {ok:true, path: out});
+echo });
+echo
+echo const PORT = Number(process.env.PORT||'8001');
+echo app.listen(PORT, ()=>{ console.log('ARUS Node backend on :'+PORT); });
+)
+
+cd ..
+
+echo.
+echo ==========================================================
+echo [OK] Node.js/TypeScript backend created in backend-node/
+echo Run:
+echo cd backend-node
+echo npm install
+echo npm run dev
+echo ----------------------------------------------------------
+echo API: http://localhost:8001
+echo POST /api/crew/rest/import
+echo POST /api/crew/rest/check
+echo GET /api/crew/rest/export_pdf
+echo GET /metrics
+echo ----------------------------------------------------------
+echo Point your React UI to this backend by setting:
+echo VITE_API_URL=http://localhost:8001
+echo ==========================================================
+endlocal

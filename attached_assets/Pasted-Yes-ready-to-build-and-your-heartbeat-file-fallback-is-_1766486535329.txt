@@ -1,0 +1,454 @@
+Yes — ready to build, and your heartbeat-file fallback is a smart addition (it gives you a “dead simple” liveness signal even if gRPC or pipes get weird).
+
+Below is everything you need to start right now: skeleton + proto + Node client + SQLite write-through + heartbeat.
+
+⸻
+
+1) C# Windows Service skeleton (Worker + gRPC + SQLite + heartbeat)
+
+Create the project
+
+dotnet new worker -n Arus.TelemetryAgent
+cd Arus.TelemetryAgent
+dotnet add package Grpc.AspNetCore
+dotnet add package Grpc.Tools
+dotnet add package Microsoft.Data.Sqlite
+dotnet add package Microsoft.Extensions.Hosting.WindowsServices
+
+Folder layout
+
+Arus.TelemetryAgent/
+  Protos/telemetry_agent.proto
+  Services/TelemetryAgentGrpcService.cs
+  Storage/SqliteFrameWriter.cs
+  Worker.cs
+  Program.cs
+
+
+⸻
+
+Protos/telemetry_agent.proto
+
+syntax = "proto3";
+package arus.telemetry;
+
+option csharp_namespace = "Arus.Telemetry.Proto";
+
+message Empty {}
+
+message AgentStatus {
+  string serviceVersion = 1;
+  string status = 2;            // "running", "degraded"
+  int64 unixTimeMs = 3;
+  int64 framesWritten = 4;
+  int64 lastFrameUnixTimeMs = 5;
+}
+
+message Ack { bool ok = 1; string message = 2; }
+
+message SourceId { string id = 1; }
+
+message SourceConfig {
+  string id = 1;                 // "can0", "serial1"
+  string type = 2;               // "CAN_J1939", "SERIAL", etc.
+  string connectionString = 3;   // e.g. "COM3:115200" or adapter info
+}
+
+message IngestStats {
+  int64 unixTimeMs = 1;
+  int64 framesWritten = 2;
+  int64 queueDepth = 3;
+  int64 lastFrameUnixTimeMs = 4;
+}
+
+service TelemetryAgent {
+  rpc GetStatus(Empty) returns (AgentStatus);
+  rpc StartSource(SourceConfig) returns (Ack);
+  rpc StopSource(SourceId) returns (Ack);
+  rpc SubscribeStats(Empty) returns (stream IngestStats);
+}
+
+
+⸻
+
+Program.cs (Windows Service + gRPC)
+
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Arus.TelemetryAgent.Services;
+using Arus.TelemetryAgent.Storage;
+
+var builder = Host.CreateDefaultBuilder(args);
+
+builder.UseWindowsService(options =>
+{
+    options.ServiceName = "ARUS Telemetry Agent";
+});
+
+builder.ConfigureServices((ctx, services) =>
+{
+    // Config: set these via env vars or appsettings.json later
+    var dbPath = Environment.GetEnvironmentVariable("ARUS_DB_PATH")
+                 ?? @"C:\ARUS\data\arus.sqlite";
+    var heartbeatPath = Environment.GetEnvironmentVariable("ARUS_HEARTBEAT_PATH")
+                        ?? @"C:\ARUS\data\agent-heartbeat.json";
+
+    services.AddSingleton(new AgentPaths(dbPath, heartbeatPath));
+    services.AddSingleton<SqliteFrameWriter>();
+    services.AddHostedService<Worker>();
+
+    services.AddGrpc();
+    services.AddSingleton<TelemetryAgentState>();
+});
+
+builder.ConfigureWebHostDefaults(webBuilder =>
+{
+    webBuilder.UseKestrel(k =>
+    {
+        // Localhost only. Change port if you prefer.
+        k.ListenLocalhost(50051, o => o.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http2);
+    });
+
+    webBuilder.Configure(app =>
+    {
+        app.MapGrpcService<TelemetryAgentGrpcService>();
+        app.MapGet("/", () => "ARUS Telemetry Agent running");
+    });
+});
+
+await builder.Build().RunAsync();
+
+public record AgentPaths(string DbPath, string HeartbeatPath);
+
+
+⸻
+
+Storage/SqliteFrameWriter.cs (WAL + append-only raw_frames)
+
+using Microsoft.Data.Sqlite;
+using System.Collections.Concurrent;
+
+namespace Arus.TelemetryAgent.Storage;
+
+public class SqliteFrameWriter
+{
+    private readonly string _dbPath;
+    private readonly ConcurrentQueue<RawFrame> _queue = new();
+    private long _framesWritten = 0;
+    private long _lastFrameUnixMs = 0;
+
+    public SqliteFrameWriter(AgentPaths paths)
+    {
+        _dbPath = paths.DbPath;
+        Directory.CreateDirectory(Path.GetDirectoryName(_dbPath)!);
+        EnsureSchema();
+    }
+
+    public long FramesWritten => Interlocked.Read(ref _framesWritten);
+    public long LastFrameUnixMs => Interlocked.Read(ref _lastFrameUnixMs);
+    public int QueueDepth => _queue.Count;
+
+    public void Enqueue(RawFrame f) => _queue.Enqueue(f);
+
+    public async Task FlushLoopAsync(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            await FlushBatchAsync(max: 500, ct);
+            await Task.Delay(50, ct);
+        }
+    }
+
+    private void EnsureSchema()
+    {
+        using var conn = new SqliteConnection($"Data Source={_dbPath}");
+        conn.Open();
+
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"
+PRAGMA journal_mode=WAL;
+PRAGMA synchronous=NORMAL;
+
+CREATE TABLE IF NOT EXISTS raw_frames (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  unix_time_ms INTEGER NOT NULL,
+  source TEXT NOT NULL,
+  protocol TEXT NOT NULL,
+  payload BLOB NOT NULL,
+  quality_flags INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_raw_frames_time ON raw_frames(unix_time_ms);
+";
+        cmd.ExecuteNonQuery();
+    }
+
+    private async Task FlushBatchAsync(int max, CancellationToken ct)
+    {
+        if (_queue.IsEmpty) return;
+
+        var batch = new List<RawFrame>(max);
+        while (batch.Count < max && _queue.TryDequeue(out var f)) batch.Add(f);
+        if (batch.Count == 0) return;
+
+        using var conn = new SqliteConnection($"Data Source={_dbPath}");
+        await conn.OpenAsync(ct);
+
+        using var tx = conn.BeginTransaction();
+        var cmd = conn.CreateCommand();
+        cmd.Transaction = tx;
+        cmd.CommandText = @"
+INSERT INTO raw_frames(unix_time_ms, source, protocol, payload, quality_flags)
+VALUES ($t, $s, $p, $b, $q);";
+
+        var pT = cmd.CreateParameter(); pT.ParameterName = "$t"; cmd.Parameters.Add(pT);
+        var pS = cmd.CreateParameter(); pS.ParameterName = "$s"; cmd.Parameters.Add(pS);
+        var pP = cmd.CreateParameter(); pP.ParameterName = "$p"; cmd.Parameters.Add(pP);
+        var pB = cmd.CreateParameter(); pB.ParameterName = "$b"; cmd.Parameters.Add(pB);
+        var pQ = cmd.CreateParameter(); pQ.ParameterName = "$q"; cmd.Parameters.Add(pQ);
+
+        foreach (var f in batch)
+        {
+            pT.Value = f.UnixTimeMs;
+            pS.Value = f.Source;
+            pP.Value = f.Protocol;
+            pB.Value = f.Payload;
+            pQ.Value = f.QualityFlags;
+            await cmd.ExecuteNonQueryAsync(ct);
+
+            Interlocked.Exchange(ref _lastFrameUnixMs, f.UnixTimeMs);
+        }
+
+        tx.Commit();
+        Interlocked.Add(ref _framesWritten, batch.Count);
+    }
+}
+
+public record RawFrame(long UnixTimeMs, string Source, string Protocol, byte[] Payload, int QualityFlags = 0);
+
+
+⸻
+
+Worker.cs (heartbeat + stub “ingest loop”)
+
+using System.Text.Json;
+using Arus.TelemetryAgent.Storage;
+
+namespace Arus.TelemetryAgent;
+
+public class Worker : BackgroundService
+{
+    private readonly SqliteFrameWriter _writer;
+    private readonly AgentPaths _paths;
+
+    public Worker(SqliteFrameWriter writer, AgentPaths paths)
+    {
+        _writer = writer;
+        _paths = paths;
+        Directory.CreateDirectory(Path.GetDirectoryName(_paths.HeartbeatPath)!);
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        // Start writer flush loop
+        _ = _writer.FlushLoopAsync(stoppingToken);
+
+        // Stub ingest loop (replace with real CAN/serial plugins)
+        _ = Task.Run(async () =>
+        {
+            var rand = new Random();
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                var payload = new byte[16];
+                rand.NextBytes(payload);
+
+                _writer.Enqueue(new RawFrame(now, "sim0", "SIM", payload, 0));
+                await Task.Delay(100, stoppingToken);
+            }
+        }, stoppingToken);
+
+        // Heartbeat loop
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            var hb = new
+            {
+                unixTimeMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                framesWritten = _writer.FramesWritten,
+                lastFrameUnixTimeMs = _writer.LastFrameUnixMs,
+                queueDepth = _writer.QueueDepth,
+                serviceVersion = "0.1.0"
+            };
+
+            var tmp = _paths.HeartbeatPath + ".tmp";
+            await File.WriteAllTextAsync(tmp, JsonSerializer.Serialize(hb), stoppingToken);
+            File.Move(tmp, _paths.HeartbeatPath, true);
+
+            await Task.Delay(1000, stoppingToken);
+        }
+    }
+}
+
+
+⸻
+
+Services/TelemetryAgentGrpcService.cs
+
+using Grpc.Core;
+using Arus.Telemetry.Proto;
+using Arus.TelemetryAgent.Storage;
+
+namespace Arus.TelemetryAgent.Services;
+
+public class TelemetryAgentState
+{
+    // Later: track running sources, configs, errors, etc.
+}
+
+public class TelemetryAgentGrpcService : TelemetryAgent.TelemetryAgentBase
+{
+    private readonly SqliteFrameWriter _writer;
+
+    public TelemetryAgentGrpcService(SqliteFrameWriter writer)
+    {
+        _writer = writer;
+    }
+
+    public override Task<AgentStatus> GetStatus(Empty request, ServerCallContext context)
+    {
+        return Task.FromResult(new AgentStatus
+        {
+            ServiceVersion = "0.1.0",
+            Status = "running",
+            UnixTimeMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            FramesWritten = _writer.FramesWritten,
+            LastFrameUnixTimeMs = _writer.LastFrameUnixMs
+        });
+    }
+
+    public override Task<Ack> StartSource(SourceConfig request, ServerCallContext context)
+    {
+        // TODO: start real plugin
+        return Task.FromResult(new Ack { Ok = true, Message = $"StartSource stub: {request.Id}" });
+    }
+
+    public override Task<Ack> StopSource(SourceId request, ServerCallContext context)
+    {
+        // TODO: stop real plugin
+        return Task.FromResult(new Ack { Ok = true, Message = $"StopSource stub: {request.Id}" });
+    }
+
+    public override async Task SubscribeStats(Empty request, IServerStreamWriter<IngestStats> responseStream, ServerCallContext context)
+    {
+        while (!context.CancellationToken.IsCancellationRequested)
+        {
+            await responseStream.WriteAsync(new IngestStats
+            {
+                UnixTimeMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                FramesWritten = _writer.FramesWritten,
+                QueueDepth = _writer.QueueDepth,
+                LastFrameUnixTimeMs = _writer.LastFrameUnixMs
+            });
+
+            await Task.Delay(1000, context.CancellationToken);
+        }
+    }
+}
+
+
+⸻
+
+2) Node gRPC client (Electron/Node side)
+
+Install deps
+
+npm i @grpc/grpc-js @grpc/proto-loader
+
+agentClient.ts
+
+import * as grpc from "@grpc/grpc-js";
+import * as protoLoader from "@grpc/proto-loader";
+import path from "path";
+
+const PROTO_PATH = path.join(__dirname, "../protos/telemetry_agent.proto");
+
+const pkgDef = protoLoader.loadSync(PROTO_PATH, {
+  keepCase: true,
+  longs: String,
+  enums: String,
+  defaults: true,
+  oneofs: true,
+});
+const proto: any = grpc.loadPackageDefinition(pkgDef);
+
+export function createAgentClient(address = "127.0.0.1:50051") {
+  const client = new proto.arus.telemetry.TelemetryAgent(
+    address,
+    grpc.credentials.createInsecure()
+  );
+  return client;
+}
+
+export async function getAgentStatus(client: any) {
+  return new Promise((resolve, reject) => {
+    client.GetStatus({}, (err: any, resp: any) => {
+      if (err) return reject(err);
+      resolve(resp);
+    });
+  });
+}
+
+export function subscribeStats(client: any, onData: (s: any) => void, onError?: (e:any)=>void) {
+  const stream = client.SubscribeStats({});
+  stream.on("data", onData);
+  stream.on("error", (e:any) => onError?.(e));
+  stream.on("end", () => {});
+  return stream;
+}
+
+
+⸻
+
+3) Heartbeat fallback on Node side (if gRPC fails)
+
+agentHeartbeat.ts
+
+import fs from "fs";
+import path from "path";
+
+export function readHeartbeat(heartbeatPath: string) {
+  try {
+    const raw = fs.readFileSync(heartbeatPath, "utf-8");
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+export function isAgentAlive(heartbeat: any, maxAgeMs = 5000) {
+  if (!heartbeat?.unixTimeMs) return false;
+  return Date.now() - Number(heartbeat.unixTimeMs) <= maxAgeMs;
+}
+
+Use logic:
+	•	Try gRPC GetStatus()
+	•	If it errors, read heartbeat file and show “Agent alive (fallback)” or “Agent down”.
+
+⸻
+
+4) The only “gotchas” to handle now
+	1.	SQLite concurrent access: you’re fine if you keep WAL mode (you already do). Don’t do long transactions in Node.
+	2.	DB path agreement: set one canonical path used by both Node and agent (ARUS_DB_PATH).
+	3.	Service permissions: ensure the service account can read/write that folder (C:\ARUS\data\).
+
+⸻
+
+Next: I can generate the real “Build prompt” for Replit (copy/paste)
+
+If you want it, I’ll output a single Replit prompt that instructs it to:
+	•	scaffold the C# project with these exact files,
+	•	add the proto build steps,
+	•	and wire a simple Electron “Agent Status” panel using your existing UI pattern.
+
+Tell me what you want the canonical paths to be (default ok? C:\ARUS\data\arus.sqlite and C:\ARUS\data\agent-heartbeat.json) and whether you prefer gRPC only or gRPC + Named Pipes later.

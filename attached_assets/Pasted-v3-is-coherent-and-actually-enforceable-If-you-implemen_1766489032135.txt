@@ -1,0 +1,78 @@
+v3 is coherent and actually enforceable. If you implement this as written, you’ll have a true single-path ingestion system with guardrails that stop regressions.
+
+Only three final polish notes (all minor, all worth it):
+
+1) startIngestion() should not block server boot
+
+Right now your pseudocode does await runSqliteBridge(config); which is an infinite loop. If you await it in server/index.ts, your server may never finish starting (routes/UI won’t come up).
+
+Do this instead:
+
+export function startIngestion() {
+  const config = loadBridgeConfig();
+  runSqliteBridge(config).catch(err => logger.error("Bridge crashed", { err }));
+}
+
+That keeps the bridge alive without blocking the HTTP server.
+
+2) Put pipeline stage counters in the right place
+
+arus_ingest_pipeline_stage_total{stage="agent_sqlite_written"} should be emitted by the agent, not Node.
+
+Two options:
+	•	Option A (simple): drop that stage in Node and keep:
+	•	bridge_frames_read
+	•	bridge_readings_decoded
+	•	postgres_batch_committed
+	•	Option B (full fidelity): agent exposes a /metrics endpoint or writes counters to heartbeat; Node then surfaces it.
+
+I’d start with Option A.
+
+3) Cursor-safe retention depends on ingest_cursor existing
+
+Your agent reads ingest_cursor.last_id. Make sure:
+	•	the bridge creates the cursor table on startup (it already does)
+	•	agent handles “table missing” gracefully (assume cursorLastId = max(id) or 0)
+
+Practical default:
+	•	if ingest_cursor missing, do no deletes (safest).
+
+⸻
+
+Front-end reflection (what changes in UI)
+
+Yes — your v3 already covers it perfectly:
+	•	Agent + Bridge panel
+	•	Freshness badges on dashboards
+	•	Verification link
+
+Nothing else needs front-end changes.
+
+⸻
+
+Copy/paste prompt to implement v3 exactly (final)
+
+If you want a single “do it now” prompt for Replit, use this:
+
+Implement ARUS Hybrid Telemetry Architecture v3 exactly as specified in the plan below.
+	•	Enforce single ingestion path: only TelemetryBatchWriter.writeBatch(readings, {source:"sqlite-bridge"}) may write telemetry in production.
+	•	Delete all legacy collectors listed.
+	•	Add server/ingestion/startIngestion.ts as the only ingestion startup location.
+	•	Ensure startIngestion() does not block server startup (run bridge loop in background).
+	•	Implement decoder registry with payload_format_version guard.
+	•	Implement SQLite bridge with exponential backoff, cursor safety, and pipeline metrics.
+	•	Implement /api/agent/*, /api/bridge/status, and /api/ingestion/verify.
+	•	Add tests including no-direct-inserts.test.ts and writer-guard.test.ts.
+	•	Add Agent Health + Bridge panel UI and data freshness indicator.
+	•	Add docs + run commands.
+
+Output:
+	1.	File tree of created/modified/deleted files
+	2.	Commands to run agent + node + verify
+	3.	Confirmation that no other runtime path writes telemetry.
+
+(Then paste your full v3 plan text beneath it.)
+
+⸻
+
+If you want, I can also rewrite your /api/ingestion/verify logic as a precise checklist (what SQL it runs in SQLite + Postgres, and what thresholds define pipelineHealthy).

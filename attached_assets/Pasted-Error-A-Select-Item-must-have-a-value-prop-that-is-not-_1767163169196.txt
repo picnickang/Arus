@@ -1,0 +1,13 @@
+Error: A <Select.Item /> must have a value prop that is not an empty string. This is because the Select value can be set to an empty string to clear the selection and show the placeholder.
+
+SelectItem@https://a6e84579-35ef-4894-b9f8-0ecfe1cc169f-00-lpjedzlilvcp.sisko.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js:873:22
+renderWithHooks@https://a6e84579-35ef-4894-b9f8-0ecfe1cc169f-00-lpjedzlilvcp.sisko.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js:11548:35
+updateForwardRef@https://a6e84579-35ef-4894-b9f8-0ecfe1cc169f-00-lpjedzlilvcp.sisko.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js:14325:43
+beginWork$1@https://a6e84579-35ef-4894-b9f8-0ecfe1cc169f-00-lpjedzlilvcp.sisko.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js:19753:31
+performUnitOfWork@https://a6e84579-35ef-4894-b9f8-0ecfe1cc169f-00-lpjedzlilvcp.sisko.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js:19198:31
+workLoopSync@https://a6e84579-35ef-4894-b9f8-0ecfe1cc169f-00-lpjedzlilvcp.sisko.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js:19137:30
+renderRootSync@https://a6e84579-35ef-4894-b9f8-0ecfe1cc169f-00-lpjedzlilvcp.sisko.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js:19116:27
+recoverFromConcurrentError@https://a6e84579-35ef-4894-b9f8-0ecfe1cc169f-00-lpjedzlilvcp.sisko.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js:18736:42
+performSyncWorkOnRoot@https://a6e84579-35ef-4894-b9f8-0ecfe1cc169f-00-lpjedzlilvcp.sisko.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js:18879:54
+flushSyncCallbacks@https://a6e84579-35ef-4894-b9f8-0ecfe1cc169f-00-lpjedzlilvcp.sisko.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js:9119:38
+@https://a6e84579-35ef-4894-b9f8-0ecfe1cc169f-00-lpjedzlilvcp.sisko.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js:18627:39

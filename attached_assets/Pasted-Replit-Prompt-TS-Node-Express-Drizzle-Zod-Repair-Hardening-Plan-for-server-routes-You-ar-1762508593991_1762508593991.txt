@@ -1,0 +1,198 @@
+Replit Prompt (TS/Node, Express, Drizzle, Zod) — Repair & Hardening Plan for server routes
+
+
+
+You are a senior TypeScript backend engineer. Audit and repair the API/router module contained in Coderepair.txt (this is the source of truth for the tasks below). 
+
+
+
+Objectives
+
+Make it compile cleanly (no TS errors), pass linting, and run locally.
+
+Eliminate logic/security pitfalls (multi-tenant isolation, HMAC validation, rate limiting, lazy imports, error handling).
+
+Unify org scoping and remove legacy helpers.
+
+Stabilize imports and module boundaries (no duplicate/conflicting imports).
+
+Add self-tests that cover the most important endpoints and security paths.
+
+Concrete Fixes (apply code changes)
+
+
+
+A. Imports & Module Hygiene
+
+Remove duplicate z import (import { z } from "zod"; appears twice). Keep a single import at top.
+
+Normalize imports for db: use one import style consistently (ES top-level import). Delete later await import("./db.js") occurrences; prefer import { db } from "./db";.
+
+Prefer ESM path endings consistently (no mixed .js and extensionless paths in the same file). Update local imports to extensionless ESM ("./file"), matching the project’s tsconfig/NodeNext setup.
+
+Drop unused imports (e.g., csv-writer, any leftovers not referenced).
+
+Ensure all “lazy” dynamic imports are truly necessary (native bindings or heavy init). Keep lazy imports for OR-Tools, big ML services, and schedulers; convert everything else to static imports for clarity.
+
+
+
+B. Org-scoping & Auth
+
+Delete the legacy getOrgIdFromRequest function in this file. Replace all of its usages with the auth middleware contract:
+
+Add import { requireOrgId, type AuthenticatedRequest } from "./middleware/auth";
+
+For every route that used getOrgIdFromRequest, require the middleware at the router/app level (already present globally in your app; if not, add app.use('/api', requireOrgId) before these routes) and access const orgId = (req as AuthenticatedRequest).user.orgId;
+
+Return 401 if req.user is missing; otherwise guarantee orgId presence.
+
+Ensure every tenant data access calls storage/db with orgId (verify all storage.* calls receive orgId).
+
+
+
+C. HMAC Validation Scope
+
+Keep HMAC middleware only on telemetry ingest/heartbeat style routes. Confirm body is signed against the raw body:
+
+If project middleware sets req.rawBody (JSON verify), compute HMAC over that; else keep JSON.stringify(req.body). Add a TODO and warning log when rawBody missing.
+
+Normalize header handling: accept X-HMAC-Signature: sha256=<hex> or bare hex; trim and lowercase before compare.
+
+On signature mismatch, return 401 with code INVALID_HMAC_SIGNATURE. Do not leak expected hash.
+
+
+
+D. Rate Limiting
+
+Keep ipKeyGenerator + short User-Agent suffix as key.
+
+Telemetry: 600/min OK. Bulk import: 10/5min. Critical ops: 20/5min. Ensure these middlewares are applied on the intended routes only.
+
+Add a small helper const withLimiter = (limiter) => (req,res,next)=>limiter(req,res,next) to keep handlers readable (optional).
+
+
+
+E. Validation & Types
+
+All query/path bodies must be Zod-validated:
+
+Where you currently parse req.query with plain strings (e.g., /api/telemetry/latest, /api/equipment/health), add small Zod schemas (limit, vesselId, equipmentId, ISO dates).
+
+Where you mutate/clean values like vesselId === '[object Object]', instead reject with 400 and an INVALID_QUERY code to surface client bugs.
+
+For bodies, reuse the existing insert*Schema / update*Schema from @shared/schema. When doing partial updates, use .partial().
+
+
+
+F. Observability & Errors
+
+Wrap every async handler with a shared asyncHandler(fn) to avoid unhandled promise rejections and rely on the central error middleware:
+
+const asyncHandler = <T extends express.RequestHandler>(fn: T): T =>
+  ( (req,res,next) => Promise.resolve(fn(req,res,next)).catch(next) ) as T;
+
+
+Replace inline try/catch blocks with asyncHandler where feasible. Keep explicit try/catch only when you want to return custom 4xx with Zod details.
+
+Ensure metrics update paths do not throw. Guard metrics calls with try/catch (log warn) to avoid breaking endpoints.
+
+
+
+G. WebSocket & Broadcast Safety
+
+wsServerInstance usage: null-check everywhere. Create tiny helpers broadcastAlertSafe(payload) to no-op if server is null.
+
+
+
+H. MQTT Reliable Sync Health Endpoint
+
+Keep it, but guard every call when module is unavailable (lazy import error → return 503 degraded rather than 500). Surface status, queueUtilization, reconnectAttempts.
+
+
+
+I. Cache/ETag
+
+ETag generation: keep base64-hash but compute using a stable hash (crypto.createHash('sha1').update(json).digest('hex')) to avoid long headers; set ETag: "W/<hash>".
+
+Respect If-None-Match strictly; return 304 without body.
+
+
+
+J. Inventory & Sensor Utilities
+
+For /api/equipment/:id/sensor-coverage and /setup-sensors:
+
+Confirm equipment.type existence before passing to analytics. Return 422 if missing type.
+
+
+
+K. Batch RUL
+
+Validate equipmentIds is non-empty string array (Zod). Return 400 with details if invalid.
+
+
+
+L. Security Headers & CORS
+
+Ensure all routes are behind Helmet (already at app level) and CORS only allows env-configured origins. Do not loosen here.
+
+Add Tests (Vitest + Supertest)
+
+
+
+Create server/__tests__/routes.spec.ts with at least the following:
+
+Multi-tenant guard: a protected route (e.g., GET /api/equipment) returns 401 when no auth/tenant, 200 when req.user.orgId set by a test helper.
+
+Zod validation: invalid query/body returns 400 with code and errors.
+
+HMAC: POST /api/edge/heartbeat without signature → 401; with valid signature → 200.
+
+Rate limits: burst on telemetry shows 429 after threshold.
+
+ETag: dashboard endpoint returns 200 with ETag then 304 on second request.
+
+MQTT health: when module is present returns 200; when mocked to throw, returns 503 degraded.
+
+
+
+Provide a minimal test boot that injects (req as any).user = { id: 't', orgId: 'default-org-id', email:'t@x' } and stubs storage calls.
+
+Commands to run
+
+Install and lint:
+
+pnpm i
+pnpm lint --fix
+pnpm typecheck
+
+
+Run tests:
+
+pnpm test
+
+
+Start dev server:
+
+pnpm dev
+
+
+Acceptance Criteria
+
+No duplicate/conflicting imports; consistent ESM import style.
+
+No usage of legacy getOrgIdFromRequest; all routes use requireOrgId + AuthenticatedRequest.
+
+All changed routes validate input with Zod and return structured 400 errors with code and errors.
+
+Telemetry/HMAC routes verify signatures correctly and reject invalid/missing signatures with 401.
+
+ETag/304 behavior verified by tests.
+
+MQTT health endpoint never crashes the route; returns 200 healthy or 503 degraded with reason.
+
+Overall pnpm typecheck and pnpm test pass.
+
+
+
+If anything in Coderepair.txt conflicts with these directions, prefer the directions above and refactor accordingly while keeping existing route shapes stable for the frontend.

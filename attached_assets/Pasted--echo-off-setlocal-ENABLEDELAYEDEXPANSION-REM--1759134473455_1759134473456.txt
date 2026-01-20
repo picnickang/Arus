@@ -1,0 +1,324 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==========================================================
+REM ARUS – Centralized Synchronization Layer (Node.js/TS)
+REM - Unified sync model + journal/outbox
+REM - Reconciliation across inventory/work orders/crew/vessels
+REM - Admin APIs + minimal UI card
+REM - No auth changes
+REM ==========================================================
+
+if not exist "backend-node\src" (
+echo [ERROR] backend-node/src not found. Run at repo root.
+exit /b 1
+)
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+REM ----------------------------------------------------------
+REM 0) Migrations: journal & outbox (PG + SQLite)
+REM ----------------------------------------------------------
+if not exist "backend-node\migrations" mkdir backend-node\migrations
+
+> backend-node\migrations\095_sync_layer.sql (
+echo -- Central journal for traceability
+echo CREATE TABLE IF NOT EXISTS sync_journal(
+echo id BIGSERIAL PRIMARY KEY,
+echo entity TEXT NOT NULL,
+echo entity_id TEXT NOT NULL,
+echo op TEXT NOT NULL, -- upsert|delete|reconcile
+echo ts TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+echo payload JSONB
+echo );
+echo CREATE INDEX IF NOT EXISTS idx_sync_journal_eid ON sync_journal(entity, entity_id, ts DESC);
+echo
+echo -- Outbox for future webhooks/bus
+echo CREATE TABLE IF NOT EXISTS sync_outbox(
+echo id BIGSERIAL PRIMARY KEY,
+echo event TEXT NOT NULL,
+echo ts TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+echo payload JSONB,
+echo delivered BOOLEAN NOT NULL DEFAULT FALSE
+echo );
+echo CREATE INDEX IF NOT EXISTS idx_sync_outbox_event ON sync_outbox(event, delivered);
+)
+
+> backend-node\migrations\sqlite_095_sync_layer.sql (
+echo CREATE TABLE IF NOT EXISTS sync_journal(
+echo id INTEGER PRIMARY KEY AUTOINCREMENT,
+echo entity TEXT NOT NULL,
+echo entity_id TEXT NOT NULL,
+echo op TEXT NOT NULL,
+echo ts TEXT NOT NULL DEFAULT (datetime('now')),
+echo payload TEXT
+echo );
+echo CREATE INDEX IF NOT EXISTS idx_sync_journal_eid ON sync_journal(entity, entity_id, ts);
+echo
+echo CREATE TABLE IF NOT EXISTS sync_outbox(
+echo id INTEGER PRIMARY KEY AUTOINCREMENT,
+echo event TEXT NOT NULL,
+echo ts TEXT NOT NULL DEFAULT (datetime('now')),
+echo payload TEXT,
+echo delivered INTEGER NOT NULL DEFAULT 0
+echo );
+echo CREATE INDEX IF NOT EXISTS idx_sync_outbox_event ON sync_outbox(event, delivered);
+)
+
+REM ----------------------------------------------------------
+REM 1) Sync model (TypeScript)
+REM ----------------------------------------------------------
+> backend-node\src\sync.model.ts (
+echo export type EntityKind =
+echo | "vessel" | "crew" | "sensor" | "part" | "stock"
+echo | "supplier" | "substitution" | "work_order" | "schedule" | "rest_log";
+echo
+echo export type Vessel = { id:string; name?:string; imo?:string };
+echo export type Crew = { id:string; name:string; rank?:string; vessel_id?:string; on_duty?:boolean };
+echo export type Sensor = { id:string; vessel_id:string; kind:string; unit?:string; calibration_date?:string; map?:Record<string,any> };
+echo export type Part = { id:string; part_number:string; name:string; unit_cost:number; supplier_id?:string };
+echo export type Stock = { id:string; part_id:string; on_hand:number; reserve:number; unit_value:number };
+echo export type Supplier = { id:string; name:string; lead_days?:number; contact?:string };
+echo export type Substitution = { id:string; part_id:string; substitute_part_id:string; rule?:string };
+echo export type WorkOrder = { id:string; vessel_id:string; title:string; parts?:{part_id:string; qty:number}[]; est_hours?:number; cost_per_hour?:number; est_downtime_h?:number; total_cost?:number; roi?:number };
+echo export type Schedule = { id:string; vessel_id:string; work_order_id?:string; start:string; end:string; crew_required?:number };
+echo export type RestLog = { id:string; vessel_id:string; crew_id:string; date:string; hours: number[] };
+)
+
+REM ----------------------------------------------------------
+REM 2) Event bus + journal/outbox helpers
+REM ----------------------------------------------------------
+> backend-node\src\sync.bus.ts (
+echo import { EventEmitter } from "node:events";
+echo import Database from "better-sqlite3";
+echo import { Pool } from "pg";
+echo
+echo const DATABASE_URL = process.env.DATABASE_URL||"";
+echo const USE_PG = !!DATABASE_URL;
+echo const SQLITE_PATH = process.env.SQLITE_PATH||"./data/arus.sqlite";
+echo export const bus = new EventEmitter();
+echo
+echo function withPg(){ const pool = new Pool({ connectionString: DATABASE_URL }); return pool; }
+echo function withSqlite(){ return new Database(SQLITE_PATH); }
+echo
+echo export async function journal(entity:string, entity_id:string, op:string, payload:any){
+echo if (USE_PG){
+echo const pool = withPg(); const c = await pool.connect();
+echo try { await c.query("INSERT INTO sync_journal(entity,entity_id,op,payload) VALUES($1,$2,$3,$4)", [entity,entity_id,op,payload]); }
+echo finally { c.release(); await pool.end(); }
+echo } else {
+echo const db = withSqlite();
+echo db.prepare("INSERT INTO sync_journal(entity,entity_id,op,payload) VALUES(?,?,?,?)").run(entity,entity_id,op, JSON.stringify(payload||{}));
+echo db.close();
+echo }
+echo }
+echo
+echo export async function outbox(event:string, payload:any){
+echo if (USE_PG){
+echo const pool = withPg(); const c = await pool.connect();
+echo try { await c.query("INSERT INTO sync_outbox(event,payload) VALUES($1,$2)", [event,payload]); }
+echo finally { c.release(); await pool.end(); }
+echo } else {
+echo const db = withSqlite();
+echo db.prepare("INSERT INTO sync_outbox(event,payload) VALUES(?,?)").run(event, JSON.stringify(payload||{}));
+echo db.close();
+echo }
+echo bus.emit(event, payload);
+echo }
+)
+
+REM ----------------------------------------------------------
+REM 3) Sync service (upserts + reconciliation)
+REM ----------------------------------------------------------
+> backend-node\src\sync.service.ts (
+echo import Database from "better-sqlite3";
+echo import { Pool } from "pg";
+echo import { journal, outbox } from "./sync.bus.js";
+echo import type { EntityKind, Vessel, Crew, Sensor, Part, Stock, Supplier, Substitution, WorkOrder, Schedule, RestLog } from "./sync.model.js";
+echo
+echo const DATABASE_URL = process.env.DATABASE_URL||""; const USE_PG = !!DATABASE_URL;
+echo const SQLITE_PATH = process.env.SQLITE_PATH||"./data/arus.sqlite";
+echo function qlite(fn:(db:Database)=>any){ const db = new Database(SQLITE_PATH); try { return fn(db); } finally { db.close(); } }
+echo async function qpg<T=any>(sql:string, params:any[]=[]):Promise<T[]>{ const pool=new Pool({connectionString: DATABASE_URL}); const c=await pool.connect(); try{ const r=await c.query(sql,params); return r.rows as any; } finally{ c.release(); await pool.end(); } }
+echo
+echo async function ensureIndexes(){
+echo if (USE_PG){
+echo await qpg("CREATE INDEX IF NOT EXISTS idx_parts_num ON parts(part_number)");
+echo await qpg("CREATE INDEX IF NOT EXISTS idx_stock_part ON stock(part_id)");
+echo await qpg("CREATE INDEX IF NOT EXISTS idx_wo_vessel ON work_order(vessel_id)");
+echo } else {
+echo qlite(db=>{ db.prepare("CREATE INDEX IF NOT EXISTS idx_parts_num ON parts(part_number)").run(); db.prepare("CREATE INDEX IF NOT EXISTS idx_stock_part ON stock(part_id)").run(); db.prepare("CREATE INDEX IF NOT EXISTS idx_wo_vessel ON work_order(vessel_id)").run(); });
+echo }
+echo }
+echo
+echo export async function upsert(kind:EntityKind, data:any){
+echo await ensureIndexes();
+echo switch(kind){
+echo case "vessel": return upsertVessel(data as Vessel);
+echo case "crew": return upsertCrew(data as Crew);
+echo case "sensor": return upsertSensor(data as Sensor);
+echo case "part": return upsertPart(data as Part);
+echo case "stock": return upsertStock(data as Stock);
+echo case "supplier": return upsertSupplier(data as Supplier);
+echo case "substitution": return upsertSubstitution(data as Substitution);
+echo case "work_order": return upsertWorkOrder(data as WorkOrder);
+echo case "schedule": return upsertSchedule(data as Schedule);
+echo case "rest_log": return upsertRestLog(data as RestLog);
+echo }
+echo }
+echo
+echo async function upsertVessel(v:Vessel){ await journal("vessel", v.id, "upsert", v); await outbox("vessel.updated", v); return {ok:true}; }
+echo async function upsertCrew(c:Crew){ await journal("crew", c.id, "upsert", c); await outbox("crew.updated", c); return {ok:true}; }
+echo async function upsertSensor(s:Sensor){ await journal("sensor", s.id, "upsert", s); await outbox("sensor.updated", s); return {ok:true}; }
+echo
+echo async function upsertPart(p:Part){
+echo // parts: maintain unique(part_number) and default unit_cost
+echo await journal("part", p.id, "upsert", p);
+echo // Maintain stock.unit_value = parts.unit_cost
+echo if (USE_PG){
+echo await qpg("UPDATE stock SET unit_value=$1 FROM parts WHERE stock.part_id=parts.id AND parts.id=$2", [p.unit_cost, p.id]);
+echo } else {
+echo qlite(db=> db.prepare("UPDATE stock SET unit_value=? WHERE part_id=?").run(p.unit_cost, p.id));
+echo }
+echo await outbox("part.updated", p);
+echo return {ok:true};
+echo }
+echo
+echo async function upsertStock(s:Stock){
+echo // enforce unit_value == parts.unit_cost
+echo if (USE_PG){
+echo const rows = await qpg<{unit_cost:number}>("SELECT unit_cost FROM parts WHERE id=$1", [s.part_id]);
+echo const unit = rows[0]?.unit_cost ?? s.unit_value;
+echo await qpg("INSERT INTO stock(id,part_id,on_hand,reserve,unit_value) VALUES($1,$2,$3,$4,$5) ON CONFLICT (id) DO UPDATE SET part_id=EXCLUDED.part_id,on_hand=EXCLUDED.on_hand,reserve=EXCLUDED.reserve,unit_value=EXCLUDED.unit_value", [s.id, s.part_id, s.on_hand, s.reserve, unit]);
+echo } else {
+echo qlite(db=>{ const unit = (db.prepare("SELECT unit_cost FROM parts WHERE id=?").get(s.part_id)||{}).unit_cost ?? s.unit_value; const ins=db.prepare("INSERT INTO stock(id,part_id,on_hand,reserve,unit_value) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET part_id=excluded.part_id,on_hand=excluded.on_hand,reserve=excluded.reserve,unit_value=excluded.unit_value"); ins.run(s.id, s.part_id, s.on_hand, s.reserve, unit); });
+echo }
+echo await journal("stock", s.id, "upsert", s); await outbox("stock.updated", s); return {ok:true};
+echo }
+echo
+echo async function upsertSupplier(s:Supplier){ await journal("supplier", s.id, "upsert", s); await outbox("supplier.updated", s); return {ok:true}; }
+echo async function upsertSubstitution(s:Substitution){ await journal("substitution", s.id, "upsert", s); await outbox("substitution.updated", s); return {ok:true}; }
+echo
+echo async function upsertWorkOrder(w:WorkOrder){
+echo // recompute costs
+echo let partsCost = 0;
+echo if (w.parts?.length){
+echo if (USE_PG){
+echo const ids = w.parts.map(p=>p.part_id);
+echo const rows = await qpg<{id:string; unit_cost:number}>("SELECT id, unit_cost FROM parts WHERE id = ANY($1)", [ids]);
+echo const map = new Map(rows.map(r=>[r.id, r.unit_cost]));
+echo for(const i of w.parts){ partsCost += (map.get(i.part_id)||0) * (i.qty||0); }
+echo } else {
+echo const costs:Record<string,number> = {};
+echo qlite(db=>{ for(const i of w.parts!){ const r=db.prepare("SELECT unit_cost FROM parts WHERE id=?").get(i.part_id); costs[i.part_id]=r?.unit_cost||0; } });
+echo for(const i of w.parts){ partsCost += (costs[i.part_id]||0) * (i.qty||0); }
+echo }
+echo }
+echo const labor = (w.est_hours||0) * (w.cost_per_hour||0);
+echo const downtimeCostHr = Number(process.env.DOWNTIME_COST_HR||"0");
+echo const downtime = (w.est_downtime_h||0) * downtimeCostHr;
+echo const total = partsCost + labor + downtime;
+echo const roi = total>0 ? ( (downtimeCostHr>0? downtimeCostHr* (w.est_downtime_h||0):0) - total ) / total : 0;
+echo w.total_cost = Number(total.toFixed(2)); w.roi = Number(roi.toFixed(4));
+echo await journal("work_order", w.id, "upsert", w); await outbox("work_order.updated", w);
+echo return {ok:true, total_cost:w.total_cost, roi:w.roi};
+echo }
+echo
+echo async function upsertSchedule(s:Schedule){ await journal("schedule", s.id, "upsert", s); await outbox("schedule.updated", s); return {ok:true}; }
+echo async function upsertRestLog(r:RestLog){ await journal("rest_log", r.id, "upsert", r); await outbox("rest.updated", r); return {ok:true}; }
+echo
+echo export async function reconcile(){
+echo // catalogue ⇄ stock price alignment
+echo if (USE_PG){ await qpg("UPDATE stock SET unit_value=parts.unit_cost FROM parts WHERE stock.part_id=parts.id AND stock.unit_value<>parts.unit_cost"); }
+echo else { qlite(db=> db.prepare("UPDATE stock SET unit_value=(SELECT unit_cost FROM parts WHERE parts.id=stock.part_id) WHERE EXISTS(SELECT 1 FROM parts WHERE parts.id=stock.part_id) AND unit_value<>(SELECT unit_cost FROM parts WHERE parts.id=stock.part_id)").run()); }
+echo // TODO: add more rules (e.g., vessel-first crew assignment checks, substitution DAG check)
+echo await journal("sync","*", "reconcile", { ok:true });
+echo return { ok:true };
+echo }
+)
+
+REM ----------------------------------------------------------
+REM 4) Admin API for sync
+REM ----------------------------------------------------------
+> backend-node\src\index.sync.ts (
+echo import express from "express";
+echo import { upsert, reconcile } from "./sync.service.js";
+echo import type { EntityKind } from "./sync.model.js";
+echo
+echo export function mountSync(v1: express.Router){
+echo v1.get("/api/sync/health", (_req,res)=> res.json({ ok:true, ts: new Date().toISOString() }));
+echo v1.post("/api/sync/upsert", async (req,res)=>{
+echo const { kind, data } = req.body||{};
+echo if (!kind || !data) return res.status(400).json({ ok:false, error:"kind and data required" });
+echo try{ const r = await upsert(kind as EntityKind, data); return res.json({ ok:true, ...r }); }
+echo catch(e:any){ return res.status(400).json({ ok:false, error:String(e?.message||e) }); }
+echo });
+echo v1.post("/api/sync/reconcile", async (_req,res)=>{ const r = await reconcile(); res.json(r); });
+echo v1.post("/api/sync/rebuild-indexes", async (_req,res)=>{ const r = await reconcile(); res.json(r); });
+echo }
+)
+
+REM Wire routes into /v1
+%PS% ^
+"$f='backend-node/src/index.ts'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace '(app\\.use\\(\"/v1\", v1\\);)','import { mountSync } from \"./index.sync.js\";\nmountSync(v1);\n$1';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ----------------------------------------------------------
+REM 5) Frontend – Sync Admin card
+REM ----------------------------------------------------------
+if not exist "frontend\src" (
+echo [WARN] frontend/src not found; skipping UI (backend ready).
+) else (
+> frontend\src\components\SyncAdmin.tsx (
+echo import React, { useState } from "react";
+echo const BASE = (import.meta as any).env.VITE_API_URL || "http://localhost:8001";
+echo
+echo export default function SyncAdmin(){
+echo const [msg,setMsg] = useState("");
+echo async function call(path:string, body?:any){ const r = await fetch(\`\${BASE}/v1\${path}\`, { method:"POST", headers:{'Content-Type':'application/json'}, body: body? JSON.stringify(body): undefined }); const j = await r.json(); setMsg(JSON.stringify(j)); }
+echo return (
+echo <div className="card">
+echo <h2>Synchronization</h2>
+echo <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+echo <button onClick={()=>call('/api/sync/reconcile')}>Run Reconcile</button>
+echo <button onClick={()=>call('/api/sync/rebuild-indexes')}>Rebuild Indexes</button>
+echo <button onClick={()=>call('/api/sync/upsert', {kind:'part', data:{id:'DEMO-P1', part_number:'P-0001', name:'Demo Filter', unit_cost:12.5}})}>Upsert Demo Part</button>
+echo <button onClick={()=>call('/api/sync/upsert', {kind:'stock', data:{id:'DEMO-S1', part_id:'DEMO-P1', on_hand:10, reserve:2, unit_value:0}})}>Upsert Demo Stock</button>
+echo </div>
+echo {msg && <pre style={{marginTop:8, fontSize:12, background:'#f8fafc', padding:8, borderRadius:6, overflow:'auto'}}>{msg}</pre>}
+echo <p style={{fontSize:12, color:'#64748b', marginTop:8}}>This layer keeps catalogue, stock, work orders, crew assignments, and vessel references consistent. It also journals changes for audits.</p>
+echo </div>
+echo );
+echo }
+)
+%PS% ^
+"$f='frontend/src/App.tsx'; $t=Get-Content -Raw $f;" ^
+"$t = 'import SyncAdmin from \"./components/SyncAdmin\";\n'+$t;" ^
+"$t = $t -replace '(</div>\\s*)$',' <SyncAdmin />\n$1';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+)
+
+echo.
+echo ==========================================================
+echo ✅ Synchronization Layer patch applied.
+echo ----------------------------------------------------------
+echo Backend:
+echo Migrations: 095_sync_layer.sql / sqlite_095_sync_layer.sql
+echo Routes:
+echo GET /v1/api/sync/health
+echo POST /v1/api/sync/upsert {kind, data}
+echo POST /v1/api/sync/reconcile
+echo POST /v1/api/sync/rebuild-indexes
+echo Frontend:
+echo - SyncAdmin card to run reconcile and test upserts
+echo ----------------------------------------------------------
+echo Next:
+echo cd backend-node && npm install && npm run migrate && npm run build && npm run dev
+echo cd ../frontend && npm install && npm run dev
+echo
+echo Notes:
+echo - Reconcile currently aligns catalogue -> stock unit_value and recomputes WO costs/ROI on upserts.
+echo - Extend reconcile() with more rules (crew vessel-first validation, substitution DAG) as needed.
+echo - Outbox is ready for future webhooks or a message bus; events are emitted in-process now.
+echo ==========================================================
+endlocal

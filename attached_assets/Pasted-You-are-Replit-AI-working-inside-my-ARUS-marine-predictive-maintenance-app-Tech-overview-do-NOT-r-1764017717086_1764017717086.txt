@@ -1,0 +1,145 @@
+You are Replit AI working inside my ARUS marine predictive maintenance app.
+
+Tech overview (do NOT rewrite from scratch, only extend + harden):
+- Electron desktop shell (Vite/React frontend + Node/Express backend).
+- Frontend: React + TypeScript + Vite (dist served from /dist, SPA).
+- Backend: Node/TypeScript, Express API (server/index.ts → server/index.js).
+- Storage:
+- Local SQLite for embedded/vessel mode (offline-first).
+- Optional PostgreSQL / Turso / libSQL client for cloud / fleet mode.
+- Drizzle ORM / LibSQL client used in some paths.
+- Services:
+- Telemetry ingestion (MQTT, simulators, DatasetMixer, Digital Twin).
+- Alerts, health monitoring, equipment registry, maintenance schedules.
+- AI/ML modules with TensorFlow / ONNX / transformers.
+- Knowledge Base + embeddings / RAG-style explainability.
+- Deployment: desktop (Electron) with offline mode; server can also be hosted.
+
+GOAL:
+Turn the existing system into a **fully production-grade actionable insights platform for marine predictive maintenance**, without breaking offline/embedded mode. I want a realistic architecture that can run on:
+- Vessel desktops (SQLite only, offline-first),
+- Shore / cloud deployments (PostgreSQL/libSQL),
+- Multiple devices sharing the same org, with correct sync and isolation.
+
+### Step 1 – Understand the current state
+1. Scan the repo and identify, with file paths:
+- Telemetry ingestion and simulators (MQTT, DatasetMixer, VesselSimulator).
+- ML / analytics modules (RUL, anomaly detection, TensorFlow/ONNX usage).
+- Digital twin modules.
+- Alerts + notifications + thresholds (including ThresholdCalibrator).
+- Knowledge Base / RAG / embeddings.
+- Sync layer and any libSQL / PostgreSQL / Turso usage.
+- Frontend views for:
+- Fleet overview / equipment health,
+- Maintenance schedules / work orders,
+- Alerts and AI insights.
+2. Summarize in a short bullet list:
+- What “insights” the app already supports.
+- What is still *just data/visualization* and not yet “actionable logic”.
+
+### Step 2 – Design an actionable-insights pipeline
+Based on the current codebase, design an end-to-end pipeline:
+
+Data flow:
+- Telemetry (real or simulated) → feature extraction → ML scoring (health, RUL, anomaly probability) → rules engine → alerts / recommendations → maintenance/ticket actions + structured explanations.
+
+Please:
+1. Reuse the existing ML + digital twin + alerts + KB as much as possible.
+2. Propose a **lightweight rule/insight layer** (JSON-based rules, or small custom engine) that can:
+- Trigger alerts when thresholds or trends are breached.
+- Detect RUL < X days and create “maintenance due soon” items.
+- Mark equipment as “watchlist / at-risk” with reasons.
+3. Make sure the design supports:
+- Local-only mode (SQLite, no cloud).
+- Hybrid mode (SQLite + cloud sync, when configured).
+- Per-org isolation (x-org-id already appears in the middleware).
+
+Output:
+- A short architecture description.
+- A list of “insight types”, e.g.:
+- “Impending failure in < 7 days based on RUL”
+- “Abnormal vibration trend on equipment X”
+- “Repeated sensor faults causing data quality issues”
+- “Maintenance overdue vs actual operating hours”
+- Where in the code each insight should plug in (file paths).
+
+### Step 3 – Implement the minimal but complete insight engine
+Now actually modify the codebase. For each change, show me:
+- File path,
+- BEFORE (short if large),
+- AFTER (full patch).
+
+Concrete tasks (adapt to current structure, but try to keep it all wired and working):
+
+1. **Insight engine module**
+- Create a central module, e.g. `server/core/insights/insightEngine.ts` (or similar).
+- Responsibilities:
+- Accept latest equipment health + telemetry-derived features.
+- Run rules + thresholds + simple trend checks.
+- Produce a structured `Insight` object:
+- id, equipmentId, severity, type, message, recommendedAction,
+supportingSignals (metrics, time windows), createdAt, acknowledged, resolved.
+- Store insights in SQLite/Postgres via existing ORM patterns.
+- Make sure this module gracefully no-ops if cloud DB isn’t configured (embedded mode).
+
+2. **Integration with ML + telemetry**
+- Locate where health / RUL / predictions are computed.
+- After each update, call the `insightEngine` to evaluate insights.
+- If there is already an alerts subsystem, either:
+- Use that to persist + publish insights, or
+- Bridge between `Insight` objects and existing alerts model.
+
+3. **API endpoints**
+- Add or extend REST endpoints under something like:
+- `GET /api/insights`
+- `GET /api/insights/:id`
+- `POST /api/insights/:id/acknowledge` (if consistent with existing patterns)
+- Ensure:
+- Tenant isolation with `x-org-id` (reuse `requireOrgId` middleware).
+- Works with SQLite in vessel mode (no missing tables).
+- Uses the existing logger / error-handling conventions.
+
+4. **Frontend UI**
+- Find the main dashboard / health overview / alerts pages.
+- Add the following minimally:
+- An “Actionable Insights” panel showing the latest N insights:
+- Severity pill (low/medium/high/critical),
+- Equipment name & id,
+- Short message,
+- Time since detected,
+- Recommended action.
+- Ability to filter by:
+- Vessel / equipment,
+- Severity,
+- Status (open / acknowledged / resolved).
+- Wire it to the new `/api/insights` endpoints and use existing hooks/patterns (React Query, etc.).
+
+5. **Offline / multi-device considerations**
+- Confirm that insight storage uses the same DB abstraction as equipment / alerts.
+- No crashing if libSQL / cloud DB isn’t configured (just SQLite).
+- Ensure all *read* APIs work with just local DB.
+- If sync is present for other entities, add TODO comments or hooks where future insight-sync would be added (but don’t overcomplicate).
+
+### Step 4 – Hardening and correctness
+1. Run through the existing code to make sure:
+- No references to `db.execute` on non-libSQL clients (fix type mismatches).
+- No queries against tables that don’t exist in SQLite (e.g., `update_settings`).
+- All new tables for insights are created in the SQLite schema init path.
+2. Verify:
+- No 404s for main SPA resources (CSS/JS) in production mode.
+- No “Cannot GET /” when serving `index.html` from `/dist`.
+- Electron loads the correct URL and receives a working frontend.
+3. Add any missing type-safety / guards around ML and DB calls so that:
+- App keeps running in embedded mode even if some advanced features are disabled.
+
+### Step 5 – Final summary for me
+At the end, summarize in a short report:
+- What you found already implemented.
+- What new modules, endpoints, and UI pieces you added or modified (with file paths).
+- How the actionable-insights pipeline now works end-to-end.
+- Any remaining TODOs that would require a human data scientist / domain expert (e.g., tuning thresholds, adding specific engine physics models).
+
+Important:
+- Do not remove or radically redesign core structures unless absolutely necessary.
+- Keep the code reasonably idiomatic and consistent with the existing style.
+- Focus on a minimal but **fully wired** actionable insights system that works in embedded (SQLite-only) mode.

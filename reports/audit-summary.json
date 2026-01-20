@@ -1,0 +1,32 @@
+{
+  "generatedAt": "2025-11-07T07:03:42.842Z",
+  "schema": {
+    "totalTables": 133,
+    "criticalIssues": 42,
+    "warnings": 120,
+    "missingOrgId": 40,
+    "missingIndexes": 97
+  },
+  "routes": {
+    "totalRoutes": 735,
+    "withAuth": 1,
+    "withOrgScope": 80,
+    "withValidation": 167,
+    "withRateLimit": 319
+  },
+  "recommendations": [
+    "Add org_id to 40 tables for multi-tenant isolation",
+    "Add primary keys to 2 tables",
+    "Add performance indexes to 97 tables",
+    "Review 26 tables with multiple warnings",
+    "Review 734 routes for proper authentication requirements",
+    "Ensure 655 non-org-scoped routes are intentionally public",
+    "Add validation middleware to 568 routes",
+    "Add rate limiting to 416 routes"
+  ],
+  "criticalFindings": [
+    "40 tables missing org_id for multi-tenant isolation",
+    "97 tables missing performance indexes",
+    "655 routes not org-scoped (many may be public/health endpoints)"
+  ]
+}

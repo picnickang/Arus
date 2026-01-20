@@ -1,0 +1,169 @@
+Here’s a single prompt you can paste into Replit:
+
+⸻
+
+REPLIT PROMPT
+
+You are a senior full-stack architect and performance engineer reviewing a production-grade maritime PdM app (ARUS) in this Replit workspace.
+
+The app is already refactored into a highly modular architecture (Electron + React/TypeScript frontend, Node/TypeScript backend, PostgreSQL + SQLite hybrid storage, telemetry, logbooks, work orders, inventory, crew management, compliance, etc.).
+
+Your job is to verify, not assume, that this codebase actually matches “gold-standard” architecture, and then recommend only necessary and safe improvements.
+
+⸻
+
+0. BEFORE YOU CHANGE ANYTHING
+	1.	Scan the entire repo structure and briefly map major layers:
+	•	Frontend: React, routes/pages, components, hooks, context.
+	•	Backend: routes/controllers, services, domain modules.
+	•	Data: Drizzle/Zod schemas, SQLite/PostgreSQL, storage modules.
+	•	Infrastructure: telemetry ingestion, queues, sync, logbooks, Electron bootstrapping.
+	2.	Confirm the current architecture style:
+	•	Is it clearly layered? (UI → application/services → data/storage → infra)
+	•	Are domain modules (work orders, inventory, telemetry, logbooks, crew, etc.) reasonably isolated?
+	•	Are the recent modularizations (e.g., storage.ts, routes.ts, and other previously large files) coherent and not breaking cross-module behavior?
+	3.	DO NOT do heavy refactors yet.
+First, produce an assessment and a plan. Only then propose surgical code changes.
+
+⸻
+
+1. GOLD-STANDARD ARCHITECTURE CHECK
+
+Give me a structured architecture review with these sections:
+	1.	Repo & Layer Overview
+	•	List the main folders and what layer they belong to (UI, services, domain, storage, infra, tests).
+	•	Show how Electron, backend server, and React UI fit together.
+	2.	Domain Modularity
+	•	Identify domain modules:
+	•	Vessels / equipment / hierarchy
+	•	Telemetry / digital twin
+	•	Work orders & maintenance scheduling
+	•	Inventory & parts
+	•	Logbooks (deck, engine, fuel/emissions)
+	•	Crew management / hours of rest
+	•	Compliance / alerts / notifications
+	•	For each, answer:
+	•	Is the module self-contained and well-named?
+	•	Are APIs, services, and storage concerns separated or mixed?
+	•	Are there still “god files” in that domain (over ~500 lines) that should be split further?
+	3.	Data Layer & Hybrid Storage (PostgreSQL + SQLite)
+	•	Identify all schema definitions (e.g., Zod/Drizzle or similar).
+	•	Confirm:
+	•	A single source of truth for schemas.
+	•	Where SQLite is used (local/embedded/vessel mode) vs PostgreSQL (cloud/central).
+	•	How migrations are handled for both.
+	•	Flag any of:
+	•	Duplicate schema definitions.
+	•	Tables referenced in code but not in schema or vice versa.
+	•	Inconsistent naming (e.g., legacy vs new fields).
+	4.	Telemetry & Logbook Integration
+	•	Verify:
+	•	Telemetry ingestion pipeline (including Modbus/MQTT and simulators).
+	•	How telemetry feeds into:
+	•	Engine logbook autofill (engine hourly log, generator log).
+	•	Deck/fuel/emissions logs.
+	•	Anomaly detection and events.
+	•	Confirm that:
+	•	The engine logbook code (including EngineLogbookPage and related routes/services) correctly uses normalized schema fields and anomaly thresholds.
+	•	Legacy field mappings (e.g., meFuelRack → meFuelRackPosition) are consistently applied across backend + frontend + exports.
+	5.	Offline-first / Sync Architecture
+	•	Explain how:
+	•	Local SQLite DB is used in vessel/offline mode.
+	•	Sync to cloud/libSQL/PostgreSQL is handled.
+	•	Queues / retry / conflict handling work (if present).
+	•	Highlight:
+	•	Any “danger” spots where network, sync, or database errors could cause crashes or data loss.
+	•	Whether telemetry flood (high-volume data) is back-pressured and batched properly.
+	6.	Email & Alerting / Notifications
+	•	Identify all places where:
+	•	Critical email alerts are sent (equipment, compliance, logbooks, crew, etc.).
+	•	Notification settings are configured (if a settings page exists).
+	•	Confirm:
+	•	Whether there is a single centralized notification/alert service.
+	•	Whether alert conditions and recipients are configurable (or hard-coded).
+	•	Note gaps (e.g., crew management alerts missing, or settings UI incomplete).
+	7.	Testing & Observability
+	•	Identify all existing:
+	•	Unit tests
+	•	Integration tests
+	•	E2E or API tests
+	•	Confirm if there are any:
+	•	Test utilities or fixtures for telemetry, logbooks, work orders, inventory, etc.
+	•	Check observability:
+	•	Structured logging
+	•	Metrics / health endpoints
+	•	Error handling in background jobs and telemetry pipeline
+
+⸻
+
+2. WEAK POINTS & RISK AREAS
+
+Next, identify specific weak points, focusing on:
+	1.	Remaining “god files”
+	•	List any files still over ~400–500 lines.
+	•	For each, briefly state:
+	•	Role (e.g., “mega React page for X”, “giant route handler”, “huge service”).
+	•	What sub-modules it should be split into (e.g., hooks, subcomponents, service helpers).
+	2.	Potential crash / lag risk
+	•	In telemetry ingestion & processing:
+	•	Any unbounded loops, synchronous heavy operations, or missing back-pressure.
+	•	In React:
+	•	Very large tables or dashboards rendered without virtualization or pagination.
+	•	In database access:
+	•	N+1 query patterns, unindexed filters, or blocking calls in main Electron process.
+	3.	Data Path Confusion / Isolation
+	•	Where recent modularization may have accidentally isolated data flows (e.g., things that used to be wired directly now don’t talk to each other).
+	•	Check: do work orders, inventory, logbooks, and telemetry still connect where intended?
+	4.	Schema / Migration Risks
+	•	Any tables used by code with missing migration or vice versa.
+	•	Any field mismatches between backend, frontend, and exports (PDF/Excel).
+
+⸻
+
+3. OPTIMIZATION & HARDENING PLAN
+
+Only after the review above, propose a concrete, minimal, high-impact hardening plan, with:
+	1.	Priority 1 (Must do, low risk)
+	•	Example categories:
+	•	Fix clearly broken links between modules (e.g., isolated data paths).
+	•	Reduce obvious god files by extracting helper modules.
+	•	Improve error handling around telemetry ingestion and DB operations.
+	•	Add missing indexes / optimize a few heavy queries.
+	2.	Priority 2 (Nice to have, moderate effort)
+	•	Add or improve:
+	•	Telemetry back-pressure / batching.
+	•	Centralized notification system & alert settings UI.
+	•	Basic test harness for full E2E flows:
+	•	create vessel → ingest telemetry → autofill engine log → generate work order → consume inventory → export PDFs/Excel.
+	3.	Priority 3 (Long-term)
+	•	Suggestions like:
+	•	Further domain isolation.
+	•	Additional logging/observability.
+	•	More sophisticated AI/LLM integration as separate modules.
+
+For each proposed change, state:
+	•	What file(s) and which layer it affects.
+	•	Why it is needed (bug, scalability, maintainability, UX, compliance).
+	•	Risk level (low/medium/high) and recommended order.
+
+⸻
+
+4. DELIVERABLE
+
+Return your findings as:
+	1.	Short executive summary (5–10 bullet points)
+	•	Is this architecture already near gold standard?
+	•	Are the remaining issues mostly polish, or are there any structural flaws?
+	2.	Detailed sections as described above.
+	3.	A checklist I can give to a full-stack dev:
+	•	“Do these 10–20 items” in order to finalize and harden this application.
+
+🔴 Important constraints:
+	•	Do not propose huge rewrites if the existing architecture is already clean and cohesive.
+	•	Respect the current domain boundaries and offline-first design.
+	•	Prefer incremental, modular improvements over radical changes.
+	•	If something is already well-designed, explicitly say so and leave it alone.
+
+⸻
+
+Use the code in this Replit workspace as the single source of truth for your analysis.

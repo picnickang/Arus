@@ -1,0 +1,379 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==========================================================
+REM ARUS Quick-Wins Patch (NO SECURITY):
+REM - RBAC/tenancy scaffolding (org_id headers + DB scoping)
+REM - CMMS-lite (work orders, checklists, worklogs, parts)
+REM - Optimizer v1 (greedy windows)
+REM - RAG (SQLite FTS5) + citations for LLM reports
+REM - Observability: /healthz /readyz /metrics (Prometheus)
+REM - Exports: CSV/HTML for LLM reports (?format=csv|html)
+REM ==========================================================
+
+if not exist "backend\app\main.py" (
+echo [ERROR] backend\app\main.py not found. Run this at repo root.
+exit /b 1
+)
+
+if not exist "frontend\src" (
+echo [WARN] frontend\src not found; UI pieces will be skipped.
+set SKIP_UI=1
+) else (
+set SKIP_UI=0
+)
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+REM ----------------------------------------------------------
+REM 1) Requirements (non-breaking)
+REM ----------------------------------------------------------
+%PS% ^
+"$f='backend/requirements.txt';" ^
+"if (Test-Path $f) {$t=Get-Content -Raw $f} else {$t=''};" ^
+"foreach($pkg in @('prometheus-client>=0.20','aiosqlite>=0.20','orjson>=3.10')){ if ($t -notmatch [regex]::Escape($pkg.Split('>')[0])) { $t += \"`n$pkg\" } }" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ----------------------------------------------------------
+REM 2) Observability: middleware, healthz, metrics
+REM ----------------------------------------------------------
+%PS% "$code=@'
+from __future__ import annotations
+import time, json, orjson
+from typing import Callable
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import Response, PlainTextResponse
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+
+REQ_LAT = Histogram("arus_http_request_seconds","HTTP request latency",[ "path","method","code" ])
+REQ_CNT = Counter("arus_http_requests_total","HTTP requests total",[ "path","method","code" ])
+
+class JSONLogMiddleware(BaseHTTPMiddleware):
+async def dispatch(self, request: Request, call_next: Callable):
+start = time.perf_counter()
+try:
+resp = await call_next(request)
+code = resp.status_code
+except Exception as e:
+code = 500
+raise
+finally:
+dur = time.perf_counter() - start
+p = request.url.path
+m = request.method
+REQ_LAT.labels(p,m,str(code)).observe(dur)
+REQ_CNT.labels(p,m,str(code)).inc()
+return resp
+
+async def metrics_endpoint(request: Request):
+return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+def add_observability(app):
+app.add_middleware(JSONLogMiddleware)
+@app.get("/healthz")
+def _healthz(): return {"ok": True}
+@app.get("/readyz")
+async def _readyz(): return {"ready": True}
+app.add_route("/metrics", metrics_endpoint, methods=["GET"])
+'@; Set-Content -Encoding UTF8 backend/app/core/observability.py $code"
+
+REM Patch main.py to include observability
+%PS% ^
+"$f='backend/app/main.py'; $t=Get-Content -Raw $f;" ^
+"if ($t -notmatch 'from \\.core\\.observability import add_observability') { $t = $t -replace 'from fastapi import FastAPI','from fastapi import FastAPI`nfrom .core.observability import add_observability'; }" ^
+"$t = $t -replace '(app = FastAPI\\([^)]*\\)\\s*)','${1}add_observability(app)\n';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ----------------------------------------------------------
+REM 3) RBAC/Tenancy scaffolding (no auth): org/project scoping
+REM ----------------------------------------------------------
+%PS% ^
+"$f='backend/app/core/async_repo.py'; $t=Get-Content -Raw $f;" ^
+"$needOrg=($t -notmatch 'CREATE TABLE IF NOT EXISTS org\\(');" ^
+"if ($needOrg) { " ^
+" $t = $t -replace 'await db.commit\\(\\)\\s*\\n\\s*\\)\\n\\s*self._init_done = True', 'await db.execute(\"\"\"`nCREATE TABLE IF NOT EXISTS org(`n id TEXT PRIMARY KEY,`n name TEXT,`n created_at TEXT,`n updated_at TEXT`n)\"\"\");`nawait db.execute(\"CREATE TABLE IF NOT EXISTS project(org_id TEXT NOT NULL, id TEXT NOT NULL, name TEXT, PRIMARY KEY(org_id,id))\");`nawait db.commit();`n) `nself._init_done = True'; " ^
+"}" ^
+"$needFns=($t -notmatch 'async def set_context\\(');" ^
+"if ($needFns) { " ^
+" $t += @'`n def set_context(self, org_id: str|None=None, project_id: str|None=None):`n self._org_id = org_id; self._project_id = project_id`n return self`n def ctx(self):`n return getattr(self, \"_org_id\", None), getattr(self, \"_project_id\", None)`n'@; " ^
+"}" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM Helper: request context reader
+%PS% "$code=@'
+from __future__ import annotations
+from fastapi import Request
+
+def extract_scope(req: Request):
+# NO SECURITY: just pass org/project headers through for scoping
+org_id = req.headers.get("X-Org-Id")
+project_id = req.headers.get("X-Project-Id")
+return org_id, project_id
+'@; Set-Content -Encoding UTF8 backend/app/core/scope.py $code"
+
+REM ----------------------------------------------------------
+REM 4) CMMS-lite: schema + API router
+REM ----------------------------------------------------------
+%PS% ^
+"$f='backend/app/core/async_repo.py'; $t=Get-Content -Raw $f;" ^
+"$needCMMS=($t -notmatch 'CREATE TABLE IF NOT EXISTS work_order\\(');" ^
+"if ($needCMMS) { " ^
+" $t = $t -replace 'await db.commit\\(\\)\\s*\\n\\s*\\)\\n\\s*self._init_done = True', 'await db.execute(\"\"\"`nCREATE TABLE IF NOT EXISTS work_order(`n id TEXT PRIMARY KEY, org_id TEXT, vessel_id TEXT, equipment_id TEXT, title TEXT, priority TEXT, status TEXT, due_date TEXT, created_at TEXT, updated_at TEXT`n)\"\"\");`nawait db.execute(\"\"\"`nCREATE TABLE IF NOT EXISTS checklist_item(`n id INTEGER PRIMARY KEY AUTOINCREMENT, wo_id TEXT, text TEXT, done INTEGER DEFAULT 0`n)\"\"\");`nawait db.execute(\"\"\"`nCREATE TABLE IF NOT EXISTS worklog(`n id INTEGER PRIMARY KEY AUTOINCREMENT, wo_id TEXT, user TEXT, hours REAL, note TEXT, at TEXT`n)\"\"\");`nawait db.execute(\"\"\"`nCREATE TABLE IF NOT EXISTS part_issue(`n id INTEGER PRIMARY KEY AUTOINCREMENT, wo_id TEXT, part_no TEXT, qty REAL, cost REAL, at TEXT`n)\"\"\");`nawait db.commit();`n) `nself._init_done = True'; " ^
+"}" ^
+"$needCMMSFns=($t -notmatch 'async def create_wo\\(');" ^
+"if ($needCMMSFns) { " ^
+" $t += @'`n async def create_wo(self, data: dict) -> dict:`n await self.init(); from datetime import datetime`n now=datetime.utcnow().isoformat()+\"Z\"; data=dict(data)`n data.setdefault(\"id\", f\"wo_{int(datetime.utcnow().timestamp())}\"); data.setdefault(\"status\",\"open\")`n async with aiosqlite.connect(self._sqlite) as db:`n await db.execute(\"INSERT OR REPLACE INTO work_order(id,org_id,vessel_id,equipment_id,title,priority,status,due_date,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)\", (data.get(\"id\"), data.get(\"org_id\"), data.get(\"vessel_id\"), data.get(\"equipment_id\"), data.get(\"title\"), data.get(\"priority\"), data.get(\"status\"), data.get(\"due_date\"), now, now))`n await db.commit(); cur=await db.execute(\"SELECT * FROM work_order WHERE id=?\",(data[\"id\"],)); return dict(await cur.fetchone())`n async def list_wo(self, org_id: str|None=None, vessel_id: str|None=None, status: str|None=None) -> list[dict]:`n await self.init(); async with aiosqlite.connect(self._sqlite) as db:`n db.row_factory=aiosqlite.Row`n q=\"SELECT * FROM work_order WHERE 1=1\"; a=[]`n if org_id: q+=\" AND org_id=?\"; a.append(org_id)`n if vessel_id: q+=\" AND vessel_id=?\"; a.append(vessel_id)`n if status: q+=\" AND status=?\"; a.append(status)`n q+=\" ORDER BY due_date IS NULL, due_date\"`n cur=await db.execute(q,tuple(a)); return [dict(r) for r in await cur.fetchall()]`n async def update_wo(self, wo_id: str, patch: dict) -> dict|None:`n await self.init(); from datetime import datetime`n now=datetime.utcnow().isoformat()+\"Z\"`n sets=[]; a=[];`n for k in (\"title\",\"priority\",\"status\",\"due_date\",\"vessel_id\",\"equipment_id\"):`n if k in patch: sets.append(f\"{k}=?\"); a.append(patch[k])`n if not sets: return await self.get_wo(wo_id)`n a.extend([now, wo_id])`n async with aiosqlite.connect(self._sqlite) as db:`n await db.execute(f\"UPDATE work_order SET {', '.join(sets)}, updated_at=? WHERE id=?\", tuple(a)); await db.commit()`n cur=await db.execute(\"SELECT * FROM work_order WHERE id=?\",(wo_id,)); row=await cur.fetchone(); return dict(row) if row else None`n async def get_wo(self, wo_id: str) -> dict|None:`n await self.init(); async with aiosqlite.connect(self._sqlite) as db:`n db.row_factory=aiosqlite.Row; cur=await db.execute(\"SELECT * FROM work_order WHERE id=?\",(wo_id,)); r=await cur.fetchone(); return dict(r) if r else None`n async def add_check_item(self, wo_id: str, text: str) -> dict:`n await self.init(); async with aiosqlite.connect(self._sqlite) as db:`n await db.execute(\"INSERT INTO checklist_item(wo_id,text,done) VALUES(?,?,0)\",(wo_id,text)); await db.commit()`n cur=await db.execute(\"SELECT * FROM checklist_item WHERE wo_id=? ORDER BY id DESC LIMIT 1\",(wo_id,)); return dict(await cur.fetchone())`n async def set_check_done(self, item_id: int, done: bool) -> int:`n await self.init(); async with aiosqlite.connect(self._sqlite) as db:`n await db.execute(\"UPDATE checklist_item SET done=? WHERE id=?\",(1 if done else 0, item_id)); await db.commit(); cur=await db.execute(\"SELECT changes() AS c\"); return (await cur.fetchone())[\"c\"]`n async def add_worklog(self, wo_id: str, user: str, hours: float, note: str) -> dict:`n await self.init(); from datetime import datetime`n now=datetime.utcnow().isoformat()+\"Z\"`n async with aiosqlite.connect(self._sqlite) as db:`n await db.execute(\"INSERT INTO worklog(wo_id,user,hours,note,at) VALUES(?,?,?,?,?)\",(wo_id,user,hours,note,now)); await db.commit(); cur=await db.execute(\"SELECT * FROM worklog WHERE wo_id=? ORDER BY id DESC LIMIT 1\",(wo_id,)); return dict(await cur.fetchone())`n async def add_part_issue(self, wo_id: str, part_no: str, qty: float, cost: float) -> dict:`n await self.init(); from datetime import datetime`n now=datetime.utcnow().isoformat()+\"Z\"`n async with aiosqlite.connect(self._sqlite) as db:`n await db.execute(\"INSERT INTO part_issue(wo_id,part_no,qty,cost,at) VALUES(?,?,?,?,?)\",(wo_id,part_no,qty,cost,now)); await db.commit(); cur=await db.execute(\"SELECT * FROM part_issue WHERE wo_id=? ORDER BY id DESC LIMIT 1\",(wo_id,)); return dict(await cur.fetchone())`n'@; " ^
+"}" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+%PS% "$code=@'
+from __future__ import annotations
+from fastapi import APIRouter, Body, Query, Request, HTTPException
+from typing import Dict, Any, Optional
+from app.core.async_repo import REPO
+from app.core.scope import extract_scope
+
+router = APIRouter(prefix="/api/cmms", tags=["cmms-lite"])
+
+@router.post("/wo")
+async def create_wo(req: Request, body: Dict[str, Any] = Body(...)):
+org_id,_ = extract_scope(req); body=dict(body); body["org_id"]=org_id
+return await REPO.create_wo(body)
+
+@router.get("/wo")
+async def list_wo(req: Request, vessel_id: Optional[str]=Query(None), status: Optional[str]=Query(None)):
+org_id,_ = extract_scope(req)
+return await REPO.list_wo(org_id=org_id, vessel_id=vessel_id, status=status)
+
+@router.put("/wo/{wo_id}")
+async def update_wo(wo_id: str, body: Dict[str, Any] = Body(default_factory=dict)):
+return await REPO.update_wo(wo_id, body or {})
+
+@router.get("/wo/{wo_id}")
+async def get_wo(wo_id: str): return await REPO.get_wo(wo_id)
+
+@router.post("/wo/{wo_id}/check")
+async def add_check(wo_id: str, body: Dict[str, Any] = Body(...)):
+return await REPO.add_check_item(wo_id, body.get("text","").strip())
+
+@router.post("/wo/{wo_id}/worklog")
+async def add_worklog(wo_id: str, body: Dict[str, Any] = Body(...)):
+return await REPO.add_worklog(wo_id, body.get("user",""), float(body.get("hours",0)), body.get("note",""))
+
+@router.post("/wo/{wo_id}/part")
+async def add_part(wo_id: str, body: Dict[str, Any] = Body(...)):
+return await REPO.add_part_issue(wo_id, body.get("part_no",""), float(body.get("qty",0)), float(body.get("cost",0)))
+'@; Set-Content -Encoding UTF8 backend/app/api/cmms.py $code"
+
+REM Wire CMMS router
+%PS% ^
+"$f='backend/app/main.py'; $t=Get-Content -Raw $f;" ^
+"if ($t -notmatch 'from \\.api\\.cmms import router as cmms_router') { $t = $t -replace '(from \\.api\\.[^\\n]+\\n)+', '$0from .api.cmms import router as cmms_router`n'; }" ^
+"if ($t -notmatch 'app\\.include_router\\(cmms_router\\)') { $t = $t -replace '(?s)(app\\.include_router\$begin:math:text$[^)]+\\$end:math:text$\\s*)$', '$0`napp.include_router(cmms_router)'; }" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ----------------------------------------------------------
+REM 5) Optimizer v1 (greedy)
+REM ----------------------------------------------------------
+%PS% "$code=@'
+from __future__ import annotations
+from fastapi import APIRouter, Body
+from typing import Dict, Any, List
+from datetime import datetime, timedelta
+
+router = APIRouter(prefix="/api/opt", tags=["optimizer"])
+
+def _parse_date(d: str) -> datetime: return datetime.fromisoformat(d.replace("Z",""))
+
+@router.post("/plan")
+def plan(body: Dict[str, Any] = Body(...)):
+"""
+Greedy windowing:
+inputs: { tasks: [{id,equipment_id,duration_hours,deadline,crew,parts:[]}], 
+crew_available:int, dock_windows:[{start,end}], parts_available:[str] }
+"""
+tasks = list(body.get("tasks",[]))
+crew = int(body.get("crew_available", 2))
+parts_av = set(body.get("parts_available", []))
+windows = [(_parse_date(w["start"]), _parse_date(w["end"])) for w in body.get("dock_windows", [])]
+windows.sort(key=lambda w: w[0])
+# filter feasible
+ready = []
+for t in tasks:
+if all(p in parts_av for p in t.get("parts",[])):
+ready.append(t)
+# sort by urgency (deadline asc, duration desc)
+def _dstamp(t): 
+return _parse_date(t["deadline"]) if t.get("deadline") else datetime.max
+ready.sort(key=lambda t: (_dstamp(t), -float(t.get("duration_hours",1))))
+schedule: List[Dict[str,Any]] = []
+for (ws,we) in windows:
+cur = ws; crew_slots = crew
+for t in list(ready):
+dur = timedelta(hours=float(t.get("duration_hours",1)))
+if cur+dur <= we and t.get("crew",1) <= crew_slots:
+schedule.append({"task_id": t["id"], "equipment_id": t["equipment_id"], "start": cur.isoformat()+"Z", "end": (cur+dur).isoformat()+"Z"})
+cur += dur; crew_slots -= int(t.get("crew",1))
+ready.remove(t)
+# reset crew slots between windows
+return {"proposed_schedule": schedule, "unscheduled": [t["id"] for t in ready]}
+'@; Set-Content -Encoding UTF8 backend/app/api/optimizer.py $code"
+
+REM Wire optimizer
+%PS% ^
+"$f='backend/app/main.py'; $t=Get-Content -Raw $f;" ^
+"if ($t -notmatch 'from \\.api\\.optimizer import router as optimizer_router') { $t = $t -replace '(from \\.api\\.[^\\n]+\\n)+', '$0from .api.optimizer import router as optimizer_router`n'; }" ^
+"if ($t -notmatch 'app\\.include_router\$begin:math:text$optimizer_router\\$end:math:text$') { $t = $t -replace '(?s)(app\\.include_router\$begin:math:text$[^)]+\\$end:math:text$\\s*)$', '$0`napp.include_router(optimizer_router)'; }" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ----------------------------------------------------------
+REM 6) RAG via SQLite FTS5 (index + API)
+REM ----------------------------------------------------------
+%PS% ^
+"$f='backend/app/core/async_repo.py'; $t=Get-Content -Raw $f;" ^
+"$needFTS=($t -notmatch 'CREATE VIRTUAL TABLE IF NOT EXISTS rag_doc');" ^
+"if ($needFTS) { " ^
+" $t = $t -replace 'await db.commit\\(\\)\\s*\\n\\s*\\)\\n\\s*self._init_done = True', 'await db.execute(\"CREATE VIRTUAL TABLE IF NOT EXISTS rag_doc USING fts5(kind, ref_id, ts, vessel_id, equipment_id, text, tokenize = \\''porter\\'')\");`nawait db.commit();`n) `nself._init_done = True'; " ^
+"}" ^
+"$needRagFns=($t -notmatch 'async def rag_refresh\\(');" ^
+"if ($needRagFns) { " ^
+" $t += @'`n async def rag_refresh(self) -> int:`n await self.init(); n=0`n async with aiosqlite.connect(self._sqlite) as db:`n # Clear and rebuild from sources if present`n await db.execute(\"DELETE FROM rag_doc\");`n try:`n cur = await db.execute(\"SELECT id, equipment_id, title, status, due_date FROM work_order\")`n for r in await cur.fetchall():`n txt=f\"WO {r[0]} {r[2]} status={r[3]} due={r[4]}\"; await db.execute(\"INSERT INTO rag_doc(kind,ref_id,ts,vessel_id,equipment_id,text) VALUES(?,?,?,?,?,?)\", ('wo', r[0], '', '', r[1], txt)); n+=1`n except Exception: pass`n try:`n cur = await db.execute(\"SELECT * FROM validation_error ORDER BY id DESC LIMIT 1000\")`n cols=[c[0] for c in cur.description]`n for row in await cur.fetchall():`n d=dict(zip(cols,row)); txt=f\"ERR {d.get('reason')} metric={d.get('metric')} value={d.get('value')} equip={d.get('equipment_id')}\"; await db.execute(\"INSERT INTO rag_doc(kind,ref_id,ts,vessel_id,equipment_id,text) VALUES(?,?,?,?,?,?)\", ('err', str(d.get('id')), d.get('ts'), d.get('vessel_id') or '', d.get('equipment_id') or '', txt)); n+=1`n except Exception: pass`n await db.commit(); return n`n async def rag_search(self, q: str, limit: int=20) -> list[dict]:`n await self.init(); async with aiosqlite.connect(self._sqlite) as db:`n db.row_factory=aiosqlite.Row; cur=await db.execute(\"SELECT *, bm25(rag_doc) AS score FROM rag_doc WHERE rag_doc MATCH ? ORDER BY score LIMIT ?\", (q, limit)); return [dict(r) for r in await cur.fetchall()]`n'@; " ^
+"}" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+%PS% "$code=@'
+from __future__ import annotations
+from fastapi import APIRouter, Query
+from app.core.async_repo import REPO
+
+router = APIRouter(prefix="/api/rag", tags=["rag"])
+
+@router.post("/refresh")
+async def refresh():
+n = await REPO.rag_refresh()
+return {"ok": True, "indexed": n}
+
+@router.get("/search")
+async def search(q: str = Query(...), limit: int = Query(20, ge=1, le=100)):
+return await REPO.rag_search(q, limit=limit)
+'@; Set-Content -Encoding UTF8 backend/app/api/rag.py $code"
+
+REM Wire RAG router
+%PS% ^
+"$f='backend/app/main.py'; $t=Get-Content -Raw $f;" ^
+"if ($t -notmatch 'from \\.api\\.rag import router as rag_router') { $t = $t -replace '(from \\.api\\.[^\\n]+\\n)+', '$0from .api.rag import router as rag_router`n'; }" ^
+"if ($t -notmatch 'app\\.include_router\\(rag_router\\)') { $t = $t -replace '(?s)(app\\.include_router\$begin:math:text$[^)]+\\$end:math:text$\\s*)$', '$0`napp.include_router(rag_router)'; }" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ----------------------------------------------------------
+REM 7) Exports for LLM reports (CSV/HTML)
+REM ----------------------------------------------------------
+%PS% ^
+"$f='backend/app/api/reports_llm.py'; $t=Get-Content -Raw $f;" ^
+"$needsFmt = ($t -notmatch 'def _format_out\\(');" ^
+"if ($needsFmt) { " ^
+" $t = $t -replace 'from app\\.core\\.llm_client import LLM','from app.core.llm_client import LLM'; " ^
+" $t = $t -replace 'router = APIRouter\\(tags=\\[\"llm-reports\"\\]\\)','router = APIRouter(tags=[\"llm-reports\"])`n`nfrom fastapi import Response' ; " ^
+" $t += @'`n\ndef _format_out(obj, fmt: str):`n import csv, io, html`n if fmt == \"csv\":`n # naive CSV flatten: title, generated_at, report\n out=io.StringIO(); w=csv.writer(out); w.writerow([\"title\",\"generated_at\",\"report\"]); w.writerow([obj.get(\"title\"), obj.get(\"generated_at\"), obj.get(\"report\",\"\" ).replace(\"\\n\",\" \")[:32000]]); return (\"text/csv\", out.getvalue())`n if fmt == \"html\":`n body = f\"<h1>{html.escape(obj.get('title',''))}</h1><pre>{html.escape(obj.get('report',''))}</pre>\"\n return (\"text/html; charset=utf-8\", f\"<!doctype html><meta charset='utf-8'>{body}\")`n return (\"application/json\", None)`n'@; " ^
+" $t = $t -replace 'async def report_health\\(body: Dict\\[str, Any\\] = Body\\(default_factory=dict\\)\\):','async def report_health(body: Dict[str, Any] = Body(default_factory=dict), format: str = \"json\"):' ; " ^
+" $t = $t -replace 'return await _gen_report\\(\"Comprehensive Health Report\", body or {}\\)','res=await _gen_report(\"Comprehensive Health Report\", body or {}); ct,p=_format_out(res, format); return Response(content=p if p else orjson.dumps(res), media_type=ct)' ; " ^
+" $t = $t -replace 'async def report_maintenance\\(body: Dict\\[str, Any\\] = Body\\(default_factory=dict\\)\\):','async def report_maintenance(body: Dict[str, Any] = Body(default_factory=dict), format: str = \"json\"):' ; " ^
+" $t = $t -replace 'return await _gen_report\\(\"Maintenance Report\", body or {}\\)','res=await _gen_report(\"Maintenance Report\", body or {}); ct,p=_format_out(res, format); return Response(content=p if p else orjson.dumps(res), media_type=ct)' ; " ^
+" $t = $t -replace 'async def report_fleet_summary\\(body: Dict\\[str, Any\\] = Body\\(default_factory=dict\\)\\):','async def report_fleet_summary(body: Dict[str, Any] = Body(default_factory=dict), format: str = \"json\"):' ; " ^
+" $t = $t -replace 'return await _gen_report\\(\"Fleet Summary\", body or {}\\)','res=await _gen_report(\"Fleet Summary\", body or {}); ct,p=_format_out(res, format); return Response(content=p if p else orjson.dumps(res), media_type=ct)' ; " ^
+" $t = $t -replace 'async def report_compliance_maintenance\\(body: Dict\\[str, Any\\] = Body\\(default_factory=dict\\)\\):','async def report_compliance_maintenance(body: Dict[str, Any] = Body(default_factory=dict), format: str = \"json\"):' ; " ^
+" $t = $t -replace 'return await _gen_report\\(\"Maintenance Compliance\", body or {}\\)','res=await _gen_report(\"Maintenance Compliance\", body or {}); ct,p=_format_out(res, format); return Response(content=p if p else orjson.dumps(res), media_type=ct)' ; " ^
+" $t = $t -replace 'async def report_compliance_alerts\\(body: Dict\\[str, Any\\] = Body\\(default_factory=dict\\)\\):','async def report_compliance_alerts(body: Dict[str, Any] = Body(default_factory=dict), format: str = \"json\"):' ; " ^
+" $t = $t -replace 'return await _gen_report\\(\"Alert Response Compliance\", body or {}\\)','res=await _gen_report(\"Alert Response Compliance\", body or {}); ct,p=_format_out(res, format); return Response(content=p if p else orjson.dumps(res), media_type=ct)' ; " ^
+" Set-Content -Encoding UTF8 $f $t; " ^
+"}"
+
+REM ----------------------------------------------------------
+REM 8) FRONTEND cards (if present): CMMS, Optimizer, RAG
+REM ----------------------------------------------------------
+if "%SKIP_UI%"=="0" (
+
+%PS% "$code=@'
+import { useEffect, useState } from \"react\";
+const BASE = (import.meta as any).env.VITE_API_URL || 'http://localhost:8000';
+
+export function CMMSCard(){
+const [rows,setRows]=useState<any[]>([]); const [err,setErr]=useState<string|null>(null);
+const [form,setForm]=useState<any>({title:'',priority:'med',vessel_id:'',equipment_id:''});
+async function load(){ try{ setRows(await (await fetch(`${BASE}/api/cmms/wo`)).json()); } catch(e:any){ setErr(e.message||String(e)); } }
+useEffect(()=>{ load(); },[]);
+async function createWO(){ await fetch(`${BASE}/api/cmms/wo`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(form)}); setForm({title:'',priority:'med'}); await load(); }
+return <div className=\"card\"><h2>CMMS (Work Orders)</h2>
+<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:6}}>
+<input placeholder='Title' value={form.title||''} onChange={e=>setForm({...form,title:e.target.value})}/>
+<input placeholder='Vessel' value={form.vessel_id||''} onChange={e=>setForm({...form,vessel_id:e.target.value})}/>
+<input placeholder='Equipment' value={form.equipment_id||''} onChange={e=>setForm({...form,equipment_id:e.target.value})}/>
+<select value={form.priority||'med'} onChange={e=>setForm({...form,priority:e.target.value})}><option>low</option><option>med</option><option>high</option></select>
+<button onClick={createWO}>Create WO</button>
+</div>
+{err&&<div style={{color:'#dc2626'}}>{err}</div>}
+<table className='text-xs' style={{width:'100%',marginTop:8}}>
+<thead><tr><th>id</th><th>title</th><th>vessel</th><th>equipment</th><th>priority</th><th>status</th><th>due</th></tr></thead>
+<tbody>{rows.map((r:any)=><tr key={r.id}><td>{r.id}</td><td>{r.title}</td><td>{r.vessel_id||'—'}</td><td>{r.equipment_id||'—'}</td><td>{r.priority||'—'}</td><td>{r.status||'open'}</td><td>{r.due_date||'—'}</td></tr>)}</tbody>
+</table>
+</div>;
+}
+
+export function OptimizerCard(){
+const [out,setOut]=useState<any>(null);
+const [tasks,setTasks]=useState<any[]>([
+{id:'wo_demo_1',equipment_id:'ENG1',duration_hours:4,deadline:'2025-10-01T00:00:00Z',crew:1,parts:[]}
+]);
+const [windows,setWindows]=useState<any[]>([{start:'2025-09-25T08:00:00Z', end:'2025-09-25T20:00:00Z'}]);
+const [crew,setCrew]=useState(2); const [parts,setParts]=useState<string>('filter_A,oil_B');
+async function run(){
+const body={ tasks, crew_available:crew, dock_windows:windows, parts_available: parts.split(',').map(s=>s.trim()).filter(Boolean) };
+const r = await fetch(`${BASE}/api/opt/plan`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+setOut(await r.json());
+}
+return <div className=\"card\"><h2>Optimizer (Greedy)</h2>
+<button onClick={run}>Propose Schedule</button>
+{out && <pre className='text-xs' style={{background:'#f1f5f9',padding:8,marginTop:8,borderRadius:6,overflow:'auto'}}>{JSON.stringify(out,null,2)}</pre>}
+</div>;
+}
+
+export function RAGCard(){
+const [q,setQ]=useState('overdue OR error'); const [rows,setRows]=useState<any[]>([]);
+async function refresh(){ await fetch((BASE+'/api/rag/refresh'),{method:'POST'}); }
+async function search(){ const r=await fetch(`${BASE}/api/rag/search?q=${encodeURIComponent(q)}`); setRows(await r.json()); }
+return <div className=\"card\"><h2>RAG Console (FTS5)</h2>
+<div style={{display:'flex',gap:6}}><input style={{flex:1}} value={q} onChange={e=>setQ(e.target.value)} placeholder='fts5 query e.g. error NEAR overdue'/><button onClick={search}>Search</button><button onClick={refresh}>Reindex</button></div>
+<ul>{rows.map((r:any,i:number)=><li key={i}>{r.kind}:{r.ref_id} — {r.text}</li>)}</ul>
+</div>;
+}
+'@; Set-Content -Encoding UTF8 frontend/src/components/CMMS_Opt_RAG.tsx $code"
+
+REM Hook cards into App.tsx
+%PS% ^
+"$f='frontend/src/App.tsx'; $t=Get-Content -Raw $f;" ^
+"if ($t -notmatch 'CMMS_Opt_RAG') { $t = $t -replace 'from \\\"\\./components/TransportSettings\\\";','from \"./components/TransportSettings\";\nimport { CMMSCard, OptimizerCard, RAGCard } from \"./components/CMMS_Opt_RAG\";'; }" ^
+"if ($t -notmatch 'CMMS \\(Work Orders\\)') { $t = $t -replace '(</div>\\s*;\\s*\\}\\s*$)',' <CMMSCard/>\n <OptimizerCard/>\n <RAGCard/>\n </div>);\n}\n'; }" ^
+"Set-Content -Encoding UTF8 $f $t;"
+) ELSE (
+echo [INFO] Skipping UI patch (frontend not found).
+)
+
+echo.
+echo ==========================================================
+echo [OK] Quick-Wins (NO SECURITY) installed.
+echo ----------------------------------------------------------
+echo New backend:
+echo - Observability: /healthz /readyz /metrics
+echo - CMMS-lite: /api/cmms/*
+echo - Optimizer: /api/opt/plan
+echo - RAG: /api/rag/refresh, /api/rag/search
+echo - Reports export: add ?format=csv|html to /api/report/* endpoints
+echo Frontend:
+echo - New cards: CMMS (Work Orders), Optimizer, RAG Console
+echo Notes:
+echo - RBAC/tenancy is header-scoped only (X-Org-Id, X-Project-Id); no auth (by request).
+echo - LLM still runs ON-DEMAND only.
+echo ----------------------------------------------------------
+echo Restart backend and frontend to apply changes.
+echo ==========================================================
+endlocal

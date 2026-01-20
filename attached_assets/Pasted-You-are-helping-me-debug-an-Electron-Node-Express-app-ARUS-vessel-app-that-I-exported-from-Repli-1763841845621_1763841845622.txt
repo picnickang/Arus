@@ -1,0 +1,213 @@
+You are helping me debug an Electron + Node/Express app (ARUS vessel app) that I exported from Replit and am now running on macOS.
+
+Context / current behavior
+--------------------------
+- I can successfully run:
+
+  npx electron .
+
+- The embedded server starts up and logs:
+
+  "✅ Server listening on port 5000"
+  "✅ Application started successfully"
+  "Electron loading URL: http://localhost:5000"
+
+- But in the Electron window I only see an **empty blue screen**.
+
+- In the Electron devtools console I get:
+
+  [SW] Service worker loaded
+  index-C5tNOPsY.js:1 Failed to load resource: the server responded with a status of 404 (Not Found)
+  (index):1 Refused to apply style from 'http://localhost:5000/assets/index-C8omU17M.css' because its MIME type ('text/html') is not a supported stylesheet MIME type, and strict MIME checking is enabled.
+  (index):82 ⚙️ Service Worker registration skipped in development mode
+  VM4 sandbox_bundle:2 Electron Security Warning (Insecure Content-Security-Policy)...
+
+- So:
+  - The **HTML shell** is loading.
+  - But the **built JS and CSS assets under `/assets/...` are 404ing**, and when requested, the server is returning HTML (`text/html`), not static files.
+  - That’s why I only see a flat blue background and no app UI.
+
+Server logs when running `npx electron .`
+-----------------------------------------
+(abridged but important parts)
+
+🎬 ARUS Electron app starting...
+🔧 Mode: Development
+🖥️  Platform: darwin
+🚀 Starting ARUS embedded server...
+🔌 Allocated port: 5000
+📂 Project root: /Users/homeimac/Downloads/RecipeRealm/RecipeRealm
+📂 Dev server path: /Users/homeimac/Downloads/RecipeRealm/RecipeRealm/server/index-wrapper.js
+🔧 Dev command: node /Users/homeimac/Downloads/RecipeRealm/RecipeRealm/server/index-wrapper.js
+...
+[Server] ✅ Server listening on port 5000 (initialization continuing in background...)
+🔒 CSP Mode: Development (Relaxed)
+🔗 Electron loading URL: http://localhost:5000
+✅ Application started successfully
+
+Goal
+----
+Fix the project so that:
+
+1. The frontend is **built** (e.g. Vite/React build) and emits the hashed assets: `index-XXXX.js`, `index-XXXX.css` under an `/assets/` directory.
+2. The Node/Express server correctly serves those built files under `/assets/...` with the right MIME types (`text/css`, `application/javascript` etc.) instead of returning the HTML fallback.
+3. When I run:
+
+   - npm install
+   - npm run build   (or whatever build script is appropriate)
+   - npx electron .
+
+   the Electron window should show the full ARUS UI, not a blank blue page, and devtools Network tab should show 200 responses for `/assets/index-*.js` and `/assets/index-*.css`.
+
+What I want you to do
+---------------------
+
+1. **Inspect the project scripts and build setup**
+   - Open `package.json`.
+   - Identify the existing scripts: especially `build`, `build:web`, `build:client`, `dev`, etc.
+   - Inspect any Vite / React / Webpack or other bundler config files:
+     - e.g. `vite.config.*`, `webpack.config.*`, `rollup.config.*`, or any `client/` or `web/` subproject with its own `package.json`.
+
+   Then:
+   - Determine **which command should be the canonical frontend build command** (e.g. `npm run build` or `npm run build:web`).
+   - Ensure that command outputs a production build that includes:
+     - an `index.html` (or equivalent) and
+     - hashed JS/CSS assets (e.g. `assets/index-*.js`, `assets/index-*.css`).
+
+2. **Locate the build output directory**
+   - Search the repo for likely output folders:
+     - `dist/`
+     - `build/`
+     - `client/dist/`
+     - `app/dist/`
+     - `web/dist/`
+   - Confirm which directory contains the frontend assets that include `/assets/...` inside.
+
+3. **Wire the Express server to serve the build correctly**
+   - Open `server/index.js` (or the main Express file that is imported by `server/index-wrapper.js`).
+   - Find where the server currently serves static files and/or where it handles the root `GET /` route.
+   - Modify / add Express static middleware such that:
+     - The build output directory is served as **static**.
+     - The `/assets` path returns those static JS/CSS files with correct MIME types instead of falling back to the HTML page.
+
+   For example (pseudo-code, adapt to actual structure):
+
+   ```js
+   import path from "path";
+   import express from "express";
+
+   const app = express();
+   const __dirname = path.resolve();
+
+   const clientDist = path.join(__dirname, "DIST_FOLDER_HERE"); // e.g. "dist" or "client/dist"
+
+   app.use(express.static(clientDist));       // serves /assets/* etc
+   app.get("*", (req, res) => {
+     res.sendFile(path.join(clientDist, "index.html"));
+   });
+Make sure your changes:
+
+Use the correct path relative to the server file.
+
+Do not break the existing API routes (/api/..., telemetry, etc.).
+
+Only affect how the static frontend is served.
+
+
+
+Align /assets/... with the build
+
+Ensure that the final built frontend uses /assets/... as its asset base path (which it already seems to do from the error).
+
+If needed, adjust the bundler config (e.g. Vite’s base option) so that it produces asset URLs that match what the server can serve without rewriting.
+
+The aim: a request to http://localhost:5000/assets/index-C5tNOPsY.js should return:
+
+Status 200
+
+Content-Type: application/javascript
+
+Similarly for index-C8omU17M.css with text/css.
+
+Leave database stuff alone unless strictly necessary
+
+There is a warning in the logs:
+
+Database initialization failed: TypeError: Cannot read properties of null (reading 'select') ... Continuing despite initialization error
+
+For now, do not try to deeply refactor the DB/Turso/libSQL logic.
+
+The priority is just to get the UI rendering correctly in embedded/local mode, using the existing SQLite/local setup.
+
+It’s acceptable if cloud sync or some advanced analytics are disabled in this embedded mode—as long as the main UI loads and basic local features work.
+
+Add or update scripts as needed
+
+If there is no appropriate build script in package.json, create one (e.g. "build:web": "vite build" or whatever matches the frontend tooling).
+
+Optionally:
+
+Create a convenience script such as:
+
+"build:embedded": "npm run build && echo \"Frontend built for Electron embedded mode\""
+
+But keep existing scripts intact and don’t break Replit’s dev flow.
+
+Verify with commands
+
+After making changes, run the following (or simulate if you can’t actually run them):
+
+npm install
+
+npm run build (or the final build script you chose)
+
+npx electron .
+
+Confirm that:
+
+No 404 for /assets/index-*.js and /assets/index-*.css.
+
+No MIME-type errors like “Refused to apply style because its MIME type (‘text/html’) is not a supported stylesheet MIME type”.
+
+The Electron window displays the ARUS UI, not a plain blue screen.
+
+Summarize the final changes
+
+When you’re done, summarize:
+
+Which script is now the canonical frontend build.
+
+Which folder is the build output.
+
+What exact changes you made in the server (file names and key code snippets).
+
+Any notes for how I should build and run the app locally in future (a short “How to run” section).
+
+
+
+Important constraints
+
+Do NOT rename the project.
+
+Do NOT remove any server routes, telemetry, or DB-related modules unless clearly unused and safe to remove.
+
+Keep changes minimal and targeted to:
+
+frontend build scripts, and
+
+static file serving / path configuration.
+
+If something is ambiguous, make reasonable assumptions and proceed; don’t ask me questions—I’m using this as a one-shot automated fix.
+
+
+
+Now, please:
+
+Inspect the repo.
+
+Apply the code and config changes needed.
+
+Ensure the static assets are properly built and served.
+
+Then output a concise summary of what you changed and how to run the app.
+

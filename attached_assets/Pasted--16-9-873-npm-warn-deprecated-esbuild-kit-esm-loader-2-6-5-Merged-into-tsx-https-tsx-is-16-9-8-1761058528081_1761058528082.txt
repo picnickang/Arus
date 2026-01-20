@@ -1,0 +1,100 @@
+#16 9.873 npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+#16 9.891 npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+#16 11.22 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#16 11.27 npm warn deprecated rimraf@2.6.3: Rimraf versions prior to v4 are no longer supported
+#16 11.32 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#16 11.40 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#16 12.11 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#16 12.11 npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+#16 12.19 npm warn deprecated glob@8.1.0: Glob versions prior to v9 are no longer supported
+#16 12.64 npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+#16 12.64 npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+#16 12.66 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#16 12.66 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#16 12.94 npm warn deprecated glob@8.1.0: Glob versions prior to v9 are no longer supported
+#16 12.95 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#16 13.79 npm warn deprecated apollo-server-core@3.13.0: The `apollo-server-core` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/server` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+#16 38.75 
+#16 38.75 added 1596 packages, and audited 1597 packages in 39s
+#16 38.75 
+#16 38.75 201 packages are looking for funding
+#16 38.75   run `npm fund` for details
+#16 38.78 
+#16 38.78 8 vulnerabilities (3 low, 5 moderate)
+#16 38.78 
+#16 38.78 To address issues that do not require attention, run:
+#16 38.78   npm audit fix
+#16 38.78 
+#16 38.78 To address all issues (including breaking changes), run:
+#16 38.78   npm audit fix --force
+#16 38.78 
+#16 38.78 Run `npm audit` for details.
+#16 38.78 npm notice
+#16 38.78 npm notice New major version of npm available! 10.8.2 -> 11.6.2
+#16 38.78 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.6.2
+#16 38.78 npm notice To update run: npm install -g npm@11.6.2
+#16 38.78 npm notice
+#16 DONE 41.1s
+#17 [builder 6/7] COPY . .
+#17 DONE 0.9s
+#18 [builder 7/7] RUN echo "Building frontend..." &&     npx vite build &&     echo "Building backend..." &&     node esbuild.config.js &&     echo "Build complete!"
+#18 0.063 Building frontend...
+#18 0.557 vite v5.4.20 building for production...
+#18 0.608 transforming...
+#18 13.21 ✓ 3794 modules transformed.
+#18 13.85 rendering chunks...
+#18 14.51 [plugin:vite:reporter] [plugin vite:reporter] 
+#18 14.51 (!) /app/client/src/pages/ai-insights.tsx is dynamically imported by /app/client/src/pages/ml-ai-consolidated.tsx but also statically imported by /app/client/src/App.tsx, dynamic import will not move module into another chunk.
+#18 14.51 
+#18 14.51 [plugin:vite:reporter] [plugin vite:reporter] 
+#18 14.51 (!) /app/client/src/pages/ml-training.tsx is dynamically imported by /app/client/src/pages/ml-ai-consolidated.tsx but also statically imported by /app/client/src/App.tsx, dynamic import will not move module into another chunk.
+#18 14.51 
+#18 14.56 computing gzip size...
+#18 14.62 ../dist/public/index.html                              4.02 kB │ gzip:   1.41 kB
+#18 14.62 ../dist/public/assets/index-_0SUaLr4.css             117.72 kB │ gzip:  18.54 kB
+#18 14.62 ../dist/public/assets/purify.es-DfngIMfA.js           22.26 kB │ gzip:   8.72 kB
+#18 14.62 ../dist/public/assets/index.es-B9cyO-QT.js           150.57 kB │ gzip:  51.50 kB
+#18 14.62 ../dist/public/assets/html2canvas.esm-CBrSDip1.js    201.42 kB │ gzip:  48.03 kB
+#18 14.62 ../dist/public/assets/jspdf.es.min-vodt-ERg.js       413.63 kB │ gzip: 135.01 kB
+#18 14.62 ../dist/public/assets/index-QFLnkQuD.js            2,150.20 kB │ gzip: 536.07 kB
+#18 14.62 
+#18 14.62 (!) Some chunks are larger than 500 kB after minification. Consider:
+#18 14.62 - Using dynamic import() to code-split the application
+#18 14.62 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+#18 14.62 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+#18 14.62 ✓ built in 14.04s
+#18 14.74 Building backend...
+#18 15.02 Build complete!
+#18 DONE 21.0s
+#19 [production 8/9] COPY --from=builder /app/dist ./dist
+#19 DONE 0.7s
+#20 [production 9/9] RUN chown -R arus:nodejs /app
+#20 DONE 259.5s
+#21 exporting to docker image format
+#21 exporting layers
+#21 exporting layers 45.0s done
+#21 exporting manifest sha256:ef9c73e2052d6ce013512bae6057b17adcfa66cf9bf88c5c161bf536b98fd111 0.0s done
+#21 exporting config sha256:7ca475b3ebec77858c57d41218f0856d6372c4c59129fef60b60e2468ad0b1d8 done
+#21 DONE 49.2s
+#22 exporting cache to client directory
+#22 preparing build cache for export
+#22 writing cache image manifest sha256:fb7759f8ff14a5c991d56badd339ff58708d3ff9e4ae153dc33ab8c604a4bfca
+#22 writing cache image manifest sha256:fb7759f8ff14a5c991d56badd339ff58708d3ff9e4ae153dc33ab8c604a4bfca 0.3s done
+#22 DONE 101.1s
+Pushing image to registry...
+Upload succeeded
+==> Deploying...
+2025-10-21 14:54:35.296650: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 FMA
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+=== Database Configuration ===
+Deployment Mode: CLOUD (Online)
+ERROR: DATABASE_URL environment variable is required for cloud mode
+==> No open ports detected, continuing to scan...
+==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+==> Exited with status 1
+==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+2025-10-21 14:54:53.247767: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 FMA
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+=== Database Configuration ===
+Deployment Mode: CLOUD (Online)
+ERROR: DATABASE_URL environment variable is required for cloud mode

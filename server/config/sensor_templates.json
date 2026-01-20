@@ -1,0 +1,81 @@
+{
+  "templates": [
+    {
+      "id": "VIB-ISO10816",
+      "kind": "vibration",
+      "unit": "mm/s",
+      "fields": {
+        "band": "10-1000Hz",
+        "mount": "rigid"
+      },
+      "notes": "General machine vibration velocity per ISO 10816"
+    },
+    {
+      "id": "MODBUS-4_20-Pressure",
+      "kind": "pressure",
+      "unit": "bar",
+      "fields": {
+        "range": "0-10bar",
+        "scale": "(mA-4)*10/16"
+      },
+      "notes": "4-20mA transmitter 0-10bar"
+    },
+    {
+      "id": "NMEA2K-TankLevel",
+      "kind": "level",
+      "unit": "%",
+      "fields": {
+        "pgn": 127505
+      },
+      "notes": "NMEA2000 fluid level"
+    },
+    {
+      "id": "OIL-DEBRIS-GEARBOX",
+      "kind": "oil_debris",
+      "unit": "ppm",
+      "fields": {
+        "equipment_type": "gearbox",
+        "warn_threshold": 100,
+        "critical_threshold": 200,
+        "sampling_rate_hz": 0.0007
+      },
+      "notes": "Gearbox oil debris wear particle monitoring (100/200 ppm thresholds)"
+    },
+    {
+      "id": "OIL-DEBRIS-MAIN-ENGINE",
+      "kind": "oil_debris",
+      "unit": "ppm",
+      "fields": {
+        "equipment_type": "main_engine",
+        "warn_threshold": 150,
+        "critical_threshold": 300,
+        "sampling_rate_hz": 0.0007
+      },
+      "notes": "Main engine oil debris wear particle monitoring (150/300 ppm thresholds)"
+    },
+    {
+      "id": "OIL-DEBRIS-AUX-ENGINE",
+      "kind": "oil_debris",
+      "unit": "ppm",
+      "fields": {
+        "equipment_type": "auxiliary_engine",
+        "warn_threshold": 120,
+        "critical_threshold": 250,
+        "sampling_rate_hz": 0.0007
+      },
+      "notes": "Auxiliary engine oil debris wear particle monitoring (120/250 ppm thresholds)"
+    },
+    {
+      "id": "OIL-DEBRIS-PUMP",
+      "kind": "oil_debris",
+      "unit": "ppm",
+      "fields": {
+        "equipment_type": "marine_pump",
+        "warn_threshold": 80,
+        "critical_threshold": 150,
+        "sampling_rate_hz": 0.001
+      },
+      "notes": "Marine pump oil debris wear particle monitoring (80/150 ppm thresholds)"
+    }
+  ]
+}

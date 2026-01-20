@@ -1,0 +1,183 @@
+
+homeimac@Homes-iMac ARUS % # Check stderr for startup errors
+cat ~/Library/Logs/ARUS/stderr.log
+
+# Check stdout
+tail -n 100 ~/Library/Logs/ARUS/app.log
+zsh: command not found: #
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+zsh: command not found: #
+⚠ Turso Sync: Disabled (credentials not configured)
+  Running in offline-only mode without cloud sync
+  Set TURSO_SYNC_URL and TURSO_AUTH_TOKEN to enable sync
+→ Applying SQLite performance optimizations...
+✓ SQLite performance optimizations applied
+  • WAL mode enabled (better concurrency)
+  • Cache: 64MB
+  • Sync: NORMAL (safe with WAL)
+  • Foreign keys: ON
+✓ Local SQLite: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+→ Initializing SQLite database tables...
+[SQLite Init] Initializing vessel mode database...
+[SQLite Init] Database initialized successfully with 131 tables (100% feature parity) at: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+✓ SQLite tables initialized
+==============================
+
+2025-10-23 00:06:44.691258: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 FMA
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+
+=== Database Configuration ===
+Deployment Mode: VESSEL (Offline-First)
+⚠ Turso Sync: Disabled (credentials not configured)
+  Running in offline-only mode without cloud sync
+  Set TURSO_SYNC_URL and TURSO_AUTH_TOKEN to enable sync
+→ Applying SQLite performance optimizations...
+✓ SQLite performance optimizations applied
+  • WAL mode enabled (better concurrency)
+  • Cache: 64MB
+  • Sync: NORMAL (safe with WAL)
+  • Foreign keys: ON
+✓ Local SQLite: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+→ Initializing SQLite database tables...
+[SQLite Init] Initializing vessel mode database...
+[SQLite Init] Database initialized successfully with 131 tables (100% feature parity) at: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+✓ SQLite tables initialized
+==============================
+
+2025-10-23 00:06:55.135452: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 FMA
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+
+=== Database Configuration ===
+Deployment Mode: VESSEL (Offline-First)
+⚠ Turso Sync: Disabled (credentials not configured)
+  Running in offline-only mode without cloud sync
+  Set TURSO_SYNC_URL and TURSO_AUTH_TOKEN to enable sync
+→ Applying SQLite performance optimizations...
+✓ SQLite performance optimizations applied
+  • WAL mode enabled (better concurrency)
+  • Cache: 64MB
+  • Sync: NORMAL (safe with WAL)
+  • Foreign keys: ON
+✓ Local SQLite: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+→ Initializing SQLite database tables...
+[SQLite Init] Initializing vessel mode database...
+[SQLite Init] Database initialized successfully with 131 tables (100% feature parity) at: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+✓ SQLite tables initialized
+==============================
+
+2025-10-23 00:07:05.772549: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 FMA
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+
+=== Database Configuration ===
+Deployment Mode: VESSEL (Offline-First)
+⚠ Turso Sync: Disabled (credentials not configured)
+  Running in offline-only mode without cloud sync
+  Set TURSO_SYNC_URL and TURSO_AUTH_TOKEN to enable sync
+→ Applying SQLite performance optimizations...
+✓ SQLite performance optimizations applied
+  • WAL mode enabled (better concurrency)
+  • Cache: 64MB
+  • Sync: NORMAL (safe with WAL)
+  • Foreign keys: ON
+✓ Local SQLite: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+→ Initializing SQLite database tables...
+[SQLite Init] Initializing vessel mode database...
+[SQLite Init] Database initialized successfully with 131 tables (100% feature parity) at: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+✓ SQLite tables initialized
+==============================
+
+2025-10-23 00:07:16.304183: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 FMA
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+
+=== Database Configuration ===
+Deployment Mode: VESSEL (Offline-First)
+⚠ Turso Sync: Disabled (credentials not configured)
+  Running in offline-only mode without cloud sync
+  Set TURSO_SYNC_URL and TURSO_AUTH_TOKEN to enable sync
+→ Applying SQLite performance optimizations...
+✓ SQLite performance optimizations applied
+  • WAL mode enabled (better concurrency)
+  • Cache: 64MB
+  • Sync: NORMAL (safe with WAL)
+  • Foreign keys: ON
+✓ Local SQLite: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+→ Initializing SQLite database tables...
+[SQLite Init] Initializing vessel mode database...
+[SQLite Init] Database initialized successfully with 131 tables (100% feature parity) at: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+✓ SQLite tables initialized
+==============================
+

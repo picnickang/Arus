@@ -1,0 +1,14 @@
+TypeError: Cannot read properties of undefined (reading 'name')
+
+TypeError: Cannot read properties of undefined (reading 'name')
+    at SensorSetupWizard (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/src/components/sensors/SensorSetupWizard.tsx:52:19)
+    at renderWithHooks (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=ca228465:11548:26)
+    at mountIndeterminateComponent (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=ca228465:14926:21)
+    at beginWork (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=ca228465:15914:22)
+    at beginWork$1 (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=ca228465:19753:22)
+    at performUnitOfWork (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=ca228465:19198:20)
+    at workLoopSync (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=ca228465:19137:13)
+    at renderRootSync (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=ca228465:19116:15)
+    at recoverFromConcurrentError (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=ca228465:18736:28)
+    at performSyncWorkOnRoot (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=ca228465:18879:28)
+Reload Application

@@ -1,0 +1,28 @@
+{
+  "threshold": 0,
+  "reporters": ["html", "console"],
+  "output": "./reports/jscpd",
+  "ignore": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/migrations/**",
+    "**/.replit/**",
+    "**/attached_assets/**",
+    "**/ios/**",
+    "**/tools/**",
+    "**/reports/**",
+    "**/backups/**",
+    "**/checkpoints/**",
+    "**/patches/**",
+    "**/*.json",
+    "**/*.md",
+    "**/*.lock"
+  ],
+  "pattern": "**/*.{ts,tsx}",
+  "minLines": 10,
+  "minTokens": 50,
+  "skipLocal": false,
+  "absolute": false,
+  "gitignore": true
+}

@@ -1,0 +1,51 @@
+/**
+ * System Admin Repository - Modular Aggregator
+ */
+
+import { DbAuditStorage } from "./db-audit.js";
+import { DbSettingsStorage } from "./db-settings.js";
+import type { InsertAdminSystemSetting, InsertIntegrationConfig, InsertMaintenanceWindow, InsertSystemHealthCheck } from "./types.js";
+
+export * from "./types.js";
+export { DbAuditStorage } from "./db-audit.js";
+export { DbSettingsStorage } from "./db-settings.js";
+
+type PartialSetting = Partial<InsertAdminSystemSetting>;
+type PartialConfig = Partial<InsertIntegrationConfig>;
+type PartialWindow = Partial<InsertMaintenanceWindow>;
+type PartialCheck = Partial<InsertSystemHealthCheck>;
+
+export class DatabaseSystemAdminStorage extends DbAuditStorage {
+  private s = new DbSettingsStorage();
+  async getAdminSystemSettings(orgId?: string, category?: string) { return this.s.getAdminSystemSettings(orgId, category); }
+  async getAdminSystemSetting(orgId: string, category: string, key: string) { return this.s.getAdminSystemSetting(orgId, category, key); }
+  async createAdminSystemSetting(setting: PartialSetting) { return this.s.createAdminSystemSetting(setting); }
+  async updateAdminSystemSetting(id: string, setting: PartialSetting) { return this.s.updateAdminSystemSetting(id, setting); }
+  async deleteAdminSystemSetting(id: string) { return this.s.deleteAdminSystemSetting(id); }
+  async getSettingsByCategory(orgId: string, category: string) { return this.s.getSettingsByCategory(orgId, category); }
+  async getIntegrationConfigs(orgId?: string, type?: string) { return this.s.getIntegrationConfigs(orgId, type); }
+  async getIntegrationConfig(id: string, orgId?: string) { return this.s.getIntegrationConfig(id, orgId); }
+  async createIntegrationConfig(config: PartialConfig) { return this.s.createIntegrationConfig(config); }
+  async updateIntegrationConfig(id: string, config: PartialConfig) { return this.s.updateIntegrationConfig(id, config); }
+  async deleteIntegrationConfig(id: string) { return this.s.deleteIntegrationConfig(id); }
+  async updateIntegrationHealth(id: string, healthStatus: string, errorMessage?: string) { return this.s.updateIntegrationHealth(id, healthStatus, errorMessage); }
+  async getMaintenanceWindows(orgId?: string, status?: string) { return this.s.getMaintenanceWindows(orgId, status); }
+  async getMaintenanceWindow(id: string, orgId?: string) { return this.s.getMaintenanceWindow(id, orgId); }
+  async createMaintenanceWindow(window: PartialWindow) { return this.s.createMaintenanceWindow(window); }
+  async updateMaintenanceWindow(id: string, window: PartialWindow) { return this.s.updateMaintenanceWindow(id, window); }
+  async deleteMaintenanceWindow(id: string) { return this.s.deleteMaintenanceWindow(id); }
+  async getActiveMaintenanceWindows(orgId?: string) { return this.s.getActiveMaintenanceWindows(orgId); }
+  async getSystemHealthChecks(orgId?: string, category?: string) { return this.s.getSystemHealthChecks(orgId, category); }
+  async getSystemHealthCheck(id: string, orgId?: string) { return this.s.getSystemHealthCheck(id, orgId); }
+  async createSystemHealthCheck(check: PartialCheck) { return this.s.createSystemHealthCheck(check); }
+  async updateSystemHealthCheck(id: string, check: PartialCheck, orgId: string) { return this.s.updateSystemHealthCheck(id, check, orgId); }
+  async deleteSystemHealthCheck(id: string, orgId: string) { return this.s.deleteSystemHealthCheck(id, orgId); }
+  async updateHealthCheckStatus(id: string, status: string, orgId: string, message?: string, responseTime?: number) { return this.s.updateHealthCheckStatus(id, status, orgId, message, responseTime); }
+  async getFailingHealthChecks(orgId?: string) { return this.s.getFailingHealthChecks(orgId); }
+  async getMetricTrends(orgId: string, metricName: string, hours: number) { return this.s.getMetricTrends(orgId, metricName, hours); }
+  async getSystemHealth(orgId?: string) { return this.s.getSystemHealth(orgId); }
+}
+
+export const dbSystemAdminStorage = new DatabaseSystemAdminStorage();
+
+console.log("[System Admin Repository] Loaded 6 modular files");

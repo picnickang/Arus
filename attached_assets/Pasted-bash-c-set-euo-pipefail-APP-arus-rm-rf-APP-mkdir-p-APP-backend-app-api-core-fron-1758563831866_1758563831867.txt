@@ -1,0 +1,785 @@
+bash -c 'set -euo pipefail
+APP=arus && rm -rf "$APP" && mkdir -p "$APP"/{backend/app/{api,core},frontend/src/{hooks}} && cd "$APP"
+
+### --- BACKEND FILES ---
+cat > backend/requirements.txt << "EOF"
+fastapi>=0.111
+uvicorn>=0.30
+pydantic>=1.10
+orjson>=3.10
+aiosqlite>=0.20
+jsonschema>=4.22
+httpx>=0.27
+PyJWT>=2.9
+EOF
+
+cat > backend/README.md << "EOF"
+# ARUS — Marine PdM & Scheduling (Monorepo backend)
+Run dev:
+  python -m venv .venv && source .venv/bin/activate
+  pip install -r requirements.txt
+  export ARUS_SQLITE=./arus.sqlite
+  uvicorn app.main:app --host 0.0.0.0 --port 8000
+EOF
+
+cat > backend/app/main.py << "EOF"
+from __future__ import annotations
+from fastapi import FastAPI
+from fastapi.responses import ORJSONResponse
+
+from .api.health import router as health_router
+from .api.admin_settings import router as settings_router
+from .api.devices import router as devices_router
+from .api.edge import router as edge_router
+from .api.ingest import router as ingest_router
+from .api.reports import router as reports_router
+from .pdm_scorer import router as pdm_router  # /api/report and /overview
+
+app = FastAPI(title="ARUS Telemetry API", version="1.0.0", default_response_class=ORJSONResponse)
+
+# Routers
+app.include_router(health_router)
+app.include_router(settings_router)
+app.include_router(devices_router)
+app.include_router(edge_router)
+app.include_router(ingest_router)
+app.include_router(reports_router)
+app.include_router(pdm_router)
+
+@app.get("/")
+def root():
+    return {"ok": True, "service": "arus-api"}
+EOF
+
+cat > backend/app/api/health.py << "EOF"
+from __future__ import annotations
+from fastapi import APIRouter
+from fastapi.responses import JSONResponse
+from datetime import datetime
+import os
+import aiosqlite
+
+router = APIRouter(prefix="/api", tags=["health"])
+
+async def _check_sqlite(sqlite_path: str) -> dict:
+    try:
+        async with aiosqlite.connect(sqlite_path) as db:
+            await db.execute("PRAGMA journal_mode=WAL;")
+            await db.execute("CREATE TABLE IF NOT EXISTS _ready (k TEXT PRIMARY KEY, v TEXT)")
+            await db.execute("INSERT OR REPLACE INTO _ready(k,v) VALUES('ts',?)", (datetime.utcnow().isoformat()+"Z",))
+            await db.commit()
+        return {"ok": True}
+    except Exception as e:
+        return {"ok": False, "err": str(e)}
+
+@router.get("/healthz")
+async def healthz():
+    return {"ok": True, "ts": datetime.utcnow().isoformat()+"Z"}
+
+@router.get("/readyz")
+async def readyz():
+    status = {"ts": datetime.utcnow().isoformat()+"Z"}
+    sqlite_path = os.getenv("ARUS_SQLITE", "./arus.sqlite")
+    status["sqlite"] = await _check_sqlite(sqlite_path)
+    q_depth = int(os.getenv("ARUS_INGEST_BACKLOG", "0"))
+    q_limit = int(os.getenv("ARUS_INGEST_BACKLOG_LIMIT", "10000"))
+    status["queue"] = {"depth": q_depth, "limit": q_limit, "ok": q_depth < q_limit}
+    ok = all([status["sqlite"]["ok"], status["queue"]["ok"]])
+    return JSONResponse(status_code=(200 if ok else 503), content=status)
+EOF
+
+cat > backend/app/core/http_json.py << "EOF"
+from __future__ import annotations
+import hashlib, json
+from fastapi import Request
+from fastapi.responses import ORJSONResponse
+
+DefaultJSON = ORJSONResponse
+
+def etag_response(req: Request, data: dict | list) -> ORJSONResponse:
+    body = json.dumps(data, separators=(",",":"), ensure_ascii=False).encode()
+    et = hashlib.sha256(body).hexdigest()
+    inm = req.headers.get('if-none-match')
+    if inm == et:
+        return ORJSONResponse(status_code=304, content=None)
+    resp = ORJSONResponse(content=data)
+    resp.headers['ETag'] = et
+    return resp
+EOF
+
+cat > backend/app/core/db_tuning.py << "EOF"
+from __future__ import annotations
+import aiosqlite
+
+SQLITE_PRAGMAS = [
+    "PRAGMA journal_mode=WAL;",
+    "PRAGMA synchronous=NORMAL;",
+    "PRAGMA temp_store=MEMORY;",
+    "PRAGMA cache_size=-20000;"
+]
+
+async def sqlite_tune(path: str):
+    async with aiosqlite.connect(path) as db:
+        for stmt in SQLITE_PRAGMAS:
+            try:
+                await db.execute(stmt)
+            except Exception:
+                pass
+        await db.commit()
+EOF
+
+cat > backend/app/core/security.py << "EOF"
+from __future__ import annotations
+from fastapi import Depends
+def require_scopes(*_scopes: str):
+    async def _dep():
+        return True
+    return _dep
+EOF
+
+cat > backend/app/core/settings.py << "EOF"
+from __future__ import annotations
+from pydantic import BaseModel
+from typing import Any, Dict
+import copy
+
+class SettingsModel(BaseModel):
+    server: Dict[str, Any] = {"host": "0.0.0.0", "port": 8000, "cors": ["*"], "gzip_threshold": 1024}
+    ingest: Dict[str, Any] = {
+        "max_payload_bytes": 2_097_152,
+        "strict_units": False,
+        "hmac_required": False,
+        "queue_max": 10000,
+        "hmac_default": None,
+        "hmac_keys": {},
+    }
+    rl: Dict[str, Any] = {"min_rps": 1, "max_rps": 100, "target_p95_sec": 0.3}
+    optimizer: Dict[str, Any] = {"weight_downtime": 1.0, "weight_risk": 1.0}
+    llm: Dict[str, Any] = {"enabled": True, "model": "gpt-4o-mini", "timeout_sec": 10, "max_tokens": 500}
+    storage: Dict[str, Any] = {"pg_dsn": None, "sqlite_path": "./arus.sqlite", "s3_bucket": None, "s3_region": None}
+    features: Dict[str, Any] = {"work_orders": True, "compliance": True, "inventory": True, "optimizer": True, "overview_report": True}
+    observability: Dict[str, Any] = {"prom_url": None, "otlp_endpoint": None, "log_level": "INFO"}
+    logging: Dict[str, Any] = {"redactions": ["hmac_key","hmac_keys","hmac_default","jwt","password"]}
+
+SETTINGS = SettingsModel()
+
+def mask(d: Dict[str, Any]) -> Dict[str, Any]:
+    return copy.deepcopy(d)
+
+def update_settings(patch: Dict[str, Any]) -> None:
+    data = SETTINGS.dict()
+    for k, v in patch.items():
+        if isinstance(v, dict) and isinstance(data.get(k), dict):
+            data[k].update(v)
+        else:
+            data[k] = v
+    global SETTINGS
+    SETTINGS = SettingsModel(**data)
+EOF
+
+cat > backend/app/core/hmac_auth.py << "EOF"
+from __future__ import annotations
+import hmac, hashlib
+from typing import Optional, Dict
+
+class HMACVerifier:
+    def __init__(self, keys_by_device: Dict[str,str] | None, default_key: Optional[str] = None):
+        self.keys = keys_by_device or {}
+        self.default = default_key
+
+    def verify(self, device_id: Optional[str], body: bytes, signature: str) -> bool:
+        key = (device_id and self.keys.get(device_id)) or self.default
+        if not key:
+            return False
+        mac = hmac.new(key.encode(), body, hashlib.sha256).hexdigest()
+        try:
+            return hmac.compare_digest(mac, signature)
+        except Exception:
+            return mac == signature
+EOF
+
+cat > backend/app/core/async_repo.py << "EOF"
+from __future__ import annotations
+import aiosqlite
+from typing import Any, Dict, List, Optional
+from datetime import datetime
+import json
+from .db_tuning import sqlite_tune
+from .settings import SETTINGS
+
+class AsyncRepo:
+    def __init__(self, sqlite_path: Optional[str] = None):
+        self._sqlite = sqlite_path or SETTINGS.storage.get("sqlite_path") or "./arus.sqlite"
+        self._init_done = False
+
+    async def init(self):
+        if self._init_done:
+            return
+        await sqlite_tune(self._sqlite)
+        async with aiosqlite.connect(self._sqlite) as db:
+            db.row_factory = aiosqlite.Row
+            await db.execute("""
+            CREATE TABLE IF NOT EXISTS device(
+              id TEXT PRIMARY KEY,
+              vessel TEXT,
+              buses TEXT,
+              sensors TEXT,
+              config TEXT,
+              hmac_key TEXT,
+              updated_at TEXT
+            )""")
+            await db.execute("""
+            CREATE TABLE IF NOT EXISTS edge_heartbeat(
+              device_id TEXT PRIMARY KEY,
+              ts TEXT,
+              cpu_pct REAL,
+              mem_pct REAL,
+              disk_free_gb REAL,
+              buffer_rows INTEGER,
+              sw_version TEXT
+            )""")
+            await db.execute("""
+            CREATE TABLE IF NOT EXISTS pdm_score_log(
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              ts TEXT NOT NULL,
+              equipment_id TEXT NOT NULL,
+              health_idx REAL,
+              p_fail_30d REAL,
+              predicted_due_date TEXT,
+              context_json TEXT
+            )""")
+            await db.execute("""
+            CREATE TABLE IF NOT EXISTS work_order(
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              equipment_id TEXT NOT NULL,
+              status TEXT NOT NULL DEFAULT 'open',
+              priority INTEGER NOT NULL DEFAULT 3,
+              reason TEXT,
+              created_at TEXT NOT NULL
+            )""")
+            await db.commit()
+        self._init_done = True
+
+    async def list_devices(self) -> List[Dict[str, Any]]:
+        await self.init()
+        async with aiosqlite.connect(self._sqlite) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute("SELECT id, vessel, buses, sensors, config, CASE WHEN hmac_key IS NULL THEN NULL ELSE '***' END AS hmac_key, updated_at FROM device ORDER BY id")
+            return [dict(r) for r in await cur.fetchall()]
+
+    async def get_device(self, device_id: str) -> Optional[Dict[str, Any]]:
+        await self.init()
+        async with aiosqlite.connect(self._sqlite) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute("SELECT id, vessel, buses, sensors, config, hmac_key, updated_at FROM device WHERE id=?", (device_id,))
+            row = await cur.fetchone()
+            return dict(row) if row else None
+
+    async def upsert_device(self, device_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        await self.init()
+        now = datetime.utcnow().isoformat()+"Z"
+        buses = json.dumps(payload.get("buses", []))
+        sensors = json.dumps(payload.get("sensors", []))
+        config = json.dumps(payload.get("config", {}))
+        hmac_key = payload.get("hmac_key")
+        async with aiosqlite.connect(self._sqlite) as db:
+            await db.execute(
+                "INSERT INTO device(id,vessel,buses,sensors,config,hmac_key,updated_at) VALUES(?,?,?,?,?,?,?) "
+                "ON CONFLICT(id) DO UPDATE SET vessel=excluded.vessel,buses=excluded.buses,sensors=excluded.sensors,config=excluded.config,hmac_key=excluded.hmac_key,updated_at=excluded.updated_at",
+                (device_id, payload.get("vessel"), buses, sensors, config, hmac_key, now)
+            )
+            await db.commit()
+            cur = await db.execute("SELECT id, vessel, buses, sensors, config, '***' as hmac_key, updated_at FROM device WHERE id=?", (device_id,))
+            return dict(await cur.fetchone())
+
+    async def upsert_edge_heartbeat(self, hb: Dict[str, Any]) -> Dict[str, Any]:
+        await self.init()
+        now = hb.get("ts") or datetime.utcnow().isoformat()+"Z"
+        async with aiosqlite.connect(self._sqlite) as db:
+            await db.execute(
+                "INSERT INTO edge_heartbeat(device_id,ts,cpu_pct,mem_pct,disk_free_gb,buffer_rows,sw_version) VALUES(?,?,?,?,?,?,?) "
+                "ON CONFLICT(device_id) DO UPDATE SET ts=excluded.ts,cpu_pct=excluded.cpu_pct,mem_pct=excluded.mem_pct,disk_free_gb=excluded.disk_free_gb,buffer_rows=excluded.buffer_rows,sw_version=excluded.sw_version",
+                (hb["device_id"], now, hb.get("cpu_pct"), hb.get("mem_pct"), hb.get("disk_free_gb"), hb.get("buffer_rows"), hb.get("sw_version"))
+            )
+            await db.commit()
+            cur = await db.execute("SELECT device_id, ts, cpu_pct, mem_pct, disk_free_gb, buffer_rows, sw_version FROM edge_heartbeat WHERE device_id=?", (hb["device_id"],))
+            return dict(await cur.fetchone())
+
+    async def list_edge_status(self) -> List[Dict[str, Any]]:
+        await self.init()
+        async with aiosqlite.connect(self._sqlite) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute("SELECT * FROM edge_heartbeat ORDER BY ts DESC")
+            return [dict(r) for r in await cur.fetchall()]
+
+    async def last_score(self, equipment_id: str) -> Optional[Dict[str, Any]]:
+        await self.init()
+        async with aiosqlite.connect(self._sqlite) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute("SELECT * FROM pdm_score_log WHERE equipment_id=? ORDER BY id DESC LIMIT 1", (equipment_id,))
+            row = await cur.fetchone()
+            return dict(row) if row else None
+
+    async def recent_scores(self, equipment_id: str, hours: int = 168) -> list[Dict[str, Any]]:
+        await self.init()
+        async with aiosqlite.connect(self._sqlite) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute("SELECT * FROM pdm_score_log WHERE equipment_id=? ORDER BY id DESC", (equipment_id,))
+            return [dict(r) for r in await cur.fetchall()]
+
+    async def list_open_wos(self, equipment_id: str) -> List[Dict[str, Any]]:
+        await self.init()
+        async with aiosqlite.connect(self._sqlite) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute("SELECT * FROM work_order WHERE equipment_id=? AND status!='closed' ORDER BY id DESC", (equipment_id,))
+            return [dict(r) for r in await cur.fetchall()]
+
+REPO = AsyncRepo()
+EOF
+
+cat > backend/app/api/admin_settings.py << "EOF"
+from __future__ import annotations
+from fastapi import APIRouter, Depends, Body, HTTPException, Request
+from typing import Any, Dict
+from app.core.security import require_scopes
+from app.core.settings import SETTINGS, update_settings, mask
+from app.core.http_json import etag_response
+
+router = APIRouter(prefix="/api/admin/settings", tags=["admin-settings"])
+
+SETTINGS_SCHEMA: Dict[str, Any] = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "ARUS Settings",
+    "type": "object",
+    "properties": {
+        "server": {"type":"object","properties":{"host":{"type":"string"},"port":{"type":"integer"},"cors":{"type":"array","items":{"type":"string"}},"gzip_threshold":{"type":"integer"}}},
+        "ingest": {"type":"object","properties":{
+            "max_payload_bytes":{"type":"integer"},
+            "strict_units":{"type":"boolean"},
+            "hmac_required":{"type":"boolean"},
+            "queue_max":{"type":"integer"},
+            "hmac_default":{"type":"string"},
+            "hmac_keys":{"type":"object","additionalProperties":{"type":"string"}}
+        }},
+        "rl":{"type":"object","properties":{"min_rps":{"type":"number"},"max_rps":{"type":"number"},"target_p95_sec":{"type":"number"}}},
+        "optimizer":{"type":"object","properties":{"weight_downtime":{"type":"number"},"weight_risk":{"type":"number"}}},
+        "llm":{"type":"object","properties":{"enabled":{"type":"boolean"},"model":{"type":"string"},"timeout_sec":{"type":"number"},"max_tokens":{"type":"integer"}}},
+        "storage":{"type":"object","properties":{"pg_dsn":{"type":"string"},"sqlite_path":{"type":"string"},"s3_bucket":{"type":"string"},"s3_region":{"type":"string"}}},
+        "features":{"type":"object","properties":{"work_orders":{"type":"boolean"},"compliance":{"type":"boolean"},"inventory":{"type":"boolean"},"optimizer":{"type":"boolean"},"overview_report":{"type":"boolean"}}},
+        "observability":{"type":"object","properties":{"prom_url":{"type":"string"},"otlp_endpoint":{"type":"string"},"log_level":{"type":"string","enum":["DEBUG","INFO","WARNING","ERROR"]}}},
+        "logging":{"type":"object","properties":{"redactions":{"type":"array","items":{"type":"string"}}}}
+    }
+}
+
+def _mask_settings(d: dict) -> dict:
+    out = mask(d)
+    ing = out.get("ingest", {})
+    if ing.get("hmac_default"):
+        ing["hmac_default"] = "***"
+    if isinstance(ing.get("hmac_keys"), dict):
+        ing["hmac_keys"] = {k: "***" for k in ing["hmac_keys"].keys()}
+    out["ingest"] = ing
+    return out
+
+@router.get("", dependencies=[Depends(require_scopes("admin:settings"))])
+def get_settings(req: Request):
+    return etag_response(req, {"effective": _mask_settings(SETTINGS.dict())})
+
+@router.get("/schema", dependencies=[Depends(require_scopes("admin:settings"))])
+def get_schema():
+    return {"schema": SETTINGS_SCHEMA}
+
+@router.put("", dependencies=[Depends(require_scopes("admin:settings"))])
+def put_settings(body: Dict[str, Any] = Body(...)):
+    try:
+        update_settings(body)
+        return {"ok": True}
+    except Exception as e:
+        raise HTTPException(400, detail=str(e))
+EOF
+
+cat > backend/app/api/devices.py << "EOF"
+from __future__ import annotations
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from typing import Optional, List, Dict, Any
+from app.core.security import require_scopes
+from app.core.async_repo import REPO
+
+router = APIRouter(prefix="/api/devices", tags=["devices"])
+
+class Device(BaseModel):
+    id: str
+    vessel: Optional[str] = None
+    buses: List[str] = []
+    sensors: List[Dict[str, Any]] = []
+    config: Dict[str, Any] = {}
+    hmac_key: Optional[str] = None
+
+@router.get("", dependencies=[Depends(require_scopes("admin:devices"))])
+async def list_devices():
+    return await REPO.list_devices()
+
+@router.put("/{device_id}", dependencies=[Depends(require_scopes("admin:devices"))])
+async def upsert_device(device_id: str, body: Device):
+    if body.id and body.id != device_id:
+        raise HTTPException(400, detail="id mismatch")
+    return await REPO.upsert_device(device_id, body.dict())
+
+@router.get("/{device_id}")
+async def get_device(device_id: str):
+    d = await REPO.get_device(device_id)
+    if not d: raise HTTPException(404, detail="not found")
+    if d.get("hmac_key"): d["hmac_key"] = "***"
+    return d
+
+@router.get("/{device_id}/config")
+async def get_device_config(device_id: str):
+    d = await REPO.get_device(device_id)
+    if not d: raise HTTPException(404, detail="not found")
+    return d.get("config") or {}
+EOF
+
+cat > backend/app/api/edge.py << "EOF"
+from __future__ import annotations
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel
+from typing import Optional
+from app.core.security import require_scopes
+from app.core.async_repo import REPO
+
+router = APIRouter(prefix="/api/edge", tags=["edge"])
+
+class Heartbeat(BaseModel):
+    device_id: str
+    cpu_pct: Optional[float] = None
+    mem_pct: Optional[float] = None
+    disk_free_gb: Optional[float] = None
+    buffer_rows: Optional[int] = None
+    sw_version: Optional[str] = None
+    ts: Optional[str] = None
+
+@router.post("/heartbeat", dependencies=[Depends(require_scopes("read:telemetry"))])
+async def heartbeat(hb: Heartbeat):
+    return await REPO.upsert_edge_heartbeat(hb.dict())
+
+@router.get("/status", dependencies=[Depends(require_scopes("read:telemetry"))])
+async def status():
+    return await REPO.list_edge_status()
+EOF
+
+cat > backend/app/api/ingest.py << "EOF"
+from __future__ import annotations
+from fastapi import APIRouter, Request, HTTPException
+from pydantic import BaseModel, Field
+from typing import Dict, List, Optional, Any
+from app.core.settings import SETTINGS
+from app.core.hmac_auth import HMACVerifier
+
+router = APIRouter(tags=["ingest"])
+
+class EquipmentIn(BaseModel):
+    id: str
+    metrics: Dict[str, float] = Field(default_factory=dict)
+    units: Dict[str, str] = Field(default_factory=dict)
+    notes: Optional[str] = None
+
+class TelemetryIn(BaseModel):
+    timestamp: str
+    source: Optional[str] = None
+    equipment: List[EquipmentIn]
+
+async def handle_ingest(payload: TelemetryIn) -> Dict[str, Any]:
+    return {"ok": True, "received": len(payload.equipment)}
+
+@router.post("/api/ingest")
+async def ingest(payload: TelemetryIn, req: Request):
+    if SETTINGS.ingest.get("hmac_required"):
+        body = await req.body()
+        device_id = req.headers.get("X-ARUS-DEVICE") or payload.source or None
+        sig = req.headers.get("X-ARUS-HMAC")
+        if not sig:
+            raise HTTPException(401, detail="missing HMAC")
+        verifier = HMACVerifier(SETTINGS.ingest.get("hmac_keys") or {}, SETTINGS.ingest.get("hmac_default"))
+        if not verifier.verify(device_id, body, sig):
+            raise HTTPException(401, detail="invalid HMAC")
+
+    if SETTINGS.ingest.get("max_payload_bytes") and req.headers.get("content-length"):
+        if int(req.headers["content-length"]) > int(SETTINGS.ingest["max_payload_bytes"]):
+            raise HTTPException(413, detail="payload too large")
+
+    if SETTINGS.ingest.get("strict_units"):
+        for e in payload.equipment:
+            for m in e.metrics.keys():
+                if m not in e.units:
+                    raise HTTPException(400, detail=f"missing unit for {m}")
+
+    return await handle_ingest(payload)
+EOF
+
+cat > backend/app/api/reports.py << "EOF"
+from __future__ import annotations
+from fastapi import APIRouter, Query
+from fastapi.responses import HTMLResponse
+from datetime import datetime
+import json
+
+router = APIRouter(prefix="/api/reports", tags=["reports"])
+
+TEMPLATE = """<!doctype html><html><head><meta charset="utf-8"/>
+<title>Maintenance Report — {equipment_id} — {date}</title>
+<style>
+body{font-family:system-ui,sans-serif;margin:24px;color:#0f172a}
+h1{font-size:20px;margin:0 0 8px}h2{font-size:16px;margin:18px 0 6px}
+.meta{color:#475569;font-size:12px}.card{border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin:10px 0}
+.mono{font-family:ui-monospace,Menlo,monospace;font-size:12px;white-space:pre-wrap}
+</style></head><body>
+<h1>Maintenance Report</h1>
+<div class="meta">Equipment: <b>{equipment_id}</b> · Generated: {date}</div>
+<div class="card"><h2>Executive Summary</h2><div class="mono">{summary}</div></div>
+<div class="card"><h2>Snapshot</h2><div class="mono">{snapshot}</div></div>
+<div class="card"><h2>Insights</h2><div class="mono">{insights}</div></div>
+</body></html>"""
+
+@router.get("/daily", response_class=HTMLResponse)
+async def daily(equipment_id: str = Query(...)):
+    try:
+        from app.pdm_scorer import build_report
+        data = await build_report(equipment_id=equipment_id)
+        summary = (data.get("draft_summary") or "No summary available").replace("<","&lt;")
+        snapshot = json.dumps(data.get("snapshot", {}), indent=2)
+        insights = json.dumps(data.get("insights", {}), indent=2)
+    except Exception:
+        summary = "Connect this endpoint to your report data."
+        snapshot = json.dumps({"note":"populate from snapshot"}, indent=2)
+        insights = json.dumps({"note":"populate from insights"}, indent=2)
+    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+    return HTMLResponse(TEMPLATE.format(equipment_id=equipment_id, date=now, summary=summary, snapshot=snapshot, insights=insights))
+EOF
+
+cat > backend/app/pdm_scorer.py << "EOF"
+from __future__ import annotations
+from fastapi import APIRouter, Body
+from pydantic import BaseModel
+from typing import Optional, Dict, Any
+from statistics import mean
+from datetime import datetime, timedelta
+import json
+
+from .core.settings import SETTINGS
+from .core.async_repo import REPO
+
+router = APIRouter()
+
+class ReportRequest(BaseModel):
+    equipment_id: str
+    mmsi: Optional[str] = None
+    lat: Optional[float] = None
+    lon: Optional[float] = None
+    history_hours: int = 168
+    include_work_orders: bool = True
+    include_calendar: bool = True
+
+async def get_ais_or_coords(mmsi: Optional[str], lat: Optional[float], lon: Optional[float]) -> Dict[str, float]:
+    if lat is not None and lon is not None:
+        return {"lat": lat, "lon": lon}
+    return {"lat": 1.29, "lon": 103.85}
+
+async def get_weather(lat: float, lon: float) -> Dict[str, Any]:
+    return {"wave_height_m": 1.2, "wind_gust_ms": 8.0, "source": "demo"}
+
+async def build_report(equipment_id: str, mmsi: Optional[str] = None, lat: Optional[float] = None, lon: Optional[float] = None, history_hours: int = 168, include_work_orders: bool = True, include_calendar: bool = True) -> Dict[str, Any]:
+    await REPO.init()
+    coords = await get_ais_or_coords(mmsi, lat, lon)
+    wx = await get_weather(coords["lat"], coords["lon"])
+
+    scores = await REPO.recent_scores(equipment_id, history_hours)
+    latest = scores[0] if scores else None
+    health_vals = [s.get("health_idx") for s in scores if s.get("health_idx") is not None]
+    p30_vals = [s.get("p_fail_30d") for s in scores if s.get("p_fail_30d") is not None]
+
+    policy = {"threshold_hours": 500,"defer_cap_pct": 0.1,"class_survey_date": (datetime.utcnow() + timedelta(days=90)).date().isoformat()}
+    calendar = [{"type":"class_survey","date": policy["class_survey_date"]}] if include_calendar else []
+    wos = await REPO.list_open_wos(equipment_id) if include_work_orders else []
+
+    snapshot = {"when": datetime.utcnow().isoformat()+"Z","position": coords,"metocean": wx,"policy": policy,"calendar": calendar,"latest_score": latest,"history": {"n": len(scores),"health_avg": round(mean(health_vals),1) if health_vals else None,"p30_avg": round(mean(p30_vals),3) if p30_vals else None}}
+    optimizations = []
+    if latest:
+        ctx = json.loads(latest.get("context_json") or "{}")
+        if ctx.get("fuel_per_kw_drift_pct", 0) > 5: optimizations.append("Fuel per kW rising; check load sharing/prop efficiency and hull fouling.")
+        if ctx.get("vib_sigma", 0) > 1.2: optimizations.append("Elevated vibration variance; inspect mounts/couplings and alignment.")
+        if (wx.get("wave_height_m") or 0) > 2.5: optimizations.append("Sea state high; consider operational limits to reduce machinery stress.")
+    upcoming = latest.get("predicted_due_date") if latest and latest.get("predicted_due_date") else (datetime.utcnow() + timedelta(days=14)).isoformat()+"Z"
+    insights = {"condition_now":{"health_latest": latest.get("health_idx") if latest else None,"p_fail_30d_latest": latest.get("p_fail_30d") if latest else None},"optimization_opportunities": optimizations,"upcoming_maintenance_eta": upcoming,"open_work_orders": wos}
+    bullets = []
+    if latest:
+        p_fail = latest.get("p_fail_30d"); p_fail_pct = f"{float(p_fail)*100:.1f}%" if p_fail is not None else "?"
+        bullets.append(f"Overall condition: Health {latest.get('health_idx','?')} / 100; 30-day failure probability {p_fail_pct}.")
+    if optimizations: bullets.append("Optimization: " + "; ".join(optimizations))
+    if upcoming: bullets.append(f"Upcoming maintenance: target by {upcoming[:16]} UTC (policy threshold {policy.get('threshold_hours')}h).")
+    if (wx.get("wave_height_m") or 0) > 2.5 or (wx.get("wind_gust_ms") or 0) > 18: bullets.append("Operational context: Elevated sea state/winds—consider reduced load or schedule slack.")
+    if wos: bullets.append(f"Work orders: {len(wos)} open; last reason: {wos[0].get('reason')}")
+    draft = "- " + "\\n- ".join(bullets) if bullets else "No recent data; ingest EFMS CSV or telemetry and re-run scoring."
+    return {"equipment_id": equipment_id,"snapshot": snapshot,"insights": insights,"llm_prompt": "","draft_summary": draft}
+
+@router.post("/api/report")
+async def report(req: ReportRequest):
+    return await build_report(**req.dict())
+
+@router.post("/overview")
+async def vessel_overview(equipment_id: str = Body(..., embed=True)):
+    if not SETTINGS.llm.get("enabled", True):
+        return {"equipment_id": equipment_id, "overview": "LLM disabled in settings."}
+    data = await build_report(equipment_id=equipment_id)
+    draft = data.get("draft_summary","")
+    narrative = ("Senior Engineer Overview\\n\\n" f"{draft}\\n\\n" "Notes: This narrative is generated on-demand; no LLM calls occur unless this endpoint is invoked.")
+    return {"equipment_id": equipment_id, "overview": narrative, "context": data}
+EOF
+
+### --- FRONTEND FILES ---
+cat > frontend/package.json << "EOF"
+{
+  "name": "arus-fleet-console",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": { "dev": "vite", "build": "vite build", "preview": "vite preview" },
+  "dependencies": { "react": "^18.2.0", "react-dom": "^18.2.0" },
+  "devDependencies": { "@vitejs/plugin-react": "^4.2.0", "typescript": "^5.4.0", "vite": "^5.0.0" }
+}
+EOF
+
+cat > frontend/index.html << "EOF"
+<!doctype html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>ARUS Fleet Console</title></head>
+<body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body></html>
+EOF
+
+cat > frontend/src/main.tsx << "EOF"
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import './index.css';
+ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);
+EOF
+
+cat > frontend/src/index.css << "EOF"
+body{margin:0;font-family:system-ui,sans-serif;background:#f8fafc;color:#0f172a}
+h1,h2{margin:.5rem 0}
+td,th{padding:.25rem .5rem;border:1px solid #e2e8f0}
+.card{border:1px solid #e2e8f0;border-radius:.5rem;padding:1rem;margin-bottom:1rem;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+button{cursor:pointer}
+.bg{background:#2563eb;color:#fff;border:none;border-radius:.375rem;padding:.4rem .7rem}
+EOF
+
+cat > frontend/src/api.ts << "EOF"
+export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+export async function api(path: string, opts: RequestInit = {}) {
+  const res = await fetch(API_BASE + path, opts);
+  if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
+  return res.json();
+}
+EOF
+
+cat > frontend/src/hooks/useSWRLite.ts << "EOF"
+import { useEffect, useState } from 'react';
+export function useSWRLite<T>(key: string, fetcher: ()=>Promise<T>, interval=5000) {
+  const [data, setData] = useState<T | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  async function load(){ try{ setLoading(true); const d = await fetcher(); setData(d); setError(null);} catch(e:any){ setError(e.message);} finally{ setLoading(false);} }
+  useEffect(()=>{ load(); const id=setInterval(load, interval); return ()=>clearInterval(id); }, [key]);
+  return { data, error, loading, reload: load };
+}
+EOF
+
+cat > frontend/src/App.tsx << "EOF"
+import { useState } from "react";
+import { api } from "./api";
+import { useSWRLite } from "./hooks/useSWRLite";
+
+function Card({title, children}:{title:string, children:any}){ return <div className="card"><h2>{title}</h2>{children}</div> }
+
+function EdgeStatus(){
+  const { data, error, loading } = useSWRLite<any[]>('edge:status', ()=> api('/api/edge/status'), 10000);
+  if (loading) return <div>Loading…</div>;
+  if (error) return <div style={{color:"#dc2626"}}>{error}</div>;
+  return (
+    <table className="text-xs" style={{width:"100%"}}>
+      <thead><tr><th>Device</th><th>CPU%</th><th>Mem%</th><th>Disk GB</th><th>Buffer</th><th>SW</th><th>TS</th></tr></thead>
+      <tbody>{(data||[]).map((d:any)=>(
+        <tr key={d.device_id}><td>{d.device_id}</td><td>{d.cpu_pct??"–"}</td><td>{d.mem_pct??"–"}</td><td>{d.disk_free_gb??"–"}</td><td>{d.buffer_rows??"–"}</td><td>{d.sw_version??"–"}</td><td>{new Date(d.ts).toLocaleString()}</td></tr>
+      ))}</tbody>
+    </table>
+  );
+}
+
+function Devices(){
+  const { data, error, loading } = useSWRLite<any[]>('devices', ()=> api('/api/devices'));
+  if (loading) return <div>Loading…</div>;
+  if (error) return <div style={{color:"#dc2626"}}>{error}</div>;
+  return <ul>{(data||[]).map((d:any)=>(<li key={d.id}>{d.id} — {d.vessel??"n/a"}</li>))}</ul>;
+}
+
+function Settings(){
+  const { data, error, loading } = useSWRLite<any>('settings', ()=> api('/api/admin/settings'), 20000);
+  if (loading) return <div>Loading…</div>;
+  if (error) return <div style={{color:"#dc2626"}}>{error}</div>;
+  return <pre className="text-xs" style={{background:"#f1f5f9",padding:"8px",borderRadius:"6px",overflow:"auto"}}>{JSON.stringify(data, null, 2)}</pre>;
+}
+
+function Reports(){
+  const [text,setText]=useState<string>("");
+  async function run(){
+    const r = await api('/api/report', {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({equipment_id:"ENG1"})});
+    setText(JSON.stringify(r,null,2));
+  }
+  return <div><button className="bg" onClick={run}>Run Report</button>{text && <pre className="text-xs" style={{background:"#f1f5f9",padding:"8px",borderRadius:"6px",overflow:"auto",marginTop:"8px"}}>{text}</pre>}</div>;
+}
+
+function Overview(){
+  const [text,setText]=useState<string>("");
+  async function run(){
+    const r = await api('/overview', {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({equipment_id:"ENG1"})});
+    setText(r.overview);
+  }
+  return <div><button className="bg" onClick={run}>Generate LLM Overview</button>{text && <pre className="text-xs" style={{background:"#f1f5f9",padding:"8px",borderRadius:"6px",overflow:"auto",marginTop:"8px"}}>{text}</pre>}</div>;
+}
+
+export default function App(){
+  return (
+    <div style={{maxWidth:900,margin:"1rem auto"}}>
+      <h1>ARUS Fleet Console</h1>
+      <Card title="Edge Status"><EdgeStatus/></Card>
+      <Card title="Devices"><Devices/></Card>
+      <Card title="Settings (masked)"><Settings/></Card>
+      <Card title="Reports (rule-based)"><Reports/></Card>
+      <Card title="Overview (LLM on-demand)"><Overview/></Card>
+    </div>
+  );
+}
+EOF
+
+### --- ROOT README & RUN HELP ---
+cat > README.md << "EOF"
+# ARUS Monorepo (Backend + Frontend)
+
+## Run everything (dev)
+Backend:
+  cd backend
+  python -m venv .venv && source .venv/bin/activate
+  pip install -r requirements.txt
+  export ARUS_SQLITE=./arus.sqlite
+  uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+Frontend:
+  cd ../frontend
+  npm install
+  VITE_API_URL=http://localhost:8000 npm run dev -- --port 5173
+
+Open http://localhost:5173
+EOF
+
+echo "✅ Monorepo created at $(pwd)"
+echo "Next steps:"
+echo "  1) Backend:  cd $PWD/backend && python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt && export ARUS_SQLITE=./arus.sqlite && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+echo "  2) Frontend: cd $PWD/../$APP/frontend && npm install && VITE_API_URL=http://localhost:8000 npm run dev -- --port 5173"
+'

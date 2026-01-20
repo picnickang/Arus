@@ -1,0 +1,80 @@
+{
+  "timestamp": "2025-11-04T17:37:49.594Z",
+  "baseUrl": "http://localhost:5000",
+  "qpsLimit": 20,
+  "summary": {
+    "totalScenarios": 6,
+    "passedScenarios": 6,
+    "failedScenarios": 0,
+    "overallP95": 865,
+    "overallAvgLatency": 113.00557324840764
+  },
+  "results": [
+    {
+      "scenario": "Dashboard",
+      "totalRequests": 343,
+      "successCount": 343,
+      "errorCount": 0,
+      "p50": 20,
+      "p95": 27,
+      "p99": 34,
+      "avgLatency": 21,
+      "throughput": 22.6
+    },
+    {
+      "scenario": "Equipment List",
+      "totalRequests": 285,
+      "successCount": 285,
+      "errorCount": 0,
+      "p50": 48,
+      "p95": 97,
+      "p99": 325,
+      "avgLatency": 56,
+      "throughput": 23.19
+    },
+    {
+      "scenario": "Equipment Health",
+      "totalRequests": 11,
+      "successCount": 11,
+      "errorCount": 0,
+      "p50": 86,
+      "p95": 101,
+      "p99": 101,
+      "avgLatency": 85,
+      "throughput": 0.4
+    },
+    {
+      "scenario": "Work Orders",
+      "totalRequests": 280,
+      "successCount": 280,
+      "errorCount": 0,
+      "p50": 95,
+      "p95": 202,
+      "p99": 259,
+      "avgLatency": 110,
+      "throughput": 23.16
+    },
+    {
+      "scenario": "Telemetry Latest",
+      "totalRequests": 282,
+      "successCount": 282,
+      "errorCount": 0,
+      "p50": 156,
+      "p95": 271,
+      "p99": 323,
+      "avgLatency": 161,
+      "throughput": 22.97
+    },
+    {
+      "scenario": "DTC Dashboard Stats",
+      "totalRequests": 55,
+      "successCount": 55,
+      "errorCount": 0,
+      "p50": 744,
+      "p95": 865,
+      "p99": 885,
+      "avgLatency": 757,
+      "throughput": 5.18
+    }
+  ]
+}

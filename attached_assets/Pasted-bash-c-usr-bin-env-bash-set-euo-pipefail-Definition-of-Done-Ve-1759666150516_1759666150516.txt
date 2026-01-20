@@ -1,0 +1,267 @@
+bash -c '
+#!/usr/bin/env bash
+set -euo pipefail
+
+# -------------------------
+# Definition of Done Verifier
+# -------------------------
+# What it checks (if applicable in your repo):
+# - Core correctness: unit/integration tests + coverage
+# - Reliability: basic idempotency/timeouts sanity via grep hooks (optional)
+# - Performance: k6/autocannon/locust if scripts are present
+# - Security: dependency audit, SAST (bandit), secret scan (trufflehog)
+# - Data integrity: migration scripts sanity (detect + dry-run hooks if provided)
+# - Observability: presence of log/metrics/trace hooks
+# - UX/A11y: headless tests if Cypress/Playwright are present
+# - DevEx: lint/format, CI config presence
+# - Release: version/changelog/feature flag toggles
+#
+# It degrades gracefully: only runs checks for tools/files it detects.
+
+RED=$(printf "\033[31m"); GREEN=$(printf "\033[32m"); YELLOW=$(printf "\033[33m"); BLUE=$(printf "\033[34m"); BOLD=$(printf "\033[1m"); NC=$(printf "\033[0m")
+STATUS=()
+
+ok(){   echo -e "${GREEN}✔${NC} $1"; STATUS+=("OK|$1"); }
+warn(){ echo -e "${YELLOW}△${NC} $1"; STATUS+=("WARN|$1"); }
+fail(){ echo -e "${RED}✖${NC} $1"; STATUS+=("FAIL|$1"); }
+
+headline(){ echo -e "\n${BOLD}${BLUE}== $1 ==${NC}"; }
+
+have(){ command -v "$1" >/dev/null 2>&1; }
+
+ensure_tool(){
+  local name="$1" install_hint="$2"
+  if ! have "$name"; then
+    warn "$name not found. ${install_hint}"
+    return 1
+  fi
+  return 0
+}
+
+# -------------------------
+# Detect stacks
+# -------------------------
+is_node=false; [ -f package.json ] && is_node=true
+is_python=false; [ -f pyproject.toml ] || [ -f requirements.txt ] && is_python=true
+is_go=false; [ -f go.mod ] && is_go=true
+is_java=false; [ -f pom.xml ] || [ -f build.gradle* ] && is_java=true
+is_rust=false; [ -f Cargo.toml ] && is_rust=true
+
+headline "Detected stacks"
+$ is_node && echo "Node.js" || true
+$ is_python && echo "Python" || true
+$ is_go && echo "Go" || true
+$ is_java && echo "Java" || true
+$ is_rust && echo "Rust" || true
+[ "$is_node$is_python$is_go$is_java$is_rust" = "falsefalsefalsefalsefalse" ] && warn "No standard stack files found. Running generic checks only."
+
+# -------------------------
+# 0) Repo hygiene / Docs
+# -------------------------
+headline "Repo hygiene"
+[ -f README.md ] && ok "README present" || warn "README missing"
+[ -f .env.example ] && ok ".env.example present" || warn "Provide .env.example for env var docs"
+[ -f LICENSE ] && ok "LICENSE present" || warn "LICENSE missing"
+[ -f CHANGELOG.md ] && ok "CHANGELOG present" || warn "CHANGELOG missing"
+[ -f replit.nix ] || [ -f .replit ] && ok "Replit config present" || warn "Add replit.nix/.replit for reproducible runs"
+git rev-parse --git-dir >/dev/null 2>&1 && ok "Git repo initialised" || warn "Not a git repository"
+
+# -------------------------
+# 1) Core correctness: tests
+# -------------------------
+headline "Core correctness: tests & coverage"
+
+if $is_node; then
+  ensure_tool node "Install Node in the Replit environment." && {
+    if [ -f package-lock.json ] || [ -f pnpm-lock.yaml ] || [ -f yarn.lock ]; then
+      if [ -f package-lock.json ]; then npm ci >/dev/null 2>&1 || npm install >/dev/null 2>&1; fi
+      if [ -f pnpm-lock.yaml ] && have pnpm; then pnpm install --frozen-lockfile || pnpm install; fi
+      if [ -f yarn.lock ] && have yarn; then yarn install --frozen-lockfile || yarn install; fi
+    else
+      npm install >/dev/null 2>&1 || true
+    fi
+    if npx -y jest --version >/dev/null 2>&1; then
+      if npx -y jest --coverage; then ok "Jest tests & coverage ran"; else fail "Jest suite failed"; fi
+    elif npm run -s test >/dev/null 2>&1; then
+      if npm test; then ok "npm test passed"; else fail "npm test failed"; fi
+    else
+      warn "No Node test runner detected"
+    fi
+  }
+fi
+
+if $is_python; then
+  ensure_tool python3 "Install Python 3." && {
+    python3 -m pip install -q --upgrade pip >/dev/null 2>&1 || true
+    if [ -f requirements-dev.txt ]; then python3 -m pip install -q -r requirements-dev.txt >/dev/null 2>&1 || true; fi
+    if [ -f requirements.txt ]; then python3 -m pip install -q -r requirements.txt >/dev/null 2>&1 || true; fi
+    if python3 -m pytest --version >/dev/null 2>&1; then
+      if python3 -m pytest -q --maxfail=1 --disable-warnings --cov --cov-report=term-missing; then ok "Pytest & coverage ran"; else fail "Pytest failed"; fi
+    else
+      warn "pytest not installed; skipping Python tests"
+    fi
+  }
+fi
+
+if $is_go; then
+  ensure_tool go "Install Go." && {
+    if go test ./... -count=1 -run Test >/dev/null 2>&1; then
+      if go test ./... -count=1 -cover; then ok "Go tests & coverage ran"; else fail "Go tests failed"; fi
+    else
+      warn "No Go tests detected"
+    fi
+  }
+fi
+
+if $is_rust; then
+  ensure_tool cargo "Install Rust toolchain." && {
+    if cargo test; then ok "Rust tests passed"; else fail "Rust tests failed"; fi
+  }
+fi
+
+# -------------------------
+# 2) Linting / Formatting
+# -------------------------
+headline "Lint & format"
+if $is_node; then
+  if npx -y eslint -v >/dev/null 2>&1 && [ -f .eslintrc.* ] || grep -q "\"eslint\"" package.json 2>/dev/null; then
+    npx -y eslint . || fail "ESLint issues"; ok "ESLint passed"
+  else warn "ESLint not configured"; fi
+  if npx -y prettier -v >/dev/null 2>&1 && [ -f .prettierrc* ] || grep -q "\"prettier\"" package.json 2>/dev/null; then
+    npx -y prettier -c . || fail "Prettier format issues"; ok "Prettier format ok"
+  else warn "Prettier not configured"; fi
+fi
+
+if $is_python; then
+  if python3 -m black --version >/dev/null 2>&1; then python3 -m black --check . && ok "Black format ok" || fail "Black format issues"; fi
+  if python3 -m flake8 --version >/dev/null 2>&1; then python3 -m flake8 && ok "Flake8 ok" || fail "Flake8 issues"; fi
+  if python3 -m mypy --version >/dev/null 2>&1; then python3 -m mypy . && ok "Mypy types ok" || fail "Mypy type errors"; fi
+fi
+
+if $is_go; then
+  go fmt ./... >/dev/null 2>&1 || true
+  go vet ./... && ok "go vet ok" || fail "go vet issues"
+fi
+
+if $is_rust; then
+  cargo fmt -- --check && ok "Rustfmt ok" || fail "Rustfmt issues"
+  cargo clippy -q -- -D warnings && ok "Clippy ok" || fail "Clippy warnings/errors"
+fi
+
+# -------------------------
+# 3) Security & secrets
+# -------------------------
+headline "Security & secrets"
+# Dependency audits
+if $is_node; then
+  if npm audit --audit-level=high; then ok "npm audit clean (>=high)"; else fail "npm audit found high/critical vulns"; fi
+fi
+if $is_python; then
+  if python3 -m pip install -q pip-audit >/dev/null 2>&1; then
+    if python3 -m pip_audit -l; then ok "pip-audit clean"; else fail "pip-audit vulnerabilities"; fi
+  else warn "pip-audit not available"; fi
+  if python3 -m pip install -q bandit >/dev/null 2>&1 && [ -d . ]; then
+    python3 -m bandit -q -r . && ok "Bandit (SAST) clean" || fail "Bandit issues"
+  else warn "Bandit not run"; fi
+fi
+if $is_go; then
+  if have govulncheck; then govulncheck ./... && ok "govulncheck clean" || fail "govulncheck found issues"; else warn "govulncheck not installed"; fi
+fi
+
+# Secret scan (best-effort)
+if python3 -m pip install -q trufflehog >/dev/null 2>&1; then
+  python3 -m trufflehog filesystem --no-history --only-verified . >/tmp/trh.json 2>/dev/null || true
+  if [ -s /tmp/trh.json ]; then fail "TruffleHog found potential secrets (review /tmp/trh.json)"; else ok "No verified secrets found"; fi
+else
+  warn "TruffleHog not available; skipping secret scan"
+fi
+
+# -------------------------
+# 4) OpenAPI / Contract sanity
+# -------------------------
+headline "API contracts"
+spec=""
+for f in openapi.yml openapi.yaml openapi.json api.yml api.yaml; do [ -f "$f" ] && spec="$f" && break; done
+if [ -n "$spec" ]; then
+  if npx -y @stoplight/spectral lint "$spec"; then ok "OpenAPI lint ok ($spec)"; else fail "OpenAPI lint issues in $spec"; fi
+else
+  warn "No OpenAPI spec detected"
+fi
+
+# -------------------------
+# 5) Data & migrations (best-effort)
+# -------------------------
+headline "Data & migrations"
+if [ -d migrations ] || [ -d alembic ] || ls db/migrate/* >/dev/null 2>&1; then
+  ok "Migration directory detected (manual dry-run recommended)"
+else
+  warn "No migration directory detected"
+fi
+
+# -------------------------
+# 6) Observability hooks (presence checks)
+# -------------------------
+headline "Observability"
+grep -R \"logger\\.|logging\\.getLogger\\(|winston|pino|zap\\.New|tracing|opentelemetry|otel\" . >/dev/null 2>&1 \
+  && ok \"Logging/Tracing references present\" \
+  || warn \"No obvious logging/tracing references found\"
+grep -R \"metrics|prometheus|statsd|micrometer|opentelemetry\" . >/dev/null 2>&1 \
+  && ok \"Metrics references present\" \
+  || warn \"No obvious metrics references found\"
+
+# -------------------------
+# 7) Performance (only if scripts present)
+# -------------------------
+headline "Performance (best-effort)"
+if [ -f k6.js ] && have k6; then
+  k6 run --vus 10 --duration 10s k6.js && ok "k6 smoke test ran" || fail "k6 run failed"
+elif $is_node && npx -y autocannon -h >/dev/null 2>&1 && [ -n "${LOAD_URL:-}" ]; then
+  npx -y autocannon -d 10 -c 20 "${LOAD_URL}" && ok "Autocannon smoke ran vs $LOAD_URL" || fail "Autocannon failed"
+elif $is_python && python3 -m locust -V >/dev/null 2>&1 && [ -f locustfile.py ]; then
+  python3 -m locust -f locustfile.py --headless -u 50 -r 10 -t 10s && ok "Locust smoke ran" || fail "Locust failed"
+else
+  warn "No performance script (set LOAD_URL or add k6/locust/autocannon)"
+fi
+
+# -------------------------
+# 8) UX / A11y (only if e2e present)
+# -------------------------
+headline "UX / Accessibility (best-effort)"
+if npx -y cypress -v >/dev/null 2>&1 && [ -d cypress ]; then
+  npx -y cypress run || fail "Cypress e2e failures"; ok "Cypress e2e passed"
+elif npx -y playwright -v >/dev/null 2>&1 && [ -d tests ] || [ -d e2e ]; then
+  npx -y playwright test || fail "Playwright e2e failures"; ok "Playwright e2e passed"
+else
+  warn "No e2e tests detected"
+fi
+
+# -------------------------
+# 9) Release governance
+# -------------------------
+headline "Release readiness"
+if grep -E \"^v?[0-9]+\\.[0-9]+\\.[0-9]+\" -m1 CHANGELOG.md >/dev/null 2>&1; then ok \"Changelog has versions\"; else warn \"Changelog version entries missing\"; fi
+if grep -R \"feature flag|featflag|launchdarkly|unleash|flagr\" . >/dev/null 2>&1; then ok \"Feature flags referenced\"; else warn \"No feature-flag references found\"; fi
+[ -f .github/workflows/*.yml ] || [ -f .gitlab-ci.yml ] || [ -f .circleci/config.yml ] && ok \"CI config present\" || warn \"No CI config found\"
+
+# -------------------------
+# Summary
+# -------------------------
+headline "GO / NO-GO summary"
+fail_count=0; warn_count=0
+for line in "${STATUS[@]}"; do
+  kind=${line%%|*}; msg=${line#*|}
+  case "$kind" in
+    OK)   echo -e "${GREEN}OK${NC}   $msg" ;;
+    WARN) echo -e "${YELLOW}WARN${NC} $msg"; ((warn_count++)) ;;
+    FAIL) echo -e "${RED}FAIL${NC} $msg"; ((fail_count++)) ;;
+  esac
+done
+
+echo
+if [ $fail_count -eq 0 ]; then
+  echo -e "${BOLD}${GREEN}GO:${NC} No blocking FAIL items detected."
+else
+  echo -e "${BOLD}${RED}NO-GO:${NC} ${fail_count} blocking FAIL item(s). Fix before shipping."
+fi
+echo -e "${YELLOW}Notes:${NC} WARN items are recommendations or missing optional assets."
+'

@@ -1,0 +1,341 @@
+You are a senior TS/Node DSP engineer with machinery PdM expertise.
+
+Goal: audit, fix, and upgrade the provided vibration FFT analyzer, acoustic analyzer, and CBM scoring so they are numerically correct, unit-aware, sample-rate safe, and test-covered. Apply changes directly; add tests + docs.
+
+
+
+Scope (code you have)
+
+VibrationAnalyzer (FFT, harmonics, ISO bands, storage)
+
+CBM: oil/wear scoring + integrated assessment
+
+Acoustic Monitoring (FFT features, fault detectors)
+
+High-Priority Fixes (do all)
+
+
+
+1) Sample rate & timebase correctness
+
+Problem: Vibration uses a hardcoded sampleRate = 1000 Hz; acoustic trusts caller. Frequency bins & band checks can be invalid if SR differs or timestamps are irregular.
+
+Fix:
+
+Add inferSampleRate(valuesWithTime: {ts:Date,value:number}[]) that returns Hz via median Δt (reject outliers) and fallback to configured default.
+
+Use inferred SR when telemetry timestamps are present; store sampleRate used in the analysis row.
+
+Recompute bin frequencies with freq[i] = i * sampleRate / N for i ∈ [0..floor(N/2)]. (Your nyquist formula is fine, but unify on this one for clarity.)
+
+
+
+2) Windowing & amplitude scaling
+
+Problem: Hanning applied in vibration, not acoustic; no amplitude correction → biased magnitudes; RMS from magnitudes computed as linear sum, not power-corrected.
+
+Fix:
+
+Create applyWindow(signal, 'hann'|'rect') and coherent gain correction (cg = 0.5 for Hann) so magnitude ≈ physical amplitude.
+
+Normalize single-sided spectrum by 2/N (except DC/Nyquist bins) after FFT.
+
+When computing band energy/RMS in the spectrum, use power (mag^2) and proper averaging.
+
+
+
+3) FFT implementation consistency
+
+Problem: Two different imports (fftjs.fft and fft later) + mixed complex formats.
+
+Fix:
+
+Standardize on fft-js throughout:
+
+import * as FFTJS from 'fft-js';
+const FFT = FFTJS.fft;
+const FFTUtil = FFTJS.util; // for FFTUtils if needed
+
+
+Wrap complex handling in helpers: toMagnitudes(complex[]), returning length N/2+1 single-sided magnitudes.
+
+
+
+4) Harmonics & peak picking
+
+Problem: Harmonics detection uses findIndex within a fixed ±5 Hz; fails across sample rates and low fundamentals; doesn’t require local maxima.
+
+Fix:
+
+Add a small peak picker (local maxima with prominence threshold based on median noise).
+
+Harmonic search uses relative tolerance (e.g., ±5% of target) and selects nearest peak, not just nearest bin.
+
+Guard when fundamental < bin resolution or ≈ 0 → skip harmonic logic.
+
+
+
+5) Bearing/imbalance/misalignment logic
+
+Problem: Fault rules assume dominant frequency ≈ shaft frequency; bearing bands (BPFO/BPFI/BSF/FTF) tied to shaft frequency but gear/bearing geometry unknown.
+
+Fix:
+
+Accept optional rpm (shaft) for both vibration & acoustic analyzers. If rpm absent, estimate shaftHz as strongest low-frequency peak (<100 Hz) if present; else don’t run shaft-dependent rules.
+
+Compute defect candidates from shaftHz and configurable ratios (with defaults you already use). Use relative tolerance (e.g., ±3–5%) not absolute Hz.
+
+Include estShaftHz in output and persist.
+
+
+
+6) ISO bands & band limits vs Nyquist
+
+Problem: ISO bands and acoustic high-freq ranges may exceed Nyquist (e.g., 2–10 kHz while SR=4 kHz → Nyquist=2 kHz).
+
+Fix: Clip every band to [0, nyquist]. If min >= nyquist, set band to 0. Make bands a single central helper used by both modules.
+
+
+
+7) SNR & noise floor
+
+Problem: Noise floor via min() is unstable. SNR needs robust noise estimate.
+
+Fix: Noise floor = median magnitude of non-peak bins (exclude top X% peaks). SNR = 20*log10(peak/medianNoise); clamp non-finite to 0.
+
+
+
+8) Health / anomaly scoring sanity
+
+Problem: Arbitrary scalings and double counting (e.g., energy + harmonics). Confidence sometimes unbounded or NaN.
+
+Fix: Clamp all scores to [0,1]; clamp health to [0,100]; ensure no NaNs by guarding divides and empty arrays. Document each deduction in code comments.
+
+
+
+9) Org/equipment filtering & payload size
+
+Problem: Vibration pulls latest telemetry but doesn’t time-bound or symptomatically de-alias; large JSON blobs stored in DB.
+
+Fix: Filter telemetry to equipmentId + orgId + last X minutes (e.g., 30 min) and resample/trim to windowSize latest evenly spaced points (drop duplicates/outliers). Store large arrays via storage.putJSON() returning a key, not full JSON blobs in row (or cap to max length via config).
+
+
+
+10) Tests & docs
+
+Add Vitest tests for: sample rate inference, frequency bins, harmonics, ISO band clipping, SNR, bearing rule with rpm/no rpm.
+
+Document units & conventions and fault logic limits.
+
+Refactor Plan (files)
+
+dsp/utils.ts (NEW)
+
+inferSampleRate(samples:{ts:Date}[]): number
+
+applyWindow(x:number[], type:'hann'|'rect')
+
+singleSidedSpectrum(x:number[], sampleRate:number, window:'hann'|'rect') => {freq:number[], mag:number[]}
+
+peakPick(freq:number[], mag:number[], {prominence=median*3, minSepHz=binWidth*2})
+
+median(arr:number[])
+
+vibration/analyzer.ts (was VibrationAnalyzer)
+
+Use inferSampleRate when timestamps available.
+
+Replace performFFT with singleSidedSpectrum.
+
+Window Hann, correct amplitude scaling + coherent gain.
+
+extractHarmonics uses peak list + relative tolerance.
+
+detectAnomalies requires shaftHz (from rpm or low-freq peak) to run shaft-based rules; otherwise mark as normal with low confidence.
+
+calculateISOBands and calculateFaultBands call common band-energy helper with clipping vs Nyquist.
+
+Store references to large arrays (optional), not full JSON; always store summary fields.
+
+acoustic/analyzer.ts
+
+Same FFT pipeline (windowed, scaled), reuse helpers.
+
+Fault detectors accept rpm?; clip bands; robust SNR; guard divisions.
+
+cbm/assessment.ts
+
+Keep your oil/wear logic; ensure no NaNs; clamp scores and time estimates; tiny docstrings for each penalty.
+
+docs/dsp-and-fault-logic.md (NEW)
+
+Units (mm/s vs g acceleration), window, scaling, Nyquist, band clipping, shaft-dependent rules caveat.
+
+Tests (Vitest)
+
+__tests__/dsp.test.ts: SR inference, single-sided spectrum length (N/2+1), frequency bins.
+
+__tests__/harmonics.test.ts: synthetic sinusoid @ 30 Hz; harmonics @ 60/90 with tolerance.
+
+__tests__/snr.test.ts: add tone + noise and validate SNR grows.
+
+__tests__/bands.test.ts: ISO and HF bands clipped when SR low.
+
+__tests__/bearing.test.ts: with rpm → BPFO/BPFI band peak triggers; without rpm → no bearing fault.
+
+Concrete Code Changes (key snippets)
+
+
+
+A) Single-sided spectrum with Hann window & scaling
+
+// dsp/utils.ts
+export function applyWindow(x: number[], type: 'hann'|'rect' = 'hann'): number[] {
+  if (type === 'rect') return x.slice();
+  const N = x.length;
+  const w = x.map((_, n) => 0.5 * (1 - Math.cos((2*Math.PI*n)/(N-1))));
+  return x.map((v, i) => v * w[i]);
+}
+
+export function singleSidedSpectrum(x: number[], sampleRate: number, window: 'hann'|'rect'='hann') {
+  const N = x.length;
+  const xw = applyWindow(x, window);
+  // @ts-ignore fft-js types
+  const X = FFTJS.fft(xw); // [[re,im], ...]
+  const mag: number[] = [];
+  const K = Math.floor(N/2);
+  const cg = window === 'hann' ? 0.5 : 1;           // coherent gain
+  const scale = 1/(cg * N);
+  for (let i=0;i<=K;i++){
+    const re = X[i][0], im = X[i][1];
+    let m = Math.sqrt(re*re + im*im) * scale;
+    if (i>0 && i<K) m *= 2; // single-sided scaling
+    mag.push(m);
+  }
+  const freq = mag.map((_, i) => i * sampleRate / N);
+  return { freq, mag };
+}
+B) Sample-rate inference from timestamps
+
+export function inferSampleRate(samples: {ts: Date}[], fallback=1000): number {
+  if (!samples?.length || samples.length < 4) return fallback;
+  const dts = [];
+  for (let i=1;i<samples.length;i++){
+    const dt = (samples[i].ts.getTime() - samples[i-1].ts.getTime())/1000;
+    if (dt>0) dts.push(dt);
+  }
+  if (dts.length < 3) return fallback;
+  dts.sort((a,b)=>a-b);
+  const med = dts[Math.floor(dts.length/2)];
+  if (!isFinite(med) || med<=0) return fallback;
+  const sr = 1/med;
+  // guard for silly spikes
+  return Math.max(1, Math.min(100_000, sr));
+}
+C) Harmonics with relative tolerance & peaks
+
+export function extractHarmonics(freq: number[], mag: number[], f0: number, relTol=0.05, maxH=10){
+  if (!f0 || f0 <= 0) return [];
+  const peaks = peakPick(freq, mag, { prominence: median(mag)*3, minSepHz: freq[1]-freq[0] });
+  const out: {freq:number; magnitude:number}[] = [];
+  for (let h=2; h<=maxH; h++){
+    const target = f0*h;
+    const tol = target*relTol;
+    const cand = peaks
+      .filter(p => Math.abs(p.freq-target) <= tol)
+      .sort((a,b)=>b.magnitude-a.magnitude)[0];
+    if (cand) out.push({ freq: cand.freq, magnitude: cand.magnitude });
+  }
+  return out.slice(0, 5);
+}
+D) Shaft frequency handling
+
+function estimateShaftHz(freq:number[], mag:number[], maxHz=100){
+  const idxs = freq.map((f,i)=> [i,f]).filter(([_,f])=> f>0 && f<=maxHz).map(([i])=> i);
+  if (idxs.length===0) return null;
+  const iMax = idxs.reduce((best,i)=> mag[i] > mag[best] ? i : best, idxs[0]);
+  return freq[iMax] || null;
+}
+E) ISO band energy with Nyquist clip
+
+function bandRms(freq:number[], mag:number[], lo:number, hi:number){
+  const nyq = freq[freq.length-1];
+  const minF = Math.max(0, lo), maxF = Math.min(hi, nyq);
+  if (minF >= maxF) return 0;
+  let sum=0, n=0;
+  for (let i=0;i<freq.length;i++){
+    if (freq[i] >= minF && freq[i] <= maxF){ sum += mag[i]*mag[i]; n++; }
+  }
+  return n>0 ? Math.sqrt(sum/n) : 0;
+}
+Storage & Payload
+
+For long arrays (rawData, spectrumData, harmonics), store refs: const key = await storage.putJSON(orgId, equipmentId, data) and persist key in the row (fall back to capped JSON if you don’t have blob storage yet).
+
+Acceptance Criteria (CI must pass)
+
+✅ Frequency binning correct: N=512 → spectrum length 257; freq[i]=i*SR/N.
+
+✅ Windowing + scaling produce ~unity amplitude for a 1.0 sine (±10%).
+
+✅ ISO & fault bands auto-clip to Nyquist; out-of-range bands → 0.
+
+✅ Harmonics picked only at peaks with relative tolerance; no false positives when SR changes.
+
+✅ Bearing/imbalance/misalignment rules use rpm or estimated shaft Hz; skip with low confidence when unknown.
+
+✅ SNR uses median noise (not min); no NaNs; health in [0,100].
+
+✅ Vibration analyzer infers SR from timestamps when available; analysis row stores the SR used.
+
+✅ Telemetry filtered by orgId + equipmentId and recent time window; analysis returns null with clear log if insufficient samples.
+
+✅ Vitest suite passes.
+
+Tests to Add (Vitest)
+
+dsp.test.ts
+
+1 kHz SR, 512 N, tone 50 Hz → dominant bin ≈ 50 Hz; amplitude ≈ 1.0 ±10%.
+
+SR inference from jittered timestamps returns ~true SR (±2%).
+
+harmonics.test.ts
+
+30 Hz fundamental + 60/90 harmonics → extracted top 2 within ±5%.
+
+bands.test.ts
+
+SR=2 kHz → Nyquist=1 kHz, ISO 1000–5000 Hz returns 0; acoustic HF bands clip properly.
+
+bearing.test.ts
+
+rpm=1800 (30 Hz) inject BPFO at 105 Hz → bearing fault detected; without rpm → no bearing fault (normal/low confidence).
+
+snr.test.ts
+
+Increase tone amplitude → SNR rises monotonically.
+
+Dev Scripts
+
+"scripts": {
+  "test": "vitest run",
+  "test:watch": "vitest",
+  "lint": "eslint .",
+  "typecheck": "tsc -p tsconfig.json"
+}
+What to Output After Changes
+
+Diff summary of files changed.
+
+Key snippets for single-sided spectrum, harmonics, band clipping, SR inference.
+
+How to run tests (pnpm test or npm test).
+
+One real example from a synthetic tone (e.g., 30 Hz @ 1 kHz SR) showing dominant frequency, SNR, and no false bearing fault without rpm.
+
+
+
+Apply all changes now.
+
+End of prompt.

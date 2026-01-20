@@ -1,0 +1,424 @@
+# Grafana Alert Rules for ARUS Crew Scheduling
+# SLA thresholds for compliance rates, violation counts, and performance
+#
+# These alerts can be imported into Grafana via Provisioning or the Alerting UI.
+# Configure notification channels (Slack, PagerDuty, Email) in Grafana before enabling.
+
+apiVersion: 1
+
+groups:
+  - name: crew_scheduling_sla
+    folder: ARUS Crew Scheduling
+    interval: 1m
+    rules:
+      # Compliance Rate Alert - Critical when below 90%
+      - uid: crew-scheduling-compliance-critical
+        title: Crew Scheduling Compliance Rate Critical
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: "${DS_PROMETHEUS}"
+            model:
+              expr: avg(arus_schedule_planner_compliance_rate)
+              interval: ""
+              legendFormat: ""
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: []
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - B
+                  reducer:
+                    params: []
+                    type: last
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 90
+                    type: lt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "Crew scheduling compliance rate is below 90%"
+          description: "Current compliance rate: {{ $value }}%. This indicates potential schedule violations that need immediate attention."
+        labels:
+          severity: critical
+          team: operations
+
+      # Compliance Rate Warning - Below 95%
+      - uid: crew-scheduling-compliance-warning
+        title: Crew Scheduling Compliance Rate Warning
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: "${DS_PROMETHEUS}"
+            model:
+              expr: avg(arus_schedule_planner_compliance_rate)
+              interval: ""
+              legendFormat: ""
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 95
+                    type: lt
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 15m
+        annotations:
+          summary: "Crew scheduling compliance rate is below 95%"
+          description: "Current compliance rate: {{ $value }}%. Review the schedule for potential issues."
+        labels:
+          severity: warning
+          team: operations
+
+      # Hard Violations Alert - Any hard violations detected
+      - uid: crew-scheduling-hard-violations
+        title: Crew Scheduling Hard Violations Detected
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: "${DS_PROMETHEUS}"
+            model:
+              expr: sum(arus_schedule_planner_violation_count{severity="hard"})
+              interval: ""
+              legendFormat: ""
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 1m
+        annotations:
+          summary: "Hard schedule violations detected"
+          description: "{{ $value }} hard violations found in crew schedule. These require immediate remediation to maintain regulatory compliance."
+        labels:
+          severity: critical
+          team: operations
+
+      # Multiple Violations Alert - More than 5 violations
+      - uid: crew-scheduling-multiple-violations
+        title: Multiple Schedule Violations
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: "${DS_PROMETHEUS}"
+            model:
+              expr: sum(arus_schedule_planner_violation_count)
+              interval: ""
+              legendFormat: ""
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 5
+                    type: gt
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "High number of schedule violations"
+          description: "{{ $value }} schedule violations detected. Review crew assignments for potential conflicts."
+        labels:
+          severity: warning
+          team: operations
+
+      # Crew Utilization Low - Below 50%
+      - uid: crew-scheduling-utilization-low
+        title: Low Crew Utilization Rate
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: "${DS_PROMETHEUS}"
+            model:
+              expr: avg(arus_schedule_planner_utilization_rate)
+              interval: ""
+              legendFormat: ""
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 50
+                    type: lt
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 30m
+        annotations:
+          summary: "Crew utilization rate is low"
+          description: "Crew utilization is only {{ $value }}%. Consider optimizing schedule assignments."
+        labels:
+          severity: info
+          team: operations
+
+      # Query Latency SLA - P95 exceeds 2 seconds
+      - uid: crew-scheduling-query-latency-sla
+        title: Schedule Planner Query Latency High
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: "${DS_PROMETHEUS}"
+            model:
+              expr: histogram_quantile(0.95, sum(rate(arus_schedule_planner_view_latency_seconds_bucket[5m])) by (le))
+              interval: ""
+              legendFormat: ""
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 2
+                    type: gt
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "Schedule planner query latency exceeds SLA"
+          description: "P95 query latency is {{ $value }}s, exceeding the 2-second SLA threshold."
+        labels:
+          severity: warning
+          team: platform
+
+      # Cache Hit Rate Low - Below 70%
+      - uid: crew-scheduling-cache-miss-rate
+        title: Schedule Planner Cache Hit Rate Low
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: "${DS_PROMETHEUS}"
+            model:
+              expr: sum(rate(arus_schedule_planner_cache_hits_total[10m])) / (sum(rate(arus_schedule_planner_cache_hits_total[10m])) + sum(rate(arus_schedule_planner_cache_misses_total[10m])))
+              interval: ""
+              legendFormat: ""
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0.7
+                    type: lt
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 10m
+        annotations:
+          summary: "Schedule planner cache hit rate is low"
+          description: "Cache hit rate is {{ $value | humanizePercentage }}, below the 70% threshold. This may impact query performance."
+        labels:
+          severity: warning
+          team: platform
+
+      # Simulation Latency High - P95 exceeds 5 seconds
+      - uid: crew-scheduling-simulation-latency
+        title: Schedule Simulation Latency High
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: "${DS_PROMETHEUS}"
+            model:
+              expr: histogram_quantile(0.95, sum(rate(arus_schedule_simulation_latency_seconds_bucket{operation="simulate"}[5m])) by (le))
+              interval: ""
+              legendFormat: ""
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 5
+                    type: gt
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "Schedule simulation latency exceeds threshold"
+          description: "P95 simulation latency is {{ $value }}s, exceeding the 5-second threshold."
+        labels:
+          severity: warning
+          team: platform

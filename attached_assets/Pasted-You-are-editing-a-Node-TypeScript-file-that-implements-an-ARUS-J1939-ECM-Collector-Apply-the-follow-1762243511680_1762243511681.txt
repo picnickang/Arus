@@ -1,0 +1,329 @@
+You are editing a Node/TypeScript file that implements an ARUS J1939 ECM Collector. Apply the following fixes exactly. Keep existing logs and interfaces. Don’t remove features—make them correct, safer, and more reliable.
+
+
+
+GOALS
+
+Correctness (J1939):
+
+Fix PGN extraction math (DP bit and ranges).
+
+Validate PGN (0–262143) and SPN (0–524287).
+
+Decode bytes with bounds checks; support non-contiguous indices; avoid readUInt32* with arbitrary offsets.
+
+Treat J1939 “Not Available” (0xFF) and “Error” (0xFE) on a per-byte basis for the selected field.
+
+Reliability:
+
+Prevent memory leaks: store and clear simulation interval; stop CAN channel safely.
+
+Enforce bounded buffer with progressive pruning.
+
+Improve flush: small in-memory retry with exponential backoff & limited concurrency; keep disk fallback.
+
+Security:
+
+Keep org validation; sign requests with HMAC over {timestamp}:{deviceId}:{payloadHash} to prevent replay/tamper.
+
+Send canonical headers: x-org-id, x-hmac-timestamp, x-hmac-signature, x-j1939-device.
+
+DX:
+
+Safer formula evaluation guard.
+
+Better logs for unusual PGNs (rate-limited).
+
+Keep types strict; no any-casts.
+
+PATCHES
+
+
+
+1) Fields & helpers (top of class/file)
+
+Add new timers, simple rate limiter, hashing, and backoff helpers:
+
+// New fields on class:
+private simulationTimer?: NodeJS.Timeout;
+private flushInFlight = 0;
+private readonly maxConcurrentPosts = Number(process.env.J1939_MAX_CONCURRENCY || "6");
+
+// Simple log throttler for noisy PGNs
+private lastPgnLog = new Map<number, number>();
+private shouldLogPgn(pgn: number, everyMs = 60_000): boolean {
+  const now = Date.now();
+  const last = this.lastPgnLog.get(pgn) ?? 0;
+  if (now - last >= everyMs) { this.lastPgnLog.set(pgn, now); return true; }
+  return false;
+}
+
+// Backoff helper
+private async sleep(ms: number) { return new Promise(res => setTimeout(res, ms)); }
+private backoffDelay(attempt: number) {
+  const base = 200; // ms
+  return Math.min(5000, base * 2 ** Math.min(attempt, 5));
+}
+
+// Crypto helpers
+private sha256Hex(s: string) {
+  const h = crypto.createHash('sha256'); h.update(s); return h.digest('hex');
+}
+2) 
+
+Fix PGN extraction
+
+ and value ranges
+
+Replace extractPGN with a correct DP/PF/PS calculation (J1939 29-bit extended ID):
+
+/**
+ * J1939 29-bit ID: priority(3) | reserved(1) | DP(1) | PF(8) | PS(8) | SA(8)
+ * PGN (18-bit) = (DP<<16) | (PF<<8) | (PS if PF >= 240 else 0)
+ */
+private extractPGN(canId: number): number {
+  const DP = (canId >> 24) & 0x1;
+  const PF = (canId >> 16) & 0xFF;
+  const PS = (canId >> 8) & 0xFF;
+  const pgn = (DP << 16) | (PF << 8) | (PF >= 240 ? PS : 0);
+  return pgn >>> 0;
+}
+Update validation ranges and logging:
+
+private validatePgnSpn(pgn: number, spn: number | undefined): boolean {
+  // PGN valid range: 0..262143 (18-bit)
+  if (pgn < 0 || pgn > 262143) {
+    console.warn(`[J1939] Invalid PGN: ${pgn} (must be 0–262143)`);
+    return false;
+  }
+  // SPN valid range: 0..524287 (19-bit)
+  if (spn !== undefined && (spn < 0 || spn > 524287)) {
+    console.warn(`[J1939] Invalid SPN: ${spn} (must be 0–524287)`);
+    return false;
+  }
+  const knownMarinePgns = [61444, 65262, 65263, 65270, 65271, 65272, 65276, 61443, 61445, 65248, 65265, 65266];
+  if (!knownMarinePgns.includes(pgn) && this.shouldLogPgn(pgn)) {
+    console.log(`[J1939] Non-standard marine PGN detected: ${pgn}`);
+  }
+  return true;
+}
+3) 
+
+Byte decode hardening
+
+ and NA/ERROR handling
+
+Replace readBytesFromFrame and isValidRawValue with safe versions:
+
+private readBytesFromFrame(frame: Buffer, byteIndices: number[], endian: 'LE'|'BE'): number {
+  if (!byteIndices || byteIndices.length === 0) return 0;
+
+  // Bounds check and assemble as unsigned integer from selected bytes
+  const bytes: number[] = [];
+  for (const idx of byteIndices) {
+    if (idx < 0 || idx >= frame.length) return 0;
+    bytes.push(frame[idx]);
+  }
+
+  // Per-byte NA/ERROR detection: any 0xFF => NA, any 0xFE => ERROR (treat as NA)
+  for (const b of bytes) {
+    if (b === 0xFF || b === 0xFE) return NaN; // signal invalid so caller can drop
+  }
+
+  let value = 0;
+  if (endian === 'LE') {
+    for (let i = 0; i < bytes.length; i++) value |= (bytes[i] << (8 * i));
+  } else {
+    for (let i = 0; i < bytes.length; i++) value = (value << 8) | bytes[i];
+  }
+  return value >>> 0;
+}
+Update decodeSPN to drop invalid reads and to guard formulas:
+
+private decodeSPN(spnRule: J1939SpnRule, data: Buffer, sourceAddress: number): J1939TelemetryReading | null {
+  let rawValue = this.readBytesFromFrame(data, spnRule.bytes, spnRule.endian);
+  if (!Number.isFinite(rawValue)) return null;
+
+  const scale = Number.isFinite(spnRule.scale) ? spnRule.scale : 1;
+  const offset = Number.isFinite(spnRule.offset) ? spnRule.offset : 0;
+  let processedValue = rawValue * scale + offset;
+
+  if (spnRule.formula) {
+    try {
+      // Guard: only allow x, Math.*; 200 char limit to deter abuse
+      const formula = String(spnRule.formula).slice(0, 200);
+      const x = processedValue; // eslint-disable-line
+      // eslint-disable-next-line no-new-func
+      const f = Function("x", "Math", `return (${formula});`);
+      const out = f(x, Math);
+      if (Number.isFinite(out)) processedValue = out;
+    } catch { /* ignore formula errors */ }
+  }
+
+  return {
+    equipmentId: this.config.deviceId!,
+    sensorType: `j1939_${spnRule.sig}`,
+    value: processedValue,
+    unit: spnRule.unit,
+    timestamp: new Date(),
+    status: 'normal',
+    source: spnRule.src,
+    spn: spnRule.spn
+  };
+}
+Remove the old isValidRawValue method (no longer needed).
+
+
+
+4) 
+
+Simulation & stop cleanup
+
+Store the interval handle and clear it in stop():
+
+private startSimulation(): void {
+  if (!this.simulationFile) return;
+  // ... (existing file load)
+  this.simulationTimer = setInterval(() => {
+    // existing body...
+  }, 100);
+}
+
+async stop(): Promise<void> {
+  // existing logs...
+  if (this.flushTimer) clearTimeout(this.flushTimer);
+  if (this.simulationTimer) clearInterval(this.simulationTimer);
+  if (this.canChannel) {
+    try { this.canChannel.stop?.(); this.canChannel.removeAllListeners?.(); } catch (e) { /* warn already */ }
+  }
+  await this.flush();
+}
+5) 
+
+Buffer control
+
+ (progressive pruning)
+
+Keep your existing high-water eviction, but make it progressive when still over limit after a flush:
+
+// In processCanFrame, after pushing:
+if (this.batchBuffer.length > this.maxBufferSize) {
+  const overshoot = this.batchBuffer.length - this.maxBufferSize;
+  const removeCount = Math.max(overshoot, Math.floor(this.maxBufferSize * 0.2));
+  this.batchBuffer.splice(0, removeCount);
+  console.warn(`[J1939] Buffer overshoot: dropped ${removeCount} oldest readings`);
+}
+6) 
+
+Flush improvements
+
+ (bounded concurrency, backoff retry, stronger HMAC)
+
+Replace the body of flush() with this implementation:
+
+private async flush(): Promise<void> {
+  if (this.batchBuffer.length === 0) return;
+
+  const toSend = this.batchBuffer.splice(0, Math.min(this.batchBuffer.length, this.maxBatch));
+  this.lastFlush = Date.now();
+  console.log(`[J1939] Flushing ${toSend.length} readings for device ${this.config.deviceId}`);
+
+  const postOne = async (reading: J1939TelemetryReading) => {
+    const telemetryData: InsertTelemetry = {
+      equipmentId: reading.equipmentId,
+      sensorType: reading.sensorType,
+      value: reading.value,
+      unit: reading.unit || "",
+      timestamp: reading.timestamp,
+      status: reading.status,
+      context: { source: reading.source, spn: reading.spn, protocol: "j1939", orgId: this.orgId }
+    };
+
+    const headers: Record<string, string> = {
+      "content-type": "application/json",
+      "x-j1939-device": this.config.deviceId || "",
+      "x-org-id": this.orgId
+    };
+
+    // Strong HMAC: H(timestamp:deviceId:sha256(payload))
+    if (this.hmacSecret) {
+      const ts = Date.now().toString();
+      const payload = JSON.stringify(telemetryData);
+      const digest = this.sha256Hex(payload);
+      const toSign = `${ts}:${this.config.deviceId || ""}:${digest}`;
+      const h = crypto.createHmac('sha256', this.hmacSecret); h.update(toSign);
+      headers["x-hmac-timestamp"] = ts;
+      headers["x-hmac-signature"] = h.digest('hex');
+    }
+
+    let attempt = 0;
+    for (;;) {
+      try {
+        await axios.post(`${this.backendUrl}/api/telemetry/readings`, telemetryData, { headers, timeout: 5000 });
+        return;
+      } catch (e: any) {
+        attempt++;
+        const code = e?.response?.status;
+        // Don’t retry 4xx (except 408/429), retry network/5xx with backoff
+        const retryable = !code || code >= 500 || code === 408 || code === 429;
+        if (!retryable || attempt >= 3) throw e;
+        await this.sleep(this.backoffDelay(attempt));
+      }
+    }
+  };
+
+  // Concurrency limiter
+  const queue = [...toSend];
+  const errors: any[] = [];
+  const runners: Promise<void>[] = [];
+  const runNext = async () => {
+    while (queue.length) {
+      const item = queue.shift()!;
+      try { await postOne(item); }
+      catch (e) { errors.push({ item, error: e }); }
+    }
+  };
+  for (let i = 0; i < this.maxConcurrentPosts; i++) runners.push(runNext());
+  await Promise.allSettled(runners);
+
+  if (errors.length === 0) {
+    console.log(`[J1939] Successfully flushed ${toSend.length} readings`);
+    return;
+  }
+
+  // Persist failures to disk and requeue within limits
+  console.error(`[J1939] Flush partial failure: ${errors.length}/${toSend.length} failed`);
+  const failed = errors.map(e => e.item);
+  await this.persistFailedBatch(failed);
+
+  const space = Math.max(0, this.maxBufferSize - this.batchBuffer.length);
+  if (space > 0) {
+    const retrySubset = failed.slice(0, space);
+    this.batchBuffer.unshift(...retrySubset);
+    const dropped = failed.length - retrySubset.length;
+    if (dropped > 0) console.warn(`[J1939] Dropped ${dropped} failed readings from memory (saved to disk)`);
+  } else {
+    console.warn(`[J1939] Buffer full, kept failures on disk only: ${failed.length}`);
+  }
+}
+7) Minor: tighten constructor log leak (don’t print secrets)
+
+Keep authConfigured: !!this.hmacSecret but never log the secret itself (you already don’t—retain as is).
+
+ACCEPTANCE
+
+PGN calculation uses DP/PF/PS correctly; PGN range 0–262143 enforced.
+
+Invalid bytes (0xFF/0xFE) in the selected field cause that SPN reading to be dropped.
+
+Non-contiguous byte indices decode correctly with LE/BE.
+
+Simulation interval is cleared in stop(); CAN listener is stopped and listeners removed.
+
+Flush posts up to J1939_MAX_CONCURRENCY in parallel with retries/backoff, and persists failures to disk; successful ones are not re-sent.
+
+HMAC signs {timestamp}:{deviceId}:{sha256(payload)} and includes canonical headers.
+
+Buffer never exceeds maxBufferSize for long; progressive pruning kicks in.
+
+No TypeScript errors; existing public surface unchanged.

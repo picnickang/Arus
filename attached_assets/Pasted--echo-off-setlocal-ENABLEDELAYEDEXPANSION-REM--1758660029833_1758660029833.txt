@@ -1,0 +1,352 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==========================================================
+REM ARUS Crew Rotation & Scheduling Patch (lightweight)
+REM - DB tables: crew, crew_skill, crew_leave, shift_tmpl, crew_assignment
+REM - API: CRUD + /api/crew/schedule/plan (greedy with rest/skills/max-hours)
+REM - UI: Crew Admin, Crew Scheduler
+REM - No security/auth added; headers X-Org-Id honored if present
+REM ==========================================================
+
+if not exist "backend\app\main.py" (
+echo [ERROR] backend\app\main.py not found. Run this at the repo root.
+exit /b 1
+)
+
+if not exist "frontend\src" (
+echo [WARN] frontend\src not found; UI pieces will be skipped.
+set SKIP_UI=1
+) else (
+set SKIP_UI=0
+)
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+REM ----------------------------------------------------------
+REM 1) DB schema extensions in async_repo.py
+REM ----------------------------------------------------------
+%PS% ^
+"$f='backend/app/core/async_repo.py'; $t=Get-Content -Raw $f;" ^
+"$needCrew = ($t -notmatch 'CREATE TABLE IF NOT EXISTS crew\\(');" ^
+"if ($needCrew) { " ^
+" $t = $t -replace 'await db.commit\\(\\)\\s*\\n\\s*\\)\\n\\s*self._init_done = True', 'await db.execute(\"\"\"`nCREATE TABLE IF NOT EXISTS crew(`n id TEXT PRIMARY KEY, org_id TEXT, name TEXT, rank TEXT, vessel_id TEXT, max_hours_7d REAL DEFAULT 72, min_rest_h REAL DEFAULT 10, active INTEGER DEFAULT 1, notes TEXT`n)\"\"\");`nawait db.execute(\"\"\"`nCREATE TABLE IF NOT EXISTS crew_skill(`n crew_id TEXT, skill TEXT, level INTEGER DEFAULT 1, PRIMARY KEY(crew_id, skill)`n)\"\"\");`nawait db.execute(\"\"\"`nCREATE TABLE IF NOT EXISTS crew_leave(`n id INTEGER PRIMARY KEY AUTOINCREMENT, crew_id TEXT, start TEXT, end TEXT, reason TEXT`n)\"\"\");`nawait db.execute(\"\"\"`nCREATE TABLE IF NOT EXISTS shift_tmpl(`n id TEXT PRIMARY KEY, vessel_id TEXT, equipment_id TEXT, role TEXT, start TEXT, end TEXT, needed INTEGER DEFAULT 1, skill_required TEXT`n)\"\"\");`nawait db.execute(\"\"\"`nCREATE TABLE IF NOT EXISTS crew_assignment(`n id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT, shift_id TEXT, crew_id TEXT, vessel_id TEXT, start TEXT, end TEXT, role TEXT`n)\"\"\");`nawait db.commit();`n) `nself._init_done = True'; " ^
+"}" ^
+"$needCrewFns = ($t -notmatch 'async def crew_upsert\\(');" ^
+"if ($needCrewFns) { " ^
+" $t += @'`n async def crew_upsert(self, data: dict) -> dict:`n await self.init(); from datetime import datetime`n data=dict(data); data.setdefault(\"id\", f\"crew_{int(datetime.utcnow().timestamp())}\")`n async with aiosqlite.connect(self._sqlite) as db:`n await db.execute(\"INSERT OR REPLACE INTO crew(id,org_id,name,rank,vessel_id,max_hours_7d,min_rest_h,active,notes) VALUES(?,?,?,?,?,?,?,?,?)\", (data[\"id\"], data.get(\"org_id\"), data.get(\"name\"), data.get(\"rank\"), data.get(\"vessel_id\"), data.get(\"max_hours_7d\",72), data.get(\"min_rest_h\",10), 1 if data.get(\"active\",1) else 0, data.get(\"notes\")))`n await db.commit(); cur=await db.execute(\"SELECT * FROM crew WHERE id=?\", (data[\"id\"],)); return dict(await cur.fetchone())`n async def crew_list(self, org_id: str|None=None, vessel_id: str|None=None) -> list[dict]:`n await self.init(); async with aiosqlite.connect(self._sqlite) as db:`n db.row_factory=aiosqlite.Row; q=\"SELECT * FROM crew WHERE 1=1\"; a=[]`n if org_id: q+=\" AND org_id=?\"; a.append(org_id)`n if vessel_id: q+=\" AND vessel_id=?\"; a.append(vessel_id)`n cur=await db.execute(q, tuple(a)); return [dict(r) for r in await cur.fetchall()]`n async def crew_skill_set(self, crew_id: str, skill: str, level: int=1) -> dict:`n await self.init(); async with aiosqlite.connect(self._sqlite) as db:`n await db.execute(\"INSERT OR REPLACE INTO crew_skill(crew_id,skill,level) VALUES(?,?,?)\", (crew_id, skill, level)); await db.commit(); return {\"ok\": True}`n async def crew_leave_add(self, crew_id: str, start: str, end: str, reason: str=\"\") -> dict:`n await self.init(); async with aiosqlite.connect(self._sqlite) as db:`n await db.execute(\"INSERT INTO crew_leave(crew_id,start,end,reason) VALUES(?,?,?,?)\", (crew_id, start, end, reason)); await db.commit(); return {\"ok\": True}`n async def shift_upsert(self, data: dict) -> dict:`n await self.init(); data=dict(data)`n async with aiosqlite.connect(self._sqlite) as db:`n await db.execute(\"INSERT OR REPLACE INTO shift_tmpl(id,vessel_id,equipment_id,role,start,end,needed,skill_required) VALUES(?,?,?,?,?,?,?,?)\", (data.get(\"id\"), data.get(\"vessel_id\"), data.get(\"equipment_id\"), data.get(\"role\"), data.get(\"start\"), data.get(\"end\"), data.get(\"needed\",1), data.get(\"skill_required\")))`n await db.commit(); cur=await db.execute(\"SELECT * FROM shift_tmpl WHERE id=?\", (data.get(\"id\"),)); return dict(await cur.fetchone())`n async def shift_list(self, vessel_id: str|None=None) -> list[dict]:`n await self.init(); async with aiosqlite.connect(self._sqlite) as db:`n db.row_factory=aiosqlite.Row; q=\"SELECT * FROM shift_tmpl WHERE 1=1\"; a=[]`n if vessel_id: q+=\" AND vessel_id=?\"; a.append(vessel_id)`n cur=await db.execute(q, tuple(a)); return [dict(r) for r in await cur.fetchall()]`n async def assignments_for_range(self, start: str, end: str, vessel_id: str|None=None) -> list[dict]:`n await self.init(); async with aiosqlite.connect(self._sqlite) as db:`n db.row_factory=aiosqlite.Row; q=\"SELECT * FROM crew_assignment WHERE date>=? AND date<=?\"; a=[start,end]`n if vessel_id: q+=\" AND vessel_id=?\"; a.append(vessel_id)`n q+=\" ORDER BY date, start\"`n cur=await db.execute(q, tuple(a)); return [dict(r) for r in await cur.fetchall()]`n async def assignment_bulk_insert(self, rows: list[dict]) -> int:`n await self.init(); async with aiosqlite.connect(self._sqlite) as db:`n for r in rows:`n await db.execute(\"INSERT INTO crew_assignment(date,shift_id,crew_id,vessel_id,start,end,role) VALUES(?,?,?,?,?,?,?)\", (r[\"date\"], r.get(\"shift_id\"), r.get(\"crew_id\"), r.get(\"vessel_id\"), r.get(\"start\"), r.get(\"end\"), r.get(\"role\")))`n await db.commit(); return len(rows)`n'@; " ^
+"}" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ----------------------------------------------------------
+REM 2) Crew scheduler (greedy) helper
+REM ----------------------------------------------------------
+%PS% "$code=@'
+from __future__ import annotations
+from typing import List, Dict, Any, Tuple
+from datetime import datetime, timedelta
+
+def overlaps(a_start: datetime, a_end: datetime, b_start: datetime, b_end: datetime) -> bool:
+return max(a_start, b_start) < min(a_end, b_end)
+
+def parse_iso(s: str) -> datetime:
+return datetime.fromisoformat(s.replace(\"Z\",\"\"))
+
+def hours_in_range(assigns: List[Dict[str,Any]], crew_id: str, week_start: datetime, week_end: datetime) -> float:
+tot=0.0
+for a in assigns:
+if a.get(\"crew_id\")!=crew_id: continue
+st=parse_iso(a[\"start\"]); en=parse_iso(a[\"end\"])
+lo=max(st,week_start); hi=min(en,week_end)
+if lo<hi: tot += (hi-lo).total_seconds()/3600.0
+return tot
+
+def rest_ok(assigns: List[Dict[str,Any]], crew_id: str, start: datetime, min_rest_h: float) -> bool:
+# ensure last assignment for crew ended at least min_rest_h before new start
+last_end=None
+for a in assigns:
+if a.get(\"crew_id\")!=crew_id: continue
+en=parse_iso(a[\"end\"])
+if en <= start and (last_end is None or en>last_end): last_end=en
+if last_end is None: return True
+return (start - last_end).total_seconds()/3600.0 >= float(min_rest_h or 0)
+
+def plan_shifts(
+days: List[str],
+shifts: List[Dict[str,Any]],
+crew: List[Dict[str,Any]],
+leaves: List[Dict[str,Any]],
+existing: List[Dict[str,Any]]|None=None
+) -> Tuple[List[Dict[str,Any]], List[Dict[str,Any]]]:
+"""
+Greedy fill: per day, per shift -> assign required number of crew who:
+- have required skill (if any)
+- assigned vessel matches shift.vessel_id (if provided)
+- are not on leave
+- satisfy min rest since last shift
+- won't exceed max_hours_7d in rolling window
+Returns: (assignments, unfilled_shifts[{day,shift_id,reason}])
+"""
+assignments = list(existing or [])
+unfilled = []
+
+# pre-index leaves per crew
+leave_idx: Dict[str, List[Tuple[datetime,datetime]]] = {}
+for l in leaves:
+lo=parse_iso(l[\"start\"]); hi=parse_iso(l[\"end\"])
+leave_idx.setdefault(l[\"crew_id\"], []).append((lo,hi))
+
+def is_on_leave(cid: str, st: datetime, en: datetime) -> bool:
+for lo,hi in leave_idx.get(cid, []):
+if overlaps(lo,hi,st,en): return True
+return False
+
+for day in days:
+for s in shifts:
+# compute absolute shift window for this day
+st=parse_iso(f\"{day}T{s['start']}\"); en=parse_iso(f\"{day}T{s['end']}\")
+need=int(s.get(\"needed\",1))
+skill=s.get(\"skill_required\"); vessel=s.get(\"vessel_id\")
+role=s.get(\"role\"); shift_id=s.get(\"id\")
+picked=0
+
+# rank crew: matching vessel first, then more rest time
+ranked=sorted(crew, key=lambda c:(0 if (not vessel or c.get('vessel_id')==vessel) else 1, c.get('rank','')))
+for c in ranked:
+if picked>=need: break
+if c.get(\"active\",1)!=1: continue
+cid=c[\"id\"]; min_rest=float(c.get(\"min_rest_h\",10)); max_7d=float(c.get(\"max_hours_7d\",72))
+# skills
+if skill:
+skills=c.get(\"skills\",[])
+if skill not in skills: continue
+# vessel
+if vessel and c.get(\"vessel_id\") not in (None,\"\",vessel): continue
+# leave
+if is_on_leave(cid, st, en): continue
+# rest window
+if not rest_ok(assignments, cid, st, min_rest): continue
+# 7-day cap
+wk_lo=st - timedelta(days=7); wk_hi=st + timedelta(days=1e-6)
+if hours_in_range(assignments, cid, wk_lo, wk_hi) + (en-st).total_seconds()/3600.0 > max_7d: continue
+
+# OK -> assign
+assignments.append({\"date\": day, \"shift_id\": shift_id, \"crew_id\": cid, \"vessel_id\": vessel, \"start\": st.isoformat()+\"Z\", \"end\": en.isoformat()+\"Z\", \"role\": role})
+picked += 1
+
+if picked<need:
+unfilled.append({\"day\": day, \"shift_id\": shift_id, \"need\": need-picked, \"reason\": \"insufficient crew for constraints\"})
+
+return assignments, unfilled
+'@; Set-Content -Encoding UTF8 backend/app/core/crew_scheduler.py $code"
+
+REM ----------------------------------------------------------
+REM 3) Crew API router
+REM ----------------------------------------------------------
+%PS% "$code=@'
+from __future__ import annotations
+from fastapi import APIRouter, Body, Query, Request
+from typing import Dict, Any, List, Optional
+import aiosqlite
+from app.core.async_repo import REPO
+from app.core.scope import extract_scope
+from app.core.settings import SETTINGS
+from app.core.crew_scheduler import plan_shifts
+
+router = APIRouter(prefix=\"/api/crew\", tags=[\"crew\"])
+
+@router.post(\"/upsert\")
+async def upsert(req: Request, body: Dict[str,Any] = Body(...)):
+org_id,_ = extract_scope(req); body=dict(body); body[\"org_id\"]=org_id
+return await REPO.crew_upsert(body)
+
+@router.get(\"/list\")
+async def list_crew(req: Request, vessel_id: Optional[str]=Query(None)):
+org_id,_ = extract_scope(req)
+rows = await REPO.crew_list(org_id=org_id, vessel_id=vessel_id)
+# expand skills inline
+sqlite = SETTINGS.storage.get(\"sqlite_path\") or \"./arus.sqlite\"
+async with aiosqlite.connect(sqlite) as db:
+for r in rows:
+cur=await db.execute(\"SELECT skill FROM crew_skill WHERE crew_id=?\", (r[\"id\"],))
+r[\"skills\"]= [c[0] for c in await cur.fetchall()]
+return rows
+
+@router.post(\"/skill\")
+async def set_skill(body: Dict[str,Any] = Body(...)):
+return await REPO.crew_skill_set(body[\"crew_id\"], body[\"skill\"], int(body.get(\"level\",1)))
+
+@router.post(\"/leave\")
+async def add_leave(body: Dict[str,Any] = Body(...)):
+return await REPO.crew_leave_add(body[\"crew_id\"], body[\"start\"], body[\"end\"], body.get(\"reason\",\"\"))
+
+@router.post(\"/shift\")
+async def upsert_shift(body: Dict[str,Any] = Body(...)):
+return await REPO.shift_upsert(body)
+
+@router.get(\"/shift\")
+async def list_shift(vessel_id: Optional[str]=Query(None)):
+return await REPO.shift_list(vessel_id=vessel_id)
+
+@router.post(\"/schedule/plan\")
+async def schedule_plan(body: Dict[str,Any] = Body(...)):
+days = body.get(\"days\", [])
+shifts = body.get(\"shifts\", [])
+crew = body.get(\"crew\", [])
+leaves = body.get(\"leaves\", [])
+assignments, unfilled = plan_shifts(days, shifts, crew, leaves, [])
+# persist
+sqlite = SETTINGS.storage.get(\"sqlite_path\") or \"./arus.sqlite\"
+async with aiosqlite.connect(sqlite) as db:
+for a in assignments:
+await db.execute(\"INSERT INTO crew_assignment(date,shift_id,crew_id,vessel_id,start,end,role) VALUES(?,?,?,?,?,?,?)\", (a[\"date\"], a.get(\"shift_id\"), a.get(\"crew_id\"), a.get(\"vessel_id\"), a.get(\"start\"), a.get(\"end\"), a.get(\"role\")))
+await db.commit()
+return {\"scheduled\": assignments, \"unfilled\": unfilled}
+'@; Set-Content -Encoding UTF8 backend/app/api/crew.py $code"
+
+REM Wire router in main.py
+%PS% ^
+"$f='backend/app/main.py'; $t=Get-Content -Raw $f;" ^
+"if ($t -notmatch 'from \\.api\\.crew import router as crew_router') { $t = $t -replace '(from \\.api\\.[^\\n]+\\n)+', '$0from .api.crew import router as crew_router`n'; }" ^
+"if ($t -notmatch 'app\\.include_router\\(crew_router\\)') { $t = $t -replace '(?s)(app\\.include_router\$begin:math:text$[^)]+\\$end:math:text$\\s*)$', '$0`napp.include_router(crew_router)'; }" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ----------------------------------------------------------
+REM 4) UI: Crew Admin & Crew Scheduler
+REM ----------------------------------------------------------
+if "%SKIP_UI%"=="0" (
+%PS% "$code=@'
+import { useEffect, useState } from \"react\";
+const BASE = (import.meta as any).env.VITE_API_URL || 'http://localhost:8000';
+
+export function CrewAdmin(){
+const [rows,setRows]=useState<any[]>([]);
+const [form,setForm]=useState<any>({name:'',rank:'Mechanic',vessel_id:'',max_hours_7d:72,min_rest_h:10});
+const [skill,setSkill]=useState<{crew_id?:string,skill?:string}>({});
+
+async function load(){ const r=await fetch(`${BASE}/api/crew/list`); setRows(await r.json()); }
+useEffect(()=>{ load(); },[]);
+
+async function save(){
+await fetch(`${BASE}/api/crew/upsert`, {method:'POST',headers:{'Content-Type':'application/json'}, body: JSON.stringify(form)});
+setForm({name:'',rank:'Mechanic'}); await load();
+}
+async function addSkill(){
+if(!skill.crew_id||!skill.skill) return;
+await fetch(`${BASE}/api/crew/skill`, {method:'POST',headers:{'Content-Type':'application/json'}, body: JSON.stringify(skill)});
+await load();
+}
+
+return <div className=\"card\"><h2>Crew Admin</h2>
+<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:6}}>
+<input placeholder='Name' value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})}/>
+<input placeholder='Rank' value={form.rank||''} onChange={e=>setForm({...form,rank:e.target.value})}/>
+<input placeholder='Vessel' value={form.vessel_id||''} onChange={e=>setForm({...form,vessel_id:e.target.value})}/>
+<input placeholder='Max hrs/7d' type='number' value={form.max_hours_7d||72} onChange={e=>setForm({...form,max_hours_7d:Number(e.target.value)||72})}/>
+<input placeholder='Min rest (h)' type='number' value={form.min_rest_h||10} onChange={e=>setForm({...form,min_rest_h:Number(e.target.value)||10})}/>
+<button onClick={save}>Save Crew</button>
+</div>
+
+<div style={{display:'flex',gap:6,marginTop:8}}>
+<select onChange={e=>setSkill({...skill,crew_id:e.target.value})} defaultValue=''><option value='' disabled>Select crew</option>{rows.map(r=><option key={r.id} value={r.id}>{r.name}</option>)}</select>
+<input placeholder='Skill (e.g., diesel_lv2)' onChange={e=>setSkill({...skill,skill:e.target.value})}/>
+<button onClick={addSkill}>Add Skill</button>
+</div>
+
+<table className='text-xs' style={{width:'100%',marginTop:8}}>
+<thead><tr><th>id</th><th>name</th><th>rank</th><th>vessel</th><th>skills</th><th>max/7d</th><th>min rest</th></tr></thead>
+<tbody>{rows.map(r=><tr key={r.id}><td>{r.id}</td><td>{r.name}</td><td>{r.rank}</td><td>{r.vessel_id||'—'}</td><td>{(r.skills||[]).join(', ')}</td><td>{r.max_hours_7d}</td><td>{r.min_rest_h}</td></tr>)}</tbody>
+</table>
+</div>;
+}
+
+export function CrewScheduler(){
+const [days,setDays]=useState<string[]>([]);
+const [shifts,setShifts]=useState<any[]>([
+{id:'DUTY_08_16', vessel_id:'MV_GREEN_BELAIT', role:'Watch', start:'08:00:00', end:'16:00:00', needed:2, skill_required:'watchkeeping'},
+{id:'DUTY_16_24', vessel_id:'MV_GREEN_BELAIT', role:'Watch', start:'16:00:00', end:'00:00:00', needed:2, skill_required:'watchkeeping'},
+{id:'DUTY_00_08', vessel_id:'MV_GREEN_BELAIT', role:'Watch', start:'00:00:00', end:'08:00:00', needed:2, skill_required:'watchkeeping'}
+]);
+const [crew,setCrew]=useState<any[]>([]);
+const [leaves,setLeaves]=useState<any[]>([]);
+const [out,setOut]=useState<any>(null);
+
+useEffect(()=>{ fetch(`${BASE}/api/crew/list`).then(r=>r.json()).then(setCrew); },[]);
+
+function genDays(start:string, n:number){
+const base=new Date(start); const arr:string[]=[];
+for(let i=0;i<n;i++){ const d=new Date(base.getTime()+i*86400000); arr.push(d.toISOString().slice(0,10)); }
+setDays(arr);
+}
+
+async function addLeave(crew_id:string, start:string, end:string){
+await fetch(`${BASE}/api/crew/leave`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({crew_id, start:`${start}T00:00:00Z`, end:`${end}T23:59:59Z`})});
+setLeaves([...leaves, {crew_id, start:`${start}T00:00:00Z`, end:`${end}T23:59:59Z`}]);
+}
+
+async function plan(){
+const body={ days, shifts, crew, leaves };
+const r=await fetch(`${BASE}/api/crew/schedule/plan`, {method:'POST',headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+setOut(await r.json());
+}
+
+return <div className=\"card\"><h2>Crew Scheduler</h2>
+<div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
+<button onClick={()=>genDays(new Date().toISOString().slice(0,10), 7)}>Days: next 7</button>
+<button onClick={()=>genDays(new Date().toISOString().slice(0,10), 14)}>Days: next 14</button>
+<span>{days.length} day(s) selected</span>
+<button onClick={plan}>Plan Schedule</button>
+</div>
+<div style={{marginTop:8}}>
+<details><summary>Shifts JSON</summary>
+<pre className='text-xs' style={{background:'#f1f5f9',padding:8,borderRadius:6}}>{JSON.stringify(shifts,null,2)}</pre>
+</details>
+<details><summary>Crew JSON</summary>
+<pre className='text-xs' style={{background:'#f1f5f9',padding:8,borderRadius:6}}>{JSON.stringify(crew,null,2)}</pre>
+</details>
+</div>
+{out && <>
+<h3>Scheduled</h3>
+<table className='text-xs' style={{width:'100%'}}><thead><tr><th>date</th><th>shift</th><th>crew</th><th>start</th><th>end</th><th>role</th></tr></thead>
+<tbody>{out.scheduled.map((a:any,i:number)=><tr key={i}><td>{a.date}</td><td>{a.shift_id}</td><td>{a.crew_id}</td><td>{a.start.slice(11,16)}</td><td>{a.end.slice(11,16)}</td><td>{a.role}</td></tr>)}</tbody>
+</table>
+{out.unfilled?.length>0 && <>
+<h3>Unfilled</h3>
+<ul>{out.unfilled.map((u:any,i:number)=><li key={i}>{u.day} — {u.shift_id} (need {u.need}): {u.reason}</li>)}</ul>
+</>}
+</>}
+</div>;
+}
+'@; Set-Content -Encoding UTF8 frontend/src/components/Crew.tsx $code"
+
+%PS% ^
+"$f='frontend/src/App.tsx'; $t=Get-Content -Raw $f;" ^
+"if ($t -notmatch 'components/Crew') { $t = $t -replace 'from \\\"\\./components/AdvancedPDM\\\";','from \"./components/AdvancedPDM\";\nimport { CrewAdmin, CrewScheduler } from \"./components/Crew\";'; }" ^
+"if ($t -notmatch 'Crew Admin') { $t = $t -replace '(</div>\\s*;\\s*\\}\\s*$)',' <CrewAdmin/>\n <CrewScheduler/>\n </div>);\n}\n'; }" ^
+"Set-Content -Encoding UTF8 $f $t;"
+) ELSE (
+echo [INFO] Skipping UI patch (frontend not found).
+)
+
+echo.
+echo ==========================================================
+echo [OK] Crew rotation & scheduler installed.
+echo ----------------------------------------------------------
+echo API:
+echo POST /api/crew/upsert
+echo GET /api/crew/list
+echo POST /api/crew/skill
+echo POST /api/crew/leave
+echo POST /api/crew/shift
+echo GET /api/crew/shift
+echo POST /api/crew/schedule/plan
+echo UI:
+echo - Crew Admin (create crew, add skills)
+echo - Crew Scheduler (7/14-day planning, greedy fill)
+echo Notes:
+echo - Rest rule: min_rest_h per crew (default 10h)
+echo - Max hours/7d per crew enforced (default 72h)
+echo - Skills and vessel matching respected
+echo - Uses existing SQLite file from SETTINGS.storage.sqlite_path
+echo Restart backend and rebuild frontend to use new features.
+echo ==========================================================
+endlocal

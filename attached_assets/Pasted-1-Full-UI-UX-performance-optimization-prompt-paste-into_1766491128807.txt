@@ -1,0 +1,263 @@
+1) Full UI/UX performance optimization prompt (paste into Replit)
+
+You are a senior Electron + React performance engineer. Optimize the ARUS Electron UI/UX for startup speed, responsiveness, low memory, and smooth rendering. Do not change the ingestion pipeline (C# Agent → SQLite → Bridge → TelemetryBatchWriter → Postgres). Focus only on UI/UX, data fetching, rendering, and Electron config.
+
+Non-negotiable constraints
+	1.	No polling storms: dedupe pollers, adaptive intervals, backoff on failure.
+	2.	No blocking renders: never synchronously process large datasets in the renderer.
+	3.	No unnecessary rerenders: stabilize props, memoize heavy components, avoid inline objects/functions.
+	4.	No IPC spam: batch IPC, prefer backend aggregation endpoints.
+	5.	No visual regressions: UX must remain clear; use skeletons instead of spinners.
+
+⸻
+
+Step 1 — Baseline instrumentation (must do first)
+
+Add dev-only instrumentation to measure before/after:
+	•	Route transition times
+	•	Dashboard mount time
+	•	Largest render contributors (top rerendering components)
+	•	API call counts/minute per screen
+	•	Renderer memory snapshot (simple: process memory usage + heap used)
+
+Implement:
+	•	performance.mark()/measure() around route transitions and heavy mounts.
+	•	A small dev overlay (toggleable) that shows:
+	•	current route
+	•	last transition duration
+	•	API latencies
+	•	API request rate
+	•	top 5 rerendering components (approximate counts)
+
+Output a baseline report.
+
+⸻
+
+Step 2 — Lazy loading + code splitting (high ROI)
+
+Implement:
+	1.	Route-level lazy loading for all major routes except the app shell/layout/nav:
+	•	dashboards, logs, reports, diagnostics, admin/config
+	2.	Component-level lazy loading for heavy widgets:
+	•	chart panels, large tables, editors, PDF/report generators
+	3.	Add per-section skeleton fallbacks (no full-screen spinner after initial load).
+	4.	Idle-time prefetch:
+	•	after first paint, prefetch the most likely next route chunk(s)
+	•	prefetch critical queries using React Query
+
+Verify no waterfall: avoid “load chunk → then start fetching data” where possible (prefetch data on idle or when user intent is clear).
+
+⸻
+
+Step 3 — Data fetching correctness and efficiency (React Query)
+
+Audit all useQuery/useMutation usage:
+	•	Ensure a single shared query key per endpoint (no duplicates with slightly different keys).
+	•	Set sensible staleTime, gcTime/cacheTime, refetchInterval.
+	•	Use enabled to avoid fetching when panels aren’t visible / prerequisites missing.
+	•	Use keepPreviousData for time range changes.
+	•	Add request cancellation where supported (AbortController).
+
+Fix:
+	•	multiple components polling the same endpoint separately
+	•	overly frequent refetch intervals
+	•	re-render loops caused by query result reshaping inside render
+
+If multiple endpoints are called on initial load, add an aggregated backend endpoint (read-only) only if it reduces round trips significantly.
+
+⸻
+
+Step 4 — Rendering & interaction performance
+	1.	Memoization:
+	•	Apply React.memo, useMemo, useCallback to heavy components.
+	•	Remove unstable inline props.
+	2.	Virtualization:
+	•	Apply windowing (react-window or equivalent) to any list/table >200 rows:
+	•	logs, telemetry tables, alerts lists
+	3.	Charts:
+	•	Downsample time series before rendering (client-side ok, prefer server-side if already available).
+	•	Ensure chart components do not re-instantiate data series objects on every render.
+	4.	State management:
+	•	Split global state to avoid rerendering entire app.
+	•	Use selectors or context splitting if needed.
+
+⸻
+
+Step 5 — Electron hardening + performance
+
+Verify and enforce:
+	•	contextIsolation: true
+	•	nodeIntegration: false in renderer
+	•	strict IPC allowlists
+	•	move any computation out of renderer (preload or backend)
+	•	avoid large JSON payloads across IPC; compress/summarize if needed
+
+Measure:
+	•	cold start time improvement
+	•	memory footprint reduction
+
+⸻
+
+Step 6 — UX responsiveness upgrades (perceived performance)
+
+Implement:
+	•	skeleton loaders for sections, not full-screen spinners
+	•	optimistic UI for start/stop source actions + config saves
+	•	status toasts instead of blocking modals
+	•	“data freshness” badges (stale >60s) on dashboards
+
+⸻
+
+Step 7 — Deliverables (must output)
+	1.	List of concrete bottlenecks found (with file paths)
+	2.	Changes made grouped by:
+	•	lazy loading
+	•	data fetching
+	•	rendering/virtualization
+	•	Electron config/IPC
+	3.	Before/after metrics:
+	•	route transition times
+	•	dashboard mount time
+	•	API calls/minute
+	•	renderer memory usage
+	4.	A “no regressions” checklist for future contributors
+
+Proceed now.
+
+⸻
+
+⸻
+
+2) End-to-end prompt to verify the new hardware ingestion layer (paste into Replit)
+
+You are a staff engineer performing an end-to-end verification of the new ARUS hardware ingestion layer (v3 final). Your job is to prove the dataflow is correct and the implementation is production-safe:
+
+Hardware Source (stub ok) → C# Agent → SQLite(raw_frames) → Node Bridge → Decoder → TelemetryBatchWriter.writeBatch(source=sqlite-bridge) → Postgres
+
+Legacy collectors are deleted; there must be no other telemetry write path.
+
+Verification goals (must all be satisfied)
+	1.	C# Agent writes valid frames into raw_frames with correct schema and WAL settings.
+	2.	Node Bridge reads via cursor, decodes, validates, and writes to Postgres via TelemetryBatchWriter.writeBatch.
+	3.	Cursor advances only after Postgres commit success.
+	4.	On Postgres failure, bridge retries with exponential backoff and does not advance cursor.
+	5.	Decoder rejects unknown payload_format_version and invalid readings.
+	6.	TelemetryBatchWriter guard rejects non-bridge ingestion sources in production.
+	7.	/api/ingestion/verify accurately reports pipeline health and lag.
+	8.	No legacy collectors remain; no direct SQL inserts into telemetry tables outside TelemetryBatchWriter.
+
+⸻
+
+Step 1 — Static audit (must output)
+
+Search repo and output:
+	•	all files that write to equipment_telemetry (or telemetry tables)
+	•	all callers of TelemetryBatchWriter.writeBatch and queue
+	•	all ingestion startup points; confirm only server/ingestion/startIngestion.ts starts ingestion
+	•	confirm legacy collectors are deleted and not referenced anywhere
+
+Fail the verification if:
+	•	any direct insert exists outside TelemetryBatchWriter
+	•	any collector startup remains outside startIngestion
+
+⸻
+
+Step 2 — Local integration harness (must implement)
+
+Create a dev-only harness that can run end-to-end without real hardware:
+
+A) C# Agent “simulator source”
+	•	Implement a stub source that generates deterministic J1939 frames (payload_format_version=1) at configurable rate.
+	•	Write frames using the real SqliteFrameWriter.
+
+B) SQLite fixture
+	•	Ensure raw_frames and ingest_cursor tables are created.
+	•	Provide a script to print counts:
+	•	raw_frames total
+	•	raw_frames last 60s
+	•	ingest_cursor last_id
+
+C) Postgres mock or test DB
+	•	Use a test Postgres schema or a mock client.
+	•	Verify writeBatch uses BULK INSERT with ON CONFLICT DO NOTHING.
+	•	Ensure idempotency_key format: raw:${source}:${protocol}:${rawFrameId}.
+
+⸻
+
+Step 3 — Dynamic tests (must implement and run)
+
+Add automated tests (or scripts) proving these behaviors:
+	1.	Agent writes frames
+
+	•	Start agent simulator for 5 seconds
+	•	Assert raw_frames increases and contains payload_format_version=1
+
+	2.	Bridge processes frames
+
+	•	Start bridge
+	•	Assert cursor advances and Postgres receives readings
+	•	Assert pipeline metrics increment
+
+	3.	Commit gating
+
+	•	Force Postgres failure (connection refused or mocked error)
+	•	Assert:
+	•	cursor does NOT advance
+	•	bridge backoff increases up to 30s
+	•	raw_frames remains intact
+
+	4.	Recovery
+
+	•	Restore Postgres
+	•	Assert:
+	•	backoff resets
+	•	cursor advances
+	•	backlog decreases
+
+	5.	Decoder guards
+
+	•	Insert raw_frame with payload_format_version=999
+	•	Assert decoder returns [] and bridge does not crash
+
+	6.	Writer guard
+
+	•	In production mode, call writeBatch with source != sqlite-bridge
+	•	Assert it throws “Unauthorized ingestion source”
+
+⸻
+
+Step 4 — Verification endpoint check
+
+Implement/verify GET /api/ingestion/verify returns:
+	•	agentAlive (gRPC or heartbeat)
+	•	sqlitePath
+	•	rawFramesRecentCount (last 60s)
+	•	bridgeCursorLastId
+	•	bridgeLagFrames = max(raw_frames.id) - cursor.last_id
+	•	postgresLastCommitAt
+	•	pipelineHealthy boolean
+	•	errors[]
+
+Add thresholds:
+	•	pipelineHealthy requires:
+	•	agentAlive true OR rawFramesRecentCount > 0 (during sim)
+	•	bridgeLagFrames below a configurable threshold OR actively decreasing
+	•	postgresLastCommitAt within last N minutes (when online)
+
+⸻
+
+Step 5 — Output deliverables
+	1.	A verification report:
+
+	•	PASS/FAIL with reasons
+	•	Evidence: counts, cursor values, commit timestamps, backoff behavior
+
+	2.	File list of all changes + new test/harness files
+	3.	Runbook commands:
+
+	•	Start agent simulator
+	•	Start bridge
+	•	Call verify endpoint
+	•	Simulate Postgres outage and recovery
+
+Proceed now.

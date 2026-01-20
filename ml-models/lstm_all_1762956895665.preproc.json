@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "timestamp": "2025-11-12T14:14:55.675Z",
+  "normalization": {
+    "means": {
+      "vibration": 0.001583011583011583
+    },
+    "stds": {
+      "vibration": 0.04409759995092939
+    }
+  },
+  "features": {
+    "sensorTypes": [
+      "vibration"
+    ],
+    "sequenceLength": 7
+  }
+}

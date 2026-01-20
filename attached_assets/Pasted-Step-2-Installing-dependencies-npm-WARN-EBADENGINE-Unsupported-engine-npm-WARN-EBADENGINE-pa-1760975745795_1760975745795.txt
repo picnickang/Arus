@@ -1,0 +1,111 @@
+Step 2: Installing dependencies...
+npm WARN EBADENGINE Unsupported engine {
+npm WARN EBADENGINE   package: 'yargs@18.0.0',
+npm WARN EBADENGINE   required: { node: '^20.19.0 || ^22.12.0 || >=23' },
+npm WARN EBADENGINE   current: { node: 'v20.11.0', npm: '10.2.4' }
+npm WARN EBADENGINE }
+npm WARN EBADENGINE Unsupported engine {
+npm WARN EBADENGINE   package: 'yargs-parser@22.0.0',
+npm WARN EBADENGINE   required: { node: '^20.19.0 || ^22.12.0 || >=23' },
+npm WARN EBADENGINE   current: { node: 'v20.11.0', npm: '10.2.4' }
+npm WARN EBADENGINE }
+npm WARN skipping integrity check for git dependency ssh://git@github.com/electron/node-gyp.git 
+npm WARN deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm WARN deprecated npmlog@5.0.1: This package is no longer supported.
+npm WARN deprecated @npmcli/move-file@2.0.1: This functionality has been moved to @npmcli/fs
+npm WARN deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+npm WARN deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
+npm WARN deprecated rimraf@2.6.3: Rimraf versions prior to v4 are no longer supported
+npm WARN deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+npm WARN deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+npm WARN deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+npm WARN deprecated apollo-datasource@3.3.2: The `apollo-datasource` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+npm WARN deprecated are-we-there-yet@2.0.0: This package is no longer supported.
+npm WARN deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+npm WARN deprecated apollo-server-plugin-base@3.7.2: The `apollo-server-plugin-base` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/server` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+npm WARN deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm WARN deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm WARN deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm WARN deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm WARN deprecated glob@8.1.0: Glob versions prior to v9 are no longer supported
+npm WARN deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm WARN deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm WARN deprecated glob@8.1.0: Glob versions prior to v9 are no longer supported
+npm WARN deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm WARN deprecated apollo-server-errors@3.3.1: The `apollo-server-errors` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/server` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+npm WARN deprecated apollo-server-types@3.8.0: The `apollo-server-types` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/server` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+npm WARN deprecated apollo-server-express@3.13.0: The `apollo-server-express` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/server` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+npm WARN deprecated gauge@3.0.2: This package is no longer supported.
+npm WARN deprecated boolean@3.2.0: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+npm WARN deprecated apollo-server-env@4.2.1: The `apollo-server-env` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/utils.fetcher` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+npm WARN deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+npm WARN deprecated apollo-reporting-protobuf@3.4.0: The `apollo-reporting-protobuf` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/usage-reporting-protobuf` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+npm WARN deprecated apollo-server-core@3.13.0: The `apollo-server-core` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/server` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+
+added 1611 packages, and audited 1612 packages in 53s
+
+201 packages are looking for funding
+  run `npm fund` for details
+
+8 vulnerabilities (3 low, 5 moderate)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+Step 3: Removing optional cpu-features module...
+✅ cpu-features removed (optional TensorFlow optimization, not required)
+
+Step 4: Rebuilding native modules (serialport, tensorflow, bufferutil)...
+  • electron-builder  version=26.0.12
+  • loaded configuration  file=/Users/homeimac/Downloads/RecipeRealm/electron-builder.yml
+  • executing @electron/rebuild  electronVersion=38.3.0 arch=x64 buildFromSource=false appDir=./
+  • installing native dependencies  arch=x64
+  • preparing       moduleName=@serialport/bindings-cpp arch=x64
+  • finished        moduleName=@serialport/bindings-cpp arch=x64
+  • preparing       moduleName=@tensorflow/tfjs-node arch=x64
+  • finished        moduleName=@tensorflow/tfjs-node arch=x64
+  • preparing       moduleName=bufferutil arch=x64
+  • finished        moduleName=bufferutil arch=x64
+  • completed installing native dependencies
+
+Step 5: ✓ Node.js runtime found (147M)
+✓ Node.js binary verified
+
+Step 6: ✓ Application already built
+
+Step 7: Building macOS desktop installer...
+  • electron-builder  version=26.0.12 os=21.6.0
+  • loaded configuration  file=/Users/homeimac/Downloads/RecipeRealm/electron-builder.yml
+  • description is missed in the package.json  appPackageFile=/Users/homeimac/Downloads/RecipeRealm/package.json
+  • author is missed in the package.json  appPackageFile=/Users/homeimac/Downloads/RecipeRealm/package.json
+  • writing effective config  file=dist/electron/builder-effective-config.yaml
+  • executing @electron/rebuild  electronVersion=38.3.0 arch=x64 buildFromSource=false appDir=./
+  • installing native dependencies  arch=x64
+  • preparing       moduleName=@serialport/bindings-cpp arch=x64
+  • finished        moduleName=@serialport/bindings-cpp arch=x64
+  • preparing       moduleName=@tensorflow/tfjs-node arch=x64
+  • finished        moduleName=@tensorflow/tfjs-node arch=x64
+  • preparing       moduleName=bufferutil arch=x64
+  • finished        moduleName=bufferutil arch=x64
+  • completed installing native dependencies
+  • packaging       platform=darwin arch=x64 electron=38.3.0 appOutDir=dist/electron/mac
+  • downloading     url=https://github.com/electron/electron/releases/download/v38.3.0/electron-v38.3.0-darwin-x64.zip size=118 MB parts=8
+  • downloaded      url=https://github.com/electron/electron/releases/download/v38.3.0/electron-v38.3.0-darwin-x64.zip duration=43.671s
+  • default Electron icon is used  reason=application icon is not set
+  ⨯ Application entry file "index.js" in the "/Users/homeimac/Downloads/RecipeRealm/dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app.asar" is corrupted: Error: "index.js" was not found in this archive  failedTask=build stackTrace=Error: Application entry file "index.js" in the "/Users/homeimac/Downloads/RecipeRealm/dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app.asar" is corrupted: Error: "index.js" was not found in this archive
+    at error (/Users/homeimac/Downloads/RecipeRealm/node_modules/app-builder-lib/src/asar/asarFileChecker.ts:6:12)
+    at checkFileInArchive (/Users/homeimac/Downloads/RecipeRealm/node_modules/app-builder-lib/src/asar/asarFileChecker.ts:15:11)
+    at MacPackager.checkFileInPackage (/Users/homeimac/Downloads/RecipeRealm/node_modules/app-builder-lib/src/platformPackager.ts:638:25)
+    at MacPackager.sanityCheckPackage (/Users/homeimac/Downloads/RecipeRealm/node_modules/app-builder-lib/src/platformPackager.ts:686:16)
+    at MacPackager.doPack (/Users/homeimac/Downloads/RecipeRealm/node_modules/app-builder-lib/src/platformPackager.ts:358:5)
+    at MacPackager.pack (/Users/homeimac/Downloads/RecipeRealm/node_modules/app-builder-lib/src/macPackager.ts:219:9)
+    at Packager.doBuild (/Users/homeimac/Downloads/RecipeRealm/node_modules/app-builder-lib/src/packager.ts:491:9)
+    at executeFinally (/Users/homeimac/Downloads/RecipeRealm/node_modules/builder-util/src/promise.ts:12:14)
+    at Packager.build (/Users/homeimac/Downloads/RecipeRealm/node_modules/app-builder-lib/src/packager.ts:425:31)
+    at executeFinally (/Users/homeimac/Downloads/RecipeRealm/node_modules/builder-util/src/promise.ts:12:14)
+homeimac@Homes-iMac RecipeRealm % 

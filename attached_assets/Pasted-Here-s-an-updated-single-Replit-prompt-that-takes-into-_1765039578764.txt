@@ -1,0 +1,172 @@
+Here’s an updated single Replit prompt that takes into account that enhanced-trends.ts and openai.ts are already modularized and that storage.ts / routes.ts have been reduced:
+
+⸻
+
+Replit prompt:
+
+You are a senior TypeScript architect working on the RecipeRealm maritime PdM app (Electron + React/TS frontend, Node/Express backend, PostgreSQL + SQLite dual storage, MQTT telemetry, OpenAI-based insights).
+
+Several large files have already been modularized:
+	•	server/enhanced-trends.ts → now split into modules under server/enhanced-trends/ (types, statistical-helpers, anomaly-detection, forecasting, seasonality, correlation, fleet-analysis, index, etc.).
+	•	server/openai.ts → now split into modules under server/openai/ (types, client, equipment-analysis, fleet-analysis, dossier-builder, risk-parser, fleet-benchmarks, maintenance-insights, index, etc.).
+	•	server/storage.ts and server/routes.ts have been refactored and are now ~120 and ~149 lines long.
+
+Do NOT re-modularize those files. Only make small follow-up edits to call sites if you need to adjust imports or types.
+
+⸻
+
+Goal
+
+Systematically modularize and harden the rest of the codebase, especially any remaining very large files, while keeping behavior 100% identical and without duplicating work that’s already been done.
+
+Focus on:
+	•	Backend:
+	•	server/services/data-export-import.ts
+	•	server/domains/logbook/routes.ts
+	•	server/rul-engine.ts
+	•	server/mqtt-reliable-sync.ts
+	•	server/enhanced-llm.ts
+	•	server/swagger.ts
+	•	server/services/dev-fake-data-service.ts
+	•	Shared schema:
+	•	shared/schema.ts (PostgreSQL)
+	•	shared/schema-sqlite-vessel.ts (SQLite)
+	•	Any other TS/TSX files over ~500 lines in pages/components that you discover (e.g. engine-logbook.tsx, deck-logbook.tsx, hours-of-rest, crew-scheduler, inventory, maintenance, email-alerts, etc.), excluding the already-refactored files listed above.
+
+⸻
+
+Step 1 – Detect and plan
+	1.	Scan the repository for:
+	•	All .ts / .tsx files > ~500 lines.
+	•	Exclude:
+	•	server/enhanced-trends.ts (now modularized into a folder)
+	•	server/openai.ts (now modularized into a folder)
+	•	server/storage.ts
+	•	server/routes.ts
+	2.	For each remaining large file, produce a short internal plan (as comments at the top of the file) describing:
+	•	The main responsibilities.
+	•	Clear module boundaries (e.g. “types + DTOs”, “pure helpers”, “domain services”, “API handlers / routes”, “UI layout vs. reusable UI widgets”).
+	•	The target module names you’ll create.
+
+Keep the number of new modules reasonable (most 100–250 lines) and group by domain, not by arbitrary chunks.
+
+⸻
+
+Step 2 – Backend modularization
+
+For each of these backend files, refactor into smaller modules while preserving behavior:
+	1.	server/services/data-export-import.ts
+	•	Separate:
+	•	Core export/import orchestration.
+	•	Format adapters (JSON, CSV, Excel, etc.).
+	•	Domain mappers (work orders, inventory, logs, crew, etc.).
+	•	Validation & versioning helpers (for future migrations between app versions).
+	•	Ensure all public functions are exported from an index.ts barrel file.
+	2.	server/domains/logbook/routes.ts
+	•	Split by domain:
+	•	Engine room logbook HTTP handlers.
+	•	Deck logbook HTTP handlers.
+	•	Shared helpers (validation, authorization, date/vessel scoping).
+	•	Move pure logic (e.g. autofill from telemetry, anomaly flags, PDF/Excel export) into service modules under server/domains/logbook/services/ and keep the route file as a thin HTTP wrapper.
+	3.	server/rul-engine.ts
+	•	Extract:
+	•	Types & configuration (RUL models, thresholds, equipment profiles).
+	•	Model runners / scoring functions.
+	•	Aggregation + explanation logic for UI.
+	•	Integration layer that calls DB / telemetry.
+	•	Ensure this reuses your already-modularized enhanced-trends / openai modules where appropriate instead of duplicating analytics logic.
+	4.	server/mqtt-reliable-sync.ts
+	•	Separate:
+	•	Connection management & reconnection strategy.
+	•	Topic subscriptions and message parsing.
+	•	Idempotency & deduplication logic.
+	•	Persistence layer that writes telemetry into the database.
+	•	Keep all MQTT behavior and topics identical, but make the interfaces clearer and easier to test.
+	5.	server/enhanced-llm.ts
+	•	Reconcile this with the existing server/openai/ modules:
+	•	Move any overlapping logic into the server/openai/ folder (or into shared helpers) to avoid duplication.
+	•	Leave enhanced-llm.ts as a thin orchestration layer or deprecate it if fully replaced.
+	•	Confirm imports so there is a single clean integration layer for OpenAI / LLM features.
+	6.	server/swagger.ts
+	•	Factor out:
+	•	Base OpenAPI schema definition.
+	•	Route registration helper.
+	•	Any DSL helpers for generating schemas.
+	•	Make sure the generated docs still cover all routes after modularization.
+	7.	server/services/dev-fake-data-service.ts
+	•	Isolate:
+	•	Data factories / faker utilities by domain (vessels, equipment, telemetry, logs, crew, work orders).
+	•	Seeding orchestration for dev/demo environments only.
+	•	Guard dev-only code behind an environment flag so it can’t accidentally run in production.
+
+Throughout backend refactoring:
+	•	Maintain all existing route paths, request/response shapes, and status codes.
+	•	Update imports everywhere to use the new module structure.
+	•	Add small, focused unit tests around the extracted modules where it’s easy to do so (especially for pure functions).
+
+⸻
+
+Step 3 – Shared schema refactor (PostgreSQL + SQLite)
+	1.	shared/schema.ts (PostgreSQL) and shared/schema-sqlite-vessel.ts (SQLite)
+	•	Without changing any column definitions, constraints, or table names, refactor into domain-based submodules, for example:
+	•	shared/schema/core.ts – organizations, users, roles, permissions.
+	•	shared/schema/vessels.ts – vessels, equipment, telemetry channels.
+	•	shared/schema/maintenance.ts – work orders, maintenance templates, schedules, PdM models.
+	•	shared/schema/crew.ts – crew, certificates, hours-of-rest, scheduler.
+	•	shared/schema/logbook.ts – engine log, deck log, autogenerated events.
+	•	shared/schema/inventory.ts – parts, stock levels, purchase requests, vendors.
+	•	shared/schema/compliance.ts – STCW checks, audits, alerts, email notification rules.
+	•	Do the same domain splits for the SQLite schema file(s), keeping table/column parity with Postgres.
+	•	Create a small shared/schema/index.ts and shared/schema-sqlite-vessel/index.ts that re-export the domain modules so existing imports can be updated in one place.
+	•	Make sure the dual-database abstraction (runtime switch between Postgres and SQLite) continues to work and that all imports refer to the new aggregated exports.
+
+⸻
+
+Step 4 – Frontend pages & components
+
+For each remaining large .tsx file (pages and components) over ~500 lines (e.g. engine-logbook.tsx, deck-logbook.tsx, hours-of-rest, crew-scheduler, inventory & maintenance pages, email-alerts UI, etc.):
+	1.	Identify UI sub-domains inside the file:
+	•	Layout / page shell.
+	•	Filters & search controls.
+	•	Tables/grids.
+	•	Dialogs & forms.
+	•	Analytics widgets / charts.
+	•	Shared widgets (e.g. vessel selector, date range picker, telemetry charts, anomaly badges).
+	2.	Split into clearly named components placed under a sensible folder structure, for example:
+	•	app/engine-logbook/EngineLogbookPage.tsx (thin container)
+	•	app/engine-logbook/components/HourlyGrid.tsx
+	•	app/engine-logbook/components/GeneratorGrid.tsx
+	•	app/engine-logbook/components/EventTimeline.tsx
+	•	app/engine-logbook/components/WatchAssignments.tsx
+	•	app/engine-logbook/components/SummaryPanel.tsx
+Apply the same pattern to deck log, hours of rest, crew scheduler, inventory, purchasing, etc.
+	3.	Ensure:
+	•	Props are typed with clear interfaces.
+	•	No business logic is duplicated; shared hooks/helpers go under app/hooks/ or app/lib/ as appropriate.
+	•	All tests and Storybook stories (if any) are updated to point to the new components.
+
+⸻
+
+Step 5 – Safety, tests, and compatibility
+	1.	After each logical refactor, run the full test suite and any linters/formatters configured in the repo.
+	2.	Add or extend targeted tests to cover:
+	•	Critical backend paths (logbook, telemetry ingestion, PdM engine, export/import).
+	•	At least snapshot / basic render tests for the most complex refactored React components.
+	3.	Ensure:
+	•	All existing API routes still respond as before (same URL, method, payload shape).
+	•	The dual Postgres/SQLite setup still passes all runtime checks.
+	•	MQTT telemetry and any simulated/dev data continue to flow without breaking.
+	4.	When you’re done, leave a concise summary (as comments in a new docs/refactors-modularization.md file) listing:
+	•	Which files were modularized.
+	•	New module locations.
+	•	Any small behavior changes or new tests added.
+	•	Any remaining large or complex files that should be tackled later.
+
+⸻
+
+Important constraints
+	•	Do not introduce new external dependencies unless absolutely necessary; prefer reusing what’s already in package.json.
+	•	Preserve existing behavior and data models. This work is primarily structure and maintainability, not new features.
+	•	Avoid reworking server/enhanced-trends/*, server/openai/*, server/storage.ts, or server/routes.ts except for minor import clean-up.
+
+Please implement this modularization plan end-to-end.

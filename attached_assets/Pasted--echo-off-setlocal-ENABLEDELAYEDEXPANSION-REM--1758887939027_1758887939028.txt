@@ -1,0 +1,419 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==========================================================
+REM ARUS – PdM Pack v1 (Bearings + Pumps)
+REM - Baseline store (per asset) and auto-thresholds (μ±kσ)
+REM - Bearing vibration features (time/ISO/order bands + envelope/kurtosis)
+REM - Pump health (flow/pressure/current, cavitation heuristic)
+REM - Alert generation + recent alerts feed
+REM - Frontend PdmPack card to baseline, analyze, and review alerts
+REM - No auth changes; LLM still on-demand only elsewhere
+REM ==========================================================
+
+if not exist "backend-node\src" (
+echo [ERROR] backend-node/src not found. Run at repo root.
+exit /b 1
+)
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+REM ----------------------------------------------------------
+REM 0) Backend deps (already have simple-statistics; add envelope helper)
+REM ----------------------------------------------------------
+%PS% ^
+"$f='backend-node/package.json'; $j=(Get-Content -Raw $f | ConvertFrom-Json);" ^
+"$j.dependencies.'simple-statistics' = $j.dependencies.'simple-statistics' ?? '^7.8.3';" ^
+"$j | ConvertTo-Json -Depth 10 | Set-Content -Encoding UTF8 $f;"
+
+REM ----------------------------------------------------------
+REM 1) SQL migrations: baselines + alerts
+REM ----------------------------------------------------------
+if not exist "backend-node\migrations" mkdir backend-node\migrations
+
+> backend-node\migrations\080_pdm_baseline.sql (
+echo -- Postgres: baselines and alerts
+echo CREATE TABLE IF NOT EXISTS pdm_baseline (
+echo id BIGSERIAL PRIMARY KEY,
+echo vessel_id TEXT NOT NULL,
+echo asset_id TEXT NOT NULL, -- e.g., BEARING_PORT_AFT
+echo asset_class TEXT NOT NULL, -- 'bearing'|'pump'
+echo feature TEXT NOT NULL, -- 'rms','kurtosis','env_rms','iso_10_100','order_1x','flow_eff', etc.
+echo mu DOUBLE PRECISION NOT NULL,
+echo sigma DOUBLE PRECISION NOT NULL,
+echo n BIGINT NOT NULL DEFAULT 0,
+echo updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+echo UNIQUE(vessel_id, asset_id, feature)
+echo );
+echo
+echo CREATE TABLE IF NOT EXISTS pdm_alerts (
+echo id BIGSERIAL PRIMARY KEY,
+echo at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+echo vessel_id TEXT NOT NULL,
+echo asset_id TEXT NOT NULL,
+echo asset_class TEXT NOT NULL,
+echo feature TEXT NOT NULL,
+echo value DOUBLE PRECISION,
+echo score_z DOUBLE PRECISION,
+echo severity TEXT, -- info|warn|high
+echo explain JSONB -- {why, bands, orders, thresholds}
+echo );
+echo CREATE INDEX IF NOT EXISTS idx_pdm_alerts_vat ON pdm_alerts(vessel_id, at DESC);
+)
+
+> backend-node\migrations\sqlite_080_pdm_baseline.sql (
+echo -- SQLite: baselines and alerts
+echo CREATE TABLE IF NOT EXISTS pdm_baseline (
+echo id INTEGER PRIMARY KEY AUTOINCREMENT,
+echo vessel_id TEXT NOT NULL,
+echo asset_id TEXT NOT NULL,
+echo asset_class TEXT NOT NULL,
+echo feature TEXT NOT NULL,
+echo mu REAL NOT NULL,
+echo sigma REAL NOT NULL,
+echo n INTEGER NOT NULL DEFAULT 0,
+echo updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+echo UNIQUE(vessel_id, asset_id, feature)
+echo );
+echo
+echo CREATE TABLE IF NOT EXISTS pdm_alerts (
+echo id INTEGER PRIMARY KEY AUTOINCREMENT,
+echo at TEXT NOT NULL DEFAULT (datetime('now')),
+echo vessel_id TEXT NOT NULL,
+echo asset_id TEXT NOT NULL,
+echo asset_class TEXT NOT NULL,
+echo feature TEXT NOT NULL,
+echo value REAL,
+echo score_z REAL,
+echo severity TEXT,
+echo explain TEXT
+echo );
+echo CREATE INDEX IF NOT EXISTS idx_pdm_alerts_vat ON pdm_alerts(vessel_id, at);
+)
+
+REM ----------------------------------------------------------
+REM 2) PdM feature extraction + baselining + alerting (Node/TS)
+REM ----------------------------------------------------------
+> backend-node\src\pdm.features.ts (
+echo import { mean, standardDeviation } from "simple-statistics";
+echo
+echo export type Series = number[];
+echo
+echo export function rms(x:Series){ const s = x.reduce((a,b)=>a+b*b,0); return Math.sqrt(s/Math.max(1,x.length)); }
+echo export function kurtosis(x:Series){ const m=mean(x); const n=x.length||1; const v = x.reduce((a,b)=>a+(b-m)**2,0)/n; const s2 = Math.sqrt(v)||1e-9; const k = x.reduce((a,b)=>a+((b-m)/s2)**4,0)/n; return k-3; }
+echo export function absEnvelope(x:Series){ // fast rectified envelope proxy
+echo const y = x.map(v=>Math.abs(v)); const w=5; const out:number[]=[]; for(let i=0;i<y.length;i++){ let s=0,c=0; for(let j=i-w;j<=i+w;j++){ if(j>=0&&j<y.length){s+=y[j];c++;}} out.push(s/Math.max(1,c)); } return out;
+echo }
+echo
+echo export function clampSigma(z:number){ if(!isFinite(z)) return 0; return Math.max(-10, Math.min(10, z)); }
+echo
+echo export type Band = { name:string; value:number };
+echo
+echo export function bandRMS(freq:number[], mag:number[], bands:{lo:number,hi:number,name:string}[]): Band[]{
+echo return bands.map(b=>{ let sum=0,c=0; for(let i=0;i<freq.length;i++){ const f=freq[i]; if(f>=b.lo && f<b.hi){ const m=mag[i]||0; sum+=m*m; c++; } } return { name:b.name, value: Math.sqrt(sum/Math.max(1,c)) }; });
+echo }
+)
+
+REM ----------------------------------------------------------
+REM 3) PdM Pack service (bearing + pump) with baseliner + alerts
+REM ----------------------------------------------------------
+> backend-node\src\pdm.pack.ts (
+echo import path from "node:path";
+echo import Database from "better-sqlite3";
+echo import { Pool } from "pg";
+echo import { mean, standardDeviation } from "simple-statistics";
+echo import { rms, kurtosis, absEnvelope, bandRMS, clampSigma } from "./pdm.features.js";
+echo import { analyzeVibration } from "./pdm.vibration.js"; // uses spectrum/iso/fault orders
+echo
+echo const DATABASE_URL = process.env.DATABASE_URL || "";
+echo const USE_PG = !!DATABASE_URL;
+echo
+echo async function qpg<T=any>(sql:string, params:any[]=[]): Promise<T[]>{
+echo const pool = new Pool({ connectionString: DATABASE_URL, statement_timeout: 15000 });
+echo const c = await pool.connect(); try { const r = await c.query(sql, params); return r.rows as any; } finally { c.release(); await pool.end(); }
+echo }
+echo function qlite<T=any>(fn:(db:Database)=>T):T{ const db = new Database(path.join(process.cwd(),"data","arus.sqlite")); try { return fn(db); } finally { db.close(); } }
+echo
+echo export type BaselinePoint = { vessel_id:string; asset_id:string; asset_class:'bearing'|'pump'; features: Record<string, number> };
+echo
+echo function zScore(mu:number,sigma:number,x:number){ const s = sigma||1e-6; return (x - mu)/s; }
+echo function severityFromZ(z:number){ const az=Math.abs(z); if(az>=3) return "high"; if(az>=2) return "warn"; return "info"; }
+echo
+echo export async function upsertBaselinePoint(p:BaselinePoint){
+echo const rows = Object.entries(p.features);
+echo if (USE_PG){
+echo const pool = new Pool({ connectionString: DATABASE_URL });
+echo const c = await pool.connect();
+echo try{
+echo for (const [feature, v] of rows){
+echo // Online update: new mu/sigma from (old n, mu, sigma) + x (Welford)
+echo const ex = await c.query("SELECT mu, sigma, n FROM pdm_baseline WHERE vessel_id=$1 AND asset_id=$2 AND feature=$3", [p.vessel_id, p.asset_id, feature]);
+echo if (ex.rowCount===0){ await c.query("INSERT INTO pdm_baseline(vessel_id,asset_id,asset_class,feature,mu,sigma,n) VALUES($1,$2,$3,$4,$5,$6,$7)", [p.vessel_id,p.asset_id,p.asset_class,feature,v,0,1]); }
+echo else {
+echo const mu0=Number(ex.rows[0].mu), n0=Number(ex.rows[0].n||0); const n=n0+1; const mu = mu0 + (v-mu0)/n; const sigma = (n0>0)? Math.sqrt(((n0-1)*Math.pow(Number(ex.rows[0].sigma)||0,2) + (v-mu0)*(v-mu))/Math.max(1,(n-1))) : 0;
+echo await c.query("UPDATE pdm_baseline SET mu=$1, sigma=$2, n=$3, updated_at=NOW() WHERE vessel_id=$4 AND asset_id=$5 AND feature=$6", [mu, sigma, n, p.vessel_id, p.asset_id, feature]);
+echo }
+echo }
+echo } finally { c.release(); await pool.end(); }
+echo } else {
+echo qlite(db=>{
+echo const get = db.prepare("SELECT mu,sigma,n FROM pdm_baseline WHERE vessel_id=? AND asset_id=? AND feature=?");
+echo const ins = db.prepare("INSERT INTO pdm_baseline(vessel_id,asset_id,asset_class,feature,mu,sigma,n) VALUES(?,?,?,?,?,?,?)");
+echo const upd = db.prepare("UPDATE pdm_baseline SET mu=?, sigma=?, n=?, updated_at=datetime('now') WHERE vessel_id=? AND asset_id=? AND feature=?");
+echo for (const [feature,v] of rows){
+echo const ex:any = get.get(p.vessel_id,p.asset_id,feature);
+echo if (!ex){ ins.run(p.vessel_id,p.asset_id,p.asset_class,feature,v,0,1); }
+echo else { const mu0=Number(ex.mu), n0=Number(ex.n||0); const n=n0+1; const mu = mu0 + (v-mu0)/n; const sigma = (n0>0)? Math.sqrt(((n0-1)*Math.pow(Number(ex.sigma)||0,2) + (v-mu0)*(v-mu))/Math.max(1,(n-1))) : 0; upd.run(mu,sigma,n,p.vessel_id,p.asset_id,feature); }
+echo }
+echo });
+echo }
+echo }
+echo
+echo export async function evaluateAgainstBaseline(vessel_id:string, asset_id:string, asset_class:'bearing'|'pump', features:Record<string,number>){
+echo const out:any[]=[];
+echo const keys = Object.keys(features);
+echo if (USE_PG){
+echo const rows = await qpg(\`SELECT feature, mu, sigma FROM pdm_baseline WHERE vessel_id=$1 AND asset_id=$2 AND feature = ANY($3)\`, [vessel_id, asset_id, keys]);
+echo const map = new Map(rows.map((r:any)=>[r.feature, r]));
+echo for (const k of keys){ const base = map.get(k); if(!base) continue; const z = clampSigma(zScore(Number(base.mu), Number(base.sigma), Number(features[k]))); out.push([k, z]); }
+echo } else {
+echo const rows:any[] = qlite(db=> db.prepare("SELECT feature, mu, sigma FROM pdm_baseline WHERE vessel_id=? AND asset_id=?").all(vessel_id, asset_id));
+echo const map = new Map(rows.map((r:any)=>[r.feature, r]));
+echo for (const k of keys){ const base = map.get(k); if(!base) continue; const z = clampSigma(zScore(Number(base.mu), Number(base.sigma), Number(features[k]))); out.push([k, z]); }
+echo }
+echo // Aggregate severity
+echo const worst = out.reduce((m, [,z])=> Math.max(m, Math.abs(Number(z))), 0);
+echo const sev = severityFromZ(worst);
+echo return { z: Object.fromEntries(out), severity: sev, worst_z: worst };
+echo }
+echo
+echo export function bearingFeatures(params:{ fs:number; rpm?:number; series:number[]; spec?:{freq:number[];mag:number[]} }){
+echo const { fs, rpm, series } = params;
+echo const env = absEnvelope(series);
+echo const envR = rms(env);
+echo const f = analyzeVibration({ fs, window:"hann", series, shaft_rpm: rpm });
+echo const iso10 = (f.iso.find(b=>b.band==='10-100Hz')?.rms)||0;
+echo const o1 = (f.fault.find(b=>b.band.startsWith('1x'))?.rms)||0;
+echo const o2 = (f.fault.find(b=>b.band.startsWith('2x'))?.rms)||0;
+echo return {
+echo rms: rms(series),
+echo kurtosis: kurtosis(series),
+echo env_rms: envR,
+echo iso_10_100: iso10,
+echo order_1x: o1,
+echo order_2x: o2
+echo };
+echo }
+echo
+echo export function pumpFeatures(params:{ flow?:number[]; pressure?:number[]; current?:number[]; fs?:number; vib_series?:number[] }){
+echo const { flow, pressure, current, fs=0, vib_series } = params;
+echo const n = Math.max(flow?.length||0, pressure?.length||0, current?.length||0, vib_series?.length||0);
+echo const safe = (arr?:number[])=> (arr&&arr.length)? arr: Array.from({length:n},()=>NaN);
+echo const fl = safe(flow), pr = safe(pressure), cu = safe(current);
+echo const eff = (()=>{ // simple correlation-based proxy for efficiency
+echo const f = fl.filter(x=>isFinite(x)), p = pr.filter(x=>isFinite(x));
+echo if (!f.length || !p.length) return NaN;
+echo const mf = mean(f), mp = mean(p);
+echo const cov = f.reduce((a,fi,i)=> a + (fi-mf)*(p[i]-mp), 0) / Math.max(1,f.length);
+echo const vf = standardDeviation(f)||1e-6, vp = standardDeviation(p)||1e-6;
+echo return Math.max(0, Math.min(1, cov/(vf*vp))); // 0..1
+echo })();
+echo let cav=0;
+echo if (vib_series && fs>0){
+echo // Cavitation heuristic: high-frequency band RMS relative to low band
+echo const spec = analyzeVibration({ fs, window:'hann', series: vib_series, shaft_rpm: undefined });
+echo const b = bandRMS(spec.spec.freq, spec.spec.mag, [{lo:1000,hi:3000,name:'hf'},{lo:10,hi:100,name:'lf'}]);
+echo const hf = b.find(x=>x.name==='hf')?.value||0; const lf = b.find(x=>x.name==='lf')?.value||1e-6;
+echo cav = hf/lf;
+echo }
+echo return { flow_eff: eff, cav_index: cav, current_rms: isFinite(rms(cu))? rms(cu): NaN, pressure_mean: isFinite(mean(pr))? mean(pr): NaN };
+echo }
+echo
+echo export async function recordAlert(row:{
+echo vessel_id:string; asset_id:string; asset_class:'bearing'|'pump';
+echo features:Record<string,number>; zmap:Record<string,number>; severity:string; why:any;
+echo }){
+echo if (USE_PG){
+echo await qpg("INSERT INTO pdm_alerts(vessel_id,asset_id,asset_class,feature,value,score_z,severity,explain) VALUES($1,$2,$3,$4,$5,$6,$7,$8)", [
+echo row.vessel_id, row.asset_id, row.asset_class, Object.keys(row.features)[0], Object.values(row.features)[0], row.zmap[Object.keys(row.features)[0]]||0, row.severity, row.why
+echo ]);
+echo } else {
+echo qlite(db=> db.prepare("INSERT INTO pdm_alerts(vessel_id,asset_id,asset_class,feature,value,score_z,severity,explain) VALUES(?,?,?,?,?,?,?,?)")
+echo .run(row.vessel_id, row.asset_id, row.asset_class, Object.keys(row.features)[0], Object.values(row.features)[0], row.zmap[Object.keys(row.features)[0]]||0, row.severity, JSON.stringify(row.why)));
+echo }
+echo }
+)
+
+REM ----------------------------------------------------------
+REM 4) Routes: baseline ingest/compute, analyze, alerts
+REM ----------------------------------------------------------
+> backend-node\src\index.pdm.ts (
+echo import express from "express";
+echo import { upsertBaselinePoint, evaluateAgainstBaseline, bearingFeatures, pumpFeatures, recordAlert } from "./pdm.pack.js";
+echo
+echo export function mountPdm(v1: express.Router){
+echo // Submit baseline point (use past "good" data)
+echo v1.post("/api/pdm/baseline/ingest", async (req,res)=>{
+echo const { vessel_id, asset_id, asset_class, features } = req.body||{};
+echo if(!vessel_id||!asset_id||!asset_class||!features) return res.status(400).json({ok:false,error:"missing fields"});
+echo await upsertBaselinePoint({ vessel_id, asset_id, asset_class, features });
+echo return res.json({ ok:true });
+echo });
+echo
+echo // Analyze bearing vibration and score vs baseline
+echo v1.post("/api/pdm/analyze/bearing", async (req,res)=>{
+echo const { vessel_id, asset_id, fs, rpm, series } = req.body||{};
+echo if(!vessel_id||!asset_id||!fs||!series) return res.status(400).json({ok:false,error:"missing fields"});
+echo const feats = bearingFeatures({ fs:Number(fs), rpm:Number(rpm)||undefined, series: series||[] });
+echo const evaln = await evaluateAgainstBaseline(vessel_id, asset_id, 'bearing', feats);
+echo const why = { type:'bearing', features: feats, z: evaln.z, msg: 'Auto-threshold μ±kσ with worst Z as severity' };
+echo if (evaln.severity!=='info'){ await recordAlert({ vessel_id, asset_id, asset_class:'bearing', features: {rms: feats.rms}, zmap: evaln.z, severity: evaln.severity, why }); }
+echo return res.json({ ok:true, features:feats, score: evaln });
+echo });
+echo
+echo // Analyze pump process signals and score vs baseline
+echo v1.post("/api/pdm/analyze/pump", async (req,res)=>{
+echo const { vessel_id, asset_id, flow, pressure, current, vib_series, fs } = req.body||{};
+echo if(!vessel_id||!asset_id) return res.status(400).json({ok:false,error:"missing fields"});
+echo const feats = pumpFeatures({ flow, pressure, current, fs, vib_series });
+echo const evaln = await evaluateAgainstBaseline(vessel_id, asset_id, 'pump', feats);
+echo const why = { type:'pump', features: feats, z: evaln.z, msg: 'Cavitation index and flow/pressure efficiency baseline' };
+echo if (evaln.severity!=='info'){ await recordAlert({ vessel_id, asset_id, asset_class:'pump', features: {cav_index: feats.cav_index}, zmap: evaln.z, severity: evaln.severity, why }); }
+echo return res.json({ ok:true, features:feats, score: evaln });
+echo });
+echo
+echo // Recent alerts
+echo v1.get("/api/pdm/alerts/recent", async (_req,res)=>{
+echo // Using generic SQL in existing stack: select latest 200
+echo const usePg = !!process.env.DATABASE_URL;
+echo if (usePg){
+echo const { Pool } = await import("pg"); const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+echo const c = await pool.connect(); try { const r = await c.query("SELECT id, at, vessel_id, asset_id, asset_class, feature, value, score_z, severity, explain FROM pdm_alerts ORDER BY at DESC LIMIT 200"); return res.json(r.rows.map(x=>({...x, at:(x.at as Date).toISOString()}))); } finally { c.release(); await pool.end(); }
+echo } else {
+echo const Database = (await import("better-sqlite3")).default; const db = new Database(require("node:path").join(process.cwd(),"data","arus.sqlite")); const rows = db.prepare("SELECT id, at, vessel_id, asset_id, asset_class, feature, value, score_z, severity, explain FROM pdm_alerts ORDER BY at DESC LIMIT 200").all(); db.close(); return res.json(rows);
+echo }
+echo });
+echo }
+)
+
+REM Wire PdM routes into /v1
+%PS% ^
+"$f='backend-node/src/index.ts'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace '(app\\.use\\(\"/v1\", v1\\);)','import { mountPdm } from \"./index.pdm.js\";\nmountPdm(v1);\n$1';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ----------------------------------------------------------
+REM 5) Frontend – PdmPack card
+REM ----------------------------------------------------------
+if not exist "frontend\src" (
+echo [WARN] frontend/src not found; skipping UI (backend ready).
+) else (
+> frontend\src\components\PdmPack.tsx (
+echo import React, { useEffect, useState } from "react";
+echo const BASE = (import.meta as any).env.VITE_API_URL || "http://localhost:8001";
+echo type Alert = { id:number; at:string; vessel_id:string; asset_id:string; asset_class:string; feature:string; value:number; score_z:number; severity:string; explain:any };
+echo
+echo export default function PdmPack(){
+echo const [vessel,setVessel]=useState("MV_DEMO");
+echo const [asset,setAsset]=useState("BEARING_PORT_AFT");
+echo const [rpm,setRpm]=useState(600);
+echo const [fs,setFs]=useState(2000);
+echo const [series,setSeries]=useState("");
+echo const [flow,setFlow]=useState(""); const [press,setPress]=useState(""); const [curr,setCurr]=useState("");
+echo const [alerts,setAlerts]=useState<Alert[]>([]);
+echo const [out,setOut]=useState<any>(null);
+echo
+echo async function baselineBearing(){
+echo const nums = series.split(/[\\s,]+/).map(Number).filter(n=>!isNaN(n));
+echo if(nums.length<32) { alert('Provide >=32 samples'); return; }
+echo const r = await fetch(\`\${BASE}/v1/api/pdm/analyze/bearing\`,{method:'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify({ vessel_id:vessel, asset_id:asset, fs:Number(fs), rpm:Number(rpm), series: nums })}).then(r=>r.json());
+echo // Use features returned to seed baseline
+echo await fetch(\`\${BASE}/v1/api/pdm/baseline/ingest\`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ vessel_id:vessel, asset_id:asset, asset_class:'bearing', features: r.features }) });
+echo setOut(r);
+echo loadAlerts();
+echo }
+echo
+echo async function analyzeBearing(){
+echo const nums = series.split(/[\\s,]+/).map(Number).filter(n=>!isNaN(n));
+echo const r = await fetch(\`\${BASE}/v1/api/pdm/analyze/bearing\`,{method:'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify({ vessel_id:vessel, asset_id:asset, fs:Number(fs), rpm:Number(rpm), series: nums })}).then(r=>r.json());
+echo setOut(r); loadAlerts();
+echo }
+echo
+echo async function analyzePump(){
+echo const flowA = flow.split(/[\\s,]+/).map(Number).filter(n=>!isNaN(n));
+echo const prA = press.split(/[\\s,]+/).map(Number).filter(n=>!isNaN(n));
+echo const cuA = curr.split(/[\\s,]+/).map(Number).filter(n=>!isNaN(n));
+echo const r = await fetch(\`\${BASE}/v1/api/pdm/analyze/pump\`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ vessel_id:vessel, asset_id:'PUMP_MAIN', flow:flowA, pressure:prA, current:cuA }) }).then(r=>r.json());
+echo setOut(r); loadAlerts();
+echo }
+echo
+echo async function loadAlerts(){ const r = await fetch(\`\${BASE}/v1/api/pdm/alerts/recent\`).then(r=>r.json()); setAlerts(r||[]); }
+echo useEffect(()=>{ loadAlerts(); const id=setInterval(loadAlerts, 10000); return ()=>clearInterval(id); },[]);
+echo
+echo return (
+echo <div className="card">
+echo <h2>PdM Pack v1</h2>
+echo <div style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:8}}>
+echo <label>Vessel <input value={vessel} onChange={e=>setVessel(e.target.value)} /></label>
+echo <label>Bearing Asset <input value={asset} onChange={e=>setAsset(e.target.value)} /></label>
+echo <label>RPM <input value={rpm} onChange={e=>setRpm(Number(e.target.value)||0)} /></label>
+echo <label>fs (Hz) <input value={fs} onChange={e=>setFs(Number(e.target.value)||0)} /></label>
+echo </div>
+echo <textarea placeholder="Bearing vibration series (comma or space-separated)" value={series} onChange={e=>setSeries(e.target.value)} style={{width:'100%',height:100,marginTop:8}} />
+echo <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:6}}>
+echo <button onClick={baselineBearing}>Baseline + Save</button>
+echo <button onClick={analyzeBearing}>Analyze Bearing</button>
+echo </div>
+echo
+echo <h3 style={{marginTop:12}}>Pump Signals</h3>
+echo <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:8}}>
+echo <textarea placeholder="Flow" value={flow} onChange={e=>setFlow(e.target.value)} style={{height:90}} />
+echo <textarea placeholder="Pressure" value={press} onChange={e=>setPress(e.target.value)} style={{height:90}} />
+echo <textarea placeholder="Current" value={curr} onChange={e=>setCurr(e.target.value)} style={{height:90}} />
+echo </div>
+echo <button onClick={analyzePump} style={{marginTop:6}}>Analyze Pump</button>
+echo
+echo {out && <pre className="text-xs bg-gray-50 p-2 rounded mt-2 overflow-x-auto">{JSON.stringify(out,null,2)}</pre>}
+echo
+echo <h3 style={{marginTop:12}}>Recent Alerts</h3>
+echo <table style={{width:'100%',fontSize:12,borderCollapse:'collapse'}}>
+echo <thead><tr style={{background:'#f1f5f9'}}><th>At</th><th>Vessel</th><th>Asset</th><th>Class</th><th>Feature</th><th>Z</th><th>Severity</th></tr></thead>
+echo <tbody>
+echo {alerts.map(a=>(
+echo <tr key={a.id}><td style={{padding:'4px'}}>{new Date(a.at).toLocaleString()}</td><td>{a.vessel_id}</td><td>{a.asset_id}</td><td>{a.asset_class}</td><td>{a.feature}</td><td>{(a.score_z??0).toFixed(2)}</td><td>{a.severity}</td></tr>
+echo ))}
+echo {alerts.length===0 && <tr><td colSpan={7} style={{padding:'6px',color:'#64748b'}}>No alerts.</td></tr>}
+echo </tbody>
+echo </table>
+echo </div>
+echo );
+echo }
+)
+
+REM Mount card into App
+%PS% ^
+"$f='frontend/src/App.tsx'; if (Test-Path $f) { $t=Get-Content -Raw $f; if ($t -notmatch 'PdmPack'){ $t='import PdmPack from \"./components/PdmPack\";\n'+$t; $t=$t -replace '(</div>\\s*)$',' <PdmPack />\n$1'; Set-Content -Encoding UTF8 $f $t; Write-Host '[OK] App.tsx patched with PdmPack'; } else { Write-Host '[INFO] PdmPack already referenced'; } } else { Write-Host '[WARN] frontend/src/App.tsx missing; skipped UI mount.' }"
+)
+
+echo.
+echo ==========================================================
+echo ✅ PdM Pack v1 patch applied.
+echo ----------------------------------------------------------
+echo Backend:
+echo POST /v1/api/pdm/baseline/ingest {vessel_id,asset_id,asset_class,features}
+echo POST /v1/api/pdm/analyze/bearing {vessel_id,asset_id,fs,rpm,series}
+echo POST /v1/api/pdm/analyze/pump {vessel_id,asset_id,flow[],pressure[],current[],(vib_series,fs)}
+echo GET /v1/api/pdm/alerts/recent
+echo Frontend:
+echo - PdmPack card to seed baseline, run analyses, view alerts
+echo ----------------------------------------------------------
+echo Next:
+echo cd backend-node && npm install && npm run migrate && npm run dev
+echo cd ../frontend && npm install && npm run dev
+echo ----------------------------------------------------------
+echo Usage (bearing quickstart):
+echo 1) Paste a "healthy" vibration series -> Baseline + Save
+echo 2) Paste a new series -> Analyze Bearing (see Z-scores & severity)
+echo Usage (pump):
+echo Provide flow/pressure/current arrays -> Analyze Pump
+echo ==========================================================
+endlocal

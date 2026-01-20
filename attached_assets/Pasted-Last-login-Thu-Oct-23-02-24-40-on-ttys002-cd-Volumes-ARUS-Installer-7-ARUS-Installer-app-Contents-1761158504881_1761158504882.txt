@@ -1,0 +1,233 @@
+Last login: Thu Oct 23 02:24:40 on ttys002
+cd '/Volumes/ARUS Installer 7/ARUS Installer.app/Contents/Resources/ARUS-bundle' && bash scripts/macos/install.sh && read -p 'Press Enter to close...'
+homeimac@Homes-iMac ~ % cd '/Volumes/ARUS Installer 7/ARUS Installer.app/Contents/Resources/ARUS-bundle' && bash scripts/macos/install.sh && read -p 'Press Enter to close...'
+╔═══════════════════════════════════════════════════════════╗
+║                                                           ║
+║        ARUS - Marine Predictive Maintenance System       ║
+║              macOS Standalone Installer                  ║
+║                                                           ║
+╚═══════════════════════════════════════════════════════════╝
+
+This installer will set up ARUS on your Mac.
+Installation location: ~/Library/Application Support/ARUS
+
+Continue with installation? (y/N): y
+
+=== ARUS macOS Installation ===
+Started: Thu Oct 23 02:39:58 +08 2025
+Installer version: 1.0.0
+Log file: /Users/homeimac/Library/Logs/ARUS/install.log
+
+Installation source: /Volumes/ARUS Installer 7/ARUS Installer.app/Contents/Resources/ARUS-bundle
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Phase 1/7: Environment Validation
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Checking system requirements...
+✓ macOS 12.7.6
+✓ Architecture: Intel x86_64
+✓ Node.js v20.11.0
+✓ Disk space: 761GB available
+✓ Write permissions: OK
+✓ Xcode Command Line Tools installed (optional)
+
+Pre-flight checks complete!
+
+✓ Phase 1 complete
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Phase 2/7: Directory Setup
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Creating application directories...
+✓ /Users/homeimac/Library/Application Support/ARUS
+✓ /Users/homeimac/Library/Logs/ARUS
+✓ /Users/homeimac/Library/Application Support/ARUS/data
+✓ /Users/homeimac/Library/Application Support/ARUS/config
+✓ /Users/homeimac/Library/Application Support/ARUS/data/backups
+✓ Permissions set
+Directory setup complete!
+
+✓ Phase 2 complete
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Phase 3/7: Application Installation
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Installing ARUS application...
+Source: /Volumes/ARUS Installer 7/ARUS Installer.app/Contents/Resources/ARUS-bundle
+Destination: /Users/homeimac/Library/Application Support/ARUS
+→ Copying application bundle...
+✓ Application bundle copied
+→ Extracting dependencies...
+  This may take 2-3 minutes...
+✓ Dependencies extracted (2.2G)
+→ Copying static files...
+✓ Application installation complete
+
+✓ Phase 3 complete
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Phase 4/7: Database Setup
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Initializing database...
+⚠️  Database already exists at /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+   Creating backup...
+✓ Backup saved: vessel-local-20251023-024045.db
+Replace existing database? (y/N): y
+→ Using pre-seeded database...
+✓ Pre-seeded database installed
+✓ Database ready ( 12K)
+Database initialization complete!
+
+✓ Phase 4 complete
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Phase 5/7: Configuration
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Generating configuration...
+✓ Environment file created
+✓ Configuration file created
+✓ Launcher script created
+Configuration complete!
+
+✓ Phase 5 complete
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Phase 6/7: Service Registration
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Registering service...
+✓ Service configuration created
+→ Reloading existing service...
+✓ Service registered
+✓ Service started
+Service registration complete!
+
+Service commands:
+  Start:   launchctl start com.arus.app
+  Stop:    launchctl stop com.arus.app
+  Restart: launchctl stop com.arus.app && launchctl start com.arus.app
+  Status:  launchctl list | grep arus
+
+✓ Phase 6 complete
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Phase 7/7: Health Verification
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verifying installation...
+→ Waiting for server to start...
+  (First startup may take 60-90 seconds while initializing database...)
+
+❌ ERROR: Server process died during startup
+
+Check logs for errors:
+  tail -n 50 /Users/homeimac/Library/Logs/ARUS/stderr.log
+  tail -n 50 /Users/homeimac/Library/Logs/ARUS/app.log
+homeimac@Homes-iMac ARUS-bundle %  tail -n 50 /Users/homeimac/Library/Logs/ARUS/stderr.log
+  tail -n 50 /Users/homeimac/Library/Logs/ARUS/app.log
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+/Users/homeimac/Library/Application Support/ARUS/arus-start.sh: line 9: export: `Support/ARUS/data/vessel-local.db': not a valid identifier
+  • Foreign keys: ON
+✓ Local SQLite: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+→ Initializing SQLite database tables...
+[SQLite Init] Initializing vessel mode database...
+[SQLite Init] Database initialized successfully with 131 tables (100% feature parity) at: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+✓ SQLite tables initialized
+==============================
+
+2025-10-23 02:41:15.944050: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 FMA
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+
+=== Database Configuration ===
+Deployment Mode: VESSEL (Offline-First)
+⚠ Turso Sync: Disabled (credentials not configured)
+  Running in offline-only mode without cloud sync
+  Set TURSO_SYNC_URL and TURSO_AUTH_TOKEN to enable sync
+→ Applying SQLite performance optimizations...
+✓ SQLite performance optimizations applied
+  • WAL mode enabled (better concurrency)
+  • Cache: 64MB
+  • Sync: NORMAL (safe with WAL)
+  • Foreign keys: ON
+✓ Local SQLite: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+→ Initializing SQLite database tables...
+[SQLite Init] Initializing vessel mode database...
+[SQLite Init] Database initialized successfully with 131 tables (100% feature parity) at: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+✓ SQLite tables initialized
+==============================
+
+2025-10-23 02:41:26.597673: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 FMA
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+
+=== Database Configuration ===
+Deployment Mode: VESSEL (Offline-First)
+⚠ Turso Sync: Disabled (credentials not configured)
+  Running in offline-only mode without cloud sync
+  Set TURSO_SYNC_URL and TURSO_AUTH_TOKEN to enable sync
+→ Applying SQLite performance optimizations...
+✓ SQLite performance optimizations applied
+  • WAL mode enabled (better concurrency)
+  • Cache: 64MB
+  • Sync: NORMAL (safe with WAL)
+  • Foreign keys: ON
+✓ Local SQLite: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+→ Initializing SQLite database tables...
+[SQLite Init] Initializing vessel mode database...
+[SQLite Init] Database initialized successfully with 131 tables (100% feature parity) at: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+✓ SQLite tables initialized
+==============================
+
+homeimac@Homes-iMac ARUS-bundle % 

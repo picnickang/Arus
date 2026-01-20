@@ -1,0 +1,268 @@
+Replit Repair Prompt — Harden Drizzle SQLite Schema (FKs, money, enums, defaults, indexes)
+
+
+
+You are a code-repair agent. Apply all changes atomically and verify with typecheck + build + migration generation. The project uses Drizzle ORM with sqliteTable.
+
+
+
+Context
+
+
+
+We need to fix common data-integrity and billing pitfalls:
+
+Add foreign keys to stop orphan rows.
+
+Normalize boolean defaults to 0/1 (SQLite).
+
+Add timestamp defaults.
+
+Store money as integer cents (no floating point).
+
+Add enum-like CHECK constraints.
+
+Add unique indexes to prevent duplicate rollups.
+
+Add helpful secondary indexes for org/time queries.
+
+
+
+Targets
+
+
+
+Open the schema files that define these tables (paths may vary, search by table name):
+
+vessels, equipment, devices, equipment_telemetry, downtime_events, telemetry_rollups (or similar), sensor_types, models (optional).
+
+
+
+If unsure of file, search the repo for: sqliteTable("equipment_telemetry"), sqliteTable("vessels"), etc.
+
+Make the following 
+
+code edits
+
+ (TypeScript / Drizzle)
+
+
+
+Use these exact snippets/patterns. If a column already exists, update it in place. If your names differ slightly, adapt consistently.
+
+
+1) Vessels: timestamps, enums, money → cents
+
+import { sqliteTable, text, integer, real, index, uniqueIndex, sql } from "drizzle-orm/sqlite-core";
+
+// VESSELS
+export const vessels = sqliteTable("vessels", {
+  id: text("id").primaryKey(),
+  orgId: text("org_id").notNull(),
+  name: text("name").notNull(),
+  vesselClass: text("vessel_class")
+    .check(sql`vessel_class in ('tugboat','anchor_handling_tug','platform_supply_vessel','pilot_boat','work_boat','dynamic_positioning_dive','fast_ferry','landing_craft','seismic_surveillance','standby')`),
+  condition: text("condition").notNull().default("good")
+    .check(sql`condition in ('excellent','good','fair','poor','critical')`),
+  onlineStatus: text("online_status").notNull().default("offline")
+    .check(sql`online_status in ('online','offline')`),
+
+  // MONEY: store in cents (integer)
+  dayRateSgdCents: integer("day_rate_sgd_cents"), // new; backfill from old real if present
+
+  // Counters as numbers
+  operationDays: integer("operation_days").notNull().default(0),
+  downtimeDays: integer("downtime_days").notNull().default(0),
+
+  // Idempotency markers
+  lastOperationIncrementDate: text("last_operation_increment_date"),
+  lastDailyUpdateDate: text("last_daily_update_date"),
+
+  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" }),
+}, (t) => ({
+  orgIdx: index("idx_vessels_org").on(t.orgId),
+  nameIdx: index("idx_vessels_name").on(t.name),
+}));
+If you still have day_rate_sgd as real, keep it TEMPORARILY for migration. We will backfill and then drop it in a follow-up migration.
+2) Equipment: FK to vessels, booleans, timestamps
+
+export const equipment = sqliteTable("equipment", {
+  id: text("id").primaryKey(),
+  orgId: text("org_id").notNull(),
+  vesselId: text("vessel_id").references(() => vessels.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  type: text("type").notNull(),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(1), // 0/1 for SQLite
+  specifications: text("specifications"), // JSON string
+  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" }),
+}, (t) => ({
+  orgIdx: index("idx_equipment_org").on(t.orgId),
+  vesselIdx: index("idx_equipment_vessel").on(t.vesselId),
+  // optional: uniqueIndex("uq_equipment_vessel_name").on(t.vesselId, t.name),
+}));
+3) Devices: FK to equipment, booleans, timestamps
+
+export const devices = sqliteTable("devices", {
+  id: text("id").primaryKey(),
+  orgId: text("org_id").notNull(),
+  equipmentId: text("equipment_id").references(() => equipment.id, { onDelete: "cascade" }),
+  serial: text("serial").notNull(),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(1),
+  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" }),
+}, (t) => ({
+  orgIdx: index("idx_devices_org").on(t.orgId),
+  equipmentIdx: index("idx_devices_equipment").on(t.equipmentId),
+  serialIdx: index("idx_devices_serial").on(t.serial),
+}));
+4) Equipment Telemetry: FK, enums, indexes, timestamps
+
+export const equipmentTelemetry = sqliteTable("equipment_telemetry", {
+  id: text("id").primaryKey(),
+  orgId: text("org_id").notNull(),
+  ts: integer("ts", { mode: "timestamp" }).notNull(),
+  equipmentId: text("equipment_id").notNull()
+    .references(() => equipment.id, { onDelete: "cascade" }),
+  sensorType: text("sensor_type").notNull(),
+  value: real("value").notNull(),
+  unit: text("unit").notNull(),
+  status: text("status").notNull().default("normal")
+    .check(sql`status in ('normal','warning','critical')`),
+  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
+}, (t) => ({
+  orgIdx: index("idx_telemetry_org").on(t.orgId),
+  equipmentTsIdx: index("idx_telemetry_equipment_ts").on(t.equipmentId, t.ts),
+  sensorTsIdx: index("idx_telemetry_sensor_ts").on(t.sensorType, t.ts),
+  orgTsIdx: index("idx_telemetry_org_ts").on(t.orgId, t.ts), // new for org dashboards
+}));
+5) Downtime Events: FKs, money → cents, enums
+
+export const downtimeEvents = sqliteTable("downtime_events", {
+  id: text("id").primaryKey(),
+  orgId: text("org_id").notNull(),
+  vesselId: text("vessel_id").references(() => vessels.id, { onDelete: "cascade" }),
+  equipmentId: text("equipment_id").references(() => equipment.id, { onDelete: "set null" }),
+  workOrderId: text("work_order_id"), // if you have workOrders table, add .references(() => workOrders.id)
+  startedAt: integer("started_at", { mode: "timestamp" }).notNull(),
+  endedAt: integer("ended_at", { mode: "timestamp" }),
+  affectsVesselDowntime: integer("affects_vessel_downtime", { mode: "boolean" }).notNull().default(1),
+
+  // money as cents
+  revenueImpactCents: integer("revenue_impact_cents"),
+  opportunityCostCents: integer("opportunity_cost_cents"),
+
+  impactLevel: text("impact_level").notNull().default("medium")
+    .check(sql`impact_level in ('low','medium','high','critical')`),
+
+  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
+}, (t) => ({
+  orgIdx: index("idx_downtime_org").on(t.orgId),
+  vesselIdx: index("idx_downtime_vessel").on(t.vesselId),
+  equipIdx: index("idx_downtime_equipment").on(t.equipmentId),
+  timeIdx: index("idx_downtime_time").on(t.startedAt),
+}));
+6) Telemetry Rollups: uniqueness & timestamps
+
+export const telemetryRollups = sqliteTable("telemetry_rollups", {
+  id: text("id").primaryKey(),
+  orgId: text("org_id").notNull(),
+  equipmentId: text("equipment_id").notNull()
+    .references(() => equipment.id, { onDelete: "cascade" }),
+  rollupPeriod: text("rollup_period").notNull()
+    .check(sql`rollup_period in ('1h','24h','7d','30d')`),
+  periodStart: integer("period_start", { mode: "timestamp" }).notNull(), // align to UTC boundary
+  rollupData: text("rollup_data").notNull(), // JSON string
+
+  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" }),
+}, (t) => ({
+  uniqBucket: uniqueIndex("uq_rollup_bucket").on(t.equipmentId, t.rollupPeriod, t.periodStart),
+  orgIdx: index("idx_rollup_org").on(t.orgId),
+  equipPeriodIdx: index("idx_rollup_equipment_period").on(t.equipmentId, t.rollupPeriod),
+}));
+7) Sensor Types / Models (optional tightening)
+
+export const sensorTypes = sqliteTable("sensor_types", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  orgId: text("org_id"),
+}, (t) => ({
+  uniqOrgName: uniqueIndex("uq_sensor_type_org_name").on(t.orgId, t.name),
+}));
+
+export const models = sqliteTable("models", {
+  id: text("id").primaryKey(),
+  orgId: text("org_id").notNull(),
+  componentClass: text("component_class").notNull(),
+  modelType: text("model_type").notNull()
+    .check(sql`model_type in ('anomaly','forecast','classifier','regression')`),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(1),
+}, (t) => ({
+  uniqActivePerClass: uniqueIndex("uq_model_active_class_type")
+    .on(t.orgId, t.componentClass, t.modelType), // if you require one active per tuple
+}));
+Create 
+
+migrations
+
+ for money conversions
+
+
+
+If you currently have floating-point money columns (e.g., day_rate_sgd, revenue_impact, opportunity_cost), do a safe two-step migration:
+
+Add new integer columns
+
+vessels.day_rate_sgd_cents INTEGER
+
+downtime_events.revenue_impact_cents INTEGER
+
+downtime_events.opportunity_cost_cents INTEGER
+
+Backfill (SQL shown; adapt names if different)
+
+UPDATE vessels
+SET day_rate_sgd_cents = CAST(ROUND(COALESCE(day_rate_sgd, 0) * 100) AS INTEGER)
+WHERE day_rate_sgd IS NOT NULL;
+
+UPDATE downtime_events
+SET revenue_impact_cents = CAST(ROUND(COALESCE(revenue_impact, 0) * 100) AS INTEGER)
+WHERE revenue_impact IS NOT NULL;
+
+UPDATE downtime_events
+SET opportunity_cost_cents = CAST(ROUND(COALESCE(opportunity_cost, 0) * 100) AS INTEGER)
+WHERE opportunity_cost IS NOT NULL;
+Update application code to read/write the *_cents columns.
+
+(Optional later) Drop old REAL columns once the app runs cleanly in prod.
+
+
+
+If you use drizzle-kit, generate migrations and place the SQL in the migration files. Ensure PRAGMA foreign_keys = ON; is enabled at runtime.
+Finalize & Validate
+
+Typecheck/build project; fix any import paths as needed.
+
+Run your migration generator (e.g., drizzle-kit generate), inspect SQL, apply migrations.
+
+Quick sanity queries:
+
+Inserting equipment_telemetry with non-existent equipment_id should fail (FK OK).
+
+Inserting vessels with online_status='weird' should fail (CHECK OK).
+
+Double-inserting same (equipment_id, rollup_period, period_start) should fail (unique OK).
+
+Money writes go to *_cents and round trip correctly.
+
+Confirm your scheduler and services now rely on numeric counters and cents columns:
+
+operationDays, downtimeDays are integers.
+
+Day rate and downtime costs use _cents.
+
+
+
+If any table/file names differ, search-replace consistently using the patterns above and re-run typecheck/migrations.

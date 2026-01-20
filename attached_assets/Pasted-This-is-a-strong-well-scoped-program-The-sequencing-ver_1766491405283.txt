@@ -1,0 +1,85 @@
+This is a strong, well-scoped program. The sequencing (verify → perf → UI perf) is exactly right because it prevents you from “optimizing” a pipeline that isn’t correct yet.
+
+A couple of small edits will make it even more execution-proof:
+
+Fix the phase order + naming
+
+You’ve got A, C, B in the text. I’d keep the order as:
+	1.	Phase A — E2E Verification
+	2.	Phase B — Performance Testing
+	3.	Phase C — UI/UX Optimization
+
+(So “B” is perf testing, “C” is UI/UX. Less cognitive friction.)
+
+Add 5 “definition of done” gates (super helpful)
+
+Phase A DoD
+	•	/api/ingestion/verify returns pipelineHealthy:true under simulator load
+	•	Static audit test passes (no-direct-inserts, no legacy imports)
+	•	Cursor never advances on forced PG failure (test proves it)
+
+Phase B DoD
+	•	Sustainable FPS found (backlog not diverging for 10+ minutes)
+	•	Commit latency p95 within target
+	•	Recovery test passes (PG down → restore → backlog drains)
+	•	Report JSON generated for all 5 scenarios
+
+Phase C DoD
+	•	Startup time reduced (cold start) by X%
+	•	API calls/min reduced (no poll storms)
+	•	Renderer memory stabilized (no growth under 10 min idle + dashboard use)
+	•	Slowest route mount time reduced
+
+One key dependency to call out explicitly
+
+Performance testing requires:
+	•	TelemetryBatchWriter.writeBatch() is bulk insert (multi-values or COPY)
+If it’s still per-row queries, Phase B results will be misleading.
+
+Add one “anti-regression” umbrella
+
+A single CI command should run:
+	•	Phase A static audit tests
+	•	Phase A core correctness tests
+	•	A lightweight perf smoke test (short run, low fps)
+
+That way you never reintroduce legacy ingestion or direct inserts.
+
+⸻
+
+If you want a single pasteable “master Replit prompt” that instructs the agent to implement Phase A + B + C in the right order with deliverables, here it is:
+
+Master Prompt (A → B → C)
+
+You are implementing the ARUS v3 final architecture workstream in three phases. Execute in order and do not start later phases until earlier phase DoD is satisfied.
+
+Phase A — E2E Ingestion Verification (7 tasks)
+	•	Implement static audit proving: no legacy collectors, no direct telemetry inserts outside TelemetryBatchWriter, only server/ingestion/startIngestion.ts starts ingestion.
+	•	Implement C# SimulatedSource generating deterministic J1939 frames (payload_format_version=1) at configurable FPS.
+	•	Add SQLite fixture scripts and dynamic tests proving: raw_frames grows, bridge decodes/validates, cursor advances only after PG commit, PG failure triggers retry without cursor advance.
+	•	Enhance /api/ingestion/verify endpoint with lag/backlog/last commit and thresholds.
+DoD: All Phase A tests pass and /api/ingestion/verify reports healthy under simulator.
+
+Phase B — Performance Testing (9 tasks)
+	•	Add bridge stage metrics: frames/s, decoded/s, commit latency histogram, backlog, end-to-end lag, backoff ms.
+	•	Implement server/tools/ingestion-loadtest.ts runner and 5 scenarios: baseline throughput sweep, Postgres slow, Postgres down, bridge restart, agent restart.
+	•	Output JSON + console report with KPIs and tuning recommendations.
+	•	Add assertion that writeBatch uses bulk insert (fail run if per-row queries).
+DoD: Reports generated for all 5 scenarios; sustainable FPS identified.
+
+Phase C — UI/UX Optimization (10 tasks)
+	•	Add dev-only performance overlay (route transition timing, rerender hot spots, API rate, memory).
+	•	Implement route/component lazy loading with skeletons, React Query dedupe + tuning, virtualization, memoization, and Electron hardening.
+	•	Provide before/after metrics report.
+DoD: measurable improvements in startup, render times, API rate, and memory stability.
+
+Outputs required
+	•	File tree of changes
+	•	Run commands for simulator, bridge, load tests, UI perf overlay
+	•	A short final report with Phase A/B/C DoD checkmarks
+
+Proceed now.
+
+⸻
+
+If you paste this into Replit along with your repo, it will produce a coherent set of changes.

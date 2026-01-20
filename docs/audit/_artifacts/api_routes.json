@@ -1,0 +1,3668 @@
+[
+  {
+    "key": "GET /health",
+    "file": "server/governance/routes.ts",
+    "line": 277,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/sensors/unknown",
+    "file": "server/sensor-routes.ts",
+    "line": 101,
+    "hasValidation": true
+  },
+  {
+    "key": "POST /api/sensors/unknown",
+    "file": "server/sensor-routes.ts",
+    "line": 112,
+    "hasValidation": true
+  },
+  {
+    "key": "POST /api/sensors/approve",
+    "file": "server/sensor-routes.ts",
+    "line": 159,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/sensors/templates",
+    "file": "server/sensor-routes.ts",
+    "line": 214,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/sensors/templates/apply",
+    "file": "server/sensor-routes.ts",
+    "line": 225,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/sensors/registry",
+    "file": "server/sensor-routes.ts",
+    "line": 279,
+    "hasValidation": false
+  },
+  {
+    "key": "DELETE /api/sensors/unknown/:param",
+    "file": "server/sensor-routes.ts",
+    "line": 290,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/healthz",
+    "file": "server/routes.ts",
+    "line": 832,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/readyz",
+    "file": "server/routes.ts",
+    "line": 833,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/error-health",
+    "file": "server/routes.ts",
+    "line": 836,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/metrics",
+    "file": "server/routes.ts",
+    "line": 850,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/health/scalability",
+    "file": "server/routes.ts",
+    "line": 853,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/health/background-jobs",
+    "file": "server/routes.ts",
+    "line": 862,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/health/cache",
+    "file": "server/routes.ts",
+    "line": 876,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/sync/health",
+    "file": "server/routes.ts",
+    "line": 890,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/mqtt/reliable-sync/health",
+    "file": "server/routes.ts",
+    "line": 904,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/sync/reconcile",
+    "file": "server/routes.ts",
+    "line": 926,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/sync/process-events",
+    "file": "server/routes.ts",
+    "line": 975,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/sync/metrics",
+    "file": "server/routes.ts",
+    "line": 995,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/sync/status",
+    "file": "server/routes.ts",
+    "line": 1006,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/sync/reconcile/comprehensive",
+    "file": "server/routes.ts",
+    "line": 1036,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/sync/check-conflicts",
+    "file": "server/routes.ts",
+    "line": 1067,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/sync/pending-conflicts",
+    "file": "server/routes.ts",
+    "line": 1130,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/sync/resolve-conflict",
+    "file": "server/routes.ts",
+    "line": 1152,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/sync/auto-resolve",
+    "file": "server/routes.ts",
+    "line": 1187,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/health",
+    "file": "server/minimal-server.ts",
+    "line": 87,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/dashboard",
+    "file": "server/routes.ts",
+    "line": 1294,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/search",
+    "file": "server/routes.ts",
+    "line": 1311,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/fleet/overview",
+    "file": "server/routes.ts",
+    "line": 1361,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/telemetry/latest",
+    "file": "server/routes.ts",
+    "line": 1373,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/edge/heartbeats",
+    "file": "server/routes.ts",
+    "line": 1397,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/edge/heartbeat",
+    "file": "server/routes.ts",
+    "line": 1406,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/pdm/scores",
+    "file": "server/routes.ts",
+    "line": 1420,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/pdm/scores/:param/latest",
+    "file": "server/routes.ts",
+    "line": 1440,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/pdm/scores",
+    "file": "server/routes.ts",
+    "line": 1452,
+    "hasValidation": true
+  },
+  {
+    "key": "POST /api/pdm/baseline/update",
+    "file": "server/routes.ts",
+    "line": 1484,
+    "hasValidation": true
+  },
+  {
+    "key": "POST /api/pdm/analyze/bearing",
+    "file": "server/routes.ts",
+    "line": 1521,
+    "hasValidation": true
+  },
+  {
+    "key": "POST /api/pdm/analyze/pump",
+    "file": "server/routes.ts",
+    "line": 1563,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/pdm/alerts",
+    "file": "server/routes.ts",
+    "line": 1606,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/pdm/baseline/:param/:param",
+    "file": "server/routes.ts",
+    "line": 1634,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/pdm/health",
+    "file": "server/routes.ts",
+    "line": 1681,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/equipment",
+    "file": "server/domains/equipment/routes.ts",
+    "line": 22,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/equipment/health",
+    "file": "server/domains/equipment/routes.ts",
+    "line": 34,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/equipment/:param/rul",
+    "file": "server/domains/equipment/routes.ts",
+    "line": 68,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/equipment/rul/batch",
+    "file": "server/domains/equipment/routes.ts",
+    "line": 96,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/equipment/:param/degradation",
+    "file": "server/domains/equipment/routes.ts",
+    "line": 122,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/equipment/:param",
+    "file": "server/domains/equipment/routes.ts",
+    "line": 176,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/equipment",
+    "file": "server/domains/equipment/routes.ts",
+    "line": 193,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/equipment/:param",
+    "file": "server/domains/equipment/routes.ts",
+    "line": 218,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/equipment/:param/disassociate-vessel",
+    "file": "server/domains/equipment/routes.ts",
+    "line": 250,
+    "hasValidation": false
+  },
+  {
+    "key": "DELETE /api/equipment/:param",
+    "file": "server/domains/equipment/routes.ts",
+    "line": 266,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/equipment/:param/sensor-coverage",
+    "file": "server/domains/equipment/routes.ts",
+    "line": 282,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/equipment/:param/setup-sensors",
+    "file": "server/domains/equipment/routes.ts",
+    "line": 296,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/equipment/:param/load-distribution",
+    "file": "server/routes.ts",
+    "line": 2079,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/organizations",
+    "file": "server/routes.ts",
+    "line": 2159,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/organizations/:param",
+    "file": "server/routes.ts",
+    "line": 2183,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/organizations",
+    "file": "server/routes.ts",
+    "line": 2218,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/organizations/:param",
+    "file": "server/routes.ts",
+    "line": 2232,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/organizations/:param",
+    "file": "server/routes.ts",
+    "line": 2251,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/users",
+    "file": "server/routes.ts",
+    "line": 2266,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/users/:param",
+    "file": "server/routes.ts",
+    "line": 2277,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/users",
+    "file": "server/routes.ts",
+    "line": 2290,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/users/:param",
+    "file": "server/routes.ts",
+    "line": 2304,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/users/:param",
+    "file": "server/routes.ts",
+    "line": 2323,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/ml-models",
+    "file": "server/routes.ts",
+    "line": 2339,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/ml-models/:param",
+    "file": "server/routes.ts",
+    "line": 2396,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/analytics/ml-models",
+    "file": "server/routes.ts",
+    "line": 2413,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/analytics/ml-models/:param",
+    "file": "server/routes.ts",
+    "line": 2431,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/analytics/ml-models/:param",
+    "file": "server/routes.ts",
+    "line": 2452,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/model-performance",
+    "file": "server/routes.ts",
+    "line": 2472,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/model-performance/summary",
+    "file": "server/routes.ts",
+    "line": 2500,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/analytics/model-performance",
+    "file": "server/routes.ts",
+    "line": 2530,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/analytics/model-performance/by-equipment-type",
+    "file": "server/routes.ts",
+    "line": 2552,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/feature-importance/trends",
+    "file": "server/routes.ts",
+    "line": 2598,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/model-drift",
+    "file": "server/routes.ts",
+    "line": 2675,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/retraining-queue",
+    "file": "server/routes.ts",
+    "line": 2771,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/model-improvements",
+    "file": "server/routes.ts",
+    "line": 2833,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/correction-patterns",
+    "file": "server/routes.ts",
+    "line": 2916,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/prediction-feedback",
+    "file": "server/routes.ts",
+    "line": 2996,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/analytics/prediction-feedback",
+    "file": "server/routes.ts",
+    "line": 3027,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/analytics/prediction-feedback/:param",
+    "file": "server/routes.ts",
+    "line": 3059,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/analytics/prediction-feedback/summary",
+    "file": "server/routes.ts",
+    "line": 3105,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/ml/explainability/predictions/:param",
+    "file": "server/routes.ts",
+    "line": 3132,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/ml/explainability/feature-importances",
+    "file": "server/routes.ts",
+    "line": 3204,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/ml/realtime-predictions",
+    "file": "server/routes.ts",
+    "line": 3259,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/llm-costs",
+    "file": "server/routes.ts",
+    "line": 3307,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/llm-costs/summary",
+    "file": "server/routes.ts",
+    "line": 3335,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/llm-costs/trends",
+    "file": "server/routes.ts",
+    "line": 3376,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/analytics/llm-costs",
+    "file": "server/routes.ts",
+    "line": 3409,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/analytics/export/ml-pdm-complete",
+    "file": "server/routes.ts",
+    "line": 3433,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/export/ml-models",
+    "file": "server/routes.ts",
+    "line": 3598,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/export/telemetry",
+    "file": "server/routes.ts",
+    "line": 3671,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/export/predictions",
+    "file": "server/routes.ts",
+    "line": 3728,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/anomaly-detections",
+    "file": "server/routes.ts",
+    "line": 3774,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/anomaly-detections/:param",
+    "file": "server/routes.ts",
+    "line": 3793,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/analytics/anomaly-detections",
+    "file": "server/routes.ts",
+    "line": 3811,
+    "hasValidation": true
+  },
+  {
+    "key": "PATCH /api/analytics/anomaly-detections/:param/acknowledge",
+    "file": "server/routes.ts",
+    "line": 3830,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/failure-predictions",
+    "file": "server/routes.ts",
+    "line": 3852,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/failure-predictions/:param",
+    "file": "server/routes.ts",
+    "line": 3871,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/analytics/failure-predictions",
+    "file": "server/routes.ts",
+    "line": 3889,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/analytics/threshold-optimizations",
+    "file": "server/routes.ts",
+    "line": 3909,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/threshold-optimizations/:param",
+    "file": "server/routes.ts",
+    "line": 3928,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/analytics/threshold-optimizations",
+    "file": "server/routes.ts",
+    "line": 3946,
+    "hasValidation": true
+  },
+  {
+    "key": "PATCH /api/analytics/threshold-optimizations/:param/apply",
+    "file": "server/routes.ts",
+    "line": 3965,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/digital-twins",
+    "file": "server/routes.ts",
+    "line": 3984,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/digital-twins/:param",
+    "file": "server/routes.ts",
+    "line": 3999,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/twin-simulations",
+    "file": "server/routes.ts",
+    "line": 4018,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/twin-simulations/:param",
+    "file": "server/routes.ts",
+    "line": 4037,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/insight-snapshots",
+    "file": "server/routes.ts",
+    "line": 4055,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/insight-snapshots/latest",
+    "file": "server/routes.ts",
+    "line": 4074,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/telemetry/trends",
+    "file": "server/routes.ts",
+    "line": 4093,
+    "hasValidation": true
+  },
+  {
+    "key": "POST /api/telemetry/readings",
+    "file": "server/routes.ts",
+    "line": 4114,
+    "hasValidation": true
+  },
+  {
+    "key": "POST /api/telemetry/bulk",
+    "file": "server/routes.ts",
+    "line": 4293,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/telemetry/history/:param/:param",
+    "file": "server/routes.ts",
+    "line": 4409,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/sensor-configs",
+    "file": "server/routes.ts",
+    "line": 4421,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/sensor-config",
+    "file": "server/routes.ts",
+    "line": 4438,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/sensor-configs/:param/:param",
+    "file": "server/routes.ts",
+    "line": 4454,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/sensor-configs",
+    "file": "server/routes.ts",
+    "line": 4471,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/sensor-configs/:param/:param",
+    "file": "server/routes.ts",
+    "line": 4489,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/sensor-configs/:param",
+    "file": "server/routes.ts",
+    "line": 4514,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/sensor-configs/:param/:param",
+    "file": "server/routes.ts",
+    "line": 4533,
+    "hasValidation": false
+  },
+  {
+    "key": "DELETE /api/sensor-configs/:param",
+    "file": "server/routes.ts",
+    "line": 4546,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/sensor-configs/status",
+    "file": "server/routes.ts",
+    "line": 4560,
+    "hasValidation": true
+  },
+  {
+    "key": "POST /api/sensor-optimization/analyze/:param",
+    "file": "server/routes.ts",
+    "line": 4654,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/sensor-optimization/recommendations",
+    "file": "server/routes.ts",
+    "line": 4679,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/sensor-optimization/apply/:param",
+    "file": "server/routes.ts",
+    "line": 4694,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/sensor-optimization/reject/:param",
+    "file": "server/routes.ts",
+    "line": 4712,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/sensor-tuning/recommendations/:param",
+    "file": "server/routes.ts",
+    "line": 4731,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/sensor-tuning/recommendations/:param/:param",
+    "file": "server/routes.ts",
+    "line": 4761,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/sensor-tuning/compare/:param/:param",
+    "file": "server/routes.ts",
+    "line": 4793,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/sensor-tuning/apply/:param/:param",
+    "file": "server/routes.ts",
+    "line": 4825,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/j1939/configurations",
+    "file": "server/routes.ts",
+    "line": 4866,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/j1939/configurations/:param",
+    "file": "server/routes.ts",
+    "line": 4879,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/j1939/configurations",
+    "file": "server/routes.ts",
+    "line": 4896,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/j1939/configurations/:param",
+    "file": "server/routes.ts",
+    "line": 4919,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/j1939/configurations/:param",
+    "file": "server/routes.ts",
+    "line": 4948,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/dtc/definitions",
+    "file": "server/routes.ts",
+    "line": 4994,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/equipment/:param/dtc/active",
+    "file": "server/routes.ts",
+    "line": 5015,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/equipment/:param/dtc/history",
+    "file": "server/routes.ts",
+    "line": 5033,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/dtc/active",
+    "file": "server/routes.ts",
+    "line": 5060,
+    "hasValidation": true
+  },
+  {
+    "key": "POST /api/dtc/faults",
+    "file": "server/routes.ts",
+    "line": 5105,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/dtc/dashboard-stats",
+    "file": "server/routes.ts",
+    "line": 5144,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/dtc/:param/:param/:param/create-work-order",
+    "file": "server/routes.ts",
+    "line": 5164,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/dtc/:param/:param/:param/create-alert",
+    "file": "server/routes.ts",
+    "line": 5199,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/equipment/:param/dtc/health-impact",
+    "file": "server/routes.ts",
+    "line": 5243,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/vessel/:param/dtc/financial-impact",
+    "file": "server/routes.ts",
+    "line": 5270,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/equipment/:param/dtc/report-summary",
+    "file": "server/routes.ts",
+    "line": 5291,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/dtc/:param/:param/:param/telemetry-correlation",
+    "file": "server/routes.ts",
+    "line": 5312,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/sensor-states/:param/:param",
+    "file": "server/routes.ts",
+    "line": 5352,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/sensor-states",
+    "file": "server/routes.ts",
+    "line": 5369,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/work-orders",
+    "file": "server/domains/work-orders/routes.ts",
+    "line": 27,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/work-orders",
+    "file": "server/domains/work-orders/routes.ts",
+    "line": 98,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/work-orders/:param",
+    "file": "server/domains/work-orders/routes.ts",
+    "line": 81,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/work-orders/with-suggestions",
+    "file": "server/domains/work-orders/routes.ts",
+    "line": 133,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/work-orders/:param",
+    "file": "server/domains/work-orders/routes.ts",
+    "line": 157,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/work-orders/:param",
+    "file": "server/domains/work-orders/routes.ts",
+    "line": 184,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/work-orders/:param/complete",
+    "file": "server/domains/work-orders/routes.ts",
+    "line": 202,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/work-order-completions",
+    "file": "server/domains/work-orders/routes.ts",
+    "line": 271,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/work-order-completions/analytics",
+    "file": "server/routes.ts",
+    "line": 5754,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/work-order-completions/:param",
+    "file": "server/routes.ts",
+    "line": 5775,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/work-orders/:param/completions",
+    "file": "server/routes.ts",
+    "line": 5788,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/work-orders/:param/costs",
+    "file": "server/routes.ts",
+    "line": 5799,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/work-orders/:param/costs",
+    "file": "server/routes.ts",
+    "line": 5815,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/work-orders/:param/parts",
+    "file": "server/routes.ts",
+    "line": 5825,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/work-orders/:param/parts",
+    "file": "server/routes.ts",
+    "line": 5835,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/work-orders/:param/parts/bulk",
+    "file": "server/routes.ts",
+    "line": 5853,
+    "hasValidation": false
+  },
+  {
+    "key": "PUT /api/work-orders/:param/parts/:param",
+    "file": "server/routes.ts",
+    "line": 5928,
+    "hasValidation": false
+  },
+  {
+    "key": "DELETE /api/work-orders/:param/parts/:param",
+    "file": "server/routes.ts",
+    "line": 5941,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/work-orders/:param/parts/costs",
+    "file": "server/routes.ts",
+    "line": 5954,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/parts-inventory",
+    "file": "server/domains/inventory/routes.ts",
+    "line": 130,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/parts-inventory",
+    "file": "server/domains/inventory/routes.ts",
+    "line": 151,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/parts-inventory/:param",
+    "file": "server/domains/inventory/routes.ts",
+    "line": 180,
+    "hasValidation": true
+  },
+  {
+    "key": "PATCH /api/parts-inventory/:param/cost",
+    "file": "server/domains/inventory/routes.ts",
+    "line": 213,
+    "hasValidation": false
+  },
+  {
+    "key": "PATCH /api/parts-inventory/:param/stock",
+    "file": "server/domains/inventory/routes.ts",
+    "line": 251,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/equipment/:param/compatible-parts",
+    "file": "server/domains/equipment/routes.ts",
+    "line": 310,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/parts/:param/compatible-equipment",
+    "file": "server/domains/inventory/routes.ts",
+    "line": 88,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/equipment/:param/suggested-parts",
+    "file": "server/domains/equipment/routes.ts",
+    "line": 324,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/equipment/sensor-issues",
+    "file": "server/domains/equipment/routes.ts",
+    "line": 56,
+    "hasValidation": false
+  },
+  {
+    "key": "PATCH /api/parts/:param/compatibility",
+    "file": "server/domains/inventory/routes.ts",
+    "line": 100,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/labor-rates",
+    "file": "server/routes.ts",
+    "line": 6251,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/labor-rates",
+    "file": "server/routes.ts",
+    "line": 6260,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/labor-rates/:param",
+    "file": "server/routes.ts",
+    "line": 6277,
+    "hasValidation": false
+  },
+  {
+    "key": "PATCH /api/crew/:param/rate",
+    "file": "server/routes.ts",
+    "line": 6299,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/expenses",
+    "file": "server/routes.ts",
+    "line": 6318,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/expenses",
+    "file": "server/routes.ts",
+    "line": 6327,
+    "hasValidation": true
+  },
+  {
+    "key": "POST /api/expenses/:param/approve",
+    "file": "server/routes.ts",
+    "line": 6345,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/expenses/:param/reject",
+    "file": "server/routes.ts",
+    "line": 6357,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/vessels",
+    "file": "server/domains/vessels/routes.ts",
+    "line": 33,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/maintenance-schedules",
+    "file": "server/domains/maintenance/routes.ts",
+    "line": 27,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/maintenance-schedules/upcoming",
+    "file": "server/domains/maintenance/routes.ts",
+    "line": 42,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/maintenance-schedules",
+    "file": "server/domains/maintenance/routes.ts",
+    "line": 73,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/maintenance-schedules/:param",
+    "file": "server/domains/maintenance/routes.ts",
+    "line": 95,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/maintenance-schedules/:param",
+    "file": "server/domains/maintenance/routes.ts",
+    "line": 122,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/maintenance-schedules/auto-schedule/:param",
+    "file": "server/domains/maintenance/routes.ts",
+    "line": 140,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/maintenance-templates",
+    "file": "server/domains/maintenance/routes.ts",
+    "line": 176,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/maintenance-templates/:param",
+    "file": "server/domains/maintenance/routes.ts",
+    "line": 194,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/maintenance-templates",
+    "file": "server/domains/maintenance/routes.ts",
+    "line": 211,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/maintenance-templates/:param",
+    "file": "server/domains/maintenance/routes.ts",
+    "line": 233,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/maintenance-templates/:param",
+    "file": "server/domains/maintenance/routes.ts",
+    "line": 263,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/maintenance-templates/:param/clone",
+    "file": "server/routes.ts",
+    "line": 6617,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/maintenance-templates/:param/items",
+    "file": "server/routes.ts",
+    "line": 6639,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/maintenance-templates/:param/items",
+    "file": "server/routes.ts",
+    "line": 6649,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/maintenance-templates/:param/items/:param",
+    "file": "server/routes.ts",
+    "line": 6666,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/maintenance-templates/:param/items/:param",
+    "file": "server/routes.ts",
+    "line": 6684,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/maintenance-templates/:param/items/reorder",
+    "file": "server/routes.ts",
+    "line": 6697,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/maintenance-checklist/:param",
+    "file": "server/routes.ts",
+    "line": 6717,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/maintenance-checklist/:param/complete",
+    "file": "server/routes.ts",
+    "line": 6728,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/maintenance-checklist/:param/bulk-complete",
+    "file": "server/routes.ts",
+    "line": 6753,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/work-orders/:param/link-template",
+    "file": "server/routes.ts",
+    "line": 6767,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/work-orders/:param/initialize-checklist",
+    "file": "server/routes.ts",
+    "line": 6792,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/maintenance-records",
+    "file": "server/routes.ts",
+    "line": 6813,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/analytics/maintenance-records",
+    "file": "server/routes.ts",
+    "line": 6873,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/analytics/maintenance-records/:param",
+    "file": "server/routes.ts",
+    "line": 6886,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/analytics/maintenance-records/:param",
+    "file": "server/routes.ts",
+    "line": 6902,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/maintenance-costs",
+    "file": "server/routes.ts",
+    "line": 6915,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/analytics/maintenance-costs",
+    "file": "server/routes.ts",
+    "line": 6933,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/analytics/cost-summary",
+    "file": "server/routes.ts",
+    "line": 9727,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/analytics/cost-trends",
+    "file": "server/routes.ts",
+    "line": 9707,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/analytics/equipment-lifecycle",
+    "file": "server/routes.ts",
+    "line": 7114,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/analytics/equipment-lifecycle",
+    "file": "server/routes.ts",
+    "line": 7124,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/analytics/equipment-lifecycle/:param",
+    "file": "server/routes.ts",
+    "line": 7137,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/analytics/replacement-recommendations",
+    "file": "server/routes.ts",
+    "line": 7153,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/performance-metrics",
+    "file": "server/routes.ts",
+    "line": 7163,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/cost-savings/summary",
+    "file": "server/routes.ts",
+    "line": 7183,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/cost-savings/trend",
+    "file": "server/routes.ts",
+    "line": 7206,
+    "hasValidation": true
+  },
+  {
+    "key": "POST /api/cost-savings/calculate/:param",
+    "file": "server/routes.ts",
+    "line": 7225,
+    "hasValidation": true
+  },
+  {
+    "key": "POST /api/cost-savings/process/:param",
+    "file": "server/routes.ts",
+    "line": 7254,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/cost-savings",
+    "file": "server/routes.ts",
+    "line": 7270,
+    "hasValidation": true
+  },
+  {
+    "key": "POST /api/analytics/performance-metrics",
+    "file": "server/routes.ts",
+    "line": 7311,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/analytics/fleet-performance",
+    "file": "server/routes.ts",
+    "line": 7324,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/performance-trends/:param",
+    "file": "server/routes.ts",
+    "line": 7333,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/settings",
+    "file": "server/routes.ts",
+    "line": 7347,
+    "hasValidation": false
+  },
+  {
+    "key": "PUT /api/settings",
+    "file": "server/routes.ts",
+    "line": 7356,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/alerts/configurations",
+    "file": "server/domains/alerts/routes.ts",
+    "line": 29,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/alerts/configurations",
+    "file": "server/domains/alerts/routes.ts",
+    "line": 41,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/alerts/configurations/:param",
+    "file": "server/domains/alerts/routes.ts",
+    "line": 68,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/alerts/configurations/:param",
+    "file": "server/domains/alerts/routes.ts",
+    "line": 93,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/alerts/notifications",
+    "file": "server/domains/alerts/routes.ts",
+    "line": 109,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/alerts/notifications",
+    "file": "server/domains/alerts/routes.ts",
+    "line": 122,
+    "hasValidation": true
+  },
+  {
+    "key": "PATCH /api/alerts/notifications/:param/acknowledge",
+    "file": "server/domains/alerts/routes.ts",
+    "line": 147,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/alerts/notifications/:param/comment",
+    "file": "server/domains/alerts/routes.ts",
+    "line": 174,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/alerts/notifications/:param/comments",
+    "file": "server/domains/alerts/routes.ts",
+    "line": 200,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/alerts/suppress",
+    "file": "server/domains/alerts/routes.ts",
+    "line": 216,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/alerts/suppressions",
+    "file": "server/domains/alerts/routes.ts",
+    "line": 241,
+    "hasValidation": false
+  },
+  {
+    "key": "DELETE /api/alerts/suppressions/:param",
+    "file": "server/domains/alerts/routes.ts",
+    "line": 255,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/alerts/notifications/:param/escalate",
+    "file": "server/domains/alerts/routes.ts",
+    "line": 271,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/alerts/all",
+    "file": "server/domains/alerts/routes.ts",
+    "line": 324,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/operating-parameters",
+    "file": "server/routes.ts",
+    "line": 7661,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/operating-parameters/:param",
+    "file": "server/routes.ts",
+    "line": 7680,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/operating-parameters",
+    "file": "server/routes.ts",
+    "line": 7697,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/operating-parameters/:param",
+    "file": "server/routes.ts",
+    "line": 7718,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/operating-parameters/:param",
+    "file": "server/routes.ts",
+    "line": 7740,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/operating-parameters/bulk",
+    "file": "server/routes.ts",
+    "line": 7757,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/operating-condition-alerts",
+    "file": "server/routes.ts",
+    "line": 7779,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/operating-condition-alerts/active/:param",
+    "file": "server/routes.ts",
+    "line": 7799,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/operating-condition-alerts/:param",
+    "file": "server/routes.ts",
+    "line": 7813,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/operating-condition-alerts/:param/acknowledge",
+    "file": "server/routes.ts",
+    "line": 7830,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/operating-condition-alerts/:param/resolve",
+    "file": "server/routes.ts",
+    "line": 7856,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/operating-condition-alerts/check/:param",
+    "file": "server/routes.ts",
+    "line": 7874,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/reports/equipment/:param",
+    "file": "server/routes.ts",
+    "line": 7894,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/reports/export/csv",
+    "file": "server/routes.ts",
+    "line": 7919,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/reports/export/json",
+    "file": "server/routes.ts",
+    "line": 8069,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/reports/generate/pdf",
+    "file": "server/routes.ts",
+    "line": 8139,
+    "hasValidation": true
+  },
+  {
+    "key": "POST /api/reports/export/llm-csv",
+    "file": "server/routes.ts",
+    "line": 8180,
+    "hasValidation": true
+  },
+  {
+    "key": "POST /api/reports/export/llm-html",
+    "file": "server/routes.ts",
+    "line": 8321,
+    "hasValidation": true
+  },
+  {
+    "key": "POST /api/import/telemetry/json",
+    "file": "server/routes.ts",
+    "line": 8671,
+    "hasValidation": true
+  },
+  {
+    "key": "POST /api/import/telemetry/csv",
+    "file": "server/routes.ts",
+    "line": 8820,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/transport-settings",
+    "file": "server/routes.ts",
+    "line": 9070,
+    "hasValidation": false
+  },
+  {
+    "key": "PUT /api/transport-settings",
+    "file": "server/routes.ts",
+    "line": 9088,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/raw-telemetry",
+    "file": "server/routes.ts",
+    "line": 9119,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/anomalies",
+    "file": "server/routes.ts",
+    "line": 9752,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/health-trends",
+    "file": "server/routes.ts",
+    "line": 9189,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/operational-efficiency",
+    "file": "server/routes.ts",
+    "line": 9249,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/failure-patterns",
+    "file": "server/routes.ts",
+    "line": 9316,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/roi-analysis",
+    "file": "server/routes.ts",
+    "line": 9430,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/cost-optimization",
+    "file": "server/routes.ts",
+    "line": 9531,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/advanced-cost-trends",
+    "file": "server/routes.ts",
+    "line": 9791,
+    "hasValidation": false
+  },
+  {
+    "key": "DELETE /api/telemetry/cleanup",
+    "file": "server/routes.ts",
+    "line": 9902,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/compliance/audit-log",
+    "file": "server/routes.ts",
+    "line": 9917,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/compliance/audit-log",
+    "file": "server/routes.ts",
+    "line": 9930,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/reports/compliance/:param",
+    "file": "server/routes.ts",
+    "line": 9948,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/llm/equipment/analyze",
+    "file": "server/routes.ts",
+    "line": 10029,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/llm/fleet/analyze",
+    "file": "server/routes.ts",
+    "line": 10067,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/llm/maintenance/recommend",
+    "file": "server/routes.ts",
+    "line": 10100,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/llm/equipment/:param/insights",
+    "file": "server/routes.ts",
+    "line": 10132,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/llm/vessel/:param/intelligence",
+    "file": "server/routes.ts",
+    "line": 10216,
+    "hasValidation": true
+  },
+  {
+    "key": "POST /api/report/health",
+    "file": "server/routes.ts",
+    "line": 10324,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/report/maintenance",
+    "file": "server/routes.ts",
+    "line": 10424,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/report/compliance/maintenance",
+    "file": "server/routes.ts",
+    "line": 10490,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/report/compliance/alerts",
+    "file": "server/routes.ts",
+    "line": 10554,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/report/fleet-summary",
+    "file": "server/routes.ts",
+    "line": 10618,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/vibration/features",
+    "file": "server/routes.ts",
+    "line": 10695,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/vibration/analyze",
+    "file": "server/routes.ts",
+    "line": 10706,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/vibration/iso-assessment",
+    "file": "server/routes.ts",
+    "line": 10731,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/vibration/enhanced-analysis",
+    "file": "server/routes.ts",
+    "line": 10753,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/vibration/bearing-frequencies",
+    "file": "server/routes.ts",
+    "line": 10789,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/vibration/bearing-fault-detection",
+    "file": "server/routes.ts",
+    "line": 10811,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/acoustic/analyze",
+    "file": "server/routes.ts",
+    "line": 10845,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/acoustic/features",
+    "file": "server/routes.ts",
+    "line": 10868,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/ml/train/lstm",
+    "file": "server/routes.ts",
+    "line": 10892,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/ml/train/random-forest",
+    "file": "server/routes.ts",
+    "line": 10938,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/ml/train/xgboost",
+    "file": "server/routes.ts",
+    "line": 10972,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/ml/train/all",
+    "file": "server/routes.ts",
+    "line": 11006,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/ml/predict/failure",
+    "file": "server/routes.ts",
+    "line": 11063,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/ml/retraining-triggers",
+    "file": "server/routes.ts",
+    "line": 11115,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/ml/training-window/:param",
+    "file": "server/routes.ts",
+    "line": 11134,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/ml/health",
+    "file": "server/routes.ts",
+    "line": 16147,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/ml/metrics",
+    "file": "server/routes.ts",
+    "line": 11233,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/rul/models",
+    "file": "server/routes.ts",
+    "line": 11250,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/rul/fit",
+    "file": "server/routes.ts",
+    "line": 11261,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/rul/predict",
+    "file": "server/routes.ts",
+    "line": 11292,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/parts",
+    "file": "server/domains/inventory/routes.ts",
+    "line": 24,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/parts",
+    "file": "server/routes.ts",
+    "line": 11323,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/parts/:param",
+    "file": "server/routes.ts",
+    "line": 11340,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/parts/:param",
+    "file": "server/domains/inventory/routes.ts",
+    "line": 36,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/parts/availability",
+    "file": "server/domains/inventory/routes.ts",
+    "line": 51,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/parts/:param/sync-costs",
+    "file": "server/domains/inventory/routes.ts",
+    "line": 71,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/inventory/cost-planning",
+    "file": "server/routes.ts",
+    "line": 11438,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/compliance/bundles",
+    "file": "server/routes.ts",
+    "line": 11460,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/compliance/generate",
+    "file": "server/routes.ts",
+    "line": 11471,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/crew",
+    "file": "server/domains/crew/routes.ts",
+    "line": 30,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/crew",
+    "file": "server/domains/crew/routes.ts",
+    "line": 45,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/crew/certifications",
+    "file": "server/routes.ts",
+    "line": 11580,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/crew/certifications",
+    "file": "server/routes.ts",
+    "line": 11591,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/crew/certifications/:param",
+    "file": "server/routes.ts",
+    "line": 11602,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/crew/certifications/:param",
+    "file": "server/routes.ts",
+    "line": 11613,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/crew/leave",
+    "file": "server/routes.ts",
+    "line": 11624,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/crew/leave",
+    "file": "server/routes.ts",
+    "line": 11639,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/crew/leave/:param",
+    "file": "server/routes.ts",
+    "line": 11650,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/crew/leave/:param",
+    "file": "server/routes.ts",
+    "line": 11661,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/crew/:param/toggle-duty",
+    "file": "server/routes.ts",
+    "line": 11672,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/crew/:param",
+    "file": "server/domains/crew/routes.ts",
+    "line": 66,
+    "hasValidation": false
+  },
+  {
+    "key": "PUT /api/crew/:param",
+    "file": "server/domains/crew/routes.ts",
+    "line": 83,
+    "hasValidation": true
+  },
+  {
+    "key": "PATCH /api/crew/:param",
+    "file": "server/routes.ts",
+    "line": 11724,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/crew/:param",
+    "file": "server/domains/crew/routes.ts",
+    "line": 104,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/crew/:param/toggle-duty",
+    "file": "server/routes.ts",
+    "line": 11746,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/skills",
+    "file": "server/domains/crew/routes.ts",
+    "line": 120,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/skills",
+    "file": "server/domains/crew/routes.ts",
+    "line": 132,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/skills/:param",
+    "file": "server/routes.ts",
+    "line": 11813,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/skills/:param",
+    "file": "server/domains/crew/routes.ts",
+    "line": 153,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/crew/skills",
+    "file": "server/routes.ts",
+    "line": 11836,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/crew/:param/skills",
+    "file": "server/domains/crew/routes.ts",
+    "line": 207,
+    "hasValidation": false
+  },
+  {
+    "key": "DELETE /api/crew/:param/skills/:param",
+    "file": "server/domains/crew/routes.ts",
+    "line": 192,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/shifts",
+    "file": "server/routes.ts",
+    "line": 11869,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/shifts",
+    "file": "server/routes.ts",
+    "line": 11880,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/shifts/:param",
+    "file": "server/routes.ts",
+    "line": 11891,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/shifts/:param",
+    "file": "server/routes.ts",
+    "line": 11902,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/crew/assignments",
+    "file": "server/routes.ts",
+    "line": 11913,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/crew/assignments",
+    "file": "server/routes.ts",
+    "line": 11928,
+    "hasValidation": true
+  },
+  {
+    "key": "POST /api/crew/schedule/plan",
+    "file": "server/routes.ts",
+    "line": 11940,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/port-calls",
+    "file": "server/routes.ts",
+    "line": 11984,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/port-calls",
+    "file": "server/routes.ts",
+    "line": 11995,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/port-calls/:param",
+    "file": "server/routes.ts",
+    "line": 12013,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/port-calls/:param",
+    "file": "server/routes.ts",
+    "line": 12024,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/drydock-windows",
+    "file": "server/routes.ts",
+    "line": 12035,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/drydock-windows",
+    "file": "server/routes.ts",
+    "line": 12046,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/drydock-windows/:param",
+    "file": "server/routes.ts",
+    "line": 12064,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/drydock-windows/:param",
+    "file": "server/routes.ts",
+    "line": 12075,
+    "hasValidation": true
+  },
+  {
+    "key": "POST /api/vessels",
+    "file": "server/domains/vessels/routes.ts",
+    "line": 45,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/vessels/:param",
+    "file": "server/domains/vessels/routes.ts",
+    "line": 68,
+    "hasValidation": false
+  },
+  {
+    "key": "PUT /api/vessels/:param",
+    "file": "server/domains/vessels/routes.ts",
+    "line": 82,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/vessels/:param",
+    "file": "server/domains/vessels/routes.ts",
+    "line": 105,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/vessels/:param/export",
+    "file": "server/domains/vessels/routes.ts",
+    "line": 128,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/vessels/import",
+    "file": "server/domains/vessels/routes.ts",
+    "line": 154,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/vessels/:param/reset-downtime",
+    "file": "server/domains/vessels/routes.ts",
+    "line": 177,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/vessels/:param/reset-operation",
+    "file": "server/domains/vessels/routes.ts",
+    "line": 189,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/vessels/:param/wipe-data",
+    "file": "server/domains/vessels/routes.ts",
+    "line": 201,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/vessels/:param/equipment",
+    "file": "server/domains/vessels/routes.ts",
+    "line": 224,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/vessels/:param/equipment/:param",
+    "file": "server/domains/vessels/routes.ts",
+    "line": 236,
+    "hasValidation": false
+  },
+  {
+    "key": "DELETE /api/vessels/:param/equipment/:param",
+    "file": "server/domains/vessels/routes.ts",
+    "line": 253,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/vessels/:param/power-stw-analysis",
+    "file": "server/routes.ts",
+    "line": 12319,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/fleet/benchmarks",
+    "file": "server/routes.ts",
+    "line": 12454,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/compliance/cii/:param",
+    "file": "server/routes.ts",
+    "line": 12516,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/compliance/cii/:param/trend",
+    "file": "server/routes.ts",
+    "line": 12556,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/vessels/:param/operating-mode",
+    "file": "server/routes.ts",
+    "line": 12583,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/analytics/narrative-summary",
+    "file": "server/routes.ts",
+    "line": 12645,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/crew/schedule/plan-enhanced",
+    "file": "server/routes.ts",
+    "line": 12675,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/crew/rest/import",
+    "file": "server/routes.ts",
+    "line": 12864,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/crew/rest/check",
+    "file": "server/routes.ts",
+    "line": 12953,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/stcw/compliance/:param/:param/:param",
+    "file": "server/routes.ts",
+    "line": 12990,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/stcw/import",
+    "file": "server/routes.ts",
+    "line": 13023,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/stcw/rest/:param/:param/:param",
+    "file": "server/routes.ts",
+    "line": 13209,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/stcw/export/:param/:param/:param",
+    "file": "server/routes.ts",
+    "line": 13236,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/crew/rest/export_pdf",
+    "file": "server/routes.ts",
+    "line": 13284,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/crew/rest/sheet",
+    "file": "server/routes.ts",
+    "line": 13331,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/crew/rest/prepare_for_plan",
+    "file": "server/routes.ts",
+    "line": 13361,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/stcw/rest/range/:param/:param/:param",
+    "file": "server/routes.ts",
+    "line": 13446,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/stcw/rest/multiple",
+    "file": "server/routes.ts",
+    "line": 13473,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/stcw/rest/vessel/:param/:param/:param",
+    "file": "server/routes.ts",
+    "line": 13508,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/stcw/rest/search",
+    "file": "server/routes.ts",
+    "line": 13535,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/work-orders/clear",
+    "file": "server/routes.ts",
+    "line": 13574,
+    "hasValidation": false
+  },
+  {
+    "key": "DELETE /api/maintenance/schedules/clear",
+    "file": "server/routes.ts",
+    "line": 13588,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/shift-templates",
+    "file": "server/routes.ts",
+    "line": 13602,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/shift-templates",
+    "file": "server/routes.ts",
+    "line": 13613,
+    "hasValidation": false
+  },
+  {
+    "key": "DELETE /api/shift-templates/:param",
+    "file": "server/routes.ts",
+    "line": 13624,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/crew-assignments",
+    "file": "server/domains/crew/routes.ts",
+    "line": 294,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/crew-assignments",
+    "file": "server/domains/crew/routes.ts",
+    "line": 310,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/crew-assignments/:param",
+    "file": "server/domains/crew/routes.ts",
+    "line": 352,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/replay",
+    "file": "server/routes.ts",
+    "line": 13684,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/replay/history",
+    "file": "server/routes.ts",
+    "line": 13698,
+    "hasValidation": true
+  },
+  {
+    "key": "POST /api/sheets/lock",
+    "file": "server/routes.ts",
+    "line": 13722,
+    "hasValidation": false
+  },
+  {
+    "key": "DELETE /api/sheets/lock",
+    "file": "server/routes.ts",
+    "line": 13748,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/sheets/lock/:param",
+    "file": "server/routes.ts",
+    "line": 13766,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/sheets/lock/:param/status",
+    "file": "server/routes.ts",
+    "line": 13779,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/sheets/version/:param",
+    "file": "server/routes.ts",
+    "line": 13790,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/sheets/version/:param/increment",
+    "file": "server/routes.ts",
+    "line": 13803,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/sheets/version",
+    "file": "server/routes.ts",
+    "line": 13821,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/optimization/configurations",
+    "file": "server/routes.ts",
+    "line": 13837,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/optimization/configurations",
+    "file": "server/routes.ts",
+    "line": 13849,
+    "hasValidation": false
+  },
+  {
+    "key": "DELETE /api/optimization/configurations/:param",
+    "file": "server/routes.ts",
+    "line": 13876,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/optimization/results",
+    "file": "server/routes.ts",
+    "line": 13893,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/optimization/run",
+    "file": "server/routes.ts",
+    "line": 13906,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/optimization/cancel/:param",
+    "file": "server/routes.ts",
+    "line": 13934,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/optimization/:param/apply",
+    "file": "server/routes.ts",
+    "line": 13953,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/optimization/:param/download",
+    "file": "server/routes.ts",
+    "line": 13972,
+    "hasValidation": false
+  },
+  {
+    "key": "DELETE /api/optimization/results/:param",
+    "file": "server/routes.ts",
+    "line": 13994,
+    "hasValidation": false
+  },
+  {
+    "key": "DELETE /api/optimization/results",
+    "file": "server/routes.ts",
+    "line": 14007,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/beast/lp/optimize",
+    "file": "server/routes.ts",
+    "line": 14020,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/optimization/trend-insights",
+    "file": "server/routes.ts",
+    "line": 14128,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/enhanced-trends-validation",
+    "file": "server/routes.ts",
+    "line": 14259,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/analytics/fleet-performance-validation",
+    "file": "server/routes.ts",
+    "line": 14584,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/storage/config",
+    "file": "server/routes.ts",
+    "line": 14963,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/storage/config",
+    "file": "server/routes.ts",
+    "line": 14975,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/storage/config/:param",
+    "file": "server/routes.ts",
+    "line": 14990,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/storage/config/test",
+    "file": "server/routes.ts",
+    "line": 15001,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/storage/ops-db/current",
+    "file": "server/routes.ts",
+    "line": 15017,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/storage/ops-db/stage",
+    "file": "server/routes.ts",
+    "line": 15028,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/storage/ops-db/staged",
+    "file": "server/routes.ts",
+    "line": 15043,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/storage/ops-db/test",
+    "file": "server/routes.ts",
+    "line": 15054,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /public-objects/:filePath(*)",
+    "file": "server/routes.ts",
+    "line": 15072,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/objects/upload",
+    "file": "server/routes.ts",
+    "line": 15087,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /objects/:objectPath(*)",
+    "file": "server/routes.ts",
+    "line": 15104,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/storage/app-storage/status",
+    "file": "server/routes.ts",
+    "line": 15129,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/admin/factory-reset",
+    "file": "server/routes.ts",
+    "line": 15151,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/admin/database/health",
+    "file": "server/routes.ts",
+    "line": 15237,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/admin/database/timescale/enable",
+    "file": "server/routes.ts",
+    "line": 15250,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/admin/database/timescale/hypertable",
+    "file": "server/routes.ts",
+    "line": 15263,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/admin/database/timescale/continuous-aggregate",
+    "file": "server/routes.ts",
+    "line": 15276,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/admin/database/timescale/compression",
+    "file": "server/routes.ts",
+    "line": 15289,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/admin/database/retention/policy",
+    "file": "server/routes.ts",
+    "line": 15302,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/admin/database/retention/policy",
+    "file": "server/routes.ts",
+    "line": 15321,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/admin/database/retention/apply",
+    "file": "server/routes.ts",
+    "line": 15348,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/insights/snapshots",
+    "file": "server/routes.ts",
+    "line": 15364,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/insights/snapshots/latest",
+    "file": "server/routes.ts",
+    "line": 15382,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/insights/generate",
+    "file": "server/routes.ts",
+    "line": 15407,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/insights/jobs/stats",
+    "file": "server/routes.ts",
+    "line": 15430,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/insights/reports",
+    "file": "server/routes.ts",
+    "line": 15444,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/insights/v2/equipment/:param",
+    "file": "server/routes.ts",
+    "line": 15470,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/insights/v2/fleet-overview",
+    "file": "server/routes.ts",
+    "line": 15509,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/database/performance",
+    "file": "server/routes.ts",
+    "line": 15584,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/database/optimization",
+    "file": "server/routes.ts",
+    "line": 15597,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/backup/status",
+    "file": "server/routes.ts",
+    "line": 15611,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/backup/list",
+    "file": "server/routes.ts",
+    "line": 15624,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/backup/create/full",
+    "file": "server/routes.ts",
+    "line": 15637,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/backup/create/schema",
+    "file": "server/routes.ts",
+    "line": 15665,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/backup/cleanup",
+    "file": "server/routes.ts",
+    "line": 15693,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/backup/verify/:param",
+    "file": "server/routes.ts",
+    "line": 15710,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/condition/oil-analysis",
+    "file": "server/routes.ts",
+    "line": 15740,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/condition/oil-analysis/:param",
+    "file": "server/routes.ts",
+    "line": 15754,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/condition/oil-analysis",
+    "file": "server/routes.ts",
+    "line": 15774,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/condition/oil-analysis/:param",
+    "file": "server/routes.ts",
+    "line": 15798,
+    "hasValidation": false
+  },
+  {
+    "key": "DELETE /api/condition/oil-analysis/:param",
+    "file": "server/routes.ts",
+    "line": 15813,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/condition/wear-analysis",
+    "file": "server/routes.ts",
+    "line": 15829,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/condition/wear-analysis/:param",
+    "file": "server/routes.ts",
+    "line": 15843,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/condition/wear-analysis",
+    "file": "server/routes.ts",
+    "line": 15863,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/condition/wear-analysis/:param",
+    "file": "server/routes.ts",
+    "line": 15887,
+    "hasValidation": false
+  },
+  {
+    "key": "DELETE /api/condition/wear-analysis/:param",
+    "file": "server/routes.ts",
+    "line": 15902,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/condition/assessments",
+    "file": "server/routes.ts",
+    "line": 15918,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/condition/assessments/:param",
+    "file": "server/routes.ts",
+    "line": 15932,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/condition/assessments",
+    "file": "server/routes.ts",
+    "line": 15952,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/condition/oil-changes",
+    "file": "server/routes.ts",
+    "line": 15966,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/condition/oil-changes",
+    "file": "server/routes.ts",
+    "line": 15980,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/condition/generate-assessment",
+    "file": "server/routes.ts",
+    "line": 15994,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/condition/latest/:param",
+    "file": "server/routes.ts",
+    "line": 16033,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/mqtt/devices",
+    "file": "server/routes.ts",
+    "line": 16065,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/mqtt/devices",
+    "file": "server/routes.ts",
+    "line": 16080,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/mqtt/health",
+    "file": "server/routes.ts",
+    "line": 16091,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/ml/anomaly-detection",
+    "file": "server/routes.ts",
+    "line": 16113,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/ml/failure-prediction",
+    "file": "server/routes.ts",
+    "line": 16137,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/digital-twins",
+    "file": "server/routes.ts",
+    "line": 16169,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/digital-twins",
+    "file": "server/routes.ts",
+    "line": 16192,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/digital-twins/:param/simulate",
+    "file": "server/routes.ts",
+    "line": 16204,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/digital-twins/health",
+    "file": "server/routes.ts",
+    "line": 16221,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/external/weather/:param/:param",
+    "file": "server/routes.ts",
+    "line": 16245,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/external/vessel-tracking/:param",
+    "file": "server/routes.ts",
+    "line": 16263,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/external/port-info/:param",
+    "file": "server/routes.ts",
+    "line": 16279,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/webhooks/:param",
+    "file": "server/routes.ts",
+    "line": 16296,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/external/health",
+    "file": "server/routes.ts",
+    "line": 16320,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/admin/auth/verify",
+    "file": "server/routes.ts",
+    "line": 16353,
+    "hasValidation": true
+  },
+  {
+    "key": "POST /api/admin/auth/change-password",
+    "file": "server/routes.ts",
+    "line": 16432,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/admin/audit",
+    "file": "server/routes.ts",
+    "line": 16506,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/admin/audit",
+    "file": "server/routes.ts",
+    "line": 16521,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/admin/audit/user/:param",
+    "file": "server/routes.ts",
+    "line": 16535,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/admin/audit/resource/:param/:param",
+    "file": "server/routes.ts",
+    "line": 16547,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/admin/settings",
+    "file": "server/routes.ts",
+    "line": 16560,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/admin/settings/:param/:param/:param",
+    "file": "server/routes.ts",
+    "line": 16571,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/admin/settings",
+    "file": "server/routes.ts",
+    "line": 16585,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/admin/settings/:param",
+    "file": "server/routes.ts",
+    "line": 16599,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/admin/settings/:param",
+    "file": "server/routes.ts",
+    "line": 16614,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/admin/settings/:param/:param",
+    "file": "server/routes.ts",
+    "line": 16625,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/admin/calibrate-threshold",
+    "file": "server/routes.ts",
+    "line": 16637,
+    "hasValidation": true
+  },
+  {
+    "key": "POST /api/admin/simulate-telemetry",
+    "file": "server/routes.ts",
+    "line": 16731,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/admin/vessel-types",
+    "file": "server/routes.ts",
+    "line": 16791,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/admin/integrations",
+    "file": "server/routes.ts",
+    "line": 16808,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/admin/integrations/:param",
+    "file": "server/routes.ts",
+    "line": 16819,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/admin/integrations",
+    "file": "server/routes.ts",
+    "line": 16834,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/admin/integrations/:param",
+    "file": "server/routes.ts",
+    "line": 16848,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/admin/integrations/:param",
+    "file": "server/routes.ts",
+    "line": 16863,
+    "hasValidation": false
+  },
+  {
+    "key": "PATCH /api/admin/integrations/:param/health",
+    "file": "server/routes.ts",
+    "line": 16874,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/admin/maintenance-windows",
+    "file": "server/routes.ts",
+    "line": 16887,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/admin/maintenance-windows/:param",
+    "file": "server/routes.ts",
+    "line": 16898,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/admin/maintenance-windows",
+    "file": "server/routes.ts",
+    "line": 16913,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/admin/maintenance-windows/:param",
+    "file": "server/routes.ts",
+    "line": 16927,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/admin/maintenance-windows/:param",
+    "file": "server/routes.ts",
+    "line": 16942,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/admin/maintenance-windows/active",
+    "file": "server/routes.ts",
+    "line": 16953,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/admin/performance-metrics",
+    "file": "server/routes.ts",
+    "line": 16965,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/admin/performance-metrics",
+    "file": "server/routes.ts",
+    "line": 16980,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/admin/performance-metrics/:param/:param/latest",
+    "file": "server/routes.ts",
+    "line": 16994,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/admin/performance-metrics/:param/:param/trends",
+    "file": "server/routes.ts",
+    "line": 17005,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/admin/config/reload",
+    "file": "server/routes.ts",
+    "line": 17025,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/admin/config",
+    "file": "server/routes.ts",
+    "line": 17064,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/admin/config/:param",
+    "file": "server/routes.ts",
+    "line": 17089,
+    "hasValidation": false
+  },
+  {
+    "key": "PUT /api/admin/config/:param",
+    "file": "server/routes.ts",
+    "line": 17117,
+    "hasValidation": false
+  },
+  {
+    "key": "DELETE /api/admin/config/:param",
+    "file": "server/routes.ts",
+    "line": 17156,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/admin/config/audit",
+    "file": "server/routes.ts",
+    "line": 17189,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/admin/updates/check",
+    "file": "server/routes.ts",
+    "line": 17215,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/admin/patches",
+    "file": "server/routes.ts",
+    "line": 17248,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/admin/patches/history",
+    "file": "server/routes.ts",
+    "line": 17263,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/admin/patches/:param/download",
+    "file": "server/routes.ts",
+    "line": 17279,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/admin/patches/:param/apply",
+    "file": "server/routes.ts",
+    "line": 17300,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/admin/patches/rollback/:param",
+    "file": "server/routes.ts",
+    "line": 17333,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/admin/backups",
+    "file": "server/routes.ts",
+    "line": 17355,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/admin/update-settings",
+    "file": "server/routes.ts",
+    "line": 17367,
+    "hasValidation": false
+  },
+  {
+    "key": "PUT /api/admin/update-settings",
+    "file": "server/routes.ts",
+    "line": 17382,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/admin/patches/preview",
+    "file": "server/routes.ts",
+    "line": 17404,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/admin/patches/publish",
+    "file": "server/routes.ts",
+    "line": 17423,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/admin/config-audit",
+    "file": "server/routes.ts",
+    "line": 17448,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/admin/health-checks",
+    "file": "server/routes.ts",
+    "line": 17467,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/admin/health-checks/:param",
+    "file": "server/routes.ts",
+    "line": 17478,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/admin/health-checks",
+    "file": "server/routes.ts",
+    "line": 17493,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/admin/health-checks/:param",
+    "file": "server/routes.ts",
+    "line": 17507,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/admin/health-checks/:param",
+    "file": "server/routes.ts",
+    "line": 17522,
+    "hasValidation": false
+  },
+  {
+    "key": "PATCH /api/admin/health-checks/:param/status",
+    "file": "server/routes.ts",
+    "line": 17533,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/admin/health-checks/failing",
+    "file": "server/routes.ts",
+    "line": 17545,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/admin/system-health",
+    "file": "server/routes.ts",
+    "line": 17557,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/error-logs",
+    "file": "server/routes.ts",
+    "line": 17569,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/error-logs",
+    "file": "server/routes.ts",
+    "line": 17590,
+    "hasValidation": true
+  },
+  {
+    "key": "PATCH /api/error-logs/:param/resolve",
+    "file": "server/routes.ts",
+    "line": 17604,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/error-logs/stats",
+    "file": "server/routes.ts",
+    "line": 17616,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/fleet/map-data",
+    "file": "server/routes.ts",
+    "line": 17640,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/context/events",
+    "file": "server/routes.ts",
+    "line": 17728,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/context/events",
+    "file": "server/routes.ts",
+    "line": 17749,
+    "hasValidation": false
+  },
+  {
+    "key": "DELETE /api/context/events/:param",
+    "file": "server/routes.ts",
+    "line": 17763,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/anomalies/:param/root-cause",
+    "file": "server/routes.ts",
+    "line": 17775,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/copilot/chat",
+    "file": "server/routes.ts",
+    "line": 17792,
+    "hasValidation": false
+  },
+  {
+    "key": "GET *",
+    "file": "server/minimal-server.ts",
+    "line": 103,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /readyz",
+    "file": "server/index.ts",
+    "line": 364,
+    "hasValidation": false
+  },
+  {
+    "key": "GET env",
+    "file": "server/index.ts",
+    "line": 555,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /reports/vessel-health",
+    "file": "server/enhanced-llm-routes.ts",
+    "line": 12,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /reports/fleet-summary",
+    "file": "server/enhanced-llm-routes.ts",
+    "line": 48,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /reports/maintenance",
+    "file": "server/enhanced-llm-routes.ts",
+    "line": 80,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /reports/compliance",
+    "file": "server/enhanced-llm-routes.ts",
+    "line": 111,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /vessel/:param/intelligence",
+    "file": "server/enhanced-llm-routes.ts",
+    "line": 141,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /vessel/:param/historical-context",
+    "file": "server/enhanced-llm-routes.ts",
+    "line": 262,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /context/build",
+    "file": "server/enhanced-llm-routes.ts",
+    "line": 285,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /models",
+    "file": "server/enhanced-llm-routes.ts",
+    "line": 346,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /config",
+    "file": "server/beast-mode-routes.ts",
+    "line": 47,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /config/:param",
+    "file": "server/beast-mode-routes.ts",
+    "line": 70,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /config/:param/toggle",
+    "file": "server/beast-mode-routes.ts",
+    "line": 105,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /vibration/analyze/:param",
+    "file": "server/beast-mode-routes.ts",
+    "line": 202,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /vibration/history/:param",
+    "file": "server/beast-mode-routes.ts",
+    "line": 261,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /vibration/batch-analyze",
+    "file": "server/beast-mode-routes.ts",
+    "line": 311,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /lp/optimize",
+    "file": "server/beast-mode-routes.ts",
+    "line": 383,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /lp/results/:param",
+    "file": "server/beast-mode-routes.ts",
+    "line": 447,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /weibull/analyze/:param",
+    "file": "server/beast-mode-routes.ts",
+    "line": 497,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /weibull/history/:param",
+    "file": "server/beast-mode-routes.ts",
+    "line": 544,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /weibull/batch-analyze",
+    "file": "server/beast-mode-routes.ts",
+    "line": 597,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /trends/analyze/:param/:param",
+    "file": "server/beast-mode-routes.ts",
+    "line": 676,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /trends/fleet-analyze",
+    "file": "server/beast-mode-routes.ts",
+    "line": 779,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /trends/correlations/:param",
+    "file": "server/beast-mode-routes.ts",
+    "line": 866,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /trends/forecast/:param/:param",
+    "file": "server/beast-mode-routes.ts",
+    "line": 964,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /inventory/analyze",
+    "file": "server/beast-mode-routes.ts",
+    "line": 1067,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /inventory/equipment/:param",
+    "file": "server/beast-mode-routes.ts",
+    "line": 1120,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /inventory/critical",
+    "file": "server/beast-mode-routes.ts",
+    "line": 1187,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /compliance/equipment-pdf",
+    "file": "server/beast-mode-routes.ts",
+    "line": 1256,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /compliance/maintenance-pdf",
+    "file": "server/beast-mode-routes.ts",
+    "line": 1324,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /compliance/regulatory-pdf",
+    "file": "server/beast-mode-routes.ts",
+    "line": 1388,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /compliance/fleet-pdf",
+    "file": "server/beast-mode-routes.ts",
+    "line": 1455,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /model/lineage",
+    "file": "server/governance/routes.ts",
+    "line": 66,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /model/lineage/:param",
+    "file": "server/governance/routes.ts",
+    "line": 106,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /model/compare",
+    "file": "server/governance/routes.ts",
+    "line": 141,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /model/promote",
+    "file": "server/governance/routes.ts",
+    "line": 169,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /provenance/events",
+    "file": "server/governance/routes.ts",
+    "line": 203,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /provenance/verify",
+    "file": "server/governance/routes.ts",
+    "line": 244,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/maintenance-schedules/:param",
+    "file": "server/domains/maintenance/routes.ts",
+    "line": 56,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/devices",
+    "file": "server/domains/devices/routes.ts",
+    "line": 23,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/devices/:param",
+    "file": "server/domains/devices/routes.ts",
+    "line": 42,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/devices",
+    "file": "server/domains/devices/routes.ts",
+    "line": 59,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/devices/:param",
+    "file": "server/domains/devices/routes.ts",
+    "line": 81,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/devices/:param",
+    "file": "server/domains/devices/routes.ts",
+    "line": 111,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/crew/:param/skills/:param",
+    "file": "server/domains/crew/routes.ts",
+    "line": 169,
+    "hasValidation": false
+  },
+  {
+    "key": "GET /api/crew-leave",
+    "file": "server/domains/crew/routes.ts",
+    "line": 220,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/crew-leave",
+    "file": "server/domains/crew/routes.ts",
+    "line": 236,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/crew-leave/:param",
+    "file": "server/domains/crew/routes.ts",
+    "line": 257,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/crew-leave/:param",
+    "file": "server/domains/crew/routes.ts",
+    "line": 278,
+    "hasValidation": false
+  },
+  {
+    "key": "PUT /api/crew-assignments/:param",
+    "file": "server/domains/crew/routes.ts",
+    "line": 331,
+    "hasValidation": true
+  },
+  {
+    "key": "GET /api/crew-certifications",
+    "file": "server/domains/crew/routes.ts",
+    "line": 368,
+    "hasValidation": false
+  },
+  {
+    "key": "POST /api/crew-certifications",
+    "file": "server/domains/crew/routes.ts",
+    "line": 380,
+    "hasValidation": true
+  },
+  {
+    "key": "PUT /api/crew-certifications/:param",
+    "file": "server/domains/crew/routes.ts",
+    "line": 401,
+    "hasValidation": true
+  },
+  {
+    "key": "DELETE /api/crew-certifications/:param",
+    "file": "server/domains/crew/routes.ts",
+    "line": 422,
+    "hasValidation": false
+  }
+]

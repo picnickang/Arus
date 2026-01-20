@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  WiX MSI Installer Placeholder for ARUS Telemetry Agent
+  
+  This file is a placeholder template. To build the actual MSI installer:
+  1. Install WiX Toolset v4+
+  2. Copy this file to Product.wxs
+  3. Customize GUIDs and paths
+  4. Run: wix build Product.wxs -o ArusTelemetryAgent.msi
+  
+  See: https://wixtoolset.org/docs/
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="ARUS Telemetry Agent"
+           Manufacturer="ARUS Marine"
+           Version="0.1.0"
+           UpgradeCode="PUT-REAL-GUID-HERE">
+    
+    <MajorUpgrade DowngradeErrorMessage="A newer version is already installed." />
+    
+    <Feature Id="ProductFeature" Title="ARUS Telemetry Agent">
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentRef Id="ServiceComponent" />
+    </Feature>
+    
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="ARUS">
+        <Directory Id="AGENTFOLDER" Name="Agent" />
+      </Directory>
+    </StandardDirectory>
+    
+    <ComponentGroup Id="ProductComponents" Directory="AGENTFOLDER">
+      <!-- Files will be harvested from publish output -->
+    </ComponentGroup>
+    
+    <Component Id="ServiceComponent" Directory="AGENTFOLDER">
+      <File Id="AgentExe" Source="$(var.PublishDir)\Arus.TelemetryAgent.exe" KeyPath="yes" />
+      <ServiceInstall
+        Id="ServiceInstaller"
+        Type="ownProcess"
+        Name="ARUS.TelemetryAgent"
+        DisplayName="ARUS Telemetry Agent"
+        Description="Collects telemetry from marine equipment"
+        Start="auto"
+        ErrorControl="normal" />
+      <ServiceControl
+        Id="ServiceControl"
+        Name="ARUS.TelemetryAgent"
+        Start="install"
+        Stop="both"
+        Remove="uninstall"
+        Wait="yes" />
+    </Component>
+    
+  </Package>
+</Wix>

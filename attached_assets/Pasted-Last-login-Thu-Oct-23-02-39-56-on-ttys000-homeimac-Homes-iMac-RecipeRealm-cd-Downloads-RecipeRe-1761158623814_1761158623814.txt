@@ -1,0 +1,61 @@
+Last login: Thu Oct 23 02:39:56 on ttys000
+homeimac@Homes-iMac RecipeRealm % cd ~/Downloads/RecipeRealm
+
+echo "=== Checking Fix 1: DATABASE_PATH should be quoted ==="
+grep -n 'DATABASE_PATH=' scripts/macos/05-configure.sh | grep -v '^#'
+
+echo ""
+echo "=== Checking Fix 3: Should use 'source' not 'xargs' ==="
+grep -n 'source .env' scripts/macos/05-configure.sh
+
+echo ""
+echo "=== Checking Fix 4: Timeout should be 90 ==="
+grep -n 'MAX_WAIT=' scripts/macos/07-health-check.sh
+
+echo ""
+echo "=== Checking line 9 of generated launcher (the problem line) ==="
+sed -n '108,115p' scripts/macos/05-configure.sh
+=== Checking Fix 1: DATABASE_PATH should be quoted ===
+29:DATABASE_PATH="$DB_PATH"
+
+=== Checking Fix 3: Should use 'source' not 'xargs' ===
+110:    source .env
+
+=== Checking Fix 4: Timeout should be 90 ===
+12:MAX_WAIT=90
+
+=== Checking line 9 of generated launcher (the problem line) ===
+if [ -f ".env" ]; then
+    set -a  # Automatically export all variables
+    source .env
+    set +a
+fi
+
+# Ensure defaults
+export LOCAL_MODE=true
+homeimac@Homes-iMac RecipeRealm % cd ~/Downloads/RecipeRealm
+
+# Check if build completed
+ls -lh releases/
+
+# Check when the DMG was created
+ls -lh releases/*.dmg
+
+# Verify the DMG has the fix inside it
+hdiutil attach releases/ARUS-*.dmg
+grep 'source .env' /Volumes/ARUS*/ARUS*.app/Contents/Resources/ARUS-bundle/scripts/macos/05-configure.sh
+hdiutil detach /Volumes/ARUS*
+zsh: command not found: #
+total 0
+zsh: command not found: #
+zsh: no matches found: releases/*.dmg
+zsh: command not found: #
+zsh: no matches found: releases/ARUS-*.dmg
+/Volumes/ARUS Installer 2/ARUS Installer.app/Contents/Resources/ARUS-bundle/scripts/macos/05-configure.sh:    source .env
+/Volumes/ARUS Installer 5/ARUS Installer.app/Contents/Resources/ARUS-bundle/scripts/macos/05-configure.sh:    source .env
+/Volumes/ARUS Installer 6/ARUS Installer.app/Contents/Resources/ARUS-bundle/scripts/macos/05-configure.sh:    source .env
+/Volumes/ARUS Installer 7/ARUS Installer.app/Contents/Resources/ARUS-bundle/scripts/macos/05-configure.sh:    source .env
+/Volumes/ARUS Installer/ARUS Installer.app/Contents/Resources/ARUS-bundle/scripts/macos/05-configure.sh:    source .env
+hdiutil: detach: only a single device name can be specified
+Usage:	hdiutil detach [options] <devname>
+	hdiutil detach -help

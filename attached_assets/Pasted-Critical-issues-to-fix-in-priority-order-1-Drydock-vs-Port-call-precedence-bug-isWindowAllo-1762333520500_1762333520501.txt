@@ -1,0 +1,150 @@
+Critical issues to fix (in priority order)
+
+
+
+1) Drydock vs Port-call precedence bug
+
+
+
+isWindowAllowed currently returns true as soon as a port-call overlaps, even if a drydock also overlaps. Drydock should always block scheduling.
+
+
+
+Fix: check drydock overlap first; only then allow port-call overlap.
+
+Also, when vesselId is missing, just allow the shift.
+
+function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date) {
+  return Math.max(aStart.getTime(), bStart.getTime()) < Math.min(aEnd.getTime(), bEnd.getTime());
+}
+
+function toUtc(day: string, timeHHmm: string) {
+  // Force UTC to avoid local-TZ drift
+  return new Date(`${day}T${timeHHmm}Z`);
+}
+
+function isWindowAllowed(
+  day: string,
+  startTime: string,
+  endTime: string,
+  vesselId: string | undefined,
+  portCalls: SelectPortCall[],
+  drydocks: SelectDrydockWindow[]
+): boolean {
+  if (!vesselId) return true; // no vessel bound to shift
+
+  const shiftStart = toUtc(day, startTime);
+  let shiftEnd = toUtc(day, endTime);
+  if (shiftEnd <= shiftStart) shiftEnd = new Date(shiftEnd.getTime() + 24 * 3600 * 1000); // midnight crossover
+
+  // 1) Drydock blocks
+  for (const d of drydocks) {
+    if (d.vesselId !== vesselId) continue;
+    const ds = new Date(d.start), de = new Date(d.end);
+    if (overlaps(shiftStart, shiftEnd, ds, de)) return false;
+  }
+
+  // 2) Port calls allow (if overlapping), else neutral
+  for (const p of portCalls) {
+    if (p.vesselId !== vesselId) continue;
+    const ps = new Date(p.start), pe = new Date(p.end);
+    if (overlaps(shiftStart, shiftEnd, ps, pe)) return true;
+  }
+
+  // 3) No constraints prohibiting
+  return true;
+}
+2) Leave/certification checks only look at the 
+
+start
+
+ instant
+
+
+
+You’re checking shiftDate against leave intervals; that misses mid-shift overlaps and midnight-crossing shifts.
+
+
+
+Fix: use interval overlap for leave and certs (certs: valid if all of the shift occurs before expiry; minimally, start<expiry is common, but stricter is better).
+
+function shiftWindow(day: string, startTime: string, endTime: string) {
+  const start = toUtc(day, startTime);
+  let end = toUtc(day, endTime);
+  if (end <= start) end = new Date(end.getTime() + 24*3600*1000);
+  return { start, end };
+}
+
+function leaveOverlaps(crewId: string, start: Date, end: Date, leaves: SelectCrewLeave[]) {
+  return leaves.some(l => {
+    if (l.crewId !== crewId) return false;
+    const ls = new Date(l.start), le = new Date(l.end);
+    return overlaps(start, end, ls, le);
+  });
+}
+
+function hasValidCertification(
+  crew: CrewWithSkills,
+  requiredCert: string | undefined,
+  shiftStart: Date,
+  shiftEnd: Date,
+  certifications: { [crewId: string]: SelectCrewCertification[] }
+): boolean {
+  if (!requiredCert) return true;
+  const crewCerts = certifications[crew.id] || [];
+  // Require cert to be valid at least at shift end
+  return crewCerts.some(c => c.cert === requiredCert && new Date(c.expiresAt) >= shiftEnd);
+}
+Use the new helpers inside both engines.
+
+3) Missing 
+
+rest time
+
+, 
+
+weekly hour cap
+
+, and 
+
+overlap
+
+ checks
+
+
+
+Your earlier greedy engine had restOk and hoursInRange. Those constraints are not enforced in the constraint version, and in greedy fallback here you pass [] for existing assignments, which discards conflict checks.
+
+
+
+Fixes
+
+Carry forward the same constraints: no overlaps, minRestH, maxHours7d using both already scheduled in this run and existing assignments.
+
+Thread existingAssignments through the engine (default to [] to preserve compatibility).
+
+
+
+Types & function signatures
+
+export interface ConstraintScheduleRequest {
+  engine: string;
+  days: string[];
+  shifts: SelectShiftTemplate[];
+  crew: CrewWithSkills[];
+  leaves: SelectCrewLeave[];
+  portCalls: SelectPortCall[];
+  drydocks: SelectDrydockWindow[];
+  certifications: { [crewId: string]: SelectCrewCertification[] };
+  preferences?: SchedulingPreferences;
+  existing?: SelectCrewAssignment[]; // << NEW
+}
+Overlap, rest, hours (re-use semantics from your previous file):
+
+function windowsOverlap(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date) {
+  return overlaps(aStart, aEnd, bStart, bEnd);
+}
+
+function restOk(assignments: Assignment[], existing: SelectCrewAssignment[], crewId: string, start: Date, minRestH: number) {
+  let lastEnd: Date | null = null;
+  const consider = (aStart: Date

@@ -1,0 +1,207 @@
+You are editing a React/TypeScript inventory page. Apply the following precise changes to the file that contains the InventoryManagement component (likely InventoryManagement.tsx or similar):
+
+
+
+1) Switch partial updates to PATCH + allow partial payloads
+
+Replace the updatePartMutation to accept Partial<PartFormData> and call PATCH instead of PUT.
+
+- const updatePartMutation = useCustomMutation({
+-   mutationFn: async ({ id, data }: { id: string; data: PartFormData }) => {
+-     return apiRequest('PUT', `/api/parts-inventory/${id}`, {
+-       partNo: data.partNumber,
+-       name: data.partName,
+-       category: data.category,
+-       unitCost: data.standardCost,
+-       quantityOnHand: data.quantityOnHand,
+-       minStockLevel: data.minStockLevel,
+-       maxStockLevel: data.maxStockLevel,
+-       leadTimeDays: data.leadTimeDays,
+-       supplier: "TBD",
+-     });
+-   },
++ const updatePartMutation = useCustomMutation({
++   mutationFn: async ({ id, data }: { id: string; data: Partial<PartFormData> }) => {
++     return apiRequest('PATCH', `/api/parts-inventory/${id}`, data);
++   },
+2) Make Zod schema robust to empty input for number fields
+
+Add a helper numberOrEmpty and update the partFormSchema to coerce strings/empty to numbers or defaults.
+
++ const numberOrEmpty = (min?: number) =>
++   z.preprocess(
++     (v) => (v === "" || v === undefined ? undefined : Number(v)),
++     (min !== undefined ? z.number().min(min) : z.number()).optional()
++   );
+
+- const partFormSchema = z.object({
+-   standardCost: z.number({ required_error: "Standard cost is required", invalid_type_error: "Standard cost must be a number" }).min(0, "Standard cost cannot be negative"),
+-   leadTimeDays: z.number({ required_error: "Lead time is required", invalid_type_error: "Lead time must be a number" }).min(1, "Lead time must be at least 1 day"),
+-   quantityOnHand: z.number({ required_error: "Quantity is required", invalid_type_error: "Quantity must be a number" }).min(0, "Quantity cannot be negative"),
+-   minStockLevel: z.number({ required_error: "Min stock is required", invalid_type_error: "Min stock must be a number" }).min(0, "Minimum stock cannot be negative"),
+-   maxStockLevel: z.number({ required_error: "Max stock is required", invalid_type_error: "Max stock must be a number" }).min(1, "Maximum stock must be at least 1"),
+- })
++ const partFormSchema = z.object({
++   standardCost: numberOrEmpty(0).default(0),
++   leadTimeDays: numberOrEmpty(1).default(7),
++   quantityOnHand: numberOrEmpty(0).default(0),
++   minStockLevel: numberOrEmpty(0).default(1),
++   maxStockLevel: numberOrEmpty(1).default(100),
++ })
+(Keep the rest of the schema as-is.)
+
+
+
+3) Harden stock status math + clamp available
+
+Use coalesced values; treat negative available as 0; avoid undefined comparisons.
+
+- const getStockStatus = (part: PartsInventory) => {
+-   if (!part.stock) return 'unknown';
+-   const { quantityOnHand, quantityReserved } = part.stock;
+-   const available = Math.max(0, quantityOnHand - quantityReserved);
+-   const minStock = part.minStockLevel;
+-   const maxStock = part.maxStockLevel;
+-   if (quantityOnHand <= 0) return 'out_of_stock';
+-   if (available <= 0) return 'critical';
+-   if (available < minStock * 0.5) return 'critical';
+-   if (available < minStock) return 'low_stock';
+-   if (available > maxStock) return 'excess_stock';
+-   return 'adequate';
+- };
++ const getStockStatus = (part: PartsInventory) => {
++   const qoh = part.stock?.quantityOnHand ?? 0;
++   const qres = part.stock?.quantityReserved ?? 0;
++   const available = Math.max(0, qoh - qres);
++   const minStock = part.minStockLevel ?? 0;
++   const maxStock = part.maxStockLevel ?? Number.MAX_SAFE_INTEGER;
++   if (qoh <= 0) return 'out_of_stock';
++   if (available <= 0 || available < minStock * 0.5) return 'critical';
++   if (available < minStock) return 'low_stock';
++   if (available > maxStock) return 'excess_stock';
++   return 'adequate';
++ };
+In the table row computation, clamp available the same way:
+
+- const available = (part.stock?.quantityOnHand || 0) - (part.stock?.quantityReserved || 0);
++ const available = Math.max(0, (part.stock?.quantityOnHand ?? 0) - (part.stock?.quantityReserved ?? 0));
+4) Ensure inline edit routes match ownership
+
+Keep location, unitCost, and quantities going to /stock, and part fields (name/number/category/leadTime/standardCost) to /parts-inventory/:id (already correct). For the category and name/number saves, now send minimal bodies thanks to PATCH:
+
+- updatePartMutation.mutate({ id: partId, data: { category: newValue } as any }, {
++ updatePartMutation.mutate({ id: partId, data: { category: newValue } }, {
+…and similarly for partNo, name, leadTimeDays, standardCost.
+
+
+
+5) Robust error rendering
+
+Extract a safe string before checking substrings.
+
+- ) : error && !error.message?.includes("WebSocket") && !error.message?.includes("string did not match") ? (
++ const errMsg = error ? (typeof error === 'object' && (error as any).message ? (error as any).message : String(error)) : '';
++ ) : error && !String(errMsg).includes("WebSocket") && !String(errMsg).includes("string did not match") ? (
+    ...
+-   <p className="text-destructive">Error loading inventory: {error.message}</p>
++   <p className="text-destructive">Error loading inventory: {String(errMsg)}</p>
+6) CSV status formatting (replace all underscores)
+
+- status: status.replace('_', ' ').toUpperCase()
++ status: status.replace(/_/g, ' ').toUpperCase()
+7) Stable sort & accessibility
+
+Add a tie-break on id and aria-sort on headers.
+
+// after computing aValue/bValue
++ if (aValue === bValue) return a.id.localeCompare(b.id);
+  return sortDirection === 'asc' ? (aValue < bValue ? -1 : 1) : (aValue > bValue ? -1 : 1);
+Example on a header:
+
+- <TableHead className="cursor-pointer hover:bg-accent" onClick={() => handleSort('status')}>
++ <TableHead
++   role="columnheader"
++   aria-sort={sortField === 'status' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
++   className="cursor-pointer hover:bg-accent"
++   onClick={() => handleSort('status')}
++ >
+8) Category options centralized
+
+Create a constant and reuse for the form and inline edit select.
+
++ const CATEGORY_OPTIONS = ['filters','belts','fluids','electrical','mechanical','other'];
+...
+- {categories.map((category) => (
++ {categories.map((category) => (
+    <SelectItem key={category} value={category}>{category}</SelectItem>
+  ))}
+For inline edit select:
+
+- <SelectContent>
+-   <SelectItem value="filters">Filters</SelectItem>
+-   ...
+- </SelectContent>
++ <SelectContent>
++   {CATEGORY_OPTIONS.map(c => <SelectItem key={c} value={c}>{c[0].toUpperCase() + c.slice(1)}</SelectItem>)}
++ </SelectContent>
+9) Filter list creation—drop falsy categories
+
+- const categories = Array.from(new Set(partsInventory.map(part => part.category))).sort();
++ const categories = Array.from(new Set(partsInventory.map(p => p.category).filter(Boolean))).sort();
+10) Create-part payload includes initial stock & optional fields (server must accept)
+
+If your backend supports it, send description, unitOfMeasure, criticality, and an initialStock object:
+
+- return apiRequest('POST', '/api/parts-inventory', {
+-   partNo: data.partNumber,
+-   name: data.partName,
+-   category: data.category,
+-   unitCost: data.standardCost,
+-   quantityOnHand: data.quantityOnHand,
+-   minStockLevel: data.minStockLevel,
+-   maxStockLevel: data.maxStockLevel,
+-   leadTimeDays: data.leadTimeDays,
+-   supplier: "TBD",
+-   orgId
+- });
++ return apiRequest('POST', '/api/parts-inventory', {
++   partNo: data.partNumber,
++   name: data.partName,
++   description: data.description ?? '',
++   category: data.category,
++   unitOfMeasure: data.unitOfMeasure ?? 'ea',
++   standardCost: data.standardCost ?? 0,
++   criticality: data.criticality ?? 'medium',
++   leadTimeDays: data.leadTimeDays ?? 7,
++   minStockLevel: data.minStockLevel ?? 1,
++   maxStockLevel: data.maxStockLevel ?? 100,
++   initialStock: {
++     quantityOnHand: data.quantityOnHand ?? 0,
++     quantityReserved: 0,
++     unitCost: data.standardCost ?? 0,
++     location: data.location ?? 'MAIN',
++   },
++   supplier: "TBD",
++   orgId
++ });
+11) Minor polish
+
+Trim leading spaces from search term:
+
+- onChange={(e) => setSearchTerm(e.target.value)}
++ onChange={(e) => setSearchTerm(e.target.value.trimStart())}
+Post-patch checklist:
+
+Add part with blank numeric fields → saves with defaults and no validation errors.
+
+Inline edit category, partName, partNumber, leadTimeDays, standardCost → sent via PATCH /api/parts-inventory/:id with minimal body.
+
+Inline edit unitCost, location, quantities → sent via PATCH /api/parts-inventory/:id/stock.
+
+CSV export shows statuses like LOW STOCK, OUT OF STOCK (all underscores replaced).
+
+Sorting headers announce aria-sort; sorting is stable.
+
+
+
+If the backend cannot accept initialStock in the create call, drop that block and keep your existing /stock endpoint for subsequent initialization.

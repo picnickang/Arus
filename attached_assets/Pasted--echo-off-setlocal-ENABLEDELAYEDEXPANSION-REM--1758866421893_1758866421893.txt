@@ -1,0 +1,500 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==========================================================
+REM ARUS – Insights Engine (KPIs + Risks + On-demand LLM)
+REM - PG & SQLite migrations for insight snapshots/reports
+REM - Insights computation engine (no LLM by default)
+REM - LLM overview endpoint (runs ONLY when requested)
+REM - Daily KPI snapshots via cron (safe; no LLM)
+REM - Frontend Insights dashboard (KPIs + Overview button)
+REM ==========================================================
+
+if not exist "backend-node\src" (
+echo [ERROR] backend-node/src not found. Run at repo root.
+exit /b 1
+)
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+REM ----------------------------------------------------------
+REM 0) Ensure Node dependencies
+REM ----------------------------------------------------------
+%PS% ^
+"$f='backend-node/package.json'; $j=(Get-Content -Raw $f | ConvertFrom-Json);" ^
+"$j.dependencies.'node-cron' = $j.dependencies.'node-cron' ?? '^3.0.3';" ^
+"$j.dependencies.'simple-statistics' = $j.dependencies.'simple-statistics' ?? '^7.8.3';" ^
+"$j.dependencies.'cross-fetch' = $j.dependencies.'cross-fetch' ?? '^4.0.0';" ^
+"$j | ConvertTo-Json -Depth 10 | Set-Content -Encoding UTF8 $f;"
+
+REM ----------------------------------------------------------
+REM 1) SQL migrations (PG + SQLite)
+REM ----------------------------------------------------------
+if not exist "backend-node\migrations" mkdir backend-node\migrations
+
+> backend-node\migrations\070_insights.sql (
+echo -- Insights storage (Postgres)
+echo CREATE TABLE IF NOT EXISTS insight_snapshots (
+echo id BIGSERIAL PRIMARY KEY,
+echo scope TEXT NOT NULL, -- 'fleet' or vessel_id
+echo at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+echo kpi JSONB NOT NULL,
+echo risks JSONB NOT NULL,
+echo recommendations JSONB NOT NULL,
+echo anomalies JSONB NOT NULL,
+echo compliance JSONB NOT NULL
+echo );
+echo CREATE INDEX IF NOT EXISTS idx_insight_scope_at ON insight_snapshots(scope, at DESC);
+echo
+echo CREATE TABLE IF NOT EXISTS insight_reports (
+echo id BIGSERIAL PRIMARY KEY,
+echo scope TEXT NOT NULL,
+echo period_start TIMESTAMPTZ NOT NULL,
+echo period_end TIMESTAMPTZ NOT NULL,
+echo snapshot_id BIGINT REFERENCES insight_snapshots(id) ON DELETE SET NULL,
+echo llm_summary TEXT
+echo );
+)
+
+> backend-node\migrations\sqlite_070_insights.sql (
+echo -- Insights storage (SQLite)
+echo CREATE TABLE IF NOT EXISTS insight_snapshots (
+echo id INTEGER PRIMARY KEY AUTOINCREMENT,
+echo scope TEXT NOT NULL,
+echo at TEXT NOT NULL DEFAULT (datetime('now')),
+echo kpi TEXT NOT NULL,
+echo risks TEXT NOT NULL,
+echo recommendations TEXT NOT NULL,
+echo anomalies TEXT NOT NULL,
+echo compliance TEXT NOT NULL
+echo );
+echo CREATE INDEX IF NOT EXISTS idx_insight_scope_at ON insight_snapshots(scope, at);
+echo
+echo CREATE TABLE IF NOT EXISTS insight_reports (
+echo id INTEGER PRIMARY KEY AUTOINCREMENT,
+echo scope TEXT NOT NULL,
+echo period_start TEXT NOT NULL,
+echo period_end TEXT NOT NULL,
+echo snapshot_id INTEGER,
+echo llm_summary TEXT
+echo );
+)
+
+REM ----------------------------------------------------------
+REM 2) Insights Engine (computation + optional LLM)
+REM ----------------------------------------------------------
+> backend-node\src\insights.engine.ts (
+echo import path from "node:path";
+echo import { Pool } from "pg";
+echo import Database from "better-sqlite3";
+echo import { mean, standardDeviation } from "simple-statistics";
+echo import fetch from "cross-fetch";
+echo
+echo const DATABASE_URL = process.env.DATABASE_URL || "";
+echo const USE_PG = !!DATABASE_URL;
+echo
+echo type KPI = {
+echo fleet: { vessels:number; signals_mapped:number; signals_discovered:number; dq_7d:number; latest_gap_vessels:string[]; };
+echo per_vessel: Record<string, { last_ts:string|null; dq_7d:number; total_signals:number; stale:boolean }>;
+echo };
+echo
+echo type InsightBundle = {
+echo kpi: KPI;
+echo risks: { critical:string[]; warnings:string[] };
+echo recommendations: string[];
+echo anomalies: Array<{ vessel_id:string; src:string; sig:string; kind:string; severity:string; t_start:string; t_end:string }>;
+echo compliance: { hor_violations_7d?: number; notes?: string[] };
+echo };
+echo
+echo async function qpg<T=any>(sql:string, params:any[]=[]): Promise<T[]>{
+echo const pool = new Pool({ connectionString: DATABASE_URL, statement_timeout: 15000 });
+echo const c = await pool.connect(); try { const r = await c.query(sql, params); return r.rows as any; } finally { c.release(); await pool.end(); }
+echo }
+echo function qlite<T=any>(sql:string, params:any[]=[]): T[]{
+echo const db = new Database(path.join(process.cwd(),"data","arus.sqlite"));
+echo const rows = db.prepare(sql).all(...params); db.close(); return rows as any;
+echo }
+echo function runlite(sql:string, params:any[]=[]){
+echo const db = new Database(path.join(process.cwd(),"data","arus.sqlite"));
+echo const r = db.prepare(sql).run(...params); db.close(); return r;
+echo }
+echo
+echo export async function computeInsights(scope:"fleet"|string): Promise<InsightBundle>{
+echo const now = new Date();
+echo const since7d = new Date(now.getTime() - 7*24*3600*1000);
+echo
+echo // ---- KPIs ----
+echo let vessels = 0, mapped = 0, discovered = 0, dqCount = 0;
+echo let latestRows:any[] = [];
+echo if (USE_PG){
+echo const [v, m, d, dq, latest] = await Promise.all([
+echo qpg(\`SELECT COUNT(*)::int AS c FROM vessel\`),
+echo qpg(\`SELECT COUNT(*)::int AS c FROM sensor_mapping\`),
+echo qpg(\`SELECT COUNT(*)::int AS c FROM discovered_signals\`),
+echo qpg(\`SELECT COUNT(*)::int AS c FROM dq_findings WHERE created_at > NOW() - INTERVAL '7 days'\`),
+echo qpg(\`SELECT vessel_id, MAX(ts) AS last_ts FROM last_reading GROUP BY vessel_id\`)
+echo ]);
+echo vessels = v[0]?.c||0; mapped=m[0]?.c||0; discovered=d[0]?.c||0; dqCount=dq[0]?.c||0; latestRows = latest;
+echo } else {
+echo const db = new Database(path.join(process.cwd(),"data","arus.sqlite"));
+echo vessels = db.prepare("SELECT COUNT(*) AS c FROM vessel").get()?.c||0;
+echo mapped = db.prepare("SELECT COUNT(*) AS c FROM sensor_mapping").get()?.c||0;
+echo discovered = db.prepare("SELECT COUNT(*) AS c FROM discovered_signals").get()?.c||0;
+echo dqCount = db.prepare("SELECT COUNT(*) AS c FROM dq_findings WHERE created_at >= ?").get(since7d.toISOString())?.c||0;
+echo latestRows = db.prepare("SELECT vessel_id, MAX(ts) AS last_ts FROM last_reading GROUP BY vessel_id").all();
+echo db.close();
+echo }
+echo
+echo const per_vessel: KPI["per_vessel"] = {};
+echo const staleCut = new Date(now.getTime() - 30*60*1000); // 30 min
+echo const latest_gap_vessels: string[] = [];
+echo
+echo for (const r of latestRows){
+echo const last = new Date((r.last_ts instanceof Date) ? r.last_ts.toISOString() : r.last_ts);
+echo const stale = last < staleCut;
+echo if (stale) latest_gap_vessels.push(r.vessel_id);
+echo // count signals in mapping for vessel
+echo let total_signals = 0;
+echo if (USE_PG){
+echo const x = await qpg<{c:number}>(\`SELECT COUNT(*)::int AS c FROM sensor_mapping WHERE vessel_id=$1\`, [r.vessel_id]);
+echo total_signals = x[0]?.c||0;
+echo } else {
+echo const db = new Database(path.join(process.cwd(),"data","arus.sqlite"));
+echo total_signals = db.prepare("SELECT COUNT(*) AS c FROM sensor_mapping WHERE vessel_id=?").get(r.vessel_id)?.c||0;
+echo db.close();
+echo }
+echo per_vessel[r.vessel_id] = { last_ts: last.toISOString(), dq_7d: 0, total_signals, stale };
+echo }
+echo
+echo // count dq per vessel (7d)
+echo if (USE_PG){
+echo const rows = await qpg(\`SELECT vessel_id, COUNT(*)::int AS c FROM dq_findings WHERE created_at > NOW() - INTERVAL '7 days' GROUP BY vessel_id\`);
+echo for (const r of rows) { if (!per_vessel[r.vessel_id]) per_vessel[r.vessel_id]={last_ts:null,dq_7d:0,total_signals:0,stale:true}; per_vessel[r.vessel_id].dq_7d = r.c; }
+echo } else {
+echo const db = new Database(path.join(process.cwd(),"data","arus.sqlite"));
+echo const rows = db.prepare("SELECT vessel_id, COUNT(*) AS c FROM dq_findings WHERE created_at >= ? GROUP BY vessel_id").all(since7d.toISOString());
+echo for (const r of rows) { if (!per_vessel[r.vessel_id]) per_vessel[r.vessel_id]={last_ts:null,dq_7d:0,total_signals:0,stale:true}; per_vessel[r.vessel_id].dq_7d = Number(r.c); }
+echo db.close();
+echo }
+echo
+echo const kpi: KPI = { fleet: { vessels, signals_mapped: mapped, signals_discovered: discovered, dq_7d: dqCount, latest_gap_vessels }, per_vessel };
+echo
+echo // ---- Anomalies (recent) ----
+echo let anomalies: InsightBundle["anomalies"] = [];
+echo if (USE_PG){
+echo const rows = await qpg(\`
+echo SELECT vessel_id, src, sig, kind, severity, t_start, t_end
+echo FROM dq_findings
+echo WHERE created_at > NOW() - INTERVAL '48 hours'
+echo ORDER BY t_start DESC
+echo \`);
+echo anomalies = rows.map(r=>({ ...r, t_start: (r.t_start as Date).toISOString(), t_end: (r.t_end as Date).toISOString() }));
+echo } else {
+echo const db = new Database(path.join(process.cwd(),"data","arus.sqlite"));
+echo const since = new Date(Date.now()-48*3600*1000).toISOString();
+echo const rows = db.prepare("SELECT vessel_id, src, sig, kind, severity, t_start, t_end FROM dq_findings WHERE created_at >= ? ORDER BY t_start DESC").all(since);
+echo anomalies = rows as any;
+echo db.close();
+echo }
+echo
+echo // ---- Risk logic (explainable, conservative) ----
+echo const risks = { critical: [] as string[], warnings: [] as string[] };
+echo if (kpi.fleet.latest_gap_vessels.length > 0){
+echo risks.critical.push(\`Stale telemetry on: \${kpi.fleet.latest_gap_vessels.join(", ")} (no updates >30 min)\`);
+echo }
+echo const highAnoms = anomalies.filter(a=>a.severity==='high');
+echo if (highAnoms.length>0) risks.critical.push(\`\${highAnoms.length} high-severity data quality gaps in last 48h\`);
+echo const medAnoms = anomalies.filter(a=>a.severity==='med');
+echo if (medAnoms.length>0) risks.warnings.push(\`\${medAnoms.length} medium-severity findings in last 48h\`);
+echo
+echo // ---- Recommendations (actionable) ----
+echo const recommendations: string[] = [];
+echo if (kpi.fleet.latest_gap_vessels.length>0) recommendations.push("Check connectivity/ingest on stale vessels; verify broker/EFMS status.");
+echo if (kpi.fleet.dq_7d>0) recommendations.push("Review DQ findings; tune sensor thresholds; inspect suspected flatlines or gaps.");
+echo if (kpi.fleet.signals_discovered>0 && kpi.fleet.signals_mapped < kpi.fleet.signals_discovered) recommendations.push("Map newly discovered signals to sensor types for better analytics.");
+echo
+echo // ---- Compliance (placeholder; extend if HoR violations table exists) ----
+echo const compliance: InsightBundle["compliance"] = { notes: [] };
+echo
+echo return { kpi, risks, recommendations, anomalies, compliance };
+echo }
+echo
+echo export async function persistSnapshot(scope:"fleet"|string, bundle: InsightBundle){
+echo if (USE_PG){
+echo const pool = new Pool({ connectionString: DATABASE_URL });
+echo const c = await pool.connect();
+echo try{
+echo const r = await c.query(\`
+echo INSERT INTO insight_snapshots(scope, kpi, risks, recommendations, anomalies, compliance)
+echo VALUES($1,$2,$3,$4,$5,$6)
+echo RETURNING id, at
+echo \`, [scope, bundle.kpi, bundle.risks, bundle.recommendations, bundle.anomalies, bundle.compliance]);
+echo return { id: r.rows[0].id, at: r.rows[0].at as Date };
+echo } finally { c.release(); await pool.end(); }
+echo } else {
+echo const db = new Database(path.join(process.cwd(),"data","arus.sqlite"));
+echo const stmt = db.prepare(\`
+echo INSERT INTO insight_snapshots(scope, at, kpi, risks, recommendations, anomalies, compliance)
+echo VALUES(?, datetime('now'), ?, ?, ?, ?, ?)
+echo \`);
+echo const info = stmt.run(scope, JSON.stringify(bundle.kpi), JSON.stringify(bundle.risks), JSON.stringify(bundle.recommendations), JSON.stringify(bundle.anomalies), JSON.stringify(bundle.compliance));
+echo const id = Number(info.lastInsertRowid);
+echo const at = new Date().toISOString();
+echo db.close();
+echo return { id, at: new Date(at) };
+echo }
+echo }
+echo
+echo export async function getLatestSnapshot(scope:"fleet"|string){
+echo if (USE_PG){
+echo const rows = await qpg(\`
+echo SELECT id, scope, at, kpi, risks, recommendations, anomalies, compliance
+echo FROM insight_snapshots WHERE scope=$1 ORDER BY at DESC LIMIT 1
+echo \`, [scope]);
+echo return rows[0] ? { ...rows[0], at: (rows[0].at as Date).toISOString() } : null;
+echo } else {
+echo const db = new Database(path.join(process.cwd(),"data","arus.sqlite"));
+echo const row:any = db.prepare("SELECT id, scope, at, kpi, risks, recommendations, anomalies, compliance FROM insight_snapshots WHERE scope=? ORDER BY at DESC LIMIT 1").get(scope);
+echo db.close();
+echo if (!row) return null;
+echo return { ...row };
+echo }
+echo }
+echo
+echo // Optional: on-demand LLM overview (runs ONLY when endpoint is called)
+echo export async function llmOverview(bundle: InsightBundle): Promise<string>{
+echo const provider = (process.env.LLM_PROVIDER||"").toLowerCase(); // 'openai'|'azureopenai'|''
+echo const sys = [
+echo "You are an expert predictive maintenance and scheduling assistant for industrial vessels and heavy equipment.",
+echo "Prepare a concise, professional briefing for a senior engineer and operations manager.",
+echo "Always include: Condition Overview, Optimization & Scheduling, Diagnostics & Prescriptions, Executive Summary.",
+echo "Flag critical issues in **bold**; keep language precise and actionable."
+echo ].join("\\n");
+echo
+echo const user = JSON.stringify(bundle, null, 2);
+echo
+echo if (!provider){
+echo // Fallback templated narrative (no external calls)
+echo const stale = bundle.kpi.fleet.latest_gap_vessels.length ? ("**Stale telemetry**: " + bundle.kpi.fleet.latest_gap_vessels.join(", ")) : "No stale telemetry detected.";
+echo const dq = bundle.kpi.fleet.dq_7d;
+echo return [
+echo "# Executive Overview",
+echo `Fleet size: \${bundle.kpi.fleet.vessels}. Mapped signals: \${bundle.kpi.fleet.signals_mapped}. Discovered signals: \${bundle.kpi.fleet.signals_discovered}.`,
+echo stale,
+echo `Data quality events (7d): \${dq}.`,
+echo "",
+echo "## Condition Overview",
+echo `Recent anomalies (48h): \${bundle.anomalies.length}.`,
+echo "",
+echo "## Optimization & Scheduling",
+echo "- Prioritize connectivity checks for stale vessels; confirm EFMS/broker status.",
+echo "- Review DQ findings and tune thresholds for noisy or flatlined channels.",
+echo "",
+echo "## Diagnostics & Prescriptions",
+echo ...bundle.recommendations.map(r=>"- "+r),
+echo ].join("\\n");
+echo }
+echo
+echo try {
+echo if (provider==='openai'){ // OpenAI API (JSON mode friendly)
+echo const key = process.env.OPENAI_API_KEY||"";
+echo const model = process.env.LLM_MODEL || "gpt-4o-mini";
+echo const r = await fetch("https://api.openai.com/v1/chat/completions", {
+echo method: "POST",
+echo headers: { "Content-Type":"application/json", "Authorization": \`Bearer \${key}\` },
+echo body: JSON.stringify({ model, messages:[
+echo { role:"system", content: sys },
+echo { role:"user", content: "Bundle:"+user }
+echo ]})
+echo });
+echo const j:any = await r.json();
+echo const txt = j.choices?.[0]?.message?.content || "Summary unavailable.";
+echo return String(txt);
+echo }
+echo // Other providers could be added here
+echo } catch(e:any){ /* fall through */ }
+echo
+echo return "Overview unavailable (LLM not configured).";
+echo }
+echo
+echo // Cron-safe: compute daily snapshots without invoking LLM
+echo export function scheduleInsightSnapshots(cronExpr = process.env.INSIGHTS_CRON || "30 2 * * *"){ // 02:30 daily
+echo const cron = require("node-cron");
+echo cron.schedule(cronExpr, async ()=> {
+echo try{
+echo const b = await computeInsights("fleet");
+echo await persistSnapshot("fleet", b);
+echo console.log("[insights] daily snapshot stored.");
+echo } catch(e){ console.error("[insights] snapshot failed:", e); }
+echo });
+echo }
+)
+
+REM ----------------------------------------------------------
+REM 3) REST routes (v1)
+REM ----------------------------------------------------------
+> backend-node\src\index.insights.ts (
+echo import express from "express";
+echo import { computeInsights, persistSnapshot, getLatestSnapshot, llmOverview, scheduleInsightSnapshots } from "./insights.engine.js";
+echo
+echo export function mountInsights(v1: express.Router){
+echo // Compute and store a snapshot (fleet or vessel)
+echo v1.post("/api/insights/run", async (req,res)=>{
+echo const scope = (req.body?.scope||"fleet") as string;
+echo const b = await computeInsights(scope);
+echo const s = await persistSnapshot(scope, b);
+echo res.json({ ok:true, snapshot_id: s.id, at: s.at, scope });
+echo });
+echo
+echo // Latest snapshot
+echo v1.get("/api/insights/latest", async (req,res)=>{
+echo const scope = (req.query.scope as string) || "fleet";
+echo const s = await getLatestSnapshot(scope);
+echo if (!s) return res.json(null);
+echo res.json(s);
+echo });
+echo
+echo // On-demand LLM overview (only runs when called)
+echo v1.post("/api/insights/overview", async (req,res)=>{
+echo const scope = (req.body?.scope||"fleet") as string;
+echo let snap = await getLatestSnapshot(scope);
+echo if (!snap){ const b = await computeInsights(scope); const s = await persistSnapshot(scope, b); snap = await getLatestSnapshot(scope); }
+echo const bundle = { kpi: JSON.parse(JSON.stringify(snap.kpi||snap.kpi)), risks: snap.risks, recommendations: snap.recommendations, anomalies: snap.anomalies, compliance: snap.compliance } as any;
+echo const text = await llmOverview(bundle);
+echo res.json({ ok:true, scope, overview: text, at: snap.at });
+echo });
+echo
+echo // Enable daily KPI snapshots (no LLM). Loaded once on startup.
+echo scheduleInsightSnapshots();
+echo }
+)
+
+REM Wire routes into /v1
+%PS% ^
+"$f='backend-node/src/index.ts'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace '(app\\.use\\(\"/v1\", v1\\);)','import { mountInsights } from \"./index.insights.js\";\nmountInsights(v1);\n$1';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ----------------------------------------------------------
+REM 4) Frontend – Insights dashboard (pro card + overview)
+REM ----------------------------------------------------------
+if not exist "frontend\src" (
+echo [WARN] frontend/src not found; skipping UI (backend ready).
+) else (
+%PS% ^
+"$f='frontend/package.json'; $j=(Get-Content -Raw $f | ConvertFrom-Json);" ^
+"$j.dependencies.'marked' = $j.dependencies.'marked' ?? '^12.0.2';" ^
+"$j | ConvertTo-Json -Depth 10 | Set-Content -Encoding UTF8 $f;"
+
+> frontend\src\components\InsightsDashboard.tsx (
+echo import React, { useEffect, useMemo, useState } from "react";
+echo import { marked } from "marked";
+echo const BASE = (import.meta as any).env.VITE_API_URL || "http://localhost:8001";
+echo
+echo type KPI = { fleet:{ vessels:number; signals_mapped:number; signals_discovered:number; dq_7d:number; latest_gap_vessels:string[] }, per_vessel: Record<string,{last_ts:string|null; dq_7d:number; total_signals:number; stale:boolean}> };
+echo
+echo export default function InsightsDashboard(){
+echo const [snap,setSnap]=useState<any|null>(null);
+echo const [loading,setLoading]=useState(true);
+echo const [overview,setOverview]=useState<string>("");
+echo const [generating,setGenerating]=useState(false);
+echo
+echo async function load(){
+echo setLoading(true);
+echo const r = await fetch(\`\${BASE}/v1/api/insights/latest?scope=fleet\`).then(r=>r.json());
+echo setSnap(r); setLoading(false);
+echo }
+echo async function runNow(){
+echo await fetch(\`\${BASE}/v1/api/insights/run\`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ scope:'fleet' }) });
+echo load();
+echo }
+echo async function execOverview(){
+echo setGenerating(true);
+echo const r = await fetch(\`\${BASE}/v1/api/insights/overview\`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ scope:'fleet' }) }).then(r=>r.json());
+echo setOverview(r?.overview||""); setGenerating(false);
+echo }
+echo
+echo useEffect(()=>{ load(); const id=setInterval(load, 15000); return ()=>clearInterval(id); },[]);
+echo
+echo const k:KPI|undefined = snap?.kpi;
+echo const perRows = useMemo(()=> Object.entries(k?.per_vessel||{}).map(([v,kv])=>({vessel:v,...kv})), [k]);
+echo
+echo return (
+echo <div className="card">
+echo <h2>Insights</h2>
+echo {loading && <div>Loading…</div>}
+echo {!loading && !snap && <div>No snapshot yet. <button onClick={runNow}>Run now</button></div>}
+echo {snap && (
+echo <>
+echo <div style={{display:'grid',gridTemplateColumns:'repeat(5, minmax(0,1fr))',gap:12,margin:'8px 0'}}>
+echo <div style={{background:'#f1f5f9',padding:10,borderRadius:8}}><div style={{fontSize:12,color:'#64748b'}}>Vessels</div><div style={{fontSize:24}}>{k?.fleet.vessels??0}</div></div>
+echo <div style={{background:'#f1f5f9',padding:10,borderRadius:8}}><div style={{fontSize:12,color:'#64748b'}}>Signals (Mapped)</div><div style={{fontSize:24}}>{k?.fleet.signals_mapped??0}</div></div>
+echo <div style={{background:'#f1f5f9',padding:10,borderRadius:8}}><div style={{fontSize:12,color:'#64748b'}}>Signals (Discovered)</div><div style={{fontSize:24}}>{k?.fleet.signals_discovered??0}</div></div>
+echo <div style={{background:'#f1f5f9',padding:10,borderRadius:8}}><div style={{fontSize:12,color:'#64748b'}}>DQ (7d)</div><div style={{fontSize:24}}>{k?.fleet.dq_7d??0}</div></div>
+echo <div style={{background:'#f1f5f9',padding:10,borderRadius:8}}><div style={{fontSize:12,color:'#64748b'}}>Stale Vessels</div><div style={{fontSize:24}}>{k?.fleet.latest_gap_vessels?.length??0}</div></div>
+echo </div>
+echo
+echo <h3 style={{marginTop:8}}>Per Vessel</h3>
+echo <table style={{width:'100%',fontSize:12,borderCollapse:'collapse'}}>
+echo <thead><tr style={{background:'#f1f5f9'}}><th>Vessel</th><th>Last Update</th><th>Signals</th><th>DQ (7d)</th><th>Status</th></tr></thead>
+echo <tbody>
+echo {perRows.map(r=>(
+echo <tr key={r.vessel}>
+echo <td style={{padding:'4px'}}>{r.vessel}</td>
+echo <td>{r.last_ts? new Date(r.last_ts).toLocaleString():'—'}</td>
+echo <td>{r.total_signals}</td>
+echo <td>{r.dq_7d}</td>
+echo <td>{r.stale? '⚠️ Stale':'OK'}</td>
+echo </tr>
+echo ))}
+echo {perRows.length===0 && <tr><td colSpan={5} style={{padding:'6px',color:'#64748b'}}>No vessels.</td></tr>}
+echo </tbody>
+echo </table>
+echo
+echo <div style={{display:'flex',gap:8,alignItems:'center',marginTop:12}}>
+echo <button onClick={runNow}>Refresh KPIs</button>
+echo <button onClick={execOverview} disabled={generating} style={{background:'#6d28d9',color:'#fff',borderRadius:6,padding:'6px 10px'}}>Generate Executive Overview</button>
+echo {generating && <span style={{fontSize:12,color:'#64748b'}}>Generating…</span>}
+echo </div>
+echo
+echo {overview && (
+echo <div style={{marginTop:12}}>
+echo <h3>Executive Overview</h3>
+echo <div className="prose" dangerouslySetInnerHTML={{__html: marked(overview)}} />
+echo </div>
+echo )}
+echo </>
+echo )}
+echo </div>
+echo );
+echo }
+)
+
+REM Mount dashboard in App
+%PS% ^
+"$f='frontend/src/App.tsx'; if (Test-Path $f) { $t=Get-Content -Raw $f; if ($t -notmatch 'InsightsDashboard'){ $t='import InsightsDashboard from \"./components/InsightsDashboard\";\n'+$t; $t=$t -replace '(</div>\\s*)$',' <InsightsDashboard />\n$1'; Set-Content -Encoding UTF8 $f $t; Write-Host '[OK] App.tsx patched with InsightsDashboard'; } else { Write-Host '[INFO] InsightsDashboard already referenced'; } } else { Write-Host '[WARN] frontend/src/App.tsx missing; skipped UI mount.' }"
+)
+
+echo.
+echo ==========================================================
+echo ✅ Insights Engine patch applied.
+echo ----------------------------------------------------------
+echo What you got:
+echo - insight tables (PG/SQLite) + migrations
+echo - computeInsights() + persistSnapshot() + getLatestSnapshot()
+echo - /v1/api/insights/run (compute now) 
+echo - /v1/api/insights/latest (fetch latest)
+echo - /v1/api/insights/overview (LLM on-demand only)
+echo - daily KPI snapshots via cron (no LLM)
+echo - Frontend Insights dashboard + Executive Overview button
+echo ----------------------------------------------------------
+echo Next:
+echo cd backend-node && npm install && npm run migrate && npm run dev
+echo cd ../frontend && npm install && npm run dev
+echo
+echo Optional LLM (only when pressing the button):
+echo set LLM_PROVIDER=openai
+echo set OPENAI_API_KEY=sk-...
+echo set LLM_MODEL=gpt-4o-mini
+echo # Then click 'Generate Executive Overview' in UI
+echo ==========================================================
+endlocal

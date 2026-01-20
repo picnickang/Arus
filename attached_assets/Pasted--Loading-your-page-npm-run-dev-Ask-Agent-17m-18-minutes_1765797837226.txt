@@ -1,0 +1,222 @@
+
+
+Loading your page…
+
+
+
+
+npm run dev
+
+Ask Agent…
+17m
+ • 
+18 minutes ago
+
+Integrations
+Search integrations
+
+Request an integration
+Replit managed
+These are built-in integrations that work automatically. Create an app and your agent can start using these right away.
+Name
+Type
+Replit Database
+PostgreSQL	
+
+Open
+Replit App Storage
+Object Storage	
+
+Open
+Replit Auth
+Authentication	
+
+Open
+Replit Domains
+Domains	
+
+Open
+Connectors
+These are first-party integrations Replit supports. Sign in once and build with them across your apps.
+Name
+Description
+Connection Status
+GitHub
+GitHub
+Access GitHub repositories, users, and organizations from your Replit apps	
+Active
+
+Manage
+MCP Servers for Replit Agent
+Beta
+Learn more
+
+Add MCP server
+Provide external context and tools to Replit Agent by connecting to MCP servers.
+Name
+Description
+Connection Status
+
+Figma MCP
+Figma MCP
+Allow Replit Agent to view and rapidly build your designs from Figma	
+
+Sign in
+Help us expand MCP support
+Tell us which MCP servers would be most useful for your workflows. Your feedback will help shape what we build next.
+
+Share feedback
+Git Providers
+Connect your git provider to push, pull, and sync code via the Git pane. Not accessible to Replit Agent.
+Name
+Description
+Connection Status
+
+GitHub
+GitHub
+Sync code to GitHub repositories from your Replit apps	
+Active
+
+Manage
+
+Bitbucket
+Bitbucket
+Sync code to Bitbucket repositories from your Replit apps	
+
+Sign in
+
+GitLab
+GitLab
+Sync code to GitLab projects from your Replit apps	
+
+Sign in
+
+~/workspace
+: 
+bash
+
+
+
+Enable "Accessible Terminal" in Workspace Settings to use a screen reader with the shell.
+Developer Tools
+Access debugging tools, monitor resources, and manage your development environment
+Networking
+Configure web server ports for your App
+Resources
+Monitor CPU, memory usage and upgrade resources
+Dependencies
+Imports
+Import and manage language-specific packages and dependencies
+System
+Manage system-level packages and dependencies using Nix package manager
+SSH
+Connect
+Establish SSH connections to remote servers and manage active sessions
+Keys
+Manage SSH public and private keys for secure authentication
+Secrets
+
+More
+
+Link Account Secrets
+
+New Secret
+Secrets are accessible to anyone who has access to this App. To restrict secret access, you must update App invite permissions. For more information, visit our documentation.
+
+
+SESSION_SECRET
+
+••••••••
+
+
+
+DATABASE_URL
+
+••••••••
+
+
+
+PGDATABASE
+
+••••••••
+
+
+
+PGHOST
+
+••••••••
+
+
+
+PGPORT
+
+••••••••
+
+
+
+PGUSER
+
+••••••••
+
+
+
+PGPASSWORD
+
+••••••••
+
+
+
+OPENAI_API_KEY
+
+••••••••
+
+
+
+VITE_ADMIN_TOKEN
+
+••••••••
+
+
+
+ADMIN_TOKEN
+
+••••••••
+
+
+
+SONAR_ORG
+
+••••••••
+
+
+
+GIT_URL
+
+••••••••
+
+
+
+SONAR_PROJECT_KEY
+
+••••••••
+
+
+
+SONAR_TOKEN
+
+••••••••
+
+
+Configurations
+
+More
+
+New configuration
+Configurations are similar to secrets, but should only be used for non-sensitive information. They're useful for having a variable that's different between your published app and when testing on Replit.
+
+ENABLE_FAKE_TELEMETRY
+
+1
+
+Unsupported state: your index is currently locked. This can happen if multiple git processes are running operations at the same time.
+Please resolve the issue by ending those git operations. If you are sure you do not have git operations running, you can delete your .git/index.lock file.

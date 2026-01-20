@@ -1,0 +1,50 @@
+homeimac@Homes-iMac ARUS-bundle % tail -50 ~/Library/Logs/ARUS/app.log
+  • Foreign keys: ON
+✓ Local SQLite: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+→ Initializing SQLite database tables...
+[SQLite Init] Initializing vessel mode database...
+[SQLite Init] Database initialized successfully with 131 tables (100% feature parity) at: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+✓ SQLite tables initialized
+==============================
+
+2025-10-23 03:49:54.919471: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 FMA
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+
+=== Database Configuration ===
+Deployment Mode: VESSEL (Offline-First)
+⚠ Turso Sync: Disabled (credentials not configured)
+  Running in offline-only mode without cloud sync
+  Set TURSO_SYNC_URL and TURSO_AUTH_TOKEN to enable sync
+→ Applying SQLite performance optimizations...
+✓ SQLite performance optimizations applied
+  • WAL mode enabled (better concurrency)
+  • Cache: 64MB
+  • Sync: NORMAL (safe with WAL)
+  • Foreign keys: ON
+✓ Local SQLite: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+→ Initializing SQLite database tables...
+[SQLite Init] Initializing vessel mode database...
+[SQLite Init] Database initialized successfully with 131 tables (100% feature parity) at: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+✓ SQLite tables initialized
+==============================
+
+2025-10-23 03:50:05.797917: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 FMA
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+
+=== Database Configuration ===
+Deployment Mode: VESSEL (Offline-First)
+⚠ Turso Sync: Disabled (credentials not configured)
+  Running in offline-only mode without cloud sync
+  Set TURSO_SYNC_URL and TURSO_AUTH_TOKEN to enable sync
+→ Applying SQLite performance optimizations...
+✓ SQLite performance optimizations applied
+  • WAL mode enabled (better concurrency)
+  • Cache: 64MB
+  • Sync: NORMAL (safe with WAL)
+  • Foreign keys: ON
+✓ Local SQLite: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+→ Initializing SQLite database tables...
+[SQLite Init] Initializing vessel mode database...
+[SQLite Init] Database initialized successfully with 131 tables (100% feature parity) at: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+✓ SQLite tables initialized
+==============================

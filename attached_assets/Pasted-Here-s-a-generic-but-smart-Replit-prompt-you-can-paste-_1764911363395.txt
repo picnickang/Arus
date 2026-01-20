@@ -1,0 +1,108 @@
+Here’s a “generic but smart” Replit prompt you can paste in now:
+
+⸻
+
+PROMPT FOR REPLIT: Post-Refactor Health Check (Data Connectivity + Functionality)
+
+I’ve just refactored this app to be much more modular. Files and features have been split into smaller modules and folders, and now the data feels “isolated” (some screens don’t seem to see or share state / data correctly).
+
+I want you to audit and repair the whole project so that everything still works end-to-end after modularization.
+
+Please follow these steps and explain what you’re doing as you go:
+
+⸻
+
+1. Detect the stack and architecture
+	1.	Inspect the repo and identify:
+	•	Frontend framework (React/Next/Electron UI etc.)
+	•	Backend framework (Express/Fastify/Next API, etc.)
+	•	Data layer (ORM or query builder, PostgreSQL + SQLite, etc.)
+	•	Any global state / context / React Query / Redux setup.
+	2.	Briefly summarize:
+	•	Where the single source of truth for data is (DB + API),
+	•	Which modules/pages should be sharing that data.
+
+Do not change anything yet; just output a short architecture summary and what you think the key shared domains are (e.g. organizations, vessels, equipment, work orders, inventory, logbooks, crew, etc.).
+
+⸻
+
+2. Check for “isolated data” regressions
+
+Scan the codebase for issues that could appear after modularization:
+	•	Multiple API clients or base URLs defined in different places.
+	•	Multiple React Query QueryClient instances or mismatched queryKeys for the same entity.
+	•	Duplicate or diverging TypeScript types/schemas for the same concept (e.g. Vessel, WorkOrder, InventoryItem) defined in different modules.
+	•	Context providers (Org, Auth, Settings, Telemetry, etc.) that are now mounted in a way that some pages are outside of them.
+	•	Components that now use local state instead of shared hooks/contexts and therefore don’t persist state across pages.
+	•	API routes or services whose paths changed but the frontend still calls the old paths.
+
+For each problem you find, list:
+	•	The files involved,
+	•	Why it causes “isolated” data,
+	•	The safest fix.
+
+⸻
+
+3. Verify database and API consistency
+	1.	Check that all modules still talk to the same database(s) and schemas:
+	•	No duplicate DB clients with different connection strings.
+	•	No shadow or legacy tables that newer modules write to while older modules read from something else.
+	•	Migrations are consistent and up to date.
+	2.	Verify that:
+	•	Core entities (e.g. organizations, vessels, equipment, work orders, inventory, crew, logbooks, telemetry) have one canonical schema each.
+	•	Backend API routes for those entities are reused by all pages, not re-implemented per module.
+	3.	If there is any duplication, propose a single shared module (e.g. /shared/schema, /shared/types, /lib/api) and refactor calls to use it. Apply the minimal changes necessary to restore consistency without breaking working features.
+
+⸻
+
+4. End-to-end functional smoke tests
+
+Create or extend automated tests (unit + integration + minimal E2E where possible) that simulate realistic flows, for example:
+	•	Create or select an organization → create a vessel → add equipment → create a work order → link parts from inventory → save and reopen the same objects from another page.
+	•	Create a logbook entry and confirm it appears in any dashboard that should reflect it.
+	•	Any other main flows you see based on the existing routes and pages.
+
+These tests should specifically check that:
+	•	Data created in one module is visible in all other relevant modules.
+	•	IDs, foreign keys, and relationships are wired correctly.
+	•	No duplicate records are created for the same logical object.
+
+Run the tests and fix any failures you encounter.
+
+⸻
+
+5. Runtime checks & safeguards
+
+Implement or confirm:
+	•	A single top-level provider tree for:
+	•	Auth / user
+	•	Organization
+	•	Global settings
+	•	QueryClient or equivalent
+	•	Clear separation between:
+	•	View components (presentational)
+	•	Data hooks/services (fetching + mutations)
+	•	Graceful error handling:
+	•	If API calls fail or data is missing, show an error/empty state instead of crashing.
+	•	TypeScript/typing sanity:
+	•	Run type-checking and fix any mismatched types that may have appeared after splitting modules.
+
+⸻
+
+6. Final report
+
+When you are done:
+	1.	Confirm that you can:
+	•	Start the backend / API,
+	•	Start the frontend / Electron shell if present,
+	•	Navigate through all major modules without runtime errors.
+	2.	Give me a short report:
+	•	What was broken due to modularization and how you fixed it.
+	•	Which modules now share common schemas / hooks / contexts.
+	•	Any remaining TODOs that are not critical but would further improve cohesion and reduce isolation.
+
+Please make all changes directly in the repo, keeping the design modular, and avoid any large rewrites unless absolutely necessary to restore shared, working data flows.
+
+⸻
+
+Use this whole prompt as your instruction set.

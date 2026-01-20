@@ -1,0 +1,252 @@
+You are reviewing an embedded maritime PdM / fleet-ops app (ARUS).
+
+Two critical files have recently been heavily simplified:
+
+storage.ts is now ~120 lines
+
+routes.ts is now ~149 lines
+
+
+
+I’m worried that essential behavior was lost (telemetry, logbooks, alerts, crew, etc.).
+
+Before changing anything, perform a deep architecture audit of how storage and routing now work.
+
+
+
+1. Locate and inspect the key files
+
+Open storage.ts and routes.ts.
+
+Also find any other router / storage related files that might now hold logic, for example:
+
+server/index.ts
+
+server/routes/*
+
+server/api/*
+
+lib/db/*, db-config.ts, schema*
+
+any *Router.ts / *Routes.ts files
+
+
+
+Briefly summarise what each of these files does.
+
+2. Analyse 
+
+storage.ts
+
+ (new 120-line version)
+
+
+
+For storage.ts:
+
+Purpose & scope
+
+What exactly does this module handle now?
+
+Is it just UX/settings, or does it persist operational data (telemetry, logs, work orders, etc.)?
+
+Backing store
+
+Does it use localStorage, IndexedDB, SQLite, Postgres, or something else?
+
+Is there still any dual-storage or offline/online abstraction?
+
+Capabilities
+
+Does it support:
+
+batching / debouncing writes?
+
+offline queueing?
+
+conflict resolution or versioning?
+
+migrations between schema versions?
+
+If any of these used to exist elsewhere, note where they went.
+
+Risk & regression check
+
+Identify any ways the new implementation could cause:
+
+data loss
+
+race conditions
+
+unbounded memory / disk growth
+
+inconsistent state between tabs/devices
+
+Note any TODOs / commented-out code indicating removed features.
+
+Consumers
+
+Search the codebase for imports of storage.ts.
+
+List which major features rely on it now (e.g. settings only, or also telemetry/logs/alerts).
+
+For each consumer, check whether expectations still match the new, reduced API.
+
+
+
+Report your findings under:
+
+[STORAGE AUDIT]
+Current behavior:
+Missing / regressed behavior:
+High-risk patterns:
+Major consumers and their expectations:
+Required fixes (before adding more telemetry sources):
+3. Analyse 
+
+routes.ts
+
+ (new 149-line version)
+
+
+
+For routes.ts:
+
+Route registration
+
+List which routers / endpoints it mounts and under which prefixes.
+
+Example: /api/logbook/engine, /api/logbook/deck, /api/equipment, /api/alerts, /api/crew, /api/workorders, /api/telemetry, /api/sync, /api/settings, etc.
+
+Compare this with any older comments / TODOs to see what might be missing.
+
+Middleware
+
+Check if tenant/org isolation, auth, rate-limiting, and error handling middleware are still applied:
+
+headers like x-org-id
+
+requireOrgId, requireAuth, etc.
+
+Note any routes that bypass these protections.
+
+Feature coverage
+
+For each major domain, verify whether API routes exist and are wired:
+
+Telemetry ingestion & query
+
+Engine logbook (daily+hourly, events, autofill, notify-unsigned, export)
+
+Deck logbook
+
+Fuel / emissions
+
+Crew management, crew scheduler, hours of rest
+
+Work orders & maintenance plans
+
+Inventory / parts
+
+Alerts and email notification rules
+
+Sync / conflicts / background jobs
+
+Settings (organisation / vessel / integrations)
+
+For any domain whose routes are missing from routes.ts, try to find if they’ve been moved to a new router file. If you can’t find them, flag as “potentially broken”.
+
+Frontend → backend alignment
+
+Search for apiRequest(, useQuery, and useMutation in the frontend.
+
+Collect the list of API paths the frontend calls.
+
+Compare this list to the routes that routes.ts actually mounts.
+
+For any mismatch (frontend calls an endpoint that is not mounted), record it as a bug.
+
+Risk & regression check
+
+Identify:
+
+any endpoints that lost auth/tenant checks
+
+any duplicate or conflicting paths
+
+any features that look partially wired (e.g. logbook events without routes)
+
+Note any TODOs or commented-out blocks relevant to telemetry, logs, or alerts.
+
+
+
+Report your findings under:
+
+[ROUTES AUDIT]
+Mounted routers / endpoints:
+Missing or regressed endpoints:
+Frontend endpoints with no matching route:
+Security / tenancy concerns:
+Required fixes:
+4. Cross-cutting architectural sanity check
+
+
+
+Using what you found in storage.ts and routes.ts:
+
+Data-flow sketch
+
+Briefly describe the current end-to-end flow for:
+
+telemetry → storage → logbooks → alerts
+
+crew data → scheduler → hours-of-rest checks → notifications
+
+Point out where the flow is now broken or incomplete.
+
+Multi-device / offline behavior
+
+Are there still clear pathways for:
+
+local offline use (SQLite/embedded)
+
+cloud sync (Postgres/libSQL/Turso/etc.)
+
+Or has the simplification effectively made this “single-device / best-effort only”?
+
+Blocking issues for production
+
+List the issues that must be fixed before this app can safely run:
+
+at full telemetry volume
+
+with multiple vessels
+
+on multiple devices (desktop + tablet)
+
+
+
+Report this section as:
+
+[ARCHITECTURE SUMMARY]
+End-to-end flows (current):
+Broken / incomplete flows:
+Offline / multi-device status:
+Blocking issues for production:
+5. Output format
+
+
+
+Do NOT modify any files yet.
+
+At the end, print a single consolidated report:
+
+[STORAGE AUDIT]
+
+[ROUTES AUDIT]
+
+[ARCHITECTURE SUMMARY]
+
+
+
+Each with bullet-point lists as described above.

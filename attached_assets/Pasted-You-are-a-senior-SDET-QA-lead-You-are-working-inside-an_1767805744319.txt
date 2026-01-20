@@ -1,0 +1,229 @@
+You are a senior SDET + QA lead. You are working inside an existing Node.js/TypeScript app (ARUS) with Predictive Maintenance (PdM) including telemetry ingestion, PdM alerts/risk queue, and PdM scheduling (Schedule tab + /api/pdm/schedule). Your task is to IMPLEMENT regression + advanced test coverage so we can prove the system keeps working “as designed” after refactors.
+
+CRITICAL: Do not replace existing test tooling. Discover what exists (Jest/Vitest, Playwright/Cypress, supertest) and extend it. Keep tests deterministic, fast, and CI-friendly.
+
+====================================================
+0) WHAT TO BUILD (TEST TIERS)
+====================================================
+
+Tier 0 (runs every PR; must be fast):
+A) API contract regression (schema snapshots)
+B) Golden scenario integration tests (seeded fixtures)
+C) UI smoke (Risk Queue + Schedule)
+D) CSV export regression
+
+Tier 1 (nightly or optional; still automated):
+E) Property-based tests for scheduling math (fast-check)
+F) Timezone + clock skew tests
+G) Targeted performance tests (k6 or artillery; minimal)
+H) Resilience tests (decoder down -> raw-first persists -> catch-up)
+I) Security/tenancy scoping tests (org isolation)
+
+====================================================
+1) DISCOVERY (MANDATORY FIRST STEP)
+====================================================
+A) Identify current tooling:
+- package.json scripts
+- jest/vitest config
+- existing tests directory structure
+- existing e2e tooling (playwright/cypress)
+- supertest availability
+
+B) Identify app bootstrapping for tests:
+- how to start API server in test mode
+- worker/decoder start (if separate)
+- database type (Postgres/Timescale/SQLite)
+- migrations or startup index provisioning
+
+C) Identify endpoints used:
+- telemetry ingest endpoint(s)
+- /api/pdm/risk-queue (or equivalent)
+- /api/pdm/dashboard (optional)
+- /api/pdm/schedule
+- /api/pdm/alerts/:id
+- signals endpoint for charts (optional)
+- CSV export mechanism (frontend)
+
+Output:
+- A “test map” table: feature -> endpoint/table -> test file
+
+====================================================
+2) TEST HARNESS (REPEATABLE DB + SEEDS)
+====================================================
+A) Provide a dedicated test DB
+- If Postgres/Timescale: create docker-compose.test.yml
+- Add scripts:
+  - scripts/test/waitForDb.ts
+  - scripts/test/bootstrap.ts (runs migrations/index provisioning)
+  - scripts/test/seedBase.ts (org/vessel/assets)
+  - scripts/test/seedPdMScenarios.ts (directly seeds pdm_alerts for deterministic schedule tests)
+  - scripts/test/seedTelemetryCases.ts (good/bad payloads; optional)
+- Freeze time in tests to a fixed “today” date.
+
+B) Add package scripts:
+- test:pdm:tier0
+- test:pdm:tier1
+- test:pdm (runs tier0 by default; tier1 optional)
+- test:db:up / test:db:down / test:db:reset
+
+====================================================
+3) TIER 0 TESTS (MUST IMPLEMENT)
+====================================================
+
+---------------------------
+3.1 API CONTRACT REGRESSION (Snapshot tests)
+---------------------------
+For these endpoints (or repo equivalents):
+- GET /api/pdm/risk-queue
+- GET /api/pdm/schedule
+- GET /api/pdm/alerts/:id (pick seeded alert)
+- (optional) GET /api/pdm/dashboard
+
+Implementation:
+- Use runtime validation (zod) OR JSON schema snapshots.
+- Store “golden” response shape snapshots (not full dynamic values).
+- Normalize volatile fields before snapshot (timestamps, ids) by masking.
+
+Pass criteria:
+- Response contains required fields and types.
+- No breaking contract changes without explicit updates.
+
+---------------------------
+3.2 GOLDEN SCENARIO INTEGRATION TESTS (Scheduling)
+---------------------------
+Seed 3 canonical PdM alert cases (deterministic):
+
+Case A: “Schedulable High Risk”
+- severity=high
+- rul_p10=6, rul_p50=8, rul_p90=10
+- duration=2h
+- vessel=V1
+Expected:
+- scheduled within week
+- appears in schedule grid
+
+Case B: “Blocked by Lead Time”
+- severity=critical
+- rul_p10=2, rul_p50=3, rul_p90=4
+- prep_days=3 (from config or override in test env)
+Expected:
+- blocked/unassigned with block_reason="lead_time" (or equivalent)
+
+Case C: “Unassigned by Capacity”
+- two critical tasks on same vessel/day
+- capacity per vessel/day = 2h
+- each duration=2h
+Expected:
+- one scheduled, one unassigned block_reason="capacity"
+
+Test:
+- GET /api/pdm/schedule?from&to&vesselId=V1
+Assert:
+- summary.scheduled_this_week_count matches
+- summary.unassigned_high_risk_count matches
+- grid has correct tasks on correct dates
+- unassigned includes correct block_reason
+
+---------------------------
+3.3 DATA INTEGRITY TESTS (DB invariants)
+---------------------------
+After seeding and schedule generation:
+- Every TaskDTO.task_id maps to pdm_alerts.id
+- Every alert has valid vessel_id and asset_id
+- No duplicate task placements
+- Sum(duration_hours) per vessel/day <= capacity
+
+---------------------------
+3.4 UI SMOKE TESTS (E2E) (only if tooling exists)
+---------------------------
+If Playwright/Cypress exists (or is easy to add minimally):
+- Navigate to PdM Risk Queue tab
+  - verify at least one row renders (seeded)
+- Navigate to PdM Schedule tab
+  - KPI tiles show non-zero counts for seeded scenarios
+  - grid shows at least one task chip
+  - click/tap chip opens detail drawer
+  - detail shows: RUL range, severity, failure mode, latest safe finish
+- Run one test in mobile viewport.
+
+If e2e tooling does NOT exist:
+- Implement “UI smoke” as a lightweight rendering test if framework supports it,
+  otherwise skip and document.
+
+---------------------------
+3.5 CSV EXPORT REGRESSION
+---------------------------
+If export is server-generated:
+- call export endpoint and validate CSV headers + expected rows.
+
+If export is client-generated:
+- e2e test clicks Export CSV, downloads file, validates:
+  - headers include: vessel, asset, failure_mode, severity, rul_p10/p50/p90,
+    earliest/preferred/latest, scheduled_start/end, status, block_reason
+  - includes both scheduled + unassigned tasks for seeded scenarios.
+
+====================================================
+4) TIER 1 TESTS (RECOMMENDED ADDITIONS)
+====================================================
+
+---------------------------
+4.1 PROPERTY-BASED SCHEDULING MATH (fast-check)
+---------------------------
+Add fast-check tests for invariants:
+- If not blocked: earliest_start <= preferred <= latest_safe_finish
+- Increasing prep_days never decreases earliest_start
+- Lower confidence or stale telemetry never decreases buffer_days
+- Capacity constraints never violated by placement output
+
+Implement as pure unit tests against scheduling functions.
+
+---------------------------
+4.2 TIMEZONE + CLOCK SKEW
+---------------------------
+Seed alerts near UTC midnight and local midnight.
+Assert schedule date placement remains correct and consistent with UI date labels.
+Verify last_seen freshness classification with known timestamps.
+
+---------------------------
+4.3 TARGETED PERFORMANCE (minimal k6/artillery)
+---------------------------
+Add a small script:
+- Hit /api/pdm/schedule with 100 vessels / 500 tasks seeded
+- Assert p95 < agreed threshold (e.g., 300–500ms locally, configurable)
+Keep it optional (tier1).
+
+---------------------------
+4.4 RESILIENCE / RECOVERY
+---------------------------
+If decode worker exists:
+- stop worker, ingest telemetry -> raw persists
+- restart worker -> decoded appears
+(If not applicable, implement a simulated failure on decode step.)
+
+---------------------------
+4.5 SECURITY / TENANCY
+---------------------------
+Seed 2 orgs.
+Assert org A cannot fetch org B schedule/risk queue/alerts.
+Assert RBAC if implemented.
+
+====================================================
+5) PACKAGE SCRIPTS + DOCS
+====================================================
+Add/Update:
+- TESTING_PDM.md:
+  - how to run tier0 and tier1
+  - how to start test DB
+  - how seeding works
+  - how to update snapshots safely
+- Ensure one command runs tier0:
+  npm run test:pdm
+
+====================================================
+START NOW
+====================================================
+1) Do discovery and summarize existing frameworks/scripts.
+2) Implement the test DB harness and seed scripts.
+3) Implement Tier 0 tests first (contracts + golden scenarios + integrity + CSV).
+4) Then implement Tier 1 (fast-check + timezone + perf + resilience + security) as optional.
+5) Make sure tests pass locally with a single command.

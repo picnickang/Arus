@@ -1,0 +1,32 @@
+{
+  "config": {
+    "sequenceLength": 7,
+    "featureCount": 1,
+    "lstmUnits": 32,
+    "dropoutRate": 0.2,
+    "learningRate": 0.001,
+    "epochs": 20,
+    "batchSize": 64,
+    "useEarlyStopping": true,
+    "earlyStoppingPatience": 5,
+    "verbose": true
+  },
+  "featureNames": [
+    "oil_quality"
+  ],
+  "normalizationParams": {
+    "mean": [
+      21.259956793395983
+    ],
+    "std": [
+      103.85668944711064
+    ]
+  },
+  "trainingMetrics": {
+    "loss": 0.1616382896900177,
+    "accuracy": 0.9987549781799316,
+    "precision": 0,
+    "recall": 0,
+    "f1Score": 0
+  }
+}

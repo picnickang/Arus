@@ -1,0 +1,15 @@
+
+Tasks:
+Contract Alignment (UI ↔ API): Build a Contract Matrix mapping every screen/action to its endpoint(s), method, req/resp DTOs, error shapes; flag mismatches (missing fields, types, naming drift, pagination/sort/filter gaps); propose fixes and one source of truth; generate typed client for the UI.
+Workflow Validation: For each critical workflow, output a compact state machine (states/events/guards/effects) and a bullet sequence diagram (UI → API → services → DB → events). Call out idempotency, retries/backoff, race conditions, offline/edge sync, and eventual consistency windows. Ensure all user messages are plain-language with timestamp, context, and “explain-why.”
+Architecture Soundness: Assess reliability, maintainability, security/compliance, performance (edge↔cloud), observability, cost, extensibility, and technician UX. Verify bounded contexts and consistent naming: vessel → system → component → sensor → event/alert; confirm RBAC (Tech/Ops/Admin), multi-tenant scoping, PII handling, audit trails.
+Testing & Telemetry: Propose contract tests (Pact or similar), API tests, and E2E UI tests (Playwright/Cypress) for each workflow; define correlation-ID propagation (UI x-corr-id → API → workers), metrics (alerts_emitted, ack_latency_ms, time_to_work_order_min), logs (PII-safe fields), traces, and SLOs (e.g., p95 alert publish < 2s, page TTI < 2.5s, API error rate < 0.5%). Add synthetic monitors for top workflows.
+Output EXACTLY in this format:
+A) Contract Matrix (UI ↔ API): markdown table with columns Screen/Action | Endpoint | Method | Req DTO | Resp DTO | Errors | Gaps/Fixes.
+B) Workflow State Machines: one block per workflow (states, events, transitions, failure/retry, idempotency key).
+C) Sequence Diagrams: bullet steps UI→API→Service→DB→Event→UI update.
+D) Soundness Scorecard (−2..+2 each): Reliability, Maintainability, Security/Compliance, Performance, Observability, Cost, Extensibility, Technician UX; include one-line evidence + required fix; total score and gate (≥+5 Go, +1..+4 Iterate, ≤0 No-Go).
+E) Test & Telemetry Plan: concrete test names and commands/placeholders to run.
+F) Final Decision: Go/Iterate/No-Go + top 3 fixes + owner & deadline.
+
+Keep it concise, actionable, and immediately runnable; prefer KISS, single-responsibility modules, YAGNI, consistent naming, idempotent writes, optimistic UI with server reconciliation, and “secure/observable by default.”

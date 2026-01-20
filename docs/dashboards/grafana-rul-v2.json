@@ -1,0 +1,474 @@
+{
+  "dashboard": {
+    "title": "ARUS RUL Engine v2.0 Performance",
+    "tags": ["arus", "rul", "predictive-maintenance", "v2.0"],
+    "timezone": "browser",
+    "schemaVersion": 39,
+    "version": 1,
+    "refresh": "1m",
+    "panels": [
+      {
+        "id": 1,
+        "type": "stat",
+        "title": "RUL Predictions (Last Hour)",
+        "targets": [
+          {
+            "expr": "sum(increase(rul_predictions_total[1h]))",
+            "legendFormat": "predictions",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 2,
+        "type": "stat",
+        "title": "Average Data Quality Score",
+        "targets": [
+          {
+            "expr": "sum(rate(rul_data_quality_score_sum[5m])) / sum(rate(rul_data_quality_score_count[5m]))",
+            "legendFormat": "quality",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+        "options": {
+          "graphMode": "none",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "red"},
+                {"value": 0.5, "color": "yellow"},
+                {"value": 0.8, "color": "green"}
+              ]
+            },
+            "min": 0,
+            "max": 1
+          }
+        }
+      },
+      {
+        "id": 3,
+        "type": "stat",
+        "title": "Repair Censoring Applied",
+        "targets": [
+          {
+            "expr": "sum(increase(rul_repair_censoring_total[24h]))",
+            "legendFormat": "censored",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 4,
+        "type": "stat",
+        "title": "Base Rate Cache Hit Rate",
+        "targets": [
+          {
+            "expr": "sum(rate(rul_base_rate_cache_hits_total[5m])) / (sum(rate(rul_base_rate_cache_hits_total[5m])) + sum(rate(rul_base_rate_cache_misses_total[5m])))",
+            "legendFormat": "hit_rate",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+        "options": {
+          "graphMode": "none",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "red"},
+                {"value": 0.5, "color": "yellow"},
+                {"value": 0.8, "color": "green"}
+              ]
+            },
+            "min": 0,
+            "max": 1
+          }
+        }
+      },
+      {
+        "id": 5,
+        "type": "graph",
+        "title": "RUL Prediction Latency (p95)",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(rul_prediction_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{equipment_type}}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+        "yaxes": [
+          {
+            "label": "Latency (seconds)",
+            "format": "s",
+            "logBase": 1,
+            "show": true
+          },
+          {
+            "show": false
+          }
+        ],
+        "xaxis": {
+          "show": true,
+          "mode": "time"
+        },
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "legend": {
+          "show": true,
+          "values": true,
+          "current": true,
+          "avg": true
+        }
+      },
+      {
+        "id": 6,
+        "type": "graph",
+        "title": "Batched Query Latency (p95)",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(rul_batched_query_duration_seconds_bucket[5m]))",
+            "legendFormat": "batch_query",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+        "yaxes": [
+          {
+            "label": "Latency (seconds)",
+            "format": "s",
+            "logBase": 1,
+            "show": true
+          },
+          {
+            "show": false
+          }
+        ],
+        "xaxis": {
+          "show": true,
+          "mode": "time"
+        },
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "legend": {
+          "show": true,
+          "values": true,
+          "current": true
+        }
+      },
+      {
+        "id": 7,
+        "type": "heatmap",
+        "title": "Data Quality Score Distribution",
+        "targets": [
+          {
+            "expr": "sum(rate(rul_data_quality_score_bucket[5m])) by (le)",
+            "legendFormat": "{{le}}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+        "color": {
+          "mode": "spectrum",
+          "cardColor": "#b4ff00",
+          "colorScale": "sqrt",
+          "exponent": 0.5,
+          "colorScheme": "interpolateGnYlRd"
+        },
+        "yAxis": {
+          "decimals": 1,
+          "format": "short"
+        },
+        "xAxis": {
+          "show": true
+        },
+        "dataFormat": "tsbuckets"
+      },
+      {
+        "id": 8,
+        "type": "heatmap",
+        "title": "Mode Multiplier Distribution",
+        "targets": [
+          {
+            "expr": "sum(rate(rul_mode_multiplier_bucket[5m])) by (le, operating_mode)",
+            "legendFormat": "{{operating_mode}}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+        "color": {
+          "mode": "spectrum",
+          "cardColor": "#b4ff00",
+          "colorScale": "sqrt",
+          "exponent": 0.5,
+          "colorScheme": "interpolateSpectral"
+        },
+        "yAxis": {
+          "decimals": 1,
+          "format": "short"
+        },
+        "xAxis": {
+          "show": true
+        },
+        "dataFormat": "tsbuckets"
+      },
+      {
+        "id": 9,
+        "type": "graph",
+        "title": "Calibration Delta by Equipment Type",
+        "targets": [
+          {
+            "expr": "sum(rate(rul_calibration_delta_sum[5m])) by (equipment_type) / sum(rate(rul_calibration_delta_count[5m])) by (equipment_type)",
+            "legendFormat": "{{equipment_type}}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+        "yaxes": [
+          {
+            "label": "Delta",
+            "format": "short",
+            "logBase": 1,
+            "show": true
+          },
+          {
+            "show": false
+          }
+        ],
+        "xaxis": {
+          "show": true,
+          "mode": "time"
+        },
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "nullPointMode": "null",
+        "legend": {
+          "show": true,
+          "values": true,
+          "current": true,
+          "avg": true
+        }
+      },
+      {
+        "id": 10,
+        "type": "graph",
+        "title": "Confidence Score Distribution",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.5, rate(rul_confidence_score_bucket[5m]))",
+            "legendFormat": "p50",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(rul_confidence_score_bucket[5m]))",
+            "legendFormat": "p95",
+            "refId": "B"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+        "yaxes": [
+          {
+            "label": "Confidence",
+            "format": "percentunit",
+            "logBase": 1,
+            "show": true,
+            "min": 0,
+            "max": 1
+          },
+          {
+            "show": false
+          }
+        ],
+        "xaxis": {
+          "show": true,
+          "mode": "time"
+        },
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "legend": {
+          "show": true,
+          "values": true,
+          "current": true,
+          "avg": true
+        }
+      },
+      {
+        "id": 11,
+        "type": "graph",
+        "title": "Remaining Useful Life (Days) by Risk Level",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.5, rate(rul_remaining_days_bucket{risk_level=\"critical\"}[5m]))",
+            "legendFormat": "Critical",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.5, rate(rul_remaining_days_bucket{risk_level=\"high\"}[5m]))",
+            "legendFormat": "High",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.5, rate(rul_remaining_days_bucket{risk_level=\"medium\"}[5m]))",
+            "legendFormat": "Medium",
+            "refId": "C"
+          },
+          {
+            "expr": "histogram_quantile(0.5, rate(rul_remaining_days_bucket{risk_level=\"low\"}[5m]))",
+            "legendFormat": "Low",
+            "refId": "D"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 28},
+        "yaxes": [
+          {
+            "label": "Days",
+            "format": "short",
+            "logBase": 1,
+            "show": true
+          },
+          {
+            "show": false
+          }
+        ],
+        "xaxis": {
+          "show": true,
+          "mode": "time"
+        },
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "seriesOverrides": [
+          {
+            "alias": "Critical",
+            "color": "#F2495C"
+          },
+          {
+            "alias": "High",
+            "color": "#FF9830"
+          },
+          {
+            "alias": "Medium",
+            "color": "#FADE2A"
+          },
+          {
+            "alias": "Low",
+            "color": "#73BF69"
+          }
+        ],
+        "legend": {
+          "show": true,
+          "values": true,
+          "current": true,
+          "avg": true
+        }
+      },
+      {
+        "id": 12,
+        "type": "table",
+        "title": "RUL Predictions by Operating Mode (Last Hour)",
+        "targets": [
+          {
+            "expr": "sum(increase(rul_predictions_total[1h])) by (operating_mode)",
+            "legendFormat": "{{operating_mode}}",
+            "refId": "A",
+            "instant": true
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 36},
+        "transform": "table",
+        "styles": [
+          {
+            "pattern": "operating_mode",
+            "type": "string",
+            "alias": "Operating Mode"
+          },
+          {
+            "pattern": "Value",
+            "type": "number",
+            "alias": "Predictions",
+            "decimals": 0,
+            "colorMode": "cell",
+            "colors": ["rgba(50, 172, 45, 0.97)", "rgba(237, 129, 40, 0.89)", "rgba(245, 54, 54, 0.9)"],
+            "thresholds": ["10", "100"]
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "type": "table",
+        "title": "Cache Performance by Equipment Type",
+        "targets": [
+          {
+            "expr": "sum(increase(rul_base_rate_cache_hits_total[1h])) by (equipment_type)",
+            "legendFormat": "{{equipment_type}}",
+            "refId": "A",
+            "instant": true
+          },
+          {
+            "expr": "sum(increase(rul_base_rate_cache_misses_total[1h])) by (equipment_type)",
+            "legendFormat": "{{equipment_type}}",
+            "refId": "B",
+            "instant": true
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 36},
+        "transform": "table",
+        "styles": [
+          {
+            "pattern": "equipment_type",
+            "type": "string",
+            "alias": "Equipment Type"
+          },
+          {
+            "pattern": "Value #A",
+            "type": "number",
+            "alias": "Cache Hits",
+            "decimals": 0
+          },
+          {
+            "pattern": "Value #B",
+            "type": "number",
+            "alias": "Cache Misses",
+            "decimals": 0
+          }
+        ]
+      }
+    ]
+  }
+}

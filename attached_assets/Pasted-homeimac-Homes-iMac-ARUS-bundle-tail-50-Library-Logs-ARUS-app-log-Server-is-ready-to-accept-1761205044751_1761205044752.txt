@@ -1,0 +1,87 @@
+homeimac@Homes-iMac ARUS-bundle % tail -50 ~/Library/Logs/ARUS/app.log
+
+   Server is ready to accept connections.
+
+
+=== ARUS Minimal Server v1.0 ===
+
+✅ ARUS Server running on http://localhost:31888
+   Health check: http://localhost:31888/api/health
+   Mode: VESSEL (Offline)
+
+   Server is ready to accept connections.
+
+Error: ENOENT: no such file or directory, stat '/Users/homeimac/Library/Application Support/ARUS/client/dist/index.html'
+Error: ENOENT: no such file or directory, stat '/Users/homeimac/Library/Application Support/ARUS/client/dist/index.html'
+Error: ENOENT: no such file or directory, stat '/Users/homeimac/Library/Application Support/ARUS/client/dist/index.html'
+Error: ENOENT: no such file or directory, stat '/Users/homeimac/Library/Application Support/ARUS/client/dist/index.html'
+Error: ENOENT: no such file or directory, stat '/Users/homeimac/Library/Application Support/ARUS/client/dist/index.html'
+Error: ENOENT: no such file or directory, stat '/Users/homeimac/Library/Application Support/ARUS/client/dist/index.html'
+Error: ENOENT: no such file or directory, stat '/Users/homeimac/Library/Application Support/ARUS/client/dist/index.html'
+
+=== ARUS Minimal Server v1.0 ===
+
+✅ ARUS Server running on http://localhost:31888
+   Health check: http://localhost:31888/api/health
+   Mode: VESSEL (Offline)
+
+   Server is ready to accept connections.
+
+Error: ENOENT: no such file or directory, stat '/Users/homeimac/Library/Application Support/ARUS/client/dist/index.html'
+Error: ENOENT: no such file or directory, stat '/Users/homeimac/Library/Application Support/ARUS/client/dist/index.html'
+Error: ENOENT: no such file or directory, stat '/Users/homeimac/Library/Application Support/ARUS/client/dist/index.html'
+Error: ENOENT: no such file or directory, stat '/Users/homeimac/Library/Application Support/ARUS/client/dist/index.html'
+Error: ENOENT: no such file or directory, stat '/Users/homeimac/Library/Application Support/ARUS/client/dist/index.html'
+Error: ENOENT: no such file or directory, stat '/Users/homeimac/Library/Application Support/ARUS/client/dist/index.html'
+Error: ENOENT: no such file or directory, stat '/Users/homeimac/Library/Application Support/ARUS/client/dist/index.html'
+
+=== ARUS Minimal Server v1.0 ===
+
+✅ ARUS Server running on http://localhost:31888
+   Health check: http://localhost:31888/api/health
+   Mode: VESSEL (Offline)
+
+   Server is ready to accept connections.
+
+Error: ENOENT: no such file or directory, stat '/Users/homeimac/Library/Application Support/ARUS/client/dist/index.html'
+Error: ENOENT: no such file or directory, stat '/Users/homeimac/Library/Application Support/ARUS/client/dist/index.html'
+Error: ENOENT: no such file or directory, stat '/Users/homeimac/Library/Application Support/ARUS/client/dist/index.html'
+Error: ENOENT: no such file or directory, stat '/Users/homeimac/Library/Application Support/ARUS/client/dist/index.html'
+Error: ENOENT: no such file or directory, stat '/Users/homeimac/Library/Application Support/ARUS/client/dist/index.html'
+Error: ENOENT: no such file or directory, stat '/Users/homeimac/Library/Application Support/ARUS/client/dist/index.html'
+homeimac@Homes-iMac ARUS-bundle % ps aux | grep -i arus
+
+homeimac         19552   0.0  0.0 34122828    836 s001  S+    3:36PM   0:00.00 grep -i arus
+homeimac@Homes-iMac ARUS-bundle % cat ~/Library/Application\ Support/ARUS/arus-start.sh
+#!/bin/bash
+# ARUS Application Launcher
+
+# Change to application directory
+cd "$HOME/Library/Application Support/ARUS" || exit 1
+
+# Load environment variables (handle paths with spaces correctly)
+if [ -f ".env" ]; then
+    set -a  # Automatically export all variables
+    source .env
+    set +a
+fi
+
+# Ensure defaults
+export LOCAL_MODE=true
+export NODE_ENV=production
+export PORT=${PORT:-31888}
+export HOST=${HOST:-127.0.0.1}
+
+# Set log file
+LOG_FILE="$HOME/Library/Logs/ARUS/app.log"
+
+# Start application
+echo "Starting ARUS..."
+echo "Access at: http://localhost:${PORT}"
+echo "Logs: $LOG_FILE"
+echo ""
+
+exec node dist/index.js >> "$LOG_FILE" 2>&1
+homeimac@Homes-iMac ARUS-bundle % ls -la ~/Library/Application\ Support/ARUS/client/index.html
+-rw-r--r--  1 homeimac  staff  4027 Oct 23 15:35 /Users/homeimac/Library/Application Support/ARUS/client/index.html
+homeimac@Homes-iMac ARUS-bundle % 

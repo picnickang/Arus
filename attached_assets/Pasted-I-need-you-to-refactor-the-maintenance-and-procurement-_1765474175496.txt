@@ -1,0 +1,124 @@
+I need you to refactor the maintenance and procurement UI so that the tab structure and routing
+match this new design:
+
+TOP-LEVEL TABS / ROUTES:
+1) "Requests & Work" at route /requests-work
+- This tab COMBINES:
+- Service Requests
+- Work Orders
+- Parts Requests (or Parts Requests derived from WOs/SRs)
+
+2) "Service Orders" at route /service-orders
+
+3) "Purchase Orders" at route /purchase-orders
+
+Remove or redirect any old separate tabs for:
+- Service Requests (SR)
+- Parts Requests
+- Work Orders
+so that they are now accessible ONLY via the single "Requests & Work" tab.
+
+For the "Requests & Work" tab:
+- Create a page component: /components/maintenance/RequestsWorkPage
+- Inside this page, implement either:
+- A 3-column layout, or
+- A segmented control / toggle to switch between views
+for:
+- ServiceRequestsPanel
+- WorkOrdersPanel
+- PartsRequestsPanel
+
+Create these components:
+- /components/maintenance/ServiceRequestsPanel
+- /components/maintenance/WorkOrdersPanel
+- /components/maintenance/PartsRequestsPanel
+
+Each panel should:
+- List the relevant records
+- Provide per-row actions as buttons
+- Allow creation via header buttons when needed
+
+Required actions:
+
+SERVICE REQUESTS (in Requests & Work):
+- Button: "+ New Service Request"
+- Per SR row:
+- Open SR
+- Convert to Work Order
+- Convert to Service Order
+
+WORK ORDERS (in Requests & Work):
+- Button: "+ New Work Order"
+- Per WO row:
+- Open WO
+- Add Tasks
+- Add Parts Request
+- Create Purchase Order
+- Create Service Order (if applicable)
+
+PARTS REQUESTS (in Requests & Work):
+- Optional header button: "+ New Parts Request"
+- Per PR row:
+- Open PR
+- Convert to Purchase Order
+
+SERVICE ORDERS TAB (/service-orders):
+- Page component: /components/service/ServiceOrdersPage
+- Header button: "+ New Service Order"
+- Table:
+- Columns: SO ID, Vessel, Vendor/Internal, Status, Linked SR/WO
+- Actions:
+- Open
+- Add Tasks
+- Add Parts
+- Create Purchase Order
+- Mark Completed
+
+PURCHASE ORDERS TAB (/purchase-orders):
+- Page component: /components/procurement/PurchaseOrdersPage
+- Header button: "+ New Purchase Order"
+- Table:
+- Columns: PO ID, Vendor, Vessel, Total, Status, Linked PR/Parts, Linked WO/SO
+- Actions:
+- Open
+- Mark as Sent
+- Mark as Received
+- Close PO
+
+Make sure:
+- All existing API calls, React Query hooks, or data stores for SR, WO, parts/PR, SO, and PO are wired to these new components.
+- Any old routes that pointed to separate SR, WO, or Parts tabs now redirect to /requests-work.
+- The navigation reflects exactly three main items: "Requests & Work", "Service Orders", and "Purchase Orders".
+
+When you are done, output:
+- The list of new or updated files
+- Any deleted or redirected routes
+- Instructions for how to test:
+- Creating a new Service Request and converting it into a Work Order and Parts Request
+- Creating a Service Order
+- Creating a Purchase Order from a Parts Request or Service Order
+
+
+Important domain rule clarification:
+
+- "Service Orders" and "Purchase Orders" must clearly track different purposes.
+
+SERVICE ORDERS:
+- Represent the execution of maintenance or service work.
+- Focused on tasks, labour, scheduling, and operational status.
+- Fields: linked SR/WO, vessel, scope of work, task list, schedule, execution status.
+- Can reference linked Purchase Orders, but should not contain vendor commercial fields
+like unit price, total amount, or payment terms.
+
+PURCHASE ORDERS:
+- Represent commercial commitments to vendors.
+- Focused on items, prices, totals, delivery, and vendor details.
+- Fields: vendor, payment terms, line items with pricing, totals, delivery info, PO status.
+- Can reference Parts Requests, Work Orders, and Service Orders as origins,
+but should not contain task checklists or labour assignment fields.
+
+Ensure the UI and form layouts reflect this:
+- Service Orders tab looks and behaves like a work execution view.
+- Purchase Orders tab looks and behaves like a procurement/financial view.
+- The combined "Requests & Work" tab is for operational intake and planning only, with
+no vendor or financial fields.

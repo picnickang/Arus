@@ -1,0 +1,149 @@
+Pasted--echo-off-setlocal-ENABLEDELAYEDEXPANSION-REM--1758697332220_1758697332220.txt
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==========================================================
+REM ARUS UI Patch: Stacked Workload by Role / Vessel
+REM - Overwrites frontend/src/components/FairnessViz.tsx
+REM - Adds toggles: View = Totals | By Role | By Vessel
+REM - Stacked bars per crew, with category legend and CSV export
+REM - No new npm deps
+REM ==========================================================
+
+if not exist "frontend\src\components\FairnessViz.tsx" (
+echo [ERROR] frontend\src\components\FairnessViz.tsx not found.
+echo Make sure previous FairnessViz patch was applied.
+exit /b 1
+)
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+%PS% "$code=@'
+import React, { useMemo, useState } from \"react\";
+
+type Assign = { date:string; shift_id?:string; crew_id:string; start:string; end:string; role?:string; vessel_id?:string };
+type Crew = { id:string; name?:string; rank?:string };
+
+function isNight(startISO: string) {
+const hh = parseInt(startISO.slice(11,13), 10);
+return (hh >= 20) || (hh < 6);
+}
+
+// deterministic palette
+const PALETTE = [
+\"#1f77b4\", \"#ff7f0e\", \"#2ca02c\", \"#d62728\", \"#9467bd\", \"#8c564b\",
+\"#e377c2\", \"#7f7f7f\", \"#bcbd22\", \"#17becf\"
+];
+
+function toCSV(rows: any[]): string {
+if (!rows.length) return '';
+const headers = Object.keys(rows[0]);
+const esc = (s:any)=>(''+s).replace(/\"/g,'\"\"');
+const lines = [headers.join(',')].concat(rows.map(r => headers.map(h=>`\"${esc(r[h] ?? '')}\"`).join(',')));
+return lines.join('\\n');
+}
+
+type ViewMode = \"totals\" | \"role\" | \"vessel\";
+
+export default function FairnessViz({
+scheduled,
+crew
+}: {
+scheduled: Assign[];
+crew: Crew[];
+}) {
+const [mode, setMode] = useState<ViewMode>(\"totals\"); // totals | role | vessel
+const [showNight, setShowNight] = useState(true);
+
+const id2name = useMemo(() => {
+const m: Record<string,string> = {};
+crew.forEach(c => { m[c.id] = c.name || c.id; });
+return m;
+}, [crew]);
+
+// Base aggregates per crew
+const base = useMemo(() => {
+const totals: Record<string, number> = {};
+const nights: Record<string, number> = {};
+scheduled.forEach(a => {
+totals[a.crew_id] = (totals[a.crew_id]||0) + 1;
+if (isNight(a.start)) nights[a.crew_id] = (nights[a.crew_id]||0) + 1;
+});
+const ids = Array.from(new Set(crew.map(c=>c.id))).sort();
+const vals = ids.map(id => totals[id]||0);
+const maxVal = Math.max(1, ...vals);
+const rows = ids.map(id => ({
+crew_id: id,
+crew: id2name[id] || id,
+total_shifts: totals[id]||0,
+night_shifts: nights[id]||0
+}));
+const spread = (Math.max(...vals,0) - Math.min(...vals,0));
+return { totals, nights, rows, maxVal, spread, ids };
+}, [scheduled, crew, id2name]);
+
+// Stacked aggregates by category (role or vessel) per crew
+const stacked = useMemo(() => {
+function build(key: \"role\"|\"vessel_id\") {
+const perCrewCat: Record<string, Record<string, number>> = {};
+const catTotals: Record<string, number> = {};
+scheduled.forEach(a => {
+const cid = a.crew_id;
+const cat = (key === \"role\" ? (a.role || \"(none)\") : (a.vessel_id || \"(none)\" ));
+perCrewCat[cid] = perCrewCat[cid] || {};
+perCrewCat[cid][cat] = (perCrewCat[cid][cat] || 0) + 1;
+catTotals[cat] = (catTotals[cat] || 0) + 1;
+});
+// choose top categories (keep UI legible)
+const topCats = Object.keys(catTotals).sort((a,b)=> (catTotals[b]||0)-(catTotals[a]||0)).slice(0, 6);
+const cats = [...topCats, ...(Object.keys(catTotals).length>topCats.length ? [\"Other\"] : [])];
+const ids = base.ids;
+const stacks: Record<string, number[]> = {};
+let maxSum = 1;
+ids.forEach(id => {
+const pc = perCrewCat[id] || {};
+const row: number[] = cats.map(cat => {
+if (cat === \"Other\") {
+// sum of the rest
+return Object.keys(pc).filter(k=>!topCats.includes(k)).reduce((s,k)=>s+(pc[k]||0),0);
+}
+return pc[cat] || 0;
+});
+stacks[id] = row;
+const sum = row.reduce((s,n)=>s+n,0);
+if (sum > maxSum) maxSum = sum;
+});
+return { cats, stacks, maxSum };
+}
+return {
+role: build(\"role\"),
+vessel: build(\"vessel_id\"),
+};
+}, [scheduled, base.ids]);
+
+function downloadCSV(){
+if (mode === \"totals\") {
+const rows = base.rows.map(r => ({
+crew_id: r.crew_id,
+crew: r.crew,
+total_shifts: r.total_shifts,
+night_shifts: r.night_shifts
+}));
+const csv = toCSV(rows);
+const blob = new Blob([csv], {type:'text/csv'});
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a'); a.href = url; a.download = 'crew_totals.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+return;
+}
+const pack = (mode === \"role\" ? stacked.role : stacked.vessel);
+const rows = base.ids.map(id => {
+const row: any = { crew_id: id, crew: id2name[id] || id };
+pack.cats.forEach((c, i) => { row[c] = (pack.stacks[id] || [])[i] || 0; });
+return row;
+});
+const csv = toCSV(rows);
+const blob = new Blob([csv], {type:'text/csv'});
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a'); a.href = url; a.download = (mode==='role'?'crew_by_role.csv':'crew_by_vessel.csv'); document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+
+//...

@@ -1,0 +1,350 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==========================================================
+REM ARUS – Sensor Autoclassify + Normalization + Unknown Queue + Templates
+REM Node.js/TypeScript (backend-node + frontend)
+REM - Auto-probe/classify ECM & external sensor signals
+REM - Canonical unit normalization (°C, kPa, L/h, rpm, V, A, Hz, bar)
+REM - Unknown-signal review queue with approve->persist mapping
+REM - Sensor templates in Device Management
+REM - No auth changes
+REM ==========================================================
+
+if not exist "backend-node\src" (
+echo [ERROR] backend-node/src not found. Run at repo root.
+exit /b 1
+)
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+REM ----------------------------------------------------------
+REM 0) Ensure config dirs + default stores
+REM ----------------------------------------------------------
+if not exist "backend-node\config" mkdir backend-node\config
+if not exist "backend-node\data" mkdir backend-node\data
+
+REM unknown queue file
+if not exist "backend-node\config\unknown_signals.json" (
+> backend-node\config\unknown_signals.json echo []
+)
+
+REM templates file
+if not exist "backend-node\config\sensor_templates.json" (
+> backend-node\config\sensor_templates.json (
+echo {
+echo "templates": [
+echo { "id":"VIB-ISO10816", "kind":"vibration", "unit":"mm/s", "fields":{"band":"10-1000Hz","mount":"rigid"}, "notes":"General machine vibration velocity per ISO 10816" },
+echo { "id":"MODBUS-4_20-Pressure", "kind":"pressure", "unit":"bar", "fields":{"range":"0-10bar","scale":"(mA-4)*10/16"}, "notes":"4-20mA transmitter 0-10bar" },
+echo { "id":"NMEA2K-TankLevel", "kind":"level", "unit":"%", "fields":{"pgn":127505}, "notes":"NMEA2000 fluid level" }
+echo ]
+echo }
+)
+)
+
+REM ----------------------------------------------------------
+REM 1) Backend: classifier + normalizer
+REM ----------------------------------------------------------
+> backend-node\src\sensors.classify.ts (
+echo export type Classified = { sig:string; kind:string; unit?:string; confidence:number };
+echo
+echo const NAME_HINTS: {re:RegExp; kind:string; unit?:string; score:number}[] = [
+echo { re:/rpm|engine[_-]?speed|shaft[_-]?rpm/i, kind:"rpm", unit:"rpm", score:0.95 },
+echo { re:/coolant|water[_-]?temp|temp.*engine/i, kind:"temperature",unit:"C", score:0.9 },
+echo { re:/oil[_-]?press|lube[_-]?press|pressure/i, kind:"pressure", unit:"kPa", score:0.85 },
+echo { re:/fuel[_-]?rate|consumption|lph|gph/i, kind:"flow", unit:"L/h", score:0.85 },
+echo { re:/vib|vibration|mm\/s|ips|accel|g[_-]?rms/i, kind:"vibration", unit:"mm/s",score:0.8 },
+echo { re:/volt|battery|bus[_-]?v/i, kind:"voltage", unit:"V", score:0.85 },
+echo { re:/amp|current|bus[_-]?a/i, kind:"current", unit:"A", score:0.85 },
+echo { re:/freq|hz/i, kind:"frequency", unit:"Hz", score:0.8 },
+echo { re:/flow|l\/h|lph|gpm/i, kind:"flow", unit:"L/h", score:0.75 },
+echo { re:/level|tank/i, kind:"level", unit:"%", score:0.7 },
+echo ];
+echo
+echo const UNIT_HINTS: Record<string,{kind:string; unit:string; score:number}> = {
+echo "rpm": {kind:"rpm", unit:"rpm", score:0.9},
+echo "°c": {kind:"temperature", unit:"C", score:0.85},
+echo "c": {kind:"temperature", unit:"C", score:0.75},
+echo "f": {kind:"temperature", unit:"C", score:0.6},
+echo "kpa": {kind:"pressure", unit:"kPa", score:0.85},
+echo "bar": {kind:"pressure", unit:"bar", score:0.85},
+echo "psi": {kind:"pressure", unit:"kPa", score:0.8},
+echo "l/h": {kind:"flow", unit:"L/h", score:0.85},
+echo "gph": {kind:"flow", unit:"L/h", score:0.75},
+echo "v": {kind:"voltage", unit:"V", score:0.9},
+echo "a": {kind:"current", unit:"A", score:0.9},
+echo "hz": {kind:"frequency", unit:"Hz", score:0.9},
+echo "%": {kind:"level", unit:"%", score:0.9},
+echo "mm/s":{kind:"vibration", unit:"mm/s", score:0.9},
+echo };
+echo
+echo export function classifySignal(params:{sig:string; unit?:string; spn?:number; pid?:number}): Classified {
+echo const sig = params.sig||""; const unit = (params.unit||"").toLowerCase();
+echo let best: Classified = { sig, kind:"unknown", unit: params.unit, confidence: 0.0 };
+echo
+echo for (const h of NAME_HINTS){
+echo if (h.re.test(sig)) {
+echo if (h.score > best.confidence) best = { sig, kind:h.kind, unit: h.unit||params.unit, confidence: h.score };
+echo }
+echo }
+echo
+echo if (unit && UNIT_HINTS[unit]) {
+echo const u = UNIT_HINTS[unit];
+echo if (u.score > best.confidence) best = { sig, kind:u.kind, unit:u.unit, confidence: u.score };
+echo }
+echo
+echo // SPN/PID shortcuts (common engine params)
+echo if (params.spn === 190) { return { sig, kind:"rpm", unit:"rpm", confidence: 0.99 }; }
+echo if (params.pid === 190) { return { sig, kind:"rpm", unit:"rpm", confidence: 0.99 }; }
+echo if (params.spn === 110 || params.pid === 110) { return { sig, kind:"temperature", unit:"C", confidence: 0.95 }; }
+echo if (params.spn === 100 || params.pid === 100) { return { sig, kind:"pressure", unit:"kPa", confidence: 0.9 }; }
+echo if (params.spn === 183 || params.pid === 183) { return { sig, kind:"flow", unit:"L/h", confidence: 0.9 }; }
+echo
+echo return best;
+echo }
+)
+
+> backend-node\src\sensors.normalize.ts (
+echo export type Normalized = { value:number|null; unit?:string };
+echo
+echo export function toCanonical(kind:string, value:number|null, unit?:string): Normalized {
+echo if (value==null || !isFinite(value)) return { value:null, unit };
+echo const u = (unit||"").toLowerCase();
+echo switch(kind){
+echo case "temperature":
+echo if (u==="f") return { value: (value-32)*5/9, unit:"C" };
+echo return { value, unit:"C" };
+echo case "pressure":
+echo if (u==="psi") return { value: value*6.894757, unit:"kPa" };
+echo if (u==="bar") return { value: value*100, unit:"kPa" };
+echo return { value, unit:"kPa" };
+echo case "flow":
+echo if (u==="gph") return { value: value*3.78541, unit:"L/h" };
+echo return { value, unit:"L/h" };
+echo case "vibration":
+echo // assume already mm/s; extend as needed (ips -> mm/s)
+echo return { value, unit:"mm/s" };
+echo case "voltage": return { value, unit:"V" };
+echo case "current": return { value, unit:"A" };
+echo case "frequency": return { value, unit:"Hz" };
+echo case "rpm": return { value, unit:"rpm" };
+echo case "level": return { value, unit:"%" };
+echo default: return { value, unit };
+echo }
+echo }
+)
+
+REM ----------------------------------------------------------
+REM 2) Backend: unknown queue + templates APIs
+REM ----------------------------------------------------------
+> backend-node\src\index.sensors.ts (
+echo import express from "express";
+echo import fs from "node:fs";
+echo import path from "node:path";
+echo import { classifySignal } from "./sensors.classify.js";
+echo
+echo const CFG_DIR = path.join(process.cwd(), "backend-node", "config");
+echo const UNKNOWN_PATH = path.join(CFG_DIR, "unknown_signals.json");
+echo const J1939_MAP = path.join(CFG_DIR, "j1939.map.json");
+echo const J1587_MAP = path.join(CFG_DIR, "j1587.map.json");
+echo const TPL_PATH = path.join(CFG_DIR, "sensor_templates.json");
+echo
+echo function readJson<T>(p:string, fallback:T): T { try{ return JSON.parse(fs.readFileSync(p,"utf8")); } catch{ return fallback; } }
+echo function writeJson(p:string, obj:any){ fs.writeFileSync(p, JSON.stringify(obj, null, 2)); }
+echo
+echo export function mountSensors(v1: express.Router){
+echo // GET unknown queue
+echo v1.get("/api/sensors/unknown", (_req,res)=> {
+echo const items = readJson<any[]>(UNKNOWN_PATH, []);
+echo res.json({ items });
+echo });
+echo
+echo // POST capture unknown (collector calls this)
+echo v1.post("/api/sensors/unknown", (req,res)=> {
+echo const body = req.body||{};
+echo const items = readJson<any[]>(UNKNOWN_PATH, []);
+echo const key = JSON.stringify({vessel:body.vessel, sig:body.sig, src:body.src});
+echo const exists = items.find((x:any)=> JSON.stringify({vessel:x.vessel,sig:x.sig,src:x.src})===key);
+echo if(!exists){
+echo const guess = classifySignal({sig: body.sig||"", unit: body.unit, spn: body.spn, pid: body.pid});
+echo items.push({ ...body, guess });
+echo writeJson(UNKNOWN_PATH, items);
+echo }
+echo res.json({ ok:true });
+echo });
+echo
+echo // POST approve unknown -> persist to mapping (J1939 or J1587)
+echo v1.post("/api/sensors/approve", (req,res)=> {
+echo const { protocol, rule } = req.body||{};
+echo if (!protocol || !rule) return res.status(400).json({ ok:false, error:"protocol and rule required" });
+echo if (protocol==="j1939"){
+echo const doc = readJson<any>(J1939_MAP, { signals: [] });
+echo const ex = doc.signals.find((s:any)=> s.pgn===rule.pgn);
+echo if (ex) { ex.spns = ex.spns||[]; ex.spns.push(rule.spnRule); } else { doc.signals.push({ pgn: rule.pgn, name: rule.name||"Custom", spns:[rule.spnRule] }); }
+echo writeJson(J1939_MAP, doc);
+echo } else if (protocol==="j1708"){
+echo const doc = readJson<any>(J1587_MAP, { signals: [] });
+echo doc.signals.push(rule.pidRule);
+echo writeJson(J1587_MAP, doc);
+echo } else { return res.status(400).json({ ok:false, error:"unknown protocol" }); }
+echo // Remove from unknown queue if present
+echo const items = readJson<any[]>(UNKNOWN_PATH, []);
+echo const left = items.filter(x => !(x.sig===rule.sig && x.src===rule.src));
+echo writeJson(UNKNOWN_PATH, left);
+echo return res.json({ ok:true });
+echo });
+echo
+echo // GET sensor templates
+echo v1.get("/api/sensors/templates", (_req,res)=> {
+echo const doc = readJson<any>(TPL_PATH, { templates: [] });
+echo res.json(doc);
+echo });
+echo
+echo // POST add template to a device (persist minimal registry in data/sensor_registry.json)
+echo v1.post("/api/sensors/templates/apply", (req,res)=> {
+echo const { vessel_id, sensor_id, template_id } = req.body||{};
+echo if (!vessel_id || !sensor_id || !template_id) return res.status(400).json({ ok:false, error:"vessel_id, sensor_id, template_id required" });
+echo const regPath = path.join(process.cwd(), "backend-node", "data", "sensor_registry.json");
+echo const reg = readJson<any>(regPath, { entries: [] });
+echo const doc = readJson<any>(TPL_PATH, { templates: [] });
+echo const tpl = doc.templates.find((t:any)=> t.id===template_id);
+echo if (!tpl) return res.status(404).json({ ok:false, error:"template not found" });
+echo const idx = reg.entries.findIndex((e:any)=> e.vessel_id===vessel_id && e.sensor_id===sensor_id);
+echo const entry = { vessel_id, sensor_id, kind: tpl.kind, unit: tpl.unit, meta: tpl.fields };
+echo if (idx>=0) reg.entries[idx]=entry; else reg.entries.push(entry);
+echo writeJson(regPath, reg);
+echo return res.json({ ok:true, entry });
+echo });
+echo }
+)
+
+REM Wire sensor routes into API
+%PS% ^
+"$f='backend-node/src/index.ts'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace '(app\\.use\\(\"/v1\", v1\\);)','import { mountSensors } from \"./index.sensors.js\";\nmountSensors(v1);\n$1';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ----------------------------------------------------------
+REM 3) Patch collectors to classify + normalize + capture unknowns
+REM ----------------------------------------------------------
+%PS% ^
+"$f='backend-node/src/edge.j1939.ts'; $t=Get-Content -Raw $f;" ^
+"$t = 'import { classifySignal } from \"./sensors.classify.js\";\nimport { toCanonical } from \"./sensors.normalize.js\";\n'+$t;" ^
+"$t = $t -replace 'buf\\.push\\({ t: Date\\.now\\(\\), src: spn\\.src, sig: spn\\.sig, value: s\\.value, unit: s\\.unit }\\);', 'const c = classifySignal({sig: spn.sig, unit: spn.unit, spn: spn.spn}); const n = toCanonical(c.kind, value, c.unit||spn.unit); buf.push({ t: Date.now(), src: spn.src, sig: spn.sig, value: n.value, unit: n.unit }); if (c.kind===\"unknown\" || c.confidence<0.6){ try{ axios.post(`${BACKEND_URL}/v1/api/sensors/unknown`, { vessel: VESSEL_ID, protocol: \"j1939\", pgn, spn: spn.spn, src: spn.src, sig: spn.sig, unit: spn.unit, sample: value }); }catch{} }';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+%PS% ^
+"$f='backend-node/src/edge.j1708.ts'; $t=Get-Content -Raw $f;" ^
+"$t = 'import { classifySignal } from \"./sensors.classify.js\";\nimport { toCanonical } from \"./sensors.normalize.js\";\n'+$t;" ^
+"$t = $t -replace 'buf\\.push\\({ src:r\\.src, sig:r\\.sig, value: val, unit: r\\.unit }\\);', 'const c = classifySignal({sig: r.sig, unit: r.unit, pid}); const n = toCanonical(c.kind, val, c.unit||r.unit); buf.push({ src:r.src, sig:r.sig, value: n.value, unit: n.unit }); if (c.kind===\"unknown\" || c.confidence<0.6){ try{ axios.post(`${BACKEND_URL}/v1/api/sensors/unknown`, { vessel: VESSEL_ID, protocol: \"j1708\", mid, pid, src: r.src, sig: r.sig, unit: r.unit, sample: val }); }catch{} }';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ----------------------------------------------------------
+REM 4) Frontend UI: Unknown Signals + Sensor Templates
+REM ----------------------------------------------------------
+if not exist "frontend\src" (
+echo [WARN] frontend/src not found; skipping UI (backend ready).
+) else (
+> frontend\src\components\UnknownSignals.tsx (
+echo import React, { useEffect, useState } from "react";
+echo const BASE = (import.meta as any).env.VITE_API_URL || "http://localhost:8001";
+echo
+echo export default function UnknownSignals(){
+echo const [items,setItems] = useState<any[]>([]);
+echo const [msg,setMsg] = useState("");
+echo async function load(){ const r = await fetch(\`\${BASE}/v1/api/sensors/unknown\`).then(r=>r.json()); setItems(r.items||[]); }
+echo useEffect(()=>{ load(); },[]);
+echo
+echo async function approve(i:any){
+echo // minimal UI: if J1939 expect {pgn, spn}, if J1708 expect {mid,pid}. Create generic rule.
+echo const protocol = i.protocol || (i.pgn? "j1939":"j1708");
+echo const body = protocol==="j1939"
+echo ? { protocol, rule: { sig:i.sig, src:i.src, pgn:i.pgn, name:"Custom", spnRule:{ spn:i.spn||9999, sig:i.sig, src:i.src, unit:i.unit||"?", bytes:[0], endian:"LE", scale:1, offset:0 } } }
+echo : { protocol, rule: { sig:i.sig, src:i.src, pidRule:{ mid:i.mid||128, pid:i.pid||999, sig:i.sig, src:i.src, unit:i.unit||"?", bytes:[0], endian:"LE", scale:1, offset:0 } } };
+echo const r = await fetch(\`\${BASE}/v1/api/sensors/approve\`, { method:"POST", headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+echo const j = await r.json(); if (j.ok){ setMsg("Approved and persisted."); load(); } else { setMsg("Failed: "+(j.error||"")); }
+echo }
+echo
+echo return (
+echo <div className="card">
+echo <h2>Unknown Signals</h2>
+echo {items.length===0? <div>No unknown signals.</div> :
+echo <table className="text-xs w-full border">
+echo <thead><tr><th>Vessel</th><th>Protocol</th><th>Src</th><th>Sig</th><th>Hint</th><th>Sample</th><th>Approve</th></tr></thead>
+echo <tbody>
+echo {items.map((i:any,idx:number)=>(
+echo <tr key={idx}>
+echo <td>{i.vessel||""}</td>
+echo <td>{i.protocol}</td>
+echo <td>{i.src}</td>
+echo <td>{i.sig}</td>
+echo <td>{i.guess?.kind||"unknown"} {i.guess? "("+(i.guess.confidence*100).toFixed(0)+"%)":""}</td>
+echo <td>{i.sample}</td>
+echo <td><button onClick={()=>approve(i)}>Approve</button></td>
+echo </tr>
+echo ))}
+echo </tbody>
+echo </table>
+echo }
+echo {msg && <div style={{marginTop:8,fontSize:12,color:'#334155'}}>{msg}</div>}
+echo </div>
+echo );
+echo }
+)
+> frontend\src\components\SensorTemplates.tsx (
+echo import React, { useEffect, useState } from "react";
+echo const BASE = (import.meta as any).env.VITE_API_URL || "http://localhost:8001";
+echo
+echo export default function SensorTemplates(){
+echo const [vessel,setVessel]=useState(""); const [sensor,setSensor]=useState("");
+echo const [tpls,setTpls]=useState<any[]>([]); const [sel,setSel]=useState("");
+echo const [msg,setMsg]=useState("");
+echo useEffect(()=>{ fetch(\`\${BASE}/v1/api/sensors/templates\`).then(r=>r.json()).then(j=>setTpls(j.templates||[])); },[]);
+echo async function apply(){ if(!vessel||!sensor||!sel){ setMsg("Enter vessel, sensor, template"); return; } const r=await fetch(\`\${BASE}/v1/api/sensors/templates/apply\`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ vessel_id:vessel, sensor_id:sensor, template_id:sel })}); const j=await r.json(); setMsg(j.ok? "Applied":"Failed"); }
+echo return (
+echo <div className="card">
+echo <h2>Sensor Templates</h2>
+echo <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+echo <input placeholder="Vessel ID" value={vessel} onChange={e=>setVessel(e.target.value)} />
+echo <input placeholder="Sensor ID" value={sensor} onChange={e=>setSensor(e.target.value)} />
+echo <select value={sel} onChange={e=>setSel(e.target.value)}>
+echo <option value="">Select template</option>
+echo {tpls.map((t:any)=> <option key={t.id} value={t.id}>{t.id} — {t.kind} [{t.unit}]</option>)}
+echo </select>
+echo <button onClick={apply}>Apply Template</button>
+echo </div>
+echo {msg && <div style={{marginTop:8,fontSize:12,color:'#334155'}}>{msg}</div>}
+echo </div>
+echo );
+echo }
+)
+REM mount both cards into App
+%PS% ^
+"$f='frontend/src/App.tsx'; $t=Get-Content -Raw $f;" ^
+"$t = 'import UnknownSignals from \"./components/UnknownSignals\";\nimport SensorTemplates from \"./components/SensorTemplates\";\n'+$t;" ^
+"$t = $t -replace '(</div>\\s*)$',' <UnknownSignals />\n <SensorTemplates />\n$1';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+)
+
+echo.
+echo ==========================================================
+echo ✅ Sensor Autoclassify + Normalization + Unknown Queue + Templates patch applied.
+echo ----------------------------------------------------------
+echo Backend:
+echo - sensors.classify.ts (heuristic classifier incl. SPN/PID hints)
+echo - sensors.normalize.ts (canonical unit conversions)
+echo - index.sensors.ts (unknown queue + approve + templates)
+echo - Collectors patched to classify/normalize and submit unknowns
+echo Frontend:
+echo - UnknownSignals card (review/approve -> persists mapping)
+echo - SensorTemplates card (assign templates to sensors)
+echo ----------------------------------------------------------
+echo Next:
+echo cd backend-node && npm install && npm run build && npm run dev
+echo cd ../frontend && npm install && npm run dev
+echo
+echo Usage tips:
+echo - Unknown ECM parameters will appear in "Unknown Signals". Approve them to persist rules.
+echo - Apply sensor templates for non-ECM sensors to auto-type/unit them.
+echo - All values are stored in canonical units: C, kPa, L/h, rpm, V, A, Hz, mm/s, %%.
+echo ==========================================================
+endlocal

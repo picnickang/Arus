@@ -1,0 +1,317 @@
+Replit Prompt — Schema Repair + Full Verification
+
+REPLIT AI PROMPT — Comprehensive Schema Repair, Validation & Optimization
+──────────────────────────────────────────────────────────────
+Objective:
+Audit, repair, and fully validate the entire `@shared/schema.ts` file
+(including the new `sensorTemplates` definition) to ensure:
+
+1. ✅ All Drizzle table definitions compile correctly (PostgreSQL & SQLite modes)
+2. ✅ All Zod schemas and TS types align with DB definitions
+3. ✅ All foreign keys, enums, JSON fields, and indexes are syntactically and logically correct
+4. ✅ All new tables (sensor_templates, equipment, work_orders, etc.) cross-reference correctly
+5. ✅ All Insert/Select schemas and inferred types export cleanly
+6. ✅ Code conforms to TypeScript strict mode and Replit’s Node 18+ environment
+7. ✅ The schema matches the seed script for system sensor templates
+8. ✅ All broken comments, invalid tokens (“for template fields”, stray strings) are removed
+9. ✅ Schema passes migration generation (`drizzle-kit generate`) without errors
+
+──────────────────────────────────────────────────────────────
+Tasks:
+
+1. Parse the existing schema file and detect:
+   • Syntax errors (unclosed objects, stray literals)
+   • Invalid lines like “for template fields” or “OIL-DEBRIS-GEARBOX”
+   • Truncated exports (e.g., “expor”)
+   • Missing imports for drizzle-orm and zod helpers
+
+2. Repair all broken definitions:
+   • Correct the `sensorTemplates` table to the final structure below
+   • Replace `...` and inline comments with valid syntax
+   • Reinsert missing types (`SensorTemplate`, `InsertSensorTemplate`)
+   • Ensure `organizations.id` reference works properly
+
+3. Normalize imports:
+   ```ts
+   import { pgTable, varchar, text, boolean, timestamp, jsonb, index } from "drizzle-orm/pg-core";
+   import { sql } from "drizzle-orm";
+   import { z } from "zod";
+   import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+Confirm the final sensorTemplates table exactly matches this:
+
+export const sensorTemplates = pgTable(
+  "sensor_templates",
+  {
+    id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id").references(() => organizations.id).nullable(),
+    templateId: text("template_id").notNull(),
+    name: text("name").notNull(),
+    kind: text("kind").notNull(),
+    unit: text("unit").notNull(),
+    equipmentTypes: text("equipment_types").array().nullable(),
+    fields: jsonb("fields").notNull(),
+    notes: text("notes").nullable(),
+    isSystemDefault: boolean("is_system_default").notNull().default(false),
+    createdBy: text("created_by").nullable(),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => ({
+    orgTemplateIdx: index("sensor_templates_org_template_idx").on(table.orgId, table.templateId),
+    kindIdx: index("sensor_templates_kind_idx").on(table.kind),
+  }),
+);
+
+
+Add final schemas and types:
+
+export const selectSensorTemplateSchema = createSelectSchema(sensorTemplates);
+export type SensorTemplate = z.infer<typeof selectSensorTemplateSchema>;
+
+export const insertSensorTemplateSchema = createInsertSchema(sensorTemplates, {
+  equipmentTypes: z.array(z.string()).optional().nullable(),
+  fields: z.record(z.any()),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  isSystemDefault: true,
+  createdBy: true,
+});
+
+export type InsertSensorTemplate = z.infer<typeof insertSensorTemplateSchema>;
+
+
+Validate:
+
+• npm run build passes with no TS errors
+
+• drizzle-kit generate succeeds
+
+• seedSensorTemplates.ts runs without constraint or type mismatches
+
+• Every schema exports Insert* and Select* correctly
+
+Optimize:
+
+• Ensure all timestamps use { mode: "date" } for portability
+
+• Add index() calls to critical joins
+
+• Verify all JSONB and array columns use consistent types
+
+
+
+──────────────────────────────────────────────────────────────
+
+Deliverable:
+
+Produce the fully corrected @shared/schema.ts with:
+
+• No compilation or validation errors
+
+• Full compatibility with the existing backend
+
+• Consistent Zod + Drizzle type inference
+
+• Explicit exports for SensorTemplate and InsertSensorTemplate
+
+• Commented for maintainability (describe purpose of each table)
+
+
+
+──────────────────────────────────────────────────────────────
+
+Stretch Goal:
+
+If time permits, include automatic unit tests that:
+
+Mock a sensorTemplates insertion and retrieval
+
+Validate that default seeding (orgId = null, isSystemDefault = true) passes
+
+Verify CRUD behavior for multi-tenant templates
+
+
+
+──────────────────────────────────────────────────────────────
+
+---
+
+Would you like me to extend this prompt to also **verify the migrations and foreign key integrity for all 137 tables** in your DB?  
+That version will let Replit automatically generate a diagnostic report showing schema cohesion across every entity (work_orders, sensors, stock, etc.).
+
+
+
+Here’s a clean, production-ready “full fix” for the schema side of sensor templates that will work with:
+
+your seedSensorTemplates script (which sets orgId: null for system defaults),
+
+multi-tenant custom templates (per-org),
+
+and your frontend / API plan.
+
+
+
+1. Ensure imports at top of 
+
+@shared/schema.ts
+
+
+
+Add these if they’re not already there:
+
+import { pgTable, text, varchar, boolean, timestamp, jsonb, index } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import { z } from "zod";
+
+// and make sure organizations table is defined above:
+export const organizations = pgTable("organizations", {
+  id: varchar("id").primaryKey(),
+  // ...rest of org fields...
+});
+2. 
+
+Fixed
+
+ 
+
+sensorTemplates
+
+ table definition
+
+
+
+Drop this in place of the broken export const sensorTemplates = pgTable("sensor_templates", { ... }); chunk:
+
+export const sensorTemplates = pgTable(
+  "sensor_templates",
+  {
+    id: varchar("id", { length: 36 })
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+
+    // Nullable: NULL = global “system” template (applies to all orgs)
+    orgId: varchar("org_id")
+      .references(() => organizations.id, { onDelete: "cascade" })
+      .nullable(),
+
+    // Short, stable identifier like "OIL-DEBRIS-GEARBOX"
+    templateId: text("template_id").notNull(),
+
+    // Human-readable name for UI
+    name: text("name").notNull(),
+
+    // Sensor type: oil_debris, vibration, pressure, temperature, etc.
+    kind: text("kind").notNull(),
+
+    // Measurement unit: e.g. "ppm", "mg/L", "°C", "g", etc.
+    unit: text("unit").notNull(),
+
+    // Compatible equipment types: ["gearbox", "engine", "thruster"]
+    // Nullable so old rows/seeds without this field still work
+    equipmentTypes: text("equipment_types").array().nullable(),
+
+    // Arbitrary config for thresholds, sampling, transforms, etc.
+    // Example:
+    // {
+    //   warn_threshold: 100,
+    //   crit_threshold: 150,
+    //   sample_rate_hz: 1,
+    //   smoothing: { ema_alpha: 0.15 }
+    // }
+    fields: jsonb("fields").notNull(),
+
+    // Free-form description / guidance
+    notes: text("notes").nullable(),
+
+    // True = baked-in system templates (protected),
+    // False = org-created custom templates
+    isSystemDefault: boolean("is_system_default")
+      .notNull()
+      .default(false),
+
+    createdBy: text("created_by").nullable(),
+
+    createdAt: timestamp("created_at", { mode: "date" })
+      .notNull()
+      .defaultNow(),
+
+    updatedAt: timestamp("updated_at", { mode: "date" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // Fast lookups for “all system templates” and per-org + templateId
+    orgTemplateIdx: index("sensor_templates_org_template_idx").on(
+      table.orgId,
+      table.templateId,
+    ),
+    kindIdx: index("sensor_templates_kind_idx").on(table.kind),
+  }),
+);
+3. Zod schemas & TS types for templates
+
+
+
+Add this right after the table definition:
+
+// Select schema / type – what you read from DB
+export const selectSensorTemplateSchema = createSelectSchema(sensorTemplates);
+export type SensorTemplate = z.infer<typeof selectSensorTemplateSchema>;
+
+// Insert/update schema / type – what APIs accept
+export const insertSensorTemplateSchema = createInsertSchema(sensorTemplates, {
+  // Optional runtime tweaks: ensure equipmentTypes is always array on input
+  equipmentTypes: z
+    .array(z.string())
+    .optional()
+    .nullable(),
+  fields: z.record(z.any()), // explicit: JSON object
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  isSystemDefault: true, // system defaults set from backend/seed
+  createdBy: true,
+});
+
+export type InsertSensorTemplate = z.infer<typeof insertSensorTemplateSchema>;
+4. Why this fixes everything
+
+✅ Matches your seeder:
+
+orgId is nullable, so orgId: null for system templates works; FK still enforced when non-null.
+
+✅ Works with your JSON mapping:
+
+fields is jsonb and equipmentTypes can be null or [string], exactly as your mapper produces.
+
+✅ Multi-tenant ready:
+
+Per-org templates: orgId = some-org-id; global system templates: orgId = null, isSystemDefault = true.
+
+✅ Frontend-friendly:
+
+InsertSensorTemplate omits DB-managed fields (id, createdAt, etc.) and lets you pass arrays + JSON naturally.
+
+✅ Performance & integrity:
+
+Indices for (orgId, templateId) and kind support lookups like:
+
+“all templates for this org”
+
+“all templates of kind = ‘oil_debris’”
+
+“find template OIL-DEBRIS-GEARBOX for this org or system default”
+
+
+
+If you’d like, I can next give you a matching Replit prompt that tells the assistant to:
+
+repair any remaining schema mismatches,
+
+verify sensorTemplates compiles,
+
+and run through basic CRUD tests for the new templates.

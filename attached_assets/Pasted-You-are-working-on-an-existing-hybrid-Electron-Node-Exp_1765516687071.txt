@@ -1,0 +1,229 @@
+You are working on an existing hybrid Electron + Node/Express + React + TypeScript + SQLite/libSQL + Drizzle repo (ARUS) that has been heavily modularized. ESLint currently reports ~11,000 errors.
+
+
+
+Goal: Reduce ESLint errors safely and automatically as much as possible without breaking runtime behavior.
+
+Constraint: Do not perform large risky refactors or “fix everything blindly.”
+
+Rule: Do not assume folder structure; discover scripts and paths from the repo.
+
+0) PRE-FLIGHT: DISCOVER HOW LINT IS RUN
+
+Inspect package.json and any workspace configs to identify:
+
+lint scripts (lint, lint:fix, etc.)
+
+typecheck scripts
+
+build scripts
+
+dev scripts for backend/frontend/electron
+
+Find ESLint config locations:
+
+.eslintrc.*, eslint.config.*, package.json eslint section
+
+.eslintignore
+
+tsconfig.json referenced by eslint parser options
+
+
+
+Do not change tooling yet.
+
+1) BASELINE SNAPSHOT (DON’T TOUCH CODE YET)
+
+
+
+Run lint in a way that produces machine-readable output and summarize by rule:
+
+Generate a JSON report (use -f json if supported):
+
+Save to eslint-report.json
+
+Print:
+
+Total errors/warnings
+
+Top 20 rules by count
+
+Which directories/files contain the most errors
+
+
+
+If lint currently fails too hard to generate JSON, run it on smaller scopes (frontend vs backend) until you can produce a report.
+
+2) PHASE 1 — SAFE AUTO-FIX ONLY (LOW RISK)
+
+
+
+Apply auto-fixes only using ESLint’s built-in fixer, without manual refactors:
+
+Run the repo’s official fix command if present:
+
+npm run lint:fix / pnpm lint:fix / yarn lint:fix
+
+If no fix script exists, run:
+
+eslint . --fix using the repo’s package manager and existing config
+
+
+
+Guardrails:
+
+Do not modify business logic intentionally.
+
+Do not “fix” React hook dependency arrays manually.
+
+Do not rewrite async logic to satisfy rules.
+
+Do not change runtime behavior.
+
+
+
+After auto-fix, rerun lint and produce a new report:
+
+eslint-report.phase1.json
+
+Show how many errors were eliminated.
+
+
+
+Commit-style summary at the end of this phase: which files changed the most and top remaining rules.
+
+3) PHASE 2 — UNBLOCKING CONFIG (ONLY WHEN NECESSARY)
+
+
+
+If error count remains huge due to high-risk rules that can change behavior or are impractical at this stage, apply a temporary, controlled relaxation that is explicitly documented and scoped.
+
+
+
+Only adjust configuration for rules in these categories (if they are among top offenders):
+
+react-hooks/exhaustive-deps (high behavior risk)
+
+@typescript-eslint/no-floating-promises
+
+@typescript-eslint/no-misused-promises
+
+@typescript-eslint/no-unsafe-*
+
+@typescript-eslint/no-explicit-any
+
+Strict boundary/import layering rules
+
+Rules that require semantic refactors across modules
+
+
+
+How to relax safely:
+
+Prefer scoping to problematic directories or file patterns rather than global disable.
+
+Use overrides blocks to:
+
+downgrade from error → warning
+
+or disable in legacy/refactor-heavy areas
+
+Add a comment block at top of config:
+
+“Temporary rule relaxations due to modularization ESLint backlog. Re-enable iteratively.”
+
+Do NOT disable critical correctness rules (e.g., obvious syntax errors) globally.
+
+
+
+After config changes:
+
+Rerun lint and generate eslint-report.phase2.json
+
+Ensure the repo still typechecks/builds.
+
+4) PHASE 3 — FIX STRUCTURAL BREAKAGES (TARGETED, STILL SAFE)
+
+
+
+Focus on the most likely modularization regressions that ESLint flags, in this order:
+
+Broken imports/exports:
+
+unresolved imports
+
+wrong default vs named exports
+
+circular import issues only if they cause runtime failure or massive lint noise
+
+Duplicated unused imports / unused variables:
+
+Remove truly unused imports/vars
+
+BUT do not remove variables used for side effects or intentionally referenced patterns
+
+If unsure, keep and add _ prefix or disable rule locally with a comment
+
+Any simple “no-undef / no-unused-expressions / no-redeclare” that indicates real bugs.
+
+
+
+Work module-by-module (not global sweeping changes).
+
+After each module batch, rerun lint to verify progress.
+
+
+
+Generate eslint-report.phase3.json.
+
+5) PHASE 4 — SMOKE TESTS (MUST PASS)
+
+
+
+Run the repo’s existing scripts (from package.json) in the safest minimal way:
+
+Typecheck (npm run typecheck or equivalent)
+
+Backend build and/or start (API must boot without runtime import errors)
+
+Frontend dev build (vite build or equivalent) and/or start
+
+Electron start if present
+
+
+
+Do not leave the codebase with lint fixed but runtime broken.
+
+If something breaks, revert the risky fix and choose a safer alternative.
+
+6) OUTPUT REQUIREMENTS (AT THE END)
+
+
+
+Provide a clear summary:
+
+Starting ESLint errors/warnings vs ending errors/warnings
+
+Top 20 rules before vs after
+
+What was auto-fixed in Phase 1
+
+What rules were temporarily relaxed in Phase 2 (and where scoped)
+
+Any remaining high-risk categories and recommended next steps
+
+Confirmation that typecheck + key runtime smoke tests pass
+
+IMPORTANT SAFETY RULES
+
+Do NOT try to eliminate all 11,000 errors in one pass if it requires behavior-changing edits.
+
+Do NOT “fix” React hook dependency arrays automatically.
+
+Do NOT refactor promise handling broadly just to satisfy lint.
+
+Prefer safe autofix, then scoped relaxations, then targeted fixes.
+
+Keep files < 500 lines and do not rebuild the architecture.
+
+Execute this staged plan and leave the project stable.

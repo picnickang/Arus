@@ -1,0 +1,33 @@
+Content Security Policy blocks inline execution of scripts and stylesheets
+The Content Security Policy (CSP) prevents cross-site scripting attacks by blocking inline execution of scripts and style sheets.
+
+To solve this, move all inline scripts (e.g. onclick=[JS code]) and styles into external files.
+
+⚠️ Allowing inline execution comes at the risk of script injection via injection of HTML script elements. If you absolutely must, you can allow inline script and styles by:
+
+adding unsafe-inline as a source to the CSP header
+adding the hash or nonce of the inline script to your CSP header.
+3 directives
+Directive	Element	Source location	Status
+script-src-elem		(index):4	blocked
+script-src-elem		(index):28	blocked
+script-src-elem		(index):70	blocked
+Learn more: Content Security Policy - Inline Code
+Content Security Policy of your site blocks some resources
+Some resources are blocked because their origin is not listed in your site's Content Security Policy (CSP). Your site's CSP is allowlist-based, so resources must be listed in the allowlist in order to be accessed.
+
+A site's Content Security Policy is set either via an HTTP header (recommended), or via a meta HTML tag.
+
+To fix this issue do one of the following:
+
+(Recommended) If you're using an allowlist for 'script-src', consider switching from an allowlist CSP to a strict CSP, because strict CSPs are more robust against XSS. See how to set a strict CSP.
+Or carefully check that all of the blocked resources are trustworthy; if they are, include their sources in the CSP of your site. ⚠️Never add a source you don't trust to your site's CSP. If you don't trust the source, consider hosting resources on your own site instead.
+2 directives
+Resource	Status	Directive	Source location
+https://fonts.googleapis.com/css2?family=Architects+Daughter&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Fira+Code:wght@300..700&family=Geist+Mono:wght@100..900&family=Geist:wght@100..900&family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400..700;1,400..700&family=Merriweather:ital,opsz,wght@0,18..144,300..900;1,18..144,300..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Outfit:wght@100..900&family=Oxanium:wght@200..800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Roboto:ital,wght@0,100..900;1,100..900&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&family=Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900&family=Space+Grotesk:wght@300..700&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap	blocked	style-src-elem	(index):63
+https://fonts.googleapis.com/css2?family=Architects+Daughter&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Fira+Code:wght@300..700&family=Geist+Mono:wght@100..900&family=Geist:wght@100..900&family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400..700;1,400..700&family=Merriweather:ital,opsz,wght@0,18..144,300..900;1,18..144,300..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Outfit:wght@100..900&family=Oxanium:wght@200..800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Roboto:ital,wght@0,100..900;1,100..900&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&family=Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900&family=Space+Grotesk:wght@300..700&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap	blocked	style-src-elem	(index):0
+Learn more: Content Security Policy - Source Allowlists
+Verify stylesheet URLs
+This page failed to load a stylesheet from a URL.
+
+1 source

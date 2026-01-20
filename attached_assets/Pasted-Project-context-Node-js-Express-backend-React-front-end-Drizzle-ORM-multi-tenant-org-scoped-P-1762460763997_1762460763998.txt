@@ -1,0 +1,444 @@
+Project context: Node.js/Express backend, React front end, Drizzle ORM, multi-tenant (org-scoped), PdM features for bearings & pumps (baseline stats, z-scores, alerts), LLM explanations.
+
+
+
+Goal: Make the PdM app production-ready: correct math, safe multi-tenancy, race-free baselines, resilient APIs, clean UI, and verifiable tests.
+
+0) SCOPE & STRATEGY
+
+Do a repo-wide scan. Identify these files (or closest equivalents). If names differ, adapt:
+
+Frontend PdM UI: PdmPack.tsx
+
+Frontend org hook/provider: useOrganization.ts(x) / OrganizationProvider.tsx
+
+Frontend request helper: lib/queryClient.ts (apiRequest)
+
+Backend PdM service: pdm-pack-service.ts
+
+Backend features: pdm-features.ts
+
+Backend org middleware: validateOrgIdHeader.ts
+
+Drizzle schema: shared/schema.ts
+
+LLM helper: openai.ts
+
+Create a single “fix plan” and then implement all patches below.
+
+Produce a final summary report showing changed files and a PASS/FAIL checklist.
+
+1) FRONTEND — ORG & NETWORKING (NO HARDCODED ORG!)
+
+
+
+1.1 Replace any hardcoded 
+
+'x-org-id': 'default-org-id'
+
+All requests must go through apiRequest which injects x-org-id from a server-validated selection (not user-editable).
+
+Add orgId to React Query keys so caches invalidate when org changes.
+
+
+
+Tasks
+
+Update PdM data fetchers:
+
+/api/pdm/alerts, /api/pdm/health, /api/pdm/baseline/:vessel/:asset → use apiRequest.
+
+Keys: ['/api/pdm/alerts', orgId], ['/api/pdm/health', orgId], ['/api/pdm/baseline', orgId, vessel, asset].
+
+Update mutations (/api/pdm/analyze/bearing, /api/pdm/analyze/pump):
+
+Parse numbers with Number.isFinite.
+
+invalidateKeys include orgId and selection params.
+
+
+
+Acceptance
+
+Switching org in the app triggers refetch and shows the other org’s data.
+
+No code contains 'default-org-id' in network calls.
+
+2) FRONTEND — PdM UI SAFETY & UX
+
+
+
+Tasks
+
+Guard .toFixed() with Number.isFinite(value) ? value.toFixed(…) : '—'.
+
+Clamp large JSON in <pre>: JSON.stringify(obj).slice(0, 4000) and make <pre> scrollable.
+
+Memoize derived metrics (recentAlerts, counts).
+
+Optional: drive vessel/asset selects from API instead of hardcoded options (fallback to free text if API missing).
+
+
+
+Acceptance
+
+UI never throws on missing features.
+
+Long explanations don’t freeze the page.
+
+Metrics update only when inputs change.
+
+3) BACKEND — ORG/MULTI-TENANT SAFETY
+
+
+
+Tasks
+
+In validateOrgIdHeader:
+
+Allow OPTIONS.
+
+Normalize path via req.originalUrl (strip query).
+
+Enforce for /api/** except explicit public endpoints: /api/healthz, /api/readyz, /api/metrics, /api/health, and intentional /api/admin/auth/verify.
+
+Sanitize x-org-id with /^[a-z0-9-]{3,128}$/i/.
+
+Require server org (e.g., req.user.orgId) or valid header; if authenticated, enforce equality or membership.
+
+Attach req.orgId for downstream use; never re-read header elsewhere.
+
+Put org middleware after auth and before business routers.
+
+Add TS augmentation:
+
+// src/types/express-org.d.ts
+declare global {
+  namespace Express {
+    interface Request { orgId?: string }
+  }
+}
+
+
+
+
+Acceptance
+
+/api/private without org → 400/401.
+
+Header org ≠ session org → 403.
+
+/api/healthz works without header.
+
+Routes use req.orgId! (never header/body) in DB filters.
+
+4) DATABASE — SCHEMA, INDEXES, UPSERTS
+
+
+
+Tasks
+
+Ensure unique key on pdmBaseline:
+
+(orgId, vesselName, assetId, feature) unique.
+
+Add indexes:
+
+pdmBaseline (orgId, vesselName, assetId, feature)
+
+pdmAlerts (orgId, at DESC) (or created timestamp).
+
+Convert pdmAlerts.explain to JSONB or sufficiently large TEXT.
+
+Update upsert to be transactional and race-safe using onConflictDoUpdate.
+
+
+
+Acceptance
+
+No duplicate baselines on concurrent writers.
+
+Baseline read is indexed (observably fast with many rows).
+
+Alerts list quickly by org.
+
+5) PdM SERVICE — CORRECTNESS & ROBUSTNESS
+
+
+
+File: pdm-pack-service.ts
+
+
+
+Tasks
+
+In evaluateAgainstBaseline:
+
+If features is empty, return info severity with worstZ=0 (don’t call inArray with []).
+
+z-scores: if sigma === 0, return 0 (or use safer zScore floor).
+
+In upsertBaselinePoint:
+
+Wrap loop in a transaction.
+
+Use onConflictDoUpdate with unique key.
+
+Alert recording:
+
+Choose primary feature as the one with max |z|, not the first key.
+
+Add minimum baseline support (e.g., n >= 20) before alerting (configurable).
+
+Provenance call:
+
+Use correct field names (vesselName not passed as vesselId unless schema truly expects ID).
+
+LLM explanation:
+
+Wrap in timeout (e.g., 1500 ms) and do not block result; fall back to a static note on failure.
+
+
+
+Acceptance
+
+No crashes on empty features.
+
+No exploding z-scores with sigma≈0.
+
+Primary feature matches worst deviation.
+
+Alerts only fire with sufficient baseline support.
+
+6) FEATURE EXTRACTION — MATH FIXES
+
+
+
+File: pdm-features.ts
+
+
+
+Tasks
+
+zScore(mu, sigma, x): floor sigma using a data-aware epsilon (e.g., max(1e-6, 0.05*|mu|)).
+
+bandRMS(freq, mag, bands): handle unequal bin widths; integrate power using bin half-width (df) and divide by band width; guard freq.length !== mag.length.
+
+absEnvelope: rename to EMA-based envelope or keep name but implement O(n) EMA (alpha=0.2), not O(n·window).
+
+Pump flow-pressure “efficiency”:
+
+Compute Pearson pairwise only where both values are finite; don’t filter() arrays independently.
+
+If you need a 0–1 proxy: map r∈[-1,1] to (r+1)/2.
+
+Cavitation index:
+
+If spectrum available, use high/low band ratio (e.g., 1–3 kHz / 10–100 Hz).
+
+Else fallback to zero-crossing rate; avoid plain RMS.
+
+
+
+Acceptance
+
+Unit tests (or quick console tests) show sane behavior:
+
+Band integration scales with magnitude and bandwidth.
+
+Correlation stable under sparse NaNs and aligned timestamps.
+
+Cavitation rises with added high-freq energy.
+
+7) FRONTEND PdM SCREEN — MUTATIONS & SAFETY
+
+
+
+File: PdmPack.tsx
+
+
+
+Tasks
+
+Replace manual fetch with apiRequest.
+
+Add enabled: !!orgId to queries; add orgId to queryKeys.
+
+Parse numbers with Number.isFinite.
+
+Guard .toFixed() on optional feature values.
+
+Clamp large explanation JSON in <pre>.
+
+Memoize recentAlerts, counts.
+
+
+
+Acceptance
+
+Org switch fully re-keys caches; no stale data bleed across tenants.
+
+Submitting malformed CSV doesn’t crash; shows validation toast.
+
+8) TESTS & SMOKE SCRIPTS
+
+
+
+Tasks
+
+Add quick integration tests (Supertest or simple scripts):
+
+/api/healthz → 200 without header.
+
+/api/pdm/alerts:
+
+No header (authenticated) → 400.
+
+Wrong header vs session org → 403.
+
+Correct header/session → 200.
+
+Add unit tests for:
+
+bandRMS (uniform vs non-uniform bins).
+
+Pairwise Pearson (flow_eff).
+
+zScore floor behavior.
+
+Add a smoke script to:
+
+Seed one baseline (n≥20) and verify an alert is created when |z|≥3.
+
+Verify alert primary feature equals worst |z|.
+
+
+
+Acceptance
+
+All tests pass locally; smoke logs show PASS.
+
+9) PERFORMANCE & OPERABILITY
+
+
+
+Tasks
+
+Add refetchOnWindowFocus: false to noisy queries.
+
+Add structured error responses { code, message, error } everywhere (backend).
+
+Ensure pdmAlerts.explain size can’t overload DB (truncate >32k chars defensively if TEXT).
+
+
+
+Acceptance
+
+No UI re-jank when typing.
+
+Consistent error payloads for FE handling.
+
+10) DELIVERABLES
+
+Patched files with comments // PdM FIX at change sites.
+
+Summary report (markdown) listing:
+
+Files changed
+
+Security fixes (multi-tenant)
+
+Math fixes (features/z-score/bandRMS)
+
+DB changes (unique key, indexes)
+
+Test results (brief logs)
+
+Run instructions for a maintainer:
+
+How to add a new org-aware endpoint
+
+How to seed baselines for a new asset
+
+How to diagnose “no alerts” (n too small)
+
+IMPLEMENTATION HINTS (YOU CAN COPY CODE FROM HERE)
+
+Primary feature by worst |z|
+
+const [primaryFeature, primaryScore] =
+  Object.entries(alert.scores).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1]))[0] ?? ["unknown",0];
+
+
+Safer z-score
+
+export function zScore(mu:number, sigma:number, x:number){
+  const eps = Math.max(1e-6, 0.05*Math.abs(mu));
+  const s = Math.max(Math.abs(sigma), eps);
+  return (x-mu)/s;
+}
+
+
+bandRMS (bin-width aware)
+
+export function bandRMS(freq:number[], mag:number[], bands:{lo:number;hi:number;name:string}[]){
+  const n = Math.min(freq.length, mag.length);
+  if(!n) return bands.map(b=>({name:b.name, value:0}));
+  const df = new Array(n);
+  for(let i=0;i<n;i++){
+    const left = i?freq[i-1]:freq[i];
+    const right = i<n-1?freq[i+1]:freq[i];
+    df[i] = Math.max(0,(right-left)/2);
+  }
+  return bands.map(b=>{
+    let energy=0;
+    for(let i=0;i<n;i++){
+      const f=freq[i]; if(f<b.lo||f>=b.hi) continue;
+      const a=mag[i]||0; energy += (a*a)*df[i];
+    }
+    const width = Math.max(1e-9, b.hi-b.lo);
+    return { name:b.name, value: Math.sqrt(energy/width) };
+  });
+}
+
+
+Pearson pairwise
+
+function pearsonPairwise(a:number[], b:number[]){
+  let n=0,sumX=0,sumY=0,sumXX=0,sumYY=0,sumXY=0;
+  const len=Math.min(a.length,b.length);
+  for(let i=0;i<len;i++){
+    const x=a[i], y=b[i];
+    if(!Number.isFinite(x)||!Number.isFinite(y)) continue;
+    n++; sumX+=x; sumY+=y; sumXX+=x*x; sumYY+=y*y; sumXY+=x*y;
+  }
+  if(n<2) return NaN;
+  const cov=(sumXY-(sumX*sumY)/n)/n;
+  const varX=(sumXX-(sumX*sumX)/n)/n;
+  const varY=(sumYY-(sumY*sumY)/n)/n;
+  const denom = Math.sqrt(Math.max(varX,0)*Math.max(varY,0))||0;
+  return denom? cov/denom : NaN;
+}
+
+
+LLM timeout
+
+const withTimeout = <T,>(p:Promise<T>, ms=1500) =>
+  Promise.race([p, new Promise<T>((_,rej)=>setTimeout(()=>rej(new Error('llm_timeout')), ms))]);
+
+
+DONE = PASS CRITERIA
+
+No org leakage possible (headers enforced, server-derived org used, queries filtered).
+
+Baseline updates are race-free and indexed; duplicates impossible.
+
+Z-scores and band energy are numerically stable; pump “efficiency” and cavitation meaningful.
+
+UI is resilient, org-aware, and fast; mutations invalidate correctly.
+
+Tests and smoke checks pass; summary report explains what changed.
+
+
+
+Generate patches now, then show me the summary report with a short “what changed & why” per file.

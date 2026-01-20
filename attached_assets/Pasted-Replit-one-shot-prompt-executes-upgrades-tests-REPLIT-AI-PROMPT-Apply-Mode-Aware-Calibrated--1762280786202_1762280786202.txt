@@ -1,0 +1,89 @@
+Replit one-shot prompt (executes upgrades + tests)
+
+REPLIT AI PROMPT — Apply Mode-Aware, Calibrated, Survival-Aware RUL Engine
+
+Context:
+- Node/TS backend with Drizzle ORM; existing RUL engine file as provided.
+Goal:
+- Implement the exact upgrades described in our last message:
+  * server/utils/rul-utils.ts (deriveOpMode, dataQualityScore, modeThresholdMultiplier, calibrateFailureProb)
+  * RUL engine: mode awareness, data-quality propagation, base-rate calibration, right-censor by recent repair, SQL aggregate fetch, governance crumb
+  * Add unit tests for utils + engine
+  * Keep public API of RUL engine intact
+
+Actions:
+1) Create server/utils/rul-utils.ts with the four exported helpers; add tests in tests/rul-utils.spec.ts.
+2) Modify server/rul-engine.(ts|js):
+   - Replace 30-day component fetch with single SQL aggregate per component (n, span_days, missing_pct, staleness_min) + rows.
+   - If latest repair exists, right-censor trend (ignore data before repairCompletedAt).
+   - Infer opMode from latest equipmentTelemetry tags; scale remainingDays by modeThresholdMultiplier.
+   - Calibrate failureProbability toward the last-365d base failure rate for equipmentType.
+   - Blend confidence with dataQualityScore (q) and pass q into determineRiskLevel(… , q) with widened buffers under poor quality.
+   - Insert a provenance crumb into failurePredictions at the end with final numbers.
+3) Performance: ensure SQL uses indexes (org_id, equipment_id, measurement_timestamp). Wrap DB calls with try/catch.
+4) Tests:
+   - tests/rul-engine.spec.ts: trend → finite TTF; flat → ∞; DP vs STANDBY days scaling; calibration pulls toward base rate; poor quality nudges risk at most one band up.
+5) Update docs/audit/pdm_value_impact.md with a bullet list of the 5 enhancements.
+6) Run `npm test` and fix anything red. Deliver only working code; no stubs.
+
+Execute all changes now.
+Quick runbook (after Replit finishes)
+
+
+
+Start services
+
+npm i
+npm run dev
+Run tests
+
+npm test
+Smoke-test RUL
+
+# Example: simulate TRANSIT mode with decent data quality
+curl -X POST http://localhost:8000/api/rul/calc \
+  -H 'content-type: application/json' \
+  -d '{"orgId":"ORG1","equipmentId":"EQ-001"}'
+Expect response with:
+
+predictionMethod, remainingDays, failureProbability (calibrated), riskLevel, confidenceScore (quality-aware).
+
+
+
+Mode check
+
+Tag latest equipmentTelemetry with ["DP"] and re-run: remainingDays should reduce vs TRANSIT.
+
+Tag with ["STANDBY"]: remainingDays should increase.
+
+
+
+Quality check
+
+Temporarily drop samples / increase staleness → confidenceScore should drop and risk may nudge one band up (not more).
+
+
+
+Repair reset check
+
+Insert failureHistory.repairCompletedAt = NOW(); recalc ⇒ trend should ignore pre-repair data (RUL increases).
+
+Rollback/knobs (if needed)
+
+Disable probability calibration (for A/B): set env RUL_CALIBRATION_ALPHA=0 (if you expose it) or guard with a feature flag in code.
+
+Disable mode multiplier: env RUL_MODE_SCALE=off.
+
+Cap minimum confidence: env RUL_CONF_FLOOR=0.2.
+
+What “done” looks like
+
+Tests pass, server runs.
+
+RUL output changes sensibly with OP mode, data quality, and after repairs.
+
+A row is written to failurePredictions for audit on every RUL calc.
+
+
+
+If you want, I can add a tiny Grafana panel JSON to visualize “RUL vs Mode vs Quality” next.

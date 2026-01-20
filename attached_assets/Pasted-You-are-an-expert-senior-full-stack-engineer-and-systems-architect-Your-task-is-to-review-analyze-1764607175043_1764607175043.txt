@@ -1,0 +1,520 @@
+You are an expert senior full-stack engineer and systems architect.
+
+Your task is to review, analyze, validate, refactor, optimize, unify, simplify, and harden the ENTIRE ARUS application, which is a marine predictive-maintenance and fleet management system running as:
+
+React + TS + shadcn/ui + Tailwind (frontend)
+
+Electron wrapper for macOS/iOS/desktop
+
+Node/Express backend
+
+Dual Database: PostgreSQL (cloud) + SQLite/libSQL (embedded/offline)
+
+MQTT telemetry ingestion
+
+Predictive maintenance ML engine (TensorFlow, XGBoost, anomaly thresholds)
+
+RAG knowledge layer
+
+OCR importers (PDF/logs)
+
+Auto-filling Deck Logbook & Engine Room Logbook
+
+Crew management + hours of rest + scheduler
+
+Work orders & parts inventory
+
+Vessel tracking (GPS/telemetry)
+
+Fuel monitoring (Aquametro FMCC / Modbus)
+
+Compliance logs
+
+Email notification system
+
+Update system (Electron auto-updater)
+
+
+
+Before doing ANY changes:
+
+PHASE 0 — ARCHITECTURE SAFETY CHECK
+
+
+
+Before modifying the codebase, DO THIS FIRST:
+
+Map the entire folder structure
+
+Identify all key domains/pages/modules:
+
+Fleet Overview
+
+Bridge View
+
+Equipment Health
+
+Telemetry ingestion
+
+Analytics & ML
+
+Knowledge Base / RAG
+
+Work orders
+
+Inventory
+
+Crew Management + HOR
+
+Deck logbook
+
+Engine logbook
+
+Settings
+
+Notifications
+
+Database layer (Postgres + SQLite)
+
+Auto-update
+
+API integration layer
+
+Caching
+
+Shared UI components
+
+Utilities
+
+Scan for duplicate code, redundant components, and overlapping screens.
+
+Check if current architecture supports:
+
+multi-device consistency
+
+offline-first operation
+
+dual-storage transaction safety
+
+scaling of telemetry
+
+concurrency handling
+
+background tasks
+
+debouncing & deduplication
+
+stable MQTT ingestion
+
+Identify any existing features that would conflict with new changes.
+
+DO NOT overwrite or duplicate working code.
+
+DO NOT implement features that already exist under another name.
+
+DO NOT break API schemas.
+
+Produce a Compatibility Report:
+
+✔ Safe to modify
+
+⚠ Needs adjustment
+
+❌ Conflicts with existing system
+
+
+
+Only after the safety report, start Phase 1.
+
+PHASE 1 — UNIFICATION & SIMPLIFICATION OF UI/UX / DATA FLOW
+
+
+
+GOAL: Make the program intuitive, uncluttered, and consistent.
+
+Review ALL major UI tabs:
+
+Fleet Overview
+
+Bridge View
+
+Equipment Health
+
+Parts Inventory
+
+Work Orders
+
+Crew Management
+
+Crew Scheduler
+
+Hours of Rest
+
+Compliance
+
+Logbooks
+
+Telemetry panel
+
+Settings
+
+Identify:
+
+duplicated layouts
+
+inconsistent naming
+
+inconsistent filters
+
+repeated KPIs appearing in multiple screens
+
+tables or cards built differently across views
+
+Create (only if missing):
+
+Shared StatusCard
+
+Shared HealthCard
+
+Shared VesselHeader
+
+Shared TelemetryWidget
+
+Shared AlertPanel
+
+Shared EquipmentRow
+
+Shared WorkOrderLink
+
+Shared InventoryPicker
+
+Shared CrewAssignmentCard
+
+Replace duplicated logic with shared components only if safe.
+
+Ensure:
+
+consistent spacing
+
+consistent typography
+
+consistent icons
+
+consistent tables
+
+consistent filters
+
+consistent navigation hierarchy
+
+consistent dark mode
+
+Reduce UI clutter and merge redundant screens.
+
+PHASE 2 — DATABASE & SCHEMA VALIDATION
+
+
+
+Evaluate and fix all dual-storage issues.
+
+Validate Postgres + SQLite schema parity.
+
+Validate:
+
+foreign keys
+
+cascading deletes
+
+indexing
+
+uniqueness
+
+referential integrity
+
+migration safety
+
+data export/import tools
+
+version-tolerant migrations
+
+Build a migration safety layer:
+
+export tool (JSON/CSV/SQL dump)
+
+import + reconciliation tool
+
+schema version tracking
+
+Ensure the app is updatable without data loss.
+
+PHASE 3 — TELEMETRY STABILITY & PERFORMANCE HARDENING
+
+
+
+This includes MQTT + Engine Room + AQS FMCC + Vessel Tracking.
+
+Test ingestion under:
+
+high-frequency telemetry
+
+large bursts
+
+missing packets
+
+corrupted packets
+
+reconnect loops
+
+Apply:
+
+deduplication
+
+batch writing
+
+buffering
+
+rate limiting
+
+backpressure
+
+retry logic
+
+schema validation
+
+Modbus safety wrappers
+
+Ensure compatibility for:
+
+simulated telemetry
+
+FMCC Modbus mapping
+
+vessel position tracking
+
+fuel flow
+
+alarms
+
+Verify the auto-fill for:
+
+deck logbook
+
+engine logbook
+
+Detect bottlenecks in:
+
+React Query caches
+
+Websocket or polling loops
+
+Electron <-> React IPC
+
+PHASE 4 — WORK ORDERS + INVENTORY REFACTOR
+
+
+
+Remove redundancy + unify flows + harden performance.
+
+Add:
+
+global search
+
+predictive autocomplete
+
+pagination
+
+indexing
+
+sorting & filtering
+
+Validate relational structure:
+
+work orders link to parts
+
+parts link to stock locations
+
+vessel context applied
+
+engineer assignments consistent
+
+Add:
+
+low-stock alerts
+
+minimum threshold notifications
+
+QR/barcode (future-proof)
+
+PHASE 5 — CREW MANAGEMENT, SCHEDULER, HOURS OF REST
+
+
+
+Evaluate compliance & automate where possible.
+
+Validate schema for crew assignments per vessel.
+
+Add:
+
+compliance warnings
+
+email alerts
+
+shift conflict detection
+
+unavoidable non-compliant scheduling detection
+
+export for audits
+
+Improve UI:
+
+drag-and-drop scheduler
+
+timeline view
+
+crew fatigue indicators
+
+PHASE 6 — LOGBOOK SYSTEM
+
+
+
+Auto-fill + compliance + formatting.
+
+Validate:
+
+Deck Logbook auto-fill
+
+Engine Room Logbook auto-fill
+
+Watchkeeping
+
+Daily summaries
+
+Fuel & water logs
+
+Add:
+
+configurable rules in Settings
+
+export: XLSX, CSV, PDF
+
+email reminders for unsigned logs
+
+PHASE 7 — COMPLIANCE SYSTEM
+
+Implement:
+
+critical alert rules
+
+compliance monitoring
+
+vessel certification monitoring
+
+email notification system with editable thresholds
+
+Add a unified “Compliance Status” tab.
+
+PHASE 8 — UPDATE SYSTEM
+
+
+
+Convert to GitHub Auto-Update for macOS Electron.
+
+Detect existing auto-updater.
+
+If compatible, integrate:
+
+GitHub Actions
+
+code signing
+
+delta updates
+
+Add:
+
+“Check for Updates” button
+
+version changelog
+
+fallback/manual update link
+
+PHASE 9 — TEST SUITE CREATION
+
+
+
+Build a complete automated test kit.
+
+Temperature, RPM, load, alarms simulator
+
+FMCC fuel simulator
+
+GPS movement simulator
+
+MQTT stress tests
+
+Logbook auto-fill tests
+
+CRUD tests (inventory, work orders, crew, etc.)
+
+UI snapshot tests
+
+Schema migration test suite
+
+Sync reliability tests (cloud vs local)
+
+PHASE 10 — GLOBAL PERFORMANCE & SECURITY HARDENING
+
+Memory leak detection
+
+Prevent runaway renders
+
+Optimize React Query invalidations
+
+Remove duplicate requests
+
+Apply debouncing
+
+Fix large JSON payloads
+
+Harden IPC boundaries
+
+Validate all API inputs
+
+Add CSP rules
+
+Remove unused dependencies
+
+Tree-shake component library
+
+Minimize bundle size
+
+EXPECTED OUTPUT
+
+
+
+Produce:
+
+Architecture Compatibility Report
+
+Full upgrade plan
+
+Patch notes for each module
+
+Refactored code (only where safe)
+
+Consolidated UI/UX system
+
+Database migration safety system
+
+Telemetry stabilization improvements
+
+Crew management/Hours-of-rest compliance engine
+
+Unified notifications system
+
+Auto-update system plan/refactor
+
+System test suite
+
+Performance and security improvements
+
+Final “Fully Hardened Build”
+

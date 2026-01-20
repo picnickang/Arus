@@ -1,0 +1,164 @@
+==> Cloning from https://github.com/picnickang/ARUSAPP
+==> Checking out commit ff4116c99d7fed6830c7291a4c58c45f51266acf in branch main
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 1.33kB done
+#1 DONE 0.1s
+#2 [auth] library/node:pull render-prod/docker-mirror-repository/library/node:pull token for us-west1-docker.pkg.dev
+#2 DONE 0.0s
+#3 [internal] load metadata for docker.io/library/node:20-alpine
+#3 DONE 0.9s
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+#5 [builder 1/7] FROM docker.io/library/node:20-alpine@sha256:1ab6fc5a31d515dc7b6b25f6acfda2001821f2c2400252b6cb61044bd9f9ad48
+#5 resolve docker.io/library/node:20-alpine@sha256:1ab6fc5a31d515dc7b6b25f6acfda2001821f2c2400252b6cb61044bd9f9ad48 0.0s done
+#5 extracting sha256:2d35ebdb57d9971fea0cac1582aa78935adf8058b2cc32db163c98822e5dfa1b
+#5 ...
+#6 [internal] load build context
+#6 transferring context: 87.97MB 1.0s done
+#6 DONE 1.7s
+#5 [builder 1/7] FROM docker.io/library/node:20-alpine@sha256:1ab6fc5a31d515dc7b6b25f6acfda2001821f2c2400252b6cb61044bd9f9ad48
+#5 extracting sha256:2d35ebdb57d9971fea0cac1582aa78935adf8058b2cc32db163c98822e5dfa1b 1.3s done
+#5 DONE 2.3s
+#5 [builder 1/7] FROM docker.io/library/node:20-alpine@sha256:1ab6fc5a31d515dc7b6b25f6acfda2001821f2c2400252b6cb61044bd9f9ad48
+#5 extracting sha256:c087321cece4f408fdac87711c4c5c51945101848dffd8848840912c1fceb02c
+#5 extracting sha256:c087321cece4f408fdac87711c4c5c51945101848dffd8848840912c1fceb02c 6.3s done
+#5 DONE 8.5s
+#5 [builder 1/7] FROM docker.io/library/node:20-alpine@sha256:1ab6fc5a31d515dc7b6b25f6acfda2001821f2c2400252b6cb61044bd9f9ad48
+#5 extracting sha256:f2fbe8556258562779088bb23277d1d0b7e43fc6ddd52623166a2ac6d92bc73a
+#5 extracting sha256:f2fbe8556258562779088bb23277d1d0b7e43fc6ddd52623166a2ac6d92bc73a 0.3s done
+#5 DONE 8.9s
+#5 [builder 1/7] FROM docker.io/library/node:20-alpine@sha256:1ab6fc5a31d515dc7b6b25f6acfda2001821f2c2400252b6cb61044bd9f9ad48
+#5 extracting sha256:c74c90aa7c8726728fa9d2e330254ef29381efbd566aaee9933c3113c26f20ce 0.1s done
+#5 DONE 9.0s
+#7 [builder 2/7] RUN apk add --no-cache python3 make g++
+#7 0.131 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/APKINDEX.tar.gz
+#7 ...
+#8 [production 2/9] RUN addgroup -g 1001 -S nodejs
+#8 DONE 0.2s
+#7 [builder 2/7] RUN apk add --no-cache python3 make g++
+#7 0.243 fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/APKINDEX.tar.gz
+#7 ...
+#9 [production 3/9] RUN adduser -S arus -u 1001
+#9 DONE 0.2s
+#10 [production 4/9] WORKDIR /app
+#10 DONE 0.1s
+#7 [builder 2/7] RUN apk add --no-cache python3 make g++
+#7 ...
+#11 [production 5/9] COPY package*.json ./
+#11 DONE 0.1s
+#7 [builder 2/7] RUN apk add --no-cache python3 make g++
+#7 0.666 (1/29) Installing libstdc++-dev (14.2.0-r6)
+#7 1.069 (2/29) Installing jansson (2.14.1-r0)
+#7 1.080 (3/29) Installing zstd-libs (1.5.7-r0)
+#7 1.101 (4/29) Installing binutils (2.44-r3)
+#7 1.381 (5/29) Installing libgomp (14.2.0-r6)
+#7 1.439 (6/29) Installing libatomic (14.2.0-r6)
+#7 1.446 (7/29) Installing gmp (6.3.0-r3)
+#7 1.481 (8/29) Installing isl26 (0.26-r1)
+#7 1.509 (9/29) Installing mpfr4 (4.2.1_p1-r0)
+#7 1.523 (10/29) Installing mpc1 (1.3.1-r1)
+#7 1.531 (11/29) Installing gcc (14.2.0-r6)
+#7 2.794 (12/29) Installing musl-dev (1.2.5-r10)
+#7 2.890 (13/29) Installing g++ (14.2.0-r6)
+#7 3.309 (14/29) Installing make (4.4.1-r3)
+#7 3.318 (15/29) Installing libbz2 (1.0.8-r6)
+#7 3.325 (16/29) Installing libexpat (2.7.3-r0)
+#7 3.334 (17/29) Installing libffi (3.4.8-r0)
+#7 3.341 (18/29) Installing gdbm (1.24-r0)
+#7 3.380 (19/29) Installing xz-libs (5.8.1-r0)
+#7 3.389 (20/29) Installing mpdecimal (4.0.1-r0)
+#7 3.421 (21/29) Installing ncurses-terminfo-base (6.5_p20250503-r0)
+#7 3.532 (22/29) Installing libncursesw (6.5_p20250503-r0)
+#7 3.547 (23/29) Installing libpanelw (6.5_p20250503-r0)
+#7 3.595 (24/29) Installing readline (8.2.13-r1)
+#7 3.643 (25/29) Installing sqlite-libs (3.49.2-r1)
+#7 3.674 (26/29) Installing python3 (3.12.12-r0)
+#7 4.050 (27/29) Installing python3-pycache-pyc0 (3.12.12-r0)
+#7 4.282 (28/29) Installing pyc (3.12.12-r0)
+#7 4.282 (29/29) Installing python3-pyc (3.12.12-r0)
+#7 4.282 Executing busybox-1.37.0-r19.trigger
+#7 4.798 OK: 270 MiB in 47 packages
+#7 ...
+#12 [production 6/9] RUN npm ci --only=production && npm cache clean --force
+#12 0.224 npm warn config only Use `--omit=dev` to omit dev dependencies from the install.
+#12 8.357 npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
+#12 8.909 npm warn deprecated npmlog@5.0.1: This package is no longer supported.
+#12 9.288 npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+#12 9.711 npm warn deprecated gauge@3.0.2: This package is no longer supported.
+#12 9.920 npm warn deprecated apollo-server-plugin-base@3.7.2: The `apollo-server-plugin-base` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/server` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+#12 9.921 npm warn deprecated apollo-datasource@3.3.2: The `apollo-datasource` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+#12 10.24 npm warn deprecated are-we-there-yet@2.0.0: This package is no longer supported.
+#12 10.24 npm warn deprecated apollo-server-types@3.8.0: The `apollo-server-types` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/server` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+#12 10.25 npm warn deprecated apollo-server-errors@3.3.1: The `apollo-server-errors` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/server` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+#12 10.44 npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+#12 10.52 npm warn deprecated apollo-server-express@3.13.0: The `apollo-server-express` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/server` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+#12 10.97 npm warn deprecated apollo-server-env@4.2.1: The `apollo-server-env` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/utils.fetcher` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+#12 11.27 npm warn deprecated apollo-reporting-protobuf@3.4.0: The `apollo-reporting-protobuf` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/usage-reporting-protobuf` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+#12 14.32 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#12 14.60 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#12 15.44 npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+#12 15.46 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#12 18.51 npm warn deprecated apollo-server-core@3.13.0: The `apollo-server-core` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/server` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+#12 33.07 
+#12 33.07 added 1254 packages, and audited 1255 packages in 33s
+#12 33.07 
+#12 33.07 162 packages are looking for funding
+#12 33.07   run `npm fund` for details
+#12 33.07 
+#12 33.07 3 low severity vulnerabilities
+#12 33.07 
+#12 33.07 To address all issues, run:
+#12 33.07   npm audit fix
+#12 33.07 
+#12 33.07 Run `npm audit` for details.
+#12 33.07 npm notice
+#12 33.07 npm notice New major version of npm available! 10.8.2 -> 11.6.2
+#12 33.07 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.6.2
+#12 33.07 npm notice To update run: npm install -g npm@11.6.2
+#12 33.07 npm notice
+#12 33.24 npm warn using --force Recommended protections disabled.
+#12 ...
+#7 [builder 2/7] RUN apk add --no-cache python3 make g++
+#7 DONE 34.5s
+#13 [builder 3/7] WORKDIR /app
+#13 ...
+#12 [production 6/9] RUN npm ci --only=production && npm cache clean --force
+#12 DONE 45.2s
+#13 [builder 3/7] WORKDIR /app
+#13 DONE 11.3s
+#14 [builder 4/7] COPY package*.json ./
+#14 DONE 0.3s
+#15 [builder 5/7] RUN npm ci
+#15 2.363 npm warn skipping integrity check for git dependency ssh://git@github.com/electron/node-gyp.git
+#15 10.80 npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
+#15 11.56 npm warn deprecated apollo-server-plugin-base@3.7.2: The `apollo-server-plugin-base` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/server` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+#15 11.57 npm warn deprecated apollo-datasource@3.3.2: The `apollo-datasource` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+#15 12.01 npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+#15 12.01 npm warn deprecated apollo-server-types@3.8.0: The `apollo-server-types` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/server` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+#15 12.03 npm warn deprecated npmlog@5.0.1: This package is no longer supported.
+#15 12.09 npm warn deprecated @npmcli/move-file@2.0.1: This functionality has been moved to @npmcli/fs
+#15 12.16 npm warn deprecated are-we-there-yet@2.0.0: This package is no longer supported.
+#15 12.16 npm warn deprecated apollo-server-errors@3.3.1: The `apollo-server-errors` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/server` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+#15 12.21 npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+#15 12.21 npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+#15 12.73 npm warn deprecated apollo-server-express@3.13.0: The `apollo-server-express` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/server` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+#15 12.84 npm warn deprecated gauge@3.0.2: This package is no longer supported.
+#15 13.06 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#15 13.06 npm warn deprecated rimraf@2.6.3: Rimraf versions prior to v4 are no longer supported
+#15 13.12 npm warn deprecated boolean@3.2.0: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+#15 13.58 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#15 13.58 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#15 13.89 npm warn deprecated apollo-server-env@4.2.1: The `apollo-server-env` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/utils.fetcher` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+#15 14.82 npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+#15 14.82 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#15 14.86 npm warn deprecated glob@8.1.0: Glob versions prior to v9 are no longer supported
+#15 14.90 npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+#15 15.22 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#15 15.22 npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+#15 15.22 npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+#15 15.25 npm warn deprecated apollo-reporting-protobuf@3.4.0: The `apollo-reporting-protobuf` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/usage-reporting-protobuf` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+#15 15.26 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#15 15.57 npm warn deprecated glob@8.1.0: Glob versions prior to v9 are no longer supported
+#15 15.60 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#15 20.23 npm warn deprecated apollo-server-core@3.13.0: The `apollo-server-core` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/server` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.

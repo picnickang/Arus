@@ -1,0 +1,60 @@
+2025-10-21T19:06:31.881741708Z #18 14.41 (!) /app/client/src/pages/ml-training.tsx is dynamically imported by /app/client/src/pages/ml-ai-consolidated.tsx but also statically imported by /app/client/src/App.tsx, dynamic import will not move module into another chunk.
+2025-10-21T19:06:31.881747368Z #18 14.41 
+2025-10-21T19:06:31.881752599Z #18 14.47 computing gzip size...
+2025-10-21T19:06:31.881757259Z #18 14.53 ../dist/public/index.html                              4.02 kB │ gzip:   1.41 kB
+2025-10-21T19:06:32.033576812Z #18 14.53 ../dist/public/assets/index-_0SUaLr4.css             117.72 kB │ gzip:  18.54 kB
+2025-10-21T19:06:32.033598233Z #18 14.53 ../dist/public/assets/purify.es-DfngIMfA.js           22.26 kB │ gzip:   8.72 kB
+2025-10-21T19:06:32.033603023Z #18 14.53 
+2025-10-21T19:06:32.033608073Z #18 14.53 (!) Some chunks are larger than 500 kB after minification. Consider:
+2025-10-21T19:06:32.033612993Z #18 14.53 - Using dynamic import() to code-split the application
+2025-10-21T19:06:32.033617714Z #18 14.53 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+2025-10-21T19:06:32.033621614Z #18 14.53 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+2025-10-21T19:06:32.033625574Z #18 14.53 ../dist/public/assets/index.es-B9cyO-QT.js           150.57 kB │ gzip:  51.50 kB
+2025-10-21T19:06:32.033629494Z #18 14.53 ../dist/public/assets/html2canvas.esm-CBrSDip1.js    201.42 kB │ gzip:  48.03 kB
+2025-10-21T19:06:32.033633264Z #18 14.53 ../dist/public/assets/jspdf.es.min-vodt-ERg.js       413.63 kB │ gzip: 135.01 kB
+2025-10-21T19:06:32.033637134Z #18 14.53 ../dist/public/assets/index-QFLnkQuD.js            2,150.20 kB │ gzip: 536.07 kB
+2025-10-21T19:06:32.033641384Z #18 14.53 ✓ built in 13.90s
+2025-10-21T19:06:32.037676562Z #18 14.69 Building backend...
+2025-10-21T19:06:32.288990474Z #18 14.94 Build complete!
+2025-10-21T19:06:35.158297594Z #18 DONE 17.8s
+2025-10-21T19:06:36.631152705Z 
+2025-10-21T19:06:36.631191566Z #19 [production 8/9] COPY --from=builder /app/dist ./dist
+2025-10-21T19:06:38.076217195Z #19 DONE 1.4s
+2025-10-21T19:06:38.228822911Z 
+2025-10-21T19:06:38.228846671Z #20 [production 9/9] RUN chown -R arus:nodejs /app
+2025-10-21T19:10:52.686793595Z #20 DONE 254.6s
+2025-10-21T19:10:52.841854139Z 
+2025-10-21T19:10:52.8418725Z #21 exporting to docker image format
+2025-10-21T19:10:52.84187708Z #21 exporting layers
+2025-10-21T19:11:32.662771851Z #21 exporting layers 40.0s done
+2025-10-21T19:11:32.838023087Z #21 exporting manifest sha256:b90d907a6d361ce29e502a0ad03c5556b07cc2a21e7fee4fa3f49c1ae704a49e done
+2025-10-21T19:11:32.838064178Z #21 exporting config sha256:2aa4e63f2aafb773b42b3d5883813b51ef3fc424729e6a9ceb62186f699a97f3 done
+2025-10-21T19:11:36.860793748Z #21 DONE 44.2s
+2025-10-21T19:11:36.860808818Z 
+2025-10-21T19:11:36.860813188Z #22 exporting cache to client directory
+2025-10-21T19:11:36.860816158Z #22 preparing build cache for export
+2025-10-21T19:13:05.661656257Z #22 writing cache image manifest sha256:23eaecf93d511348ea8bcd77962614b31b86a4ac6b52c781c7f477ae2d7e79ec done
+2025-10-21T19:13:05.661674628Z #22 DONE 88.8s
+2025-10-21T19:13:06.308080399Z Pushing image to registry...
+2025-10-21T19:13:22.961871233Z Upload succeeded
+2025-10-21T19:13:31.226647734Z ==> Deploying...
+2025-10-21T19:14:30.33893273Z 2025-10-21 19:14:30.338766: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 FMA
+2025-10-21T19:14:30.338988421Z To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2025-10-21T19:14:31.838649587Z 
+2025-10-21T19:14:31.838676897Z === Database Configuration ===
+2025-10-21T19:14:31.839028664Z Deployment Mode: CLOUD (Online)
+2025-10-21T19:14:31.936909322Z ✓ Cloud PostgreSQL: Connected
+2025-10-21T19:14:31.936934192Z ==============================
+2025-10-21T19:14:31.936937663Z 
+2025-10-21T19:14:34.059755861Z ==> Exited with status 13
+2025-10-21T19:14:34.077138779Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+2025-10-21T19:14:34.56121632Z ==> No open ports detected, continuing to scan...
+2025-10-21T19:14:34.824697047Z ==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+2025-10-21T19:14:46.926665485Z 2025-10-21 19:14:46.926482: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 FMA
+2025-10-21T19:14:46.926717026Z To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2025-10-21T19:14:48.316666691Z 
+2025-10-21T19:14:48.316696372Z === Database Configuration ===
+2025-10-21T19:14:48.316954527Z Deployment Mode: CLOUD (Online)
+2025-10-21T19:14:48.415453077Z ✓ Cloud PostgreSQL: Connected
+2025-10-21T19:14:48.415476908Z ==============================
+2025-10-21T19:14:48.415479528Z 

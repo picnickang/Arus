@@ -1,0 +1,201 @@
+REPLIT AI PROMPT — Final Gaps: Implement & Verify
+(Stack: Express.js + React 18 + Wouter + TanStack Query, ONNX/TF.js PdM)
+
+OBJECTIVE
+Finish the remaining UX/UI and API gaps to match commercial PdM suites. Audit first, avoid redundancy, add only net improvements. Generate fixtures, tests, docs, and a runbook.
+
+ASSUMPTIONS
+- Monorepo: server/ (Express), client/ (React 18 + Wouter + TanStack Query), data/
+- Existing anomaly scoring (TF.js/ONNX) is available or stubbed.
+- Keep changes non-destructive; if overlap, create “v2” and gate behind /experimental.
+
+────────────────────────────────────────────────
+A) AUDIT & REDUNDANCY GUARD (RUN FIRST)
+────────────────────────────────────────────────
+1) Scan server/routes/** and client/src/** for features that overlap:
+F1 Fleet, F2 VPS charts, F3 Overlays, F4 Context, F5 Alerts→WO,
+F6 Maintenance, F7 Benchmarking, F8 Compliance, F9 Settings, F10 Narrative.
+2) Create docs/review/redundancy_report.md:
+| Area | Existing | Proposed_v2 | Keep/Replace | Reason | NetScore |
+3) Add scripts/redundancy_score.js (1–5 each: UX, Perf, Coverage, Maintainability, Consistency; NetScore = sum(v2) − sum(existing)).
+- If NetScore ≥ 2 → switch default to v2 (rename routes/pages accordingly).
+- Else → keep existing; mount v2 under /experimental/* only.
+
+────────────────────────────────────────────────
+B) BACKEND — ENDPOINTS (AUGMENT, DON’T BREAK)
+────────────────────────────────────────────────
+Add these routes if missing; otherwise extend responses:
+
+1) GET /api/fleet/summary
+→ [{ id, name, type, region, anomaly_score, threshold, efficiency, open_alerts, engine, risk_badges?: string[] }]
+
+2) GET /api/vessels/:id/performance?from&to
+→ {
+ts:number[], load_pct:number[], sfoc_g_per_kwh:number[],
+fuel_lph:number[], power_kw:number[], stw_kn:number[]|[],
+load_hist:{bin:number, hours:number}[],
+segments:[{start:number,end:number,mode?:string,sea_state?:number,leg?:string}],
+meta:{context_available:boolean}
+}
+
+3) GET /api/vessels/:id/baselines
+→ { baseline:{load_vs_sfoc:{x,y}[], power_vs_stw:{x,y}[], load_hist:{bin,hours}[]}, fleet_avg?:{...}, percentiles?:{p10,p50,p90} }
+
+4) GET /api/vessels/:id/overlays?from&to
+→ { points:[{ts, anomaly_score, threshold, label?, contributors?:string[], context?:{mode?,sea_state?,wind_speed?}, confidence?:number}], bands?:[{chart:'sfoc'|'fuel'|'power_stw',yMin?,yMax?,label?}] }
+
+5) Alerts & Maintenance
+GET /api/vessels/:id/alerts
+POST /api/vessels/:id/alerts/:alertId/ack
+POST /api/vessels/:id/alerts/:alertId/workorder
+GET /api/vessels/:id/maintenance
+
+6) Compliance & Reports
+GET /api/reports/cii/:id → { vesselId, cii:{ rating:'A'|'B'|'C'|'D'|'E', score:number } }
+GET /api/reports/export?type=csv|pdf → { ok:true }
+
+Return real data if available; otherwise synthesize deterministic fixtures.
+
+────────────────────────────────────────────────
+C) CONTEXT LAYER ENGINE (CLE)
+────────────────────────────────────────────────
+server/context/:
+- index.js → enrich({vesselId, from, to}) gathers opslog, maintenance, AIS, metocean; aligns; infers mode/sea_state if feeds missing; caches window; returns { context[], segments[], overlays? }.
+- heuristics/inferMode.js (DP/Transit/Standby from thruster/rpm/stw)
+- heuristics/inferSeaState.js (vibration variance bands → sea_state estimate)
+- sources/ais.js → file/API adapter; getAisTrack(); derive legs
+- sources/metocean.js → file/API adapter; sea_state, wind_speed
+- sources/opslog.js, maintenance.js → read data/company/<vesselId>/*.json
+
+Append .env.example:
+AIS_API_URL=
+AIS_API_KEY=
+METOCEAN_API_URL=
+METOCEAN_API_KEY=
+
+────────────────────────────────────────────────
+D) FRONTEND — React 18 + Wouter + TanStack Query
+────────────────────────────────────────────────
+Routes (declarative; don’t break existing):
+client/src/routes/AppRoutes.tsx
+<Switch>
+<Route path="/" component={FleetPage} />
+<Route path="/vessel/:id/performance" component={PerformancePage} />
+<Route path="/vessel/:id/alerts" component={AlertsPage} />
+<Route path="/vessel/:id/maintenance" component={MaintenancePage} />
+<Route path="/reports" component={ReportsPage} />
+<Route path="/experimental/:rest*" component={ExperimentalPage} />
+</Switch>
+
+Shared hooks:
+- hooks/useApiQuery.ts → base fetcher w/ error logging & retry policy
+- hooks/usePrefs.ts → persist { visibleCharts, thresholds, units, range, toggles } to localStorage and sync via URL
+
+Pages:
+F1 FleetPage
+- Grid cards with RAG (score vs threshold), 3 tiny risk badges (Env/CII, Ops, Alerts), chips: type/region/mission, sort by anomaly_score/efficiency/alerts.
+
+F2 PerformancePage
+- Recharts/visx:
+• Load↔SFOC (scatter/line) + dashed baseline + dotted fleet avg
+• Fuel↔Time (line, moving avg toggle)
+• Power↔STW (scatter/line)
+• Load Histogram (bars)
+- “Compare legs” dropdown highlights segment bounds.
+- Background **mode/sea_state bands**; **overlay markers** with tooltip (score, threshold, top contributors, mode/sea_state/wind).
+- `SettingsDrawer` (visible charts order, thresholds, units), persisted.
+
+F3 Overlays everywhere charts apply; click marker → AlertsPage anchor.
+
+F4 Context chips: Mode, Sea State, Mission; opacity encodes confidence.
+
+F5 AlertsPage
+- TanStack Table: sortable by severity/timestamp/ack; Ack + Create WO actions; right drawer mini-trend.
+
+F6 MaintenancePage
+- Simple list + timeline with status colors (Open/Overdue/Closed).
+
+F7 Benchmark ribbons
+- Per-chart percentile ribbon vs fleet; “Similar vessels only” toggle.
+
+F8 Compliance
+- CII tile in vessel header; `/reports` page with CSV/PDF buttons.
+
+F9 Settings
+- Drawer already covered; also add “Reset to profile defaults”.
+
+F10 NarrativeSummary
+- Card at top of PerformancePage synthesizing: delta vs baseline/fleet, sea_state/mode context, next-action hint.
+
+If equivalent legacy pages exist, render new ones under `/experimental` until redundancy_score approves promotion.
+
+────────────────────────────────────────────────
+E) FIXTURES & GENERATORS
+────────────────────────────────────────────────
+scripts/generate_context_fixtures.js:
+- data/company/V001/{opslog.json,maintenance.json}
+- data/ais/V001.json (track with legs + SOG)
+- data/metocean/region.csv (ts, sea_state, wind_speed)
+- deterministic anomaly points for `/overlays`
+
+Add npm script: "fixtures:context": "node scripts/generate_context_fixtures.js"
+
+────────────────────────────────────────────────
+F) TESTS & VERIFIERS
+────────────────────────────────────────────────
+1) scripts/ping_endpoints.js → GET the endpoints in B) and validate shapes; write tmp/endpoint_report.json.
+2) scripts/redundancy_score.js → compute NetScore per overlapping feature; update docs/review/redundancy_report.md and only adopt if NetScore≥2.
+3) scripts/acceptance_tests.js → assert:
+- /api/fleet/summary returns ≥1
+- /api/vessels/V001/performance has equal-length arrays and segments.length≥1
+- /api/vessels/V001/overlays returns ≥1 point w/ context or confidence
+- /api/vessels/V001/baselines has baseline curves
+- /api/reports/cii/V001 returns rating+score
+- client builds and routes render (optional puppeteer smoke)
+
+Add root scripts:
+"ping:endpoints": "node scripts/ping_endpoints.js",
+"score:redundancy": "node scripts/redundancy_score.js",
+"test:acceptance": "node scripts/acceptance_tests.js"
+
+────────────────────────────────────────────────
+G) STYLE & ACCESSIBILITY
+────────────────────────────────────────────────
+- Unify dark theme spacing and typography scale across pages.
+- Keyboard focus states on interactive controls; add high-contrast toggle.
+- Charts responsive; legends consistent; breadcrumbs Fleet > Vessel > Page.
+
+────────────────────────────────────────────────
+H) DOCS & RUNBOOK
+────────────────────────────────────────────────
+Generate:
+- docs/ui_vps_summary.md (routes, endpoints, components, run)
+- docs/review/redundancy_report.md (scores & decisions)
+- docs/acceptance_matrix.md (tests passed/failed)
+- docs/next_steps_checklist.md (tickets)
+
+At the end, print:
+- New/updated endpoints list
+- Registered Wouter routes
+- Conflicts avoided & decisions
+- Commands to run API & UI
+
+RUN ORDER (print too):
+1) npm i
+2) npm run fixtures:context
+3) npm --prefix server run dev
+4) npm --prefix client run dev
+5) npm run ping:endpoints
+6) npm run score:redundancy
+7) npm run test:acceptance
+8) Open `/`, `/vessel/V001/performance`, `/vessel/V001/alerts`, `/reports`
+
+CONSTRAINTS
+- Express backend only; React 18 + Wouter + TanStack Query on frontend.
+- Do not delete/overwrite existing implementations unless redundancy_report shows NetScore≥2.
+- Prefer enriching existing endpoints over duplicating.
+
+SUCCESS CRITERIA
+- Four VPS charts, context bands, overlays, benchmarking ribbons, CII tile, alerts→WO, narrative card, settings drawer fully visible.
+- Redundancy guard proves net improvement or keeps new views under /experimental.
+- Acceptance tests pass; docs and runbook generated.

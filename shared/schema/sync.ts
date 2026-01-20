@@ -1,0 +1,122 @@
+/**
+ * Schema Sync - Synchronization Journal and Outbox
+ * 
+ * Tables for event sourcing, sync tracking, and idempotency.
+ */
+
+import {
+  sql,
+  pgTable,
+  text,
+  varchar,
+  integer,
+  timestamp,
+  boolean,
+  jsonb,
+  index,
+  createInsertSchema,
+  z,
+} from "./base.js";
+import { users } from "./core.js";
+
+// Sync journal for audit trails and change tracking
+export const syncJournal = pgTable(
+  "sync_journal",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    entityType: text("entity_type").notNull(),
+    entityId: varchar("entity_id").notNull(),
+    operation: text("operation").notNull(),
+    payload: jsonb("payload"),
+    userId: varchar("user_id").references(() => users.id),
+    syncStatus: text("sync_status").default("pending"),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
+  },
+  (table) => ({
+    entityIndex: index("idx_sync_journal_entity").on(
+      table.entityType,
+      table.entityId,
+      table.createdAt
+    ),
+  })
+);
+
+// Sync outbox for event publishing and real-time notifications
+export const syncOutbox = pgTable(
+  "sync_outbox",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    eventType: text("event_type").notNull(),
+    payload: jsonb("payload"),
+    processed: boolean("processed").default(false),
+    processingAttempts: integer("processing_attempts").default(0),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
+    processedAt: timestamp("processed_at", { mode: "date" }),
+  },
+  (table) => ({
+    eventIndex: index("idx_sync_outbox_event").on(table.eventType, table.processed),
+  })
+);
+
+// Request idempotency tracking
+export const requestIdempotency = pgTable("request_idempotency", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  requestId: text("request_id").notNull().unique(),
+  responseStatus: integer("response_status"),
+  responseBody: jsonb("response_body"),
+  expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
+});
+
+// Idempotency log for duplicate request detection
+export const idempotencyLog = pgTable("idempotency_log", {
+  key: varchar("key").primaryKey(),
+  expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
+});
+
+// Replay incoming for sync replay
+export const replayIncoming = pgTable("replay_incoming", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  payload: jsonb("payload"),
+  processedAt: timestamp("processed_at", { mode: "date" }),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
+});
+
+// Sheet lock for concurrent edit prevention
+export const sheetLock = pgTable("sheet_lock", {
+  sheetId: varchar("sheet_id").primaryKey(),
+  lockedBy: varchar("locked_by").notNull(),
+  lockedAt: timestamp("locked_at", { mode: "date" }).defaultNow(),
+  expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
+});
+
+// Sheet version for optimistic concurrency
+export const sheetVersion = pgTable("sheet_version", {
+  sheetId: varchar("sheet_id").primaryKey(),
+  version: integer("version").notNull().default(1),
+  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
+});
+
+// Insert schemas
+export const insertSyncJournalSchema = createInsertSchema(syncJournal).omit({ id: true, createdAt: true });
+export const insertSyncOutboxSchema = createInsertSchema(syncOutbox).omit({ id: true, createdAt: true });
+export const insertRequestIdempotencySchema = createInsertSchema(requestIdempotency).omit({ id: true, createdAt: true });
+
+// Types
+export type SyncJournal = typeof syncJournal.$inferSelect;
+export type InsertSyncJournal = z.infer<typeof insertSyncJournalSchema>;
+export type SyncOutbox = typeof syncOutbox.$inferSelect;
+export type InsertSyncOutbox = z.infer<typeof insertSyncOutboxSchema>;
+export type RequestIdempotency = typeof requestIdempotency.$inferSelect;
+export type IdempotencyLog = typeof idempotencyLog.$inferSelect;
+export type ReplayIncoming = typeof replayIncoming.$inferSelect;
+export type SheetLock = typeof sheetLock.$inferSelect;
+export type SheetVersion = typeof sheetVersion.$inferSelect;

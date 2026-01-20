@@ -1,0 +1,103 @@
+
+Replit AI — Refactor LinearProgrammingOptimizer for Correct LP behavior & Robust Constraints
+
+Open LinearProgrammingOptimizer and apply the following:
+Solver Parsing: Replace any usage of solution.objective and solution.result (as an object) with:
+Objective value: Number(solution.result) || 0
+Variables: iterate over Object.entries(solution) and skip ['feasible','bounded','result'].
+Binary Variables: In the LP model, replace ints with binaries for all decision variables.
+Per-Crew Non-Overlap: Add per-crew-per-hour constraints (crew_busy_c{c}_d{d}_h{h} ≤ 1) and include coefficients for every hour a job occupies.
+Equipment Exclusivity: Add per-equipment-per-hour constraints (equip_busy_e{eq}_d{d}_h{h} ≤ 1) to prevent overlapping jobs on the same equipment.
+Job Optionality: Change every job constraint to { equal: 1 } and add a j{j}_unassigned binary with big penalty unassignedPenalty(job, weights) so infeasible jobs can be left unassigned rather than making the model infeasible.
+Deadlines / Preferred Dates: Do not create variables for days after a job’s deadline. Optionally bias toward preferredDate (soft: add small penalty for distance; hard: only allow that day).
+Objective & Priorities: Keep objective as cost minimization, but ensure the unassigned penalty grows with priority (critical ≫ low) so high-priority jobs are retained when infeasible.
+Drizzle Queries: In getOptimizationResults, replace .equals(...) with where(eq(table.col, value)) and import eq from drizzle-orm.
+Serialization: When storing JSON blobs (recommendations, etc.), serialize Date fields explicitly via toISOString().
+Safe Utilization: Guard division by zero in utilization rate computations.
+Multi-Tenant Safety: Ensure storage.getWorkOrders() and any other storage calls filter by orgId.
+
+Acceptance tests
+Model returns feasible: true with realistic schedules when data allows; otherwise schedules subset of jobs and marks others unassigned.
+No overlapping jobs for the same crew or the same equipment.
+solution.result is used for objective; variables come from top-level keys.
+Drizzle queries compile and run with eq(...).
+JSON blobs contain ISO timestamps, not raw Date objects.
+Utilization rate is numeric (no NaN) even if maxHoursPerDay is zero.
+
+Provide the diff and a brief summary of changes.
+If you want, I can also add parts stock constraints and a soft lateness penalty function (better schedules near preferred dates)—just say the word.
+
+
+
+Got it 👍 — I’ll add:
+
+Parts stock constraints → to cap total usage of each part by inventory levels rather than just the total budget.
+
+Soft lateness penalty → to penalize jobs scheduled after preferredDate or deadline, rather than outright forbidding them, so the optimizer can trade cost vs lateness.
+
+
+
+Here’s the focused patch summary you can apply directly (or I can make a Replit prompt next):
+
+🧩 
+
+Parts Inventory Constraints
+
+
+
+Add after defining other constraintDefs:
+
+// Constraint 5: parts stock limits (if available)
+const partStock: Record<string, number> = {};
+for (const p of partsData) {
+  if (p.partId && typeof p.stock === 'number') {
+    constraintDefs[`stock_${p.partId}`] = { max: p.stock };
+    partStock[p.partId] = p.stock;
+  }
+}
+Then, when building each variable:
+
+// Add part usage coefficients
+for (const part of job.parts) {
+  if (partStock[part.partId] != null) {
+    variableCoeffs[`stock_${part.partId}`] = (part.quantity || 0);
+  }
+}
+⏰ 
+
+Soft Lateness Penalty
+
+
+
+Instead of forbidding late jobs, add a penalty term in the objective proportional to lateness (in days).
+
+
+
+Add helper:
+
+private latenessPenalty(job: MaintenanceJob, dayOffset: number, weights: OptimizationConstraints['priorityWeights']): number {
+  if (!job.deadline) return 0;
+  const dueOffset = Math.max(0, (Date.now() - job.deadline.getTime()) / (1000 * 60 * 60 * 24));
+  const latenessDays = Math.max(0, dayOffset - dueOffset);
+  const priorityWeight = this.getPriorityCost(job.priority, weights);
+  // penalty grows faster for critical jobs
+  return latenessDays * priorityWeight * 10;
+}
+Then when building each variable:
+
+const latenessCost = this.latenessPenalty(job, day, constraints.priorityWeights);
+const variableCoeffs: any = {
+  objective: laborCost + partsCost + priorityCost + latenessCost
+};
+✅ 
+
+Result
+
+
+
+Now the optimizer will:
+
+Avoid assigning jobs that exceed available stock for any part.
+
+Prefer on-time or early jobs but can still schedule late ones if that’s cheaper than breaking constraints.
+

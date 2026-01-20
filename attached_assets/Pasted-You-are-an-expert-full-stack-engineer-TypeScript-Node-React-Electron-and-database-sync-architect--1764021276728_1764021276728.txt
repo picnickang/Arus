@@ -1,0 +1,534 @@
+You are an expert full-stack engineer (TypeScript/Node/React/Electron) and database/sync architect (PostgreSQL + SQLite/libSQL/Turso), with strong experience in MQTT, real-time telemetry, predictive maintenance, and offline-first desktop/mobile applications.
+
+
+
+We are working on an ARUS vessel operations + predictive maintenance app with:
+
+Electron desktop shell (macOS now, later Windows/Linux)
+
+Embedded Node/Express server (server/index.ts → server/index.js via esbuild)
+
+React/Vite frontend served as a static SPA from dist
+
+Hybrid data layer:
+
+Local SQLite/libSQL for vessel/embedded mode (offline-first)
+
+Optional PostgreSQL / Turso / libSQL for cloud & multi-device sync
+
+MQTT + Telemetry:
+
+“MQTT Reliable Sync” service
+
+“MQTT Ingestion” / telemetry stream processor
+
+“VesselTelemetrySimulator” for synthetic data
+
+“Digital Twin” service and related health / risk models
+
+Real-time delivery:
+
+WebSockets for alerts, telemetry, etc.
+
+REST endpoints like /api/equipment, /api/equipment/health, /api/alerts/*, /api/sync/*, /api/maintenance-schedules*
+
+Rate limiting / tenant isolation:
+
+Middleware that enforces x-org-id and rate limiting
+
+Logs show TENANT_ISOLATION_SUCCESS and RATE_LIMIT_GENERAL
+
+LLM / AI layer:
+
+Some modules for AI/LLM reports and “Enhanced LLM” features
+
+In embedded mode these should work gracefully even if OpenAI key is missing
+
+
+
+Important recent issues in logs:
+
+Blue/blank UI previously caused by static file issues (e.g. CSS URL returning text/html and 404 for JS bundles).
+
+That is largely fixed now, but we want to re-verify.
+
+Live telemetry, digital twin, and some database paths are not fully healthy:
+
+Database initialization failed: TypeError: Cannot read properties of null (reading 'select')
+
+Failed to check connection pool health: TypeError: db.execute is not a function
+
+LibsqlError: SQLITE_ERROR: no such table: update_settings
+
+Digital Twin] Disabled: database not initialized (embedded/local mode)
+
+Enhanced LLM] Disabled: database not initialized (embedded/local mode)
+
+GET /api/* 429 :: {"code":"RATE_LIMIT_GENERAL"} under heavy polling
+
+GET /api/equipment/health 401 :: {"code":"MISSING_ORG_ID"} when x-org-id missing
+
+
+
+The goal of this task is to:
+
+
+
+Review the entire architecture first, then repair and harden all database, telemetry, digital twin, rate limiting, and real-time behavior for the intended hybrid offline-first multi-device design, without duplicating or fighting against existing structure.
+0. BEFORE YOU CHANGE ANYTHING – ARCHITECTURE REVIEW & ALIGNMENT
+
+Scan the repo and map the architecture:
+
+Identify:
+
+Electron main process file(s)
+
+Server entrypoint (server/index.ts or similar, and built server/index.js)
+
+Frontend entry (src/main.tsx or similar) and Vite config
+
+DB initialization & clients (PostgreSQL, libSQL, SQLite) and any “mode” flags (e.g., DEPLOYMENT_MODE, VESSEL, CLOUD, etc.)
+
+Telemetry pipeline:
+
+MQTT / MQTT Reliable Sync
+
+Telemetry ingestion routes / services
+
+Digital Twin modules
+
+WebSocket server setup and subscription model
+
+Rate limiter middleware
+
+Tenant/Org middleware using x-org-id
+
+Any “update scheduler” or “update_settings” table logic
+
+Produce a short, high-level description of the current architecture and how the major pieces are intended to work together.
+
+Check for existing functionality before adding anything:
+
+For each of the tasks below, first locate the most relevant existing modules/utilities.
+
+Do NOT create parallel/duplicate implementations (e.g., don’t add a second telemetry pipeline, a second DB client, or a second rate limiter).
+
+Instead:
+
+Extend or fix what exists.
+
+If you need to refactor, migrate uses, don’t leave dead or conflicting code paths.
+
+Respect runtime modes:
+
+Identify all flags/env vars controlling behavior, such as:
+
+Embedded / vessel mode vs. Cloud / Replit mode
+
+SQLite vs. PostgreSQL / libSQL
+
+Dev vs. Production
+
+For every fix or feature:
+
+Ensure embedded/vessel + desktop runs cleanly with no external services required (except optional MQTT if configured).
+
+Ensure cloud/server mode is not broken.
+
+1. DATABASE LAYER – FIX ALL STRUCTURAL & RUNTIME ISSUES
+
+
+
+1.1 Unify DB client contracts
+
+Find where db.execute is called vs. where Drizzle/libSQL/Postgres clients use .query(), .select(), .all(), etc.
+
+Root-cause TypeError: db.execute is not a function:
+
+Either:
+
+The wrong client object is passed to health-check / connection routines, or
+
+The abstraction expects a generic interface but some clients don’t implement it.
+
+Implement a thin DB abstraction (if not already present) that:
+
+Wraps the underlying client (libSQL/SQLite/Postgres).
+
+Provides a consistent minimal API: e.g. execute, select, insert, transaction, etc.
+
+Update callers (e.g., checkConnectionPoolHealth, sync manager, update scheduler) to use this abstraction, not raw client calls.
+
+
+
+1.2 Missing tables & migrations
+
+Fix SQLITE_ERROR: no such table: update_settings:
+
+Locate the schema definition (Drizzle or SQL migrations) for update_settings.
+
+Ensure it is included in the SQLite/vessel migration path, not just cloud.
+
+Verify all tables required by:
+
+Digital Twin
+
+Telemetry ingestion
+
+Sync Manager / Reliable Sync
+
+Update Scheduler
+
+AI/LLM report metadata
+
+Ensure embedded SQLite initialization creates all required tables in vessel-local.db.
+
+Add idempotent migrations so that:
+
+Re-running initialization is safe.
+
+Old local DBs are upgraded without manual deletion.
+
+
+
+1.3 Embedded vs Cloud DB
+
+Confirm the current logic for:
+
+When to use SQLite vs. libSQL vs. Postgres.
+
+When TURSO / cloud sync is expected.
+
+For embedded/desktop mode:
+
+Ensure the app can run fully with only local SQLite, with:
+
+Equipment
+
+Telemetry
+
+Alerts
+
+Maintenance schedules
+
+Update settings (if needed for local scheduling)
+
+Digital Twin tables
+
+All remote-only paths (cloud sync, Turso, etc.) should:
+
+Log a clear “offline-only” warning.
+
+Not throw or spam errors.
+
+2. DIGITAL TWIN & HEALTH MONITOR – MAKE IT WORK IN EMBEDDED MODE
+
+Find the Digital Twin service and where it is disabled with messages like:
+
+Digital Twin] Disabled: database not initialized (embedded/local mode)
+
+Fix the condition so that:
+
+In embedded mode with SQLite properly initialized, the Digital Twin:
+
+Initializes successfully.
+
+Reads telemetry and equipment tables.
+
+Outputs health scores / derived state the UI expects.
+
+If some advanced cloud-only features truly need Postgres/libSQL, then:
+
+Gracefully degrade those sub-features only.
+
+Still keep baseline Digital Twin + health scoring functional in embedded mode.
+
+Ensure /api/equipment/health uses:
+
+A consistent DB path in embedded mode.
+
+Proper handling of x-org-id (see tenant section below).
+
+3. TELEMETRY + MQTT + SIMULATOR – END-TO-END LIVE PIPELINE
+
+
+
+3.1 MQTT broker & offline behavior
+
+The logs show:
+
+Broker connection timeout - running in offline mode
+
+Implement robust behavior when no MQTT broker is present:
+
+In pure desktop/testing mode:
+
+Either run without MQTT but still allow telemetry simulator to write directly to DB / Digital Twin,
+
+Or provide a base in-process mock MQTT broker.
+
+Avoid infinite reconnect spam logs.
+
+
+
+3.2 Telemetry Simulator
+
+Find the VesselTelemetrySimulator/similar service.
+
+Ensure it:
+
+Targets the actual telemetry schema used by ingestion & Digital Twin.
+
+Generates realistic time-series data for:
+
+Engines
+
+Gearboxes
+
+Pumps
+
+Generators
+
+Vibration/accelerometers if present
+
+Can be configured via env or a config file to:
+
+Enable/disable simulator.
+
+Control frequency and noise.
+
+Confirm that simulator data flows through the same:
+
+Ingestion pipeline
+
+DB writes
+
+Digital Twin updates
+
+Health endpoints
+
+WebSockets / alerts
+
+
+
+3.3 WebSocket and REST alignment
+
+Ensure the same source of truth (DB + Digital Twin) feeds:
+
+WebSocket topics (alerts, health updates)
+
+REST endpoints /api/equipment, /api/equipment/health, /api/alerts/*
+
+Fix any mismatch where the UI expects certain fields from /api/equipment/health that Digital Twin does not fill in.
+
+4. RATE LIMITING & TENANT / ORG MIDDLEWARE
+
+
+
+4.1 Rate limit tuning for desktop/embedded
+
+Logs show lots of:
+
+429 Too many API requests. Please reduce request frequency.
+
+In Electron/desktop embedded mode:
+
+Either:
+
+Disable general rate limiting for localhost / embedded runtime, or
+
+Greatly relax the limits so the React app can poll without 429s.
+
+Make this configurable:
+
+e.g., via RATE_LIMIT_ENABLED or environment + deployment mode.
+
+
+
+4.2 Tenant isolation / 
+
+x-org-id
+
+Logs show 401:
+
+MISSING_ORG_ID: x-org-id header is required for authentication
+
+For embedded/desktop mode:
+
+Define a default org and enforce it centrally:
+
+For example, set x-org-id: default-org-id in:
+
+A global Axios/fetch interceptor on the frontend, and/or
+
+Node middleware that injects default-org-id when missing and in embedded mode.
+
+Ensure:
+
+The tenant middleware still enforces org separation in multi-tenant/cloud mode.
+
+Embedded desktop does not constantly see 401s because the header is missing.
+
+5. FRONTEND – LIVE DASHBOARDS + STATIC SERVING CHECK
+
+
+
+5.1 Static file correctness
+
+Re-verify:
+
+Express static root is correctly configured for Electron embedded mode to serve from dist with:
+
+Correct index.html
+
+CSS bundles like assets/index-*.css
+
+JS bundles like assets/index-*.js
+
+MIME types are correct (no CSS/JS requests returning text/html).
+
+If necessary:
+
+Adjust any publicDir, base, or asset settings in Vite config vs server static config.
+
+Ensure SPA fallback (GET *) only kicks in for actual app routes, not asset paths.
+
+
+
+5.2 Real-time UI behavior
+
+Ensure the frontend:
+
+Subscribes to WebSocket streams for alerts / telemetry.
+
+Falls back to polling endpoints if WebSocket is not available.
+
+Check that:
+
+The health dashboard and maintenance views can render with:
+
+No equipment (empty state).
+
+Simulated equipment + telemetry from the simulator.
+
+Fix any obvious runtime errors / React warnings related to:
+
+Missing fields
+
+Unexpected response shapes
+
+Assumptions about cloud-only fields.
+
+6. MULTI-DEVICE & SYNC ARCHITECTURE SANITY CHECK
+
+Review the intended sync design:
+
+Local SQLite on each vessel/desktop.
+
+Optional cloud (Turso/libSQL/Postgres) for:
+
+Fleet-wide view.
+
+Multi-device access (desktop + mobile + web).
+
+MQTT Reliable Sync for telemetry and possibly command/control.
+
+Ensure that:
+
+All sync-related components:
+
+Handle the absence of cloud gracefully.
+
+Don’t crash in embedded mode.
+
+Are ready to be wired to real cloud endpoints later.
+
+Any “dual-write” logic is consistent and clearly separated between:
+
+Local-only writes vs. local+cloud writes.
+
+7. TESTS, LOGGING, AND VALIDATION
+
+Add or update tests for:
+
+DB initialization (embedded SQLite).
+
+Digital Twin health computation.
+
+Telemetry simulator → ingestion → DB → health endpoint.
+
+Tenant middleware behavior with and without x-org-id in embedded mode.
+
+Rate limiter behavior in embedded vs cloud mode.
+
+Improve logging:
+
+Convert noisy repeated warnings (e.g., MQTT reconnect spam) into:
+
+One clear warning plus throttled logs after.
+
+Make DB and sync errors:
+
+Clear.
+
+Actionable.
+
+Mode-aware (e.g., “Cloud sync disabled in embedded mode, continuing offline”).
+
+Run and verify locally:
+
+npm install
+
+npm run build:renderer
+
+npm run build:server
+
+npm run build:electron-main
+
+npx electron .
+
+Confirm:
+
+App launches without blue/blank screen.
+
+Equipment + health views load.
+
+No 401 spam in logs for MISSING_ORG_ID in embedded mode.
+
+No db.execute is not a function errors.
+
+No no such table: update_settings errors.
+
+Telemetry simulator generates data visible in health/telemetry dashboards.
+
+8. WHAT TO RETURN
+
+
+
+When you’re done, please provide:
+
+Short architecture summary of the current system and what you changed.
+
+List of files modified, with a concise description of each change.
+
+Explanation of how embedded/desktop mode now behaves:
+
+DB initialization
+
+Telemetry simulator and pipeline
+
+Digital Twin and health endpoints
+
+Rate limiting and tenant/org handling
+
+Any remaining TODOs you think are important for:
+
+Production hardening
+
+Cloud / multi-device rollout
+
+Real vessel integration (actual MQTT broker and CAN-bus/J1939 gateways)
+
+
+
+Focus on aligning with the existing architecture and intentions, fixing broken paths, and making embedded desktop mode stable, telemetry-capable, and ready for multi-device cloud sync without duplicate or conflicting components.

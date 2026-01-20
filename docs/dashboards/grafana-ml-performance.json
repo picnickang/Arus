@@ -1,0 +1,420 @@
+{
+  "dashboard": {
+    "title": "ARUS ML Performance & Governance",
+    "tags": ["arus", "ml", "predictions", "governance"],
+    "timezone": "browser",
+    "schemaVersion": 39,
+    "version": 1,
+    "refresh": "1m",
+    "panels": [
+      {
+        "id": 1,
+        "type": "stat",
+        "title": "Predictions (Last Hour)",
+        "targets": [
+          {
+            "expr": "sum(increase(ml_predictions_total[1h]))",
+            "legendFormat": "predictions",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 2,
+        "type": "stat",
+        "title": "Average Model Accuracy",
+        "targets": [
+          {
+            "expr": "avg(ml_model_accuracy)",
+            "legendFormat": "accuracy",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+        "options": {
+          "graphMode": "none",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "red"},
+                {"value": 0.7, "color": "yellow"},
+                {"value": 0.85, "color": "green"}
+              ]
+            },
+            "min": 0,
+            "max": 1
+          }
+        }
+      },
+      {
+        "id": 3,
+        "type": "stat",
+        "title": "Circuit Breaker Trips (24h)",
+        "targets": [
+          {
+            "expr": "sum(increase(ml_circuit_breaker_trips_total[24h]))",
+            "legendFormat": "trips",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "green"},
+                {"value": 1, "color": "yellow"},
+                {"value": 10, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "type": "stat",
+        "title": "Models in Cache",
+        "targets": [
+          {
+            "expr": "ml_model_cache_size",
+            "legendFormat": "models",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+        "options": {
+          "graphMode": "none",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "green"},
+                {"value": 5, "color": "yellow"},
+                {"value": 6, "color": "red"}
+              ]
+            },
+            "max": 6
+          }
+        }
+      },
+      {
+        "id": 5,
+        "type": "timeseries",
+        "title": "ML Inference Latency by Model",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum by (method, le) (rate(ml_prediction_duration_seconds_bucket[5m])))",
+            "legendFormat": "{{method}} (p95)",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "fillOpacity": 10
+            },
+            "color": {"mode": "palette-classic"}
+          }
+        },
+        "options": {
+          "legend": {"displayMode": "table", "placement": "bottom", "calcs": ["mean", "max", "last"]}
+        }
+      },
+      {
+        "id": 6,
+        "type": "timeseries",
+        "title": "Prediction Rate by Model",
+        "targets": [
+          {
+            "expr": "sum by (method) (rate(ml_predictions_total[5m]))",
+            "legendFormat": "{{method}}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "fillOpacity": 20,
+              "stacking": {"mode": "normal"}
+            }
+          }
+        },
+        "options": {
+          "legend": {"displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"]}
+        }
+      },
+      {
+        "id": 7,
+        "type": "timeseries",
+        "title": "Model Training Events",
+        "targets": [
+          {
+            "expr": "sum by (model_type) (increase(ml_model_training_total[1h]))",
+            "legendFormat": "{{model_type}}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "drawStyle": "bars",
+              "fillOpacity": 80
+            }
+          }
+        },
+        "options": {
+          "legend": {"displayMode": "table", "placement": "bottom"}
+        }
+      },
+      {
+        "id": 8,
+        "type": "timeseries",
+        "title": "Ensemble Agreement Score",
+        "targets": [
+          {
+            "expr": "avg(ml_ensemble_agreement)",
+            "legendFormat": "Agreement",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "fillOpacity": 10
+            },
+            "min": 0,
+            "max": 1
+          }
+        },
+        "options": {
+          "legend": {"displayMode": "table", "placement": "bottom", "calcs": ["last", "max"]}
+        }
+      },
+      {
+        "id": 9,
+        "type": "timeseries",
+        "title": "Prediction Errors by Type",
+        "targets": [
+          {
+            "expr": "sum by (error_type) (rate(ml_prediction_errors_total[5m]))",
+            "legendFormat": "{{error_type}}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "fillOpacity": 10
+            }
+          }
+        },
+        "options": {
+          "legend": {"displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"]}
+        }
+      },
+      {
+        "id": 10,
+        "type": "timeseries",
+        "title": "Cache Hit Rate",
+        "targets": [
+          {
+            "expr": "sum(rate(ml_model_cache_hits_total[5m])) / (sum(rate(ml_model_cache_hits_total[5m])) + sum(rate(ml_model_cache_misses_total[5m])))",
+            "legendFormat": "Hit Rate",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "fillOpacity": 20
+            },
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "red"},
+                {"value": 0.5, "color": "yellow"},
+                {"value": 0.8, "color": "green"}
+              ]
+            },
+            "min": 0,
+            "max": 1
+          }
+        },
+        "options": {
+          "legend": {"displayMode": "table", "placement": "bottom", "calcs": ["mean", "last"]}
+        }
+      },
+      {
+        "id": 11,
+        "type": "timeseries",
+        "title": "Model Training Duration",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(ml_model_training_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "p95",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "fillOpacity": 10
+            }
+          }
+        },
+        "options": {
+          "legend": {"displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"]}
+        }
+      },
+      {
+        "id": 12,
+        "type": "stat",
+        "title": "Circuit Breaker State",
+        "targets": [
+          {
+            "expr": "ml_circuit_breaker_state",
+            "legendFormat": "State",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "mappings": [
+              {"type": "value", "value": "0", "text": "CLOSED"},
+              {"type": "value", "value": "1", "text": "OPEN"},
+              {"type": "value", "value": "2", "text": "HALF-OPEN"}
+            ],
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "green"},
+                {"value": 1, "color": "red"},
+                {"value": 2, "color": "yellow"}
+              ]
+            }
+          }
+        },
+        "options": {
+          "colorMode": "background"
+        }
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "datasource",
+          "type": "datasource",
+          "query": "prometheus",
+          "current": {
+            "value": "Prometheus",
+            "text": "Prometheus"
+          }
+        },
+        {
+          "name": "method",
+          "type": "query",
+          "query": "label_values(ml_predictions_total, method)",
+          "multi": true,
+          "includeAll": true,
+          "current": {
+            "text": "All",
+            "value": "$__all"
+          }
+        },
+        {
+          "name": "model_type",
+          "type": "query",
+          "query": "label_values(ml_model_training_total, model_type)",
+          "multi": true,
+          "includeAll": true,
+          "current": {
+            "text": "All",
+            "value": "$__all"
+          }
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "name": "Model Deployments",
+          "datasource": "-- Grafana --",
+          "enable": true,
+          "iconColor": "purple",
+          "tags": ["ml-deployment"]
+        },
+        {
+          "name": "Training Runs",
+          "datasource": "-- Grafana --",
+          "enable": true,
+          "iconColor": "blue",
+          "tags": ["ml-training"]
+        }
+      ]
+    },
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": ["30s", "1m", "5m", "15m", "30m", "1h"]
+    }
+  },
+  "overwrite": true
+}

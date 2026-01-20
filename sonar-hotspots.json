@@ -1,0 +1,2644 @@
+{
+  "javascript:S4721": [
+    {
+      "key": "AZscE_3px4-o48d-HLJo",
+      "rule": "command-injection",
+      "ruleKey": "javascript:S4721",
+      "severity": "HIGH",
+      "message": "Make sure that executing this OS command is safe here.",
+      "component": "scripts/test_util.js",
+      "line": 14,
+      "status": "TO_REVIEW"
+    }
+  ],
+  "javascript:S5852": [
+    {
+      "key": "AZsgjdtyLm5h2VmjLS4s",
+      "rule": "dos",
+      "ruleKey": "javascript:S5852",
+      "severity": "MEDIUM",
+      "message": "Make sure the regex used here, which is vulnerable to super-linear runtime due to backtracking, cannot lead to denial of service.",
+      "component": "scripts/fix-code-smells.cjs",
+      "line": 9,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZsgjdtyLm5h2VmjLS4t",
+      "rule": "dos",
+      "ruleKey": "javascript:S5852",
+      "severity": "MEDIUM",
+      "message": "Make sure the regex used here, which is vulnerable to super-linear runtime due to backtracking, cannot lead to denial of service.",
+      "component": "scripts/fix-code-smells.cjs",
+      "line": 17,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZsgjdtyLm5h2VmjLS4w",
+      "rule": "dos",
+      "ruleKey": "javascript:S5852",
+      "severity": "MEDIUM",
+      "message": "Make sure the regex used here, which is vulnerable to super-linear runtime due to backtracking, cannot lead to denial of service.",
+      "component": "scripts/fix-code-smells.cjs",
+      "line": 87,
+      "status": "TO_REVIEW"
+    }
+  ],
+  "typescript:S5852": [
+    {
+      "key": "AZscE_t1x4-o48d-HK_o",
+      "rule": "dos",
+      "ruleKey": "typescript:S5852",
+      "severity": "MEDIUM",
+      "message": "Make sure the regex used here, which is vulnerable to super-linear runtime due to backtracking, cannot lead to denial of service.",
+      "component": "client/tests/formatters.test.ts",
+      "line": 234,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_38x4-o48d-HLJ7",
+      "rule": "dos",
+      "ruleKey": "typescript:S5852",
+      "severity": "MEDIUM",
+      "message": "Make sure the regex used here, which is vulnerable to super-linear runtime due to backtracking, cannot lead to denial of service.",
+      "component": "scripts/schema-drift-check.ts",
+      "line": 42,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_38x4-o48d-HLJ-",
+      "rule": "dos",
+      "ruleKey": "typescript:S5852",
+      "severity": "MEDIUM",
+      "message": "Make sure the regex used here, which is vulnerable to super-linear runtime due to backtracking, cannot lead to denial of service.",
+      "component": "scripts/schema-drift-check.ts",
+      "line": 64,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_6Wx4-o48d-HLLZ",
+      "rule": "dos",
+      "ruleKey": "typescript:S5852",
+      "severity": "MEDIUM",
+      "message": "Make sure the regex used here, which is vulnerable to super-linear runtime due to backtracking, cannot lead to denial of service.",
+      "component": "scripts/validate-schema-sync.ts",
+      "line": 50,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_6Wx4-o48d-HLLa",
+      "rule": "dos",
+      "ruleKey": "typescript:S5852",
+      "severity": "MEDIUM",
+      "message": "Make sure the regex used here, which is vulnerable to super-linear runtime due to backtracking, cannot lead to denial of service.",
+      "component": "scripts/validate-schema-sync.ts",
+      "line": 81,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE98-x4-o48d-HKNV",
+      "rule": "dos",
+      "ruleKey": "typescript:S5852",
+      "severity": "MEDIUM",
+      "message": "Make sure the regex used here, which is vulnerable to super-linear runtime due to backtracking, cannot lead to denial of service.",
+      "component": "server/compliance/data-anonymization/service.ts",
+      "line": 61,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-VOx4-o48d-HKYg",
+      "rule": "dos",
+      "ruleKey": "typescript:S5852",
+      "severity": "MEDIUM",
+      "message": "Make sure the regex used here, which is vulnerable to super-linear runtime due to backtracking, cannot lead to denial of service.",
+      "component": "server/openai/risk-parser.ts",
+      "line": 31,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-TBx4-o48d-HKXy",
+      "rule": "dos",
+      "ruleKey": "typescript:S5852",
+      "severity": "MEDIUM",
+      "message": "Make sure the regex used here, which is vulnerable to super-linear runtime due to backtracking, cannot lead to denial of service.",
+      "component": "server/security/attack-detection.ts",
+      "line": 15,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE9aFx4-o48d-HJta",
+      "rule": "dos",
+      "ruleKey": "typescript:S5852",
+      "severity": "MEDIUM",
+      "message": "Make sure the regex used here, which is vulnerable to super-linear runtime due to backtracking, cannot lead to denial of service.",
+      "component": "server/services/github-release-service.ts",
+      "line": 323,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-nLx4-o48d-HKhS",
+      "rule": "dos",
+      "ruleKey": "typescript:S5852",
+      "severity": "MEDIUM",
+      "message": "Make sure the regex used here, which is vulnerable to super-linear runtime due to backtracking, cannot lead to denial of service.",
+      "component": "server/tools/dbc2map.ts",
+      "line": 75,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_9sx4-o48d-HLNm",
+      "rule": "dos",
+      "ruleKey": "typescript:S5852",
+      "severity": "MEDIUM",
+      "message": "Make sure the regex used here, which is vulnerable to super-linear runtime due to backtracking, cannot lead to denial of service.",
+      "component": "tools/route-scan-improved.ts",
+      "line": 40,
+      "status": "TO_REVIEW"
+    }
+  ],
+  "docker:S6470": [
+    {
+      "key": "AZscE_-nx4-o48d-HLN1",
+      "rule": "permission",
+      "ruleKey": "docker:S6470",
+      "severity": "MEDIUM",
+      "message": "Copying recursively might inadvertently add sensitive data to the container. Make sure it is safe here.",
+      "component": "Dockerfile",
+      "line": 21,
+      "status": "TO_REVIEW"
+    }
+  ],
+  "typescript:S1523": [
+    {
+      "key": "AZscE-YQx4-o48d-HKZw",
+      "rule": "rce",
+      "ruleKey": "typescript:S1523",
+      "severity": "MEDIUM",
+      "message": "Make sure that this dynamic injection or execution of code is safe.",
+      "component": "server/j1939-collector/decoder-service.ts",
+      "line": 40,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-YQx4-o48d-HKZy",
+      "rule": "rce",
+      "ruleKey": "typescript:S1523",
+      "severity": "MEDIUM",
+      "message": "Make sure that this dynamic injection or execution of code is safe.",
+      "component": "server/j1939-collector/decoder-service.ts",
+      "line": 41,
+      "status": "TO_REVIEW"
+    }
+  ],
+  "javascript:S2245": [
+    {
+      "key": "AZscE_8Kx4-o48d-HLMe",
+      "rule": "weak-cryptography",
+      "ruleKey": "javascript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "scripts/test_e2e.js",
+      "line": 35,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_8Kx4-o48d-HLMf",
+      "rule": "weak-cryptography",
+      "ruleKey": "javascript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "scripts/test_e2e.js",
+      "line": 36,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_8Kx4-o48d-HLMg",
+      "rule": "weak-cryptography",
+      "ruleKey": "javascript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "scripts/test_e2e.js",
+      "line": 37,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_8Kx4-o48d-HLMh",
+      "rule": "weak-cryptography",
+      "ruleKey": "javascript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "scripts/test_e2e.js",
+      "line": 38,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_8Kx4-o48d-HLMi",
+      "rule": "weak-cryptography",
+      "ruleKey": "javascript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "scripts/test_e2e.js",
+      "line": 39,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_8Kx4-o48d-HLMj",
+      "rule": "weak-cryptography",
+      "ruleKey": "javascript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "scripts/test_e2e.js",
+      "line": 40,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_3px4-o48d-HLJr",
+      "rule": "weak-cryptography",
+      "ruleKey": "javascript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "scripts/test_util.js",
+      "line": 164,
+      "status": "TO_REVIEW"
+    }
+  ],
+  "typescript:S2245": [
+    {
+      "key": "AZscE_Wux4-o48d-HKza",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "client/src/components/ExecutiveSummary.tsx",
+      "line": 155,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_IVx4-o48d-HKt4",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "client/src/components/ui/sidebar.tsx",
+      "line": 643,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_ONx4-o48d-HKv7",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "client/src/components/work-orders/MultiLinePartsRequestDialog.tsx",
+      "line": 40,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_r2x4-o48d-HK_F",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "client/src/hooks/useDeviceId.ts",
+      "line": 13,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_jHx4-o48d-HK5z",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "client/src/pages/knowledge-base.tsx",
+      "line": 28,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-zRx4-o48d-HKmO",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/__tests__/pdm-math.test.ts",
+      "line": 183,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-zRx4-o48d-HKmR",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/__tests__/pdm-math.test.ts",
+      "line": 208,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-06x4-o48d-HKnJ",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/ai/root-cause-analyzer.ts",
+      "line": 141,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-06x4-o48d-HKnL",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/ai/root-cause-analyzer.ts",
+      "line": 161,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-WLx4-o48d-HKZL",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/background-jobs.ts",
+      "line": 71,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-qix4-o48d-HKi3",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/backup-recovery/utils.ts",
+      "line": 12,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE9-Mx4-o48d-HKN2",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/compliance/audit-middleware.ts",
+      "line": 221,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-VXx4-o48d-HKYj",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/digital-twin/simulation-scenarios.ts",
+      "line": 139,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE9wkx4-o48d-HKBc",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/domains/leapfrog/routes.ts",
+      "line": 74,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE91Nx4-o48d-HKFd",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/domains/scheduling/routes.ts",
+      "line": 191,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKdh",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 9,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKdi",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 13,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKdj",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 13,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKdk",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 14,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKdl",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 14,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKdm",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 15,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKdn",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 16,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKdo",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 19,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKdp",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 19,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKdq",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 19,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKdr",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 20,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKds",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 20,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKdt",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 21,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKdu",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 21,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKdv",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 25,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKdw",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 26,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKdx",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 27,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKdy",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 27,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKdz",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 29,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKd0",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 40,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKd1",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 40,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKd2",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 41,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKd3",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 41,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKd4",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 42,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKd5",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 42,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKd6",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 43,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKd7",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 44,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKd8",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 45,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKd9",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 64,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-fCx4-o48d-HKd-",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/mock-data.ts",
+      "line": 73,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-enx4-o48d-HKdU",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/weather-provider.ts",
+      "line": 45,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-enx4-o48d-HKdV",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/weather-provider.ts",
+      "line": 45,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-enx4-o48d-HKdW",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/weather-provider.ts",
+      "line": 45,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-enx4-o48d-HKdX",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/weather-provider.ts",
+      "line": 46,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-enx4-o48d-HKdY",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/weather-provider.ts",
+      "line": 46,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-enx4-o48d-HKdZ",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/weather-provider.ts",
+      "line": 47,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-enx4-o48d-HKda",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/weather-provider.ts",
+      "line": 47,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-enx4-o48d-HKdb",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/external-integrations/weather-provider.ts",
+      "line": 54,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-jux4-o48d-HKfy",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/integrations/aquametro-fmcc/mock-data.ts",
+      "line": 9,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-jux4-o48d-HKfz",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/integrations/aquametro-fmcc/mock-data.ts",
+      "line": 21,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-jux4-o48d-HKf0",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/integrations/aquametro-fmcc/mock-data.ts",
+      "line": 22,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-jux4-o48d-HKf1",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/integrations/aquametro-fmcc/mock-data.ts",
+      "line": 23,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-jux4-o48d-HKf2",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/integrations/aquametro-fmcc/mock-data.ts",
+      "line": 24,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-jux4-o48d-HKf3",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/integrations/aquametro-fmcc/mock-data.ts",
+      "line": 54,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-j3x4-o48d-HKf5",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/integrations/aquametro-fmcc/modbus-client.ts",
+      "line": 30,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-Bdx4-o48d-HKO8",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/inventory/auto-optimization.ts",
+      "line": 64,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-xEx4-o48d-HKlM",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/logging.ts",
+      "line": 326,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-Mbx4-o48d-HKVU",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/lp-optimizer/lp-formulation.ts",
+      "line": 281,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-0Tx4-o48d-HKm9",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/ml-cross-validation.ts",
+      "line": 96,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-uNx4-o48d-HKkA",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/ml-dataset-mixer.ts",
+      "line": 210,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-uNx4-o48d-HKkB",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/ml-dataset-mixer.ts",
+      "line": 263,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-uNx4-o48d-HKkC",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/ml-dataset-mixer.ts",
+      "line": 278,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-NPx4-o48d-HKVo",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/ml-random-forest/decision-tree.ts",
+      "line": 16,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-Ngx4-o48d-HKVt",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/ml-random-forest/tree-utils.ts",
+      "line": 59,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-hEx4-o48d-HKfA",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/ml-training-data/dataset-splitters.ts",
+      "line": 18,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-0Bx4-o48d-HKmv",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/ml-training-queue.ts",
+      "line": 65,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-0Bx4-o48d-HKmy",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/ml-training-queue.ts",
+      "line": 158,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-0Bx4-o48d-HKmz",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/ml-training-queue.ts",
+      "line": 159,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-0Bx4-o48d-HKm1",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/ml-training-queue.ts",
+      "line": 160,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-0Bx4-o48d-HKm2",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/ml-training-queue.ts",
+      "line": 161,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE9_gx4-o48d-HKOb",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/ml-xgboost-model/train.ts",
+      "line": 39,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE9_4x4-o48d-HKOe",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/ml-xgboost-model/tree.ts",
+      "line": 76,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE9lVx4-o48d-HJ9u",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/observability/http-metrics.ts",
+      "line": 49,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-Umx4-o48d-HKYY",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/openai/client.ts",
+      "line": 164,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-Cxx4-o48d-HKPe",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/routes/inline-routes.ts",
+      "line": 38,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-Z2x4-o48d-HKav",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/ai-sensor-audit.ts",
+      "line": 164,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-Z2x4-o48d-HKaw",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/ai-sensor-audit.ts",
+      "line": 165,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-Z2x4-o48d-HKax",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/ai-sensor-audit.ts",
+      "line": 166,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-Z2x4-o48d-HKay",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/ai-sensor-audit.ts",
+      "line": 167,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-Z2x4-o48d-HKaz",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/ai-sensor-audit.ts",
+      "line": 168,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-a2x4-o48d-HKbx",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/generate-fake-telemetry.ts",
+      "line": 105,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-aCx4-o48d-HKbB",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/seed-ml-data.ts",
+      "line": 121,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-aCx4-o48d-HKbC",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/seed-ml-data.ts",
+      "line": 122,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-aCx4-o48d-HKbD",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/seed-ml-data.ts",
+      "line": 132,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-aCx4-o48d-HKbE",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/seed-ml-data.ts",
+      "line": 139,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-aCx4-o48d-HKbF",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/seed-ml-data.ts",
+      "line": 197,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-aCx4-o48d-HKbG",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/seed-ml-data.ts",
+      "line": 198,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-aCx4-o48d-HKbH",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/seed-ml-data.ts",
+      "line": 200,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-aCx4-o48d-HKbK",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/seed-ml-data.ts",
+      "line": 226,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-aCx4-o48d-HKbL",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/seed-ml-data.ts",
+      "line": 233,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-aCx4-o48d-HKbM",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/seed-ml-data.ts",
+      "line": 235,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-aCx4-o48d-HKbO",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/seed-ml-data.ts",
+      "line": 346,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-aCx4-o48d-HKbP",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/seed-ml-data.ts",
+      "line": 350,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-aCx4-o48d-HKbQ",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/seed-ml-data.ts",
+      "line": 351,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-aCx4-o48d-HKbR",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/seed-ml-data.ts",
+      "line": 389,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-aCx4-o48d-HKbS",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/seed-ml-data.ts",
+      "line": 392,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-aCx4-o48d-HKbT",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/seed-ml-data.ts",
+      "line": 396,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-aCx4-o48d-HKbU",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/seed-ml-data.ts",
+      "line": 409,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-Zfx4-o48d-HKaS",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/test-ml-ensemble.ts",
+      "line": 94,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-Zfx4-o48d-HKaT",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/test-ml-ensemble.ts",
+      "line": 95,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-Zfx4-o48d-HKaU",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/test-ml-ensemble.ts",
+      "line": 96,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-Zfx4-o48d-HKaV",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/test-ml-ensemble.ts",
+      "line": 97,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-Zfx4-o48d-HKaY",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/test-ml-ensemble.ts",
+      "line": 109,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-Zfx4-o48d-HKaa",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/test-ml-ensemble.ts",
+      "line": 114,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-Zfx4-o48d-HKac",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/test-ml-ensemble.ts",
+      "line": 115,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-Zfx4-o48d-HKae",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/test-ml-ensemble.ts",
+      "line": 116,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-Zfx4-o48d-HKag",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/test-ml-ensemble.ts",
+      "line": 117,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-Zfx4-o48d-HKah",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/test-ml-ensemble.ts",
+      "line": 293,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-ahx4-o48d-HKbe",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/xgboost-tuning.ts",
+      "line": 20,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-ahx4-o48d-HKbf",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/xgboost-tuning.ts",
+      "line": 24,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-ahx4-o48d-HKbg",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/xgboost-tuning.ts",
+      "line": 24,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-ahx4-o48d-HKbh",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/xgboost-tuning.ts",
+      "line": 25,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-ahx4-o48d-HKbi",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/xgboost-tuning.ts",
+      "line": 25,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-ahx4-o48d-HKbj",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/xgboost-tuning.ts",
+      "line": 26,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-ahx4-o48d-HKbk",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/xgboost-tuning.ts",
+      "line": 26,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-ahx4-o48d-HKbl",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/xgboost-tuning.ts",
+      "line": 27,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-ahx4-o48d-HKbm",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/xgboost-tuning.ts",
+      "line": 27,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-ahx4-o48d-HKbn",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/xgboost-tuning.ts",
+      "line": 28,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-ahx4-o48d-HKbo",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/scripts/xgboost-tuning.ts",
+      "line": 28,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE9TLx4-o48d-HJqN",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/services/data-export-import/entity-upserters.ts",
+      "line": 128,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE9TBx4-o48d-HJqL",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/services/data-export-import/export-service.ts",
+      "line": 247,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE9Tkx4-o48d-HJqb",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/services/data-export-import/import-service.ts",
+      "line": 252,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE9WEx4-o48d-HJrk",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/services/dev-fake-data/generators/engine-telemetry.ts",
+      "line": 51,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE9WVx4-o48d-HJrz",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/services/dev-fake-data/generators/generator-telemetry.ts",
+      "line": 30,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE9WNx4-o48d-HJro",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/services/dev-fake-data/generators/navigation.ts",
+      "line": 21,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE9V8x4-o48d-HJrf",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/services/dev-fake-data/generators/weather.ts",
+      "line": 16,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE9V8x4-o48d-HJrg",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/services/dev-fake-data/generators/weather.ts",
+      "line": 17,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE9V8x4-o48d-HJrh",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/services/dev-fake-data/generators/weather.ts",
+      "line": 18,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE9V8x4-o48d-HJri",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/services/dev-fake-data/generators/weather.ts",
+      "line": 19,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE9XAx4-o48d-HJr-",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/services/dev-fake-data/physics-utils.ts",
+      "line": 13,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE9XAx4-o48d-HJr_",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/services/dev-fake-data/physics-utils.ts",
+      "line": 14,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE9Wwx4-o48d-HJr3",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/services/dev-fake-data/seeding/event-seeder.ts",
+      "line": 39,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE9Wwx4-o48d-HJr4",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/services/dev-fake-data/seeding/event-seeder.ts",
+      "line": 76,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE9Yix4-o48d-HJsd",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/services/email-notification/logger.ts",
+      "line": 34,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-HWx4-o48d-HKRo",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/tests/fixtures.ts",
+      "line": 15,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-HWx4-o48d-HKRq",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/tests/fixtures.ts",
+      "line": 30,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-HWx4-o48d-HKRs",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/tests/fixtures.ts",
+      "line": 45,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-HWx4-o48d-HKRu",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/tests/fixtures.ts",
+      "line": 66,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-HWx4-o48d-HKRw",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/tests/fixtures.ts",
+      "line": 92,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-HWx4-o48d-HKRx",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/tests/fixtures.ts",
+      "line": 93,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-HWx4-o48d-HKRy",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/tests/fixtures.ts",
+      "line": 94,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-HWx4-o48d-HKRz",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/tests/fixtures.ts",
+      "line": 95,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-HWx4-o48d-HKR0",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/tests/fixtures.ts",
+      "line": 96,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-HWx4-o48d-HKR2",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/tests/fixtures.ts",
+      "line": 201,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-HWx4-o48d-HKR4",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/tests/fixtures.ts",
+      "line": 226,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-J5x4-o48d-HKUK",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/tests/helpers/logbook-test-simulator.ts",
+      "line": 60,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-J5x4-o48d-HKUL",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/tests/helpers/logbook-test-simulator.ts",
+      "line": 61,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-Ilx4-o48d-HKSq",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/tests/work-orders-inventory.test.ts",
+      "line": 83,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-kfx4-o48d-HKgP",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/time-utils/utc-utils.ts",
+      "line": 94,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-QPx4-o48d-HKWx",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/utils/retry-with-backoff.ts",
+      "line": 51,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-dJx4-o48d-HKc-",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/vessel-simulator/pattern-generator.ts",
+      "line": 22,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-dJx4-o48d-HKc_",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/vessel-simulator/pattern-generator.ts",
+      "line": 33,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-dJx4-o48d-HKdA",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/vessel-simulator/pattern-generator.ts",
+      "line": 45,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-dJx4-o48d-HKdB",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/vessel-simulator/pattern-generator.ts",
+      "line": 54,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-dJx4-o48d-HKdC",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/vessel-simulator/pattern-generator.ts",
+      "line": 62,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-dRx4-o48d-HKdD",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/vessel-simulator/physics-engine.ts",
+      "line": 22,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-dRx4-o48d-HKdE",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/vessel-simulator/physics-engine.ts",
+      "line": 23,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-crx4-o48d-HKcm",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/vessel-simulator/simulator.ts",
+      "line": 88,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-crx4-o48d-HKcp",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/vessel-simulator/simulator.ts",
+      "line": 132,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-crx4-o48d-HKcq",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/vessel-simulator/simulator.ts",
+      "line": 132,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-crx4-o48d-HKcs",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/vessel-simulator/simulator.ts",
+      "line": 136,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-crx4-o48d-HKct",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/vessel-simulator/simulator.ts",
+      "line": 136,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-crx4-o48d-HKcv",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/vessel-simulator/simulator.ts",
+      "line": 140,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-crx4-o48d-HKcx",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/vessel-simulator/simulator.ts",
+      "line": 146,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-csx4-o48d-HKcz",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/vessel-simulator/simulator.ts",
+      "line": 153,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-c3x4-o48d-HKc4",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/vessel-simulator/stress-test.ts",
+      "line": 70,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-c3x4-o48d-HKc6",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/vessel-simulator/stress-test.ts",
+      "line": 120,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-pSx4-o48d-HKiV",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "server/websocket.ts",
+      "line": 146,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_wPx4-o48d-HLCf",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/ai-sensor-optimization.test.ts",
+      "line": 237,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_wPx4-o48d-HLCg",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/ai-sensor-optimization.test.ts",
+      "line": 238,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_wPx4-o48d-HLCh",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/ai-sensor-optimization.test.ts",
+      "line": 239,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_wPx4-o48d-HLCi",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/ai-sensor-optimization.test.ts",
+      "line": 240,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_wPx4-o48d-HLCj",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/ai-sensor-optimization.test.ts",
+      "line": 241,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_wPx4-o48d-HLCo",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/ai-sensor-optimization.test.ts",
+      "line": 528,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_wPx4-o48d-HLCp",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/ai-sensor-optimization.test.ts",
+      "line": 576,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_u8x4-o48d-HLAI",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/helpers/db-helpers.ts",
+      "line": 31,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_vFx4-o48d-HLAM",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/helpers/test-data-factory.ts",
+      "line": 58,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_vFx4-o48d-HLAN",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/helpers/test-data-factory.ts",
+      "line": 59,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_vFx4-o48d-HLAO",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/helpers/test-data-factory.ts",
+      "line": 60,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_vFx4-o48d-HLAP",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/helpers/test-data-factory.ts",
+      "line": 67,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_vFx4-o48d-HLAQ",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/helpers/test-data-factory.ts",
+      "line": 68,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_vFx4-o48d-HLAR",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/helpers/test-data-factory.ts",
+      "line": 77,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_vFx4-o48d-HLAS",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/helpers/test-data-factory.ts",
+      "line": 78,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_vFx4-o48d-HLAT",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/helpers/test-data-factory.ts",
+      "line": 79,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_vFx4-o48d-HLAU",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/helpers/test-data-factory.ts",
+      "line": 82,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_vFx4-o48d-HLAV",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/helpers/test-data-factory.ts",
+      "line": 86,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_vFx4-o48d-HLAW",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/helpers/test-data-factory.ts",
+      "line": 89,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_vFx4-o48d-HLAX",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/helpers/test-data-factory.ts",
+      "line": 107,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_vFx4-o48d-HLAY",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/helpers/test-data-factory.ts",
+      "line": 109,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_vFx4-o48d-HLAb",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/helpers/test-data-factory.ts",
+      "line": 138,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_vFx4-o48d-HLAc",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/helpers/test-data-factory.ts",
+      "line": 139,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_vFx4-o48d-HLAf",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/helpers/test-data-factory.ts",
+      "line": 157,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_vFx4-o48d-HLAg",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/helpers/test-data-factory.ts",
+      "line": 158,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_vFx4-o48d-HLAh",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/helpers/test-data-factory.ts",
+      "line": 159,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_vFx4-o48d-HLAi",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/helpers/test-data-factory.ts",
+      "line": 174,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_vFx4-o48d-HLAj",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/helpers/test-data-factory.ts",
+      "line": 175,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_vFx4-o48d-HLAk",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/helpers/test-data-factory.ts",
+      "line": 176,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_vFx4-o48d-HLAl",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/helpers/test-data-factory.ts",
+      "line": 177,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_vFx4-o48d-HLAn",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/helpers/test-data-factory.ts",
+      "line": 179,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_wEx4-o48d-HLBY",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/mlops-readiness-test.ts",
+      "line": 74,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_wEx4-o48d-HLBa",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/mlops-readiness-test.ts",
+      "line": 91,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_wEx4-o48d-HLBb",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/mlops-readiness-test.ts",
+      "line": 101,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_wEx4-o48d-HLBc",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/mlops-readiness-test.ts",
+      "line": 102,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_wEx4-o48d-HLBd",
+      "rule": "weak-cryptography",
+      "ruleKey": "typescript:S2245",
+      "severity": "MEDIUM",
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "component": "tests/mlops-readiness-test.ts",
+      "line": 112,
+      "status": "TO_REVIEW"
+    }
+  ],
+  "typescript:S5332": [
+    {
+      "key": "AZscE-okx4-o48d-HKh9",
+      "rule": "encrypt-data",
+      "ruleKey": "typescript:S5332",
+      "severity": "LOW",
+      "message": "Using http protocol is insecure. Use https instead.",
+      "component": "server/bootstrap/middleware.ts",
+      "line": 64,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE9Zdx4-o48d-HJs8",
+      "rule": "encrypt-data",
+      "ruleKey": "typescript:S5332",
+      "severity": "LOW",
+      "message": "Using http protocol is insecure. Use https instead.",
+      "component": "server/services/email-provider-service.ts",
+      "line": 227,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE9Zdx4-o48d-HJs-",
+      "rule": "encrypt-data",
+      "ruleKey": "typescript:S5332",
+      "severity": "LOW",
+      "message": "Using http protocol is insecure. Use https instead.",
+      "component": "server/services/email-provider-service.ts",
+      "line": 327,
+      "status": "TO_REVIEW"
+    }
+  ],
+  "typescript:S5122": [
+    {
+      "key": "AZscE_wYx4-o48d-HLCs",
+      "rule": "insecure-conf",
+      "ruleKey": "typescript:S5122",
+      "severity": "LOW",
+      "message": "Make sure that enabling CORS is safe here.",
+      "component": "tests/setup/test-app.ts",
+      "line": 33,
+      "status": "TO_REVIEW"
+    }
+  ],
+  "githubactions:S7637": [
+    {
+      "key": "AZscE_-Xx4-o48d-HLNy",
+      "rule": "others",
+      "ruleKey": "githubactions:S7637",
+      "severity": "LOW",
+      "message": "Use full commit SHA hash for this dependency.",
+      "component": ".github/workflows/build-macos-dmg.yml",
+      "line": 60,
+      "status": "TO_REVIEW"
+    }
+  ],
+  "typescript:S4790": [
+    {
+      "key": "AZscE99Kx4-o48d-HKNh",
+      "rule": "others",
+      "ruleKey": "typescript:S4790",
+      "severity": "LOW",
+      "message": "Make sure this weak hash algorithm is not used in a sensitive context here.",
+      "component": "server/compliance/work-order-history-hash.service.ts",
+      "line": 99,
+      "status": "TO_REVIEW"
+    }
+  ],
+  "typescript:S5689": [
+    {
+      "key": "AZscE-uEx4-o48d-HKj7",
+      "rule": "others",
+      "ruleKey": "typescript:S5689",
+      "severity": "LOW",
+      "message": "This framework implicitly discloses version information by default. Make sure it is safe here.",
+      "component": "server/minimal-server.ts",
+      "line": 21,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-XNx4-o48d-HKZb",
+      "rule": "others",
+      "ruleKey": "typescript:S5689",
+      "severity": "LOW",
+      "message": "This framework implicitly discloses version information by default. Make sure it is safe here.",
+      "component": "server/standalone-simple.ts",
+      "line": 12,
+      "status": "TO_REVIEW"
+    }
+  ],
+  "typescript:S5728": [
+    {
+      "key": "AZscE_wYx4-o48d-HLCr",
+      "rule": "others",
+      "ruleKey": "typescript:S5728",
+      "severity": "LOW",
+      "message": "Make sure not enabling content security policy fetch directives is safe here.",
+      "component": "tests/setup/test-app.ts",
+      "line": 29,
+      "status": "TO_REVIEW"
+    }
+  ],
+  "typescript:S5443": [
+    {
+      "key": "AZscE-qMx4-o48d-HKix",
+      "rule": "others",
+      "ruleKey": "typescript:S5443",
+      "severity": "LOW",
+      "message": "Make sure publicly writable directories are used safely here.",
+      "component": "server/backup-recovery/types.ts",
+      "line": 6,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-pIx4-o48d-HKiP",
+      "rule": "others",
+      "ruleKey": "typescript:S5443",
+      "severity": "LOW",
+      "message": "Make sure publicly writable directories are used safely here.",
+      "component": "server/bootstrap/services.ts",
+      "line": 28,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-X_x4-o48d-HKZq",
+      "rule": "others",
+      "ruleKey": "typescript:S5443",
+      "severity": "LOW",
+      "message": "Make sure publicly writable directories are used safely here.",
+      "component": "server/j1939-collector/flush-pipeline.ts",
+      "line": 179,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-C8x4-o48d-HKPm",
+      "rule": "others",
+      "ruleKey": "typescript:S5443",
+      "severity": "LOW",
+      "message": "Make sure publicly writable directories are used safely here.",
+      "component": "server/routes/kb-routes.ts",
+      "line": 41,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-EAx4-o48d-HKP7",
+      "rule": "others",
+      "ruleKey": "typescript:S5443",
+      "severity": "LOW",
+      "message": "Make sure publicly writable directories are used safely here.",
+      "component": "server/routes/route-dependencies.ts",
+      "line": 144,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-bbx4-o48d-HKb8",
+      "rule": "others",
+      "ruleKey": "typescript:S5443",
+      "severity": "LOW",
+      "message": "Make sure publicly writable directories are used safely here.",
+      "component": "server/scripts/bulk-insert-telemetry.ts",
+      "line": 68,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-QXx4-o48d-HKWz",
+      "rule": "others",
+      "ruleKey": "typescript:S5443",
+      "severity": "LOW",
+      "message": "Make sure publicly writable directories are used safely here.",
+      "component": "server/utils/dead-letter-logger.ts",
+      "line": 21,
+      "status": "TO_REVIEW"
+    }
+  ],
+  "javascript:S4036": [
+    {
+      "key": "AZscE_68x4-o48d-HLLm",
+      "rule": "others",
+      "ruleKey": "javascript:S4036",
+      "severity": "LOW",
+      "message": "Make sure the \"PATH\" variable only contains fixed, unwriteable directories.",
+      "component": "scripts/before-pack.cjs",
+      "line": 17,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_5Ax4-o48d-HLKs",
+      "rule": "others",
+      "ruleKey": "javascript:S4036",
+      "severity": "LOW",
+      "message": "Make sure the \"PATH\" variable only contains fixed, unwriteable directories.",
+      "component": "scripts/build-shared.mjs",
+      "line": 30,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_7jx4-o48d-HLL8",
+      "rule": "others",
+      "ruleKey": "javascript:S4036",
+      "severity": "LOW",
+      "message": "Make sure the \"PATH\" variable only contains fixed, unwriteable directories.",
+      "component": "scripts/generate-pwa-icons.cjs",
+      "line": 24,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_7jx4-o48d-HLL-",
+      "rule": "others",
+      "ruleKey": "javascript:S4036",
+      "severity": "LOW",
+      "message": "Make sure the \"PATH\" variable only contains fixed, unwriteable directories.",
+      "component": "scripts/generate-pwa-icons.cjs",
+      "line": 41,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_5yx4-o48d-HLLG",
+      "rule": "others",
+      "ruleKey": "javascript:S4036",
+      "severity": "LOW",
+      "message": "Make sure the \"PATH\" variable only contains fixed, unwriteable directories.",
+      "component": "scripts/ios-server.js",
+      "line": 39,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_72x4-o48d-HLML",
+      "rule": "others",
+      "ruleKey": "javascript:S4036",
+      "severity": "LOW",
+      "message": "Make sure the \"PATH\" variable only contains fixed, unwriteable directories.",
+      "component": "scripts/test-embedded-mode.cjs",
+      "line": 50,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE_3px4-o48d-HLJp",
+      "rule": "others",
+      "ruleKey": "javascript:S4036",
+      "severity": "LOW",
+      "message": "Make sure the \"PATH\" variable only contains fixed, unwriteable directories.",
+      "component": "scripts/test_util.js",
+      "line": 30,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-iux4-o48d-HKfc",
+      "rule": "others",
+      "ruleKey": "javascript:S4036",
+      "severity": "LOW",
+      "message": "Make sure the \"PATH\" variable only contains fixed, unwriteable directories.",
+      "component": "server/index-wrapper-tsx.cjs",
+      "line": 15,
+      "status": "TO_REVIEW"
+    }
+  ],
+  "typescript:S4036": [
+    {
+      "key": "AZscE_4rx4-o48d-HLKg",
+      "rule": "others",
+      "ruleKey": "typescript:S4036",
+      "severity": "LOW",
+      "message": "Make sure the \"PATH\" variable only contains fixed, unwriteable directories.",
+      "component": "scripts/run-e2e-tests.ts",
+      "line": 25,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-qEx4-o48d-HKit",
+      "rule": "others",
+      "ruleKey": "typescript:S4036",
+      "severity": "LOW",
+      "message": "Make sure the \"PATH\" variable only contains fixed, unwriteable directories.",
+      "component": "server/backup-recovery/pg-dump-executor.ts",
+      "line": 16,
+      "status": "TO_REVIEW"
+    },
+    {
+      "key": "AZscE-qEx4-o48d-HKiv",
+      "rule": "others",
+      "ruleKey": "typescript:S4036",
+      "severity": "LOW",
+      "message": "Make sure the \"PATH\" variable only contains fixed, unwriteable directories.",
+      "component": "server/backup-recovery/pg-dump-executor.ts",
+      "line": 22,
+      "status": "TO_REVIEW"
+    }
+  ]
+}

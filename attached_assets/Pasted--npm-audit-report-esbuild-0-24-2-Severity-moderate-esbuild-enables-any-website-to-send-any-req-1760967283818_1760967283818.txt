@@ -1,0 +1,94 @@
+# npm audit report
+
+esbuild  <=0.24.2
+Severity: moderate
+esbuild enables any website to send any requests to the development server and read the response - https://github.com/advisories/GHSA-67mh-4wv8-2f99
+fix available via `npm audit fix --force`
+Will install drizzle-kit@0.18.1, which is a breaking change
+node_modules/@esbuild-kit/core-utils/node_modules/esbuild
+  @esbuild-kit/core-utils  *
+  Depends on vulnerable versions of esbuild
+  node_modules/@esbuild-kit/core-utils
+    @esbuild-kit/esm-loader  *
+    Depends on vulnerable versions of @esbuild-kit/core-utils
+    node_modules/@esbuild-kit/esm-loader
+      drizzle-kit  0.17.5-6b7793f - 0.17.5-e5944eb || 0.18.1-065de38 - 0.18.1-f3800bf || >=0.19.0-07024c4
+      Depends on vulnerable versions of @esbuild-kit/esm-loader
+      node_modules/drizzle-kit
+
+4 moderate severity vulnerabilities
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+homeimac@Homes-iMac RecipeRealm % npm audit fix  --force
+npm WARN using --force Recommended protections disabled.
+npm WARN audit Updating drizzle-kit to 0.18.1, which is a SemVer major change.
+npm WARN ERESOLVE overriding peer dependency
+npm WARN While resolving: @tailwindcss/vite@4.1.3
+npm WARN Found: vite@7.1.11
+npm WARN node_modules/vite
+npm WARN   peer vite@"^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0" from @vitejs/plugin-react@4.7.0
+npm WARN   node_modules/@vitejs/plugin-react
+npm WARN     dev @vitejs/plugin-react@"^4.7.0" from the root project
+npm WARN   1 more (the root project)
+npm WARN 
+npm WARN Could not resolve dependency:
+npm WARN peer vite@"^5.2.0 || ^6" from @tailwindcss/vite@4.1.3
+npm WARN node_modules/@tailwindcss/vite
+npm WARN   dev @tailwindcss/vite@"^4.1.3" from the root project
+npm WARN 
+npm WARN Conflicting peer dependency: vite@6.4.1
+npm WARN node_modules/vite
+npm WARN   peer vite@"^5.2.0 || ^6" from @tailwindcss/vite@4.1.3
+npm WARN   node_modules/@tailwindcss/vite
+npm WARN     dev @tailwindcss/vite@"^4.1.3" from the root project
+npm WARN ERESOLVE overriding peer dependency
+npm WARN While resolving: vite@7.1.11
+npm WARN Found: @types/node@20.16.11
+npm WARN node_modules/@types/node
+npm WARN   @types/node@"*" from @jest/console@30.2.0
+npm WARN   node_modules/@jest/console
+npm WARN     @jest/console@"30.2.0" from @jest/core@30.2.0
+npm WARN     node_modules/@jest/core
+npm WARN     3 more (@jest/reporters, @jest/test-result, jest-runner)
+npm WARN   38 more (@jest/core, @jest/environment, @jest/fake-timers, ...)
+npm WARN 
+npm WARN Could not resolve dependency:
+npm WARN peerOptional @types/node@"^20.19.0 || >=22.12.0" from vite@7.1.11
+npm WARN node_modules/vite
+npm WARN   peer vite@"^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0" from @vitejs/plugin-react@4.7.0
+npm WARN   node_modules/@vitejs/plugin-react
+npm WARN   1 more (the root project)
+npm WARN 
+npm WARN Conflicting peer dependency: @types/node@24.8.1
+npm WARN node_modules/@types/node
+npm WARN   peerOptional @types/node@"^20.19.0 || >=22.12.0" from vite@7.1.11
+npm WARN   node_modules/vite
+npm WARN     peer vite@"^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0" from @vitejs/plugin-react@4.7.0
+npm WARN     node_modules/@vitejs/plugin-react
+npm WARN     1 more (the root project)
+npm WARN deprecated glob@8.1.0: Glob versions prior to v9 are no longer supported
+
+added 30 packages, removed 5 packages, changed 1 package, and audited 1640 packages in 5s
+
+205 packages are looking for funding
+  run `npm fund` for details
+
+# npm audit report
+
+esbuild  <=0.24.2
+Severity: moderate
+esbuild enables any website to send any requests to the development server and read the response - https://github.com/advisories/GHSA-67mh-4wv8-2f99
+fix available via `npm audit fix --force`
+Will install drizzle-kit@0.31.5, which is a breaking change
+node_modules/drizzle-kit/node_modules/esbuild
+  drizzle-kit  0.9.1 - 0.9.54 || 0.12.9 - 0.18.1 || 0.19.2-9340465 - 0.30.6 || 1.0.0-beta.1-00df263 - 1.0.0-beta.1-fd5d1e8
+  Depends on vulnerable versions of esbuild
+  node_modules/drizzle-kit
+
+2 moderate severity vulnerabilities
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+homeimac@Homes-iMac RecipeRealm % ./build-desktop-macos-simple.sh
+zsh: permission denied: ./build-desktop-macos-simple.sh

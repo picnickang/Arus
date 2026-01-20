@@ -1,0 +1,119 @@
+REPLIT AI PROMPT — Suitability Assessment of Proposed PdM UX/UI Features
+(Stack: Express.js + React 18 + Wouter + TanStack Query)
+
+CONTEXT
+Monorepo layout (assumed):
+- server/ (Express API: TF.js/ONNX PdM logic)
+- client/ (React 18 + Wouter + TanStack Query)
+Goal: ASSESS whether the proposed features suit our problem and constraints. Do NOT implement large changes by default. Only create minimal, gated PoCs if explicitly justified.
+
+PROPOSED FEATURES TO ASSESS
+F1 Fleet Overview page (cards + RAG + filters + sort)
+F2 Vessel Performance (four VPS charts: Load↔SFOC, Fuel↔Time, Power↔STW, Load Histogram)
+F3 Anomaly overlays (markers + threshold bands + “view alert”)
+F4 Context Layer Engine (CLE) w/ AIS & Metocean adapters (mode/sea state bands)
+F5 Alerts → Ack / Create Work Order flow
+F6 Maintenance list/timeline
+F7 Baselines & Fleet benchmarking (baseline + fleet avg + percentiles)
+F8 Compliance/CII mini-tile + reports stubs
+F9 Settings/Customization (toggle charts, reorder, thresholds, units) persisted
+F10 Narrative “Performance Summary” card
+
+WHAT TO DO (PHASED)
+
+A) AUDIT (read-only)
+1) Detect stack:
+   - Confirm Express routes under server/routes/**.
+   - Confirm React 18 + Wouter routes in client/src/** and TanStack Query usage.
+2) Locate existing data/model capabilities:
+   - ONNX/TF.js checkpoints presence.
+   - Endpoints that provide telemetry/anomaly data.
+   - Any profile JSON and thresholds.
+3) Map current features to F1..F10. For each, note:
+   - “Exists / Partial / Missing”
+   - Data readiness (0–3): 0 none, 1 mockable, 2 partial live, 3 live
+   - UI readiness (0–3): 0 none, 1 easy stub, 2 reuse components, 3 done
+4) Produce docs/assessment_baseline.md with a table of findings.
+
+B) SUITABILITY SCORING (no code changes yet)
+For each feature F1..F10, compute:
+- VALUE (1–5): impact on ops (triage speed, decision quality, compliance)
+- EFFORT (1–5): engineering scope for THIS repo/stack
+- DATA FIT (1–5): telemetry/context currently available or mockable
+- UX COMPLEXITY (1–5): UI difficulty (charts, interactions, training)
+- RISK (1–5): breakage, ambiguity, maintenance, data privacy
+- OVERALL FIT SCORE = round( (VALUE*1.5 + DATA FIT + (6 - RISK)) - (EFFORT/2 + UX COMPLEXITY/2) )
+Add 2–3 bullet justifications each.
+
+Output docs/assessment_scores.md with a matrix:
+| Feature | Value | Effort | DataFit | UXComplex | Risk | OverallFit | Decision (Adopt / Pilot / Defer) | Why |
+
+C) DEPENDENCY & GAPS CHECK
+- For each feature, enumerate REQUIRED endpoints, signals, and UI parts.
+- Mark missing pieces and suggest minimal additions (e.g., a GET /api/vessels/:id/performance or mock generator).
+- If a feature depends on CLE (F4), note AIS/Metocean key availability; propose fallback (heuristics based on vibration variance & rpm).
+
+D) OPTIONAL MINIMAL POCs (ONLY IF CLEAR VALUE) — behind flags
+Create a tiny, non-invasive demo for at most TWO features that scored “Adopt” with OverallFit ≥ 6:
+- Add env flag: UI_POC=1
+- Add UI routes under client/src/routes/poc/* (Wouter) and guard them:
+  - /poc/fleet — simple table with sort & RAG using current endpoints or mocked data
+  - /poc/performance — one chart (Fuel vs Time) + one overlay marker, pulling from existing API or mock
+- DO NOT modify production routes. Keep POC components in client/src/poc/** and only mount when UI_POC=1.
+- Add server mock endpoints ONLY IF missing and ONLY under /api/poc/**, returning fixed arrays.
+
+E) RISK REGISTER & READINESS PLAN
+Generate docs/assessment_risks.md:
+- Top 5 risks per feature (data quality, sampling alignment, UI latency, model drift, privacy)
+- Mitigations and acceptance criteria
+- “Exit criteria for POC → Production” per feature
+
+F) FINAL OUTPUT (single summary)
+Create docs/assessment_summary.md with:
+- Radar chart values (list numbers if chart lib not present)
+- Top 5 features to Adopt now (with reason)
+- Features to Pilot (with POC link if generated)
+- Features to Defer (with concrete prerequisite list)
+- Concrete next steps (checklist), aligned to Express/Wouter/TanStack Query
+
+DECISION RULES
+- Adopt now: OverallFit ≥ 7 AND DataFit ≥ 3
+- Pilot: OverallFit 5–6 OR DataFit = 2 but mockable
+- Defer: OverallFit ≤ 4 OR missing critical endpoint/data path
+
+CHECKS YOU MUST RUN (automatic)
+- Confirm presence of key files:
+  server/routes/**, client/src/main.jsx or main.tsx, client/src/index.css, client package.json includes @tanstack/react-query
+- Grep for:
+  - “onnxruntime” or “@tensorflow/tfjs”
+  - “wouter” usage in routing
+  - any existing chart components
+- Make a dry-run GET of any found endpoints:
+  - /api/score, /api/capabilities, /api/vessels/:id/* (use V001 if unknown)
+- If an endpoint is missing but required for scoring, mark DataFit lower and propose mock name only (do not implement by default).
+
+OUTPUT FORMAT REQUIREMENTS
+1) Print to console a compact table of OverallFit (F1..F10).
+2) Save the three docs:
+   - docs/assessment_baseline.md
+   - docs/assessment_scores.md
+   - docs/assessment_summary.md
+3) If POCs were created (UI_POC=1 and ≥6 fit): print the list of added files and how to start them.
+
+DO NOT
+- Replace or rename existing routes without listing them in docs/assessment_baseline.md.
+- Implement full CLE, AIS, or Metocean; only note feasibility and minimal adapter stubs IF NEEDED by POC.
+- Add dependencies unless used by the POC. Prefer zero new deps.
+
+STACK CONFORMANCE (MANDATORY)
+- Backend: Express.js routes only (server/ routes). No Fastify.
+- Frontend: React 18, Wouter declarative routing, TanStack Query for all data fetching.
+- Keep all POCs inside client/src/poc/** and server/routes/poc/**.
+
+SUCCESS CRITERIA (what to print at end)
+- A 1-page summary with the top 5 “Adopt” candidates and why.
+- At least one data dependency map (feature → required endpoint/signal/model).
+- Clear “go/no-go” on F2 VPS charts and F3 overlays based on your actual data.
+- If POCs generated: how to run
+  - `UI_POC=1 npm run dev` (or the equivalent)
+  - Visit `/poc/fleet` and `/poc/performance`

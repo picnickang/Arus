@@ -1,0 +1,29 @@
+{
+  "config": {
+    "sequenceLength": 10,
+    "featureCount": 1,
+    "lstmUnits": 32,
+    "dropoutRate": 0.2,
+    "learningRate": 0.001,
+    "epochs": 10,
+    "batchSize": 16
+  },
+  "featureNames": [
+    "temperature"
+  ],
+  "normalizationParams": {
+    "mean": [
+      47.61271300448446
+    ],
+    "std": [
+      4.527749234761168
+    ]
+  },
+  "trainingMetrics": {
+    "loss": 0.014286910183727741,
+    "accuracy": 1,
+    "precision": 0,
+    "recall": 0,
+    "f1Score": 0
+  }
+}

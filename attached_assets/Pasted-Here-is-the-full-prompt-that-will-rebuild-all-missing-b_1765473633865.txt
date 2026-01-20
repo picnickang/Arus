@@ -1,0 +1,72 @@
+Here is the full prompt that will rebuild all missing buttons, routes, and pages while ensuring nothing breaks:
+
+MASTER PROMPT FOR REPLIT (copy/paste all)
+
+I need you to perform a full UI/UX reconstruction pass for the procurement and service modules. 
+After modularization, many buttons and features disappeared in the pages for Purchase Requests, 
+Purchase Orders, Service Requests, and Service Orders. 
+
+Your goal is to:
+1. Reconnect all UI pages, buttons, and routes.
+2. Ensure all tables, forms, and action buttons render correctly.
+3. Ensure all React Query hooks or Zustand stores are referenced correctly.
+4. Ensure no legacy imports are pointing to removed modules.
+5. Rebuild missing components automatically based on conventions.
+
+Here is the required component structure:
+
+/components/procurement/PRForm
+/components/procurement/PRTable
+/components/procurement/POForm
+/components/procurement/POTable
+/components/service/SRForm
+/components/service/SRTable
+/components/service/SOForm
+/components/service/SOTable
+
+Shared components:
+/components/common/AddButton
+/components/common/EditButton
+/components/common/StatusBadge
+/components/common/LinkButton
+
+Required routes:
+/purchase-requests
+/purchase-orders
+/service-requests
+/service-orders
+
+Required actions per module:
+SERVICE REQUEST:
+ - Create SR
+ - Convert to Work Order or Service Order
+
+SERVICE ORDER:
+ - Add tasks
+ - Add required parts
+ - Create linked Purchase Request
+ - Create linked Purchase Order
+ - Mark completed
+
+PURCHASE REQUEST:
+ - Create PR
+ - Add items
+ - Approve PR
+ - Convert PR to Purchase Order
+
+PURCHASE ORDER:
+ - Create PO
+ - Add vendor
+ - Add items
+ - Link to PR and SO
+ - Submit to vendor
+ - Mark received
+
+Fix any missing buttons, missing forms, missing action handlers, and missing imports. 
+Fix any undefined functions, missing schemas, or broken conditional rendering.
+
+Do not assume any file structure beyond what exists. Infer missing pieces automatically 
+and regenerate them following the above component map. Confirm all pages render.
+
+When done, output a summary of changes and any new files, plus instructions 
+to test each module end-to-end.

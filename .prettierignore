@@ -1,0 +1,14 @@
+node_modules
+dist
+dist-electron
+build
+coverage
+.replit
+.cache
+attached_assets
+*.config.js
+*.config.ts
+package-lock.json
+pnpm-lock.yaml
+.env
+.env.local

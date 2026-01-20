@@ -1,0 +1,399 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==================================================================
+REM ARUS – Storage Settings (Object Storage + Operational DB Staging)
+REM - Backend: storage_config CRUD, test endpoints, DB staging
+REM - Frontend: StorageSettings card with provider matrix, test buttons,
+REM default target, multi-target mirror, DB staging panel
+REM - Safe: operational DB cannot switch at runtime; staged only
+REM ==================================================================
+
+if not exist "backend-node\src" (
+echo [ERROR] backend-node/src not found. Run at repo root where backend-node exists.
+exit /b 1
+)
+
+REM 1) Ensure deps for provider tests (kept minimal; tests are ping-style)
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+%PS% ^
+"$f='backend-node/package.json'; $json=(Get-Content -Raw $f | ConvertFrom-Json);" ^
+"$json.dependencies.'@aws-sdk/client-s3' = $json.dependencies.'@aws-sdk/client-s3' ?? '^3.637.0';" ^
+"$json.dependencies.'googleapis' = $json.dependencies.'googleapis' ?? '^135.0.0';" ^
+"$json | ConvertTo-Json -Depth 10 | Set-Content -Encoding UTF8 $f;"
+
+REM 2) Backend: storage DAL + routes
+> backend-node\src\storage.ts (
+echo import type { Pool } from 'pg';
+echo import fs from 'node:fs';
+echo import path from 'node:path';
+echo
+echo const DATABASE_URL = process.env.DATABASE_URL ?? '';
+echo const USE_PG = !!DATABASE_URL;
+echo let pgPool: Pool | null = null as any;
+echo let sqlite: any = null;
+echo
+echo export async function storageInit(){
+echo if (USE_PG){
+echo const { Pool } = await import('pg');
+echo pgPool = new Pool({ connectionString: DATABASE_URL });
+echo await withPg(async(q)=> {
+echo await q.query(`
+echo CREATE TABLE IF NOT EXISTS storage_config(
+echo id TEXT PRIMARY KEY,
+echo kind TEXT NOT NULL, -- 'object' or 'export'
+echo provider TEXT NOT NULL, -- s3|gcs|azure_blob|b2|webdav|sftp|dropbox|onedrive|gdrive
+echo is_default BOOLEAN DEFAULT false,
+echo mirror BOOLEAN DEFAULT false, -- send exports to multiple targets when true
+echo cfg JSONB NOT NULL, -- credentials and options (encrypted at rest in prod)
+echo created_at TIMESTAMPTZ DEFAULT NOW(),
+echo updated_at TIMESTAMPTZ DEFAULT NOW()
+echo );
+echo CREATE TABLE IF NOT EXISTS ops_db_staged(
+echo id SMALLINT PRIMARY KEY DEFAULT 1,
+echo url TEXT,
+echo created_at TIMESTAMPTZ DEFAULT NOW()
+echo );
+echo `);
+echo });
+echo } else {
+echo const Database = (await import('better-sqlite3')).default;
+echo fs.mkdirSync('data', {recursive:true});
+echo sqlite = new Database(path.join('data','arus.sqlite'));
+echo sqlite.pragma('journal_mode=WAL');
+echo sqlite.exec(`
+echo CREATE TABLE IF NOT EXISTS storage_config(
+echo id TEXT PRIMARY KEY,
+echo kind TEXT NOT NULL,
+echo provider TEXT NOT NULL,
+echo is_default INTEGER DEFAULT 0,
+echo mirror INTEGER DEFAULT 0,
+echo cfg TEXT NOT NULL,
+echo created_at TEXT DEFAULT (datetime('now')),
+echo updated_at TEXT DEFAULT (datetime('now'))
+echo );
+echo CREATE TABLE IF NOT EXISTS ops_db_staged(
+echo id INTEGER PRIMARY KEY,
+echo url TEXT,
+echo created_at TEXT DEFAULT (datetime('now'))
+echo );
+echo `);
+echo }
+echo }
+echo
+echo async function withPg<T>(fn:(c:any)=>Promise<T>): Promise<T> {
+echo if (!pgPool) throw new Error('pg not initialized');
+echo const c = await pgPool.connect();
+echo try { return await fn(c); } finally { c.release(); }
+echo }
+echo
+echo export type StorageCfg = {
+echo id: string;
+echo kind: 'object'|'export';
+echo provider: 's3'|'gcs'|'azure_blob'|'b2'|'webdav'|'sftp'|'dropbox'|'onedrive'|'gdrive';
+echo is_default?: boolean;
+echo mirror?: boolean;
+echo cfg: Record<string, any>;
+echo };
+echo
+echo export async function storageList(kind?:string){
+echo if (USE_PG) return withPg(async(q)=> {
+echo const sql = kind? 'SELECT * FROM storage_config WHERE kind=$1 ORDER BY provider,id' : 'SELECT * FROM storage_config ORDER BY kind,provider,id';
+echo const r = await q.query(sql, kind? [kind] : []);
+echo return r.rows.map((x:any)=>({...x, is_default: !!x.is_default, mirror: !!x.mirror}));
+echo });
+echo const sql = kind? 'SELECT * FROM storage_config WHERE kind=? ORDER BY provider,id' : 'SELECT * FROM storage_config ORDER BY kind,provider,id';
+echo const rows = kind? sqlite.prepare(sql).all(kind) : sqlite.prepare(sql).all();
+echo return rows.map((x:any)=> ({...x, is_default: !!x.is_default, mirror: !!x.mirror, cfg: JSON.parse(x.cfg)}));
+echo }
+echo
+echo export async function storageUpsert(s:StorageCfg){
+echo // NOTE: In production, encrypt cfg at rest or store secrets in a vault.
+echo if (USE_PG) return withPg(async(q)=> {
+echo if (s.is_default){
+echo await q.query('UPDATE storage_config SET is_default=false WHERE kind=$1',[s.kind]);
+echo }
+echo await q.query(`
+echo INSERT INTO storage_config(id,kind,provider,is_default,mirror,cfg,updated_at)
+echo VALUES($1,$2,$3,$4,$5,$6,NOW())
+echo ON CONFLICT (id) DO UPDATE SET
+echo kind=EXCLUDED.kind, provider=EXCLUDED.provider,
+echo is_default=EXCLUDED.is_default, mirror=EXCLUDED.mirror,
+echo cfg=EXCLUDED.cfg, updated_at=NOW()
+echo `,[s.id,s.kind,s.provider,!!s.is_default,!!s.mirror, JSON.stringify(s.cfg||{})]);
+echo });
+echo if (s.is_default){
+echo sqlite.prepare('UPDATE storage_config SET is_default=0 WHERE kind=?').run(s.kind);
+echo }
+echo sqlite.prepare(`
+echo INSERT OR REPLACE INTO storage_config(id,kind,provider,is_default,mirror,cfg,updated_at)
+echo VALUES(@id,@kind,@provider,@is_default,@mirror,@cfg,datetime('now'))`).run({
+echo id: s.id, kind: s.kind, provider: s.provider,
+echo is_default: s.is_default?1:0, mirror: s.mirror?1:0, cfg: JSON.stringify(s.cfg||{})
+echo });
+echo }
+echo
+echo export async function storageDelete(id:string){
+echo if (USE_PG) return withPg(async(q)=> { await q.query('DELETE FROM storage_config WHERE id=$1',[id]); });
+echo sqlite.prepare('DELETE FROM storage_config WHERE id=?').run(id);
+echo }
+echo
+echo // -------- Provider "test" (ping) --------
+echo export async function storageTest(s:StorageCfg): Promise<{ok:boolean; detail?:string}>{
+echo try{
+echo switch(s.provider){
+echo case 's3': {
+echo const { S3Client, ListBucketsCommand } = await import('@aws-sdk/client-s3');
+echo const c = new S3Client({ endpoint: s.cfg.endpoint, region: s.cfg.region||'auto', credentials: s.cfg.accessKeyId? {accessKeyId: s.cfg.accessKeyId, secretAccessKey: s.cfg.secretAccessKey}:undefined, forcePathStyle: s.cfg.forcePathStyle??false });
+echo await c.send(new ListBucketsCommand({}));
+echo return {ok:true};
+echo }
+echo case 'gdrive': {
+echo const { google } = await import('googleapis');
+echo const auth = new google.auth.GoogleAuth({ scopes: ['https://www.googleapis.com/auth/drive.file'], credentials: s.cfg.serviceAccountJson });
+echo const drive = google.drive({ version:'v3', auth });
+echo await drive.files.list({ pageSize: 1 });
+echo return {ok:true};
+echo }
+echo default:
+echo // For providers without SDK here, accept configuration presence as "ping".
+echo return {ok: !!s.cfg};
+echo }
+echo }catch(e:any){
+echo return {ok:false, detail: e?.message || String(e)};
+echo }
+echo }
+echo
+echo // -------- Operational DB staging --------
+echo export async function opsDbCurrent(){
+echo return {
+echo driver: USE_PG? 'postgres' : 'sqlite',
+echo database_url: USE_PG? (process.env.DATABASE_URL||'') : 'sqlite://data/arus.sqlite'
+echo };
+echo }
+echo
+echo export async function opsDbStage(url:string){
+echo if (USE_PG) return withPg(async(q)=> {
+echo await q.query('INSERT INTO ops_db_staged(id,url,created_at) VALUES(1,$1,NOW()) ON CONFLICT (id) DO UPDATE SET url=EXCLUDED.url, created_at=NOW()', [url]);
+echo });
+echo sqlite.prepare('INSERT OR REPLACE INTO ops_db_staged(id,url,created_at) VALUES(1,?,datetime(''now''))').run(url);
+echo }
+echo
+echo export async function opsDbStaged(){
+echo if (USE_PG){ const r = await withPg(async(q)=> (await q.query('SELECT url, created_at FROM ops_db_staged WHERE id=1')).rows[0]); return r||null; }
+echo const r = sqlite.prepare('SELECT url, created_at FROM ops_db_staged WHERE id=1').get(); return r||null;
+echo }
+echo
+echo export async function opsDbTest(url:string){
+echo if (!url) return {ok:false, detail:'empty url'};
+echo if (!/^postgres:/i.test(url)) return {ok:false, detail:'only Postgres URLs supported'};
+echo try{
+echo const { Client } = await import('pg');
+echo const cli = new Client({ connectionString: url });
+echo await cli.connect(); await cli.query('SELECT 1'); await cli.end();
+echo return {ok:true};
+echo }catch(e:any){ return {ok:false, detail:e?.message||String(e)} }
+echo }
+)
+
+REM 3) Backend routes: mount storage & ops-db endpoints
+> backend-node\src\index.storage.ts (
+echo import express from 'express';
+echo import { storageInit, storageList, storageUpsert, storageDelete, storageTest, opsDbCurrent, opsDbStage, opsDbStaged, opsDbTest } from './storage.js';
+echo export async function mountStorage(app: express.Express){
+echo await storageInit();
+echo app.get('/api/storage', async (req,res)=>{ const kind = req.query.kind? String(req.query.kind): undefined; res.json(await storageList(kind)); });
+echo app.post('/api/storage', async (req,res)=>{ const b=req.body||{}; if(!b.id||!b.kind||!b.provider) return res.status(400).json({ok:false,error:'id,kind,provider required'}); await storageUpsert(b); res.json({ok:true}); });
+echo app.delete('/api/storage/:id', async (req,res)=>{ await storageDelete(String(req.params.id)); res.json({ok:true}); });
+echo app.post('/api/storage/test', async (req,res)=>{ const r = await storageTest(req.body); res.json(r); });
+echo // Operational DB
+echo app.get('/api/admin/opsdb', async (_req,res)=>{ res.json(await opsDbCurrent()); });
+echo app.get('/api/admin/opsdb/staged', async (_req,res)=>{ res.json(await opsDbStaged()||{}); });
+echo app.post('/api/admin/opsdb/stage', async (req,res)=>{ const url=String((req.body||{}).url||''); if(!url) return res.status(400).json({ok:false,error:'url required'}); await opsDbStage(url); res.json({ok:true}); });
+echo app.post('/api/admin/opsdb/test', async (req,res)=>{ const url=String((req.body||{}).url||''); res.json(await opsDbTest(url)); });
+echo // NOTE: Switching the live DB requires restart with new env (DATABASE_URL).
+echo }
+)
+
+REM 4) Wire routes into backend index.ts (without breaking existing)
+%PS% ^
+"$f='backend-node/src/index.ts'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace 'import \\{ loggingMetrics, metricsHandler, INGEST_CNT \\} from \\'\\.\\/obs\\.js\\';', 'import { loggingMetrics, metricsHandler, INGEST_CNT } from \"./obs.js\";';" ^
+"$t = $t -replace '(const app = express\\(\\);[\\s\\S]*?app\\.get\\(\\'/metrics\\',[\\s\\S]*?\\);)', '$1\nimport { mountStorage } from \"./index.storage.js\";\nawait mountStorage(app);';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM 5) Frontend UI: StorageSettings card
+if not exist "frontend\src" (
+echo [WARN] frontend/src not found; creating skeleton.
+mkdir frontend
+mkdir frontend\src
+> frontend\package.json echo {^
+"name":"arus-frontend","version":"1.0.0","private":true,"type":"module",^
+"scripts":{"dev":"vite","build":"vite build","preview":"vite preview"},^
+"dependencies":{"react":"^18.2.0","react-dom":"^18.2.0"},^
+"devDependencies":{"vite":"^5.0.0","@vitejs/plugin-react":"^4.2.0","typescript":"^5.4.0"}^
+}
+> frontend\index.html echo ^<^!doctype html^>^<html^><head^><meta charset="utf-8"/^><meta name="viewport" content="width=device-width, initial-scale=1"/^><title^>ARUS^</title^></head^><body^><div id="root"^>^</div^><script type="module" src="/src/main.tsx"^>^</script^></body^></html^>
+> frontend\src\main.tsx echo import React from 'react';^
+import ReactDOM from 'react-dom/client';^
+import App from './App';^
+ReactDOM.createRoot(document.getElementById('root')!).render(React.createElement(React.StrictMode,null,React.createElement(App)));
+> frontend\src\App.tsx echo export default function App(){ return (^
+^<div style={{maxWidth:1000,margin:"12px auto",fontFamily:"system-ui,sans-serif"}}^>
+^<h1^>ARUS Console^</h1^>
+^</div^> ); }
+mkdir frontend\src\components
+)
+
+> frontend\src\components\StorageSettings.tsx (
+echo import React, { useEffect, useMemo, useState } from "react";
+echo const BASE = (import.meta as any).env.VITE_API_URL || "http://localhost:8001";
+echo type Row = { id:string; kind:'object'|'export'; provider:string; is_default?:boolean; mirror?:boolean; cfg:any };
+echo type OpsDb = { driver:string; database_url:string };
+echo
+echo const PROVIDERS = ['s3','gcs','azure_blob','b2','webdav','sftp','dropbox','onedrive','gdrive'];
+echo const KINDS = ['object','export'];
+echo function smallInput(p:any){ return <input {...p} style={{width:240}}/> }
+echo
+echo export default function StorageSettings(){
+echo const [rows,setRows]=useState<Row[]>([]);
+echo const [kind,setKind]=useState<string>('export');
+echo const [ops,setOps]=useState<OpsDb|null>(null);
+echo const [staged,setStaged]=useState<any>(null);
+echo const [msg,setMsg]=useState<string>("");
+echo
+echo async function load(){ 
+echo const [r,o,s] = await Promise.all([
+echo fetch(`${BASE}/api/storage?kind=${'${'}encodeURIComponent(kind){'}'}`).then(r=>r.json()),
+echo fetch(`${BASE}/api/admin/opsdb`).then(r=>r.json()),
+echo fetch(`${BASE}/api/admin/opsdb/staged`).then(r=>r.json()).catch(()=>null),
+echo ]);
+echo setRows(r||[]); setOps(o||null); setStaged(s||null);
+echo }
+echo useEffect(()=>{ load(); },[kind]);
+echo
+echo async function addOrUpdate(row?:Row){
+echo const id = row?.id || prompt("Storage ID (e.g., s3-main, drive-shore)")||"";
+echo if(!id) return;
+echo const provider = row?.provider || prompt("Provider (s3/gcs/azure_blob/b2/webdav/sftp/dropbox/onedrive/gdrive):","s3")||"s3";
+echo const is_default = row?.is_default ?? confirm("Make default for exports?");
+echo const mirror = row?.mirror ?? confirm("Enable mirroring (send exports to this target as well)?");
+echo const cfg = row?.cfg || {};
+echo // light config prompts per provider
+echo if(provider==='s3'){
+echo cfg.endpoint = cfg.endpoint || prompt("S3 Endpoint (https://…)", "https://s3.amazonaws.com");
+echo cfg.region = cfg.region || prompt("S3 Region", "auto");
+echo cfg.accessKeyId = cfg.accessKeyId || prompt("Access Key ID","");
+echo cfg.secretAccessKey = cfg.secretAccessKey || prompt("Secret Access Key","");
+echo cfg.bucket = cfg.bucket || prompt("Bucket","");
+echo cfg.forcePathStyle = cfg.forcePathStyle ?? confirm("Force path-style?");
+echo } else if (provider==='gdrive'){
+echo cfg.serviceAccountJson = cfg.serviceAccountJson || {}; // For security: store only via server in production
+echo cfg.folderId = cfg.folderId || prompt("Drive Folder ID","");
+echo } else {
+echo // generic key/value seed
+echo if(!cfg.note) cfg.note = prompt("Any note/identifier for this provider?","")||"";
+echo }
+echo const body = { id, kind, provider, is_default, mirror, cfg };
+echo await fetch(`${BASE}/api/storage`, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)});
+echo await load(); setMsg("Saved.");
+echo }
+echo
+echo async function del(id:string){ if(!confirm("Delete storage config?")) return; await fetch(`${BASE}/api/storage/${'${'}id{'}'}`, {method:'DELETE'}); await load(); }
+echo async function test(row:Row){ const r = await fetch(`${BASE}/api/storage/test`, {method:'POST', headers:{"Content-Type":"application/json"}, body: JSON.stringify(row)}).then(r=>r.json()); setMsg(r.ok? "Connection OK" : ("Test failed: "+(r.detail||"unknown"))); }
+echo
+echo async function stageDb(){ const url = prompt("Enter Postgres URL (postgres://user:pass@host:5432/db)",""); if(!url) return; await fetch(`${BASE}/api/admin/opsdb/stage`, {method:'POST', headers:{"Content-Type":"application/json"}, body: JSON.stringify({url})}); await load(); setMsg("Staged. Test and then restart with DATABASE_URL to apply."); }
+echo async function testDb(){ const url = staged?.url || prompt("Postgres URL to test",""); if(!url) return; const r = await fetch(`${BASE}/api/admin/opsdb/test`, {method:'POST', headers:{"Content-Type":"application/json"}, body: JSON.stringify({url})}).then(r=>r.json()); setMsg(r.ok? "DB reachable." : ("DB test failed: "+(r.detail||""))); }
+echo
+echo return (
+echo <div>
+echo <h2>Storage Settings</h2>
+echo <div style={{display:"flex",gap:10,alignItems:"center",margin:"8px 0"}}>
+echo <label>Kind:</label>
+echo <select value={kind} onChange={e=>setKind(e.target.value)}>
+echo {KINDS.map(k=>(<option key={k} value={k}>{k}</option>))}
+echo </select>
+echo <button onClick={()=>addOrUpdate()} style={{marginLeft:"auto"}}>Add Provider</button>
+echo {msg && <span style={{color:"#475569",fontSize:12}}>{msg}</span>}
+echo </div>
+echo
+echo <table style={{width:"100%",fontSize:12,borderCollapse:"collapse"}}>
+echo <thead><tr style={{background:"#f1f5f9"}}><th style={{textAlign:"left"}}>ID</th><th>Provider</th><th>Default</th><th>Mirror</th><th>Actions</th></tr></thead>
+echo <tbody>
+echo {rows.map(r=>(
+echo <tr key={r.id}>
+echo <td style={{padding:"6px"}}>{r.id}</td>
+echo <td style={{textAlign:"center"}}>{r.provider}</td>
+echo <td style={{textAlign:"center"}}>{r.is_default? "Yes":"No"}</td>
+echo <td style={{textAlign:"center"}}>{r.mirror? "Yes":"No"}</td>
+echo <td style={{textAlign:"center"}}>
+echo <button onClick={()=>test(r)}>Test</button>
+echo <button style={{marginLeft:6}} onClick={()=>addOrUpdate(r)}>Edit</button>
+echo <button style={{marginLeft:6,background:"#ef4444",color:"#fff",border:0,padding:"2px 6px",borderRadius:6}} onClick={()=>del(r.id)}>Delete</button>
+echo </td>
+echo </tr>
+echo ))}
+echo {rows.length===0 && (<tr><td colSpan={5} style={{padding:"8px",color:"#64748b"}}>No providers configured.</td></tr>)}
+echo </tbody>
+echo </table>
+echo
+echo <div className="card" style={{marginTop:12}}>
+echo <h3>Operational Data (Database)</h3>
+echo <p style={{fontSize:12,color:"#475569"}}>
+echo Current driver: <b>{ops?.driver||"unknown"}</b> — URL: <code>{ops?.database_url||"n/a"}</code>
+echo </p>
+echo <p style={{fontSize:12,color:"#475569"}}>
+echo Staged URL: <code>{staged?.url||"(none)"}</code>
+echo </p>
+echo <div style={{display:"flex",gap:8}}>
+echo <button onClick={stageDb}>Stage new Postgres URL</button>
+echo <button onClick={testDb}>Test staged URL</button>
+echo </div>
+echo <p style={{fontSize:12,color:"#ef4444",marginTop:8}}>
+echo To apply a staged DB, restart backend with <code>DATABASE_URL=&lt;staged&gt;</code>. Live switching is blocked for safety.
+echo </p>
+echo </div>
+echo </div>
+echo );
+echo }
+)
+
+REM 6) Mount StorageSettings card in the UI
+if exist "frontend\src\App.tsx" (
+%PS% ^
+"$f='frontend/src/App.tsx'; $t=Get-Content -Raw $f; " ^
+"$ins='import StorageSettings from \"./components/StorageSettings\";'; " ^
+"$t = ($t -notmatch 'StorageSettings') ? $ins + \"`n\" + $t : $t; " ^
+"$t = $t -replace '(?s)(</div>\\s*)$',' <div className=\"card\"><StorageSettings/></div>`n$1'; " ^
+"Set-Content -Encoding UTF8 $f $t; Write-Host '[OK] App.tsx patched to include Storage Settings card.'"
+) else (
+echo [WARN] frontend/src/App.tsx not found. Please add StorageSettings card manually.
+)
+
+echo.
+echo ==========================================================
+echo ✅ Storage Settings installed.
+echo ----------------------------------------------------------
+echo Backend API:
+echo GET /api/storage?kind=export|object
+echo POST /api/storage {id, kind, provider, is_default?, mirror?, cfg{}}
+echo DELETE /api/storage/:id
+echo POST /api/storage/test (ping provider)
+echo GET /api/admin/opsdb -> {driver,database_url}
+echo GET /api/admin/opsdb/staged -> {url?,created_at?}
+echo POST /api/admin/opsdb/stage {url}
+echo POST /api/admin/opsdb/test {url}
+echo
+echo Frontend:
+echo - Storage Settings card:
+echo • Manage providers (S3/GCS/Azure Blob/R2/MinIO/B2/WebDAV/SFTP/Dropbox/OneDrive/Google Drive)
+echo • Set default export target + optional mirroring
+echo • Test connection
+echo • Stage operational DB URL + connection test (apply on restart)
+echo
+echo Notes:
+echo - For S3/MinIO/R2: cfg = {endpoint, region, accessKeyId, secretAccessKey, bucket, forcePathStyle}
+echo - For Drive: cfg = {folderId, serviceAccountJson} [store securely in prod / secrets manager]
+echo - Other providers accept generic cfg; wire up SDKs later as needed.
+echo - Live DB switching is intentionally blocked; switch on restart to avoid corruption.
+echo ==========================================================
+endlocal

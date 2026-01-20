@@ -1,0 +1,747 @@
+What to add (precise + minimal)
+
+
+
+1) Model Lineage (CRITICAL)
+
+
+
+Data model (TS types / JSON schema)
+
+// apps/server/src/governance/types.ts
+export type LineageRecord = {
+  modelId: string;                  // e.g., "lstm-v47-engine-2025-11-04"
+  family: "lstm" | "xgboost" | "rf";
+  profile: string;                  // tug|psv|...
+  vesselId?: string;                // if vessel-specific fine-tune
+  version: string;                  // semver or date-based
+  createdAt: string;                // ISO
+  trainedBy: string;                // service or user
+  datasetMix: { name: string; weight: number; hash: string }[];
+  hyperparams: Record<string, number | string>;
+  metrics: Record<string, number>;  // val_loss, f1, auc, etc.
+  artifacts: {                      // file paths + content hashes
+    checkpointPath: string;
+    checkpointHash: string;
+    thresholdsPath?: string;
+    thresholdsHash?: string;
+  };
+  promotion: {
+    promotedAt?: string;
+    promotedBy?: string;
+    stage: "dev" | "staging" | "production";
+    canary?: boolean;
+  };
+  ttlSeconds?: number;              // for cache/expiry
+  predictionCount: number;
+};
+Write lineage at train/finetune time
+
+
+
+Hook into your existing trainers (LSTM/XGBoost/RF). After saving checkpoints:
+
+// apps/server/src/governance/lineage.ts
+import { createHash } from "crypto";
+import fs from "fs/promises";
+import path from "node:path";
+import type { LineageRecord } from "./types";
+
+const LINEAGE_FILE = process.env.LINEAGE_FILE ?? "./checkpoints/lineage.jsonl";
+
+export async function sha256File(p: string) {
+  const h = createHash("sha256");
+  h.update(await fs.readFile(p));
+  return h.digest("hex");
+}
+
+export async function appendLineage(rec: LineageRecord) {
+  await fs.mkdir(path.dirname(LINEAGE_FILE), { recursive: true });
+  await fs.appendFile(LINEAGE_FILE, JSON.stringify(rec) + "\n", "utf8");
+}
+
+export async function recordTraining(opts: Omit<LineageRecord, "predictionCount">) {
+  const r: LineageRecord = { ...opts, predictionCount: 0 };
+  await appendLineage(r);
+  return r;
+}
+
+export async function incrementPredCount(modelId: string) {
+  // simple: append an “update” delta; or keep a KV store. Appending is audit-friendly.
+  const delta = { type: "predCount", modelId, ts: new Date().toISOString(), inc: 1 };
+  await fs.appendFile(LINEAGE_FILE, JSON.stringify(delta) + "\n");
+}
+Expose lineage & promotion routes (RBAC: Manager/Admin)
+
+// apps/server/src/routes/governance.ts
+import { Router } from "express";
+import fs from "fs/promises";
+const router = Router();
+
+router.get("/model/lineage", async (_req, res) => {
+  const file = process.env.LINEAGE_FILE ?? "./checkpoints/lineage.jsonl";
+  try {
+    const text = await fs.readFile(file, "utf8");
+    const rows = text.trim().split("\n").map(JSON.parse);
+    res.json({ items: rows });
+  } catch {
+    res.json({ items: [] });
+  }
+});
+
+router.post("/model/promote", async (req, res) => {
+  // body: { modelId, stage: "staging"|"production", promotedBy }
+  const file = process.env.LINEAGE_FILE ?? "./checkpoints/lineage.jsonl";
+  const payload = { type: "promotion", ...req.body, promotedAt: new Date().toISOString() };
+  await fs.appendFile(file, JSON.stringify(payload) + "\n");
+  res.json({ ok: true });
+});
+
+export default router;
+Log prediction → model linkage
+
+
+
+Where you serve /score, include modelId in response & log a prediction event (see provenance below). Also call incrementPredCount(modelId).
+
+2) Event Provenance (HIGH)
+
+
+
+Goal: tamper-evident chain for predictions/alerts/anomalies.
+
+
+
+Chain hashing
+
+// apps/server/src/governance/provenance.ts
+import { createHash } from "crypto";
+import fs from "fs/promises";
+import path from "node:path";
+
+const PROV_FILE = process.env.PROVENANCE_FILE ?? "./checkpoints/provenance.jsonl";
+
+export async function appendProvenance(event: Record<string, unknown>) {
+  await fs.mkdir(path.dirname(PROV_FILE), { recursive: true });
+  const prev = await lastHash();
+  const payload = { ...event, ts: new Date().toISOString(), prevHash: prev ?? null };
+  const hash = sha256(JSON.stringify(payload));
+  const row = { ...payload, hash };
+  await fs.appendFile(PROV_FILE, JSON.stringify(row) + "\n", "utf8");
+  return row;
+}
+
+function sha256(s: string) {
+  return createHash("sha256").update(s).digest("hex");
+}
+
+async function lastHash() {
+  try {
+    const text = await fs.readFile(PROV_FILE, "utf8");
+    const last = text.trim().split("\n").pop();
+    if (!last) return null;
+    return JSON.parse(last).hash as string;
+  } catch { return null; }
+}
+Use it in scoring + alerts
+
+// in /score handler, after inference:
+await appendProvenance({
+  type: "prediction",
+  modelId,
+  vesselId,
+  profile,
+  anomalyScore,
+  contributors,     // from your SHAP/attribution
+  rawSliceHash,     // sha256 of the telemetry slice you scored
+  engine: "tfjs" | "onnx" | "xgboost" | "rf"
+});
+
+// when creating an alert:
+await appendProvenance({
+  type: "alert",
+  alertId,
+  vesselId,
+  severity,
+  source: "anomaly" | "rule" | "operator",
+});
+Verifier CLI (spot check chain)
+
+// apps/server/scripts/verify_provenance.ts
+import fs from "fs";
+
+const file = process.env.PROVENANCE_FILE ?? "./checkpoints/provenance.jsonl";
+const rows = fs.readFileSync(file, "utf8").trim().split("\n").map(JSON.parse);
+
+function sha256(str: string) {
+  const { createHash } = require("crypto");
+  return createHash("sha256").update(str).digest("hex");
+}
+
+let ok = true, prev: string | null = null;
+for (const r of rows) {
+  const copy = { ...r }; const hash = copy.hash; delete copy.hash;
+  const calc = sha256(JSON.stringify(copy));
+  if (calc !== hash) { ok = false; console.error("Hash mismatch", r); break; }
+  if (copy.prevHash !== (prev ?? null)) { ok = false; console.error("Chain break", r); break; }
+  prev = hash;
+}
+console.log(ok ? "Chain OK" : "Chain BROKEN");
+3) VPS baselines & fleet overlays (MEDIUM)
+
+Compute per-profile baseline series + fleet percentile bands during data ingestion (or nightly), write to:
+
+cache/baseline/<profile>.json and cache/percentiles/<profile>.json
+
+Frontend: add toggles “Baseline” and “Fleet 25–75% band” per chart; shaded area via Recharts Area.
+
+4) Automated Performance Harness (MEDIUM)
+
+/scripts/perf_harness.js that:
+
+Fires N parallel /score requests with realistic window sizes (from your dataset mixer).
+
+Logs p50/p95/p99 latency, error rate, throughput.
+
+Exits non-zero if p95 > threshold (CI gate).
+
+5) Governance Dashboard UI (MEDIUM)
+
+New route /governance with:
+
+Model Lineage table (search by modelId/vessel/profile, stage, metrics).
+
+Prediction Audit table (filter by vessel/time/model).
+
+Provenance Chain widget: latest hash + “Verify chain” button (runs verifier endpoint).
+
+Export buttons (CSV/JSON).
+
+One-shot Replit prompt (covers Phase 1–2 now)
+
+
+
+REPLIT AI PROMPT — Implement Model Lineage + Event Provenance + VPS Overlays + Perf Harness + Governance UI
+
+
+
+Context
+
+The app is Express backend + React 18 (Wouter + TanStack Query). RBAC, validation, metrics, ensemble models, SHAP, PWA, dataset mixer, registry, drift monitoring all exist. We need to finish governance/observability:
+
+Phase 1: Model Lineage Tracking (training & promotion logs, artifact hashes, metrics, query APIs)
+
+Phase 2: Event Provenance with SHA-256 chain hashing for predictions/alerts
+
+Plus: VPS baseline/fleet overlays, perf harness, and Governance Dashboard UI
+
+
+
+Do
+
+Server
+
+Add apps/server/src/governance/types.ts, lineage.ts, provenance.ts as shown.
+
+Wire lineage recording into all trainers (LSTM/XGB/RF) after checkpoints are saved; include datasetMix, hyperparams, metrics.
+
+In /score:
+
+Include modelId in response.
+
+Log a provenance prediction event with telemetry slice hash and contributors.
+
+Increment the lineage prediction counter (append delta).
+
+Add routes:
+
+GET /model/lineage (list JSONL entries and deltas)
+
+POST /model/promote (append a promotion delta; RBAC Manager/Admin)
+
+POST /governance/verify-provenance (runs verifier and returns {ok, errors?})
+
+Create baseline/percentile JSON caches for VPS charts; expose from /vessels/:id/performance.
+
+Add apps/server/scripts/verify_provenance.ts and NPM script "verify:prov".
+
+Client
+
+New route /governance:
+
+LineageTable: columns = modelId, family, profile, vesselId, version, stage, metrics, createdAt, promotedAt.
+
+AuditLog: recent prediction/alert events with hash + prevHash; a “Verify chain” button.
+
+Download buttons (CSV/JSON) for lineage and events.
+
+Update VPS charts (Load Distribution, Power/STW) with two toggles:
+
+Baseline overlay (line)
+
+Fleet band (25–75% shaded area)
+
+Keep TanStack Query; add React Query hooks for the new endpoints.
+
+Perf Harness
+
+Add /scripts/perf_harness.js to hammer /score and /vessels/:id/performance; print p50/p95/p99 and fail if p95>1.5s.
+
+RBAC & Validation
+
+Enforce Manager/Admin on promotion/verify.
+
+Add zod schemas for new endpoints.
+
+Docs
+
+Create docs/governance-enhancement-plan.md (summary + API reference + operational runbook).
+
+Add a “Compliance checklist” section (SOC2/ISO mapping).
+
+
+
+Acceptance
+
+Training logs append lineage records with artifact hashes.
+
+/score responses carry modelId; provenance file grows with chain-verified prediction/alert events.
+
+/governance UI shows lineage + audit; “Verify chain” returns OK on fresh runs.
+
+VPS charts render baseline line and fleet percentile band with toggles.
+
+npm run perf reports p95 ≤ threshold (configurable).
+
+Docs generated and linked in README.
+
+
+
+End of prompt.
+
+Awesome—here’s a single, copy-paste Replit AI prompt that implements Phases 3 → 8 on top of the system you already have (Express + React 18 + Wouter + TanStack Query; RBAC/validation/rate-limits; SHAP; Prometheus; dataset mixer; registry; PWA; drift; etc.). It’s structured so Replit can execute step-by-step, generating real code (not placeholders), with tests and acceptance checks.
+
+🚢 REPLIT AI PROMPT — Implement Phases 3–8 (UX, Governance UI, Reliability/Scale, Twin/Optimizer, Advanced AI/Compliance, Ecosystem/Edge)
+
+
+
+Context
+
+ARUS PdM already has: Express backend w/ RBAC, validation & rate limiting; React 18 + Wouter + TanStack Query frontend; 3-model ensemble (LSTM/XGBoost/RF) w/ SHAP; Prometheus metrics; VPS analytics (Load Distribution + Power/STW); CII tracking; mode detection; CoPilot; Context timeline; dataset mixer; model registry + TTL; PWA offline; drift/adaptive retraining.
+
+You just added/go-adding Phases 1–2 (Model Lineage + Event Provenance). Now implement Phases 3–8.
+
+📦 Monorepo assumptions
+
+/apps
+  /server (Express, TypeScript)
+  /client (React 18 + Wouter + TanStack Query + Tailwind + Recharts + Leaflet)
+  /python (export/exporters if needed)
+ /scripts
+ /docs
+ /checkpoints
+ /data
+Keep JWT roles: Operator, Engineer, Manager, Admin.
+
+✅ Phase 3 — UX + Performance Enhancements (5–7 days)
+
+
+
+A. VPS overlays & anomaly highlighting
+
+
+
+Server
+
+Extend /vessels/:id/performance to return:
+
+baselineSeries (per profile)
+
+fleetPercentileBand (p25/p75; also expose p10/p90)
+
+anomalyWindows with start, end, score, contributors, confidence
+
+
+
+Client
+
+Update all 4 VPS charts to add toggles:
+
+“Baseline overlay”
+
+“Fleet 25–75% band”
+
+“Show anomalies”
+
+Use Recharts Area for bands, ReferenceArea for anomalies with tooltip showing SHAP contributors.
+
+
+
+B. Chart customizability
+
+Add Saved Views: per-user preferences (units, threshold lines, which overlays) persisted to /api/user/prefs (RBAC: any authenticated user).
+
+
+
+C. Automated Performance Harness (CI gate)
+
+
+
+Create /scripts/perf_harness.js:
+
+Hammers /score and /vessels/:id/performance with realistic payloads.
+
+Prints p50/p95/p99 latency & throughput; exit non-zero if p95 > PERF_P95_MS (env).
+
+Add npm script:
+
+"perf": "node scripts/perf_harness.js"
+D. Acceptance (Replit verify)
+
+Charts render overlays and anomaly shading with tooltips.
+
+npm run perf passes with p95 under threshold.
+
+Preferences persist and reload.
+
+🖥️ Phase 4 — Governance Dashboard UI (6–8 days)
+
+
+
+A. Routes (server)
+
+GET /model/lineage (already from Phase 1): add filters ?profile=&family=&stage=&vesselId=&from=&to=.
+
+GET /governance/events (from Phase 2 provenance file) with pagination + filters type, vesselId, modelId.
+
+POST /governance/verify-provenance → returns { ok, brokenAt? }.
+
+
+
+B. Client pages
+
+
+
+Add /governance with:
+
+Model Lineage Browser: table + filters; link to download artifacts; “Promote” button (Manager/Admin) → POST /model/promote.
+
+Prediction Audit Log: filter by time/model/vessel; displays hash, prevHash; button “Verify chain”.
+
+Compliance Reports: export CSV/JSON + basic PDF (server generates simple PDF via pdfkit).
+
+
+
+C. Acceptance
+
+Filtering works; promotion appends lineage delta; “Verify chain” returns OK on fresh runs; exports download.
+
+🛡️ Phase 5 — Reliability & Ops Scaling (10–14 days)
+
+
+
+A. Inference isolation & batching
+
+Add Node Worker Threads for scoring jobs (pool size = CPU cores).
+
+Optional: lightweight Redis queue (BullMQ) for future scale; for now in-memory pool acceptable.
+
+Batch adjacent windows for the same vessel.
+
+
+
+B. Prometheus expansions
+
+
+
+Add histograms/counters:
+
+inference_queue_depth, inference_batch_size
+
+score_p50/p95/p99 (histogram)
+
+data_freshness_seconds{vesselId}
+
+drift_events_total & retrain_suggestions_total
+
+
+
+C. CI/CD integration
+
+GitHub Actions workflow: run npm run perf on PR; block if p95 > env threshold.
+
+
+
+D. Health & freshness
+
+/fleet/summary includes freshnessScore and last telemetry timestamp; draw data-quality bars in the Fleet view.
+
+
+
+E. Acceptance
+
+Under load, p95 meets target; queue depth never exceeds max; metrics show non-zero values; CI gate blocks regressions.
+
+🌊 Phase 6 — Fleet Optimization & Decision Support (3–4 weeks)
+
+
+
+A. Digital Twin Runtime (minimal viable)
+
+
+
+Server /ai/twin/*:
+
+POST /ai/twin/simulate → inputs: vessel class, RPM profile, sea-state, draft/trim → outputs: predicted fuel, wear proxy, anomaly risk.
+
+Internals: reuse existing models + rule-based hydrodynamics approximation (document TODO for 3D later).
+
+
+
+B. Voyage Optimizer
+
+
+
+Server /ai/optimizer/route:
+
+Inputs: origin/destination/time window, metocean snapshot, constraints (fuel cap, maintenance windows).
+
+Output: route candidate with setpoint schedule (RPM/throttle) + predicted fuel & PdM risk deltas.
+
+
+
+Client
+
+/simulator page: tweak sliders (sea-state, target RPM, time) → charts update; “Export plan” creates a WO/recommendation.
+
+
+
+C. Recommendation Engine v2
+
+Server /recommendations generates prescriptive suggestions (e.g., “reduce RPM by 3% for next 2h to cut fuel 2.1% and anomaly risk 18%”).
+
+Client: show acceptance button; log acceptance rate metric.
+
+
+
+D. Acceptance
+
+Simulator & Optimizer endpoints return deterministic outputs on fixtures; recommendations render and can be accepted/declined; acceptance rate tracked.
+
+🧠 Phase 7 — Advanced AI & Compliance (6–8 weeks)
+
+
+
+A. Adaptive Retrain Orchestrator
+
+Drift monitors trigger proposed retrain records.
+
+/admin/retrain/policy config (YAML or JSON) with thresholds.
+
+Route POST /admin/retrain/approve (Manager/Admin) moves canary → staging → production; log to lineage.
+
+
+
+B. Explainability 2.0
+
+Temporal saliency maps per sensor window (heatmap over time x feature).
+
+Client anomaly tooltip adds “View temporal attributions”.
+
+
+
+C. Federated Learning Client (stub + local simulation)
+
+/ai/federated/register, /ai/federated/round:
+
+Accept local gradient updates; aggregate (FedAvg) locally for simulation.
+
+Clear TODOs for secure aggregation & cross-org comms (future).
+
+
+
+D. Immutable Audit Ledger
+
+Build Merkle tree for provenance entries each day; persist root.
+
+Optional anchoring: write root to a simple public gist or notary service (configurable).
+
+/governance/ledger/verify?date=YYYY-MM-DD returns proof chain.
+
+
+
+E. CII Forecasting & Reporting
+
+/reports/cii/forecast (ARIMA/Prophet-lite or XGBoost on your feature set) → forecast next 30/90 days with confidence bands.
+
+Add to Reports page with “at-risk” badge.
+
+
+
+F. Acceptance
+
+Policy → approval flow works; lineage updated.
+
+Temporal attributions render.
+
+Federated simulation runs locally across 2–3 “clients”.
+
+Daily Merkle root computed; verifier returns OK.
+
+CII forecast cards render with bands.
+
+🧩 Phase 8 — Ecosystem & Edge (Year 2+; scaffold now)
+
+
+
+A. OEM Connectors SDK (scaffold)
+
+/connectors/oem/* interfaces: Wärtsilä, Kongsberg, MAN.
+
+Implement a mock connector with mapping to your canonical schema.
+
+Add connector health panel in /settings/integrations.
+
+
+
+B. Insurance & Regulatory APIs (stubs)
+
+/api/partners/insurance/riskfeed (RBAC: partner token).
+
+/api/regulatory/imo-dcs/submit (dry-run mode with generated payloads).
+
+
+
+C. Marketplace & Billing (skeleton)
+
+/marketplace UI page for plug-ins; server billing hook POST /billing/webhook (signature check).
+
+Feature flags per tenant in /api/tenants/features.
+
+
+
+D. Edge Deployments
+
+edge.Dockerfile for on-vessel node with store-and-forward sync.
+
+sync-agent.ts: buffers telemetry & events locally, retries on reconnect.
+
+PWA: ensure offline vessel view & WO actions queue and sync.
+
+
+
+E. Acceptance
+
+Mock OEM connector passes health check; riskfeed/regulatory endpoints accept/validate payloads; edge image builds; offline mutations replay.
+
+🧪 Testing & Docs (continuous)
+
+
+
+Tests
+
+Unit (Vitest): mixers, overlays, attribution heatmaps, Merkle builder.
+
+API (Supertest): governance filters, optimizer, twin simulate, federated endpoints.
+
+E2E (Playwright): Fleet→Vessel overlays; Governance UI verify chain; Simulator export plan; offline WO queue + replay.
+
+
+
+Docs
+
+/docs/feature_matrix.md (tick Phase 3–8 features)
+
+/docs/api_reference.md (new endpoints)
+
+/docs/perf_benchmarks.md (perf harness targets & history)
+
+/docs/security_compliance.md (SOC2, ISO, maritime mappings)
+
+/docs/edge_deployment.md (image, sync agent, offline flows)
+
+🔧 Implementation specifics Replit should generate now
+
+Server changes
+
+
+
+New/updated routes:
+
+GET /vessels/:id/performance → include baselineSeries, fleetPercentileBand, anomalyWindows
+
+GET /governance/events, POST /governance/verify-provenance
+
+POST /ai/twin/simulate, POST /ai/optimizer/route, GET /recommendations
+
+POST /admin/retrain/approve
+
+POST /ai/federated/register, POST /ai/federated/round
+
+GET /governance/ledger/verify, background job to compute daily Merkle roots
+
+(Phase 8 stubs) /connectors/oem/*, /api/partners/insurance/riskfeed, /api/regulatory/imo-dcs/submit, /billing/webhook, /api/tenants/features
+
+Worker pool for scoring; Prometheus metrics additions.
+
+Scripts: scripts/perf_harness.js, scripts/merkle_daily.js
+
+Config: PERF_P95_MS, QUEUE_CONCURRENCY, EDGE_SYNC_DIR, feature flags.
+
+
+
+Client changes
+
+
+
+Chart components accept overlays + anomaly markers; toggles persist per user.
+
+Pages: /governance, /simulator, /reports (forecast tab), /settings/integrations, /marketplace.
+
+Hook utilities for new endpoints; loading/error/empty states.
+
+
+
+Security
+
+
+
+RBAC on admin/promote/retrain/verify; zod validation on each new route; signed webhooks.
+
+
+
+CI
+
+
+
+GitHub Actions workflow running lint, test, perf with PERF_P95_MS.
+
+✅ Final Acceptance Criteria (Replit must confirm)
+
+Phase 3: Overlays + anomaly shading render; perf passes with p95 under PERF_P95_MS; saved views persist.
+
+Phase 4: Governance UI filters; promotion works; provenance verifies; CSV/JSON/PDF exports download.
+
+Phase 5: Worker-pooled scoring; Prom metrics increased; CI perf gate works; Fleet freshness bars visible.
+
+Phase 6: Digital Twin simulate + Optimizer route return stable results on fixtures; recommendations v2 appear and log acceptance.
+
+Phase 7: Retrain policy approvals logged to lineage; temporal attributions render; federated local sim works; Merkle verify OK; CII forecast page renders with bands.
+
+Phase 8: OEM connector mock oks health; partner/regulatory endpoints validate; edge Dockerfile builds; offline actions replay.
+
+
+
+When done, print:
+
+List of new/changed routes
+
+Paths of new scripts and docs
+
+A short table of perf results (p50/p95/p99) from the harness
+
+Which features are behind flags and how to enable them
+
+
+
+End of prompt.

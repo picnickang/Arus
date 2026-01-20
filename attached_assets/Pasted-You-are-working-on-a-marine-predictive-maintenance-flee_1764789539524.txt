@@ -1,0 +1,221 @@
+You are working on a marine predictive-maintenance / fleet-operations app running in Electron with a Node/Express backend, React/TypeScript frontend, and a hybrid PostgreSQL + SQLite setup using Drizzle ORM.
+
+The current backend has two huge “god files”:
+
+- server/routes.ts  ≈17,331 lines
+- server/storage.ts ≈24,164 lines
+
+They technically work, but they are unmaintainable. I want you to **modularize them safely** without breaking existing behavior.
+
+====================================
+HIGH-LEVEL OBJECTIVES
+====================================
+
+1. **Modularize routes.ts**
+   - Goal: shrink main `server/routes.ts` to **≤ 300 lines**.
+   - Responsibility of routes.ts after refactor:
+     - Import domain routers and register them on the Express app.
+     - NO inline handlers, NO business logic.
+   - Create domain router modules under something like:
+     - `server/routes/telemetry.routes.ts`
+     - `server/routes/equipment.routes.ts`
+     - `server/routes/workorders.routes.ts`
+     - `server/routes/inventory.routes.ts`
+     - `server/routes/crew.routes.ts`
+     - `server/routes/scheduler.routes.ts`
+     - `server/routes/hoursOfRest.routes.ts`
+     - `server/routes/logs-deck.routes.ts`
+     - `server/routes/logs-engine.routes.ts`
+     - `server/routes/compliance.routes.ts`
+     - `server/routes/alerts.routes.ts`
+     - `server/routes/analytics.routes.ts`
+     - `server/routes/settings.routes.ts`
+   - Group route handlers by domain, not by HTTP verb.
+
+2. **Modularize storage.ts**
+   - Goal: shrink `server/storage.ts` to **≤ 400 lines**.
+   - Responsibility after refactor:
+     - Initialize DB clients (SQLite local / PostgreSQL / libSQL).
+     - Export typed DB clients and any SHARED helpers (e.g. `getDbClient`, connection pools).
+     - NO domain-specific queries in this file.
+   - Create domain repository modules under something like:
+     - `server/db/telemetry.repo.ts`
+     - `server/db/j1939.repo.ts`
+     - `server/db/equipment.repo.ts`
+     - `server/db/workorders.repo.ts`
+     - `server/db/inventory.repo.ts`
+     - `server/db/crew.repo.ts`
+     - `server/db/scheduler.repo.ts`
+     - `server/db/hoursOfRest.repo.ts`
+     - `server/db/logs-deck.repo.ts`
+     - `server/db/logs-engine.repo.ts`
+     - `server/db/compliance.repo.ts`
+     - `server/db/alerts.repo.ts`
+     - `server/db/analytics.repo.ts`
+     - `server/db/settings.repo.ts`
+   - Each repo file should be ~100–300 lines and contain:
+     - Drizzle schema imports
+     - Typed query functions (e.g. `getEquipmentByVessel`, `createWorkOrder`, `listEngineLogsForDay`, etc.)
+     - No Express / HTTP knowledge.
+
+3. **Respect existing dual-database architecture**
+   - The app supports both PostgreSQL (cloud) and SQLite (vessel/embedded) modes.
+   - BEFORE changing anything, scan for:
+     - Any unified schema helpers (e.g. `shared/schema-runtime.ts`, `isLocalMode`, or similar).
+     - Any Drizzle setup for both `pg` and `sqlite`.
+   - Ensure that:
+     - New repository modules can work against BOTH DB backends.
+     - There is a single, clear place where DB mode is chosen (e.g. `db-config.ts` / `db/index.ts`).
+   - DO NOT break existing migrations or schema parity between Postgres and SQLite.
+
+4. **Preserve behavior and APIs**
+   - All existing REST endpoints and response shapes must remain compatible:
+     - Same URLs
+     - Same HTTP verbs
+     - Same request/response JSON structure and error codes
+   - Any refactor MUST be behavior-preserving unless a bug is clearly identified and FIXED intentionally with a note.
+
+5. **Make it easier for a human full-stack dev to work on**
+   - After refactor, a reasonably experienced TS/Node dev should be able to:
+     - Find route handlers by domain quickly.
+     - Find DB logic by domain quickly.
+     - Add a new feature by touching only a small number of files.
+   - Add comments and minimal docs to clarify structure.
+
+====================================
+WORKFLOW / PLAN
+====================================
+
+Follow this phased approach and narrate what you’re doing as you go.
+
+PHASE 1 – ARCHITECTURE DISCOVERY (READ-ONLY)
+--------------------------------------------
+1. Scan the repository and summarize:
+   - Where `routes.ts` and `storage.ts` are currently located.
+   - How Express is initialized.
+   - How DB clients are created (Postgres, SQLite, libSQL, etc.).
+   - Any existing domain folders (e.g. `server/modules/*`, `server/features/*`, etc.).
+2. Report back a concise map:
+   - “Current route domains: …”
+   - “Current storage responsibilities: …”
+   - “Existing modularization already in place: …”
+3. Identify any **existing** attempts at modularization, and DO NOT duplicate them.
+   - If there are already `server/routes/xyz.routes.ts` or `server/db/xyz.repo.ts`, integrate with those instead of inventing new parallel structures.
+
+PHASE 2 – ROUTES MODULARIZATION
+-------------------------------
+1. For `server/routes.ts`:
+   - Categorize remaining handlers into domain groups: telemetry, equipment, inventory, work orders, logs, crew, scheduler, HoR, compliance, alerts, analytics, settings, etc.
+   - Define a target list of router modules and the routes that belong to each.
+2. Create per-domain router modules:
+   - Example pattern:
+     ```ts
+     // server/routes/equipment.routes.ts
+     import { Router } from "express";
+     import { equipmentRepo } from "../db/equipment.repo";
+
+     const router = Router();
+
+     router.get("/", async (req, res) => { ... });
+     router.post("/", async (req, res) => { ... });
+     // etc.
+
+     export default router;
+     ```
+3. Refactor `routes.ts`:
+   - Keep just:
+     - Imports of domain routers.
+     - A `registerRoutes(app)` function that mounts routers with prefixes.
+   - Verify that mounted paths match existing behavior (e.g. `/api/equipment`, `/api/telemetry`, etc.).
+4. Run tests / typecheck / basic manual calls (if available) to confirm no breakage.
+
+PHASE 3 – STORAGE MODULARIZATION
+--------------------------------
+1. Inspect `server/storage.ts` and:
+   - Identify all different responsibilities currently mixed in there:
+     - DB connection init (Postgres/SQLite/libSQL).
+     - Raw SQL or Drizzle queries for many domains.
+     - Helper functions.
+   - Classify these by domain as above.
+2. Create `server/db/index.ts` (if not already present):
+   - Export typed DB clients and helper functions, e.g.:
+     ```ts
+     export const db = isLocalMode ? sqliteDb : postgresDb;
+     ```
+3. Extract domain repositories:
+   - For each domain, create a repo file that:
+     - Imports the proper Drizzle schema tables.
+     - Uses the shared `db` client.
+     - Exposes high-level functions like `getDailyEngineLog`, `listUnsignedLogs`, `saveTelemetryBatch`, etc.
+   - Replace direct query usage in route handlers with these repository functions.
+4. Reduce `storage.ts` to:
+   - DB initialization and configuration only OR
+   - Fully deprecate it in favor of `db/index.ts` if appropriate, keeping backward-compatible exports so nothing else breaks.
+5. Ensure that:
+   - Repositories work in BOTH Postgres and SQLite modes.
+   - Any libSQL / Turso usage for cloud sync still works or is clearly separated.
+
+PHASE 4 – CLEANUP, TYPING & TESTABILITY
+---------------------------------------
+1. Add or improve TypeScript types:
+   - Typed return values for repository methods.
+   - Avoid `any` where possible.
+2. Ensure any new modules:
+   - Have small, focused responsibilities.
+   - Are imported via clear public entry points (e.g. `db/index.ts`, `routes/index.ts`).
+3. Add minimal test scaffolding:
+   - At least a few example tests per domain (even if just smoke tests) to validate that the modularization didn’t break basic flows.
+4. Remove dead code and duplication you discover during the split.
+
+PHASE 5 – DEV EXPERIENCE & DOCUMENTATION
+----------------------------------------
+1. Add a short `ARCHITECTURE.md` or update existing docs with:
+   - Where routes live.
+   - Where DB logic lives.
+   - How to add a new domain or feature.
+2. Add comments in `routes.ts` and `db/index.ts` explaining:
+   - “Do not put business logic here; use domain routers / repositories instead.”
+3. Provide a short summary for a human full-stack developer:
+   - “To add a new feature, do X, Y, Z”
+   - “To add a new table, update schemas here, repo here, routes here”
+
+====================================
+CONSTRAINTS & QUALITY REQUIREMENTS
+====================================
+
+- Do NOT change external API contracts (URLs, payloads, status codes) unless absolutely required to fix a bug; if you must, clearly note what changed and why.
+- Preserve Electron integration and embedded (vessel) behavior.
+- Preserve dual-DB behavior: both Postgres + SQLite/libSQL must remain supported.
+- Avoid introducing circular imports.
+- Avoid new god files; no file should exceed ~300–400 lines if it can be reasonably split.
+- After each major step, run:
+  - TypeScript build / type-check
+  - Tests (if present)
+  - Any existing lint scripts
+
+====================================
+WHAT TO OUTPUT BACK TO ME
+====================================
+
+When you’re done (or at checkpoints), give me:
+
+1. A summary table:
+
+   - For `server/routes.ts`:
+     - Old line count vs new line count.
+     - List of new route modules created.
+   - For `server/storage.ts`:
+     - Old line count vs new line count.
+     - List of new repository modules created.
+
+2. A brief “developer onboarding” note:
+   - How to navigate routes.
+   - How to navigate DB repositories.
+   - How to add a new feature safely.
+
+3. Any remaining technical debt or TODOs you believe still exist, ranked by impact:
+   - High (must fix before production)
+   - Medium
+   - Low / nice-to-have.
+
+Now start with **PHASE 1 – ARCHITECTURE DISCOVERY**, describe what you see, and then propose the exact modularization plan *before* making large changes.

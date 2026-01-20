@@ -1,0 +1,388 @@
+Replit prompt (paste into Replit → Generate/Fix):
+
+
+
+You are refactoring ml-ensemble-orchestrator.ts (or .js) and related helpers. Apply ALL edits below. Do NOT add external deps.
+
+
+
+Goals
+
+Keep lazy imports; never load TensorFlow at module top.
+
+Prefer ONNX Runtime for LSTM if a model.onnx sits next to the TF model.
+
+Replace static EQUIPMENT_WEIGHTS with adaptive weights from model metadata (recent AUC/F1); fall back to static when missing.
+
+Robust classification feature aggregation from time-series (no hard-coded temperature/vibration/pressure keys; detect via regex; compute stats generically).
+
+Use bucketed, ordered time series before prediction (1000ms default); reuse existing utility if present (bucketTelemetry), otherwise add local minimal bucket function.
+
+Confidence = agreement × availability × average(model confidences if provided); gate by minConfidence.
+
+In shadow mode, never write to DB.
+
+Batch prediction: no top-level TF import; only import TF inside the LSTM path if actually used; remove unconditional memory checks. Provide optional leak warning when TF is loaded.
+
+1) Add (or import) a minimal bucketer
+
+
+
+If you already have bucketTelemetry, import it. Otherwise create a local helper at the top of this file:
+
+type BucketRow = { ts: Date; features: Record<string, number> };
+function bucketTelemetryRaw(
+  rows: { timestamp: Date; features: Record<string, number> }[],
+  stepMs = 1000
+): BucketRow[] {
+  const sorted = [...rows]
+    .filter(r => r.timestamp && !isNaN(r.timestamp.getTime()))
+    .sort((a,b) => a.timestamp.getTime() - b.timestamp.getTime());
+  const buckets = new Map<number, Record<string, number>>();
+  for (const r of sorted) {
+    const t = Math.floor(r.timestamp.getTime()/stepMs)*stepMs;
+    const acc = buckets.get(t) ?? {};
+    for (const k of Object.keys(r.features)) {
+      const v = (r.features as any)[k];
+      if (Number.isFinite(v)) acc[k] = v;
+    }
+    buckets.set(t, acc);
+  }
+  return [...buckets.keys()].sort((a,b)=>a-b).map(t => ({ ts: new Date(t), features: buckets.get(t)! }));
+}
+Replace uses of raw recentData with a bucketed sequence seq = bucketTelemetryRaw(recentData, 1000).
+
+2) Adaptive model weights (data-driven)
+
+
+
+Replace EQUIPMENT_WEIGHTS and getModelWeights with this. Keep your current object as a fallback named STATIC_WEIGHTS.
+
+const STATIC_WEIGHTS: Record<string, { lstm: number; rf: number; xgb: number }> = {
+  main_engine: { lstm: 0.5, rf: 0.3, xgb: 0.2 },
+  auxiliary_engine: { lstm: 0.5, rf: 0.3, xgb: 0.2 },
+  hydraulic_pump: { lstm: 0.5, rf: 0.3, xgb: 0.2 },
+  cooling_pump: { lstm: 0.5, rf: 0.3, xgb: 0.2 },
+  fuel_pump: { lstm: 0.5, rf: 0.3, xgb: 0.2 },
+  electrical_panel: { lstm: 0.2, rf: 0.5, xgb: 0.3 },
+  navigation_equipment: { lstm: 0.2, rf: 0.5, xgb: 0.3 },
+  communication_system: { lstm: 0.2, rf: 0.5, xgb: 0.3 },
+  default: { lstm: 0.34, rf: 0.33, xgb: 0.33 }
+};
+
+async function getAdaptiveWeights(
+  storage: IStorage, orgId: string, equipmentType: string
+): Promise<{ lstm: number; rf: number; xgb: number }> {
+  try {
+    const lstm = await storage.getMlModels(orgId, 'lstm', 'active');
+    const rf   = await storage.getMlModels(orgId, 'random_forest', 'active');
+    const xgb  = await storage.getMlModels(orgId, 'xgboost', 'active');
+    const pick = (arr:any[]) =>
+      arr.filter(m => m.targetEquipmentType === equipmentType || m.targetEquipmentType == null)
+         .sort((a,b) => ((b.performance?.f1Score ?? b.performance?.accuracy ?? 0) -
+                         (a.performance?.f1Score ?? a.performance?.accuracy ?? 0)))[0];
+
+    const l = pick(lstm); const r = pick(rf); const x = pick(xgb);
+    if (!l && !r && !x) return STATIC_WEIGHTS[equipmentType] ?? STATIC_WEIGHTS.default;
+
+    // Normalize recent performance (0.5..1.0 cap)
+    const score = (m:any) => Math.max(0.5, Math.min(1.0, (m?.performance?.f1Score ?? m?.performance?.accuracy ?? 0)));
+    const wl = l ? score(l) : 0;
+    const wr = r ? score(r) : 0;
+    const wx = x ? score(x) : 0;
+
+    // gentle priors to keep stability similar to your original
+    const bumpL = 1.05, bumpX = 1.1, bumpR = 1.0;
+    let L = wl * bumpL, R = wr * bumpR, X = wx * bumpX;
+    const sum = L+R+X || 1;
+    return { lstm: L/sum, rf: R/sum, xgb: X/sum };
+  } catch {
+    return STATIC_WEIGHTS[equipmentType] ?? STATIC_WEIGHTS.default;
+  }
+}
+In ensemblePredict, replace the previous weight lookup:
+
+const weights = ensembleConfig.useAdaptiveWeights
+  ? await getAdaptiveWeights(storage, orgId, equipmentType)
+  : STATIC_WEIGHTS.default;
+3) Prefer ONNX for LSTM (avoid TF load)
+
+
+
+Inside the LSTM block of ensemblePredict:
+
+Before lazy-importing TF, check if a sibling model.onnx exists; if yes, use onnxruntime-node (lazy import) and a tiny inference adapter that mirrors your TF output (failureProbability, optional confidence).
+
+
+
+Replace LSTM section with:
+
+try {
+  const lstmModelPath = await getBestModel(storage, orgId, equipmentType, 'lstm');
+  if (lstmModelPath) {
+    const fs = await import('fs/promises');
+    const path = await import('node:path');
+    const onnxPath = path.join(lstmModelPath, 'model.onnx');
+    const seq = bucketTelemetryRaw(recentData, 1000);
+
+    let failureProb: number | null = null;
+    let modelConf: number | undefined;
+
+    if (await fs.stat(onnxPath).then(()=>true).catch(()=>false)) {
+      const ort = await import('onnxruntime-node');
+      // Simple decoder: model should output reconstruction or probability; adapt as needed.
+      // Here we assume first output is per-timestep decoded sequence or prob. Fallback to mean.
+      const input = Float32Array.from(seq.flatMap(r => Object.values(r.features)));
+      const F = Object.keys(seq[0].features).length;
+      const L = seq.length;
+      const session = await ort.InferenceSession.create(onnxPath);
+      const feeds: Record<string, any> = {};
+      const firstInput = session.inputNames[0];
+      feeds[firstInput] = new ort.Tensor('float32', input, [1, L, F]);
+      const out = await session.run(feeds);
+      const firstOut = out[session.outputNames[0]];
+      // If the model outputs probs [1], take it; else compute a crude MSE vs input as anomaly proxy.
+      if (firstOut.dims.length === 2 && firstOut.dims[1] === 1) {
+        failureProb = Math.max(0, Math.min(1, firstOut.data[0]));
+      } else {
+        // crude proxy (keep consistent with your TF path)
+        const recon = firstOut.data as Float32Array;
+        let mse = 0, c = 0; let pos = 0;
+        for (const row of seq) {
+          const vals = Object.values(row.features);
+          for (let j=0;j<vals.length;j++) { const d = vals[j] - recon[pos++]; mse += d*d; c++; }
+        }
+        mse = mse / Math.max(1,c);
+        // map MSE to 0..1 via 1 - exp(-mse)
+        failureProb = Math.max(0, Math.min(1, 1 - Math.exp(-mse)));
+      }
+    } else {
+      const { loadLSTMModel, predictWithLSTM } = await import('./ml-lstm-model.js');
+      const lstmModel = await loadLSTMModel(lstmModelPath);
+      const lstmPred = await predictWithLSTM(lstmModel, seq as any);
+      failureProb = lstmPred.failureProbability;
+      modelConf = lstmPred.confidence;
+    }
+
+    if (failureProb != null) {
+      predictions.push(failureProb);
+      modelBreakdown.lstm = failureProb;
+      if (modelConf != null) (modelConfs.lstm = modelConf);
+      console.log(`[Ensemble] LSTM prediction: ${(failureProb * 100).toFixed(1)}%`);
+    }
+  }
+} catch (error) {
+  console.warn(`[Ensemble] LSTM prediction failed:`, error);
+}
+Add near the top of ensemblePredict:
+
+const modelConfs: { lstm?: number; randomForest?: number; xgboost?: number } = {};
+4) Robust classification feature aggregation
+
+
+
+Replace convertToClassificationFeatures so it doesn’t assume specific keys. It should detect sensors with regex and compute stats. Also fill optional fields only when available (don’t force zeros).
+
+function stats(vals: number[]) {
+  const v = vals.filter(Number.isFinite);
+  if (!v.length) return { avg: 0, max: 0, min: 0, std: 0 };
+  const avg = v.reduce((a,b)=>a+b,0)/v.length;
+  const max = Math.max(...v);
+  const min = Math.min(...v);
+  const variance = v.reduce((s,x)=>s+(x-avg)*(x-avg),0)/v.length;
+  return { avg, max, min, std: Math.sqrt(variance) };
+}
+
+async function convertToClassificationFeatures(
+  timeSeriesData: TimeSeriesFeatures[],
+  equipmentId: string,
+  orgId: string,
+  storage: IStorage
+) {
+  const equipment = await storage.getEquipment(orgId, equipmentId);
+  const seq = bucketTelemetryRaw(timeSeriesData, 1000);
+  if (!seq.length) {
+    return {
+      equipmentId,
+      equipmentType: equipment?.type || 'unknown',
+      features: {},
+      label: 'healthy',
+      failureRisk: 0
+    } as any;
+  }
+  // Flatten by key
+  const keys = Object.keys(seq[0].features);
+  const series: Record<string, number[]> = {};
+  for (const k of keys) series[k] = [];
+  for (const row of seq) for (const k of keys) series[k].push(row.features[k] ?? NaN);
+
+  // Heuristic groups
+  const isTemp = (k:string) => /(temp|temperature|coolant|oil)/i.test(k);
+  const isVib  = (k:string) => /(vib|accel|rms|fft)/i.test(k);
+  const isPres = (k:string) => /(press|bar|psi)/i.test(k);
+
+  const temps = keys.filter(isTemp).flatMap(k => series[k]);
+  const vibs  = keys.filter(isVib).flatMap(k => series[k]);
+  const pres  = keys.filter(isPres).flatMap(k => series[k]);
+
+  const t = stats(temps);
+  const v = stats(vibs);
+  const p = stats(pres);
+
+  const workOrders = await storage.getWorkOrders(equipmentId, orgId);
+  const lastMaintenance = workOrders
+    .filter(wo => wo.status === 'completed')
+    .sort((a,b) => (b.actualEndDate?.getTime()||0) - (a.actualEndDate?.getTime()||0))[0];
+
+  const maintenanceAge = lastMaintenance?.actualEndDate
+    ? Math.floor((Date.now() - lastMaintenance.actualEndDate.getTime())/86400000)
+    : undefined;
+
+  const failureHistory = workOrders.filter(wo => wo.priority >= 4 && wo.status === 'completed').length;
+
+  const operatingHours = await storage.getOperatingHours?.(equipmentId, orgId);
+
+  return {
+    equipmentId,
+    equipmentType: equipment?.type || 'unknown',
+    features: {
+      avgTemperature: t.avg, maxTemperature: t.max, stdTemperature: t.std,
+      avgVibration: v.avg, maxVibration: v.max, stdVibration: v.std,
+      avgPressure: p.avg, minPressure: p.min,
+      ...(operatingHours != null ? { operatingHours } : {}),
+      cycleCount: seq.length,
+      ...(maintenanceAge != null ? { maintenanceAge } : {}),
+      failureHistory
+    },
+    label: 'healthy',
+    failureRisk: 0
+  } as any;
+}
+Update RF/XGB blocks in ensemblePredict to capture model confidences if your predictors return them:
+
+const rfPred = await predictWithRandomForest(rfModel, classificationFeatures);
+const failureProb = rfPred.failureRisk;
+predictions.push(failureProb);
+modelBreakdown.randomForest = failureProb;
+if (typeof rfPred.confidence === 'number') modelConfs.randomForest = rfPred.confidence;
+(Same for XGB.)
+
+5) Confidence & agreement
+
+
+
+Replace your confidence calculation:
+
+const agreement = calculateAgreement(predictions);
+// availability factor: 1 model => 0.5, 2 => 0.75, 3 => 1.0
+const availability = [0, 0.5, 0.75, 1.0][predictions.length] ?? 1.0;
+const avgModelConf =
+  [modelConfs.lstm, modelConfs.randomForest, modelConfs.xgboost]
+    .filter((x): x is number => typeof x === 'number')
+    .reduce((a,b,i,arr)=> a + b/arr.length, 0) || 0.7;
+
+const confidence = Math.max(0, Math.min(1, agreement * availability * avgModelConf));
+If confidence < minConfidence:
+
+In shadow mode, just log and return the assembled result without DB write.
+
+Otherwise, still return result but include a recommendations note prefixed with “Low confidence”.
+
+6) Min-confidence gating & storage writes
+
+
+
+Add just before writing to DB:
+
+if (confidence < ensembleConfig.minConfidence) {
+  console.warn(`[Ensemble] Below minConfidence (${ensembleConfig.minConfidence}), returning low-confidence result`);
+  // Do NOT write in shadow or low-confidence
+  return result;
+}
+if (!ensembleConfig.enableShadowMode) {
+  // (keep your createFailurePrediction call)
+}
+7) Batch mode: no unconditional TF import
+
+
+
+In batchEnsemblePredict:
+
+Remove const tf = await import('@tensorflow/tfjs-node'); at the top.
+
+For leak checks, import TF inside a guarded block only if LSTM TF path was used in that batch. Otherwise skip.
+
+
+
+Replace batch loop with:
+
+for (let i = 0; i < equipmentIds.length; i += batchSize) {
+  const batch = equipmentIds.slice(i, i + batchSize);
+  let usedTf = false;
+
+  const batchResults = await Promise.all(batch.map(async (equipmentId) => {
+    try {
+      const recentData = await storage.getRecentTelemetry(equipmentId, 30, orgId);
+      if (!recentData?.length) return null;
+
+      const timeSeriesData: TimeSeriesFeatures[] = recentData.map(t => ({
+        equipmentId: t.equipmentId,
+        timestamp: t.ts,
+        features: t.readings as any,
+        normalizedFeatures: {},
+        label: 0
+      }));
+
+      // Hook to detect whether TF path was used (set by a global flag or return token)
+      const pred = await ensemblePredict(storage, orgId, equipmentId, timeSeriesData);
+      if ((pred as any).__usedTf) usedTf = true;
+      return { equipmentId, prediction: pred };
+    } catch (e) {
+      console.error(`[Ensemble] Failed to predict for ${equipmentId}:`, e);
+      return null;
+    }
+  }));
+
+  for (const r of batchResults) if (r) results.set(r.equipmentId, r.prediction);
+
+  if (usedTf) {
+    try {
+      const tf = await import('@tensorflow/tfjs-node');
+      console.log(`[Ensemble] tf.memory() after batch:`, tf.memory());
+    } catch {}
+  }
+}
+(Inside your LSTM TF path, you may tag the result with (__usedTf = true) for batch logging only.)
+
+8) Structured logs
+
+
+
+Replace free-form logs with concise JSON:
+
+console.log(JSON.stringify({
+  msg: 'ensemble_summary',
+  orgId, equipmentId, equipmentType,
+  availableModels, weights, finalPrediction, confidence, agreement
+}));
+Acceptance
+
+No top-level TF imports remain.
+
+LSTM uses ONNX when available, TF lazily otherwise.
+
+Adaptive weights sourced from stored model performance; falls back to original static table.
+
+convertToClassificationFeatures no longer hard-codes keys; computes stats generically with regex grouping.
+
+Confidence = agreement × availability × avg model confidence, gated by minConfidence.
+
+Shadow mode never writes to DB.
+
+Batch mode does not import TF unless needed.
+
+All public function signatures remain the same.
+
+
+
+Make these edits now and print a summary of the files changed with short diffs of key blocks.

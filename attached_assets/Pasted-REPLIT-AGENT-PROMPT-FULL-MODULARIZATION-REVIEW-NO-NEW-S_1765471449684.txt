@@ -1,0 +1,239 @@
+REPLIT AGENT PROMPT — FULL MODULARIZATION REVIEW (NO NEW STRUCTURE ASSUMED)
+
+
+
+You are working on an existing hybrid Electron + Node + React + SQLite/libSQL + Drizzle application that has already been heavily modularized.
+
+Many files were reduced from thousands of lines to tens of lines.
+
+Logic has been split into multiple smaller modules.
+
+The goal now is NOT to redesign the architecture or invent new components, but to verify that everything still works and fix any breakage caused by modularization.
+
+
+
+Do NOT assume any specific file/component names or structures.
+
+Instead, discover the current module layout from the codebase itself and work with what exists.
+
+🎯 Primary Goal
+
+
+
+Perform a full modularization review and repair pass on the entire program, focusing on:
+
+Broken imports/exports
+
+Missing wiring between modules
+
+Type errors / runtime errors introduced by splits
+
+Dead or unreachable code paths created by refactors
+
+Build, test, and runtime integrity
+
+
+
+Do not introduce new architectural patterns unless absolutely necessary to fix a concrete problem.
+
+🔍 Step 1 — Understand Current Structure
+
+Inspect package.json to understand:
+
+Scripts (build, test, lint, typecheck, dev, electron, etc.)
+
+Main entry points (backend, frontend, electron main)
+
+Map out top-level structure:
+
+Backend folders (e.g. src/server, src/api, src/modules, etc.)
+
+Frontend folders (e.g. src/client, src/features, src/components, etc.)
+
+Shared utilities (e.g. lib, common, shared)
+
+Do not rename or move modules unless required to fix a specific error.
+
+🧩 Step 2 — Check Modularization Integrity (Imports/Exports, Types)
+
+Run the TypeScript checker (or relevant type checker) using the appropriate script from package.json (tsc, npm run typecheck, etc.).
+
+Systematically fix:
+
+Broken imports (Cannot find module, default vs named export mismatches)
+
+Missing exports (functions/components referenced but not exposed)
+
+Circular dependencies introduced by the split (only if they cause real problems)
+
+Search for common modularization issues:
+
+Files that import symbols that no longer exist after splitting
+
+Utility functions moved to new modules but not re-exported from index files
+
+Old paths left behind (../oldPath/... where the file has been moved)
+
+Ensure index files (e.g. index.ts, index.tsx) correctly re-export the new modular pieces where that pattern is used.
+
+
+
+Do not collapse modules back into monolith files. Fix wiring issues while keeping modules small.
+
+🧪 Step 3 — Run Lint, Tests, and Builds
+
+From package.json, identify and run:
+
+Lint script (npm run lint or similar)
+
+Test script (npm test, npm run test, etc.)
+
+Build scripts for backend, frontend, and Electron if present (npm run build, npm run build:renderer, npm run build:main, etc.)
+
+Fix all errors and as many warnings as is reasonably possible that relate to:
+
+Invalid imports/exports
+
+Type inconsistencies caused by modularization
+
+Obvious logic errors created when moving code to smaller files
+
+
+
+Do not add new features here; the goal is to make the modularized system robust and clean.
+
+🖥️ Step 4 — Runtime Smoke Tests (Backend + Frontend + Electron)
+
+
+
+Using the existing dev scripts from package.json:
+
+Start the backend API.
+
+Ensure major endpoints respond without crashing.
+
+Watch for runtime import errors, undefined functions, or missing middleware.
+
+Start the frontend (React) dev server.
+
+Navigate through major pages (dashboards, main forms, lists).
+
+Confirm that previously existing screens still render and don’t crash due to broken imports or hooks.
+
+Start the Electron app (if applicable).
+
+Verify the renderer loads correctly.
+
+Ensure preload/bridge modules still connect properly to backend APIs or services after modularization.
+
+
+
+You do not need to perform detailed UX verification here — just confirm that the main flows no longer crash or throw obvious errors.
+
+🧠 Step 5 — Find and Fix “Refactor Leftovers”
+
+
+
+Search the codebase for:
+
+TODO / FIXME notes related to modularization or “split this file”
+
+Commented-out large blocks of old code that were never fully removed or replaced
+
+Duplicate helper functions in multiple modules (e.g. the same util copy-pasted during refactor)
+
+
+
+For each case:
+
+If it’s clearly dead/unused code from the old monolith, remove it.
+
+If it’s duplicated functions introduced during the split, unify to a single module and update imports.
+
+If TODOs indicate “complete this refactor,” finish the wiring so the new modules are fully in use.
+
+
+
+Again: do not restructure beyond what’s necessary to fix inconsistencies and broken wiring.
+
+🧱 Step 6 — Verify Cross-Cutting Concerns
+
+
+
+Because files were split from thousands of lines to tens, cross-cutting concerns might have been broken:
+
+Error handling:
+
+Ensure error-handling middleware (backend) still wraps all routes.
+
+Ensure frontend error boundaries (if used) still wrap key areas.
+
+Logging:
+
+Check logging or telemetry still happens in new smaller modules where it used to in the monolith.
+
+Auth / Permissions (if present):
+
+Confirm that route guards or permission checks still run after controller/service splitting.
+
+Config/Env access:
+
+Ensure that environment variables/config are imported correctly in new modules, not relying on a now-removed “god file.”
+
+
+
+Fix only clear regressions introduced by the refactor.
+
+📐 Step 7 — Check for Broken or Orphaned Routes/Components
+
+
+
+Without assuming component names:
+
+Enumerate API routes from the router setup (backend).
+
+Ensure each route points to a real controller/service.
+
+Remove or fix routes referencing modules that no longer exist.
+
+Enumerate frontend routes (React Router or equivalent).
+
+Ensure each route’s element points to an existing component.
+
+Fix or remove any routes that reference non-existent components or paths.
+
+
+
+Make sure no “404 at root” or “white screen” occurs due to route miswiring.
+
+🧾 Step 8 — Summarize and Leave the Codebase Stable
+
+
+
+When you are done:
+
+Ensure:
+
+All type checks pass.
+
+Lint passes (or only has acceptable, non-refactor-related warnings).
+
+Tests pass (or failing tests are unrelated to modularization and clearly noted).
+
+Dev servers (backend, frontend, Electron) start cleanly with no import/runtime errors.
+
+Provide a clear summary of:
+
+Files/modules where you fixed imports/exports.
+
+Any removed dead code or duplicated utilities.
+
+Any critical issues you found that were caused by splitting large files into smaller ones.
+
+Any remaining TODOs that are outside the scope of modularization repair.
+
+
+
+Do not add new features or restructure the architecture beyond what is necessary to repair and stabilize the modularized codebase.
+
+Use this process to audit, repair, and fully stabilize all modularization work that has already been performed.

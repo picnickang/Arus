@@ -1,0 +1,139 @@
+{
+  "generatedAt": "2025-12-23T18:27:45.473Z",
+  "harness": "e2e-bridge-harness",
+  "summary": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0
+  },
+  "metrics": {
+    "avgCommitLatencyMs": 31.732553308103878,
+    "avgE2eLagMs": 200.09555465657488,
+    "totalFramesGenerated": 25000,
+    "totalFramesProcessed": 25000
+  },
+  "results": [
+    {
+      "scenario": "baseline",
+      "startTime": "2025-12-23T18:26:52.878Z",
+      "endTime": "2025-12-23T18:27:03.162Z",
+      "durationMs": 10249,
+      "framesGenerated": 5000,
+      "framesProcessed": 5000,
+      "cursorStartId": 0,
+      "cursorEndId": 5000,
+      "cursorAdvanced": true,
+      "peakBacklog": 0,
+      "finalBacklog": 0,
+      "avgCommitLatencyMs": 0.21,
+      "p95CommitLatencyMs": 1,
+      "avgE2eLagMs": 34.84,
+      "maxBackoffMs": 2000,
+      "errors": [],
+      "passed": true,
+      "notes": [
+        "FPS: 500.0 (target: 500)",
+        "Cursor advanced: true",
+        "Final backlog: 0",
+        "SUCCESS: Baseline throughput validated"
+      ]
+    },
+    {
+      "scenario": "pg-slow",
+      "startTime": "2025-12-23T18:27:03.172Z",
+      "endTime": "2025-12-23T18:27:13.690Z",
+      "durationMs": 10487,
+      "framesGenerated": 5000,
+      "framesProcessed": 5000,
+      "cursorStartId": 0,
+      "cursorEndId": 5000,
+      "cursorAdvanced": true,
+      "peakBacklog": 50,
+      "finalBacklog": 0,
+      "avgCommitLatencyMs": 157.55,
+      "p95CommitLatencyMs": 198,
+      "avgE2eLagMs": 286.56666666666666,
+      "maxBackoffMs": 2000,
+      "errors": [],
+      "passed": true,
+      "notes": [
+        "Processed under slow PG: 5000 frames",
+        "Avg commit latency: 157.6ms",
+        "SUCCESS: Bridge handled slow PG with increased latency"
+      ]
+    },
+    {
+      "scenario": "pg-down",
+      "startTime": "2025-12-23T18:27:13.699Z",
+      "endTime": "2025-12-23T18:27:23.950Z",
+      "durationMs": 10238,
+      "framesGenerated": 5000,
+      "framesProcessed": 5000,
+      "cursorStartId": 0,
+      "cursorEndId": 5000,
+      "cursorAdvanced": true,
+      "peakBacklog": 0,
+      "finalBacklog": 0,
+      "avgCommitLatencyMs": 0.3037974683544304,
+      "p95CommitLatencyMs": 1,
+      "avgE2eLagMs": 600.7215189873418,
+      "maxBackoffMs": 2000,
+      "errors": [],
+      "passed": true,
+      "notes": [
+        "Cursor during outage: 5000",
+        "Max backoff: 2000ms",
+        "Backlog after recovery: 0",
+        "SUCCESS: Recovered from PG outage and processed frames"
+      ]
+    },
+    {
+      "scenario": "bridge-restart",
+      "startTime": "2025-12-23T18:27:23.963Z",
+      "endTime": "2025-12-23T18:27:34.216Z",
+      "durationMs": 10239,
+      "framesGenerated": 5000,
+      "framesProcessed": 5000,
+      "cursorStartId": 0,
+      "cursorEndId": 5000,
+      "cursorAdvanced": true,
+      "peakBacklog": 0,
+      "finalBacklog": 0,
+      "avgCommitLatencyMs": 0.29896907216494845,
+      "p95CommitLatencyMs": 1,
+      "avgE2eLagMs": 43.31958762886598,
+      "maxBackoffMs": 2000,
+      "errors": [],
+      "passed": true,
+      "notes": [
+        "Cursor after restart: 5000",
+        "Frames processed: 5000",
+        "SUCCESS: Cursor persisted across bridge restart"
+      ]
+    },
+    {
+      "scenario": "agent-restart",
+      "startTime": "2025-12-23T18:27:34.224Z",
+      "endTime": "2025-12-23T18:27:45.464Z",
+      "durationMs": 11225,
+      "framesGenerated": 5000,
+      "framesProcessed": 5000,
+      "cursorStartId": 0,
+      "cursorEndId": 5000,
+      "cursorAdvanced": true,
+      "peakBacklog": 0,
+      "finalBacklog": 0,
+      "avgCommitLatencyMs": 0.3,
+      "p95CommitLatencyMs": 1,
+      "avgE2eLagMs": 35.03,
+      "maxBackoffMs": 2000,
+      "errors": [],
+      "passed": true,
+      "notes": [
+        "Total frames: 5000",
+        "Processed: 5000",
+        "SUCCESS: Frame continuity maintained after agent restart"
+      ]
+    }
+  ]
+}

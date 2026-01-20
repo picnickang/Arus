@@ -1,0 +1,40 @@
+homeimac@Homes-iMac RecipeRealm % chmod +x bundled-macos-build.sh
+./bundled-macos-build.sh
+🎯 ARUS macOS Build - Bundled Dependencies
+===========================================
+
+Strategy:
+  • Bundle JS dependencies into dist/index.js
+  • Keep native modules external (~696MB)
+  • Result: Fast build, working app
+
+Step 1: Fixing package.json...
+✅ package.json updated
+  • Build script now bundles dependencies
+  • Native modules marked as external
+
+Step 2: Rebuilding server (bundling dependencies)...
+
+> rest-express@1.0.0 build
+> npx vite build && npx esbuild server/index.ts --platform=node --bundle --format=esm --outdir=dist --external:@tensorflow/tfjs-node --external:@libsql/client --external:serialport --external:@serialport/* --external:bufferutil --external:ws
+
+Need to install the following packages:
+vite@7.1.11
+Ok to proceed? (y) y
+npm WARN EBADENGINE Unsupported engine {
+npm WARN EBADENGINE   package: 'vite@7.1.11',
+npm WARN EBADENGINE   required: { node: '^20.19.0 || >=22.12.0' },
+npm WARN EBADENGINE   current: { node: 'v20.11.0', npm: '10.2.4' }
+npm WARN EBADENGINE }
+You are using Node.js 20.11.0. Vite requires Node.js version 20.19+ or 22.12+. Please upgrade your Node.js version.
+failed to load config from /Users/homeimac/Downloads/RecipeRealm/vite.config.ts
+error during build:
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'vite' imported from /Users/homeimac/Downloads/RecipeRealm/vite.config.ts.timestamp-1760979200717-2ac314ec3b006.mjs
+    at packageResolve (node:internal/modules/esm/resolve:853:9)
+    at moduleResolve (node:internal/modules/esm/resolve:910:20)
+    at defaultResolve (node:internal/modules/esm/resolve:1130:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:396:12)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:365:25)
+    at ModuleLoader.getModuleJob (node:internal/modules/esm/loader:240:38)
+    at ModuleWrap.<anonymous> (node:internal/modules/esm/module_job:85:39)
+    at link (node:internal/modules/esm/module_job:84:36)

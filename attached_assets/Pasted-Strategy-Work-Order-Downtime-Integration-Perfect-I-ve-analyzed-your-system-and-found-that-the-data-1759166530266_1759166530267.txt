@@ -1,0 +1,44 @@
+Strategy: Work Order Downtime Integration
+Perfect! I've analyzed your system and found that the database schema already supports exactly what you need - estimatedDowntimeHours and actualDowntimeHours fields exist in work orders, but they're not being used in the UI or connected to vessel status calculations.
+
+Current State Analysis
+✅ What's Already Working:
+
+Database schema has estimatedDowntimeHours and actualDowntimeHours fields
+Work order management system with create/edit forms
+Vessel management with onlineStatus field
+Equipment-vessel relationships via equipmentId
+❌ The Gap:
+
+Downtime fields are not shown in work order forms
+Vessel status only uses heartbeat (5-minute rule)
+No connection between work order downtime and vessel availability
+Analytics don't include downtime calculations
+Implementation Strategy
+Phase 1: Work Order Form Enhancement
+Add downtime fields to create/edit work order forms
+Update validation schemas to include downtime validation
+Display downtime in work order tables and details
+Phase 2: Vessel Status Integration
+Create vessel status calculator - Check active work orders with downtime
+Update vessel status logic - Combine heartbeat status with work order downtime
+Status rules: If vessel has active work orders with estimatedDowntimeHours > 0, mark as "offline"
+Phase 3: Analytics Integration
+Add downtime metrics to analytics dashboards
+Calculate availability - (Total time - Downtime) / Total time
+Historical tracking - Show downtime trends over time
+Phase 4: Real-time Updates
+Auto-update vessel status when work orders are created/updated/completed
+Recalculate availability when downtime changes
+Visual indicators for maintenance-related offline status
+Implementation Plan
+I'll implement this by:
+
+Updating work order forms to include estimated downtime input fields
+Creating vessel status service that considers both heartbeat and work order status
+Enhancing vessel management to show calculated availability status
+Adding downtime analytics to show vessel availability metrics
+Connecting everything so work order downtime automatically affects vessel status
+This will give you real-time vessel availability tracking based on actual maintenance activities, not just device connectivity.
+
+Ready to proceed? This will transform your work orders from simple task tracking into a comprehensive downtime management system that directly impacts vessel operational status.

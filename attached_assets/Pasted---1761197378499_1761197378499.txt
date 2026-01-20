@@ -1,0 +1,79 @@
+╔═══════════════════════════════════════════════════════════╗
+║                                                           ║
+║     ARUS macOS DMG Build Pipeline v1.0.0              ║
+║     Complete Production Build Process                    ║
+║                                                           ║
+╚═══════════════════════════════════════════════════════════╝
+
+This will create a production-ready .dmg installer for macOS.
+
+The process includes:
+  1. Building the application
+  2. Preparing dependencies
+  3. Creating seed database
+  4. Creating installer app
+  5. Creating uninstaller app
+  6. Packaging into DMG
+
+Estimated time: 5-10 minutes
+
+Continue with build? (y/N): y
+
+Starting build pipeline...
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Phase 1/6: Building Application Bundle
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔═══════════════════════════════════════════════════════════╗
+║        Building ARUS Standalone Bundle                   ║
+╚═══════════════════════════════════════════════════════════╝
+
+Version: 1.0.0
+Bundle directory: dist-standalone/ARUS-bundle
+
+→ Cleaning previous builds...
+✓ Clean complete
+
+→ Building frontend (Vite)...
+
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+
+vite v5.4.20 building for production...
+transforming...
+✓ 3794 modules transformed.
+rendering chunks...
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /Users/homeimac/Downloads/RecipeRealm/client/src/pages/ai-insights.tsx is dynamically imported by /Users/homeimac/Downloads/RecipeRealm/client/src/pages/ml-ai-consolidated.tsx but also statically imported by /Users/homeimac/Downloads/RecipeRealm/client/src/App.tsx, dynamic import will not move module into another chunk.
+
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /Users/homeimac/Downloads/RecipeRealm/client/src/pages/ml-training.tsx is dynamically imported by /Users/homeimac/Downloads/RecipeRealm/client/src/pages/ml-ai-consolidated.tsx but also statically imported by /Users/homeimac/Downloads/RecipeRealm/client/src/App.tsx, dynamic import will not move module into another chunk.
+
+computing gzip size...
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 18.73s
+
+
+⚡ Done in 149ms
+✓ Frontend built
+
+→ Building backend (TypeScript transpilation)...
+  Note: Not bundling due to dynamic imports - copying full server directory
+tsconfig.json:14:35 - error TS5096: Option 'allowImportingTsExtensions' can only be used when either 'noEmit' or 'emitDeclarationOnly' is set.
+
+14     "allowImportingTsExtensions": true,
+                                     ~~~~
+
+
+Found 1 error in tsconfig.json:14
+
+  TypeScript compilation optional - will use .ts files with tsx runtime
+✓ Backend ready
+
+→ Copying application files...
+cp: directory dist-standalone/ARUS-bundle/client does not exist
+homeimac@Homes-iMac RecipeRealm % 

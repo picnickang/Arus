@@ -1,0 +1,32 @@
+{
+  "config": {
+    "sequenceLength": 7,
+    "featureCount": 1,
+    "lstmUnits": 32,
+    "dropoutRate": 0.2,
+    "learningRate": 0.001,
+    "epochs": 20,
+    "batchSize": 64,
+    "useEarlyStopping": true,
+    "earlyStoppingPatience": 5,
+    "verbose": true
+  },
+  "featureNames": [
+    "temperature"
+  ],
+  "normalizationParams": {
+    "mean": [
+      37.74927870422705
+    ],
+    "std": [
+      43.941136062886684
+    ]
+  },
+  "trainingMetrics": {
+    "loss": 0.18771526217460632,
+    "accuracy": 0.9950689673423767,
+    "precision": 0,
+    "recall": 0,
+    "f1Score": 0
+  }
+}

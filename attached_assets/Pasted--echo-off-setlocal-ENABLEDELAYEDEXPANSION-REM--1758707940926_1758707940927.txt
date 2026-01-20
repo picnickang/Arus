@@ -1,0 +1,202 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==========================================================
+REM ARUS Full Stack (Node/TS backend + React TS patches)
+REM - Creates backend-node/ (Express+TS, HoR, Vessel/Crew, Metrics)
+REM - Patches frontend HoursOfRest grid to use dropdowns and new API
+REM ==========================================================
+
+REM ---------- BACKEND ----------
+if not exist "backend-node" mkdir backend-node
+cd backend-node
+
+REM package.json
+> package.json echo {^
+"name":"arus-node-backend",^
+"version":"1.0.0",^
+"type":"module",^
+"private":true,^
+"scripts":{"dev":"tsx watch src/index.ts","build":"tsc -p tsconfig.json","start":"node dist/index.js"},^
+"dependencies":{ "csv-parse":"^5.5.6","dayjs":"^1.11.13","express":"^4.19.2","pdfkit":"^0.15.0","pino-http":"^9.0.0","prom-client":"^15.1.3","zod":"^3.23.8","better-sqlite3":"^9.4.0"},^
+"devDependencies":{"@types/express":"^4.17.21","@types/node":"^22.5.4","tsx":"^4.19.0","typescript":"^5.4.5"}^
+}
+
+REM tsconfig
+> tsconfig.json echo {^
+"compilerOptions":{"target":"ES2022","module":"ES2022","moduleResolution":"Bundler","outDir":"dist","rootDir":"src","strict":true,"esModuleInterop":true,"skipLibCheck":true},^
+"include":["src"]^
+}
+
+mkdir src
+mkdir data
+mkdir bundles
+
+REM db.ts
+> src\db.ts (
+echo import Database from 'better-sqlite3';
+echo import fs from 'node:fs';
+echo fs.mkdirSync('data',{recursive:true});
+echo const DB_PATH = process.env.SQLITE_PATH ?? 'data/arus.sqlite';
+echo export const db = new Database(DB_PATH);
+echo db.pragma('journal_mode = WAL');
+echo db.exec(`
+echo CREATE TABLE IF NOT EXISTS crew_rest_sheet(
+echo id TEXT PRIMARY KEY, vessel_id TEXT, crew_id TEXT, crew_name TEXT, rank TEXT,
+echo month TEXT, year INTEGER, created_at TEXT
+echo );
+echo CREATE TABLE IF NOT EXISTS crew_rest_day(
+echo sheet_id TEXT, date TEXT,
+echo h0 INTEGER,h1 INTEGER,h2 INTEGER,h3 INTEGER,h4 INTEGER,h5 INTEGER,h6 INTEGER,h7 INTEGER,
+echo h8 INTEGER,h9 INTEGER,h10 INTEGER,h11 INTEGER,h12 INTEGER,h13 INTEGER,h14 INTEGER,h15 INTEGER,
+echo h16 INTEGER,h17 INTEGER,h18 INTEGER,h19 INTEGER,h20 INTEGER,h21 INTEGER,h22 INTEGER,h23 INTEGER,
+echo PRIMARY KEY(sheet_id,date)
+echo );
+echo CREATE INDEX IF NOT EXISTS idx_rest_day_date ON crew_rest_day(date);
+echo CREATE TABLE IF NOT EXISTS vessel( id TEXT PRIMARY KEY, name TEXT, imo TEXT, created_at TEXT );
+echo CREATE TABLE IF NOT EXISTS crew( id TEXT PRIMARY KEY, name TEXT, rank TEXT, vessel_id TEXT, created_at TEXT );
+echo CREATE TABLE IF NOT EXISTS idempotency( key TEXT PRIMARY KEY, endpoint TEXT, ts TEXT );
+echo `);
+echo export function tx^<T^>(fn:()=>T):T{ const t=db.transaction(fn); return t(); }
+)
+
+REM utc.ts
+> src\utc.ts (
+echo import dayjs from 'dayjs';
+echo import utc from 'dayjs/plugin/utc.js';
+echo dayjs.extend(utc);
+echo export const nowISO = () => dayjs.utc().toISOString();
+)
+
+REM hor.ts
+> src\hor.ts (
+echo import PDFDocument from 'pdfkit';
+echo import fs from 'node:fs';
+echo export type DayRow = { date:string } ^& { [k: `h${'{'}number{'}'}`]: number };
+echo const MIN24=10, MIN7D=77;
+echo function chunks(r:DayRow){ const seg:number[][]=[]; let cur=-1; for(let h=0;h<24;h++){ const v=r[`h${'{'}h{'}'}`]??0; if(v===1&&cur==-1)cur=h; if((v===0||h===23)&&cur!=-1){seg.push([cur,(v===0)?h:24]); cur=-1;} } return seg; }
+echo function splitOK(r:DayRow){ const c=chunks(r); return c.length<=2 && c.some(([a,b])=> b-a>=6); }
+echo function minRest24Around(idx:number, rows:DayRow[]){ const flat:number[]=[]; rows.forEach(r=>{ for(let h=0;h<24;h++) flat.push(r[`h${'{'}h{'}'}`]??0); }); const base=idx*24; let m=999; for(let k=1;k<=24;k++){ const s=Math.max(0,base+k-24), e=base+k; let v=0; for(let i=s;i<e;i++) v+=flat[i]??0; if(v<m) m=v; } return m; }
+echo export function checkMonth(rows:DayRow[]){ const days=rows.map((r,i)=>{ let rest=0; for(let h=0;h<24;h++) rest+=r[`h${'{'}h{'}'}`]??0; const min24=minRest24Around(i,rows); return {date:r.date,rest_total:rest,min_rest_24:min24,split_ok:splitOK(r),day_ok:min24>=MIN24 && splitOK(r)};}); const rolling:any[]=[]; for(let i=0;i<rows.length;i++){ let tot=0; for(let j=Math.max(0,i-6);j<=i;j++){ for(let h=0;h<24;h++) tot+=rows[j][`h${'{'}h{'}'}`]??0; } rolling.push({end_date:rows[i].date,rest_7d:tot,ok:tot>=MIN7D}); } const ok = days.every(d=>d.day_ok) && rolling.every(x=>x.ok); return {ok,days,rolling7d:rolling}; }
+echo export function renderPdf(sheet:any, rows:DayRow[], outPath:string){ const doc=new PDFDocument({size:'A4',margin:36}); const w=18,h=12, left=40, top=120; const stream=fs.createWriteStream(outPath); doc.pipe(stream); doc.fontSize(14).text('RECORD OF HOURS OF REST (STCW)'); doc.fontSize(10).text(`Vessel: ${'${'}sheet.vessel_id{'}'} Crew: ${'${'}sheet.crew_name{'}'} Rank: ${'${'}sheet.rank{'}'}`); doc.text(`Month: ${'${'}sheet.month{'}'} ${'${'}sheet.year{'}'}`); doc.fontSize(8); for(let i=0;i<24;i++){ doc.text(String(i).padStart(2,'0')+'00', left+(i+1)*w+2, top-12); } let y=top; rows.forEach(r=>{ doc.text(r.date.slice(-2), left-20, y+2); for(let i=0;i<24;i++){ const x=left+(i+1)*w; doc.rect(x,y,w,h).stroke(); if((r as any)[`h${'{'}i{'}'}`]==1){ doc.moveTo(x+2,y+2).lineTo(x+w-2,y+h-2).stroke(); doc.moveTo(x+2,y+h-2).lineTo(x+w-2,y+2).stroke(); } } y+=h; if(y>760){ doc.addPage(); y=top; } }); doc.end(); return outPath; }
+)
+
+REM schemas.ts
+> src\schemas.ts (
+echo import { z } from 'zod';
+echo export const UTCDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+echo export const HoRDay = z.object({ date: UTCDate, }).and(z.object(Object.fromEntries(Array.from({length:24},(_,i)=>[\`h${'%'}\${i}\`, z.number().int().min(0).max(1)] as const))));
+echo export const HoRSheetMeta = z.object({ vessel_id:z.string().min(1), crew_id:z.string().min(1), crew_name:z.string().min(1), rank:z.string().min(1), month:z.string().min(3), year:z.number().int() });
+echo export const HoRImport = z.object({ sheet: HoRSheetMeta, rows: z.array(HoRDay).max(62) });
+)
+
+REM index.ts
+> src\index.ts (
+echo import express from 'express';
+echo import pino from 'pino-http';
+echo import { collectDefaultMetrics, register, Counter } from 'prom-client';
+echo import { db, tx } from './db.js';
+echo import { HoRImport } from './schemas.js';
+echo import { checkMonth, renderPdf } from './hor.js';
+echo import { parse } from 'csv-parse';
+echo import fs from 'node:fs';
+echo import path from 'node:path';
+echo import crypto from 'node:crypto';
+echo
+echo const app = express();
+echo app.use(express.json({limit:'1mb'}));
+echo app.use(express.urlencoded({extended:true}));
+echo app.use(pino());
+echo collectDefaultMetrics();
+echo const HOR_IMPORT_CNT = new Counter({ name:'arus_hor_import_total', help:'HoR rows imported' });
+echo
+echo function ok(res:express.Response, data:any){ res.json(data); }
+echo function idem(key:string, endpoint:string){ if(!key) return true; const r=db.prepare('SELECT key FROM idempotency WHERE key=?').get(key); if(r) return false; db.prepare('INSERT INTO idempotency(key,endpoint,ts) VALUES(?,?,datetime(''now''))').run(key,endpoint); return true; }
+echo
+echo app.get('/healthz', (_req,res)=> ok(res,{ok:true}));
+echo app.get('/metrics', async (_req,res)=>{ res.set('Content-Type', register.contentType); res.end(await register.metrics()); });
+echo
+echo // Vessel/Crew directories
+echo app.get('/api/vessels', (_req,res)=>{ res.json(db.prepare('SELECT * FROM vessel ORDER BY name').all()); });
+echo app.post('/api/vessels', (req,res)=>{ const v=req.body||{}; if(!v.id||!v.name) return res.status(400).json({ok:false,error:'id,name required'}); db.prepare('INSERT OR REPLACE INTO vessel(id,name,imo,created_at) VALUES(?,?,?,datetime(''now''))').run(v.id,v.name,v.imo||null); ok(res,{ok:true}); });
+echo app.get('/api/crew', (req,res)=>{ const vid=String(req.query.vessel_id||''); const q= vid? 'SELECT * FROM crew WHERE vessel_id=? ORDER BY name' : 'SELECT * FROM crew ORDER BY name'; const rows = vid? db.prepare(q).all(vid): db.prepare(q).all(); res.json(rows); });
+echo app.post('/api/crew', (req,res)=>{ const c=req.body||{}; if(!c.id||!c.name) return res.status(400).json({ok:false,error:'id,name required'}); db.prepare('INSERT OR REPLACE INTO crew(id,name,rank,vessel_id,created_at) VALUES(?,?,?,?,datetime(''now''))').run(c.id,c.name,c.rank||null,c.vessel_id||null); ok(res,{ok:true}); });
+echo
+echo // HoR import (JSON or CSV)
+echo app.post('/api/crew/rest/import', async (req,res)=>{
+echo const key=(req.header('Idempotency-Key')||'').trim();
+echo if(!idem(key,'/api/crew/rest/import')) return ok(res,{ok:true,duplicate:true});
+echo let rows:any[]=[];
+echo if('csv' in (req.body||{})){
+echo const csv = String((req.body as any).csv||'');
+echo await new Promise<void>((resolve,reject)=>{ const p=parse(csv,{columns:true,trim:true}); p.on('readable',()=>{ let r; while(r=p.read()) rows.push(r); }); p.on('end',resolve); p.on('error',reject); });
+echo rows = rows.map(r=>{ const o:any={date:r.date}; for(let i=0;i<24;i++) o['h'+i]=Number(r['h'+i]||0); return o; });
+echo if(!req.body.sheet) return res.status(400).json({ok:false,error:'sheet meta required for CSV'}); 
+echo const s=req.body.sheet;
+echo const id='rest_'+crypto.randomUUID();
+echo tx(()=>{ db.prepare('INSERT OR REPLACE INTO crew_rest_sheet(id,vessel_id,crew_id,crew_name,rank,month,year,created_at) VALUES(?,?,?,?,?,?,?,datetime(''now''))').run(id,s.vessel_id,s.crew_id,s.crew_name,s.rank,s.month,s.year); rows.forEach(r=>{ const vals=[id,r.date,...Array.from({length:24},(_,i)=>Number(r['h'+i]||0))]; db.prepare('INSERT OR REPLACE INTO crew_rest_day(sheet_id,date,h0,h1,h2,h3,h4,h5,h6,h7,h8,h9,h10,h11,h12,h13,h14,h15,h16,h17,h18,h19,h20,h21,h22,h23) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(...vals); }); });
+echo HOR_IMPORT_CNT.inc(rows.length); return ok(res,{ok:true, sheet_id:id, rows:rows.length});
+echo }
+echo const parsed = HoRImport.safeParse(req.body);
+echo if(!parsed.success) return res.status(400).json({ok:false,error:parsed.error.flatten()});
+echo const {sheet,rows:rowsIn}=parsed.data;
+echo const id='rest_'+crypto.randomUUID();
+echo tx(()=>{ db.prepare('INSERT OR REPLACE INTO crew_rest_sheet(id,vessel_id,crew_id,crew_name,rank,month,year,created_at) VALUES(?,?,?,?,?,?,?,datetime(''now''))').run(id,sheet.vessel_id,sheet.crew_id,sheet.crew_name,sheet.rank,sheet.month,sheet.year);
+echo rowsIn.forEach(r=>{ const vals=[id,r.date,...Array.from({length:24},(_,i)=> (r as any)['h'+i]??0)]; db.prepare('INSERT OR REPLACE INTO crew_rest_day(sheet_id,date,h0,h1,h2,h3,h4,h5,h6,h7,h8,h9,h10,h11,h12,h13,h14,h15,h16,h17,h18,h19,h20,h21,h22,h23) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(...vals); }); });
+echo HOR_IMPORT_CNT.inc(rowsIn.length); return ok(res,{ok:true, sheet_id:id, rows:rowsIn.length});
+echo });
+echo
+echo // HoR check
+echo app.post('/api/crew/rest/check', (req,res)=>{
+echo if(req.body?.rows){ const rows=(req.body.rows as any[]).map(r=>({date:r.date,...Object.fromEntries(Array.from({length:24},(_,i)=>['h'+i,Number(r['h'+i]||0)]))})); return ok(res, checkMonth(rows)); }
+echo const {crew_id,year,month}=req.body||{}; if(!crew_id||!year||!month) return res.status(400).json({ok:false,error:'crew_id, year, month required'});
+echo const sh=db.prepare('SELECT id FROM crew_rest_sheet WHERE crew_id=? AND year=? AND month=? ORDER BY created_at DESC LIMIT 1').get(crew_id,year,month);
+echo if(!sh) return ok(res,{ok:false,error:'no sheet'});
+echo const rows=db.prepare('SELECT * FROM crew_rest_day WHERE sheet_id=? ORDER BY date').all(sh.id);
+echo return ok(res, checkMonth(rows as any));
+echo });
+echo
+echo // PDF export
+echo app.get('/api/crew/rest/export_pdf', (req,res)=>{
+echo const {crew_id,year,month} = req.query as any;
+echo if(!crew_id||!year||!month) return res.status(400).json({ok:false,error:'crew_id, year, month required'});
+echo const sh=db.prepare('SELECT * FROM crew_rest_sheet WHERE crew_id=? AND year=? AND month=? ORDER BY created_at DESC LIMIT 1').get(crew_id,Number(year),String(month));
+echo if(!sh) return ok(res,{ok:false,error:'no sheet'});
+echo const rows=db.prepare('SELECT * FROM crew_rest_day WHERE sheet_id=? ORDER BY date').all(sh.id);
+echo const out=path.join('bundles',`hours_rest_${'%'}${'{'}crew_id{'}'}_${'%'}${'{'}year{'}'}_${'%'}${'{'}month{'}'}.pdf`);
+echo fs.mkdirSync('bundles',{recursive:true}); renderPdf(sh, rows as any, out); return ok(res,{ok:true,path:out});
+echo });
+echo
+echo const PORT=Number(process.env.PORT||'8001');
+echo app.listen(PORT,()=>console.log('ARUS Node backend on :'+PORT));
+)
+
+cd ..
+
+REM ---------- FRONTEND PATCH (HoursOfRest selectors) ----------
+if exist "frontend\src\components\HoursOfRest.tsx" (
+powershell -NoProfile -ExecutionPolicy Bypass ^
+"$f='frontend/src/components/HoursOfRest.tsx'; $t=Get-Content -Raw $f; " ^
+"$t = $t -replace 'const BASE = \\(import\\.meta as any\\)\\.env\\.VITE_API_URL \\|\\| .*?;', 'const BASE = (import.meta as any).env.VITE_API_URL || ''http://localhost:8001'';'; " ^
+"$t = $t -replace 'const \\[meta,setMeta\\]=useState<any>\\([^)]*\\);', 'const [meta,setMeta]=useState<any>({vessel_id:\"\",crew_id:\"\",crew_name:\"\",rank:\"\",month:\"AUGUST\",year:new Date().getUTCFullYear()});'; " ^
+"$t = $t -replace 'export default function HoursOfRest\\(\\)\\{', 'export default function HoursOfRest(){^n const [vessels,setVessels]=useState<any[]>([]);^n const [crew,setCrew]=useState<any[]>([]);^n useEffect(()=>{(async()=>{ try{ const v=await fetch(`${BASE}/api/vessels`).then(r=>r.json()); setVessels(v);}catch{} })();},[]);^n useEffect(()=>{(async()=>{ if(!meta.vessel_id){ setCrew([]); return;} try{ const c=await fetch(`${BASE}/api/crew?vessel_id=${'${'}encodeURIComponent(meta.vessel_id){'}'}`).then(r=>r.json()); setCrew(c);}catch{} })();},[meta.vessel_id]);'; " ^
+"$t = $t -replace '<input placeholder=\\'Vessel\\'[^>]*>', '<select value={meta.vessel_id} onChange={e=>setMeta({...meta,vessel_id:e.target.value,crew_id:\"\",crew_name:\"\",rank:\"\"})}><option value=\"\">Select Vessel…</option>{vessels.map((v:any)=>(<option key={v.id} value={v.id}>{v.name||v.id}</option>))}</select>'; " ^
+"$t = $t -replace '<input placeholder=\\'Crew ID\\'[^>]*>', '<select value={meta.crew_id} onChange={e=>{ const id=e.target.value; const c=crew.find((x:any)=>x.id===id); setMeta({...meta,crew_id:id,crew_name:c?.name||\"\",rank:c?.rank||meta.rank}); }}><option value=\"\">Select Crew…</option>{crew.map((c:any)=>(<option key={c.id} value={c.id}>{c.name||c.id}</option>))}</select>'; " ^
+"Set-Content -Encoding UTF8 $f $t; " ^
+"Write-Host '[OK] Frontend HoursOfRest updated with selectors.'"
+) else (
+echo [INFO] frontend/src/components/HoursOfRest.tsx not found; UI patch skipped.
+)
+
+echo.
+echo ==========================================================
+echo [OK] Full Node/TS stack is ready.
+echo Backend:
+echo cd backend-node && npm install && npm run dev (http://localhost:8001)
+echo Frontend:
+echo Set VITE_API_URL=http://localhost:8001 and run your UI (npm run dev)
+echo Seed data:
+echo curl -X POST http://localhost:8001/api/vessels -H "Content-Type: application/json" -d "{\"id\":\"MV_GREEN_BELAIT\",\"name\":\"GREEN BELAIT\"}"
+echo curl -X POST http://localhost:8001/api/crew -H "Content-Type: application/json" -d "{\"id\":\"c_lee\",\"name\":\"C. Lee\",\"rank\":\"Chief Eng\",\"vessel_id\":\"MV_GREEN_BELAIT\"}"
+echo Then open HoR grid and pick Vessel/Crew from dropdowns.
+echo ==========================================================
+endlocal

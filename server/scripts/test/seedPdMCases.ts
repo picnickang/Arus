@@ -1,0 +1,175 @@
+/**
+ * Seed script for PdM test cases
+ * Creates canonical test scenarios using the failurePredictions table:
+ * 
+ * Case A: "Schedulable High Risk" - Should be scheduled within the week
+ * Case B: "Scheduling Conflict" - P10 > P90 so earliestStart > latestFinish
+ * Case C: "Capacity Conflict" - Two tasks same vessel same preferred date
+ * Case D: "Insufficient Confidence" - Confidence below 50% threshold
+ */
+
+import { db } from '../../db';
+import { failurePredictions } from '../../../shared/schema/ml-analytics-core';
+import { equipment, vessels } from '../../../shared/schema';
+import { eq } from 'drizzle-orm';
+import { DEFAULT_ORG_ID } from '../../../shared/config/tenant';
+import { v4 as uuid } from 'uuid';
+
+interface SeedOptions {
+  clearExisting?: boolean;
+}
+
+export async function seedPdMTestCases(options: SeedOptions = {}) {
+  const now = new Date();
+  
+  if (options.clearExisting) {
+    await db.delete(failurePredictions).execute();
+    console.log('[SeedPdM] Cleared existing failure predictions');
+  }
+  
+  const allVessels = await db.select().from(vessels).where(eq(vessels.orgId, DEFAULT_ORG_ID)).limit(1);
+  
+  if (allVessels.length === 0) {
+    console.error('[SeedPdM] No vessels found. Please seed vessels first.');
+    console.log('[SeedPdM] Run: npx tsx server/scripts/seed-vessels.ts');
+    return;
+  }
+  
+  const testVesselId = allVessels[0].id;
+  const testVesselName = allVessels[0].name;
+  console.log(`[SeedPdM] Using vessel: ${testVesselName} (${testVesselId})`);
+  
+  let vesselEquipment = await db.select().from(equipment)
+    .where(eq(equipment.vesselId, testVesselId))
+    .limit(4);
+  
+  if (vesselEquipment.length < 4) {
+    console.log(`[SeedPdM] Only ${vesselEquipment.length} equipment on vessel. Creating test equipment...`);
+    
+    const needed = 4 - vesselEquipment.length;
+    const testEquipmentTypes = ['Pump', 'Generator', 'Engine', 'Compressor'];
+    
+    for (let i = 0; i < needed; i++) {
+      const eqId = uuid();
+      const eqType = testEquipmentTypes[(vesselEquipment.length + i) % testEquipmentTypes.length];
+      try {
+        await db.insert(equipment).values({
+          id: eqId,
+          orgId: DEFAULT_ORG_ID,
+          vesselId: testVesselId,
+          name: `PdM Test ${eqType} ${i + 1}`,
+          type: eqType,
+          manufacturer: 'Test Manufacturer',
+          model: 'Test Model',
+          serialNumber: `PDM-TEST-${i + 1}`,
+          status: 'operational',
+        });
+        console.log(`[SeedPdM] Created equipment: PdM Test ${eqType} ${i + 1}`);
+      } catch (err) {
+        console.error(`[SeedPdM] Failed to create equipment: ${err}`);
+      }
+    }
+    
+    vesselEquipment = await db.select().from(equipment)
+      .where(eq(equipment.vesselId, testVesselId))
+      .limit(4);
+  }
+  
+  if (vesselEquipment.length < 4) {
+    console.error('[SeedPdM] Could not ensure 4 equipment on vessel. Aborting.');
+    return;
+  }
+  
+  console.log(`[SeedPdM] Using ${vesselEquipment.length} equipment items on vessel ${testVesselName}`);
+  
+  const testCases = [
+    {
+      orgId: DEFAULT_ORG_ID,
+      equipmentId: vesselEquipment[0].id,
+      predictionTimestamp: now,
+      failureProbability: 0.25,
+      predictedFailureDate: new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000),
+      remainingUsefulLife: 10,
+      confidenceInterval: { lowDays: 7, highDays: 14 },
+      failureMode: 'Case A: Schedulable High Risk',
+      riskLevel: 'high',
+      maintenanceRecommendations: ['Schedule maintenance within scheduling window'],
+    },
+    {
+      orgId: DEFAULT_ORG_ID,
+      equipmentId: vesselEquipment[1].id,
+      predictionTimestamp: now,
+      failureProbability: 0.40,
+      predictedFailureDate: new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000),
+      remainingUsefulLife: 5,
+      confidenceInterval: { lowDays: 6, highDays: 3 },
+      failureMode: 'Case B: Scheduling Conflict (P10 > P90)',
+      riskLevel: 'critical',
+      maintenanceRecommendations: ['Blocked - earliestStart > latestFinish'],
+    },
+    {
+      orgId: DEFAULT_ORG_ID,
+      equipmentId: vesselEquipment[2].id,
+      predictionTimestamp: now,
+      failureProbability: 0.35,
+      predictedFailureDate: new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000),
+      remainingUsefulLife: 10,
+      confidenceInterval: { lowDays: 7, highDays: 14 },
+      failureMode: 'Case C1: Capacity Test - First Task',
+      riskLevel: 'medium',
+      maintenanceRecommendations: ['Replace pump seals'],
+    },
+    {
+      orgId: DEFAULT_ORG_ID,
+      equipmentId: vesselEquipment[3].id,
+      predictionTimestamp: now,
+      failureProbability: 0.40,
+      predictedFailureDate: new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000),
+      remainingUsefulLife: 10,
+      confidenceInterval: { lowDays: 7, highDays: 14 },
+      failureMode: 'Case C2: Capacity Test - Blocked by capacity',
+      riskLevel: 'medium',
+      maintenanceRecommendations: ['Replace pump seals'],
+    },
+    {
+      orgId: DEFAULT_ORG_ID,
+      equipmentId: vesselEquipment[0].id,
+      predictionTimestamp: new Date(now.getTime() - 1000),
+      failureProbability: 0.75,
+      predictedFailureDate: new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000),
+      remainingUsefulLife: 15,
+      confidenceInterval: { lowDays: 10, highDays: 20 },
+      failureMode: 'Case D: Insufficient Confidence (25%)',
+      riskLevel: 'low',
+      maintenanceRecommendations: ['Monitor - confidence too low for scheduling'],
+    },
+  ];
+
+  for (const testCase of testCases) {
+    try {
+      await db.insert(failurePredictions).values(testCase);
+      console.log(`[SeedPdM] Created: ${testCase.failureMode}`);
+    } catch (error) {
+      console.error(`[SeedPdM] Failed to create: ${testCase.failureMode}`, error);
+    }
+  }
+
+  console.log('\n[SeedPdM] Completed seeding test cases');
+  console.log('\n=== Expected Results ===');
+  console.log('Case A: SCHEDULED (failureProb=0.25 -> confidence=75%, good RUL window)');
+  console.log('Case B: BLOCKED scheduling_conflict (failureProb=0.40 -> confidence=60%, P10=6 > P90=3)');
+  console.log('Case C1: SCHEDULED (failureProb=0.35 -> confidence=65%, first on vessel)');
+  console.log('Case C2: BLOCKED capacity (failureProb=0.40 -> confidence=60%, same vessel/date)');
+  console.log('Case D: BLOCKED insufficient_confidence (failureProb=0.75 -> confidence=25% < 50%)');
+  console.log('\nNote: C1 and C2 must be on same vessel for capacity test to work');
+  console.log(`All equipment is on vessel: ${testVesselName} (${testVesselId})`);
+  
+  return testCases;
+}
+
+seedPdMTestCases({ clearExisting: false })
+  .then(() => process.exit(0))
+  .catch((err) => {
+    console.error('[SeedPdM] Error:', err);
+    process.exit(1);
+  });

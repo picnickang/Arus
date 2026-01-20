@@ -1,0 +1,353 @@
+You are editing a Node/TypeScript MQTT reliability service that currently publishes to vessel/sync/*. Apply the following changes exactly across the codebase. Keep existing style and imports when possible. Do not remove existing observability calls.
+
+
+
+GOAL
+
+Use a stable clientId with clean:false for durable sessions.
+
+Introduce state vs. events topics:
+
+State (retained): arus/{vesselId}/state/{entity}/{id}
+
+Events (non-retained): arus/{vesselId}/events/{entity}
+
+System status (retained): arus/{vesselId}/system/status
+
+On each entity change, dual-publish to new topics (events + state snapshot; tombstone on delete) while still publishing to legacy vessel/sync/* (for now).
+
+Maintain a per-(vesselId, entity) sequence number in Postgres (entity_offsets) using Drizzle; provide an atomic nextSeq() helper.
+
+Add JSONL queue persistence so queued messages survive process restarts and use exponential backoff on flush failures.
+
+Implement inbound de-duplication by messageId.
+
+Do not reject publishes after enqueuing on error (avoid double retries by callers).
+
+PATCHES
+
+
+
+1) DB: entity_offsets (Postgres, Drizzle)
+
+Create (or append to shared schema) @shared/schema-entity-offsets.ts:
+
+import { pgTable, text, bigint, primaryKey } from "drizzle-orm/pg-core";
+
+export const entityOffsets = pgTable("entity_offsets", {
+  vesselId: text("vessel_id").notNull(),
+  entity: text("entity").notNull(),
+  seq: bigint("seq", { mode: "number" }).notNull().default(0),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.vesselId, t.entity] })
+}));
+Add SQL migration 000_entity_offsets.sql:
+
+CREATE TABLE IF NOT EXISTS entity_offsets (
+  vessel_id TEXT NOT NULL,
+  entity    TEXT NOT NULL,
+  seq       BIGINT NOT NULL DEFAULT 0,
+  PRIMARY KEY (vessel_id, entity)
+);
+Create src/repos/sequenceRepo.ts:
+
+import { db } from "../db";
+import { sql } from "drizzle-orm";
+
+export async function nextSeq(vesselId: string, entity: string): Promise<number> {
+  const result = await db.execute(sql`
+    INSERT INTO entity_offsets (vessel_id, entity, seq)
+    VALUES (${vesselId}, ${entity}, 1)
+    ON CONFLICT (vessel_id, entity)
+    DO UPDATE SET seq = entity_offsets.seq + 1
+    RETURNING seq;
+  `);
+  const row = Array.isArray((result as any)?.rows) ? (result as any).rows[0] : (result as any)[0];
+  return Number(row.seq);
+}
+2) MQTT service edits (in the main service class file)
+
+
+
+a) Add topic helpers & stable clientId
+
+import os from "os";
+
+const topic = {
+  state: (vesselId: string, entity: string, id: string) =>
+    `arus/${vesselId}/state/${entity}/${id}`,
+  events: (vesselId: string, entity: string) =>
+    `arus/${vesselId}/events/${entity}`,
+  systemStatus: (vesselId: string) =>
+    `arus/${vesselId}/system/status`,
+};
+
+function stableClientId(prefix: string) {
+  const base =
+    process.env.MQTT_CLIENT_ID ||
+    process.env.VESSEL_ID ||
+    process.env.HOSTNAME ||
+    os.hostname();
+  return `${prefix}_${base}`;
+}
+b) Use stable clientId in start() and keep clean:false
+
+const connectOptions: mqtt.IClientOptions = {
+  clientId: stableClientId(this.config.clientIdPrefix),
+  clean: false,
+  reconnectPeriod: this.config.reconnectPeriod,
+  connectTimeout: 10_000,
+  keepalive: 60,
+  will: {
+    topic: `${this.topics.system}/status`,
+    payload: JSON.stringify({ status: 'offline', timestamp: new Date().toISOString() }),
+    qos: 1,
+    retain: true
+  },
+  // keep your existing TLS/username/password logic
+};
+c) Add a raw publish helper
+
+async publishRaw(
+  topicStr: string,
+  payload: unknown | string,
+  opts: { qos?: 0|1|2; retain?: boolean } = {}
+): Promise<void> {
+  const qos = opts.qos ?? this.config.qosLevel;
+  const retain = opts.retain ?? false;
+  const body = typeof payload === "string" ? payload : JSON.stringify(payload);
+
+  if (this.isConnected && this.client) {
+    await new Promise<void>((resolve) => {
+      this.client!.publish(topicStr, body, { qos, retain }, (err) => {
+        if (err) {
+          this.queueMessage({ topic: topicStr, payload, qos, retain });
+          this.metrics.publishFailures++; incrementMqttPublishFailures();
+        } else {
+          this.metrics.messagesPublished++; incrementMqttMessagesPublished('raw', 'publish', qos);
+        }
+        resolve(); // never reject to avoid caller retry loops
+      });
+    });
+  } else {
+    this.queueMessage({ topic: topicStr, payload, qos, retain });
+    this.emit('message_queued', { topic: topicStr, qos });
+  }
+}
+d) Sequence + dual-publish helpers
+
+import { nextSeq } from './repos/sequenceRepo';
+
+private getVesselId(): string {
+  return process.env.VESSEL_ID || 'local';
+}
+
+async publishState(entity: string, id: string, data: any, qos: 1|2 = 1) {
+  const vesselId = this.getVesselId();
+  const seq = await nextSeq(vesselId, entity);
+  const payload = {
+    schema: 'arus.v1', entity, op: 'upsert',
+    vesselId, id, seq,
+    messageId: `${entity}_${id}_${seq}`,
+    ts: new Date().toISOString(),
+    data
+  };
+  await this.publishRaw(topic.state(vesselId, entity, id), payload, { retain: true, qos });
+}
+
+async publishStateTombstone(entity: string, id: string, qos: 1|2 = 1) {
+  const vesselId = this.getVesselId();
+  await this.publishRaw(topic.state(vesselId, entity, id), '', { retain: true, qos });
+}
+
+async publishEvent(entity: string, op: 'create'|'update'|'delete', id: string, data: any, qos: 1|2 = 1) {
+  const vesselId = this.getVesselId();
+  const seq = await nextSeq(vesselId, entity);
+  const payload = {
+    schema: 'arus.v1', entity, op,
+    vesselId, id, seq,
+    messageId: `${entity}_${id}_${seq}`,
+    ts: new Date().toISOString(),
+    data
+  };
+  await this.publishRaw(topic.events(vesselId, entity), payload, { retain: false, qos });
+}
+e) Update convenience methods to dual-publish and keep legacy
+
+async publishWorkOrderChange(op: 'create'|'update'|'delete', workOrder: any) {
+  const entity = 'work_order'; const id = workOrder.id || workOrder.workOrderId; const qos = 1;
+  await this.publishEvent(entity, op, id, workOrder, qos);
+  if (op === 'delete') await this.publishStateTombstone(entity, id, qos);
+  else await this.publishState(entity, id, workOrder, qos);
+  await this.publishDataChange('work_orders', op, workOrder, { qos: 1, retain: true });
+}
+
+async publishAlertChange(op: 'create'|'update'|'delete', alert: any) {
+  const entity = 'alert'; const id = alert.id || alert.alertId;
+  const qos: 1|2 = process.env.ENABLE_QOS2_ALERTS === 'true' ? 2 : 1;
+  await this.publishEvent(entity, op, id, alert, qos);
+  if (op === 'delete') await this.publishStateTombstone(entity, id, qos);
+  else await this.publishState(entity, id, alert, qos);
+  await this.publishDataChange('alerts', op === 'delete' ? 'update' : op, alert, { qos, retain: true });
+}
+
+async publishEquipmentChange(op: 'create'|'update'|'delete', eq: any) {
+  const entity = 'equipment'; const id = eq.id || eq.equipmentId; const qos = 1;
+  await this.publishEvent(entity, op, id, eq, qos);
+  if (op === 'delete') await this.publishStateTombstone(entity, id, qos);
+  else await this.publishState(entity, id, eq, qos);
+  await this.publishDataChange('equipment', op, eq, { qos: 1, retain: true });
+}
+
+async publishCrewChange(op: 'create'|'update'|'delete', c: any) {
+  const entity = 'crew'; const id = c.id || c.crewId; const qos = 1;
+  await this.publishEvent(entity, op, id, c, qos);
+  if (op === 'delete') await this.publishStateTombstone(entity, id, qos);
+  else await this.publishState(entity, id, c, qos);
+  await this.publishDataChange('crew', op, c, { qos: 1, retain: true });
+}
+
+async publishMaintenanceChange(op: 'create'|'update'|'delete', sched: any) {
+  const entity = 'maintenance'; const id = sched.id || sched.scheduleId; const qos = 1;
+  await this.publishEvent(entity, op, id, sched, qos);
+  if (op === 'delete') await this.publishStateTombstone(entity, id, qos);
+  else await this.publishState(entity, id, sched, qos);
+  await this.publishDataChange('maintenance_schedules', op, sched, { qos: 1, retain: true });
+}
+f) JSONL queue persistence + backoff
+
+At top of file:
+
+import fs from 'fs';
+const QUEUE_FILE = process.env.MQTT_QUEUE_FILE || '/var/lib/arus/mqtt_queue.jsonl';
+type Queued = MqttMessage & { nextAt?: number; attempts?: number };
+Change field type:
+
+private messageQueue: Queued[] = [];
+Add helpers and call loader in constructor:
+
+private persistQueued(message: MqttMessage) {
+  try { fs.appendFileSync(QUEUE_FILE, JSON.stringify(message) + '\n'); } catch {}
+}
+private loadQueueFromDisk() {
+  try {
+    if (!fs.existsSync(QUEUE_FILE)) return;
+    const lines = fs.readFileSync(QUEUE_FILE, 'utf8').trim().split('\n');
+    for (const l of lines) this.messageQueue.push(JSON.parse(l));
+    fs.unlinkSync(QUEUE_FILE);
+    console.log(`[MQTT Reliable Sync] Restored ${lines.length} queued messages from disk`);
+  } catch (e) {
+    console.warn('[MQTT Reliable Sync] Failed to load queue', e);
+  }
+}
+// in constructor end:
+this.loadQueueFromDisk();
+Update queueMessage:
+
+private queueMessage(message: MqttMessage) {
+  if (this.messageQueue.length >= this.config.maxQueueSize) {
+    const dropped = this.messageQueue.shift();
+    this.metrics.messagesDropped++; incrementMqttMessagesDropped();
+    this.emit('message_dropped', { dropped });
+  }
+  const q: Queued = { ...message };
+  this.messageQueue.push(q);
+  this.persistQueued(q);
+  this.metrics.messagesQueued++; incrementMqttMessagesQueued();
+}
+Replace flushMessageQueue() with backoff version:
+
+private async flushMessageQueue() {
+  if (!this.client || !this.isConnected) return;
+
+  const now = Date.now();
+  const ready: Queued[] = [];
+  const later: Queued[] = [];
+
+  while (this.messageQueue.length) {
+    const m = this.messageQueue.shift()!;
+    if (!m.nextAt || m.nextAt <= now) ready.push(m);
+    else later.push(m);
+  }
+  this.messageQueue.unshift(...later);
+  if (ready.length === 0) return;
+
+  console.log(`[MQTT Reliable Sync] Flushing ${ready.length} queued messages`);
+  let success = 0, failed = 0;
+
+  for (const m of ready) {
+    try {
+      await new Promise<void>((resolve, reject) => {
+        this.client!.publish(
+          m.topic,
+          typeof m.payload === "string" ? m.payload : JSON.stringify(m.payload),
+          { qos: m.qos, retain: m.retain },
+          (err) => (err ? reject(err) : resolve())
+        );
+      });
+      success++;
+    } catch {
+      failed++;
+      const attempts = (m.attempts ?? 0) + 1;
+      const delay = Math.min(60_000, 2 ** Math.min(attempts, 10) * 100);
+      m.attempts = attempts;
+      m.nextAt = Date.now() + delay;
+      this.messageQueue.push(m);
+    }
+  }
+
+  if (success > 0) {
+    this.metrics.queueFlushes++; incrementMqttQueueFlushes();
+    this.emit('queue_flushed', { sent: success, failed });
+  }
+
+  updateMqttMetrics({
+    currentQueueSize: this.messageQueue.length,
+    queueUtilization: (this.messageQueue.length / this.config.maxQueueSize) * 100
+  });
+}
+g) Inbound de-dup by messageId
+
+private seen = new Map<string, number>();
+private maxSeen = 5000;
+
+private isDuplicate(id?: string) {
+  if (!id) return false;
+  if (this.seen.has(id)) return true;
+  this.seen.set(id, Date.now());
+  if (this.seen.size > this.maxSeen) {
+    const cutoff = Date.now() - 60_000;
+    for (const [k, v] of this.seen) if (v < cutoff) this.seen.delete(k);
+  }
+  return false;
+}
+In this.client.on('message', ...) after JSON.parse:
+
+if (this.isDuplicate(message?.messageId)) return;
+ACCEPTANCE TESTS
+
+Start service with clean:false and stable clientId: reconnects resume session (no subscription loss).
+
+Publish create/update/delete for work_order/equipment/crew/maintenance/alert:
+
+Events appear on arus/{vesselId}/events/{entity} (non-retained).
+
+State snapshot appears retained at arus/{vesselId}/state/{entity}/{id}; delete clears retained (empty payload).
+
+Legacy vessel/sync/* topics still receive messages.
+
+Kill the process with queued messages; restart:
+
+Queue is restored from JSONL and flushes with backoff once broker is reachable.
+
+Deliver duplicate inbound messages (same messageId):
+
+Callbacks are not invoked twice (de-dup active).
+
+Set ENABLE_QOS2_ALERTS=true: alerts publish with QoS2; otherwise QoS1.
+
+No unhandled promise rejections from publish paths.
+
+
+
+Make only the changes above; do not alter unrelated logic or styles.

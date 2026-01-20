@@ -1,0 +1,215 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==========================================================
+REM ARUS – Latest Readings API + Fleet Dashboard UI
+REM - Backend:
+REM * /v1/api/telemetry/latest
+REM * /v1/api/fleet/overview
+REM - Frontend:
+REM * FleetDashboard card (KPIs, vessel filter, latest table)
+REM ==========================================================
+
+if not exist "backend-node\src" (
+echo [ERROR] backend-node/src not found. Run from repo root.
+exit /b 1
+)
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+REM ----------------------------
+REM 1) Backend: latest + overview
+REM ----------------------------
+> backend-node\src\index.latest.ts (
+echo import express from "express";
+echo import path from "node:path";
+echo import { Pool } from "pg";
+echo import Database from "better-sqlite3";
+echo
+echo const DATABASE_URL = process.env.DATABASE_URL || "";
+echo const USE_PG = !!DATABASE_URL;
+echo
+echo async function qpg<T=any>(sql:string, params:any[]=[]): Promise<T[]> {
+echo const pool = new Pool({ connectionString: DATABASE_URL });
+echo const c = await pool.connect();
+echo try { const r = await c.query(sql, params); return r.rows as any; }
+echo finally { c.release(); await pool.end(); }
+echo }
+echo
+echo function qlite<T=any>(sql:string, params:any[]=[]): T[] {
+echo const db = new Database(path.join(process.cwd(),"data","arus.sqlite"));
+echo const rows = db.prepare(sql).all(...params);
+echo db.close();
+echo return rows as any;
+echo }
+echo
+echo export function mountLatest(v1: express.Router){
+echo // Latest readings (from last_reading accelerator)
+echo v1.get("/api/telemetry/latest", async (req, res) => {
+echo const vessel = req.query.vessel_id ? String(req.query.vessel_id) : "";
+echo const src = req.query.src ? String(req.query.src) : "";
+echo const sig = req.query.sig ? String(req.query.sig) : "";
+echo const limit = Math.min( Number(req.query.limit||"500"), 5000 );
+echo if (USE_PG){
+echo const where:string[] = []; const vals:any[] = [];
+echo if (vessel) { where.push("vessel_id=$"+(vals.push(vessel))); }
+echo if (src) { where.push("src=$"+(vals.push(src))); }
+echo if (sig) { where.push("sig=$"+(vals.push(sig))); }
+echo const sql = \`SELECT vessel_id, src, sig, ts, value, unit FROM last_reading\${where.length? " WHERE "+where.join(" AND "):""} ORDER BY vessel_id, src, sig LIMIT \${limit}\`;
+echo const rows = await qpg(sql, vals);
+echo return res.json(rows.map(r=>({...r, ts: (r.ts as Date).toISOString()})));
+echo } else {
+echo const where:string[] = []; const vals:any[] = [];
+echo if (vessel) { where.push("vessel_id=?"); vals.push(vessel); }
+echo if (src) { where.push("src=?"); vals.push(src); }
+echo if (sig) { where.push("sig=?"); vals.push(sig); }
+echo const sql = \`SELECT vessel_id, src, sig, ts, value, unit FROM last_reading \${where.length? " WHERE "+where.join(" AND "):""} ORDER BY vessel_id, src, sig LIMIT \${limit}\`;
+echo const rows = qlite(sql, vals);
+echo return res.json(rows);
+echo }
+echo });
+echo
+echo // Fleet overview KPIs
+echo v1.get("/api/fleet/overview", async (_req,res) => {
+echo if (USE_PG){
+echo const [vessels, mapped, discovered, latest, dq] = await Promise.all([
+echo qpg(\`SELECT COUNT(*)::int AS c FROM vessel\`),
+echo qpg(\`SELECT COUNT(*)::int AS c FROM sensor_mapping\`),
+echo qpg(\`SELECT COUNT(*)::int AS c FROM discovered_signals\`),
+echo qpg(\`
+echo SELECT vessel_id, MAX(ts) AS last_ts
+echo FROM last_reading GROUP BY vessel_id
+echo \`),
+echo qpg(\`
+echo SELECT kind, COUNT(*)::int AS c
+echo FROM dq_findings
+echo WHERE created_at > NOW() - INTERVAL '7 days'
+echo GROUP BY kind
+echo \`)
+echo ]);
+echo return res.json({
+echo vessels: vessels[0]?.c||0,
+echo signals_mapped: mapped[0]?.c||0,
+echo signals_discovered: discovered[0]?.c||0,
+echo latest_per_vessel: latest.map(r=>({ vessel_id:r.vessel_id, last_ts:(r.last_ts as Date)?.toISOString() })),
+echo dq_7d: dq.reduce((a:any,r:any)=>{a[r.kind]=r.c; return a;}, {})
+echo });
+echo } else {
+echo const db = new Database(path.join(process.cwd(),"data","arus.sqlite"));
+echo const vessels = db.prepare("SELECT COUNT(*) AS c FROM vessel").get()?.c||0;
+echo const mapped = db.prepare("SELECT COUNT(*) AS c FROM sensor_mapping").get()?.c||0;
+echo const discovered = db.prepare("SELECT COUNT(*) AS c FROM discovered_signals").get()?.c||0;
+echo const latest = db.prepare("SELECT vessel_id, MAX(ts) AS last_ts FROM last_reading GROUP BY vessel_id").all();
+echo const since = new Date(Date.now()-7*24*3600*1000).toISOString();
+echo const dq = db.prepare("SELECT kind, COUNT(*) AS c FROM dq_findings WHERE created_at >= ? GROUP BY kind").all(since);
+echo db.close();
+echo return res.json({
+echo vessels,
+echo signals_mapped: mapped,
+echo signals_discovered: discovered,
+echo latest_per_vessel: latest.map((r:any)=>({vessel_id:r.vessel_id, last_ts:r.last_ts})),
+echo dq_7d: dq.reduce((a:any,r:any)=>{a[r.kind]=Number(r.c); return a;}, {})
+echo });
+echo }
+echo });
+echo }
+)
+
+REM 2) Wire backend routes (mount into /v1)
+%PS% ^
+"$f='backend-node/src/index.ts'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace '(app\\.use\\(\"/v1\", v1\\);)','import { mountLatest } from \"./index.latest.js\";\nmountLatest(v1);\n$1';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ----------------------------
+REM 3) Frontend: FleetDashboard
+REM ----------------------------
+if not exist "frontend\src" (
+echo [WARN] frontend/src not found; skipping UI (backend works).
+) else (
+> frontend\src\components\FleetDashboard.tsx (
+echo import React, { useEffect, useMemo, useState } from "react";
+echo const BASE = (import.meta as any).env.VITE_API_URL || "http://localhost:8001";
+echo type KPI = { vessels:number; signals_mapped:number; signals_discovered:number; latest_per_vessel:{vessel_id:string; last_ts:string}[]; dq_7d: Record<string,number> };
+echo type Row = { vessel_id:string; src:string; sig:string; ts:string; value:number|null; unit?:string|null };
+echo
+echo export default function FleetDashboard(){
+echo const [kpi, setKpi] = useState<KPI|null>(null);
+echo const [rows, setRows] = useState<Row[]>([]);
+echo const [vessel, setVessel] = useState<string>("");
+echo const [loading, setLoading] = useState(true);
+echo async function load(){
+echo setLoading(true);
+echo const [k, r] = await Promise.all([
+echo fetch(\`\${BASE}/v1/api/fleet/overview\`).then(r=>r.json()),
+echo fetch(\`\${BASE}/v1/api/telemetry/latest\`).then(r=>r.json()),
+echo ]);
+echo setKpi(k); setRows(r); setLoading(false);
+echo }
+echo useEffect(()=>{ load(); const id=setInterval(load, 10000); return ()=>clearInterval(id); },[]);
+echo
+echo const vessels = useMemo(()=> (kpi?.latest_per_vessel||[]).map(x=>x.vessel_id), [kpi]);
+echo const filtered = useMemo(()=> rows.filter(r=> !vessel || r.vessel_id===vessel), [rows, vessel]);
+echo
+echo return (
+echo <div className="card">
+echo <h2>Fleet Overview</h2>
+echo {loading && <div>Loading…</div>}
+echo {kpi && (
+echo <div style={{display:'grid',gridTemplateColumns:'repeat(4, minmax(0,1fr))',gap:12,margin:'8px 0'}}>
+echo <div style={{background:'#f1f5f9',padding:10,borderRadius:8}}><div style={{fontSize:12,color:'#64748b'}}>Vessels</div><div style={{fontSize:24}}>{kpi.vessels}</div></div>
+echo <div style={{background:'#f1f5f9',padding:10,borderRadius:8}}><div style={{fontSize:12,color:'#64748b'}}>Signals (Mapped)</div><div style={{fontSize:24}}>{kpi.signals_mapped}</div></div>
+echo <div style={{background:'#f1f5f9',padding:10,borderRadius:8}}><div style={{fontSize:12,color:'#64748b'}}>Signals (Discovered)</div><div style={{fontSize:24}}>{kpi.signals_discovered}</div></div>
+echo <div style={{background:'#f1f5f9',padding:10,borderRadius:8}}><div style={{fontSize:12,color:'#64748b'}}>DQ (7d)</div><div style={{fontSize:24}}>{Object.values(kpi.dq_7d).reduce((a,b)=>a+b,0)}</div></div>
+echo </div>
+echo )}
+echo
+echo <div style={{display:'flex',gap:8,alignItems:'center',margin:'6px 0'}}>
+echo <label>Vessel:</label>
+echo <select value={vessel} onChange={e=>setVessel(e.target.value)}>
+echo <option value="">(All)</option>
+echo {vessels.map(v=> <option key={v} value={v}>{v}</option>)}
+echo </select>
+echo <button onClick={load} style={{marginLeft:'auto'}}>Refresh</button>
+echo </div>
+echo
+echo <table style={{width:'100%',fontSize:12,borderCollapse:'collapse'}}>
+echo <thead><tr style={{background:'#f1f5f9'}}><th>Vessel</th><th>Source</th><th>Signal</th><th>Value</th><th>Unit</th><th>Updated</th></tr></thead>
+echo <tbody>
+echo {filtered.map((r,i)=>(
+echo <tr key={r.vessel_id+':'+r.src+':'+r.sig}>
+echo <td style={{padding:'4px'}}>{r.vessel_id}</td>
+echo <td>{r.src}</td>
+echo <td>{r.sig}</td>
+echo <td>{r.value ?? '—'}</td>
+echo <td>{r.unit ?? '—'}</td>
+echo <td>{new Date(r.ts).toLocaleString()}</td>
+echo </tr>
+echo ))}
+echo {filtered.length===0 && <tr><td colSpan={6} style={{padding:'6px',color:'#64748b'}}>No readings.</td></tr>}
+echo </tbody>
+echo </table>
+echo </div>
+echo );
+echo }
+)
+
+REM Mount FleetDashboard into App
+%PS% ^
+"$f='frontend/src/App.tsx'; if (Test-Path $f) { $t=Get-Content -Raw $f; if ($t -notmatch 'FleetDashboard'){ $t='import FleetDashboard from \"./components/FleetDashboard\";\n'+$t; $t=$t -replace '(</div>\\s*)$',' <div className=\"card\"><FleetDashboard/></div>\n$1'; Set-Content -Encoding UTF8 $f $t; Write-Host '[OK] App.tsx patched with FleetDashboard'; } else { Write-Host '[INFO] FleetDashboard already referenced'; } } else { Write-Host '[WARN] frontend/src/App.tsx missing; skipped UI mount.' }"
+)
+
+echo.
+echo ==========================================================
+echo ✅ Latest Readings API + Fleet Dashboard patch applied.
+echo ----------------------------------------------------------
+echo Backend:
+echo GET /v1/api/telemetry/latest?vessel_id=&src=&sig=&limit=
+echo GET /v1/api/fleet/overview
+echo Frontend:
+echo - FleetDashboard card mounted in App.tsx
+echo ----------------------------------------------------------
+echo Next:
+echo cd backend-node && npm run build || npm run dev
+echo cd frontend && npm run dev
+echo ==========================================================
+endlocal

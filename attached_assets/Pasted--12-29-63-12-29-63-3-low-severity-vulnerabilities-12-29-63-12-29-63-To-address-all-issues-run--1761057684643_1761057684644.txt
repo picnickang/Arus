@@ -1,0 +1,137 @@
+#12 29.63 
+#12 29.63 3 low severity vulnerabilities
+#12 29.63 
+#12 29.63 To address all issues, run:
+#12 29.63   npm audit fix
+#12 29.63 
+#12 29.63 Run `npm audit` for details.
+#12 29.63 npm notice
+#12 29.63 npm notice New major version of npm available! 10.8.2 -> 11.6.2
+#12 29.63 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.6.2
+#12 29.63 npm notice To update run: npm install -g npm@11.6.2
+#12 29.63 npm notice
+#12 29.79 npm warn using --force Recommended protections disabled.
+#12 DONE 35.6s
+#15 [builder 5/7] RUN npm ci
+#15 7.135 npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
+#15 7.722 npm warn deprecated npmlog@5.0.1: This package is no longer supported.
+#15 8.510 npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+#15 8.789 npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+#15 9.197 npm warn deprecated gauge@3.0.2: This package is no longer supported.
+#15 9.984 npm warn deprecated apollo-server-plugin-base@3.7.2: The `apollo-server-plugin-base` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/server` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+#15 9.984 npm warn deprecated apollo-server-types@3.8.0: The `apollo-server-types` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/server` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+#15 9.984 npm warn deprecated are-we-there-yet@2.0.0: This package is no longer supported.
+#15 10.02 npm warn deprecated apollo-datasource@3.3.2: The `apollo-datasource` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+#15 10.02 npm warn deprecated apollo-server-errors@3.3.1: The `apollo-server-errors` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/server` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+#15 10.14 npm warn deprecated boolean@3.2.0: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+#15 10.18 npm warn deprecated apollo-server-express@3.13.0: The `apollo-server-express` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/server` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+#15 10.68 npm warn deprecated apollo-server-env@4.2.1: The `apollo-server-env` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/utils.fetcher` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+#15 11.26 npm warn deprecated apollo-reporting-protobuf@3.4.0: The `apollo-reporting-protobuf` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/usage-reporting-protobuf` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+#15 12.02 npm warn deprecated @npmcli/move-file@2.0.1: This functionality has been moved to @npmcli/fs
+#15 12.41 npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+#15 12.43 npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+#15 13.90 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#15 14.04 npm warn deprecated rimraf@2.6.3: Rimraf versions prior to v4 are no longer supported
+#15 14.10 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#15 14.10 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#15 14.65 npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+#15 14.66 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#15 14.72 npm warn deprecated glob@8.1.0: Glob versions prior to v9 are no longer supported
+#15 15.31 npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+#15 15.31 npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+#15 15.36 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#15 15.36 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#15 15.73 npm warn deprecated glob@8.1.0: Glob versions prior to v9 are no longer supported
+#15 15.73 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#15 17.67 npm warn deprecated apollo-server-core@3.13.0: The `apollo-server-core` package is part of Apollo Server v2 and v3, which are now end-of-life (as of October 22nd 2023 and October 22nd 2024, respectively). This package's functionality is now found in the `@apollo/server` package. See https://www.apollographql.com/docs/apollo-server/previous-versions/ for more details.
+#15 45.50 
+#15 45.50 added 1596 packages, and audited 1597 packages in 44s
+#15 45.50 
+#15 45.50 201 packages are looking for funding
+#15 45.50   run `npm fund` for details
+#15 45.53 
+#15 45.53 8 vulnerabilities (3 low, 5 moderate)
+#15 45.53 
+#15 45.53 To address issues that do not require attention, run:
+#15 45.53   npm audit fix
+#15 45.53 
+#15 45.53 To address all issues (including breaking changes), run:
+#15 45.53   npm audit fix --force
+#15 45.53 
+#15 45.53 Run `npm audit` for details.
+#15 45.53 npm notice
+#15 45.53 npm notice New major version of npm available! 10.8.2 -> 11.6.2
+#15 45.53 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.6.2
+#15 45.53 npm notice To update run: npm install -g npm@11.6.2
+#15 45.53 npm notice
+#15 DONE 62.3s
+#16 [builder 6/7] COPY . .
+#16 DONE 2.7s
+#17 [builder 7/7] RUN echo "Building frontend..." &&     npx vite build &&     echo "Building backend..." &&     node esbuild.config.js &&     echo "Build complete!"
+#17 0.117 Building frontend...
+#17 0.885 vite v5.4.20 building for production...
+#17 0.959 transforming...
+#17 15.19 ✓ 3794 modules transformed.
+#17 16.38 rendering chunks...
+#17 17.04 [plugin:vite:reporter] [plugin vite:reporter] 
+#17 17.04 (!) /app/client/src/pages/ai-insights.tsx is dynamically imported by /app/client/src/pages/ml-ai-consolidated.tsx but also statically imported by /app/client/src/App.tsx, dynamic import will not move module into another chunk.
+#17 17.04 
+#17 17.04 [plugin:vite:reporter] [plugin vite:reporter] 
+#17 17.04 (!) /app/client/src/pages/ml-training.tsx is dynamically imported by /app/client/src/pages/ml-ai-consolidated.tsx but also statically imported by /app/client/src/App.tsx, dynamic import will not move module into another chunk.
+#17 17.04 
+#17 17.11 computing gzip size...
+#17 17.16 ../dist/public/index.html                              4.02 kB │ gzip:   1.41 kB
+#17 17.16 ../dist/public/assets/index-_0SUaLr4.css             117.72 kB │ gzip:  18.54 kB
+#17 17.16 ../dist/public/assets/purify.es-DfngIMfA.js           22.26 kB │ gzip:   8.72 kB
+#17 17.16 ../dist/public/assets/index.es-B9cyO-QT.js           150.57 kB │ gzip:  51.50 kB
+#17 17.16 ../dist/public/assets/html2canvas.esm-CBrSDip1.js    201.42 kB │ gzip:  48.03 kB
+#17 17.16 ../dist/public/assets/jspdf.es.min-vodt-ERg.js       413.63 kB │ gzip: 135.01 kB
+#17 17.16 ../dist/public/assets/index-QFLnkQuD.js            2,150.20 kB │ gzip: 536.07 kB
+#17 17.16 
+#17 17.16 (!) Some chunks are larger than 500 kB after minification. Consider:
+#17 17.16 - Using dynamic import() to code-split the application
+#17 17.16 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+#17 17.16 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+#17 17.16 ✓ built in 16.25s
+#17 17.31 Building backend...
+#17 17.65 Build complete!
+#17 DONE 18.1s
+#18 [production 7/8] COPY --from=builder /app/dist ./dist
+#18 DONE 0.9s
+#19 [production 8/8] RUN chown -R arus:nodejs /app
+#19 DONE 355.7s
+#20 exporting to docker image format
+#20 exporting layers
+#20 exporting layers 42.5s done
+#20 exporting manifest sha256:8d1729cf8bfb7466eae8b876d0833be06bc8f997f52e0cecd64e2bd5f79fff1f done
+#20 exporting config sha256:7782aa7f8bac8d1dae666119d2f8fb27c8f850a74e3fe800a2e95e462c7c32ee done
+#20 DONE 46.5s
+#21 exporting cache to client directory
+#21 preparing build cache for export
+#21 writing cache image manifest sha256:97c6ec4c7c1a689a3cce6e5e268e98eb840b8262b87a8583f9685f57bd07f5bc
+#21 writing cache image manifest sha256:97c6ec4c7c1a689a3cce6e5e268e98eb840b8262b87a8583f9685f57bd07f5bc 0.4s done
+#21 DONE 105.8s
+Pushing image to registry...
+Upload succeeded
+==> Deploying...
+==> No open ports detected, continuing to scan...
+==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+node:internal/modules/cjs/loader:1661
+  return process.dlopen(module, path.toNamespacedPath(filename));
+                 ^
+Error: Error loading shared library ld-linux-x86-64.so.2: No such file or directory (needed by /app/node_modules/@tensorflow/tfjs-node/lib/napi-v8/../../deps/lib/libtensorflow.so.2)
+    at Module._extensions..node (node:internal/modules/cjs/loader:1661:18)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (/app/node_modules/@tensorflow/tfjs-node/dist/index.js:72:16)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12) {
+  code: 'ERR_DLOPEN_FAILED'
+}
+Node.js v20.19.5
+==> Exited with status 1
+==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys

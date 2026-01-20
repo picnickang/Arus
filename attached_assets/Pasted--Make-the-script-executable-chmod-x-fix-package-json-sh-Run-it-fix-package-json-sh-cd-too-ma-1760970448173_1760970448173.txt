@@ -1,0 +1,56 @@
+# Make the script executable
+chmod +x fix-package-json.sh
+
+# Run it
+./fix-package-json.sh
+cd: too many arguments
+zsh: command not found: #
+zsh: command not found: #
+Fixing package.json...
+Removed electron ^38.3.0 from dependencies
+Removed electron-builder ^26.0.12 from dependencies
+Added electron and electron-builder to devDependencies
+✅ package.json fixed!
+
+Changes made:
+-------------
+    "electron": "^38.3.0",
+    "electron-builder": "^26.0.12"
+
+Backup saved as package.json.backup
+homeimac@Homes-iMac RecipeRealm % chmod +x build-desktop-macos-skip-rebuild.sh
+./build-desktop-macos-skip-rebuild.sh
+🍎 ARUS macOS Desktop Builder (Skip Rebuild)
+=============================================
+
+✓ Node.js runtime found (147M)
+✓ Node.js binary verified
+
+Cleaning previous builds...
+Building macOS app (skipping native rebuild - modules already compiled)...
+
+  • electron-builder  version=26.0.12 os=21.6.0
+  • loaded configuration  file=/Users/homeimac/Downloads/RecipeRealm/electron-builder.yml
+  • description is missed in the package.json  appPackageFile=/Users/homeimac/Downloads/RecipeRealm/package.json
+  • author is missed in the package.json  appPackageFile=/Users/homeimac/Downloads/RecipeRealm/package.json
+  ⨯ Invalid configuration object. electron-builder 26.0.12 has been initialized using a configuration object that does not match the API schema.
+ - configuration has an unknown property 'electronRebuild'. These properties are valid:
+   object { afterAllArtifactBuild?, afterExtract?, afterPack?, afterSign?, apk?, appId?, appImage?, appx?, appxManifestCreated?, artifactBuildCompleted?, artifactBuildStarted?, artifactName?, asar?, asarUnpack?, beforeBuild?, beforePack?, buildDependenciesFromSource?, buildNumber?, buildVersion?, compression?, copyright?, cscKeyPassword?, cscLink?, deb?, defaultArch?, detectUpdateChannel?, directories?, disableDefaultIgnoredFiles?, disableSanityCheckAsar?, dmg?, downloadAlternateFFmpeg?, electronBranding?, electronCompile?, electronDist?, electronDownload?, electronFuses?, electronLanguages?, electronUpdaterCompatibility?, electronVersion?, executableName?, extends?, extraFiles?, extraMetadata?, extraResources?, fileAssociations?, files?, flatpak?, forceCodeSigning?, framework?, freebsd?, generateUpdatesFilesForAllChannels?, icon?, includePdb?, launchUiVersion?, linux?, mac?, mas?, masDev?, msi?, msiProjectCreated?, msiWrapped?, nativeRebuilder?, nodeGypRebuild?, nodeVersion?, npmArgs?, npmRebuild?, nsis?, nsisWeb?, onNodeModuleFile?, p5p?, pacman?, pkg?, portable?, productName?, protocols?, publish?, releaseInfo?, removePackageKeywords?, removePackageScripts?, rpm?, snap?, squirrelWindows?, target?, win?, $schema? }
+     How to fix:
+     1. Open https://www.electron.build/configuration
+     2. Search the option name on the page (or type in into Search to find across the docs).
+       * Not found? The option was deprecated or not exists (check spelling).
+       * Found? Check that the option in the appropriate place. e.g. "title" only in the "dmg", not in the root.
+  failedTask=build stackTrace=ValidationError: Invalid configuration object. electron-builder 26.0.12 has been initialized using a configuration object that does not match the API schema.
+ - configuration has an unknown property 'electronRebuild'. These properties are valid:
+   object { afterAllArtifactBuild?, afterExtract?, afterPack?, afterSign?, apk?, appId?, appImage?, appx?, appxManifestCreated?, artifactBuildCompleted?, artifactBuildStarted?, artifactName?, asar?, asarUnpack?, beforeBuild?, beforePack?, buildDependenciesFromSource?, buildNumber?, buildVersion?, compression?, copyright?, cscKeyPassword?, cscLink?, deb?, defaultArch?, detectUpdateChannel?, directories?, disableDefaultIgnoredFiles?, disableSanityCheckAsar?, dmg?, downloadAlternateFFmpeg?, electronBranding?, electronCompile?, electronDist?, electronDownload?, electronFuses?, electronLanguages?, electronUpdaterCompatibility?, electronVersion?, executableName?, extends?, extraFiles?, extraMetadata?, extraResources?, fileAssociations?, files?, flatpak?, forceCodeSigning?, framework?, freebsd?, generateUpdatesFilesForAllChannels?, icon?, includePdb?, launchUiVersion?, linux?, mac?, mas?, masDev?, msi?, msiProjectCreated?, msiWrapped?, nativeRebuilder?, nodeGypRebuild?, nodeVersion?, npmArgs?, npmRebuild?, nsis?, nsisWeb?, onNodeModuleFile?, p5p?, pacman?, pkg?, portable?, productName?, protocols?, publish?, releaseInfo?, removePackageKeywords?, removePackageScripts?, rpm?, snap?, squirrelWindows?, target?, win?, $schema? }
+     How to fix:
+     1. Open https://www.electron.build/configuration
+     2. Search the option name on the page (or type in into Search to find across the docs).
+       * Not found? The option was deprecated or not exists (check spelling).
+       * Found? Check that the option in the appropriate place. e.g. "title" only in the "dmg", not in the root.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         at validate (/Users/homeimac/.npm/_npx/009083ec26dc578f/node_modules/@develar/schema-utils/dist/validate.js:86:11)
+    at validateConfiguration (/Users/homeimac/.npm/_npx/009083ec26dc578f/node_modules/app-builder-lib/src/util/config/config.ts:239:3)
+    at Packager.validateConfig (/Users/homeimac/.npm/_npx/009083ec26dc578f/node_modules/app-builder-lib/src/packager.ts:384:5)
+    at Packager.build (/Users/homeimac/.npm/_npx/009083ec26dc578f/node_modules/app-builder-lib/src/packager.ts:392:5)
+    at executeFinally (/Users/homeimac/.npm/_npx/009083ec26dc578f/node_modules/builder-util/src/promise.ts:12:14)

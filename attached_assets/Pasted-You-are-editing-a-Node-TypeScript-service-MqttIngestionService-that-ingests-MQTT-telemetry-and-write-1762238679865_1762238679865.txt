@@ -1,0 +1,414 @@
+You are editing a Node/TypeScript service MqttIngestionService that ingests MQTT telemetry and writes aggregates on Postgres (Drizzle). Apply the changes below exactly. Keep existing logging and observability style. Don’t remove existing features—tighten them.
+
+
+
+GOALS
+
+Security: remove dynamic import; validate/authorize consistently; scope reads by org; don’t trust payload.orgId beyond validation.
+
+Correctness: robust timestamp parsing; prevent duplicate windows; process all relevant time windows based on datapoint timestamps (not “now” only); actually use lastProcessedTime; prune processed points.
+
+Performance: batch windowing by timestamp buckets; avoid O(n·w) queries; add bounded pruning; reduce duplicate DB reads.
+
+Reliability: use retryWithBackoff for DB inserts that can transiently fail; route unretryable to dead-letter; mark security violations distinctly.
+
+DX/cleanup: remove unused imports; validate inputs with zod schema; fix unused parameters; make updateDeviceStatus upsert-safe.
+
+
+
+PATCHES
+
+
+
+1) Imports & utilities
+
+Remove unnecessary dynamic import of verifyEquipmentOwnership. Use the already imported function.
+
+Remove unused imports (lt, any unused schemas) or mark with // used by … if referenced elsewhere.
+
+Add small helpers:
+
+// Top-level helpers in this file
+function parseIsoTimestamp(ts?: string): Date {
+  if (!ts) return new Date();
+  const d = new Date(ts);
+  return isNaN(d.getTime()) ? new Date() : d;
+}
+
+// Round down to window start for any Date and size (ms)
+function floorToWindow(d: Date, windowMs: number): Date {
+  return new Date(Math.floor(d.getTime() / windowMs) * windowMs);
+}
+2) 
+
+registerMqttDevice
+
+ input validation and upsert device status usage
+
+Validate deviceData with insertMqttDeviceSchema (if it exists) or a minimal local zod.
+
+Keep behavior but ensure consistent types.
+
+async registerMqttDevice(deviceData: {
+  deviceId: string; mqttClientId: string; brokerEndpoint: string;
+  topicPrefix: string; qosLevel?: number; credentials?: any; metadata?: any;
+}): Promise<MqttDevice> {
+  const base = {
+    deviceId: deviceData.deviceId,
+    mqttClientId: deviceData.mqttClientId,
+    brokerEndpoint: deviceData.brokerEndpoint,
+    topicPrefix: deviceData.topicPrefix,
+    qosLevel: deviceData.qosLevel ?? 1,
+    credentials: deviceData.credentials,
+    metadata: deviceData.metadata,
+    connectionStatus: 'registered' as const
+  };
+  // If insert schema exists, parse with it, else trust base
+  const parsed = (insertMqttDeviceSchema ? insertMqttDeviceSchema.parse(base) : base) as any;
+  const res = await db.insert(mqttDevices).values(parsed).returning();
+  this.emit('device_registered', res[0]);
+  return res[0];
+}
+3) 
+
+processTelemetryMessage
+
+ security & retry flow
+
+Use parseIsoTimestamp.
+
+Use already imported verifyEquipmentOwnership.
+
+Mark security violations clearly and dead-letter them with a securityViolation: true.
+
+Use retryWithBackoff for storage.createTelemetryReading and make isRetryableError gate retries.
+
+Never trust payload.orgId beyond validation; store validatedOrgId.
+
+async processTelemetryMessage(clientId: string, topic: string, payload: any): Promise<void> {
+  try {
+    const telemetryData = mqttTelemetrySchema.parse(payload);
+    const timestamp = parseIsoTimestamp(telemetryData.timestamp);
+
+    // SECURITY: validated org + equipment ownership
+    const validatedOrgId = await validateMqttClientOrg(clientId, telemetryData.orgId);
+    await verifyEquipmentOwnership(telemetryData.equipmentId, validatedOrgId);
+
+    await this.updateDeviceStatus(clientId, 'connected');
+
+    const qualityResult = await this.validateDataQuality(telemetryData);
+
+    const configResult = await applySensorConfiguration(
+      telemetryData.equipmentId,
+      telemetryData.sensorType,
+      telemetryData.value,
+      (telemetryData.metadata?.unit as string) || null,
+      validatedOrgId
+    );
+
+    if (!configResult.shouldKeep) {
+      console.log(`[MQTT Ingestion] Telemetry filtered`, {
+        equipmentId: telemetryData.equipmentId, sensorType: telemetryData.sensorType,
+        flags: configResult.flags
+      });
+      return;
+    }
+
+    // Reliable write with retry only if retryable
+    await retryWithBackoff(
+      () => storage.createTelemetryReading({
+        equipmentId: telemetryData.equipmentId,
+        sensorType: telemetryData.sensorType,
+        value: configResult.processedValue,
+        timestamp,
+        metadata: {
+          ...telemetryData.metadata,
+          mqttClientId: clientId,
+          mqttTopic: topic,
+          qualityScore: qualityResult.overallQuality,
+          sensorConfigFlags: configResult.flags,
+          ema: configResult.ema,
+          validatedOrgId
+        }
+      }),
+      {
+        maxRetries: 3,
+        initialDelayMs: 100,
+        maxDelayMs: 2000,
+        shouldRetry: (err) => isRetryableError?.(err) ?? true,
+        onRetry: (error, attempt, delayMs) => {
+          console.warn(`[MQTT Ingestion] Retry ${attempt}/3 after ${delayMs}ms`, {
+            equipmentId: telemetryData.equipmentId, sensorType: telemetryData.sensorType, error: (error as Error).message
+          });
+        }
+      }
+    );
+
+    await this.addToStreamBuffer(telemetryData.equipmentId, telemetryData.sensorType, {
+      value: configResult.processedValue,
+      timestamp,
+      quality: qualityResult.overallQuality
+    });
+
+    await this.recordDataQualityMetrics(telemetryData.equipmentId, telemetryData.sensorType, qualityResult);
+
+    this.emit('telemetry_received', {
+      equipmentId: telemetryData.equipmentId,
+      sensorType: telemetryData.sensorType,
+      value: configResult.processedValue,
+      timestamp,
+      quality: qualityResult.overallQuality,
+      clientId,
+      sensorConfigFlags: configResult.flags,
+      ema: configResult.ema
+    });
+
+    if (qualityResult.overallQuality >= 0.7) {
+      this.emit('trigger_anomaly_detection', {
+        equipmentId: telemetryData.equipmentId,
+        sensorType: telemetryData.sensorType,
+        value: configResult.processedValue,
+        timestamp,
+        ema: configResult.ema
+      });
+    }
+
+  } catch (error) {
+    const err = error as Error;
+    const isSecurity = error instanceof OrgIdValidationError;
+
+    await deadLetterLogger.log({
+      timestamp: new Date().toISOString(),
+      source: 'mqtt',
+      orgId: (payload as any)?.orgId || 'unknown',
+      equipmentId: (payload as any)?.equipmentId,
+      deviceId: clientId,
+      error: err.message,
+      errorCode: (err as any).code,
+      payload,
+      retryCount: 0,
+      securityViolation: isSecurity
+    });
+
+    if (isSecurity) {
+      console.error(`[MQTT Ingestion SECURITY] Organization validation failed for ${clientId}`, {
+        code: (error as OrgIdValidationError).code, message: err.message, topic
+      });
+    } else {
+      console.error(`[MQTT Ingestion] Error processing telemetry from ${clientId}:`, err);
+    }
+
+    await this.recordProcessingError(clientId, topic, error);
+
+    this.emit('ingestion_error', {
+      clientId,
+      topic,
+      error: err.message,
+      isSecurityViolation: isSecurity
+    });
+  }
+}
+4) 
+
+Windowed aggregation
+
+ by datapoint timestamps (correctness & perf)
+
+Process all relevant windows present in the buffer by bucketing datapoints by their window start (using each window size).
+
+Prevent duplicate inserts with a single query per (equipmentId, sensorType, windowSize, windowStart) using SELECT … LIMIT 1.
+
+After inserting for a window that is fully closed (i.e., end < now), prune those datapoints from buffer.
+
+Actually use lastProcessedTime to avoid reprocessing very recent windows.
+
+
+
+Replace processStreamAggregations() and createTimeWindowAggregate() with:
+
+private async processStreamAggregations(): Promise<void> {
+  try {
+    const now = new Date();
+
+    for (const [bufferKey, dataPoints] of this.dataBuffer.entries()) {
+      if (dataPoints.length === 0) continue;
+      const [equipmentId, sensorType] = bufferKey.split(':');
+
+      for (const windowConfig of this.windowConfigs) {
+        // Bucket by windowStart
+        const buckets = new Map<number, Array<{ value:number; timestamp:Date; quality?:number }>>();
+        for (const dp of dataPoints) {
+          const ws = floorToWindow(dp.timestamp, windowConfig.windowSizeMs).getTime();
+          if (!buckets.has(ws)) buckets.set(ws, []);
+          buckets.get(ws)!.push(dp);
+        }
+
+        // Sort window starts ascending
+        const starts = Array.from(buckets.keys()).sort((a,b)=>a-b);
+        for (const wsMillis of starts) {
+          const windowStart = new Date(wsMillis);
+          const windowEnd = new Date(wsMillis + windowConfig.windowSizeMs);
+          // Only finalize windows that have closed
+          if (windowEnd > now) continue;
+
+          const bucket = buckets.get(wsMillis)!;
+          await this.createOrSkipAggregate(equipmentId, sensorType, bucket, windowConfig, windowStart, windowEnd);
+
+          // prune buffer datapoints for this finalized window
+          const arr = this.dataBuffer.get(bufferKey)!;
+          this.dataBuffer.set(
+            bufferKey,
+            arr.filter(dp => !(dp.timestamp >= windowStart && dp.timestamp < windowEnd))
+          );
+          this.lastProcessedTime.set(`${bufferKey}:${windowConfig.windowSize}`, windowEnd);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('[MQTT Ingestion] Error processing stream aggregations:', error);
+  }
+}
+
+private async createOrSkipAggregate(
+  equipmentId: string,
+  sensorType: string,
+  windowData: Array<{ value:number; timestamp:Date; quality?:number }>,
+  windowConfig: WindowConfig,
+  windowStart: Date,
+  windowEnd: Date
+): Promise<void> {
+  if (windowData.length === 0) return;
+
+  // Check if aggregate exists
+  const existing = await db
+    .select()
+    .from(telemetryAggregates)
+    .where(
+      and(
+        eq(telemetryAggregates.equipmentId, equipmentId),
+        eq(telemetryAggregates.sensorType, sensorType),
+        eq(telemetryAggregates.timeWindow, windowConfig.windowSize),
+        eq(telemetryAggregates.windowStart, windowStart)
+      )
+    )
+    .limit(1);
+
+  if (existing.length > 0) return;
+
+  const values = windowData.map(d => d.value);
+  const avgValue = values.reduce((s,v)=>s+v,0) / values.length;
+  const minValue = Math.min(...values);
+  const maxValue = Math.max(...values);
+  const variance = values.reduce((s,v)=>s+Math.pow(v-avgValue,2),0) / values.length;
+  const stdDev = Math.sqrt(variance);
+  const qualityScores = windowData.map(d => d.quality ?? 1.0);
+  const avgQuality = qualityScores.reduce((s,q)=>s+q,0) / qualityScores.length;
+
+  // Insert with retry for transient failures
+  await retryWithBackoff(
+    () => db.insert(telemetryAggregates).values({
+      equipmentId,
+      sensorType,
+      timeWindow: windowConfig.windowSize,
+      windowStart,
+      windowEnd,
+      avgValue,
+      minValue,
+      maxValue,
+      stdDev,
+      sampleCount: windowData.length,
+      anomalyScore: null,
+      qualityScore: avgQuality,
+      metadata: {
+        windowSizeMs: windowConfig.windowSizeMs,
+        aggregationMethod: windowConfig.aggregationFunction,
+        variance
+      }
+    }),
+    {
+      maxRetries: 3,
+      initialDelayMs: 100,
+      maxDelayMs: 2000,
+      shouldRetry: (err) => isRetryableError?.(err) ?? true
+    }
+  );
+
+  this.emit('aggregate_created', {
+    equipmentId, sensorType,
+    timeWindow: windowConfig.windowSize,
+    windowStart, avgValue,
+    sampleCount: windowData.length,
+    qualityScore: avgQuality
+  });
+}
+5) Buffer management tweaks
+
+Keep your MAX_BUFFER_SIZE eviction, but remove the “always trim to last 1000” (the new pruning handles it). Replace addToStreamBuffer end with:
+
+// after push:
+if (this.dataBuffer.get(bufferKey)!.length > this.MAX_BUFFER_SIZE) {
+  const evictCount = Math.floor(this.MAX_BUFFER_SIZE * 0.1);
+  this.dataBuffer.get(bufferKey)!.splice(0, evictCount);
+  console.warn(`[MQTT Ingestion] Buffer high-watermark reached for ${bufferKey}, evicted ${evictCount} oldest entries`);
+}
+6) 
+
+updateDeviceStatus
+
+ should upsert or at least warn if device missing
+
+private async updateDeviceStatus(clientId: string, status: string): Promise<void> {
+  try {
+    const res = await db
+      .update(mqttDevices)
+      .set({ connectionStatus: status, lastSeen: new Date(), updatedAt: new Date() })
+      .where(eq(mqttDevices.mqttClientId, clientId))
+      .returning();
+    if (res.length === 0) {
+      console.warn(`[MQTT Ingestion] updateDeviceStatus: no device found for clientId=${clientId}`);
+    }
+  } catch (error) {
+    console.error(`[MQTT Ingestion] Error updating device status for ${clientId}:`, error);
+  }
+}
+7) 
+
+getMqttDevices
+
+ should respect org scoping (and remove unused arg if not used)
+
+If devices are multi-tenant, filter by org. If schema lacks org, remove the parameter to avoid implying security.
+
+async getMqttDevices(): Promise<MqttDevice[]> {
+  return await db.select().from(mqttDevices).orderBy(desc(mqttDevices.createdAt));
+}
+(If you do have an org column, change to .where(eq(mqttDevices.orgId, orgId)) and keep the param.)
+
+
+
+8) Minor: correct timeliness score clamp
+
+
+
+In validateDataQuality, ensure timeliness is clamped [0,1]:
+
+let timelinessScore = Math.max(0, Math.min(1, 1 - (ageMs / maxAgeMs)));
+ACCEPTANCE
+
+Security: verifyEquipmentOwnership is used directly; dead letters flag securityViolation for org errors.
+
+Timestamps: bad/invalid timestamps no longer crash; they default to Date.now().
+
+Aggregations: windows are built from datapoint timestamps; closed windows are inserted once; processed datapoints are pruned; lastProcessedTime is updated.
+
+Retries: createTelemetryReading and aggregate inserts retry only on retryable errors.
+
+Buffer: bounded by MAX_BUFFER_SIZE; old points evicted gradually.
+
+getMqttDevices no longer hints at unimplemented org filtering (or it filters if you wire orgId).
+
+No unused imports remain; no type errors.
+
+
+
+Make only these changes.

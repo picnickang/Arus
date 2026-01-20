@@ -1,0 +1,321 @@
+You are working on an embedded maritime predictive-maintenance / fleet ops app (ARUS).
+
+Tech stack (from the codebase):
+
+Backend: Node + TypeScript, Express (or similar), Drizzle ORM, dual SQLite/PostgreSQL/libSQL support, offline “VESSEL” mode, telemetry ingestion, logbooks, crew, work orders, inventory, alerts.
+
+Frontend: React + TypeScript, shadcn/ui, TanStack Query, Electron shell.
+
+Shared types in @shared/schema.
+
+
+
+The goal is to modularize the entire codebase so it’s easier to maintain and extend, without breaking existing behavior.
+
+
+
+Do this in several phases. Work across ALL files – not only storage.ts and routes.ts.
+
+1. Discover current structure & problem areas
+
+Scan the repo and list:
+
+All source roots (e.g. server/, src/, shared/, etc.).
+
+Any very large or “god” files (e.g. > 300–400 lines) that mix many concerns:
+
+Backend: server/index.*, routes.ts, any *Router.ts with many endpoints, services that touch multiple domains, telemetry handlers, sync managers, etc.
+
+Frontend: big page components (logbooks, dashboards, crew, scheduler, inventory, alerts), giant hooks, anything with a lot of conditional UI and data logic.
+
+Shared: large util modules that combine unrelated helpers.
+
+For each big file, briefly classify what it does (telemetry, engine logbook, deck logbook, fuel/emissions, crew, scheduler, hours-of-rest, work orders, inventory, alerts, settings, sync, auth/tenant, etc.).
+
+Output a short report:
+
+[DISCOVERY]
+Source roots:
+Large / god files and their responsibilities:
+Cross-cutting concerns (things mixed together that should be separated):
+Do NOT change any code yet.
+
+2. Define a target modular architecture
+
+
+
+Based on the discovery, design a feature-oriented module structure.
+
+
+
+Backend domain modules
+
+
+
+Propose a directory structure like:
+
+server/modules/telemetry
+
+server/modules/engine-logbook
+
+server/modules/deck-logbook
+
+server/modules/fuel-emissions
+
+server/modules/crew
+
+server/modules/scheduler
+
+server/modules/hours-of-rest
+
+server/modules/work-orders
+
+server/modules/inventory
+
+server/modules/alerts
+
+server/modules/settings
+
+server/modules/sync
+
+server/modules/auth-tenant
+
+
+
+Each module should ideally have:
+
+routes.ts – Express router for that domain (no business logic).
+
+controller.ts or handlers.ts – request handlers, minimal orchestration only.
+
+service.ts – business logic for the domain.
+
+repository.ts – DB access via Drizzle / libSQL / Postgres / SQLite.
+
+types.ts – domain-specific types if needed.
+
+
+
+Frontend domain modules
+
+
+
+Propose a similar structure in src/:
+
+src/features/engine-logbook
+
+src/features/deck-logbook
+
+src/features/fuel-emissions
+
+src/features/telemetry
+
+src/features/crew
+
+src/features/scheduler
+
+src/features/hours-of-rest
+
+src/features/work-orders
+
+src/features/inventory
+
+src/features/alerts
+
+src/features/settings
+
+src/features/auth
+
+
+
+Each feature should ideally contain:
+
+pages/… – top-level route components (e.g. EngineLogbookPage).
+
+components/… – presentational components.
+
+hooks/… – data hooks using TanStack Query (e.g. useEngineLog, useCrewScheduler).
+
+api.ts – wrappers around apiRequest for this domain.
+
+
+
+Also define:
+
+src/lib/… – shared utilities (formatting, date helpers, telemetry transforms, etc.).
+
+shared/ – continues to hold DB schema and common types or Zod schemas.
+
+
+
+Output the proposed module layout as:
+
+[TARGET ARCHITECTURE]
+Backend modules:
+Frontend feature modules:
+Shared utilities / types:
+Still no code changes yet.
+
+3. Check constraints before refactoring
+
+
+
+Before touching code, check:
+
+Existing API surface:
+
+Collect all API paths used by the frontend (apiRequest("GET", "/api/…"), React Query keys, etc.).
+
+Collect all backend routes currently mounted (from routes.ts, server/index.*, and any router files).
+
+List them side by side and ensure we do not change the external API paths or semantics during modularization.
+
+Database & storage constraints:
+
+Identify how dual storage works now (SQLite/libSQL vs PostgreSQL).
+
+Identify any offline-first / VESSEL mode assumptions.
+
+Identify how telemetry ingestion is wired (MQTT, HTTP, FMCC/aquametro, etc.).
+
+We must not silently break these flows.
+
+
+
+Output:
+
+[CONSTRAINTS]
+Frontend API usage:
+Backend API routes:
+Dual DB / storage assumptions:
+Telemetry / offline assumptions:
+Refactor rules (what must NOT change externally):
+Use these rules to guide all changes.
+
+4. Modularize backend code (stepwise, non-breaking)
+
+
+
+Now refactor the backend, but keep it functionally identical.
+
+For each major domain (start with the worst “god” files), do:
+
+Create a new server/modules/<domain>/routes.ts, service.ts, repository.ts, etc., as appropriate.
+
+Move domain-specific logic out of monolithic files into the new module.
+
+routes.ts at the root should become:
+
+a light registry that imports engineLogbookRoutes, deckLogbookRoutes, crewRoutes, etc., and mounts them under the existing path prefixes.
+
+Ensure:
+
+Auth/tenant middleware (requireOrgId, etc.) still apply.
+
+Error handling and logging stay consistent.
+
+The actual route paths and request/response shapes remain unchanged.
+
+For persistence:
+
+Keep DB schemas in @shared/schema (or existing schema files).
+
+Keep the dual SQLite/Postgres/libSQL client setup.
+
+Extract low-level DB calls into domain repository.ts files, so services and controllers don’t talk to Drizzle directly.
+
+After each domain is modularized:
+
+Run type-checking, lints, and tests if available (npm run typecheck, npm run lint, npm test).
+
+Fix any import paths and type issues.
+
+
+
+Document the refactor in comments briefly, but don’t change behavior.
+
+5. Modularize frontend features
+
+
+
+Next, reorganize the React/Electron frontend.
+
+For each feature (engine logbook, deck logbook, fuel/emissions, crew, scheduler, HoR, work orders, inventory, alerts, settings):
+
+Create src/features/<feature>/pages, components, hooks, and api.ts.
+
+Move the large page component(s) into pages/… and break them up:
+
+UI-only components into components/…
+
+Data fetching / orchestration into hooks (e.g. useEngineLogbook, useCrewScheduler).
+
+Point all imports to the new locations.
+
+Centralize small utilities:
+
+Shared formatting / helpers → src/lib/…
+
+Shared hooks (e.g. useOrganization, useToast) stay where they are, but make sure feature code imports from them instead of duplicating logic.
+
+Keep:
+
+All existing route URLs (React Router / Electron navigation) the same.
+
+All test IDs and keys used by tests intact.
+
+
+
+Again, run type-check and tests after each major move.
+
+6. Clean up cross-cutting concerns
+
+
+
+With modules in place, do a pass to:
+
+Remove any dead code left behind in the old storage.ts, routes.ts, or other monoliths.
+
+Ensure there are no circular dependencies between modules:
+
+Use imports analysis to detect cycles; if any exist, extract shared helpers into shared or src/lib.
+
+Standardize patterns:
+
+One pattern for error handling in services/controllers.
+
+One way of doing data access (repositories).
+
+One way of doing feature API wrappers on the frontend.
+
+7. Final sanity checks & report
+
+
+
+At the end:
+
+Run:
+
+npm run build (or the equivalent)
+
+any existing test scripts (unit/integration/e2e if present).
+
+Output a final summary:
+
+[MODULARIZATION RESULT]
+Backend changes:
+- Files/modules created:
+- Old god files reduced/retired:
+- External API changes: (should be “none” or explicitly listed)
+
+Frontend changes:
+- Feature modules created:
+- Big components split:
+- Shared utilities/hooks:
+
+Remaining tech debt / follow-ups:
+- (e.g. tests to add, docs to write, edge-case handling)
+Do not invent new product features here.
+
+Focus solely on modularizing and cleaning up the existing app so that a human full-stack developer can quickly understand and safely extend it.
+

@@ -1,0 +1,144 @@
+Yep — here’s a practical task list to implement the Hybrid architecture (Electron UI + Native Windows Service “Telemetry Agent”) with minimal rewrite, optimized for offline reliability + hardware access + performance.
+
+Phase 0 — Decisions (1–2 hours)
+	•	Choose service language:
+	•	C#/.NET Worker Service (fastest Windows Service path, easy installer/logging)
+	•	Rust (best performance + safety, slightly more setup)
+	•	Choose IPC:
+	•	Named Pipes (best on Windows, low overhead, secure)
+	•	gRPC over localhost (clean contracts, easy streaming, cross-platform later)
+	•	(WebSocket/HTTP is okay, but less “service-y” and easier to mis-secure)
+
+Deliverable: ARCH.md with the chosen Service + IPC + ports/pipes + security rules.
+
+⸻
+
+Phase 1 — Service Skeleton + Install (Windows-first)
+
+Goal: a Windows Service that starts on boot, logs reliably, exposes a basic health endpoint/pipe.
+	•	Create arus-telemetry-agent repo (or /apps/agent in monorepo)
+	•	Implement:
+	•	Service lifecycle: start/stop/restart
+	•	Structured logging (rolling files + Windows Event Log)
+	•	Health + version + config endpoints (via IPC)
+	•	Packaging:
+	•	Windows installer strategy (MSI via WiX / Burn, or Squirrel for UI + separate MSI for service)
+	•	Ensure service can run under least-privileged account if possible
+
+Deliverable: installable agent that runs 24/7 and reports status to Electron.
+
+⸻
+
+Phase 2 — Offline-first Storage (non-negotiable)
+
+Goal: “never lose telemetry” when offline.
+	•	Pick local store:
+	•	SQLite (default), with WAL enabled
+	•	Tables:
+	•	raw_frames (timestamp, source, protocol, payload_blob, quality flags)
+	•	decoded_signals (timestamp, signal_id, value, units, quality flags)
+	•	ingest_state (last offsets, device session info)
+	•	outbox (batches awaiting upload)
+	•	Implement write pipeline:
+	•	Append-only ingestion
+	•	Backpressure rules (RAM queue -> disk)
+	•	Retention rules (e.g., keep raw 7–30 days, downsampled 6–12 months)
+
+Deliverable: agent writes continuously to disk; survives power loss; resumes cleanly.
+
+⸻
+
+Phase 3 — Hardware Ingestion Plugins
+
+Goal: hardware access lives ONLY in the agent.
+	•	Define plugin interface: IIngestSource (start/stop, status, reconnect policy)
+	•	Implement sources:
+	•	Serial (RS-232/485)
+	•	CAN/J1939 (via your adapter/gateway/driver)
+	•	MQTT subscriber (if local broker exists onboard)
+	•	Add:
+	•	Device discovery
+	•	Auto-reconnect w/ exponential backoff
+	•	Timestamping strategy (monotonic clock + system clock snapshots)
+
+Deliverable: agent can ingest from at least one real device end-to-end.
+
+⸻
+
+Phase 4 — IPC Contract + UI Integration
+
+Goal: Electron talks to agent cleanly; UI never touches devices directly.
+	•	Define API:
+	•	GetStatus(), GetSources(), StartSource(), StopSource()
+	•	SubscribeTelemetrySummary() (stream downsampled values)
+	•	QueryTimeseries(signalId, from, to, downsample)
+	•	GetAlerts(), AckAlert()
+	•	Electron integration:
+	•	Boot-time check: “agent installed + running?”
+	•	“Start agent” / “repair install” flows
+	•	Diagnostics panel: logs, disk usage, last ingest time
+
+Deliverable: UI dashboard updates from agent stream (no raw flood).
+
+⸻
+
+Phase 5 — Feature Extraction + Inference (Background)
+
+Goal: ML runs reliably without hurting ingestion.
+	•	Decide where inference runs:
+	•	In agent (recommended for offline + stability)
+	•	Or as separate arus-ml-worker process if you want isolation
+	•	Implement pipeline:
+	•	Windowing jobs (e.g., every 10s/60s) → features table
+	•	Inference jobs (LSTM/XGBoost) → predictions table
+	•	Alert rules engine → alerts table
+	•	Expose results via IPC to UI
+
+Deliverable: predictions + alerts continue even with UI closed.
+
+⸻
+
+Phase 6 — Sync / Upload (When Connected)
+
+Goal: “store-and-forward” with integrity.
+	•	Implement uploader:
+	•	Batches from outbox
+	•	Retry policy, checksum, idempotency keys
+	•	Compress payloads
+	•	Handle conflicts:
+	•	Device clock skew correction
+	•	Duplicate batch prevention
+	•	UI shows sync status + backlog size
+
+Deliverable: agent accumulates offline, syncs safely when online.
+
+⸻
+
+Phase 7 — Hardening (Shipboard reality)
+	•	Watchdog + self-recovery:
+	•	Service restarts on crash
+	•	Corruption detection (SQLite integrity checks)
+	•	Security:
+	•	IPC auth (local-only + token / pipe ACL)
+	•	Signed updates
+	•	Performance:
+	•	Downsample at source for UI
+	•	Limit IPC payload sizes
+	•	Avoid per-frame UI updates
+
+Deliverable: stable long-uptime behavior.
+
+⸻
+
+Suggested folder layout (if you want it tidy)
+	•	/apps/desktop (Electron UI)
+	•	/apps/agent (Windows Service)
+	•	/packages/proto (gRPC/proto or shared TS types)
+	•	/packages/common (shared domain types, validation)
+
+⸻
+
+If you tell me one detail: do you prefer C# service or Rust service, I’ll write you a second Replit prompt that generates:
+	•	the service skeleton,
+	•	the IPC contract,
+	•	and the first working “status + streaming summary” integration into your Electron app.

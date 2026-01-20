@@ -1,0 +1,62 @@
+REPLIT AGENT PROMPT — SONARQUBE FIX (typescript:S3776 + typescript:S2004)
+
+You are fixing SonarQube issues in the React/TypeScript component file that exports EquipmentViewDialog (content provided previously). SonarQube flags:
+	•	typescript:S3776 (cognitive complexity too high) — multiple occurrences
+	•	typescript:S2004 (nested blocks too deep)
+
+Goal
+
+Refactor to reduce cognitive complexity and nesting depth without changing runtime behavior, UI output, or data flow.
+
+Hard Rules
+	•	Keep EquipmentViewDialog exported with the same public props.
+	•	Preserve all existing data-testid attributes.
+	•	Do not change business logic; only reorganize code.
+	•	Do not change the behavior of useEquipmentViewData(...).
+	•	Keep each file under 500 lines by splitting into smaller modules.
+	•	Remove unused imports after refactor.
+	•	Do not modify React hook dependency arrays automatically.
+	•	After refactor: run typecheck + lint and ensure UI compiles.
+
+Required Refactor (to satisfy S3776 + S2004)
+	1.	Extract complex logic into pure helpers:
+	•	Create computeOperatingStatus(param, currentValue) returning {status, statusMessage}.
+	•	Move threshold comparisons out of JSX.
+	2.	Split the large component into smaller components (same behavior):
+Create separate files for:
+	•	EquipmentVesselAssignment (renders vessel assignment)
+	•	OperatingParamStatusCard (renders one param’s status using computeOperatingStatus)
+	•	OperatingParamsSection (maps params → cards, handles “no params” empty state)
+	•	SensorConfigItemRow (one sensor config row)
+	•	SensorConfigsSection (counts online/offline once, maps rows, handles empty state)
+	•	SensorConfigDialog (add/edit sensor config form dialog)
+	•	AssignSensorDialog (assign existing sensor config dialog)
+	•	ApplySensorBundleDialog (bundle selection dialog)
+Each component should accept only the props it needs (e.g. equipment, d, configs, handlers).
+	3.	Eliminate deep nesting (S2004):
+	•	Remove inline IIFEs inside JSX (e.g., bundle preview (() => { ... })()).
+Replace with precomputed variables (useMemo if needed) and a small <BundlePreview /> component.
+	•	Replace deeply nested ternaries with:
+	•	early returns inside section components, OR
+	•	small helper render functions, OR
+	•	separate components for each branch.
+	4.	Reduce repeated computations:
+	•	Replace repeated .filter(...).length with precomputed counts.
+	•	Avoid recomputing d.allSensorConfigs.filter(...) twice; compute once.
+	5.	Fix numeric parsing defensively:
+	•	Ensure number inputs do not call parseFloat("") producing NaN.
+	•	Use value === "" ? null : Number(value) for nullable numeric fields.
+	•	Keep existing semantics.
+
+Verification
+	•	Build and run typecheck/lint.
+	•	Ensure these workflows still work:
+	•	Equipment dialog opens and renders details
+	•	Operating parameters status cards render correctly
+	•	Sensor list renders and edit/delete handlers still fire
+	•	Add/Edit sensor dialog works
+	•	Assign existing sensor dialog works
+	•	Apply bundle dialog works including preview
+	•	Ensure no new Sonar S3776/S2004 issues are introduced in the new files (keep each component small).
+
+Proceed with this refactor now.

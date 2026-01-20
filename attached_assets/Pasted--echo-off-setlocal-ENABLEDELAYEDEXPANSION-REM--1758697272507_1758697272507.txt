@@ -1,0 +1,323 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==========================================================
+REM ARUS Crew Scheduler: Fairness & Preferences Patch
+REM - Enhances OR-Tools engine with fairness + preference costs
+REM - Adds API support for preferences (weights & per-crew prefs)
+REM - UI: preferences JSON box in Crew Scheduler
+REM - Greedy fallback preserved if OR-Tools unavailable
+REM ==========================================================
+
+if not exist "backend\app\main.py" (
+echo [ERROR] backend\app\main.py not found. Run this at the repo root.
+exit /b 1
+)
+
+if not exist "frontend\src" (
+echo [WARN] frontend\src not found; UI piece will be skipped.
+set SKIP_UI=1
+) else (
+set SKIP_UI=0
+)
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+REM ----------------------------------------------------------
+REM 1) Upgrade OR-Tools engine with fairness & preference costs
+REM ----------------------------------------------------------
+%PS% "$f='backend/app/core/crew_scheduler_ortools.py'; $t=Get-Content -Raw $f;"
+
+REM Replace plan_with_engine with new version (keeps greedy fallback)
+%PS% "$code=@'
+from __future__ import annotations
+from typing import List, Dict, Any, Tuple, DefaultDict
+from datetime import datetime
+from collections import defaultdict
+
+from .crew_scheduler import plan_shifts as greedy_plan, parse_iso
+ENGINE_GREEDY = "greedy"
+ENGINE_OR = "ortools"
+
+def _window_ok(day: str, st_hms: str, en_hms: str, vessel_id: str, port_calls: list[dict], drydocks: list[dict]) -> bool:
+st = parse_iso(f"{day}T{st_hms}"); en = parse_iso(f"{day}T{en_hms}")
+ok_win = False
+if port_calls:
+for w in port_calls:
+if w.get("vessel_id")==vessel_id:
+a=parse_iso(w["start"]); b=parse_iso(w["end"])
+if not (en<=a or st>=b): ok_win=True; break
+if drydocks and not ok_win:
+for w in drydocks:
+if w.get("vessel_id")==vessel_id:
+a=parse_iso(w["start"]); b=parse_iso(w["end"])
+if not (en<=a or st>=b): ok_win=True; break
+return ok_win or (not port_calls and not drydocks)
+
+def _is_night(start_hms: str) -> bool:
+# Consider night shifts start>=20:00 or <06:00
+hh = int(start_hms.split(":")[0])
+return (hh >= 20) or (hh < 6)
+
+def plan_with_engine(
+engine: str,
+days: List[str],
+shifts: List[Dict[str,Any]],
+crew: List[Dict[str,Any]],
+leaves: List[Dict[str,Any]],
+port_calls: List[Dict[str,Any]],
+drydocks: List[Dict[str,Any]],
+certs_index: Dict[str, List[dict]],
+preferences: Dict[str,Any] | None = None
+) -> Tuple[List[Dict[str,Any]], List[Dict[str,Any]]]:
+"""
+preferences schema (all optional):
+{
+"weights": {
+"unfilled": 1000,
+"fairness": 20, # minimizes (max_load - min_load)
+"night_over": 10, # per night above limit per crew
+"consec_night": 8, # per consecutive night pair per crew
+"pref_off": 6, # per assignment on a preferred off-day
+"vessel_mismatch": 3 # prefer crew's vessel if provided
+},
+"rules": {
+"max_nights_per_week": 4
+},
+"per_crew": [
+{"crew_id":"c_lee", "days_off":["2025-09-28","2025-09-29"], "prefer_vessel":"MV_GREEN_BELAIT"}
+]
+}
+"""
+if engine != ENGINE_OR:
+# Pre-filter by windows then greedy fallback
+filtered=[s for s in shifts if any(_window_ok(d, s["start"], s["end"], s.get("vessel_id",""), port_calls, drydocks) for d in days)]
+return greedy_plan(days, filtered, crew, leaves, [])
+
+try:
+from ortools.sat.python import cp_model
+except Exception:
+return greedy_plan(days, shifts, crew, leaves, [])
+
+P = preferences or {}
+W = {"unfilled":1000,"fairness":20,"night_over":10,"consec_night":8,"pref_off":6,"vessel_mismatch":3}
+W.update(P.get("weights",{}))
+R = {"max_nights_per_week":4}
+R.update(P.get("rules",{}))
+per_crew_prefs: Dict[str,dict] = {pc.get("crew_id"): pc for pc in P.get("per_crew",[]) if pc.get("crew_id")}
+
+model = cp_model.CpModel()
+
+# Variables: assignment x[day, shift, crew]
+X = {}
+for di,day in enumerate(days):
+for si,s in enumerate(shifts):
+for ci,_ in enumerate(crew):
+X[(di,si,ci)] = model.NewBoolVar(f"x_{di}_{si}_{ci}")
+
+# Helper maps
+shift_is_night = [_is_night(s["start"]) for s in shifts]
+# Eligibility masks (window, skills/rank/cert) -> forbid X if not eligible
+def crew_eligible(c: dict, s: dict, start_dt: datetime) -> bool:
+skills=set(c.get("skills",[])); rank=c.get("rank","")
+skill_req = s.get("skill_required"); rank_min=s.get("rank_min")
+if skill_req and (skill_req not in skills): return False
+if rank_min and (rank < rank_min): return False
+cert_req = s.get("cert_required")
+if cert_req:
+ok=False
+for cc in certs_index.get(c["id"],[]):
+if cc.get("cert")==cert_req and parse_iso(cc.get("expires_at","2099-12-31T00:00:00")).date() >= start_dt.date():
+ok=True; break
+if not ok: return False
+return True
+
+# Cover & window constraints
+for di,day in enumerate(days):
+for si,s in enumerate(shifts):
+vessel=s.get("vessel_id","")
+st_dt = parse_iso(f"{day}T{s['start']}"); en_dt=parse_iso(f"{day}T{s['end']}")
+need=int(s.get("needed",1))
+if not _window_ok(day, s["start"], s["end"], vessel, port_calls, drydocks):
+# no assignment allowed
+for ci,_ in enumerate(crew): model.Add(X[(di,si,ci)]==0)
+continue
+# coverage: at least 'need' (soft via objective prefers fill)
+model.Add(sum(X[(di,si,ci)] for ci,_ in enumerate(crew)) >= 0) # keep var references
+# apply per-crew eligibility
+for ci,c in enumerate(crew):
+if not crew_eligible(c, s, st_dt):
+model.Add(X[(di,si,ci)]==0)
+
+# Per-crew daily: at most one shift per day
+for ci,_ in enumerate(crew):
+for di,_day in enumerate(days):
+model.Add(sum(X[(di,si,ci)] for si,_ in enumerate(shifts)) <= 1)
+
+# Objective pieces
+obj_terms = []
+
+# Unfilled penalty (maximize fill -> reward assignments)
+total_assign = sum(X.values())
+obj_terms.append(total_assign * (W["unfilled"])) # positive reward
+
+# Workload fairness: minimize (max_load - min_load)
+counts = []
+for ci,_ in enumerate(crew):
+cnt = model.NewIntVar(0, len(days)*len(shifts), f"cnt_{ci}")
+model.Add(cnt == sum(X[(di,si,ci)] for di,_ in enumerate(days) for si,_ in enumerate(shifts)))
+counts.append(cnt)
+max_load = model.NewIntVar(0, len(days)*len(shifts), "max_load")
+min_load = model.NewIntVar(0, len(days)*len(shifts), "min_load")
+for cnt in counts:
+model.Add(max_load >= cnt)
+model.Add(min_load <= cnt)
+spread = model.NewIntVar(0, len(days)*len(shifts), "spread")
+model.Add(spread == max_load - min_load)
+# subtract fairness spread
+obj_terms.append(- W["fairness"] * spread)
+
+# Night-shift penalties (per crew)
+for ci,_ in enumerate(crew):
+night_count = model.NewIntVar(0, len(days), f"night_{ci}")
+ni_terms = []
+for di,_ in enumerate(days):
+for si,s in enumerate(shifts):
+if shift_is_night[si]:
+ni_terms.append(X[(di,si,ci)])
+if ni_terms:
+model.Add(night_count == sum(ni_terms))
+# penalize exceeding rule
+over = model.NewIntVar(0, len(days), f"night_over_{ci}")
+model.Add(over >= night_count - int(R["max_nights_per_week"]))
+model.Add(over >= 0)
+obj_terms.append(- W["night_over"] * over)
+
+# Consecutive nights penalty
+for ci,_ in enumerate(crew):
+for di in range(len(days)-1):
+# did crew take a night shift on day di?
+n1 = []
+n2 = []
+for si,_ in enumerate(shifts):
+if shift_is_night[si]:
+n1.append(X[(di,si,ci)])
+n2.append(X[(di+1,si,ci)])
+if n1 and n2:
+# If sum(n1)>=1 and sum(n2)>=1 then penalty var =1
+b1 = model.NewBoolVar(f"night_d{di}_c{ci}")
+b2 = model.NewBoolVar(f"night_d{di+1}_c{ci}")
+model.Add(sum(n1) >= 1).OnlyEnforceIf(b1)
+model.Add(sum(n1) == 0).OnlyEnforceIf(b1.Not())
+model.Add(sum(n2) >= 1).OnlyEnforceIf(b2)
+model.Add(sum(n2) == 0).OnlyEnforceIf(b2.Not())
+consec = model.NewBoolVar(f"consec_night_{di}_c{ci}")
+model.AddBoolAnd([b1,b2]).OnlyEnforceIf(consec)
+model.AddBoolOr([b1.Not(), b2.Not()]).OnlyEnforceIf(consec.Not())
+obj_terms.append(- W["consec_night"] * consec)
+
+# Preferred days off & vessel preference penalties
+for ci,c in enumerate(crew):
+prefs = per_crew_prefs.get(c["id"], {})
+days_off = set(prefs.get("days_off", []))
+prefer_vessel = prefs.get("prefer_vessel")
+for di,day in enumerate(days):
+# Assign on preferred off-day? penalize
+if day in days_off:
+# any shift that day => penalty if assigned
+any_assigned = model.NewBoolVar(f"offday_assign_{di}_c{ci}")
+model.Add(sum(X[(di,si,ci)] for si,_ in enumerate(shifts)) >= 1).OnlyEnforceIf(any_assigned)
+model.Add(sum(X[(di,si,ci)] for si,_ in enumerate(shifts)) == 0).OnlyEnforceIf(any_assigned.Not())
+obj_terms.append(- W["pref_off"] * any_assigned)
+# Vessel mismatch penalty
+if prefer_vessel:
+for si,s in enumerate(shifts):
+if s.get("vessel_id") and s.get("vessel_id") != prefer_vessel:
+obj_terms.append(- W["vessel_mismatch"] * X[(di,si,ci)])
+
+# Final objective: maximize sum of terms
+# (Positive rewards for fill; negative for penalties)
+from ortools.sat.python import cp_model as _cp
+model.Maximize(sum(obj_terms))
+
+solver = _cp.CpSolver()
+solver.parameters.max_time_in_seconds = 15.0
+status = solver.Solve(model)
+if status not in (_cp.OPTIMAL, _cp.FEASIBLE):
+return greedy_plan(days, shifts, crew, leaves, [])
+
+assigns=[]
+need_map = {(d_i,s.get('id')): int(s.get('needed',1)) for d_i,_ in enumerate(days) for s in shifts}
+fill_count: DefaultDict[tuple,int] = defaultdict(int)
+
+for di,day in enumerate(days):
+for si,s in enumerate(shifts):
+vessel=s.get("vessel_id",""); st=f"{day}T{s['start']}"; en=f"{day}T{s['end']}"
+for ci,c in enumerate(crew):
+if solver.Value(X[(di,si,ci)])==1:
+assigns.append({"date": day, "shift_id": s.get("id"), "crew_id": c["id"], "vessel_id": vessel, "start": st+"Z", "end": en+"Z", "role": s.get("role")})
+fill_count[(di,s.get('id'))]+=1
+
+unfilled=[]
+for di,day in enumerate(days):
+for si,s in enumerate(shifts):
+need=int(s.get("needed",1))
+got=fill_count[(di,s.get('id'))]
+if got<need:
+unfilled.append({"day": day, "shift_id": s.get("id"), "need": need-got, "reason":"insufficient crew"})
+
+return assigns, unfilled
+'@;"
+
+%PS% "Set-Content -Encoding UTF8 backend/app/core/crew_scheduler_ortools.py $code;"
+
+REM ----------------------------------------------------------
+REM 2) Extend API to accept preferences in schedule/plan body
+REM ----------------------------------------------------------
+%PS% ^
+"$f='backend/app/api/crew.py'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace 'assigns, unfilled = plan_with_engine\\(engine, days, shifts, crew, leaves, port_calls, drydocks, certs_index\\)', 'assigns, unfilled = plan_with_engine(engine, days, shifts, crew, leaves, port_calls, drydocks, certs_index, preferences=body.get(\"preferences\"))';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ----------------------------------------------------------
+REM 3) UI: add Preferences JSON box to Crew Scheduler
+REM ----------------------------------------------------------
+if "%SKIP_UI%"=="0" (
+%PS% ^
+"$f='frontend/src/components/Crew.tsx'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace 'export function CrewScheduler\\(\\)\\{', 'export function CrewScheduler(){\\n const [engine,setEngine]=useState(\"greedy\");\\n const [portCalls,setPortCalls]=useState<any[]>([]);\\n const [drydocks,setDrydocks]=useState<any[]>([]);\\n const [preferences,setPreferences]=useState<any>({weights:{unfilled:1000,fairness:20,night_over:10,consec_night:8,pref_off:6,vessel_mismatch:3},rules:{max_nights_per_week:4},per_crew:[]});';" ^
+"$t = $t -replace 'const body=\\{ days, shifts, crew, leaves, port_calls: portCalls, drydocks: drydocks, engine \\};', 'const body={ days, shifts, crew, leaves, port_calls: portCalls, drydocks: drydocks, engine, preferences };';" ^
+"$t = $t -replace ' <span>\\{days.length\\} day\\(s\\) selected</span><button onClick=\\{plan\\}>Plan Schedule</button>', ' <span>{days.length} day(s) selected</span><button onClick={plan}>Plan Schedule</button>';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+%PS% "$code=@'
+// Append Preferences editor under scheduler controls
+//@ts-ignore appended block:
+'//@ts-ignore';"
+>NUL
+
+%PS% ^
+"$f='frontend/src/components/Crew.tsx'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace '(</div>\\s*<div style=\\{\\{marginTop:8\\}\\}> )', '$1<div style={{display:\"grid\",gridTemplateColumns:\"1fr\",gap:6,marginTop:8}}><label>Preferences (JSON)</label><textarea style={{width:\"100%\",height:140}} value={JSON.stringify(preferences,null,2)} onChange={e=>{ try{ setPreferences(JSON.parse(e.target.value)); }catch(_){ /*ignore*/ } }} /></div>';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+) ELSE (
+echo [INFO] Skipping UI preferences patch (frontend not found).
+)
+
+echo.
+echo ==========================================================
+echo [OK] Crew fairness & preferences installed.
+echo ----------------------------------------------------------
+echo Backend:
+echo - OR-Tools objective now balances coverage and fairness:
+echo * maximize filled shifts
+echo * minimize workload spread (max_load - min_load)
+echo * penalize night over-limit, consecutive nights,
+echo preferred off-day violations, and vessel mismatch
+echo - API /api/crew/schedule/plan accepts `preferences` object
+echo Frontend:
+echo - Crew Scheduler: Preferences JSON editor (weights & per-crew)
+echo Usage:
+echo - Set engine=\"ortools\" in body or UI selector to enable CP-SAT
+echo - Greedy fallback remains available
+echo ==========================================================
+endlocal

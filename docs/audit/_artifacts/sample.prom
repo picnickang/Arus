@@ -1,0 +1,268 @@
+# HELP arus_http_requests_total Total number of HTTP requests
+# TYPE arus_http_requests_total counter
+arus_http_requests_total{method="GET",path="/",status_code="404"} 1
+--
+# HELP arus_http_request_duration_seconds HTTP request duration in seconds
+# TYPE arus_http_request_duration_seconds histogram
+arus_http_request_duration_seconds_bucket{le="0.1",method="GET",path="/",status_code="404"} 1
+--
+# HELP arus_database_connections_active Active database connections
+# TYPE arus_database_connections_active gauge
+arus_database_connections_active 0
+--
+# HELP arus_hor_import_total Total number of HoR rows imported
+# TYPE arus_hor_import_total counter
+
+# HELP arus_hor_compliance_checks_total Total number of STCW compliance checks performed
+# TYPE arus_hor_compliance_checks_total counter
+
+# HELP arus_hor_pdf_exports_total Total number of HoR PDF exports generated
+# TYPE arus_hor_pdf_exports_total counter
+
+# HELP arus_idempotency_hits_total Total number of idempotent request hits
+# TYPE arus_idempotency_hits_total counter
+
+# HELP arus_websocket_connections_active Number of active WebSocket connections
+# TYPE arus_websocket_connections_active gauge
+arus_websocket_connections_active 2
+--
+# HELP arus_websocket_messages_total Total WebSocket messages processed
+# TYPE arus_websocket_messages_total counter
+arus_websocket_messages_total{type="subscribe",channel="default"} 3
+--
+# HELP arus_websocket_reconnections_total Total WebSocket reconnection attempts
+# TYPE arus_websocket_reconnections_total counter
+
+# HELP arus_equipment_health_status Equipment health status distribution
+# TYPE arus_equipment_health_status gauge
+arus_equipment_health_status{status="healthy",vessel_id="1e9e6463-4ee2-43d1-94a1-447a99b20565"} 0
+--
+# HELP arus_fleet_health_score Overall fleet health score percentage
+# TYPE arus_fleet_health_score gauge
+arus_fleet_health_score 0
+--
+# HELP arus_pdm_scores Distribution of predictive maintenance scores
+# TYPE arus_pdm_scores histogram
+arus_pdm_scores_bucket{le="0",equipment_id="958532d6-2074-4bc9-9135-c672db338042",vessel_id="1e9e6463-4ee2-43d1-94a1-447a99b20565"} 1
+--
+# HELP arus_alerts_generated_total Total alerts generated
+# TYPE arus_alerts_generated_total counter
+
+# HELP arus_alerts_acknowledged_total Total alerts acknowledged
+# TYPE arus_alerts_acknowledged_total counter
+
+# HELP arus_alert_configurations_active Number of active alert configurations
+# TYPE arus_alert_configurations_active gauge
+arus_alert_configurations_active 0
+--
+# HELP arus_telemetry_processed_total Total telemetry readings processed
+# TYPE arus_telemetry_processed_total counter
+
+# HELP arus_telemetry_errors_total Total telemetry processing errors
+# TYPE arus_telemetry_errors_total counter
+
+# HELP arus_work_orders_total Total work orders created/updated
+# TYPE arus_work_orders_total counter
+
+# HELP arus_mqtt_messages_published_total Total MQTT messages successfully published
+# TYPE arus_mqtt_messages_published_total counter
+
+# HELP arus_mqtt_messages_queued_total Total MQTT messages queued for later delivery
+# TYPE arus_mqtt_messages_queued_total counter
+arus_mqtt_messages_queued_total 0
+--
+# HELP arus_mqtt_messages_dropped_total Total MQTT messages dropped due to queue overflow
+# TYPE arus_mqtt_messages_dropped_total counter
+arus_mqtt_messages_dropped_total 0
+--
+# HELP arus_mqtt_publish_failures_total Total MQTT publish failures
+# TYPE arus_mqtt_publish_failures_total counter
+arus_mqtt_publish_failures_total 0
+--
+# HELP arus_mqtt_reconnection_attempts_total Total MQTT reconnection attempts
+# TYPE arus_mqtt_reconnection_attempts_total counter
+arus_mqtt_reconnection_attempts_total 0
+--
+# HELP arus_mqtt_queue_flushes_total Total MQTT queue flush operations
+# TYPE arus_mqtt_queue_flushes_total counter
+arus_mqtt_queue_flushes_total 0
+--
+# HELP arus_mqtt_queue_depth Current number of messages in MQTT queue
+# TYPE arus_mqtt_queue_depth gauge
+arus_mqtt_queue_depth 0
+--
+# HELP arus_mqtt_queue_utilization_percent MQTT queue utilization percentage
+# TYPE arus_mqtt_queue_utilization_percent gauge
+arus_mqtt_queue_utilization_percent 0
+--
+# HELP arus_mqtt_connection_status MQTT connection status (1=connected, 0=disconnected)
+# TYPE arus_mqtt_connection_status gauge
+arus_mqtt_connection_status 0
+--
+# HELP arus_maintenance_schedules_total Total maintenance schedules created/updated
+# TYPE arus_maintenance_schedules_total counter
+
+# HELP arus_vessel_operations_total Total vessel-related operations
+# TYPE arus_vessel_operations_total counter
+
+# HELP arus_database_query_duration_seconds Database query execution time
+# TYPE arus_database_query_duration_seconds histogram
+
+# HELP arus_database_errors_total Total database operation errors
+# TYPE arus_database_errors_total counter
+
+# HELP arus_range_queries_total Total range queries executed
+# TYPE arus_range_queries_total counter
+
+# HELP arus_range_query_duration_seconds Range query execution time
+# TYPE arus_range_query_duration_seconds histogram
+
+# HELP arus_device_registry_operations_total Total device registry operations
+# TYPE arus_device_registry_operations_total counter
+
+# HELP arus_device_registry_active_devices Number of devices registered in device registry
+# TYPE arus_device_registry_active_devices gauge
+arus_device_registry_active_devices 0
+--
+# HELP arus_sheet_lock_operations_total Total sheet lock operations
+# TYPE arus_sheet_lock_operations_total counter
+
+# HELP arus_sheet_locks_active Number of active sheet locks
+# TYPE arus_sheet_locks_active gauge
+arus_sheet_locks_active 0
+--
+# HELP arus_sheet_version_operations_total Total sheet version operations
+# TYPE arus_sheet_version_operations_total counter
+
+# HELP arus_sheet_versions_total Total number of sheet versions tracked
+# TYPE arus_sheet_versions_total gauge
+arus_sheet_versions_total 0
+--
+# HELP arus_replay_operations_total Total replay operations
+# TYPE arus_replay_operations_total counter
+
+# HELP arus_replay_duplicates_total Total duplicate replay requests detected
+# TYPE arus_replay_duplicates_total counter
+
+# HELP arus_process_cpu_user_seconds_total Total user CPU time spent in seconds.
+# TYPE arus_process_cpu_user_seconds_total counter
+arus_process_cpu_user_seconds_total 9.405857
+--
+# HELP arus_process_cpu_system_seconds_total Total system CPU time spent in seconds.
+# TYPE arus_process_cpu_system_seconds_total counter
+arus_process_cpu_system_seconds_total 0.831161
+--
+# HELP arus_process_cpu_seconds_total Total user and system CPU time spent in seconds.
+# TYPE arus_process_cpu_seconds_total counter
+arus_process_cpu_seconds_total 10.237018
+--
+# HELP arus_process_start_time_seconds Start time of the process since unix epoch in seconds.
+# TYPE arus_process_start_time_seconds gauge
+arus_process_start_time_seconds 1762279425
+--
+# HELP arus_process_resident_memory_bytes Resident memory size in bytes.
+# TYPE arus_process_resident_memory_bytes gauge
+arus_process_resident_memory_bytes 513671168
+--
+# HELP arus_process_virtual_memory_bytes Virtual memory size in bytes.
+# TYPE arus_process_virtual_memory_bytes gauge
+arus_process_virtual_memory_bytes 56292241408
+--
+# HELP arus_process_heap_bytes Process heap size in bytes.
+# TYPE arus_process_heap_bytes gauge
+arus_process_heap_bytes 814436352
+--
+# HELP arus_process_open_fds Number of open file descriptors.
+# TYPE arus_process_open_fds gauge
+arus_process_open_fds 51
+--
+# HELP arus_process_max_fds Maximum number of open file descriptors.
+# TYPE arus_process_max_fds gauge
+arus_process_max_fds 83886
+--
+# HELP arus_nodejs_eventloop_lag_seconds Lag of event loop in seconds.
+# TYPE arus_nodejs_eventloop_lag_seconds gauge
+arus_nodejs_eventloop_lag_seconds 0
+--
+# HELP arus_nodejs_eventloop_lag_min_seconds The minimum recorded event loop delay.
+# TYPE arus_nodejs_eventloop_lag_min_seconds gauge
+arus_nodejs_eventloop_lag_min_seconds 0.008060928
+--
+# HELP arus_nodejs_eventloop_lag_max_seconds The maximum recorded event loop delay.
+# TYPE arus_nodejs_eventloop_lag_max_seconds gauge
+arus_nodejs_eventloop_lag_max_seconds 3.227516927
+--
+# HELP arus_nodejs_eventloop_lag_mean_seconds The mean of the recorded event loop delays.
+# TYPE arus_nodejs_eventloop_lag_mean_seconds gauge
+arus_nodejs_eventloop_lag_mean_seconds 0.013075468541542536
+--
+# HELP arus_nodejs_eventloop_lag_stddev_seconds The standard deviation of the recorded event loop delays.
+# TYPE arus_nodejs_eventloop_lag_stddev_seconds gauge
+arus_nodejs_eventloop_lag_stddev_seconds 0.06300849055865583
+--
+# HELP arus_nodejs_eventloop_lag_p50_seconds The 50th percentile of the recorded event loop delays.
+# TYPE arus_nodejs_eventloop_lag_p50_seconds gauge
+arus_nodejs_eventloop_lag_p50_seconds 0.010092543
+--
+# HELP arus_nodejs_eventloop_lag_p90_seconds The 90th percentile of the recorded event loop delays.
+# TYPE arus_nodejs_eventloop_lag_p90_seconds gauge
+arus_nodejs_eventloop_lag_p90_seconds 0.010846207
+--
+# HELP arus_nodejs_eventloop_lag_p99_seconds The 99th percentile of the recorded event loop delays.
+# TYPE arus_nodejs_eventloop_lag_p99_seconds gauge
+arus_nodejs_eventloop_lag_p99_seconds 0.034635775
+--
+# HELP arus_nodejs_active_resources Number of active resources that are currently keeping the event loop alive, grouped by async resource type.
+# TYPE arus_nodejs_active_resources gauge
+arus_nodejs_active_resources{type="TTYWrap"} 2
+--
+# HELP arus_nodejs_active_resources_total Total number of active resources.
+# TYPE arus_nodejs_active_resources_total gauge
+arus_nodejs_active_resources_total 298
+--
+# HELP arus_nodejs_active_handles Number of active libuv handles grouped by handle type. Every handle type is C++ class name.
+# TYPE arus_nodejs_active_handles gauge
+arus_nodejs_active_handles{type="WriteStream"} 2
+--
+# HELP arus_nodejs_active_handles_total Total number of active handles.
+# TYPE arus_nodejs_active_handles_total gauge
+arus_nodejs_active_handles_total 268
+--
+# HELP arus_nodejs_active_requests Number of active libuv requests grouped by request type. Every request type is C++ class name.
+# TYPE arus_nodejs_active_requests gauge
+
+# HELP arus_nodejs_active_requests_total Total number of active requests.
+# TYPE arus_nodejs_active_requests_total gauge
+arus_nodejs_active_requests_total 0
+--
+# HELP arus_nodejs_heap_size_total_bytes Process heap size from Node.js in bytes.
+# TYPE arus_nodejs_heap_size_total_bytes gauge
+arus_nodejs_heap_size_total_bytes 352178176
+--
+# HELP arus_nodejs_heap_size_used_bytes Process heap size used from Node.js in bytes.
+# TYPE arus_nodejs_heap_size_used_bytes gauge
+arus_nodejs_heap_size_used_bytes 324890112
+--
+# HELP arus_nodejs_external_memory_bytes Node.js external memory size in bytes.
+# TYPE arus_nodejs_external_memory_bytes gauge
+arus_nodejs_external_memory_bytes 15769872
+--
+# HELP arus_nodejs_heap_space_size_total_bytes Process heap space size total from Node.js in bytes.
+# TYPE arus_nodejs_heap_space_size_total_bytes gauge
+arus_nodejs_heap_space_size_total_bytes{space="read_only"} 0
+--
+# HELP arus_nodejs_heap_space_size_used_bytes Process heap space size used from Node.js in bytes.
+# TYPE arus_nodejs_heap_space_size_used_bytes gauge
+arus_nodejs_heap_space_size_used_bytes{space="read_only"} 0
+--
+# HELP arus_nodejs_heap_space_size_available_bytes Process heap space size available from Node.js in bytes.
+# TYPE arus_nodejs_heap_space_size_available_bytes gauge
+arus_nodejs_heap_space_size_available_bytes{space="read_only"} 0
+--
+# HELP arus_nodejs_version_info Node.js version info.
+# TYPE arus_nodejs_version_info gauge
+arus_nodejs_version_info{version="v20.19.3",major="20",minor="19",patch="3"} 1
+--
+# HELP arus_nodejs_gc_duration_seconds Garbage collection duration by kind, one of major, minor, incremental or weakcb.
+# TYPE arus_nodejs_gc_duration_seconds histogram
+arus_nodejs_gc_duration_seconds_bucket{le="0.001",kind="minor"} 0

@@ -1,0 +1,286 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==========================================================
+REM ARUS – Inventory Bulk Edit (CSV paste + dry-run + upsert)
+REM Node.js/TypeScript (backend-node + frontend)
+REM - Backend:
+REM POST /v1/api/inventory/stock/bulk_upsert { rows:[], dry_run?:boolean }
+REM row fields accepted: part_id? | part_number?, on_hand, reserve, min_level, max_level
+REM resolves part_number -> part_id, validates, upserts in a transaction
+REM - Frontend:
+REM InventoryBulkEditor.tsx: CSV textarea -> preview table -> dry-run -> commit
+REM - No auth changes
+REM ==========================================================
+
+if not exist "backend-node\src" (
+echo [ERROR] backend-node/src not found. Run at repo root.
+exit /b 1
+)
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+REM ----------------------------------------------------------
+REM 1) Backend: bulk service + API
+REM ----------------------------------------------------------
+> backend-node\src\inventory.bulk.ts (
+echo import Database from "better-sqlite3";
+echo import { Pool } from "pg";
+echo
+echo const DATABASE_URL = process.env.DATABASE_URL||""; const USE_PG = !!DATABASE_URL;
+echo const SQLITE_PATH = process.env.SQLITE_PATH||"./data/arus.sqlite";
+echo
+echo type InRow = { part_id?:string; part_number?:string; on_hand?:any; reserve?:any; min_level?:any; max_level?:any };
+echo type OutRow = InRow & { part_id:string; errors:string[] };
+echo
+echo function nn(x:any){ const n = Number(x); return Number.isFinite(n); }
+echo function toN(x:any){ const n=Number(x); return Number.isFinite(n)? n: NaN; }
+echo
+echo function qlite(fn:(db:Database)=>any){ const db = new Database(SQLITE_PATH); try { return fn(db); } finally { db.close(); } }
+echo async function qpg<T=any>(sql:string, params:any[]=[]):Promise<T[]>{ const pool=new Pool({connectionString: DATABASE_URL}); const c=await pool.connect(); try{ const r=await c.query(sql,params); return r.rows as any; } finally{ c.release(); await pool.end(); } }
+echo
+echo async function resolvePartIds(rows: InRow[]): Promise<OutRow[]>{
+echo if (USE_PG){
+echo const need = rows.filter(r=>!r.part_id && r.part_number).map(r=>r.part_number as string);
+echo let map = new Map<string,string>();
+echo if (need.length){
+echo const res = await qpg<{id:string; part_number:string}>(\`SELECT id, part_number FROM parts WHERE part_number = ANY($1)\`, [need]);
+echo map = new Map(res.map(r=>[r.part_number, r.id]));
+echo }
+echo return rows.map(r=>({ ...r, part_id: r.part_id || (r.part_number? (map.get(r.part_number)||""): ""), errors: [] }));
+echo } else {
+echo return qlite(db=>{
+echo const map = new Map<string,string>();
+echo const uniq = Array.from(new Set(rows.filter(r=>!r.part_id && r.part_number).map(r=>r.part_number as string)));
+echo if (uniq.length){
+echo const stmt = db.prepare("SELECT id, part_number FROM parts");
+echo for (const rec of stmt.iterate()){ map.set(rec.part_number, rec.id); }
+echo }
+echo return rows.map(r=>({ ...r, part_id: r.part_id || (r.part_number? (map.get(r.part_number)||""): ""), errors: [] }));
+echo });
+echo }
+echo }
+echo
+echo function validateRow(r: OutRow): OutRow{
+echo const errs = r.errors||[];
+echo if (!r.part_id) errs.push("unknown part (id/number)");
+echo const onh = toN(r.on_hand); const res = toN(r.reserve); const min = toN(r.min_level); const max = toN(r.max_level);
+echo if (!nn(onh) || onh<0) errs.push("on_hand>=0");
+echo if (!nn(res) || res<0) errs.push("reserve>=0");
+echo if (!nn(min) || min<0) errs.push("min>=0");
+echo if (!nn(max) || max<0) errs.push("max>=0");
+echo if (nn(onh) && nn(res) && res>onh) errs.push("reserve>on_hand");
+echo if (nn(min) && nn(max) && min>max) errs.push("min>max");
+echo return { ...r, errors: errs };
+echo }
+echo
+echo export async function bulkUpsertStock(rows: InRow[], dry_run=false){
+echo const resolved = await resolvePartIds(rows);
+echo const validated = resolved.map(validateRow);
+echo const errors = validated.filter(r=>r.errors.length);
+echo if (dry_run || errors.length){ return { ok: errors.length===0, errors, total: rows.length, valid: rows.length - errors.length }; }
+echo
+echo if (USE_PG){
+echo const pool = new Pool({ connectionString: DATABASE_URL });
+echo const c = await pool.connect();
+echo try{
+echo await c.query("BEGIN");
+echo for (const r of validated){
+echo await c.query(
+echo "INSERT INTO stock(id,part_id,on_hand,reserve,unit_value,min_level,max_level) " +
+echo "VALUES($1,$2,$3,$4,COALESCE((SELECT unit_cost FROM parts WHERE id=$2), (SELECT unit_value FROM stock WHERE id=$1)), $5, $6) " +
+echo "ON CONFLICT (id) DO UPDATE SET on_hand=EXCLUDED.on_hand, reserve=EXCLUDED.reserve, min_level=EXCLUDED.min_level, max_level=EXCLUDED.max_level",
+echo [\`STK-\${r.part_id}\`, r.part_id, Number(r.on_hand||0), Number(r.reserve||0), Number(r.min_level||0), Number(r.max_level||0)]
+echo );
+echo }
+echo await c.query("COMMIT");
+echo } catch(e){ await c.query("ROLLBACK"); throw e } finally { c.release(); await pool.end(); }
+echo } else {
+echo qlite(db=>{
+echo const ins = db.prepare("INSERT INTO stock(id,part_id,on_hand,reserve,unit_value,min_level,max_level) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET on_hand=excluded.on_hand, reserve=excluded.reserve, min_level=excluded.min_level, max_level=excluded.max_level");
+echo const getUnit = db.prepare("SELECT unit_cost FROM parts WHERE id=?");
+echo const trx = db.transaction((rows2: OutRow[])=>{
+echo for (const r of rows2){
+echo const id = \`STK-\${r.part_id}\`;
+echo const unit = (getUnit.get(r.part_id)||{}).unit_cost ?? null;
+echo ins.run(id, r.part_id, Number(r.on_hand||0), Number(r.reserve||0), unit, Number(r.min_level||0), Number(r.max_level||0));
+echo }
+echo });
+echo trx(validated);
+echo });
+echo }
+echo return { ok:true, errors:[], total: rows.length, valid: rows.length };
+echo }
+)
+
+> backend-node\src\index.inventory.bulk.ts (
+echo import express from "express";
+echo import { bulkUpsertStock } from "./inventory.bulk.js";
+echo
+echo export function mountInventoryBulk(v1: express.Router){
+echo v1.post("/api/inventory/stock/bulk_upsert", async (req,res)=>{
+echo const rows = (req.body && (req.body.rows||req.body)) || [];
+echo const dry = Boolean(req.query.dry_run || req.body?.dry_run);
+echo try{
+echo const r = await bulkUpsertStock(rows, dry);
+echo res.status(r.ok? 200: 400).json(r);
+echo } catch(e:any){
+echo res.status(500).json({ ok:false, error: String(e?.message||e) });
+echo }
+echo });
+echo }
+)
+
+%PS% ^
+"$f='backend-node/src/index.ts'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace '(app\\.use\\(\"/v1\", v1\\);)','import { mountInventoryBulk } from \"./index.inventory.bulk.js\";\nmountInventoryBulk(v1);\n$1';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ----------------------------------------------------------
+REM 2) Frontend: InventoryBulkEditor (CSV paste -> preview -> upsert)
+REM ----------------------------------------------------------
+if not exist "frontend\src" (
+echo [WARN] frontend/src not found; skipping UI (backend ready).
+) else (
+> frontend\src\components\InventoryBulkEditor.tsx (
+echo import React, { useMemo, useState } from "react";
+echo const BASE = (import.meta as any).env.VITE_API_URL || "http://localhost:8001";
+echo
+echo type Row = { part_id?:string; part_number?:string; on_hand?:string|number; reserve?:string|number; min_level?:string|number; max_level?:string|number };
+echo const template = "part_number,on_hand,reserve,min_level,max_level\\nP-0001,10,2,1,50\\nP-0002,0,0,0,20";
+echo
+echo function parseCSV(text:string): Row[]{ 
+echo const lines = text.split(/\\r?\\n/).filter(Boolean);
+echo if (!lines.length) return [];
+echo const header = lines[0].split(",").map(s=>s.trim());
+echo const idx = (k:string)=> header.findIndex(h=>h.toLowerCase()===k);
+echo const pi = idx("part_id"); const pn = idx("part_number"); 
+echo const oh = idx("on_hand"); const rs = idx("reserve"); const mi = idx("min_level"); const mx = idx("max_level");
+echo const out: Row[] = [];
+echo for (let i=1;i<lines.length;i++){
+echo const cols = lines[i].split(","); if (!cols.length) continue;
+echo out.push({
+echo part_id: pi>=0? cols[pi].trim(): undefined,
+echo part_number: pn>=0? cols[pn].trim(): undefined,
+echo on_hand: oh>=0? cols[oh].trim(): undefined,
+echo reserve: rs>=0? cols[rs].trim(): undefined,
+echo min_level: mi>=0? cols[mi].trim(): undefined,
+echo max_level: mx>=0? cols[mx].trim(): undefined,
+echo });
+echo }
+echo return out;
+echo }
+echo
+echo export default function InventoryBulkEditor(){
+echo const [csv,setCsv] = useState(template);
+echo const [preview,setPreview] = useState<Row[]>([]);
+echo const [msg,setMsg] = useState("");
+echo const [result,setResult] = useState<any>(null);
+echo
+echo const hasRows = preview.length>0;
+echo
+echo function doPreview(){ setPreview(parseCSV(csv)); setResult(null); setMsg(""); }
+echo
+echo async function doSend(dry:boolean){
+echo if (!preview.length){ setMsg("Nothing to upload"); return; }
+echo const body = { rows: preview, dry_run: dry };
+echo const r = await fetch(\`\${BASE}/v1/api/inventory/stock/bulk_upsert?dry_run=\${dry}\`, { method:"POST", headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+echo const j = await r.json(); setResult(j);
+echo if (!r.ok){ setMsg("Validation errors found"); } else { setMsg(dry? "Dry run ok" : "Committed"); }
+echo }
+echo
+echo const errors = useMemo(()=> (result?.errors||[]) as any[], [result]);
+echo
+echo return (
+echo <div className="card">
+echo <h2>Inventory Bulk Editor (CSV)</h2>
+echo <p style={{fontSize:12,color:'#64748b'}}>Columns accepted: part_id or part_number (one required), on_hand, reserve, min_level, max_level.</p>
+echo <textarea value={csv} onChange={e=>setCsv(e.target.value)} rows={8} style={{width:'100%', fontFamily:'monospace'}} />
+echo <div style={{display:'flex', gap:8, marginTop:8}}>
+echo <button onClick={doPreview}>Preview</button>
+echo <button disabled={!hasRows} onClick={()=>doSend(true)}>Dry Run</button>
+echo <button disabled={!hasRows} onClick={()=>doSend(false)}>Commit</button>
+echo {msg && <span style={{fontSize:12}}>{msg}</span>}
+echo </div>
+echo {preview.length>0 && (
+echo <div style={{marginTop:8}}>
+echo <table className="text-xs w-full border">
+echo <thead><tr><th>part_id</th><th>part_number</th><th>on_hand</th><th>reserve</th><th>min</th><th>max</th></tr></thead>
+echo <tbody>
+echo {preview.map((r,idx)=>(
+echo <tr key={idx}>
+echo <td>{r.part_id||""}</td>
+echo <td>{r.part_number||""}</td>
+echo <td>{r.on_hand||""}</td>
+echo <td>{r.reserve||""}</td>
+echo <td>{r.min_level||""}</td>
+echo <td>{r.max_level||""}</td>
+echo </tr>
+echo ))}
+echo </tbody>
+echo </table>
+echo </div>
+echo )}
+echo {result && (
+echo <div style={{marginTop:8}}>
+echo <pre style={{fontSize:12, background:'#f8fafc', padding:8, borderRadius:6, overflow:'auto'}}>{JSON.stringify(result,null,2)}</pre>
+echo {errors?.length>0 && (
+echo <table className="text-xs w-full border" style={{marginTop:8}}>
+echo <thead><tr><th>#</th><th>part_id</th><th>part_number</th><th>errors</th></tr></thead>
+echo <tbody>
+echo {errors.map((e:any,i:number)=>(
+echo <tr key={i}>
+echo <td>{i+1}</td>
+echo <td>{e.part_id||""}</td>
+echo <td>{e.part_number||""}</td>
+echo <td>{(e.errors||[]).join("; ")}</td>
+echo </tr>
+echo ))}
+echo </tbody>
+echo </table>
+echo )}
+echo </div>
+echo )}
+echo </div>
+echo );
+echo }
+)
+
+%PS% ^
+"$f='frontend/src/App.tsx'; $t=Get-Content -Raw $f;" ^
+"$t = 'import InventoryBulkEditor from \"./components/InventoryBulkEditor\";\n'+$t;" ^
+"$t = $t -replace '(</div>\\s*)$',' <InventoryBulkEditor />\n$1';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+)
+
+echo.
+echo ==========================================================
+echo ✅ Inventory Bulk Edit patch applied.
+echo ----------------------------------------------------------
+echo Backend:
+echo - inventory.bulk.ts (resolve part_number→id, validate, tx upserts)
+echo - index.inventory.bulk.ts (POST /api/inventory/stock/bulk_upsert)
+echo - index.ts wiring
+echo Frontend:
+echo - InventoryBulkEditor.tsx (CSV paste → preview → dry-run → commit)
+echo - App.tsx mount
+echo ----------------------------------------------------------
+echo Next:
+echo cd backend-node && npm install && npm run build && npm run dev
+echo cd ../frontend && npm install && npm run dev
+echo
+echo Try dry-run:
+echo curl -sS -X POST "http://localhost:8001/v1/api/inventory/stock/bulk_upsert?dry_run=true" ^
+echo -H "Content-Type: application/json" ^
+echo -d "{\"rows\":[{\"part_number\":\"P-0001\",\"on_hand\":10,\"reserve\":2,\"min_level\":1,\"max_level\":50}]}"
+echo
+echo Then commit:
+echo curl -sS -X POST "http://localhost:8001/v1/api/inventory/stock/bulk_upsert" ^
+echo -H "Content-Type: application/json" ^
+echo -d "{\"rows\":[{\"part_number\":\"P-0001\",\"on_hand\":10,\"reserve\":2,\"min_level\":1,\"max_level\":50}]}"
+echo
+echo Notes:
+echo - Either part_id or part_number is required per row.
+echo - Unit value remains aligned with parts.unit_cost automatically.
+echo - All writes are transactional per request; invalid rows in dry-run are reported with reasons.
+echo ==========================================================
+endlocal

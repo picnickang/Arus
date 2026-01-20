@@ -1,0 +1,156 @@
+/**
+ * Supplier Routes
+ * REST API endpoints for supplier management
+ * Single-tenant mode: Uses DEFAULT_ORG_ID automatically
+ */
+
+import { Router } from "express";
+import type { Request, Response } from "express";
+import * as repo from "./repository";
+import { insertSupplierSchema, updateSupplierSchema } from "@shared/schema";
+import type { SupplierListFilters } from "./types";
+import { DEFAULT_ORG_ID } from "@shared/config/tenant";
+
+const router = Router();
+
+router.post("/suppliers", async (req: Request, res: Response) => {
+  try {
+    const orgId = (req.headers["x-org-id"] as string) || DEFAULT_ORG_ID;
+
+    const parsed = insertSupplierSchema.safeParse({ ...req.body, orgId });
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.flatten() });
+    }
+
+    const existing = await repo.getSupplierByCode(parsed.data.code, orgId);
+    if (existing) {
+      return res.status(409).json({ error: "Supplier code already exists" });
+    }
+
+    const supplier = await repo.createSupplier(parsed.data);
+    res.status(201).json(supplier);
+  } catch (error) {
+    console.error("[Suppliers] Error creating supplier:", error);
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+router.get("/suppliers", async (req: Request, res: Response) => {
+  try {
+    const orgId = (req.headers["x-org-id"] as string) || DEFAULT_ORG_ID;
+
+    const typeParam = req.query.type as string | undefined;
+    let type: SupplierListFilters["type"] | undefined;
+    if (typeParam) {
+      if (typeParam.includes(",")) {
+        type = typeParam.split(",") as ("supplier" | "service_provider" | "both")[];
+      } else {
+        type = typeParam as "supplier" | "service_provider" | "both";
+      }
+    }
+
+    const filters: SupplierListFilters = {
+      orgId,
+      search: req.query.search as string | undefined,
+      isActive: req.query.isActive === "true" ? true : req.query.isActive === "false" ? false : undefined,
+      isPreferred: req.query.isPreferred === "true" ? true : req.query.isPreferred === "false" ? false : undefined,
+      type,
+      limit: req.query.limit ? Number.parseInt(req.query.limit as string, 10) : 50,
+      offset: req.query.offset ? Number.parseInt(req.query.offset as string, 10) : 0,
+    };
+
+    const suppliers = await repo.listSuppliers(filters);
+    res.json(suppliers);
+  } catch (error) {
+    console.error("[Suppliers] Error listing suppliers:", error);
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+router.get("/suppliers/stats", async (req: Request, res: Response) => {
+  try {
+    const orgId = (req.headers["x-org-id"] as string) || DEFAULT_ORG_ID;
+
+    const suppliers = await repo.getSuppliersWithOrderStats(orgId);
+    res.json(suppliers);
+  } catch (error) {
+    console.error("[Suppliers] Error getting supplier stats:", error);
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+router.get("/suppliers/preferred", async (req: Request, res: Response) => {
+  try {
+    const orgId = (req.headers["x-org-id"] as string) || DEFAULT_ORG_ID;
+
+    const suppliers = await repo.getPreferredSuppliers(orgId);
+    res.json(suppliers);
+  } catch (error) {
+    console.error("[Suppliers] Error getting preferred suppliers:", error);
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+router.get("/suppliers/:id", async (req: Request, res: Response) => {
+  try {
+    const orgId = (req.headers["x-org-id"] as string) || DEFAULT_ORG_ID;
+
+    const supplier = await repo.getSupplierById(req.params.id, orgId);
+    if (!supplier) {
+      return res.status(404).json({ error: "Supplier not found" });
+    }
+
+    res.json(supplier);
+  } catch (error) {
+    console.error("[Suppliers] Error getting supplier:", error);
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+router.patch("/suppliers/:id", async (req: Request, res: Response) => {
+  try {
+    const orgId = (req.headers["x-org-id"] as string) || DEFAULT_ORG_ID;
+
+    const parsed = updateSupplierSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.flatten() });
+    }
+
+    const dataWithCode = parsed.data as { code?: string } & typeof parsed.data;
+    if (dataWithCode.code) {
+      const existing = await repo.getSupplierByCode(dataWithCode.code, orgId);
+      if (existing?.id !== req.params.id) {
+        return res.status(409).json({ error: "Supplier code already exists" });
+      }
+    }
+
+    const supplier = await repo.updateSupplier(req.params.id, orgId, parsed.data);
+    if (!supplier) {
+      return res.status(404).json({ error: "Supplier not found" });
+    }
+
+    res.json(supplier);
+  } catch (error) {
+    console.error("[Suppliers] Error updating supplier:", error);
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+router.delete("/suppliers/:id", async (req: Request, res: Response) => {
+  try {
+    const orgId = (req.headers["x-org-id"] as string) || DEFAULT_ORG_ID;
+
+    const deleted = await repo.deleteSupplier(req.params.id, orgId);
+    if (!deleted) {
+      return res.status(404).json({ error: "Supplier not found" });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("[Suppliers] Error deleting supplier:", error);
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+export default router;
+export { router as suppliersRouter };

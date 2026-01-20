@@ -1,0 +1,181 @@
+You are a senior React/TypeScript code surgeon. The source you’ll repair is from a monorepo module (ARUS analytics pages). The file content contains soft-wrap artifacts and ellipsis corruption that broke identifiers, class names, and JSX. Your job is to auto-repair, standardize, and type-check the code.
+
+
+
+Input: the content from codetorepair.txt (TypeScript React pages/components using shadcn/ui, lucide-react, TanStack Query).
+
+
+
+0) Global repair rules (apply across the whole file/module)
+
+Remove/repair corruption artifacts:
+
+Join split identifiers/JSX tags broken by unintended newlines inside words (e.g., tran\nsition-all → transition-all, AlertDescr\niption → AlertDescription, lookback\nDays → lookbackDays, data-\n-testid → data-testid).
+
+Replace literal ellipsis insertions inside tokens (e.g., bord...e-200 → border-blue-200, dat...tid → data-testid).
+
+Reconstruct any truncated JSX where an opening tag or icon usage was cut (e.g., <TabsTrigger ...> content with a dangling <).
+
+Ensure balanced JSX tags and no stray angle brackets remain.
+
+Run Prettier formatting at the end.
+
+
+
+1) Imports & dependencies
+
+Ensure these imports exist (deduplicate if already present):
+
+import { Suspense, lazy, useMemo, useState } from "react";
+
+shadcn Tabs: import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+
+shadcn UI bits used in the file (fix names if corrupted): Card, CardHeader, CardTitle, CardDescription, CardContent, Badge, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Alert, AlertDescription, Button, Input, Label, Textarea, Skeleton
+
+lucide-react icons referenced anywhere in the file (add missing / remove unused):
+
+Compass, Activity, Wrench, DollarSign, Brain, Lightbulb, RefreshCw, Loader2, Ship, AlertCircle, TrendingUp, Radio, Play, Database, Info, FileJson, Download, FileSpreadsheet
+
+If a PageLoader is referenced, either import it or create it locally:
+
+function PageLoader() {
+  return (
+    <div className="p-6 space-y-4">
+      <Skeleton className="h-8 w-64" />
+      <Skeleton className="h-[400px] w-full" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Skeleton className="h-[200px]" />
+        <Skeleton className="h-[200px]" />
+      </div>
+    </div>
+  );
+}
+Prefer PageLoader as <Suspense fallback={<PageLoader/>}> across heavy panels.
+
+
+
+2) Lazy/Suspense boundaries
+
+Ensure heavy subpages are lazy-loaded and wrapped in Suspense with <PageLoader /> or <Skeleton />:
+
+const AIPerformance = lazy(() => import("./ai-performance"));
+const MLAIConsolidated = lazy(() => import("./ml-ai-consolidated"));
+const MLTraining = lazy(() => import("./ml-ai-consolidated/MLTrainingPage"));
+const AIInsights = lazy(() => import("./ml-ai-consolidated/AIInsights"));
+
+
+In tabs, render each heavy panel within a <Suspense fallback={<PageLoader/>}>…</Suspense>.
+
+
+
+3) Tabs & UI wiring
+
+Fix any broken TabsTrigger (notably the feedback tab) so it renders text + icon cleanly, e.g.:
+
+<TabsTrigger value="feedback-loop" data-testid="tab-feedback-loop">
+  <RefreshCw className="h-4 w-4 mr-2" />
+  Feedback Loop
+</TabsTrigger>
+
+
+Normalize corrupted class names like tran\nsition-all → transition-all.
+
+
+
+4) Type safety & helpers
+
+Repair type splits and ensure valid TypeScript:
+
+interface TrainingWindowConfig { lookbackDays: number; tier: 'bronze' | 'silver' | 'gold' | 'platinum'; confidenceMultiplier: number; warnings: string[]; recommendations: string[]; metadata: { availableDays: number; usedDays: number; failureCount: number; equipmentType: string; }; }
+
+interface MlModel { id: string; orgId: string; name: string; algorithm: "LSTM" | "RandomForest"; tier?: 'bronze' | 'silver' | 'gold' | 'platinum'; createdAt?: string; equipmentId?: string; performance?: { accuracy?: number; precision?: number; recall?: number; f1Score?: number; }; hyperparameters?: { lookbackDays?: number; [k: string]: number | string | boolean | undefined }; }
+
+Implement/repair getTierBadge(tier):
+
+function getTierBadge(tier?: 'bronze' | 'silver' | 'gold' | 'platinum') {
+  if (!tier) return { label: "—", className: "px-2 py-0.5 rounded bg-muted text-muted-foreground text-xs" };
+  const map = {
+    bronze:   { label: "Bronze",   className: "px-2 py-0.5 rounded bg-amber-200 text-amber-900 text-xs" },
+    silver:   { label: "Silver",   className: "px-2 py-0.5 rounded bg-gray-200 text-gray-900 text-xs" },
+    gold:     { label: "Gold",     className: "px-2 py-0.5 rounded bg-yellow-200 text-yellow-900 text-xs" },
+    platinum: { label: "Platinum", className: "px-2 py-0.5 rounded bg-slate-200 text-slate-900 text-xs" },
+  } as const;
+  return map[tier];
+}
+
+
+
+
+5) Acoustic analysis block
+
+Ensure state and parsing are valid:
+
+const [acousticData, setAcousticData] = useState("");
+const [sampleRate, setSampleRate] = useState("48000");
+const [rpm, setRpm] = useState("");
+
+
+In the mutation body, parse safely and reject empty input:
+
+const data = acousticData
+  .split(",")
+  .map(v => parseFloat(v.trim()))
+  .filter(v => Number.isFinite(v));
+if (data.length === 0) throw new Error("Invalid acoustic data. Provide comma-separated numbers.");
+const body = {
+  acousticData: data,
+  sampleRate: Number.parseInt(sampleRate, 10),
+  rpm: rpm ? Number.parseFloat(rpm) : undefined,
+};
+
+
+Fix any UI metrics with .toFixed() so they only render when numbers exist; otherwise show —.
+
+
+
+6) Tables & lists
+
+Complete truncated table cells/rows. No dangling JSX. Use — when a metric is absent:
+
+<TableCell>{m.performance?.accuracy ?? "—"}</TableCell>
+
+
+Ensure all data-testid attributes are intact (data-testid="..."), not corrupted.
+
+
+
+7) Networking (if present)
+
+For any fetch usage, always check res.ok before res.json(). Add try/catch in mutations to toast errors.
+
+
+
+8) Build/test polish
+
+Remove unused imports created by earlier corruption.
+
+Run TypeScript checks, ESLint (--fix), and Prettier.
+
+Ensure zero console errors on render.
+
+Acceptance Checklist (must pass)
+
+Build succeeds (no JSX syntax errors, no unknown identifiers from split words, no duplicate default exports).
+
+All Tabs render with icons and labels; “Feedback Loop” tab no longer has a dangling <.
+
+Lazy/Suspense shows a skeleton or PageLoader while loading heavy panels.
+
+Acoustic Analysis: entering CSV numbers and hitting analyze returns a toast or UI update without runtime errors; NaN inputs are rejected with a clear message.
+
+Models Table: getTierBadge displays the correct badge; missing metrics show —.
+
+No corrupted tokens remain: no ... inside identifiers, no words split across lines inside JSX/props, no broken class names (e.g., transition-all intact, border-blue-200 intact).
+
+ESLint/Prettier clean; no unused imports.
+
+
+
+Deliverables: the corrected TypeScript/React code replacing the corrupted content; concise summary of what was fixed; and confirmation that the acceptance checklist passes.
+
+Paste that into Replit AI and run it on codetorepair.txt. If you want me to generate the patched file contents directly, say “print the fixed file,” and I’ll output a single, ready-to-paste version.

@@ -1,0 +1,276 @@
+Here’s a Replit-Agent-friendly functional spec for how the Schedule Planner should work. It’s written like an implementation contract: states, interactions, data flows, and edge cases.
+
+⸻
+
+Schedule Planner: Functional Behavior Spec
+
+Core mental model
+	•	The planner is a timeline board.
+	•	Rows = Vessels (optionally grouped by vessel class/client).
+	•	Columns = Days/Weeks (switchable range: 2w / 1m / 3m).
+	•	Blocks = Assignments (crew member + role on a vessel over a date range).
+	•	The planner is offline-first:
+	•	reads from local store
+	•	writes create “pending ops”
+	•	sync reconciles later
+
+⸻
+
+Data entities the planner uses
+	•	Vessel: { id, name, ... }
+	•	CrewMember: { id, name, rank, email, status, ... }
+	•	Assignment:
+{ id, vesselId, crewId, positionId, startDate, endDate, status, updatedAt, source, ... }
+	•	Availability (optional for MVP): { crewId, startDate, endDate, type }
+	•	Qualifications/Compliance (existing): for constraint checks
+	•	Ruleset/Settings: thresholds + hard/soft toggles + notification policy
+
+⸻
+
+Planner layout & navigation
+
+Range controls
+	•	Date range selector:
+	•	preset buttons (2w, 1m, 3m)
+	•	manual date range picker
+	•	“Today” button: jumps timeline so today is visible.
+	•	Zoom level:
+	•	Day view (default)
+	•	Week view (optional)
+	•	Sticky headers:
+	•	top: date header stays fixed
+	•	left: vessel column stays fixed
+
+Performance constraints
+	•	Use virtualization:
+	•	virtualize vessel rows at minimum
+	•	if necessary, virtualize timeline columns too
+	•	No heavy recompute on every scroll; memoize row renders.
+
+⸻
+
+Planner interactions (what user can do)
+
+1) Select a block
+
+Action
+	•	Click an assignment block.
+
+Result
+	•	Opens right-side Assignment Drawer with tabs:
+	•	Details
+	•	Constraints
+	•	Suggestions
+	•	Audit (optional)
+
+Data
+	•	Drawer loads:
+	•	assignment details
+	•	constraint results
+	•	top suggestions for that slot (optional lazy load)
+
+⸻
+
+2) Create an assignment (empty slot)
+
+Action
+	•	Click an empty area in a vessel row (or “+ Add” button in row header).
+	•	Select:
+	•	role/position
+	•	start/end dates
+	•	choose crew (or ask for suggestions)
+
+Result
+	•	A “Draft assignment” is created in UI immediately (optimistic).
+	•	System runs constraint check:
+	•	HARD violations block saving OR block “Publish” depending on design
+	•	SOFT warnings show amber badges
+
+Offline behavior
+	•	If offline:
+	•	assignment is saved locally
+	•	a pending op is queued for sync
+
+⸻
+
+3) Move an assignment (drag & drop)
+
+Action
+	•	Drag a block to:
+	•	another date range within same vessel
+	•	another vessel row (if permitted)
+	•	(optional) another position lane within vessel
+
+Result
+	•	UI shows “ghost preview” while dragging.
+	•	On drop:
+	1.	UI applies optimistic move locally
+	2.	Runs constraint check with new proposed data
+	3.	If HARD violations:
+	•	revert automatically OR keep but mark “blocked” (choose consistent rule)
+	4.	If SOFT violations:
+	•	keep change and show warning badge
+
+Write flow
+	•	Creates an UPDATE_ASSIGNMENT operation:
+{ assignmentId, oldValues, newValues, timestamp, deviceId }
+
+⸻
+
+4) Resize an assignment (adjust dates)
+
+Action
+	•	Drag left/right resize handles.
+
+Result
+	•	Updates start/end date.
+	•	Runs constraint check.
+	•	Saves locally + queues sync op.
+
+⸻
+
+5) Apply AI/assistive suggestion
+
+Action
+	•	Open Suggestions tab in drawer.
+	•	Click “Apply” on a suggestion.
+
+Result
+	•	Replaces crewId on assignment (or fills empty slot) with selected candidate.
+	•	Shows “Why” summary (deterministic reasons; optional AI narrative).
+	•	Writes change via the same mutation pipeline as manual edits.
+
+⸻
+
+Constraints engine behavior (planner depends on it)
+
+When constraints are evaluated
+	•	On:
+	•	create
+	•	move
+	•	resize
+	•	crew replacement
+	•	before publish
+	•	Must be callable in two modes:
+	1.	draft check: evaluate a proposed assignment payload
+	2.	existing check: evaluate by assignmentId
+
+Output format (required)
+
+Return structured results:
+
+type ConstraintResult = {
+  severity: "HARD" | "SOFT";
+  code: string; // e.g. OVERLAP, CERT_EXPIRED, REST_VIOLATION
+  message: string;
+  affectedIds?: { crewId?: string; assignmentId?: string; vesselId?: string };
+}
+
+Planner UI must:
+	•	show HARD as red icon/badge
+	•	show SOFT as amber icon/badge
+	•	show summary count on the block itself
+
+⸻
+
+Crew Pool side panel behavior
+
+Purpose
+	•	Lets scheduler find a crew member fast and assess suitability.
+
+Must support
+	•	Search by name
+	•	Filters:
+	•	rank/role
+	•	availability window overlap
+	•	cert status (valid/expiring/expired)
+	•	endorsement/vessel/client requirement
+	•	Each crew row shows:
+	•	name + rank
+	•	availability status (Available / On duty / Leave)
+	•	cert alerts (chips)
+	•	“Assign” action (opens picker or applies to selected slot)
+
+Interactions
+	•	When an empty slot is selected, crew pool can show only eligible crew (filtered by hard constraints).
+
+⸻
+
+Draft vs Publish workflow
+
+Draft mode
+	•	Scheduler can create/edit assignments without emailing crew.
+	•	Blocks labeled “Draft” (subtle).
+
+Publish action
+	•	“Publish schedule” can be:
+	•	for a date range
+	•	for a vessel
+	•	On publish:
+	1.	Validate all assignments in scope: HARD violations must be zero
+	2.	Mark assignments as “Published”
+	3.	Emit notification events (based on settings):
+	•	crew/admin/both
+	4.	Send via existing email system
+	5.	Write audit logs
+
+Notification recipient policy
+	•	Controlled by Scheduling Settings:
+	•	per event type choose Crew/Admin/Both/None
+	•	Must respect user opt-outs if they exist.
+
+⸻
+
+Offline-first + sync behavior (planner must reflect this)
+
+Local optimistic updates
+	•	All changes apply locally first.
+	•	UI shows “Syncing…” / “Offline” / “Up to date”.
+
+Pending ops
+	•	Every mutation adds a pending op record (existing sync mechanism).
+	•	UI shows pending op count.
+
+Conflict handling
+	•	If sync returns conflict:
+	•	show “Sync Issues” panel
+	•	highlight affected assignments
+	•	allow “Use remote” / “Use local” (or whatever existing strategy dictates)
+
+⸻
+
+Email notifications: when they are triggered
+
+Never from UI directly.
+
+Scheduling service triggers events:
+	•	assignment created/updated/cancelled
+	•	schedule published
+	•	compliance warning / rest violation (optional)
+
+SchedulingNotificationService:
+	•	resolves recipients (crew/admin/both)
+	•	calls existing email pipeline
+	•	logs AuditLog with status
+
+⸻
+
+Implementation boundaries (important for modularity)
+
+Planner UI must NOT:
+	•	write directly to DB
+	•	send emails
+	•	implement rule logic
+
+Planner UI only calls:
+	•	SchedulingService.getRoster(range)
+	•	SchedulingService.upsertAssignment(draftOrUpdate)
+	•	SchedulingService.checkConstraints(draft)
+	•	SchedulingService.getSuggestions(slotContext)
+	•	SchedulingService.publishSchedule(scope)
+
+Everything else lives in domain/repository/services.
+
+⸻
+
+If you want, I can rewrite this into an even more “agent-executable” format as acceptance tests / user stories (Given/When/Then) so Replit can build and verify it step-by-step.

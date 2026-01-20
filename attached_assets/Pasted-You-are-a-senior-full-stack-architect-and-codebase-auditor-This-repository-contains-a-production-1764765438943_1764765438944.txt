@@ -1,0 +1,237 @@
+You are a senior full-stack architect and codebase auditor.
+
+
+
+This repository contains a production-intended Electron + web app with:
+
+TypeScript/JavaScript backend (Node)
+
+React/Next-style frontend with component library (shadcn/ui style)
+
+Electron shell for desktop (macOS, Windows, Linux)
+
+Hybrid database (SQLite for embedded / Postgres or Turso/libSQL for cloud)
+
+Telemetry ingestion, maintenance/PDm features, crew/operations, and various logbooks.
+
+
+
+Your job is to review and rate the entire system:
+
+codebase, schema, database usage, framework choices, and overall architecture.
+
+PHASE 1 — HIGH-LEVEL INVENTORY (NO CODE CHANGES)
+
+Scan the repository and produce a map of:
+
+Main frameworks and libraries used (frontend, backend, Electron).
+
+App entrypoints (Electron main, server index, frontend app root).
+
+Major domains: telemetry, equipment/health, work orders, inventory, crew, logs, alerts, sync, etc.
+
+Databases and ORMs used (SQLite, Postgres/Turso, Drizzle, raw SQL, etc).
+
+Identify:
+
+Monolithic “god files” (too many responsibilities in one file).
+
+Areas where backend, frontend, and Electron logic are tangled.
+
+Direct DB access scattered vs. centralized repositories/services.
+
+
+
+Return a concise system overview plus a diagram-style outline of modules and folders.
+
+PHASE 2 — CODE QUALITY & “JANKINESS” SCORE
+
+
+
+For both frontend and backend, evaluate:
+
+Code Quality & Style
+
+Consistency of TypeScript/JS usage.
+
+Proper typing vs. any / implicit any.
+
+Error handling patterns (try/catch, centralized handlers).
+
+Separation of concerns (UI vs. data vs. business logic).
+
+Maintainability
+
+How easy it is to add a new feature?
+
+Duplication of logic (alerts, status badges, telemetry transforms, CRUD patterns).
+
+Use of reusable components vs. copy-pasted UI tables/forms.
+
+Test coverage (if present) and testability of modules.
+
+Jankiness Rating
+
+Give 1–10 scores (1 = extremely janky, 10 = very robust) for:
+
+Backend code quality
+
+Frontend code quality
+
+Electron layer
+
+Telemetry pipeline
+
+Logbook & maintenance workflows
+
+Overall cohesion / cleanliness
+
+
+
+Explain why each score was given and show examples from specific files.
+
+PHASE 3 — DATABASE, SCHEMA & QUERY REVIEW
+
+Identify all schemas and DB clients:
+
+SQLite vs Postgres/libSQL usage.
+
+Drizzle (or other ORM) configuration and migrations.
+
+Where schemas for things like vessels, telemetry, logs, work orders, crew, inventory, and alerts are defined.
+
+Assess:
+
+Normalization vs over-denormalization / duplicated fields.
+
+Relationship clarity (FKs, junction tables, many-to-many, etc).
+
+Indexes (missing? appropriate?).
+
+Hybrid mode: how “local vs cloud” is handled.
+
+Transactions and concurrency handling (if present).
+
+Evaluate query quality:
+
+N+1 query problems.
+
+Unbounded queries (no limits, filters).
+
+Unsafe string interpolation vs parameterized queries.
+
+
+
+Give DB/schema scores (1–10) for:
+
+Schema design
+
+Migration hygiene
+
+Query safety and performance
+
+Ease of extending data model
+
+PHASE 4 — ARCHITECTURE & FRAMEWORK DESIGN
+
+Evaluate the overall architecture:
+
+Is there a recognizable pattern (modular monolith, domain-driven, layered)?
+
+Are domains (telemetry, logs, crew, inventory, etc.) clearly separated or interwoven?
+
+Are Electron, server, and frontend cleanly separated?
+
+Identify:
+
+Circular dependencies.
+
+Cross-cutting concerns (logging, auth, config, validation) and whether they’re centralized.
+
+Where the architecture feels ad-hoc vs deliberate.
+
+Rate Architecture (1–10) on:
+
+Clarity
+
+Modularity
+
+Extensibility (how hard to add a new vessel/log/telemetry source?)
+
+Risk of regression when changing code
+
+PHASE 5 — DEVELOPER EXPERIENCE (DX) & ONBOARDING
+
+
+
+Answer specifically:
+
+How easy is it for a new full-stack dev to work on this?
+
+Is the folder structure intuitive?
+
+Is there a clear “start here” for devs (docs/README/onboarding)?
+
+Can a dev quickly find where:
+
+telemetry is ingested,
+
+a vessel’s health is calculated,
+
+a logbook entry is created,
+
+an alert is triggered?
+
+Pain Points & Confusion
+
+List the top 5 things a new dev would struggle with.
+
+Show concrete examples of confusing patterns or hidden complexity.
+
+DX Scores (1–10)
+
+Onboarding ease
+
+Discoverability (finding the right file/module)
+
+Consistency of patterns
+
+Dev confidence to refactor safely
+
+PHASE 6 — SUMMARY & PRIORITIZED REFACTOR PLAN
+
+
+
+Deliver a short, punchy report with:
+
+A one-paragraph verdict:
+
+How “janky” vs how “solid” this app really is.
+
+Whether it’s a good foundation to build on.
+
+A bullet list of:
+
+Top 10 issues to fix first to make it maintainable.
+
+The quickest wins to improve developer experience.
+
+The structural changes that would yield the biggest long-term benefit.
+
+A time/effort estimate for:
+
+A single competent full-stack dev to:
+
+clean up the worst jank,
+
+standardize patterns,
+
+improve DX,
+
+and stabilize architecture.
+
+
+
+Do not make any code changes yet.
+
+Your job in this prompt is analysis, scoring, and recommendations only.

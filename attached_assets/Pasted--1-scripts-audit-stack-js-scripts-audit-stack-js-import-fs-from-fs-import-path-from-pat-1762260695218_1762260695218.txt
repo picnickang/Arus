@@ -1,0 +1,300 @@
+🧩 1. 
+
+scripts/audit_stack.js
+
+// scripts/audit_stack.js
+import fs from "fs";
+import path from "path";
+import { execSync } from "child_process";
+
+const result = {
+  express: false,
+  react: false,
+  wouter: false,
+  tanstack: false,
+  notes: [],
+};
+
+try {
+  const srv = fs.existsSync("server") && fs.readdirSync("server");
+  result.express = srv.some(f => f.match(/index|app/i));
+} catch {
+  result.notes.push("server folder missing");
+}
+
+try {
+  const pkg = JSON.parse(fs.readFileSync("client/package.json", "utf8"));
+  result.react = !!pkg.dependencies.react;
+  result.wouter = !!pkg.dependencies.wouter;
+  result.tanstack =
+    !!pkg.dependencies["@tanstack/react-query"] ||
+    !!pkg.dependencies["@tanstack/query-core"];
+} catch {
+  result.notes.push("client package.json not found");
+}
+
+console.table(result);
+fs.mkdirSync("tmp", { recursive: true });
+fs.writeFileSync("tmp/audit_stack.json", JSON.stringify(result, null, 2));
+console.log("✅ audit_stack.json written.");
+🧩 2. 
+
+scripts/ping_endpoints.js
+
+// scripts/ping_endpoints.js
+import fetch from "node-fetch";
+import fs from "fs";
+
+const endpoints = [
+  "/api/fleet/summary",
+  "/api/vessels/V001/performance",
+  "/api/vessels/V001/baselines",
+  "/api/vessels/V001/overlays",
+  "/api/vessels/V001/context",
+  "/api/vessels/V001/alerts",
+];
+
+const BASE = process.env.BASE_URL || "http://localhost:3000";
+const report = {};
+
+for (const ep of endpoints) {
+  try {
+    const res = await fetch(BASE + ep);
+    const data = await res.json();
+    report[ep] = {
+      status: res.status,
+      keys: Array.isArray(data) ? "array" : Object.keys(data || {}),
+      length: Array.isArray(data) ? data.length : 1,
+    };
+  } catch (e) {
+    report[ep] = { error: e.message };
+  }
+}
+
+fs.mkdirSync("tmp", { recursive: true });
+fs.writeFileSync("tmp/endpoint_report.json", JSON.stringify(report, null, 2));
+console.log("✅ endpoint_report.json written.");
+🧩 3. 
+
+scripts/score_features.js
+
+// scripts/score_features.js
+import fs from "fs";
+const rep = JSON.parse(fs.readFileSync("tmp/endpoint_report.json", "utf8"));
+
+const features = {
+  F1: "Fleet Overview",
+  F2: "Vessel Performance",
+  F3: "Anomaly Overlays",
+  F4: "Context Layer (AIS/Metocean)",
+  F5: "Alerts Workflow",
+  F6: "Maintenance Timeline",
+  F7: "Baselines/Fleet Benchmarking",
+  F8: "Compliance/CII Tile",
+  F9: "Settings/Customization",
+  F10: "Narrative Summary",
+};
+
+const results = [];
+
+function fit(ep, key) {
+  return rep[ep] && rep[ep].status === 200 && rep[ep].keys.includes(key);
+}
+
+for (const [code, name] of Object.entries(features)) {
+  const s = { Feature: name, Value: 3, Effort: 3, DataFit: 1, UX: 3, Risk: 3 };
+  switch (code) {
+    case "F1":
+      if (fit("/api/fleet/summary", "id")) s.DataFit = 3;
+      break;
+    case "F2":
+      if (fit("/api/vessels/V001/performance", "ts")) s.DataFit = 3;
+      break;
+    case "F3":
+      if (fit("/api/vessels/V001/overlays", "points")) s.DataFit = 3;
+      break;
+    case "F4":
+      if (fit("/api/vessels/V001/context", "context")) s.DataFit = 3;
+      break;
+    case "F5":
+      if (fit("/api/vessels/V001/alerts", "items")) s.DataFit = 3;
+      break;
+    case "F7":
+      if (fit("/api/vessels/V001/baselines", "baseline")) s.DataFit = 3;
+      break;
+    default:
+      s.DataFit = 2;
+  }
+  s.Overall = Math.round(
+    (s.Value * 1.5 + s.DataFit + (6 - s.Risk)) - (s.Effort / 2 + s.UX / 2)
+  );
+  results.push(s);
+}
+
+fs.mkdirSync("docs", { recursive: true });
+fs.writeFileSync(
+  "docs/assessment_scores.md",
+  results.map(r => `${r.Feature} → ${r.Overall}`).join("\n")
+);
+console.table(results.map(r => ({ Feature: r.Feature, Fit: r.Overall })));
+🧩 4. Client POCs
+
+
+
+client/src/poc/routes.tsx
+
+import React from "react";
+import { Route, Switch } from "wouter";
+import FleetPOC from "./FleetPOC";
+import PerfPOC from "./PerfPOC";
+
+export default function PocRoutes() {
+  return (
+    <Switch>
+      <Route path="/poc/fleet" component={FleetPOC} />
+      <Route path="/poc/performance" component={PerfPOC} />
+    </Switch>
+  );
+}
+client/src/poc/FleetPOC.tsx
+
+import React from "react";
+import { useQuery } from "@tanstack/react-query";
+
+async function fetchFleet() {
+  const res = await fetch("/api/fleet/summary");
+  return res.json();
+}
+
+export default function FleetPOC() {
+  const { data = [] } = useQuery({ queryKey: ["fleet"], queryFn: fetchFleet });
+  return (
+    <div className="poc-ready p-4">
+      <h2>Fleet Overview (POC)</h2>
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Score</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          {data.map((v: any) => (
+            <tr key={v.id}>
+              <td>{v.name}</td>
+              <td>{v.anomaly_score}</td>
+              <td>
+                <span style={{ color: v.anomaly_score > v.threshold ? "red" : "green" }}>
+                  {v.anomaly_score > v.threshold ? "⚠ High" : "✅ OK"}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+client/src/poc/PerfPOC.tsx
+
+import React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { LineChart, Line, XAxis, YAxis, Tooltip } from "recharts";
+
+async function fetchPerf() {
+  const res = await fetch("/api/vessels/V001/performance");
+  return res.json();
+}
+
+export default function PerfPOC() {
+  const { data } = useQuery({ queryKey: ["perf"], queryFn: fetchPerf });
+  if (!data?.ts) return <div>Loading...</div>;
+
+  const chartData = data.ts.map((t: any, i: number) => ({
+    t,
+    fuel: data.fuel_lph[i],
+  }));
+
+  return (
+    <div className="poc-ready p-4">
+      <h2>Fuel vs Time (POC)</h2>
+      <LineChart width={600} height={300} data={chartData}>
+        <XAxis dataKey="t" hide />
+        <YAxis />
+        <Tooltip />
+        <Line dataKey="fuel" stroke="#00f" dot={false} />
+      </LineChart>
+    </div>
+  );
+}
+In client/src/main.tsx (or .jsx):
+
+import PocRoutes from "./poc/routes";
+// ...
+{import.meta.env.VITE_UI_POC === "1" ? <PocRoutes /> : <AppRoutes />}
+🧩 5. 
+
+scripts/screenshot_poc.js
+
+// scripts/screenshot_poc.js
+import puppeteer from "puppeteer";
+import fs from "fs";
+
+const shots = [
+  { url: "http://localhost:5173/poc/fleet", file: "docs/screens/poc_fleet.png" },
+  { url: "http://localhost:5173/poc/performance", file: "docs/screens/poc_perf.png" },
+];
+
+fs.mkdirSync("docs/screens", { recursive: true });
+
+const browser = await puppeteer.launch({ headless: true });
+const page = await browser.newPage();
+for (const s of shots) {
+  try {
+    await page.goto(s.url, { waitUntil: "networkidle2" });
+    await page.waitForSelector(".poc-ready", { timeout: 10000 });
+    await page.screenshot({ path: s.file });
+    console.log("📸 Saved", s.file);
+  } catch (e) {
+    console.error("Failed", s.url, e.message);
+  }
+}
+await browser.close();
+✅ Add scripts to 
+
+package.json
+
+"scripts": {
+  "audit:stack": "node scripts/audit_stack.js",
+  "audit:endpoints": "node scripts/ping_endpoints.js",
+  "score:features": "node scripts/score_features.js",
+  "poc:screens": "node scripts/screenshot_poc.js",
+  "assess:all": "npm run audit:stack && npm run audit:endpoints && npm run score:features"
+}
+🧭 Runbook
+
+Install deps
+
+npm i puppeteer node-fetch
+
+
+Start servers
+
+npm --prefix server run dev
+npm --prefix client run dev:poc
+
+
+Run assessment
+
+npm run assess:all
+
+
+Capture screenshots
+
+npm run poc:screens
+
+
+Review
+
+docs/assessment_scores.md
+
+docs/screens/*.png
+
+Visit /poc/fleet & /poc/performance

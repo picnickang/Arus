@@ -1,0 +1,38 @@
+Strategy: Equipment Registry Vessel Integration
+I've analyzed your current equipment registry and identified the issue: vessel names are manually typed in text fields instead of being selected from your vessel management system. This leads to inconsistencies and duplicate/misspelled vessel names.
+
+Current State Analysis
+✅ What's Working:
+
+Vessel management system with proper vessel records
+Equipment fetches vessels for assignment functionality
+Dual support for vesselId (FK) and vesselName (legacy text)
+❌ The Problem:
+
+Equipment creation/edit forms use free-text input for vessel names
+No validation against existing vessel records
+Leads to data inconsistency and typos
+Creates "legacy" vessel name entries that aren't linked to vessel records
+Implementation Strategy
+Phase 1: Update Equipment Forms (Frontend)
+Replace text input with dropdown - Change vesselName field to vesselId selection
+Enhance form validation - Use vessel records from vessel management
+Update form logic - Pre-select vessels in edit mode, handle vessel data consistently
+Phase 2: Backend Integration
+Update API endpoints - Accept vesselId and auto-populate vesselName
+Maintain compatibility - Support both old and new data structures
+Enhance data integrity - Ensure vessel linkage is properly maintained
+Phase 3: UI/UX Improvements
+Simplify workflow - Remove redundant vessel assignment dialogs
+Visual consistency - Show vessel status clearly in equipment list
+Legacy data handling - Clear indicators for unlinked vessel names
+Implementation Plan
+I'll implement this by:
+
+Updating equipment forms to use vessel dropdowns instead of text inputs
+Modifying form schemas to work with vesselId while maintaining vesselName for compatibility
+Enhancing the edit flow to properly pre-select vessels from existing records
+Updating backend endpoints to handle vessel association during equipment creation/update
+This will ensure data consistency, better user experience, and integration between your vessel management and equipment registry systems.
+
+Ready to proceed? This will transform equipment registration from error-prone manual text entry to validated vessel selection from your vessel management system.

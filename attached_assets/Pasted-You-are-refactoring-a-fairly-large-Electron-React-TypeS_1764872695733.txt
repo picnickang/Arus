@@ -1,0 +1,269 @@
+You are refactoring a fairly large Electron + React + TypeScript marine PdM / vessel ops app. Your goal is to modularize and clean up large frontend files WITHOUT changing behavior.
+
+
+
+Context
+
+Framework: React + TypeScript, React Query, shadcn/ui, Tailwind, Electron shell.
+
+Data: hybrid PostgreSQL + SQLite using Drizzle ORM, with offline-first vessel mode and telemetry ingestion.
+
+There are still many TSX files over 500 lines. Some are acceptable (pure config), others clearly mix UI + business logic + data fetching.
+
+
+
+From the codebase, first scan and list all TS/TSX files > 500 lines, grouped by:
+
+Pages (in pages/, routes/, or equivalent).
+
+Components (in components/ or features/**/components).
+
+
+
+For each, quickly classify:
+
+✅ “Big but OK”: largely static config or a cohesive but simple view.
+
+🧩 “Needs modularization”: mixes concerns (routing, data fetching, business logic, heavy layout, dialogs, forms, etc).
+
+
+
+Do NOT change behavior, routes, or APIs. Refactor only where it adds clarity and reuse.
+
+
+
+Priority files (likely “Needs modularization”)
+
+
+
+Treat these as top priority unless your scan proves otherwise:
+
+
+
+Pages (TSX)
+
+advanced-analytics.tsx
+
+engine-logbook.tsx
+
+deck-logbook.tsx
+
+optimization-tools.tsx
+
+system-administration.tsx
+
+email-alerts-settings.tsx
+
+ml-training.tsx
+
+pdm-pack.tsx
+
+vessel-management.tsx
+
+inventory-management.tsx
+
+maintenance-schedules.tsx
+
+governance-dashboard.tsx
+
+ai-insights.tsx
+
+MaintenanceTemplatesPage.tsx
+
+organization-management.tsx
+
+
+
+Components (TSX)
+
+HoursOfRestGrid.tsx
+
+CrewScheduler.tsx
+
+EquipmentViewDialog.tsx
+
+UnifiedCrewManagement.tsx
+
+UpdateSettingsPanel.tsx
+
+SensorSetupWizard.tsx
+
+stormgeo-settings.tsx
+
+ExpenseTrackingForm.tsx
+
+and any other component over 500 lines
+
+
+
+Also note that storage.ts and routes.ts have already been reduced and modularized; respect their new structure and do not re-inflate them.
+
+
+
+Refactor goals
+
+
+
+For each “Needs modularization” file:
+
+Identify responsibilities
+
+Break down what the file does into:
+
+Routing / page layout / tab structure
+
+Data fetching & mutations (React Query, API calls)
+
+Domain logic (calculations, transforms, validation)
+
+Reusable UI elements (tables, grids, dialogs, forms, filters)
+
+Cross-cutting helpers (formatters, mappers, constants)
+
+Introduce a consistent domain structure
+
+Prefer a domain-based layout such as:
+
+src/features/engine-logbook/
+
+components/…
+
+hooks/…
+
+lib/…
+
+src/features/deck-logbook/…
+
+src/features/crew/…
+
+src/features/inventory/…
+
+src/features/email-alerts/…
+
+src/features/pdm/…
+
+src/features/governance/…
+
+When splitting:
+
+Move data-fetching logic into useXxx hooks (e.g. useEngineLogbook, useCrewScheduler, useInventoryItems).
+
+Move repeated layout fragments (tables, rows, dialogs, filter bars) into components/.
+
+Move calculations, mappers, anomaly detection, and schema conversion into lib/ or utils/.
+
+Keep all external contracts identical
+
+Keep route paths, query keys, API URLs, HTTP payload shapes, and query parameters the same.
+
+Keep React component public props the same for anything exported outside its domain.
+
+Keep data-test IDs (data-testid) unchanged.
+
+Keep translation keys, labels, and copy the same.
+
+Do not change business logic semantics (especially for compliance, alerts, crew hours, engine log calculations, etc.).
+
+Specific examples
+
+engine-logbook.tsx
+
+Extract:
+
+useEngineLogbookData hook (load daily, hourly, generator, events, watches).
+
+useEngineLogbookActions hook (save, sign, lock, autofill, notify).
+
+UI components: EngineHourlyTable, GeneratorTable, EngineEventsTimeline, EngineWatchCards, EngineSummaryPanels, export buttons.
+
+Keep anomaly thresholds and normalization logic in a lib/engineLogbook module, imported by both components and hooks.
+
+deck-logbook.tsx
+
+Similar split: data hooks, components for navigation entries, operations, remarks, export, and StormGeo/VDR integration.
+
+HoursOfRestGrid.tsx, CrewScheduler.tsx
+
+Separate scheduling engine (greedy / constraint logic, night shift limits, fairness) into lib/crewScheduling.
+
+UI grid, drag-drop scheduler cells, and HoR visualization into separate components.
+
+Keep STCW rules, validation, and “fatigue risk” calculations in a dedicated util file.
+
+inventory-management.tsx
+
+Separate filter/search/sort state, pagination, and query logic into hooks.
+
+Split the big table + drawers/forms for part details and stock movements into components.
+
+Reuse inventory table components across work-order links where possible.
+
+email-alerts-settings.tsx
+
+Separate:
+
+Notification rules model (severity, compliance triggers, destinations).
+
+UI to manage channels (email, in-app, etc.).
+
+Back-end wiring (save/load rules per org/vessel) in hooks.
+
+stormgeo-settings.tsx & telemetry-related components
+
+Put all external integration config (StormGeo, Aquametro/FMCC, MQTT, Modbus, etc.) into a features/integrations module.
+
+Use strongly typed configuration objects so adding new telemetry sources stays easy.
+
+Apply consistent patterns
+
+All domain hooks should:
+
+Accept { orgId, vesselId, date, … } parameters where relevant.
+
+Use shared query keys (["engineLogbook", vesselId, date], etc.) with React Query.
+
+All tables and grids:
+
+Extract column definitions into constants where they are reused.
+
+Lift repeated UX patterns (filters, date pickers, vessel selector bars) into small reusable components.
+
+Testing & safety
+
+For every refactor:
+
+Ensure npm run lint, npm run build, and existing tests pass.
+
+Where possible, add or update tests:
+
+At least smoke tests for the newly split components and hooks.
+
+Keep incremental commits logical (one domain/page refactor per commit if possible).
+
+
+
+What to output
+
+A short report listing:
+
+All >500-line files found.
+
+Which ones you classified as ✅ OK vs 🧩 Needs modularization, and why.
+
+Then, implement the modularization in small, cohesive steps:
+
+Start with the highest-risk user-facing pages: engine-logbook, deck-logbook, crew scheduler, HoursOfRestGrid, UnifiedCrewManagement, inventory-management, email-alerts-settings.
+
+For each, show the new file structure and key extracted modules.
+
+After refactoring, confirm:
+
+The app still compiles and runs.
+
+No public APIs, routes, or test IDs changed.
+
+The codebase is now easier to navigate: each domain has smaller page files and well-named components/hooks/lib modules.
+
+
+
+Follow these instructions carefully, prioritize safety and identical behavior, and keep the design modular so future features (new telemetry sources, new reports, new alerts) can be added easily.

@@ -1,0 +1,120 @@
+{
+  "schema": "https://arus.app/schemas/j1939-map-v1.json",
+  "notes": "auto-generated from DBC (subset)",
+  "signals": [
+    {
+      "pgn": 61443,
+      "name": "ETC1",
+      "spns": [
+        {
+          "spn": 110,
+          "sig": "SPN110_CoolantTemperature",
+          "src": "ECM",
+          "unit": "degC",
+          "bytes": [0],
+          "endian": "LE",
+          "scale": 1,
+          "offset": -40
+        },
+        {
+          "spn": 175,
+          "sig": "SPN175_OilTemperature",
+          "src": "ECM",
+          "unit": "degC",
+          "bytes": [2],
+          "endian": "LE",
+          "scale": 1,
+          "offset": -273
+        },
+        {
+          "spn": 100,
+          "sig": "SPN100_OilPressure",
+          "src": "ECM",
+          "unit": "kPa",
+          "bytes": [3],
+          "endian": "LE",
+          "scale": 4,
+          "offset": 0
+        }
+      ]
+    },
+    {
+      "pgn": 61444,
+      "name": "EEC1",
+      "spns": [
+        {
+          "spn": 190,
+          "sig": "SPN190_EngineSpeed",
+          "src": "ECM",
+          "unit": "rpm",
+          "bytes": [3, 4],
+          "endian": "LE",
+          "scale": 0.125,
+          "offset": 0
+        },
+        {
+          "spn": 513,
+          "sig": "SPN513_ActualEnginePercentTorque",
+          "src": "ECM",
+          "unit": "%",
+          "bytes": [1],
+          "endian": "LE",
+          "scale": 1,
+          "offset": -125
+        }
+      ]
+    },
+    {
+      "pgn": 65262,
+      "name": "EEC2",
+      "spns": [
+        {
+          "spn": 558,
+          "sig": "SPN558_AcceleratorPedalPosition1",
+          "src": "ECM",
+          "unit": "%",
+          "bytes": [1],
+          "endian": "LE",
+          "scale": 0.4,
+          "offset": 0
+        },
+        {
+          "spn": 91,
+          "sig": "SPN91_AcceleratorPedalPosition2",
+          "src": "ECM",
+          "unit": "%",
+          "bytes": [2],
+          "endian": "LE",
+          "scale": 0.4,
+          "offset": 0
+        }
+      ]
+    },
+    {
+      "pgn": 65276,
+      "name": "DASH",
+      "spns": [
+        {
+          "spn": 96,
+          "sig": "SPN96_FuelLevel",
+          "src": "ECM",
+          "unit": "%",
+          "bytes": [1],
+          "endian": "LE",
+          "scale": 0.4,
+          "offset": 0
+        },
+        {
+          "spn": 183,
+          "sig": "SPN183_FuelRate",
+          "src": "ECM",
+          "unit": "L/h",
+          "bytes": [2, 3],
+          "endian": "LE",
+          "scale": 0.05,
+          "offset": 0
+        }
+      ]
+    }
+  ]
+}

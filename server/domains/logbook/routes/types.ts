@@ -1,0 +1,43 @@
+/**
+ * Logbook Routes - Shared Types
+ * 
+ * Common types and interfaces for logbook route handlers.
+ */
+
+export interface RateLimiters {
+  writeOperationRateLimit: any;
+  criticalOperationRateLimit: any;
+  generalApiRateLimit: any;
+}
+
+export interface DeckLogFilters {
+  vesselId?: string;
+  startDate?: string;
+  endDate?: string;
+  status?: string;
+}
+
+export interface EngineLogFilters {
+  vesselId?: string;
+  startDate?: string;
+  endDate?: string;
+  status?: string;
+}
+
+export interface EventFilters {
+  eventType?: string;
+  source?: string;
+  startTime?: Date;
+  endTime?: Date;
+}
+
+export interface SignatureDetails {
+  signedByCrewId: string;
+  signedByName: string;
+  signedByRank: string;
+}
+
+export interface LockDetails {
+  lockedByUserId: string;
+  lockedByUserName: string;
+}

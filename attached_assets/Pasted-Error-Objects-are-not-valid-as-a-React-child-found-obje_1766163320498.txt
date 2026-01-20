@@ -1,0 +1,14 @@
+Error: Objects are not valid as a React child (found: object with keys {code, name, icon}). If you meant to render a collection of children, use an array instead.
+
+Error: Objects are not valid as a React child (found: object with keys {code, name, icon}). If you meant to render a collection of children, use an array instead.
+    at throwOnInvalidObjectType (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=3489c8ee:9934:17)
+    at createChild (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=3489c8ee:10110:15)
+    at reconcileChildrenArray (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=3489c8ee:10282:33)
+    at reconcileChildFibers2 (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=3489c8ee:10559:24)
+    at reconcileChildren (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=3489c8ee:14290:37)
+    at updateHostComponent (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=3489c8ee:14807:11)
+    at beginWork (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=3489c8ee:15935:22)
+    at beginWork$1 (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=3489c8ee:19753:22)
+    at performUnitOfWork (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=3489c8ee:19198:20)
+    at workLoopSync (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=3489c8ee:19137:13)
+Reload Application

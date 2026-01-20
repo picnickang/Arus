@@ -1,0 +1,20 @@
+priority,category,file,summary,owner_suggested,eta,pr_link,status
+# UPDATED: November 27, 2025
+1,Security,package.json,2/7 CVEs fixed with npm audit fix (glob + js-yaml). 5 moderate remain in esbuild/vite requiring major version upgrade,Security Team,DONE,N/A,COMPLETED_PARTIAL
+1,Performance,server/scripts/perf-harness.ts,Automated performance harness for critical endpoints (p95 target <1.5s). Run: npx tsx server/scripts/perf-harness.ts,Backend Team,N/A,N/A,EXISTS
+1,Observability,docs/dashboards/grafana-arus-overview.json,Grafana dashboard for API and system metrics,DevOps,2 hours,N/A,EXISTS
+1,Observability,docs/dashboards/grafana-ml-performance.json,Grafana dashboard for ML model performance,ML Team,2 hours,N/A,EXISTS
+1,Observability,docs/dashboards/README.md,Added security alerts for tenant isolation monitoring,DevOps,30 min,N/A,COMPLETED
+2,Documentation,server/swagger.ts,OpenAPI 3.0 specification with Swagger UI. Access at /api/docs (27 endpoints documented),Backend Team,N/A,N/A,COMPLETED
+2,Testing,jest.config.js,Coverage reporting with thresholds (60% global; 80% auth middleware; 70% observability). Run: npx jest --coverage,QA Team,N/A,N/A,COMPLETED
+2,Testing,package.json,Add npm test script to enable running Jest tests - BLOCKED (cannot edit package.json),Backend Team,5 min,,BLOCKED
+3,Documentation,docs/security/cors-helmet-config.md,CORS/Helmet documentation with CSP directives and environment-specific settings,Backend Team,N/A,N/A,COMPLETED
+3,Code Quality,server/,Server entry points (minimal-server.ts/standalone-simple.ts/production-server.ts) are intentional for different deployment modes - NOT a bug,Backend Team,N/A,N/A,NOT_APPLICABLE
+3,Code Quality,server/sqlite-init.ts.backup,Remove backup file from version control,Backend Team,5 minutes,N/A,COMPLETED
+3,Code Quality,docs/dashboards/grafana-ml-performance.json.bak,Remove backup file from version control,Backend Team,5 minutes,N/A,COMPLETED
+3,Dependencies,package.json,Run depcheck to identify unused dependencies - timeout on large codebase,Backend Team,30 minutes,,SKIPPED
+4,Governance,client/src/pages/governance-dashboard.tsx,Governance Dashboard UI with Model Lineage table and Provenance/Audit log timeline. Features: family/stage filters, chain verification, model detail drawer. Route at /governance,Frontend Team,N/A,N/A,COMPLETED
+4,Performance,server/ml-prediction-service.ts,LSTM profiling added via Prometheus metrics (arus_ml_prediction_duration_seconds, arus_ml_prediction_total, arus_ml_prediction_confidence, cache hits/misses, circuit breaker state),ML Team,N/A,N/A,COMPLETED
+4,Testing,tests/e2e/,Expand E2E test suite for critical user flows,QA Team,2 days,,PENDING
+5,Documentation,server/swagger.ts,Consolidated with OpenAPI spec at /api/docs (27 endpoints with examples),Tech Writing,N/A,N/A,COMPLETED
+5,CI/CD,.github/workflows/ci.yml,CI pipeline with performance-gate (p95 thresholds) + security job (npm audit + secret scan),DevOps,N/A,N/A,EXISTS

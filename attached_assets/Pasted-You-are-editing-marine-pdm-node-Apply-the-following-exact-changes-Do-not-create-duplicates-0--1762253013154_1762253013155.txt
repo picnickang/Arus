@@ -1,0 +1,428 @@
+You are editing marine-pdm-node. Apply the following exact changes. Do not create duplicates.
+
+
+
+0) Repo hygiene & script entries
+
+In package.json append to "scripts" (keep existing):
+
+"pull:data": "node src/jobs/pullDatasets.js",
+"pretrain": "node src/training/pretrain.js",
+"pretrain:all": "node src/training/pretrainAll.js",
+"calibrate": "node src/training/calibrate.js",
+"seed:profiles": "node scripts/seedProfiles.js"
+In scripts/seedProfiles.js, replace any "seuMarine" with "marineEngine".
+
+1) Physics-aware per-profile simulator
+
+
+
+Create src/simulators/simProfile.js:
+
+import fs from 'fs-extra';
+import path from 'node:path';
+
+function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+function randn(mu=0, sigma=1){ const u=1-Math.random(), v=1-Math.random(); return mu + Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)*sigma; }
+function torqueFromRpm(rpm, maxTorque){ const t = (rpm*rpm)/(1700*1700)*maxTorque; return clamp(t, 0.1*maxTorque, maxTorque); }
+function seaState(t, seas=3){ const f=0.05+seas*0.01; return { imu_heave:0.2*seas*Math.sin(f*t)+randn(0,0.05*seas), imu_pitch:1.5*seas*Math.sin(f*t/1.8+0.3)+randn(0,0.2*seas), imu_roll:2.2*seas*Math.sin(f*t/2.2+1.1)+randn(0,0.25*seas) }; }
+function hydCycle(t, period=300, duty=0.15, base=5, peak=180){ const phase=(t%period)/period; const active=phase<duty; const pressure=active? peak+randn(0,6): base+randn(0,1.5); return clamp(pressure,0,250); }
+function dpThrusterLoad(t, severity=0.6){ const base=30+50*severity+10*Math.sin(t/60)+randn(0,8); return clamp(base,10,100); }
+function tempStep(prev, load, ambient=28, tau=180){ const target=ambient+50*(load/100); const delta=(target-prev)/tau; return prev+delta+randn(0,0.05); }
+function vibComponents(loadPct, fault=0){ const base=0.09+0.02*(loadPct/100); const imb=0.01*randn(); const drift=fault*0.001; return clamp(base+imb+drift,0.05,0.5); }
+
+export function simulateProfileSeries(profileName, signals, minutes=240){
+  const rows=[]; const dt=1; const T=Math.max(60, Math.floor(minutes*60));
+  const preset = {
+    tug:{maxRpm:1500,maxTorque:420,pattern:'harbor_bursts',seas:2},
+    workboat:{maxRpm:1600,maxTorque:350,pattern:'stop_go_hyd',seas:2},
+    pilot:{maxRpm:1900,maxTorque:300,pattern:'high_speed',seas:3},
+    psv:{maxRpm:1600,maxTorque:480,pattern:'dp_hold',seas:2},
+    ahts:{maxRpm:1600,maxTorque:520,pattern:'tow_spikes',seas:3},
+    crewboat:{maxRpm:2000,maxTorque:320,pattern:'transit',seas:3},
+    survey:{maxRpm:1500,maxTorque:380,pattern:'dp_hold',seas:2},
+    multicat:{maxRpm:1500,maxTorque:360,pattern:'crane_winch',seas:2},
+    lct:{maxRpm:1400,maxTorque:420,pattern:'ramp_cycles',seas:2},
+    bunker:{maxRpm:1400,maxTorque:420,pattern:'pump_transfer',seas:2},
+    errv:{maxRpm:1700,maxTorque:440,pattern:'standby_sprint',seas:3},
+  }[profileName] || {maxRpm:1600,maxTorque:380,pattern:'transit',seas:2};
+
+  let oil=60, cool=55, faultDrift=0;
+  for(let t=0;t<T;t+=dt){
+    let rpm; switch(preset.pattern){
+      case 'harbor_bursts': rpm=700+400*(Math.random()<0.15?1:0)+randn(0,15); break;
+      case 'stop_go_hyd': rpm=900+300*Math.sin(t/50)+randn(0,10); break;
+      case 'high_speed': rpm=1200+500*Math.sin(t/120)+100*(Math.random()<0.05)+randn(0,20); break;
+      case 'dp_hold': rpm=900+80*Math.sin(t/100)+randn(0,8); break;
+      case 'tow_spikes': rpm=950+100*Math.sin(t/80)+(Math.random()<0.1?300:0)+randn(0,15); break;
+      case 'crane_winch': rpm=850+200*Math.sin(t/70)+randn(0,12); break;
+      case 'ramp_cycles': rpm=800+200*(Math.random()<0.1?1:0)+randn(0,10); break;
+      case 'pump_transfer': rpm=900+150*Math.sin(t/90)+randn(0,10); break;
+      case 'standby_sprint': rpm=750+(Math.random()<0.04?700:0)+randn(0,20); break;
+      default: rpm=1000+200*Math.sin(t/100)+randn(0,10);
+    }
+    rpm=clamp(rpm,600,preset.maxRpm);
+    const torque=clamp(torqueFromRpm(rpm,preset.maxTorque)+randn(0,8),40,preset.maxTorque);
+    const loadPct=clamp(100*torque/preset.maxTorque,5,100);
+
+    const hyd_pressure=(signals.includes('hyd_pressure')||signals.includes('ramp_hyd_pressure'))? hydCycle(t,260,0.12,6,185):undefined;
+    const winch_tension=signals.includes('winch_tension')? Math.max(0,(Math.random()<0.1?50+300*Math.random():5+randn(0,3))):undefined;
+    const towline_tension=signals.includes('towline_tension')? Math.max(0,(Math.random()<0.08?100+600*Math.random():8+randn(0,5))):undefined;
+    const cargo_pump_pressure=signals.includes('cargo_pump_pressure')? (Math.random()<0.4? 120+30*Math.sin(t/40)+randn(0,5):5+randn(0,1)):undefined;
+    const cargo_pump_temp=signals.includes('cargo_pump_temp')? (Math.random()<0.4? 35+0.02*t+randn(0,0.2):28+randn(0,0.2)):undefined;
+    const gen_load=signals.includes('gen_load')? clamp(30+0.2*loadPct+(Math.random()<0.3?30:0)+randn(0,4),10,100):undefined;
+    const thruster_load=signals.includes('thruster_load')? dpThrusterLoad(t,0.5):undefined;
+    const dp_status=signals.includes('dp_status')? (thruster_load&&thruster_load>35?1:0):undefined;
+
+    const combinedLoad=clamp((0.8*loadPct)+(gen_load||0)*0.4+(thruster_load||0)*0.6,0,100);
+    oil=tempStep(oil,combinedLoad); cool=tempStep(cool,combinedLoad,27,150);
+    faultDrift+=(Math.random()<0.002?1:0);
+    const vibration_x=vibComponents(loadPct,faultDrift)+randn(0,0.01);
+    const vibration_y=vibComponents(loadPct,faultDrift)+randn(0,0.01);
+    const vibration_z=vibComponents(loadPct,faultDrift)+randn(0,0.012);
+    const fuel_rate=clamp(20+0.15*torque+randn(0,1.2),10,120);
+    const imu=seaState(t,preset.seas);
+
+    const row={ timestamp:new Date(Date.now()+t*1000).toISOString(), rpm, shaft_torque:torque, vibration_x,vibration_y,vibration_z,
+      oil_temp:oil, coolant_temp:cool, fuel_rate,
+      hyd_pressure, winch_tension, towline_tension, cargo_pump_pressure, cargo_pump_temp,
+      gen_load, thruster_load, dp_status, imu_heave:imu.imu_heave, imu_pitch:imu.imu_pitch, imu_roll:imu.imu_roll
+    };
+    const keep={ timestamp:row.timestamp }; for(const s of signals){ if(row[s]!==undefined) keep[s]=row[s]; }
+    rows.push(keep);
+  }
+  return rows;
+}
+
+export async function writeSimCsv(profileName, signals, outDir){
+  await fs.ensureDir(outDir);
+  const rows=simulateProfileSeries(profileName, signals);
+  const header=['timestamp',...signals].join(',')+'\n';
+  const lines=rows.map(r=>['timestamp',...signals].map(k=>r[k]??'').join(','));
+  const file=path.join(outDir,`${profileName}_sim.csv`);
+  await fs.writeFile(file, header+lines.join('\n'));
+  return file;
+}
+2) Simulator loader & registry for dataset mixing
+
+
+
+Create src/loaders/simProfile.js:
+
+import fs from 'fs-extra';
+import path from 'node:path';
+import Papa from 'papaparse';
+import { writeSimCsv } from '../simulators/simProfile.js';
+
+const RAW_DIR = 'data/raw/sim';
+
+export async function fetchSimForProfile(profileName, signals){
+  await fs.ensureDir(RAW_DIR);
+  const outDir = path.join(RAW_DIR, profileName);
+  const file = path.join(outDir, `${profileName}_sim.csv`);
+  if (!(await fs.pathExists(file))) await writeSimCsv(profileName, signals, outDir);
+  return file;
+}
+
+export async function readSimRows(profileName, signals){
+  const file = await fetchSimForProfile(profileName, signals);
+  const txt = await fs.readFile(file, 'utf8');
+  const { data } = Papa.parse(txt, { header: true, dynamicTyping: true });
+  return data.map(r => signals.map(s => r[s])).filter(arr => arr.every(Number.isFinite));
+}
+Create/replace src/loaders/registry.js:
+
+import fs from 'fs-extra';
+import Papa from 'papaparse';
+import { readSimRows } from './simProfile.js';
+
+const DATA = 'data/raw';
+
+async function readCsvRows(file, mapRow){
+  if (!(await fs.pathExists(file))) return [];
+  const txt = await fs.readFile(file, 'utf8');
+  const { data } = Papa.parse(txt, { header: true, dynamicTyping: true });
+  return data.map(mapRow).filter(a => Array.isArray(a) && a.every(Number.isFinite));
+}
+
+function mapCommon(r){
+  const rpm=r.rpm, tq=r.shaft_torque??r.torque, vx=r.vibration_x??r.vibx, vy=r.vibration_y??r.viby, vz=r.vibration_z??r.vibz;
+  const oil=r.oil_temp??r.oiltemp, cool=r.coolant_temp??r.cooltemp, fuel=r.fuel_rate??r.fuelrate;
+  return [rpm,tq,vx,vy,vz,oil,cool,fuel];
+}
+
+export const loaderSources = {
+  synthetic: {
+    ensure: async () => {},
+    files: async () => [`${DATA}/synth/synthetic.csv`],
+    mapRow: mapCommon,
+  },
+  marineEngine: {
+    ensure: async () => {},
+    files: async () => {
+      const guesses=[`${DATA}/marine_engine/train.csv`,`${DATA}/marine_engine/marine_engine.csv`,`${DATA}/marine_engine/data.csv`];
+      return guesses.filter(p => fs.existsSync(p));
+    },
+    mapRow: mapCommon,
+  },
+  cmapss: {
+    ensure: async () => {},
+    files: async () => [`${DATA}/cmapss/cmapss.csv`],
+    mapRow: (r)=>{ const rpm=r.Nf??r.Nr??r.rpm; const tq=r.Ps30??r.torque??r.shaft_torque; const vx=r.vibration_x??r.W31; const vy=r.vibration_y??r.W32; const vz=r.vibration_z??r.W33; const oil=r.oil_temp??r.T30; const cool=r.coolant_temp??r.T24; const fuel=r.fuel_rate??r.FAR; return [rpm,tq,vx,vy,vz,oil,cool,fuel]; }
+  }
+};
+
+export function makeSimLoader(profileName, signals){
+  return {
+    customRead: async () => readSimRows(profileName, signals)
+  };
+}
+
+export async function loadRowsFromLoader(name, { profileName='tug', signals=[] } = {}){
+  const L = loaderSources[name];
+  if (!L) return [];
+  if (L.customRead) return await L.customRead({ profileName, signals });
+  await L.ensure?.();
+  const files = (await L.files?.()) || [];
+  let rows = [];
+  for (const f of files) rows = rows.concat(await readCsvRows(f, L.mapRow));
+  return rows;
+}
+3) Profile-driven pretraining w/ weighted mixing + simulator
+
+
+
+Replace src/training/pretrain.js:
+
+import fs from 'fs-extra';
+import path from 'node:path';
+import * as tf from '@tensorflow/tfjs-node';
+import { buildAeLstm, fitAe } from '../models/aeLstm.js';
+import { seriesToWindows } from '../features/window.js';
+import { fetchCmapss } from '../loaders/cmapss.js';
+import { fetchMarineEngine } from '../loaders/marineEngine.js';
+import { generateSynthetic } from '../loaders/synthetic.js';
+import { loadRowsFromLoader, makeSimLoader } from '../loaders/registry.js';
+
+const PROFILE = process.env.PROFILE || 'tug';
+const CHECKPOINT_DIR = process.env.CHECKPOINT_DIR || './checkpoints';
+
+function addDerived(r){ const [rpm,tq,vx,vy,vz,oil,cool,fuel]=r; const vibMag=Math.sqrt((vx||0)**2+(vy||0)**2+(vz||0)**2); return [rpm,tq,vx,vy,vz,oil,cool,fuel,vibMag]; }
+async function ensureRaw(){ await fetchCmapss(); await fetchMarineEngine(); await generateSynthetic(); }
+async function loadProfile(){ const f=`src/profiles/${PROFILE}.json`; if(!(await fs.pathExists(f))) throw new Error(`Profile not found: ${f}`); return fs.readJson(f); }
+function resolveMix(cfg){ const m=cfg.baseline_dataset_mix||[]; if(!m.length) return [{loader:'synthetic',weight:1}]; return m.map(x => (x.loader==='sim'||x.loader==='simProfile')? {...x,_sim:true}: x); }
+function sampleWeighted(bags, weights, target=8000){ const tot=weights.reduce((a,b)=>a+b,0)||1; const counts=weights.map(w=>Math.max(0,Math.floor(target*(w/tot)))); const out=[]; for(let i=0;i<bags.length;i++){ const b=bags[i]; if(!b?.length||!counts[i]) continue; for(let k=0;k<counts[i];k++) out.push(b[Math.floor(Math.random()*b.length)]); } return out.length? out.flat(): []; }
+
+async function main(){
+  await ensureRaw();
+  const cfg = await loadProfile();
+  const signals = cfg.signals?.length ? cfg.signals : ['rpm','shaft_torque','vibration_x','vibration_y','vibration_z','oil_temp','coolant_temp','fuel_rate'];
+  const winLen = cfg.feature_windows?.len_sec ?? 60;
+  const stride = cfg.feature_windows?.stride_sec ?? 10;
+
+  const mix = resolveMix(cfg);
+  const rowsBySrc = [];
+  for (const src of mix){
+    if (src._sim){
+      const sim = makeSimLoader(PROFILE, signals);
+      const rows = await sim.customRead({ profileName: PROFILE, signals });
+      rowsBySrc.push(rows.map(addDerived));
+    } else {
+      rowsBySrc.push((await loadRowsFromLoader(src.loader, { profileName: PROFILE, signals })).map(addDerived));
+    }
+  }
+  if (!rowsBySrc.some(a=>a.length)){
+    console.warn('[pretrain] mix empty; falling back to simulator only');
+    const sim = makeSimLoader(PROFILE, signals);
+    const rows = await sim.customRead({ profileName: PROFILE, signals });
+    rowsBySrc.push(rows.map(addDerived));
+  }
+
+  const windowsBySrc = rowsBySrc.map(rows => seriesToWindows(rows, winLen, stride));
+  const X = tf.tensor(sampleWeighted(windowsBySrc, mix.map(m=>m.weight??1), 8000));
+  const model = buildAeLstm({ timesteps:X.shape[1], nFeatures:X.shape[2], latentDim:48 });
+  await fitAe(model, X, { epochs:10, batchSize:64, verbose:1 });
+
+  const out = path.join(CHECKPOINT_DIR, `${PROFILE}_baseline`);
+  await fs.ensureDir(out);
+  await model.save(`file://${out}`);
+  console.log('Saved baseline →', out);
+}
+main().catch(e=>{ console.error(e); process.exit(1); });
+Create src/training/pretrainAll.js (dynamic discovery):
+
+import fs from 'fs-extra';
+import path from 'node:path';
+import { spawn } from 'node:child_process';
+
+const PROFILES_DIR = 'src/profiles';
+
+function run(cmd,args,env={}){ return new Promise(res=>{ const p=spawn(cmd,args,{stdio:'inherit',env:{...process.env,...env}}); p.on('close',code=>res(code)); }); }
+
+(async ()=>{
+  const files=(await fs.readdir(PROFILES_DIR)).filter(f=>f.endsWith('.json') && f!=='manifest.json');
+  if(!files.length){ console.error('[pretrainAll] no profiles'); process.exit(1); }
+  const profiles=files.map(f=>path.basename(f,'.json'));
+  const results=[];
+  for(const prof of profiles){
+    console.log(`\n=== PRETRAIN ${prof} ===`);
+    const code=await run('node',['src/training/pretrain.js'],{ PROFILE: prof });
+    results.push({ profile:prof, code });
+  }
+  console.log('\n[pretrainAll] done:', results);
+  process.exit(results.some(r=>r.code!==0)?1:0);
+})();
+4) Quantile calibration + contributors (optional but useful in 
+
+/score
+
+)
+
+
+
+Create src/training/calibrate.js:
+
+import fs from 'fs-extra';
+import path from 'node:path';
+import * as tf from '@tensorflow/tfjs-node';
+import Papa from 'papaparse';
+import { seriesToWindows } from '../features/window.js';
+
+const VESSEL = process.env.VESSEL_ID || 'V001';
+const PROFILE = process.env.PROFILE || 'tug';
+const CKPT = process.env.CHECKPOINT_DIR || './checkpoints';
+
+function addDerived(row){ const [rpm,tq,vx,vy,vz,oil,cool,fuel]=row; const vibMag=Math.sqrt((vx||0)**2+(vy||0)**2+(vz||0)**2); return [rpm,tq,vx,vy,vz,oil,cool,fuel,vibMag]; }
+function q(arr,p){ const a=Float32Array.from(arr).sort(); const pos=(a.length-1)*p, b=Math.floor(pos), r=pos-b; return a[b]+((a[b+1]??a[b])-a[b])*r; }
+async function loadCsv(file){ const txt=await fs.readFile(file,'utf8'); const {data}=Papa.parse(txt,{header:true,dynamicTyping:true}); return data.map(r=>[r.rpm,r.shaft_torque,r.vibration_x,r.vibration_y,r.vibration_z,r.oil_temp,r.coolant_temp,r.fuel_rate]).filter(a=>a.every(Number.isFinite)).map(addDerived); }
+
+async function main(){
+  const vcsv=path.join('data','company',`${VESSEL}.csv`);
+  if(!(await fs.pathExists(vcsv))) throw new Error('missing vessel CSV');
+  const rows=await loadCsv(vcsv); const X=tf.tensor(seriesToWindows(rows,60,10));
+  const vpath=path.join(CKPT,`${VESSEL}_current/model.json`);
+  const ppath=path.join(CKPT,`${PROFILE}_baseline/model.json`);
+  const model=await tf.loadLayersModel(`file://${(await fs.pathExists(vpath))?vpath:ppath}`);
+  const pred=model.predict(X);
+  const mse=tf.mean(tf.square(tf.sub(X,pred)),[1,2]).dataSync();
+  const err=tf.square(tf.sub(X,pred)); const perFeat=tf.mean(err,[0,1]).dataSync();
+  const thr=q(mse,0.975);
+  const outDir=path.join(CKPT,`${VESSEL}_current`); await fs.ensureDir(outDir);
+  await fs.writeJson(path.join(outDir,'thresholds.json'),{ q975:thr, per_feature:[...perFeat] },{spaces:2});
+  console.log('q97.5 =',thr);
+}
+main().catch(e=>{ console.error(e); process.exit(1); });
+(Optional) In your active src/service/server.js, where /score returns a result, include:
+
+threshold if checkpoints/<vessel>_current/thresholds.json exists.
+
+top_contributors = top 3 feature indices by mean error.
+
+(You already have an engine flag; keep it.)
+
+5) Admin endpoints
+
+
+
+Edit the active src/service/server.js that already has admin routes (requireAdmin, run, etc.). Add:
+
+app.post('/admin/pretrainAll', async (req, reply) => {
+  if (!requireAdmin(req, reply)) return;
+  return await run('node', ['src/training/pretrainAll.js']);
+});
+
+app.post('/admin/sim', async (req, reply) => {
+  if (!requireAdmin(req, reply)) return;
+  const { profile='tug' } = req.body || {};
+  const cfg = await fs.readJson(`src/profiles/${profile}.json`);
+  const { writeSimCsv } = await import('../simulators/simProfile.js');
+  const file = await writeSimCsv(profile, cfg.signals || [], `data/raw/sim/${profile}`);
+  return { ok:true, file };
+});
+
+app.post('/admin/calibrate', async (req, reply) => {
+  if (!requireAdmin(req, reply)) return;
+  const { vesselId='V001', profile='tug' } = req.body || {};
+  return await run('node', ['src/training/calibrate.js'], { VESSEL_ID: vesselId, PROFILE: profile });
+});
+6) Dashboard buttons (small, optional)
+
+
+
+In dashboard/app/page.tsx, inside the Audit button group (where you already have Run/Remediate), add:
+
+<button
+  onClick={async () => {
+    const r = await fetch(`${API}/admin/pretrainAll`, {
+      method: 'POST',
+      headers: { 'x-admin-token': process.env.NEXT_PUBLIC_ADMIN_TOKEN || '' }
+    });
+    const j = await r.json(); setRem(j);
+  }}
+  className="px-3 py-1 bg-indigo-600 rounded"
+>
+  Pretrain All
+</button>
+
+<button
+  onClick={async () => {
+    const r = await fetch(`${API}/admin/sim`, {
+      method: 'POST',
+      headers: { 'x-admin-token': process.env.NEXT_PUBLIC_ADMIN_TOKEN || '', 'content-type':'application/json' },
+      body: JSON.stringify({ profile: 'tug' })
+    });
+    const j = await r.json(); setRem(j);
+  }}
+  className="px-3 py-1 bg-teal-600 rounded"
+>
+  Generate Sim (tug)
+</button>
+
+<button
+  onClick={async () => {
+    const r = await fetch(`${API}/admin/calibrate`, {
+      method: 'POST',
+      headers: { 'x-admin-token': process.env.NEXT_PUBLIC_ADMIN_TOKEN || '', 'content-type':'application/json' },
+      body: JSON.stringify({ vesselId: 'V001', profile: 'tug' })
+    });
+    const j = await r.json(); setRem(j);
+  }}
+  className="px-3 py-1 bg-rose-600 rounded"
+>
+  Calibrate V001
+</button>
+(Optional in ScoreForm.tsx, show engine and threshold from /score response.)
+
+7) Profile JSONs: enable simulator in the mix
+
+
+
+Open each src/profiles/*.json and ensure baseline_dataset_mix includes the simulator, e.g.:
+
+"baseline_dataset_mix": [
+  { "loader": "sim", "weight": 0.4 },
+  { "loader": "marineEngine", "weight": 0.3 },
+  { "loader": "cmapss", "weight": 0.3 }
+]
+(Weights are per profile; tune as needed.)
+
+8) Runbook (after patch)
+
+cp .env.example .env      # set ADMIN_TOKEN, KAGGLE_* if you have them
+npm i
+npm run seed:profiles     # if needed, ensures profiles exist
+npm run pull:data         # pulls synthetic + attempts C-MAPSS + Kaggle
+npm run pretrain:all      # trains all baselines using each profile’s mix
+npm run dev               # API up on :8000
+
+# Optional:
+VESSEL_ID=V001 PROFILE=tug npm run calibrate   # write thresholds.json
+Smoke tests
+
+GET /capabilities → shows profiles and checkpoints (tfjs/onnx if you convert).
+
+POST /admin/pretrainAll → runs fleet baseline training.
+
+/score → returns { engine: 'tfjs' | 'onnx', anomaly_score, threshold? }.
+
+That’s it. This single prompt wires profile-driven, weighted pretraining with realistic simulators, adds a dynamic pretrain-all runner, and gives you one-click control from the dashboard/admin.

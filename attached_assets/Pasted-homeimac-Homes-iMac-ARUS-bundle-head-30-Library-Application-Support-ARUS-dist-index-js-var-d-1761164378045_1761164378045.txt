@@ -1,0 +1,133 @@
+homeimac@Homes-iMac ARUS-bundle % head -30 ~/Library/Application\ Support/ARUS/dist/index.js
+var __defProp = Object.defineProperty;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
+  get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
+}) : x)(function(x) {
+  if (typeof require !== "undefined") return require.apply(this, arguments);
+  throw Error('Dynamic require of "' + x + '" is not supported');
+});
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+
+// shared/sync-conflicts-schema.ts
+var sync_conflicts_schema_exports = {};
+__export(sync_conflicts_schema_exports, {
+  insertSyncConflictSchema: () => insertSyncConflictSchema,
+  syncConflicts: () => syncConflicts
+});
+import { pgTable, varchar, text, integer, timestamp, boolean, index } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { createInsertSchema } from "drizzle-zod";
+var syncConflicts, insertSyncConflictSchema;
+var init_sync_conflicts_schema = __esm({
+  "shared/sync-conflicts-schema.ts"() {
+    "use strict";
+    init_schema();
+homeimac@Homes-iMac ARUS-bundle % >....                                         
+    console.log('Stack:', error.stack);
+    return false;
+  }
+}
+
+async function run() {
+  process.env.LOCAL_MODE = 'true';
+  process.env.DATABASE_PATH = '/Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db';
+  process.env.NODE_ENV = 'production';
+
+  // Test imports in order
+  await testImport('db-config', './dist/db-config.js');
+  await testImport('storage', './dist/storage.js');
+  await testImport('routes', './dist/routes.js');
+  await testImport('job-processors', './dist/job-processors.js');
+  await testImport('Full server', './dist/index.js');
+}
+
+run().catch(console.error);
+EOF
+
+node test-imports.js
+Testing imports one by one...
+
+→ Testing: db-config
+❌ db-config FAILED
+Error: Cannot find module '/Users/homeimac/Library/Application Support/ARUS/dist/db-config.js' imported from /Users/homeimac/Library/Application Support/ARUS/test-imports.js
+Stack: Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/Users/homeimac/Library/Application Support/ARUS/dist/db-config.js' imported from /Users/homeimac/Library/Application Support/ARUS/test-imports.js
+    at finalizeResolution (node:internal/modules/esm/resolve:264:11)
+    at moduleResolve (node:internal/modules/esm/resolve:917:10)
+    at defaultResolve (node:internal/modules/esm/resolve:1130:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:396:12)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:365:25)
+    at ModuleLoader.getModuleJob (node:internal/modules/esm/loader:240:38)
+    at ModuleLoader.import (node:internal/modules/esm/loader:328:34)
+    at importModuleDynamically (node:internal/modules/esm/translators:158:35)
+    at importModuleDynamicallyCallback (node:internal/modules/esm/utils:207:14)
+    at testImport (file:///Users/homeimac/Library/Application%20Support/ARUS/test-imports.js:7:5)
+→ Testing: storage
+❌ storage FAILED
+Error: Cannot find module '/Users/homeimac/Library/Application Support/ARUS/dist/storage.js' imported from /Users/homeimac/Library/Application Support/ARUS/test-imports.js
+Stack: Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/Users/homeimac/Library/Application Support/ARUS/dist/storage.js' imported from /Users/homeimac/Library/Application Support/ARUS/test-imports.js
+    at finalizeResolution (node:internal/modules/esm/resolve:264:11)
+    at moduleResolve (node:internal/modules/esm/resolve:917:10)
+    at defaultResolve (node:internal/modules/esm/resolve:1130:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:396:12)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:365:25)
+    at ModuleLoader.getModuleJob (node:internal/modules/esm/loader:240:38)
+    at ModuleLoader.import (node:internal/modules/esm/loader:328:34)
+    at importModuleDynamically (node:internal/modules/esm/translators:158:35)
+    at importModuleDynamicallyCallback (node:internal/modules/esm/utils:207:14)
+    at testImport (file:///Users/homeimac/Library/Application%20Support/ARUS/test-imports.js:7:5)
+→ Testing: routes
+❌ routes FAILED
+Error: Cannot find module '/Users/homeimac/Library/Application Support/ARUS/dist/routes.js' imported from /Users/homeimac/Library/Application Support/ARUS/test-imports.js
+Stack: Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/Users/homeimac/Library/Application Support/ARUS/dist/routes.js' imported from /Users/homeimac/Library/Application Support/ARUS/test-imports.js
+    at finalizeResolution (node:internal/modules/esm/resolve:264:11)
+    at moduleResolve (node:internal/modules/esm/resolve:917:10)
+    at defaultResolve (node:internal/modules/esm/resolve:1130:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:396:12)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:365:25)
+    at ModuleLoader.getModuleJob (node:internal/modules/esm/loader:240:38)
+    at ModuleLoader.import (node:internal/modules/esm/loader:328:34)
+    at importModuleDynamically (node:internal/modules/esm/translators:158:35)
+    at importModuleDynamicallyCallback (node:internal/modules/esm/utils:207:14)
+    at testImport (file:///Users/homeimac/Library/Application%20Support/ARUS/test-imports.js:7:5)
+→ Testing: job-processors
+❌ job-processors FAILED
+Error: Cannot find module '/Users/homeimac/Library/Application Support/ARUS/dist/job-processors.js' imported from /Users/homeimac/Library/Application Support/ARUS/test-imports.js
+Stack: Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/Users/homeimac/Library/Application Support/ARUS/dist/job-processors.js' imported from /Users/homeimac/Library/Application Support/ARUS/test-imports.js
+    at finalizeResolution (node:internal/modules/esm/resolve:264:11)
+    at moduleResolve (node:internal/modules/esm/resolve:917:10)
+    at defaultResolve (node:internal/modules/esm/resolve:1130:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:396:12)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:365:25)
+    at ModuleLoader.getModuleJob (node:internal/modules/esm/loader:240:38)
+    at ModuleLoader.import (node:internal/modules/esm/loader:328:34)
+    at importModuleDynamically (node:internal/modules/esm/translators:158:35)
+    at importModuleDynamicallyCallback (node:internal/modules/esm/utils:207:14)
+    at testImport (file:///Users/homeimac/Library/Application%20Support/ARUS/test-imports.js:7:5)
+→ Testing: Full server
+2025-10-23 04:19:13.322208: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 FMA
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+
+=== Database Configuration ===
+Deployment Mode: VESSEL (Offline-First)
+⚠ Turso Sync: Disabled (credentials not configured)
+  Running in offline-only mode without cloud sync
+  Set TURSO_SYNC_URL and TURSO_AUTH_TOKEN to enable sync
+→ Applying SQLite performance optimizations...
+✓ SQLite performance optimizations applied
+  • WAL mode enabled (better concurrency)
+  • Cache: 64MB
+  • Sync: NORMAL (safe with WAL)
+  • Foreign keys: ON
+✓ Local SQLite: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+→ Initializing SQLite database tables...
+[SQLite Init] Initializing vessel mode database...
+[SQLite Init] Database initialized successfully with 131 tables (100% feature parity) at: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+✓ SQLite tables initialized
+==============================

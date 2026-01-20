@@ -1,0 +1,92 @@
+You are an expert TypeScript/Node.js software architect specializing in DDD modular monoliths, hexagonal architecture, event-driven integration, CQRS read models, and ML/PdM systems.
+
+TASK
+Assess whether this codebase follows (or can be reasonably considered to follow) the target architecture:
+- DDD modular monolith (bounded contexts/modules with clear ownership)
+- Hexagonal architecture (domain/application/infrastructure separation; ports/adapters)
+- Event-driven integration with an outbox pattern (or equivalent reliable event publishing)
+- CQRS selectively for heavy read models (dashboards/scheduling boards/reporting)
+- ML/PdM separation: “prediction produces facts, domain decides actions” + auditability/model versioning
+- Workflow/Saga for cross-context flows (PdM → maintenance planning → spares/crew scheduling)
+
+REPO SCAN INSTRUCTIONS (DO THIS FIRST)
+1) Print a concise repo map:
+   - top-level folders
+   - backend vs frontend
+   - key packages (apps/, packages/, services/, modules/)
+   - database/migrations folders
+   - queue/event-related folders
+2) Detect stack and runtime:
+   - Node/TS versions, framework (Express/Fastify/Nest/etc)
+   - ORM (Prisma/TypeORM/Drizzle/Sequelize/etc)
+   - message broker usage (Kafka/NATS/Rabbit/MQTT/SQS/etc)
+   - DBs used (Postgres/MySQL/SQLite/Redis/ClickHouse/etc)
+3) Identify “domain boundaries” as they exist today:
+   - find features/modules for: vessel registry, maintenance/work orders, scheduling/crew, compliance/certs, inventory/spares, telemetry ingestion, PdM inference/model outputs
+   - list folders/files and approximate ownership for each
+
+ARCHITECTURE CHECKLIST (EVALUATE WITH EVIDENCE)
+For each item below:
+- state: PASS / PARTIAL / FAIL
+- cite concrete evidence: file paths, key classes/functions, folder structure, schemas
+- explain impact/risk in 1–2 bullets
+- propose the smallest next step to improve
+
+A) DDD modular monolith / bounded contexts
+- Are there clearly separated modules/contexts, or is everything in one “features” soup?
+- Are dependencies between contexts controlled (no random imports across boundaries)?
+- Do modules own their data models or schema areas?
+
+B) Hexagonal (Ports & Adapters)
+- Does domain code avoid direct DB/API/queue/ML calls?
+- Are there interfaces/ports (repositories, event publishers, external gateways)?
+- Are adapters implemented in infrastructure layer and injected?
+
+C) Event-driven integration + reliability
+- Are domain events defined (e.g., WorkOrderCreated, TelemetryAnomalyDetected)?
+- Is there an event bus abstraction?
+- Is there an outbox table + dispatcher, or another reliable publish mechanism?
+- Is idempotency handled for event consumers?
+
+D) CQRS selectively
+- Are read models/projections used for:
+  - schedule planner/board views
+  - fleet health dashboards
+  - compliance reports
+- If yes, where are projections built and stored?
+- If not, identify the top 3 heavy queries that should be projected.
+
+E) ML/PdM boundaries and auditability
+- Are PdM outputs stored with modelVersion/featureVersion/confidence/timeWindow?
+- Is PdM producing “facts/events” rather than directly mutating ops tables?
+- Is there a triage/human-in-loop workflow state machine?
+
+F) Workflow/Saga (cross-context processes)
+- Is there orchestration for multi-step flows (alerts → plan → spares → crew schedule)?
+- If not, where would a saga live, and what events/commands would it use?
+
+G) Security, audit, and compliance basics (lightweight check)
+- RBAC/roles for approvals, who can defer/approve maintenance
+- audit log (who/what/when), immutability for key decisions
+
+DELIVERABLES (OUTPUT FORMAT)
+1) “Architecture Fit Score” (0–100) with a short rationale
+2) PASS/PARTIAL/FAIL table for A–G (keep it tight)
+3) Evidence list (bullet points with file paths)
+4) 30/60/90-day refactor plan:
+   - 30 days: quick wins (low risk)
+   - 60 days: structural improvements
+   - 90 days: event/outbox + projections + saga readiness
+5) A proposed target folder/module layout (TypeScript) tailored to THIS repo, showing:
+   - /modules/<context>/{domain,application,infrastructure,interfaces}
+   - /shared/{auth,db,eventbus,logging,audit}
+   - /projections (read models)
+   - /ml (inference contracts, model registry client, feature pipeline adapters)
+
+IMPORTANT RULES
+- Do NOT rewrite the entire app.
+- Prefer minimal, incremental changes that preserve current behavior.
+- When you suggest a change, reference exactly where it would go in this repo.
+- If you can’t find something, say so and mark it as “unknown” rather than guessing.
+
+Now start by scanning the repository and printing the repo map, then proceed through the checklist.

@@ -1,0 +1,479 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==========================================================
+REM ARUS – Beast Mode Patch (no authentication changes)
+REM - PdM: Vibration FFT + ISO features + Fault bands
+REM - PdM: Weibull RUL w/ CI (method-of-moments)
+REM - Optimizer: LP-based planner (crew, port, spares, cost)
+REM - Compliance: PDF pack builder + SHA-256 signature
+REM - Telemetry: /trend rollups + sparkline API
+REM - Inventory: stock-out risk scoring
+REM - Frontend: 6 new cards mounted in App
+REM ==========================================================
+
+if not exist "backend-node\src" (
+echo [ERROR] backend-node/src not found. Run from repo root.
+exit /b 1
+)
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+REM ----------------------------------------------------------
+REM 0) Ensure backend deps
+REM ----------------------------------------------------------
+%PS% ^
+"$f='backend-node/package.json'; $j=(Get-Content -Raw $f | ConvertFrom-Json);" ^
+"$j.dependencies.'simple-statistics' = $j.dependencies.'simple-statistics' ?? '^7.8.3';" ^
+"$j.dependencies.'fft.js' = $j.dependencies.'fft.js' ?? '^4.0.4';" ^
+"$j.dependencies.'javascript-lp-solver' = $j.dependencies.'javascript-lp-solver' ?? '^0.4.24';" ^
+"$j.dependencies.'pdf-lib' = $j.dependencies.'pdf-lib' ?? '^1.17.1';" ^
+"$j.dependencies.'cross-fetch' = $j.dependencies.'cross-fetch' ?? '^4.0.0';" ^
+"$j | ConvertTo-Json -Depth 10 | Set-Content -Encoding UTF8 $f;"
+
+REM ----------------------------------------------------------
+REM 1) PdM: vibration analytics
+REM ----------------------------------------------------------
+> backend-node\src\pdm.vibration.ts (
+echo import path from "node:path";
+echo import Database from "better-sqlite3";
+echo import { FFT } from "fft.js";
+echo import { mean } from "simple-statistics";
+echo
+echo type VibeInput = { fs:number; window:string; series:number[]; shaft_rpm?:number };
+echo type BandScore = { band:string; rms:number; note?:string };
+echo
+echo function hann(N:number){ return Array.from({length:N},(_,n)=>0.5*(1-Math.cos(2*Math.PI*n/(N-1)))); }
+echo function detrend(x:number[]){ const m = mean(x); return x.map(v=>v-m); }
+echo
+echo export function spectrum(v: VibeInput){
+echo const x = detrend(v.series);
+echo const N = x.length; const win = hann(N);
+echo const winX = x.map((xi,i)=>xi*win[i]);
+echo const f = new FFT(N); const out = new Array(N).fill(0);
+echo const re = winX.slice(); const im = new Array(N).fill(0);
+echo f.transform(out, re, im); // out is interleaved? (fft.js variant: we built quick wrapper:)
+echo // Build magnitude
+echo const Re = re, Im = im; // compatibility for clarity
+echo const mag:number[] = [];
+echo for (let k=0;k<N/2;k++){ const a=Re[k]||0, b=Im[k]||0; mag.push(Math.sqrt(a*a+b*b)); }
+echo const df = v.fs/N; const freq = mag.map((_,i)=>i*df);
+echo return { freq, mag };
+echo }
+echo
+echo export function isoBandRMS(freq:number[], mag:number[]){
+echo // Simplified ISO bands: <10Hz, 10-100Hz, 100-1kHz
+echo const bands = [ [0,10,'<10Hz'], [10,100,'10-100Hz'], [100,1000,'100-1kHz'] ] as const;
+echo const res: BandScore[] = [];
+echo for (const [f0,f1,name] of bands){
+echo let sum=0, cnt=0;
+echo for (let i=0;i<freq.length;i++){ if (freq[i]>=f0 && freq[i]<f1){ sum += mag[i]*mag[i]; cnt++; } }
+echo res.push({ band:name, rms: Math.sqrt(sum/Math.max(1,cnt)) });
+echo }
+echo return res;
+echo }
+echo
+echo export function faultBands(freq:number[], mag:number[], rpm:number|undefined){
+echo // Bearing fault bands approx: 1x, 2x orders around shaft order (±5%% window)
+echo if (!rpm) return [];
+echo const orders = [1,2,3]; const res: BandScore[] = [];
+echo const f1 = rpm/60; // Hz
+echo for (const o of orders){
+echo const target = o*f1; const w = Math.max(0.02*target, 0.2);
+echo let sum=0,cnt=0;
+echo for (let i=0;i<freq.length;i++){ if (Math.abs(freq[i]-target)<=w){ sum+=mag[i]*mag[i]; cnt++; } }
+echo res.push({ band: `${o}x (${target.toFixed(2)}Hz)`, rms: Math.sqrt(sum/Math.max(1,cnt)) });
+echo }
+echo return res;
+echo }
+echo
+echo export function analyzeVibration(input: VibeInput){
+echo const spec = spectrum(input);
+echo const iso = isoBandRMS(spec.freq, spec.mag);
+echo const fb = faultBands(spec.freq, spec.mag, input.shaft_rpm);
+echo return { spec, iso, fault: fb };
+echo }
+)
+
+REM ----------------------------------------------------------
+REM 2) PdM: Weibull RUL
+REM ----------------------------------------------------------
+> backend-node\src\pdm.rul.ts (
+echo import { mean, variance } from "simple-statistics";
+echo
+echo export type WeibullFit = { shape:number; scale:number; method:string };
+echo export type Rule = { current_age_days:number; alpha?:number };
+echo
+echo export function fitWeibullMOm(samples:number[]): WeibullFit {
+echo // Method-of-moments approx (conservative)
+echo const m = mean(samples); const v = variance(samples);
+echo // empirical: k ~ (m^2 / v)^{1.086} (rough fit); scale λ = m / Γ(1+1/k)
+echo const k = Math.max(0.5, Math.pow((m*m)/(v||1e-6), 1.086));
+echo const gamma = (z:number)=>{ // Euler approximation for small set (Stirling-like)
+echo const g = (x:number)=>Math.sqrt(2*Math.PI/x)*Math.pow(x/Math.E,x);
+echo return g(z-1);
+echo };
+echo const lam = m / (gamma(1+1/k)||1);
+echo return { shape:k, scale:lam, method:"mom-approx" };
+echo }
+echo
+echo export function rulDays(fit:WeibullFit, rule:Rule){
+echo const age = Math.max(0, rule.current_age_days);
+echo // RUL median: solve S(t)=0.5 -> t = λ (ln 2)^{1/k}
+echo const t50 = fit.scale * Math.pow(Math.log(2), 1/fit.shape);
+echo const rul50 = Math.max(0, t50 - age);
+echo // Crude CI from spread: t25 and t75
+echo const tq = (q:number)=> fit.scale * Math.pow(Math.log(1/(1-q)), 1/fit.shape) - age;
+echo const lo = Math.max(0, tq(0.25)); const hi = Math.max(0, tq(0.75));
+echo return { rul_median_days: rul50, ci_50pct: [lo, hi] };
+echo }
+)
+
+REM ----------------------------------------------------------
+REM 3) Optimizer 2.0 (LP)
+REM ----------------------------------------------------------
+> backend-node\src\optimizer.plan.ts (
+echo import Solver from "javascript-lp-solver";
+echo
+echo type Job = { id:string; vessel_id:string; duration_h:number; earliest:string; latest:string; crew_req:number; part?:string; };
+echo type CrewCap = { vessel_id:string; day:string; crew_available:number };
+echo type PartCap = { part:string; available:number; lead_days:number };
+echo
+echo export function planSchedule(jobs:Job[], crewCaps:CrewCap[], parts:PartCap[]){
+echo // Horizon discretized by day; all dates as 'YYYY-MM-DD'
+echo const days = Array.from(new Set(jobs.flatMap(j=>[j.earliest, j.latest]))).sort();
+echo const model:any = { optimize: "cost", opType: "min", constraints: {}, variables: {}, ints: {} };
+echo
+echo // cost-of-delay: schedule closer to earliest is cheaper
+echo function delayCost(j:Job, d:string){
+echo const dd = (Date.parse(d) - Date.parse(j.earliest))/86400000;
+echo return Math.max(0, dd); // linear penalty per day
+echo }
+echo
+echo for (const j of jobs){
+echo // choose exactly one day in [earliest..latest]
+echo const feasible = days.filter(d=> Date.parse(d)>=Date.parse(j.earliest) && Date.parse(d)<=Date.parse(j.latest));
+echo model.constraints[\`assign_\${j.id}\`] = { equal: 1 };
+echo for (const d of feasible){
+echo const varName = \`x_\${j.id}_\${d}\`;
+echo model.variables[varName] = { cost: delayCost(j,d) };
+echo model.ints[varName] = 1;
+echo model.variables[varName][\`assign_\${j.id}\`] = 1;
+echo // crew capacity on vessel/day
+echo const crewKey = \`crew_\${j.vessel_id}_\${d}\`;
+echo model.constraints[crewKey] = model.constraints[crewKey] || { max: crewCaps.find(c=>c.vessel_id===j.vessel_id && c.day===d)?.crew_available ?? 0 };
+echo model.variables[varName][crewKey] = j.crew_req;
+echo // part capacity if needed
+echo if (j.part){
+echo const pc = parts.find(p=>p.part===j.part) || { available:0, lead_days:0, part:j.part };
+echo const partKey = \`part_\${j.part}_\${d}\`;
+echo const avail = (Date.parse(d) - Date.now())/86400000 >= pc.lead_days ? pc.available : 0;
+echo model.constraints[partKey] = model.constraints[partKey] || { max: avail };
+echo model.variables[varName][partKey] = 1;
+echo }
+echo }
+echo }
+echo
+echo const out = Solver.Solve(model);
+echo const plan = Object.entries(out).filter(([k,v]:any)=>k.startsWith("x_") && v===1).map(([k])=>{
+echo const [_,job,day] = k.split("_"); return { job_id: job, day };
+echo });
+echo return { ok:true, objective: out.result, plan };
+echo }
+)
+
+REM ----------------------------------------------------------
+REM 4) Compliance PDF with signature
+REM ----------------------------------------------------------
+> backend-node\src\compliance.pdf.ts (
+echo import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+echo import crypto from "node:crypto";
+echo
+echo export async function buildCompliancePDF(payload:any){
+echo const pdf = await PDFDocument.create();
+echo const page = pdf.addPage([595, 842]); // A4
+echo const font = await pdf.embedFont(StandardFonts.Helvetica);
+echo const draw = (txt:string, x:number, y:number, size=12)=> page.drawText(txt, { x, y, size, font, color: rgb(0.1,0.1,0.1) });
+echo
+echo draw("ARUS Compliance Pack", 50, 800, 18);
+echo draw(`Scope: ${payload.scope||'fleet'}`, 50, 780);
+echo draw(`Generated: ${new Date().toISOString()}`, 50, 765);
+echo draw("Summary:", 50, 740);
+echo
+echo let y=720;
+echo for (const line of (payload.summary||[])){
+echo draw(`• ${line}`, 60, y); y-=16; if (y<80){ y=780; pdf.addPage(); }
+echo }
+echo
+echo // Signature (deterministic hash of JSON payload)
+echo const json = JSON.stringify(payload);
+echo const sha = crypto.createHash('sha256').update(json).digest('hex');
+echo draw(`Signature (SHA-256): ${sha}`, 50, 60, 10);
+echo
+echo const bytes = await pdf.save();
+echo return { bytes, sha };
+echo }
+)
+
+REM ----------------------------------------------------------
+REM 5) Trends & Inventory APIs
+REM ----------------------------------------------------------
+> backend-node\src\index.trend.ts (
+echo import express from "express";
+echo import path from "node:path";
+echo import Database from "better-sqlite3";
+echo import { Pool } from "pg";
+echo
+echo const DATABASE_URL = process.env.DATABASE_URL || "";
+echo const USE_PG = !!DATABASE_URL;
+echo
+echo async function qpg<T=any>(sql:string, params:any[]=[]): Promise<T[]>{
+echo const pool = new Pool({ connectionString: DATABASE_URL });
+echo const c = await pool.connect(); try { const r = await c.query(sql, params); return r.rows as any; } finally { c.release(); await pool.end(); }
+echo }
+echo function qlite<T=any>(sql:string, params:any[]=[]): T[]{
+echo const db = new Database(path.join(process.cwd(),"data","arus.sqlite"));
+echo const rows = db.prepare(sql).all(...params); db.close(); return rows as any;
+echo }
+echo
+echo export function mountTrend(v1: express.Router){
+echo // 5-min rollups (mean) with raw fallback
+echo v1.get("/api/telemetry/trend", async (req,res)=>{
+echo const vessel = String(req.query.vessel_id||"");
+echo const src = String(req.query.src||"");
+echo const sig = String(req.query.sig||"");
+echo const hours = Math.min(Number(req.query.hours||"24"), 168);
+echo const since = new Date(Date.now()-hours*3600*1000).toISOString();
+echo if (!vessel||!src||!sig) return res.status(400).json({ok:false,error:"vessel_id, src, sig required"});
+echo if (USE_PG){
+echo const agg = await qpg(\`
+echo SELECT time_bucket('5 minutes', ts) AS t, AVG(value)::float AS v
+echo FROM telemetry
+echo WHERE vessel_id=$1 AND src=$2 AND sig=$3 AND ts >= $4
+echo GROUP BY t ORDER BY t
+echo \`, [vessel,src,sig,since]);
+echo return res.json(agg.map(r=>({ t: (r.t as Date).toISOString(), v: r.v })));
+echo } else {
+echo const rows = qlite("SELECT ts, value FROM telemetry WHERE vessel_id=? AND src=? AND sig=? AND ts>=? ORDER BY ts", [vessel,src,sig,since]);
+echo // downsample 5-min
+echo const bucket = 5*60*1000; const out:any[]=[];
+echo let bStart:number|null=null, sum=0,cnt=0;
+echo for (const r of rows){ const t=Date.parse(r.ts); if (bStart===null) bStart=t; if (t-bStart<bucket){ sum+=r.value||0; cnt++; } else { out.push({t:new Date(bStart).toISOString(), v: cnt? sum/cnt: null}); bStart=t; sum=r.value||0; cnt=1; } }
+echo if (bStart!==null) out.push({t:new Date(bStart).toISOString(), v: cnt? sum/cnt: null});
+echo return res.json(out);
+echo }
+echo });
+echo }
+)
+
+> backend-node\src\index.inventory.ts (
+echo import express from "express";
+echo import path from "node:path";
+echo import Database from "better-sqlite3";
+echo import { Pool } from "pg";
+echo
+echo const DATABASE_URL = process.env.DATABASE_URL || "";
+echo const USE_PG = !!DATABASE_URL;
+echo
+echo async function qpg<T=any>(sql:string, params:any[]=[]): Promise<T[]>{
+echo const pool = new Pool({ connectionString: DATABASE_URL });
+echo const c = await pool.connect(); try { const r = await c.query(sql, params); return r.rows as any; } finally { c.release(); await pool.end(); }
+echo }
+echo function qlite<T=any>(sql:string, params:any[]=[]): T[]{
+echo const db = new Database(path.join(process.cwd(),"data","arus.sqlite"));
+echo const rows = db.prepare(sql).all(...params); db.close(); return rows as any;
+echo }
+echo
+echo export function mountInventory(v1: express.Router){
+echo v1.get("/api/inventory/risk", async (_req,res)=>{
+echo // expects tables: parts(part, min,max, lead_days), stock(part, qty), usage(part, last_30d)
+echo if (USE_PG){
+echo const [p, s, u] = await Promise.all([
+echo qpg("SELECT part, min, max, lead_days FROM parts"),
+echo qpg("SELECT part, qty FROM stock"),
+echo qpg("SELECT part, last_30d FROM usage_rolling")
+echo ]);
+echo const stock = new Map(s.map((x:any)=>[x.part, Number(x.qty)]));
+echo const usage = new Map(u.map((x:any)=>[x.part, Number(x.last_30d)]));
+echo const out = p.map((x:any)=>{ const q=stock.get(x.part)||0; const u30=usage.get(x.part)||0; const daily=u30/30; const risk = (q - daily*x.lead_days) < x.min ? "HIGH" : ((q< x.min)? "MED" : "LOW"); return { part:x.part, qty:q, min:x.min, max:x.max, lead_days:x.lead_days, daily, risk };});
+echo return res.json(out);
+echo } else {
+echo const db = new Database(path.join(process.cwd(),"data","arus.sqlite"));
+echo const p = db.prepare("SELECT part, min, max, lead_days FROM parts").all();
+echo const s = db.prepare("SELECT part, qty FROM stock").all();
+echo const u = db.prepare("SELECT part, last_30d FROM usage_rolling").all();
+echo db.close();
+echo const stock = new Map(s.map((x:any)=>[x.part, Number(x.qty)]));
+echo const usage = new Map(u.map((x:any)=>[x.part, Number(x.last_30d)]));
+echo const out = p.map((x:any)=>{ const q=stock.get(x.part)||0; const u30=usage.get(x.part)||0; const daily=u30/30; const risk = (q - daily*x.lead_days) < x.min ? "HIGH" : ((q< x.min)? "MED" : "LOW"); return { part:x.part, qty:q, min:x.min, max:x.max, lead_days:x.lead_days, daily, risk };});
+echo return res.json(out);
+echo }
+echo });
+echo }
+)
+
+REM ----------------------------------------------------------
+REM 6) Master router to mount all new endpoints
+REM ----------------------------------------------------------
+> backend-node\src\index.beast.ts (
+echo import express from "express";
+echo import { analyzeVibration } from "./pdm.vibration.js";
+echo import { fitWeibullMOm, rulDays } from "./pdm.rul.js";
+echo import { planSchedule } from "./optimizer.plan.js";
+echo import { buildCompliancePDF } from "./compliance.pdf.js";
+echo import { mountTrend } from "./index.trend.js";
+echo import { mountInventory } from "./index.inventory.js";
+echo
+echo export function mountBeast(v1: express.Router){
+echo v1.post("/api/pdm/vibration/analyze", (req,res)=>{ const r = analyzeVibration(req.body); res.json(r); });
+echo v1.post("/api/pdm/rul/estimate", (req,res)=>{ const samples = req.body?.samples||[]; const age = Number(req.body?.current_age_days||0); const fit = fitWeibullMOm(samples); const out = rulDays(fit, { current_age_days: age }); res.json({ fit, ...out }); });
+echo v1.post("/api/optimizer/plan", (req,res)=>{ const { jobs, crewCaps, parts } = req.body||{}; const r = planSchedule(jobs||[], crewCaps||[], parts||[]); res.json(r); });
+echo v1.post("/api/compliance/report/pdf", async (req,res)=>{ const { bytes, sha } = await buildCompliancePDF(req.body||{}); res.setHeader("Content-Type","application/pdf"); res.setHeader("X-Signature-SHA256", sha); res.send(Buffer.from(bytes)); });
+echo // Sub-mounts
+echo mountTrend(v1);
+echo mountInventory(v1);
+echo }
+)
+
+REM Wire it into /v1
+%PS% ^
+"$f='backend-node/src/index.ts'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace '(app\\.use\\(\"/v1\", v1\\);)','import { mountBeast } from \"./index.beast.js\";\nmountBeast(v1);\n$1';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ----------------------------------------------------------
+REM 7) Frontend: 6 new pro cards
+REM ----------------------------------------------------------
+if not exist "frontend\src" (
+echo [WARN] frontend/src not found; skipping UI (backend ready).
+) else (
+> frontend\src\components\Trends.tsx (
+echo import React, { useEffect, useState } from "react";
+echo const BASE = (import.meta as any).env.VITE_API_URL || "http://localhost:8001";
+echo export default function Trends(){
+echo const [vessel,setVessel]=useState(""); const [src,setSrc]=useState("ENG_PORT"); const [sig,setSig]=useState("rpm"); const [rows,setRows]=useState<any[]>([]);
+echo async function load(){ if(!vessel) return; const q = new URLSearchParams({vessel_id:vessel,src,sig,hours:"24"}).toString(); const r=await fetch(\`\${BASE}/v1/api/telemetry/trend?\${q}\`).then(r=>r.json()); setRows(r); }
+echo useEffect(()=>{ const id=setInterval(load, 8000); return ()=>clearInterval(id); },[vessel,src,sig]);
+echo return <div className="card"><h2>Trends</h2>
+echo <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
+echo <input placeholder="Vessel ID" value={vessel} onChange={e=>setVessel(e.target.value)} />
+echo <input placeholder="Source" value={src} onChange={e=>setSrc(e.target.value)} />
+echo <input placeholder="Signal" value={sig} onChange={e=>setSig(e.target.value)} />
+echo <button onClick={load}>Load</button>
+echo </div>
+echo <div style={{marginTop:8,fontSize:12,whiteSpace:'nowrap',overflowX:'auto',border:'1px solid #e2e8f0',padding:6}}>
+echo {rows.map((r,i)=> <span key={i} style={{display:'inline-block',width:2,height:30,background:'#0ea5e9',marginRight:1,transform:`scaleY(\${(r.v??0)/1000})`}} />)}
+echo </div>
+echo </div>
+echo }
+)
+
+> frontend\src\components\VibrationLab.tsx (
+echo import React, { useState } from "react";
+echo const BASE = (import.meta as any).env.VITE_API_URL || "http://localhost:8001";
+echo export default function VibrationLab(){
+echo const [rpm,setRpm]=useState(600); const [fs,setFs]=useState(2000); const [series,setSeries]=useState<string>(""); const [out,setOut]=useState<any>(null);
+echo async function run(){ const nums = series.split(/[\\s,]+/).map(Number).filter(n=>!isNaN(n)); const r=await fetch(\`\${BASE}/v1/api/pdm/vibration/analyze\`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ fs:Number(fs), window:'hann', series:nums, shaft_rpm:Number(rpm) })}).then(r=>r.json()); setOut(r); }
+echo return <div className="card"><h2>Vibration Lab</h2>
+echo <div style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:8}}>
+echo <label>RPM <input value={rpm} onChange={e=>setRpm(Number(e.target.value))}/></label>
+echo <label>fs(Hz) <input value={fs} onChange={e=>setFs(Number(e.target.value))}/></label>
+echo </div>
+echo <textarea placeholder="Paste acceleration series..." value={series} onChange={e=>setSeries(e.target.value)} style={{width:'100%',height:120,marginTop:8}} />
+echo <button onClick={run}>Analyze</button>
+echo {out && <pre className="text-xs bg-gray-50 p-2 rounded mt-2 overflow-x-auto">{JSON.stringify(out,null,2)}</pre>}
+echo </div>
+echo }
+)
+
+> frontend\src\components\RuleEstimator.tsx (
+echo import React, { useState } from "react";
+echo const BASE = (import.meta as any).env.VITE_API_URL || "http://localhost:8001";
+echo export default function RuleEstimator(){
+echo const [samples,setSamples]=useState("120, 140, 180, 160, 150");
+echo const [age,setAge]=useState(80); const [out,setOut]=useState<any>(null);
+echo async function run(){ const arr = samples.split(/[\\s,]+/).map(Number).filter(n=>!isNaN(n)); const r=await fetch(\`\${BASE}/v1/api/pdm/rul/estimate\`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ samples:arr, current_age_days:Number(age) })}).then(r=>r.json()); setOut(r); }
+echo return <div className="card"><h2>RUL Estimator</h2>
+echo <div style={{display:'flex',gap:8,alignItems:'center'}}><label>Current age (days) <input value={age} onChange={e=>setAge(Number(e.target.value))}/></label><button onClick={run}>Estimate</button></div>
+echo {out && <pre className="text-xs bg-gray-50 p-2 rounded mt-2 overflow-x-auto">{JSON.stringify(out,null,2)}</pre>}
+echo </div>
+echo }
+)
+
+> frontend\src\components\OptimizerPlanner.tsx (
+echo import React, { useState } from "react";
+echo const BASE = (import.meta as any).env.VITE_API_URL || "http://localhost:8001";
+echo export default function OptimizerPlanner(){
+echo const [jobs,setJobs]=useState(`[{"id":"J1","vessel_id":"MV_A","duration_h":8,"earliest":"2025-09-26","latest":"2025-09-30","crew_req":2,"part":"FILT_A"}]`);
+echo const [crew,setCrew]=useState(`[{"vessel_id":"MV_A","day":"2025-09-27","crew_available":3},{"vessel_id":"MV_A","day":"2025-09-28","crew_available":1}]`);
+echo const [parts,setParts]=useState(`[{"part":"FILT_A","available":1,"lead_days":1}]`);
+echo const [out,setOut]=useState<any>(null);
+echo async function run(){ const r=await fetch(\`\${BASE}/v1/api/optimizer/plan\`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ jobs:JSON.parse(jobs), crewCaps:JSON.parse(crew), parts:JSON.parse(parts) })}).then(r=>r.json()); setOut(r); }
+echo return <div className="card"><h2>Optimizer Planner</h2>
+echo <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:8}}>
+echo <div><div>Jobs</div><textarea value={jobs} onChange={e=>setJobs(e.target.value)} style={{width:'100%',height:140}} /></div>
+echo <div><div>Crew Caps</div><textarea value={crew} onChange={e=>setCrew(e.target.value)} style={{width:'100%',height:140}} /></div>
+echo <div><div>Parts</div><textarea value={parts} onChange={e=>setParts(e.target.value)} style={{width:'100%',height:140}} /></div>
+echo </div>
+echo <button onClick={run}>Solve</button>
+echo {out && <pre className="text-xs bg-gray-50 p-2 rounded mt-2 overflow-x-auto">{JSON.stringify(out,null,2)}</pre>}
+echo </div>
+echo }
+)
+
+> frontend\src\components\ComplianceCenter.tsx (
+echo import React, { useState } from "react";
+echo const BASE = (import.meta as any).env.VITE_API_URL || "http://localhost:8001";
+echo export default function ComplianceCenter(){
+echo const [scope,setScope]=useState('fleet'); const [url,setUrl]=useState<string|undefined>();
+echo async function gen(){ const r=await fetch(\`\${BASE}/v1/api/compliance/report/pdf\`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scope, summary:["ABS/DNV pack","Snapshot ID: auto"],})}); const b=await r.arrayBuffer(); const blob=new Blob([b],{type:"application/pdf"}); const u=URL.createObjectURL(blob); setUrl(u); }
+echo return <div className="card"><h2>Compliance Center</h2>
+echo <div style={{display:'flex',gap:8,alignItems:'center'}}><select value={scope} onChange={e=>setScope(e.target.value)}><option value="fleet">Fleet</option></select><button onClick={gen}>Build PDF</button></div>
+echo {url && <div style={{marginTop:8}}><a href={url} target="_blank">Open PDF</a></div>}
+echo </div>
+echo }
+)
+
+> frontend\src\components\InventoryRisk.tsx (
+echo import React, { useEffect, useState } from "react";
+echo const BASE = (import.meta as any).env.VITE_API_URL || "http://localhost:8001";
+echo export default function InventoryRisk(){
+echo const [rows,setRows]=useState<any[]>([]);
+echo async function load(){ const r=await fetch(\`\${BASE}/v1/api/inventory/risk\`).then(r=>r.json()); setRows(r); }
+echo useEffect(()=>{ load(); },[]);
+echo return <div className="card"><h2>Inventory Risk</h2>
+echo <table style={{width:'100%',fontSize:12,borderCollapse:'collapse'}}><thead><tr style={{background:'#f1f5f9'}}><th>Part</th><th>Qty</th><th>Min</th><th>Lead(d)</th><th>Daily Use</th><th>Risk</th></tr></thead><tbody>
+echo {rows.map((r:any)=>(<tr key={r.part}><td style={{padding:'4px'}}>{r.part}</td><td>{r.qty}</td><td>{r.min}</td><td>{r.lead_days}</td><td>{r.daily?.toFixed?.(2)}</td><td>{r.risk}</td></tr>))}
+echo {rows.length===0 && <tr><td colSpan={6} style={{padding:'6px',color:'#64748b'}}>No parts.</td></tr>}
+echo </tbody></table>
+echo </div>
+echo }
+)
+
+REM Mount all cards into App
+%PS% ^
+"$f='frontend/src/App.tsx'; $t=Get-Content -Raw $f;" ^
+"$t = 'import Trends from \"./components/Trends\";\nimport VibrationLab from \"./components/VibrationLab\";\nimport RuleEstimator from \"./components/RuleEstimator\";\nimport OptimizerPlanner from \"./components/OptimizerPlanner\";\nimport ComplianceCenter from \"./components/ComplianceCenter\";\nimport InventoryRisk from \"./components/InventoryRisk\";\n'+$t;" ^
+"$t = $t -replace '(</div>\\s*)$',' <Trends />\n <VibrationLab />\n <RuleEstimator />\n <OptimizerPlanner />\n <ComplianceCenter />\n <InventoryRisk />\n$1';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+)
+
+echo.
+echo ==========================================================
+echo ✅ Beast Mode patch applied.
+echo ----------------------------------------------------------
+echo New backend endpoints (all under /v1):
+echo POST /api/pdm/vibration/analyze
+echo POST /api/pdm/rul/estimate
+echo POST /api/optimizer/plan
+echo GET /api/telemetry/trend?vessel_id=&src=&sig=&hours=24
+echo GET /api/inventory/risk
+echo POST /api/compliance/report/pdf
+echo Frontend cards:
+echo Trends, VibrationLab, RUL Estimator, Optimizer Planner,
+echo Compliance Center, Inventory Risk
+echo ----------------------------------------------------------
+echo Next:
+echo cd backend-node && npm install && npm run build || npm run dev
+echo cd ../frontend && npm install && npm run dev
+echo ==========================================================
+endlocal

@@ -1,0 +1,330 @@
+
+You are an expert full-stack TypeScript/Node/React/Electron developer with strong database experience (PostgreSQL + SQLite, Drizzle/ORM patterns, offline-first sync).
+You are working on an ARUS marine predictive-maintenance Electron app with:
+Electron + Vite for desktop shell
+Node/Express backend (server/index.ts → server/index.js)
+React/Vite frontend (built into /dist and served by the embedded server)
+Hybrid storage: local SQLite for embedded/vessel mode and optional cloud/libSQL/Postgres via Turso/libsql for central sync
+Multi-tenant support via x-org-id and tenant isolation middleware
+Various domains: vessels, equipment, sensors, telemetry, alerts, work orders, maintenance schedules, crew, etc.
+
+
+Your task:
+
+Check whether a robust data export/import system already exists
+
+Test architectural compatibility for adding a versioned backup/migration system
+
+Design and implement a practical export/import system so data from older app versions can be exported and re-imported into newer versions without data loss
+
+Recommend and (where safe) implement patterns to make future upgrades safer (schema versioning, migrations, etc.)
+
+PHASE 1 – Discovery & Compatibility Check (NO CODE CHANGES YET)
+
+Scan the repo and locate:
+
+Backend entrypoint(s): server/index.ts / server/index.js
+
+ORM / DB abstraction: Drizzle, Prisma, custom repository layer, etc.
+
+DB config for local SQLite and remote/libSQL/Postgres/Turso.
+
+Tables/entities related to:
+
+vessels, equipment, sensors, telemetry, alerts,
+
+work_orders, maintenance_schedules, crew, users, orgs, update_settings, etc.
+
+Any existing export/import/backup mechanisms:
+
+Scripts under /scripts like export-*.ts, backup*.ts, migrate*.ts
+
+API routes like /api/admin/export, /api/admin/import, /api/backup, /api/v1/export, etc.
+
+Any JSON/CSV export endpoints or UI features.
+
+Identify current migration/versioning approach:
+
+Are there migrations (e.g. drizzle/migrations, prisma/migrations, or SQL files)?
+
+Is there a schema version table (e.g. schema_migrations, app_metadata, update_settings)?
+
+Is there already a concept of orgId or tenantId in the exportable tables?
+
+Output a short Markdown report (NO edits yet) that answers:
+
+Does a generic export/import feature already exist? Where, and what does it support?
+
+What are the active DBs in this build (SQLite only, or SQLite + Turso/libSQL)?
+
+How is tenant isolation enforced (e.g. x-org-id middleware)?
+
+What tables/entities must be included for a full backup of a given org?
+
+Are there any obvious blockers (e.g. circular deps, massive blobs, unversioned schemas)?
+
+
+
+Do not modify any files until this analysis summary is printed.
+
+PHASE 2 – Design a Versioned Export/Import Strategy
+
+
+
+Based on the analysis, design an export/import system with these properties:
+
+Logical, not engine-bound
+
+Export is based on logical entities (org, vessels, equipment, work orders, etc.), not the physical DB engine.
+
+The same export format must work whether data is currently in SQLite only or synced to Turso/libSQL/Postgres.
+
+Versioned manifest
+
+Each export must include a manifest object, e.g.:
+
+{
+  "exportVersion": 1,
+  "appVersion": "<current app version if available>",
+  "schemaVersion": "<current schema version or migration tag>",
+  "exportedAt": "ISO_TIMESTAMP",
+  "orgId": "default-org-id",
+  "entities": {
+    "vessels": { "count": 12 },
+    "equipment": { "count": 180 },
+    "workOrders": { "count": 57 },
+    "telemetry": { "count": 102934 }
+  }
+}
+
+
+This manifest is used during import to handle compatibility and optional transforms.
+
+Format & scope
+
+Prefer a single archive structure, e.g.:
+
+manifest.json
+
+vessels.jsonl
+
+equipment.jsonl
+
+work_orders.jsonl
+
+telemetry.jsonl (or chunked if huge)
+
+Use JSONL (newline-delimited JSON) per entity for streaming.
+
+Support at minimum:
+
+Export by org (all data for an org)
+
+Optionally export subset (e.g. by vessel) if easy and safe.
+
+Security and tenancy
+
+Export must respect x-org-id and only dump data for that org.
+
+Never bypass tenant isolation middleware.
+
+Offline-first & multi-device
+
+Design so exports from embedded/vessel SQLite can be imported into:
+
+Another desktop device
+
+A “newer” build of the app with migrated schema
+
+If relevant, allow import into the cloud/libSQL/Turso backend (via an admin script) for centralization.
+
+
+
+Output a short design section in Markdown before coding:
+
+Proposed endpoints or scripts
+
+Export format
+
+Import strategy
+
+Any necessary migration/versioning bits
+
+PHASE 3 – Implement Export System (Backend)
+
+
+
+Only after confirming compatibility and design:
+
+Create a backend export entry point
+
+Prefer one of these patterns (choose the most consistent with repo style):
+
+An HTTP route such as:
+
+POST /api/admin/export
+With optional JSON body:
+
+{ "scope": "org", "orgId": "default-org-id" }
+
+
+And/or a Node script, e.g. scripts/export-data.ts, callable via:
+
+npm run export:data -- --org-id=default-org-id --out=./backups/arus-export-<timestamp>.tar.gz
+
+
+Implement export logic
+
+Reuse existing ORM/repository layers to query:
+
+orgs
+
+vessels
+
+equipment
+
+sensors
+
+telemetry (allow chunking/pagination if large)
+
+alerts, work_orders, maintenance_schedules, crew, users, & any config tables that matter.
+
+Stream results into JSONL files and add a manifest.json.
+
+Optionally compress everything into .tar.gz if that matches existing patterns.
+
+Multi-database awareness
+
+If the codebase has a dual-write layer (SQLite + libSQL), ensure export uses the authoritative source for the current deployment mode:
+
+In VESSEL / embedded mode → use local SQLite.
+
+In cloud/server mode → use the configured libSQL/Postgres client.
+
+Make sure export code does not assume db.execute style if the actual client uses .select() / .all() / .values() (respect the repo’s existing DB abstraction).
+
+Add minimal tests
+
+At least one integration test that:
+
+Seeds some small data for an org.
+
+Runs the export function (in-process).
+
+Validates that:
+
+manifest.json exists and is correct.
+
+The JSONL files exist and contain the right row counts.
+
+PHASE 4 – Implement Import System (Backend)
+
+Create an import entry point
+
+Prefer a CLI/script for safety, e.g.:
+
+npm run import:data -- --file=./backups/arus-export-2025-11-23.tar.gz --target-org-id=default-org-id
+
+
+If exposing an HTTP API (e.g. /api/admin/import), keep it:
+
+Auth-protected
+
+Behind admin checks
+
+Clearly documented in code comments
+
+Import behavior
+
+Read manifest.json, check:
+
+exportVersion
+
+schemaVersion
+
+If the current schemaVersion differs:
+
+Either apply a data transform layer or log a warning and abort with a clear message.
+
+Insert/update data in an idempotent way when possible:
+
+Keep primary IDs from export so references stay intact (vesselId, equipmentId, etc.).
+
+If conflicts arise, prefer upsert semantics (where supported by ORM).
+
+Maintain orgId consistency (option to remap to a new target-org-id if needed).
+
+Import tests
+
+Start from a clean DB.
+
+Run import on a small test export.
+
+Verify that entities and relationships (vessel → equipment → telemetry → work_orders) are correctly restored.
+
+PHASE 5 – Advice & Hardening for Upgradable, No-Loss Updates
+
+
+
+After implementing export/import, you must:
+
+Document in the repo (e.g. docs/data-export-import.md or README section):
+
+How to:
+
+Export data from an existing installation.
+
+Import into a newer version of the app.
+
+Describe recommended upgrade flow:
+
+Backup/export from old version.
+
+Install new version (with migrations).
+
+Import data; if needed, run data transforms.
+
+Note any limitations (e.g. very large telemetry sets, partial imports).
+
+Propose concrete patterns in code comments or a short doc for:
+
+Maintaining a schemaVersion constant or reading it from migrations.
+
+Adding data migrations (transform exported JSON to match newer schema).
+
+Ensuring new tables/columns are introduced in a backward-compatible way where possible.
+
+Check for architectural compatibility & conflicts
+
+Ensure your export/import does not:
+
+Break tenant isolation.
+
+Conflict with existing sync mechanisms (MQTT, Turso sync, etc.).
+
+Duplicate existing backup logic (if any, refactor instead of re-inventing).
+
+
+
+If conflicts are found, refactor or adapt the design instead of bolting on a second backup system.
+
+EXECUTION RULES
+
+Step 1: Do a full repo scan and output the Discovery & Compatibility Report (Phase 1) before editing any file.
+
+Step 2: Propose the Export/Import Design (Phase 2) in Markdown.
+
+Step 3: Implement backend export → import → tests (Phases 3 & 4), following existing code style.
+
+Step 4: Add documentation and upgrade-safety advice (Phase 5).
+
+Step 5: At the end, print a concise summary:
+
+What exists now
+
+What you added
+
+How to run export/import
+
+Any remaining caveats/open TODOs
+

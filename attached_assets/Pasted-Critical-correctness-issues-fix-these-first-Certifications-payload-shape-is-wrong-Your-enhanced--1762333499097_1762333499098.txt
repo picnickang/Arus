@@ -1,0 +1,175 @@
+Critical correctness issues (fix these first)
+
+Certifications payload shape is wrong
+
+Your enhanced request builds certifications as { crewId: string[] }, but your scheduler expects { crewId: SelectCrewCertification[] } (needs expiresAt for validity checks).
+
+Fix: send full objects:
+
+const enhancedPlanData = {
+  // ...
+  certifications: certifications.reduce((acc: any, cert: CrewCertification) => {
+    (acc[cert.crewId] ||= []).push(cert); // keep full object (id, cert, expiresAt, issuedBy)
+    return acc;
+  }, {}),
+  // ...
+};
+Shift “skills” field name mismatch
+
+UI uses requiredSkills, engine checks skillRequired. As-is, skills are never enforced.
+
+Fix (align to singular key the engine expects):
+
+
+
+In form defaults & fields, rename requiredSkills → skillRequired.
+
+In the list render, read shift.skillRequired.
+
+
+
+Minimal patch:
+
+- requiredSkills: '',
++ skillRequired: '',
+
+- name="requiredSkills"
++ name="skillRequired"
+
+- placeholder="e.g. watchkeeping, navigation"
++ placeholder="e.g. watchkeeping" // (engine expects a single skill key)
+
+- {shift.requiredSkills && ( ... "Skills: {shift.requiredSkills}" ...)}
++ {shift.skillRequired && ( ... "Skill: {shift.skillRequired}" ...)}
+Time display bug in enhanced results
+
+getShiftTime() expects HH:mm[:ss] strings, but you pass ISO datetimes: getShiftTime(assignment.start, assignment.end) → displays junk.
+
+Fix: slice the time portion or format properly:
+
+- {getShiftTime(assignment.start, assignment.end)}
++ {getShiftTime(assignment.start.slice(11, 19), assignment.end.slice(11, 19))}
+Or replace getShiftTime with a formatter that parses ISO.
+
+Leaves query is disabled but used
+
+You pass leaves to both planners, but the query is enabled: false and has no queryFn. This silently schedules with empty leave data.
+
+Fix: enable and provide queryFn (or gate planning until leaves are loaded):
+
+const { data: leaves = [], isLoading: isLoadingLeaves } = useQuery({
+  queryKey: ['/api/crew/leave'],
+  queryFn: () => apiRequest('GET', '/api/crew/leave'),
+  refetchInterval: 60000
+});
+
+// Before planning:
+if (isLoadingLeaves) { toast({ title: "Loading leave data…", variant: "destructive" }); return; }
+Drydock/port-call schema mismatch risk
+
+Your drydock creator maps description → yard. If your backend schema expects description, the record will be wrong; if it expects yard, the list UI (which reads drydock.description) will look empty.
+
+Fix: pick one field and stick to it on both API and UI. If backend uses description, remove the yard mapping:
+
+- const drydockData = { vesselId, yard: newDrydock.description, start, end }
++ const drydockData = { vesselId, description: newDrydock.description, start, end }
+…and make sure your API expects that.
+
+Shared “details open” state controls two different sections
+
+isDetailsOpen is used for both the enhanced and basic results blocks; toggling one can unexpectedly toggle the other (depending on which renders).
+
+Fix: split state:
+
+const [isEnhancedDetailsOpen, setIsEnhancedDetailsOpen] = useState(true);
+const [isBasicDetailsOpen, setIsBasicDetailsOpen] = useState(true);
+Important UX/robustness improvements
+
+Date off-by-one risk in “selected period” banner
+
+new Date('YYYY-MM-DD') is parsed as UTC by many engines; in SG time it can display as D-1.
+
+Fix: append local midnight: new Date(selectedDays[0] + 'T00:00').
+
+DefaultQueryFn dependence
+
+Most queries omit queryFn. That’s okay only if you configured a defaultQueryFn on the QueryClient. If not, they’ll be perpetually “loading”.
+
+Fix: either add explicit queryFn everywhere or ensure your QueryClient sets defaultQueryFn.
+
+Toast in planScheduleMutation.onError assumes cause is watchkeeping
+
+That message will fire for any network/validation error.
+
+Fix: show server error and only fall back to your computed hint if status is 422/400 and the backend indicates a skills shortfall.
+
+Performance: lookups for crew names
+
+getCrewName scans crew on every render.
+
+Fix: memoize a map:
+
+const crewMap = useMemo(() => Object.fromEntries(crew.map((c: Crew) => [c.id, c])), [crew]);
+const getCrewName = (id: string) => crewMap[id] ? `${crewMap[id].name} (${crewMap[id].rank})` : id;
+Keys & lists
+
+You use array index keys in several places (assignments/unfilled). Prefer stable keys (assignment.date + shiftId + crewId) to avoid odd re-renders.
+
+Filters reset
+
+Good that you added “Clear Filters”. Consider also clearing when the date range changes to avoid confusing empty lists.
+
+Type safety on Enhanced response
+
+You already coerce summary fields; good practice would be to define a zod schema and validate the whole response before using it.
+
+Accessibility
+
+Checkbox inputs should be paired with <Label htmlFor="…"> and each input should have an id for better a11y.
+
+Virtualize long assignment lists
+
+If you’ll render hundreds of rows, consider @tanstack/react-virtual to keep the panel snappy.
+
+
+
+Tiny cleanups
+
+Remove unused imports if any get introduced (keeps bundles small).
+
+Consider staleTime for mostly-static resources like /api/vessels.
+
+Add optimistic updates (optional) to CRUD for shifts, if latency is noticeable.
+
+Minimal diff bundle (copy/paste friendly)
+
+
+
+1) Fix certifications payload + time display
+
+- certifications: certifications.reduce((acc: any, cert: any) => {
+-   if (!acc[cert.crewId]) acc[cert.crewId] = [];
+-   acc[cert.crewId].push(cert.cert);
+-   return acc;
+- }, {}),
++ certifications: certifications.reduce((acc: any, cert: CrewCertification) => {
++   (acc[cert.crewId] ||= []).push(cert);
++   return acc;
++ }, {}),
+- {getShiftTime(assignment.start, assignment.end)}
++ {getShiftTime(assignment.start.slice(11, 19), assignment.end.slice(11, 19))}
+2) Enable leaves query
+
+- const { data: leaves = [] } = useQuery({
+-   queryKey: ['/api/crew/leave'],
+-   queryFn: () => apiRequest('/api/crew/leave'),
+-   enabled: false
+- });
++ const { data: leaves = [], isLoading: isLoadingLeaves } = useQuery({
++   queryKey: ['/api/crew/leave'],
++   queryFn: () => apiRequest('GET', '/api/crew/leave'),
++   refetchInterval: 60000
++ });
+3) Guard planning while leaves load
+
+const handle

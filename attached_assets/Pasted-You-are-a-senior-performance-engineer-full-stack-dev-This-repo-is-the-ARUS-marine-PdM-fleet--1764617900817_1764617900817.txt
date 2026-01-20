@@ -1,0 +1,401 @@
+You are a senior performance engineer + full-stack dev.
+
+
+
+This repo is the ARUS marine PdM / fleet app built with:
+
+Electron (desktop shell)
+
+React + TypeScript + Tailwind + shadcn/ui (frontend)
+
+React Query (data fetching & caching)
+
+Node/Express backend
+
+SQLite (local) + PostgreSQL/libSQL (cloud) hybrid
+
+Telemetry ingestion (MQTT / simulators), dashboards, logbooks, crew, inventory, work orders, etc.
+
+
+
+The app is visibly laggy (UI sluggishness, slow page transitions, stutters with telemetry, etc).
+
+Your job: find and reduce latency everywhere without breaking features.
+
+PHASE 0 — SAFETY & ARCH CHECK (NO CHANGES YET)
+
+Scan the project structure:
+
+electron/ or main Electron entry (e.g. electron.js, main.ts, index-wrapper.js)
+
+Backend: server/, index.js, API routes, telemetry ingestion, DB clients
+
+Frontend: src/, pages/, routes, components, hooks
+
+Data layer: React Query usage, API client (apiRequest, etc.)
+
+Telemetry / WebSocket / MQTT handling
+
+Any background jobs, schedulers, or simulators
+
+Confirm and document:
+
+How telemetry is pushed to the frontend (polling vs WebSocket vs MQTT bridge)
+
+How frequently React Query / polling hooks run
+
+Where heavy components live (big tables, charts, logbooks, dashboards)
+
+Where DB access is done (ORM/drizzle, raw SQL, libSQL, SQLite, PostgreSQL)
+
+Create docs/perf-baseline-latency.md with:
+
+Current data flow for:
+
+Telemetry stream → backend → frontend
+
+Logbook loading
+
+Equipment health / dashboards
+
+High-level list of suspected lag sources:
+
+Large React trees re-rendering frequently
+
+Telemetry updates forcing full page re-renders
+
+Over-fetching (too many /api/... calls)
+
+Unindexed DB queries / N+1 patterns
+
+Electron process doing too much on main thread
+
+
+
+👉 Do NOT change any code in this phase. Only analysis.
+
+PHASE 1 — ADD BASIC PERFORMANCE INSTRUMENTATION
+
+
+
+Add lightweight profiling and logging (no heavy deps):
+
+Frontend:
+
+Add a small performance logger utility (src/utils/perfLog.ts) that can:
+
+Log component mount time
+
+Log render counts in key components (Fleet overview, dashboards, logbooks, work orders)
+
+Track how often React Query hooks refetch
+
+Wrap the heaviest pages/components with simple custom hooks like:
+
+useRenderCount(componentName)
+
+Log console.time() / console.timeEnd() around expensive operations.
+
+Backend:
+
+Add minimal middleware to log:
+
+Request path, duration, and status
+
+Highlight any API taking > 200ms
+
+Add optional debug logging around:
+
+DB query times
+
+Telemetry ingestion and processing
+
+Any scheduled jobs that may block event loop
+
+Electron:
+
+Add logging around app startup and browserWindow creation.
+
+Log any crashes / renderer process restarts.
+
+
+
+Update docs/perf-baseline-latency.md with:
+
+Actual measured request timings for common flows
+
+Pages/components with the largest render counts and slowest mounts
+
+PHASE 2 — FRONTEND LAG & RENDER OPTIMIZATION
+
+
+
+Goal: Stop unnecessary re-renders and cut UI jank.
+
+Identify heavy components:
+
+Fleet overview / bridge view / equipment health dashboards
+
+Telemetry visualizations
+
+Engine & deck logbooks (big tables)
+
+Work orders + inventory lists
+
+Any page using large tables or nested lists
+
+For each heavy component:
+
+Check for:
+
+Props changing unnecessarily
+
+Inline functions/objects causing re-renders
+
+State stored too high in the tree
+
+Large arrays mapped on every render without memoization
+
+Apply safe optimizations:
+
+Use React.memo for pure presentational components
+
+Use useMemo / useCallback where it genuinely reduces work
+
+Split large components into smaller subcomponents (e.g. per-row, per-card)
+
+For 24-row or 100+ row tables, consider:
+
+Virtualized lists (react-window or similar) OR
+
+Pagination + “load more” patterns
+
+React Query:
+
+Audit all queries for:
+
+Overly short staleTime / refetchInterval
+
+Unnecessary refetchOnWindowFocus or refetchOnReconnect
+
+Multiple components querying the same endpoint redundantly
+
+Optimize:
+
+Increase staleTime for data that doesn’t need to update every few seconds
+
+Avoid polling where WebSockets/telemetry streams are already pushing updates
+
+Centralize shared queries instead of duplicating them per component
+
+Telemetry in UI:
+
+Ensure telemetry updates only affect small, focused components, not entire pages.
+
+Use:
+
+Localized state per widget
+
+Batched updates
+
+Throttling/debouncing for UI updates (e.g. update chart every 1–5 seconds, not every packet)
+
+
+
+Document all frontend changes in docs/perf-frontend-changes.md.
+
+PHASE 3 — BACKEND LATENCY & HOTPATH OPTIMIZATION
+
+
+
+Goal: Speed up common API calls and prevent server-side lag under load.
+
+Identify slow endpoints from earlier logging:
+
+/api/equipment, /api/equipment/health
+
+/api/logbook/* (engine, deck)
+
+/api/alerts/*
+
+Any endpoints used on initial dashboard load
+
+For each slow endpoint:
+
+Inspect query code:
+
+Check for N+1 query patterns
+
+Add appropriate DB indexes (e.g. on orgId, vesselId, logDate, equipmentId)
+
+Reduce joined data / payload size if overfetching
+
+Ensure:
+
+Responses are paginated for large lists (work orders, logs, telemetry histories)
+
+Heavy aggregations are either precomputed, cached, or done asynchronously
+
+Explore caching:
+
+Use in-memory or Redis caching for:
+
+Fleet health summaries
+
+Reused metrics that don’t need per-second accuracy
+
+Implement “last-known-good” values for telemetry dashboards instead of recomputing aggregates on every request.
+
+
+
+Log optimizations and remaining slow endpoints in docs/perf-backend-changes.md.
+
+PHASE 4 — TELEMETRY PIPELINE & THROTTLING
+
+
+
+Goal: Handle full telemetry stream without UI or backend choking.
+
+Inspect telemetry ingestion path:
+
+How many messages per second can arrive?
+
+How are they stored? (SQLite/Postgres/libSQL)
+
+How are they exposed to frontend? (poll, WebSocket, REST endpoints)
+
+Implement safe load-control measures:
+
+On ingest side:
+
+Batch inserts
+
+Offload expensive analytics/calculations to background tasks
+
+On UI side:
+
+Throttle updates (e.g. 1–2 Hz UI refresh for charts)
+
+Use rolling windows instead of full-history renders
+
+Allow filtering/zooming so user doesn’t have to render everything at once
+
+Make sure telemetry load patterns are configurable (e.g. via .env or settings).
+
+
+
+Document this in docs/perf-telemetry-strategy.md.
+
+PHASE 5 — ELECTRON & RESOURCE USAGE
+
+
+
+Goal: Ensure the desktop app doesn’t feel heavy or unstable.
+
+Check Electron main process:
+
+No heavy computation or blocking I/O on the main thread.
+
+Offload any heavy work to:
+
+Node worker threads
+
+Separate backend server process (which already exists)
+
+Renderer:
+
+Ensure hardware acceleration is left enabled unless there’s a reason not to.
+
+Reduce unnecessary preload script work.
+
+Make sure dev-only logs/debug overlays are disabled in production builds.
+
+App startup:
+
+Profile how long it takes to load the main window and initial route.
+
+Lazy-load heavy routes where possible.
+
+
+
+Document findings and adjustments in docs/perf-electron-notes.md.
+
+PHASE 6 — AUTOMATED PERFORMANCE TEST KIT
+
+
+
+Create a small performance smoke test harness, e.g. in scripts/perf-smoke-tests.ts or similar, that can:
+
+Hit key routes (dashboards, logbooks, equipment health, crew, work orders)
+
+Measure:
+
+API response times
+
+Initial render time (if using Playwright/puppeteer)
+
+Simulate:
+
+Telemetry streaming at realistic rates
+
+Multiple concurrent users or sessions
+
+Assert:
+
+No timeouts
+
+No unhandled promise rejections
+
+No obvious memory leak patterns (e.g. memory trending uncontrollably upward for simple flows)
+
+
+
+Output a summary report: docs/perf-final-report.md with:
+
+Before vs after average API latencies
+
+Before vs after render times for key screens
+
+Known remaining bottlenecks and suggested future work
+
+IMPORTANT CONSTRAINTS
+
+Do not remove or break existing features.
+
+Do not change external contracts (API shapes) unless absolutely necessary, and document any such change.
+
+Favor incremental, measurable improvements.
+
+Keep logging controllable via environment flags (e.g. PERF_DEBUG=true).
+
+DELIVERABLES
+
+
+
+By the end, I expect:
+
+docs/perf-baseline-latency.md
+
+docs/perf-frontend-changes.md
+
+docs/perf-backend-changes.md
+
+docs/perf-telemetry-strategy.md
+
+docs/perf-electron-notes.md
+
+docs/perf-final-report.md
+
+Code changes that:
+
+Reduce UI lag and repaint cost
+
+Reduce backend latency on hot paths
+
+Throttle/optimize telemetry rendering
+
+Keep Electron responsive and stable under realistic load
+
+
+
+Focus on practical, high-impact fixes that make the app feel snappy and robust under real vessel telemetry conditions.

@@ -1,0 +1,211 @@
+Perfect — then we’ll reuse your existing TelemetryBatchWriter pattern and treat the bridge as just a new input source (“SQLite raw_frames source”) feeding the same pipeline you already trust.
+
+Here’s the clean way to do it with minimal code churn.
+
+⸻
+
+Bridge integration plan (reuse, don’t rebuild)
+
+What you keep (existing)
+	•	decodeFrame from server/telemetry/
+	•	Postgres pool from server/db-config
+	•	Your TelemetryBatchWriter (flush, backpressure, batching, retry strategy)
+
+What you add (new, small)
+	1.	A SQLiteRawFrameSource that yields batches of frames from SQLite using a cursor.
+	2.	A tiny CursorStore backed by SQLite (ingest_cursor table).
+	3.	A BridgeRunner that:
+	•	pulls frames from SQLite,
+	•	calls decodeFrame,
+	•	hands decoded output to your existing batch writer,
+	•	advances cursor only after PG commit.
+
+⸻
+
+Suggested file drop-in structure
+
+server/
+  services/
+    sqlite-bridge/
+      index.ts
+      sqliteRawFrameSource.ts
+      cursorStore.ts
+      types.ts
+
+
+⸻
+
+1) Cursor store (SQLite table, crash-safe)
+
+cursorStore.ts
+
+import Database from "better-sqlite3";
+
+export class CursorStore {
+  constructor(private db: Database.Database) {}
+
+  init() {
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS ingest_cursor (
+        key TEXT PRIMARY KEY,
+        last_raw_frame_id INTEGER NOT NULL
+      );
+      INSERT OR IGNORE INTO ingest_cursor(key, last_raw_frame_id)
+      VALUES ('raw_frames', 0);
+    `);
+  }
+
+  getLastId(): number {
+    const row = this.db
+      .prepare(`SELECT last_raw_frame_id as lastId FROM ingest_cursor WHERE key='raw_frames'`)
+      .get() as { lastId: number };
+    return row?.lastId ?? 0;
+  }
+
+  setLastId(lastId: number) {
+    this.db
+      .prepare(`UPDATE ingest_cursor SET last_raw_frame_id=? WHERE key='raw_frames'`)
+      .run(lastId);
+  }
+}
+
+
+⸻
+
+2) SQLite raw frame source (pull batches)
+
+sqliteRawFrameSource.ts
+
+import Database from "better-sqlite3";
+
+export type RawFrameRow = {
+  id: number;
+  unix_time_ms: number;
+  source: string;
+  protocol: string;
+  payload: Buffer;
+  quality_flags: number;
+};
+
+export class SqliteRawFrameSource {
+  private fetchStmt: Database.Statement;
+
+  constructor(private db: Database.Database) {
+    this.fetchStmt = this.db.prepare(`
+      SELECT id, unix_time_ms, source, protocol, payload, quality_flags
+      FROM raw_frames
+      WHERE id > ?
+      ORDER BY id
+      LIMIT ?
+    `);
+  }
+
+  fetchBatch(afterId: number, limit: number): RawFrameRow[] {
+    return this.fetchStmt.all(afterId, limit) as RawFrameRow[];
+  }
+}
+
+
+⸻
+
+3) Bridge runner (reuses your decode + batch writer)
+
+index.ts
+
+import Database from "better-sqlite3";
+import { CursorStore } from "./cursorStore";
+import { SqliteRawFrameSource } from "./sqliteRawFrameSource";
+
+// Reuse your existing modules:
+import { decodeFrame } from "../../telemetry/decodeFrame"; // adjust to your actual path
+import { pgPool } from "../../db-config";                  // adjust to your actual export
+import { TelemetryBatchWriter } from "../../services/telemetryBatchWriter"; // adjust path
+
+const SQLITE_BATCH = 2000;
+
+export async function runSqliteToPostgresBridge(sqlitePath: string) {
+  const db = new Database(sqlitePath);
+  db.pragma("journal_mode = WAL");
+  db.pragma("busy_timeout = 5000");
+
+  const cursor = new CursorStore(db);
+  cursor.init();
+
+  const source = new SqliteRawFrameSource(db);
+
+  // Your existing writer should encapsulate idempotent inserts / ON CONFLICT DO NOTHING
+  const writer = new TelemetryBatchWriter({ pool: pgPool });
+
+  while (true) {
+    const lastId = cursor.getLastId();
+    const frames = source.fetchBatch(lastId, SQLITE_BATCH);
+
+    if (frames.length === 0) {
+      await sleep(500);
+      continue;
+    }
+
+    // Decode using existing logic
+    const decoded = [];
+    for (const f of frames) {
+      const out = decodeFrame({
+        id: f.id,
+        ts: Number(f.unix_time_ms),
+        source: f.source,
+        protocol: f.protocol,
+        payload: Buffer.from(f.payload),
+        qualityFlags: Number(f.quality_flags),
+      });
+      // decodeFrame may return array; normalize:
+      if (Array.isArray(out)) decoded.push(...out);
+      else if (out) decoded.push(out);
+    }
+
+    // Write to Postgres using your existing batching semantics.
+    // CRITICAL: cursor only advances after successful commit.
+    try {
+      await writer.writeBatch(decoded); // should commit internally (or return success only after commit)
+      const maxId = frames[frames.length - 1].id;
+      cursor.setLastId(maxId);
+    } catch (e) {
+      // PG offline / transient error: do not advance cursor
+      await sleep(2000);
+    }
+  }
+}
+
+function sleep(ms: number) {
+  return new Promise(res => setTimeout(res, ms));
+}
+
+What you tweak
+	•	Import paths to match your repo (server/telemetry/*, server/db-config, TelemetryBatchWriter).
+	•	Ensure TelemetryBatchWriter.writeBatch() is truly commit-safe before returning.
+
+⸻
+
+4) One small but important addition
+
+Since your writer already likely uses an idempotency key approach, I’d standardize a key format from the bridge if needed:
+	•	idempotency_key = "raw:" + source + ":" + protocol + ":" + rawFrameId
+
+If your current telemetry tables don’t have that, the bridge can pass it down in decoded objects.
+
+⸻
+
+The big win
+
+By doing it this way:
+	•	You’re not introducing a second “writer” code path.
+	•	SQLite becomes a durable ingress journal.
+	•	Postgres becomes the cloud truth.
+	•	Your existing PdM pipeline stays untouched.
+
+⸻
+
+If you paste (or summarize) the signatures/paths for:
+	•	decodeFrame(...)
+	•	TelemetryBatchWriter.writeBatch(...)
+	•	your pgPool export
+
+…I’ll rewrite the bridge code exactly matching your repo, so you can drop it in and run it without edits.

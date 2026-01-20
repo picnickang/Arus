@@ -1,0 +1,290 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==========================================================
+REM ARUS – ECM J1939 Collector (CAT/Cummins)
+REM - SocketCAN (Linux) J1939 listener -> HTTP or MQTT ingest
+REM - JSON mapping DSL for PGN/SPN decode with scale/offset/formula
+REM - Batch/flush with idempotent keys, per-vessel routing
+REM - Simulator mode (no hardware)
+REM - No authentication changes
+REM ==========================================================
+
+if not exist "backend-node\src" (
+echo [ERROR] backend-node/src not found. Run at repo root.
+exit /b 1
+)
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+REM ----------------------------------------------------------
+REM 0) Backend deps
+REM ----------------------------------------------------------
+%PS% ^
+"$f='backend-node/package.json'; $j=(Get-Content -Raw $f | ConvertFrom-Json);" ^
+"$j.dependencies.'socketcan' = $j.dependencies.'socketcan' ?? '^3.2.0';" ^
+"$j.dependencies.'axios' = $j.dependencies.'axios' ?? '^1.7.7';" ^
+"$j.dependencies.'mqtt' = $j.dependencies.'mqtt' ?? '^5.5.3';" ^
+"$j.dependencies.'uuid' = $j.dependencies.'uuid' ?? '^9.0.1';" ^
+"$j | ConvertTo-Json -Depth 12 | Set-Content -Encoding UTF8 $f;"
+
+REM create config dir
+if not exist "backend-node\config" mkdir backend-node\config
+
+REM ----------------------------------------------------------
+REM 1) Mapping DSL (PGN->SPNs with byte ranges, scale, offset, unit)
+REM ----------------------------------------------------------
+> backend-node\config\j1939.map.json (
+echo {
+echo "$schema": "https://arus.app/schemas/j1939-map-v1.json",
+echo "notes": "Default CAT/Cummins-lite J1939 mapping; adjust per engine/DBC",
+echo "signals": [
+echo {
+echo "pgn": 61444, "name": "EngineSpeed_EEC1",
+echo "spns": [
+echo { "spn": 190, "sig": "rpm", "src": "ECM", "unit": "rpm", "bytes": [3,4], "endian": "LE", "scale": 0.125, "offset": 0 }
+echo ]
+echo },
+echo {
+echo "pgn": 65262, "name": "EngineTemp_ET1",
+echo "spns": [
+echo { "spn": 110, "sig": "coolant_temp", "src": "ECM", "unit": "C", "bytes": [0], "endian": "LE", "scale": 1, "offset": -40 }
+echo ]
+echo },
+echo {
+echo "pgn": 65263, "name": "EngineFluidLevelPressure_EFLP1",
+echo "spns": [
+echo { "spn": 100, "sig": "oil_pressure_kpa", "src": "ECM", "unit": "kPa", "bytes": [1], "endian": "LE", "scale": 4, "offset": 0 }
+echo ]
+echo },
+echo {
+echo "pgn": 65266, "name": "FuelEconomy_FEC1",
+echo "spns": [
+echo { "spn": 183, "sig": "fuel_rate_lph", "src": "ECM", "unit": "L/h", "bytes": [0,1], "endian": "LE", "scale": 0.05, "offset": 0 }
+echo ]
+echo }
+echo ]
+echo }
+)
+
+REM ----------------------------------------------------------
+REM 2) ECM collector (SocketCAN J1939 -> batch -> HTTP/MQTT)
+REM ----------------------------------------------------------
+> backend-node\src\edge.j1939.ts (
+echo import fs from "node:fs";
+echo import path from "node:path";
+echo import os from "node:os";
+echo import axios from "axios";
+echo import mqtt, { MqttClient } from "mqtt";
+echo import { v4 as uuidv4 } from "uuid";
+echo
+echo // Optional import: socketcan only on Linux
+echo let can:any = null; try { can = require("socketcan"); } catch(_) {}
+echo
+echo type SpnRule = { spn:number; sig:string; src:string; unit?:string; bytes:number[]; endian?:'LE'|'BE'; scale?:number; offset?:number; formula?:string };
+echo type PgnRule = { pgn:number; name?:string; spns: SpnRule[] };
+echo type MapDoc = { signals: PgnRule[] };
+echo
+echo // --- Config via env ---
+echo const VESSEL_ID = process.env.VESSEL_ID || "MV_DEMO";
+echo const CAN_IFACE = process.env.CAN_IFACE || "can0"; // Linux SocketCAN interface
+echo const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8001";
+echo const INGEST_MODE = (process.env.INGEST_MODE||"HTTP").toUpperCase(); // HTTP|MQTT
+echo const MQTT_URL = process.env.MQTT_URL || "mqtt://localhost:1883";
+echo const MQTT_TOPIC = process.env.MQTT_TOPIC || "fleet/%VESSEL%/telemetry";
+echo const MAP_FILE = process.env.J1939_MAP_PATH || path.join(process.cwd(), "backend-node", "config", "j1939.map.json");
+echo const BATCH_MS = Number(process.env.BATCH_MS||"500"); // buffer window
+echo const FLUSH_MS = Number(process.env.FLUSH_MS||"3000"); // max flush lag
+echo const MAX_BATCH = Number(process.env.MAX_BATCH||"200");
+echo const SIM_CANLOG = process.env.SIM_CANLOG || ""; // path to .canlog (hex frames)
+echo
+echo // --- State ---
+echo let rules: MapDoc = { signals: [] };
+echo let mqttClient: MqttClient | null = null;
+echo const buf: { t:number; src:string; sig:string; value:number|null; unit?:string }[] = [];
+echo let lastFlush = Date.now();
+echo
+echo function loadRules(){
+echo const raw = fs.readFileSync(MAP_FILE, "utf8"); rules = JSON.parse(raw);
+echo console.log("[J1939] loaded rules:", MAP_FILE, "PGNs:", rules.signals.length);
+echo }
+echo
+echo function readBytesLE(frame: Buffer, idxs: number[]): number {
+echo if (idxs.length===1) { const b=frame[idxs[0]]; return (b===0xFF||b===0xFE)? NaN : b; }
+echo if (idxs.length===2) { const v = frame[idxs[0]] | (frame[idxs[1]]<<8); return v; }
+echo if (idxs.length===4) { return frame.readUInt32LE(idxs[0]); }
+echo // Fallback accumulate
+echo let v=0; for(let i=0;i<idxs.length;i++){ v |= (frame[idxs[i]]<<(8*i)); } return v;
+echo }
+echo function readBytesBE(frame: Buffer, idxs: number[]): number {
+echo if (idxs.length===1) { const b=frame[idxs[0]]; return (b===0xFF||b===0xFE)? NaN : b; }
+echo if (idxs.length===2) { const v = (frame[idxs[0]]<<8) | frame[idxs[1]]; return v; }
+echo if (idxs.length===4) { return frame.readUInt32BE(idxs[0]); }
+echo let v=0; for(let i=0;i<idxs.length;i++){ v = (v<<8) | frame[idxs[i]]; } return v;
+echo }
+echo
+echo function decodeFrame(canId: number, data: Buffer){
+echo // J1939 29-bit ID: priority(3) | PGN(18) | SA(8)
+echo const pgn = (canId >> 8) & 0x3FFFF; // 18 bits
+echo const rule = rules.signals.find(r => r.pgn === pgn);
+echo if (!rule) return;
+echo for (const spn of rule.spns){
+echo let raw = (spn.endian==='BE') ? readBytesBE(data, spn.bytes) : readBytesLE(data, spn.bytes);
+echo if (!isFinite(raw)) continue;
+echo let value = Number(raw);
+echo if (spn.scale) value = value * spn.scale;
+echo if (spn.offset) value = value + spn.offset;
+echo if (spn.formula){
+echo try {
+echo // formula can use 'x' as the raw scaled value
+echo const x = value; // eslint-disable-line
+echo // Very limited, safe eval:
+echo // @ts-ignore
+echo // eslint-disable-next-line no-new-func
+echo value = Function("x", \`return (\${spn.formula});\`)(x);
+echo } catch(_){}
+echo }
+echo buf.push({ t: Date.now(), src: spn.src, sig: spn.sig, value, unit: spn.unit });
+echo }
+echo }
+echo
+echo async function flush(){
+echo if (buf.length===0) return;
+echo const take = buf.splice(0, Math.min(buf.length, MAX_BATCH));
+echo const epoch = Math.floor(Date.now()/1000);
+echo const payload = {
+echo vessel: VESSEL_ID,
+echo ts: epoch,
+echo signals: take.map(s => ({ src: s.src, sig: s.sig, value: s.value, unit: s.unit }))
+echo };
+echo const idk = uuidv4();
+echo try{
+echo if (INGEST_MODE === "MQTT"){
+echo if (!mqttClient) mqttClient = mqtt.connect(MQTT_URL);
+echo const topic = MQTT_TOPIC.replace("%VESSEL%", VESSEL_ID);
+echo mqttClient.publish(topic, JSON.stringify(payload), { qos: 1 });
+echo } else {
+echo await axios.post(\`\${BACKEND_URL}/v1/api/ingest\`, payload, { headers: { "Idempotency-Key": idk, "Content-Type":"application/json" }});
+echo }
+echo } catch(e:any){
+echo console.error("[J1939] flush error:", e?.message||e);
+echo } finally {
+echo lastFlush = Date.now();
+echo }
+echo }
+echo
+echo function loopFlush(){
+echo const now = Date.now();
+echo if (buf.length>0 && (buf.length>=MAX_BATCH || (now-lastFlush)>=FLUSH_MS)) flush();
+echo setTimeout(loopFlush, BATCH_MS);
+echo }
+echo
+echo function startSocketCAN(){
+echo if (!can) { console.warn("[J1939] socketcan module not available; are you on Linux?"); return; }
+echo try{
+echo const channel = can.createRawChannel(CAN_IFACE, true);
+echo channel.addListener("onMessage", (msg:any)=>{
+echo if (!msg) return;
+echo const id = msg.id >>> 0; // uint
+echo const data = Buffer.from(msg.data);
+echo decodeFrame(id, data);
+echo });
+echo channel.start();
+echo console.log("[J1939] listening on", CAN_IFACE);
+echo }catch(e:any){
+echo console.error("[J1939] failed to open", CAN_IFACE, e?.message||e);
+echo }
+echo }
+echo
+echo function startSimulator(){
+echo if (!SIM_CANLOG) return;
+echo console.log("[J1939] simulator reading", SIM_CANLOG);
+echo const lines = fs.readFileSync(SIM_CANLOG,"utf8").split(/\\r?\\n/).filter(Boolean);
+echo let i=0;
+echo setInterval(()=>{
+echo const line = lines[i++ % lines.length];
+echo // Simple format: HEX_CANID SPACED_HEX_BYTES
+echo // Example: 18F00400 00 00 00 00 34 12 FF FF (PGN 61444, rpm=0x1234 * .125)
+echo const parts = line.trim().split(/\s+/);
+echo if (parts.length<2) return;
+echo const canHex = parts[0];
+echo const canId = parseInt(canHex, 16);
+echo const bytes = Buffer.from(parts.slice(1).map(h => parseInt(h,16)));
+echo decodeFrame(canId, bytes);
+echo }, 50);
+echo }
+echo
+echo export async function main(){
+echo loadRules();
+echo loopFlush();
+echo if (SIM_CANLOG) startSimulator(); else startSocketCAN();
+echo }
+echo
+echo if (require.main === module){
+echo main().catch(e=>{ console.error(e); process.exit(1); });
+echo }
+)
+
+REM ----------------------------------------------------------
+REM 3) CLI wrapper to run collector
+REM ----------------------------------------------------------
+> backend-node\src\cli\j1939-collector.ts (
+echo #!/usr/bin/env node
+echo import { main } from "../edge.j1939.js";
+echo main();
+)
+
+REM add npm scripts
+%PS% ^
+"$f='backend-node/package.json'; $j=(Get-Content -Raw $f | ConvertFrom-Json);" ^
+"$j.scripts = $j.scripts ?? @{}; $j.scripts.'collector:j1939' = 'node ./dist/cli/j1939-collector.js';" ^
+"$j | ConvertTo-Json -Depth 12 | Set-Content -Encoding UTF8 $f;"
+
+REM ----------------------------------------------------------
+REM 4) Example simulator log (optional)
+REM ----------------------------------------------------------
+> backend-node\config\sample.canlog (
+echo 18F00400 00 00 00 34 12 FF FF FF
+echo 18FEF200 50 FF FF FF FF FF FF FF
+echo 18FEEE00 FF 28 FF FF FF FF FF FF
+echo 18FEF600 40 1F FF FF FF FF FF FF
+)
+
+echo.
+echo ==========================================================
+echo ✅ ECM J1939 Collector patch applied.
+echo ----------------------------------------------------------
+echo Files:
+echo backend-node/config/j1939.map.json (mapping DSL)
+echo backend-node/src/edge.j1939.ts (collector core)
+echo backend-node/src/cli/j1939-collector.ts (CLI entry)
+echo backend-node/config/sample.canlog (simulator input)
+echo NPM:
+echo npm run collector:j1939
+echo ----------------------------------------------------------
+echo Usage (simulation on any OS):
+echo set VESSEL_ID=MV_DEMO
+echo set BACKEND_URL=http://localhost:8001
+echo set SIM_CANLOG=backend-node/config/sample.canlog
+echo cd backend-node && npm install && npm run build && npm run collector:j1939
+echo
+echo Usage (Linux gateway with SocketCAN):
+echo # enable SocketCAN: sudo ip link set can0 up type can bitrate 250000
+echo export VESSEL_ID=MV_GREENBELAIT
+echo export BACKEND_URL=http://<your-backend>:8001
+echo export CAN_IFACE=can0
+echo cd backend-node && npm install && npm run build && npm run collector:j1939
+echo
+echo Switch to MQTT ingest:
+echo set INGEST_MODE=MQTT
+echo set MQTT_URL=mqtt://<broker>:1883
+echo set MQTT_TOPIC=fleet/%%VESSEL%%/telemetry
+echo npm run collector:j1939
+echo ----------------------------------------------------------
+echo Notes:
+echo - Mapping covers common CAT/Cummins PGNs: 61444 rpm, 65262 coolant temp,
+echo 65263 oil pressure, 65266 fuel rate. Adjust 'bytes/scale/offset' per engine.
+echo - Add more PGNs/SPNs by editing j1939.map.json — no code changes needed.
+echo - Batch flush is idempotent via Idempotency-Key; aligns with your ingest API.
+echo - Run on a Pi/edge box; your central backend receives normalized signals.
+echo ==========================================================
+endlocal

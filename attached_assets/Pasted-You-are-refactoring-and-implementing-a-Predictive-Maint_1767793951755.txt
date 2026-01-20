@@ -1,0 +1,367 @@
+You are refactoring and implementing a Predictive Maintenance (PdM) UI.
+Use the attached screenshots (desktop + mobile) as the canonical UX reference.
+
+Your task is NOT to blindly recreate visuals, but to implement the correct
+FUNCTIONAL BEHAVIOR behind each UI element, using existing backend data
+where possible.
+
+Below is a feature-by-feature explanation of what each element represents,
+why it exists, and what must be implemented behind it.
+
+====================================================
+1) TOP FILTER BAR (Fleet / Equipment / Date / Search)
+====================================================
+
+Purpose:
+- Global scoping for ALL data on the page.
+
+What it controls:
+- KPI cards
+- Risk Queue
+- Telemetry Coverage
+- Model Health
+- Maintenance Pipeline
+- Asset detail charts
+
+Implementation:
+- Implement as global filter state (URL params preferred):
+  - fleet_id / vessel_id
+  - equipment_type
+  - from_date / to_date
+  - search_query
+
+Data routing:
+- Every API call on this page MUST accept these filters.
+- Changing filters must trigger a refetch of all dependent data.
+
+====================================================
+2) KPI SUMMARY CARDS (TOP ROW)
+====================================================
+
+These are EXECUTIVE SUMMARY metrics. They must come from BACKEND AGGREGATION,
+not frontend calculation.
+
+----------------------------------------------------
+2.1 Fleet Health Score (82 / 100)
+----------------------------------------------------
+
+Meaning:
+- Single composite health index for the selected fleet scope.
+
+Backend logic:
+- Weighted function of:
+  - aggregated asset risk (e.g. p_fail_14d or hazard)
+  - anomaly burden
+  - telemetry freshness penalties
+- Output must be deterministic and explainable.
+
+Required fields:
+- fleet_health_score (0–100)
+- delta_7d (trend vs last week)
+
+Frontend:
+- Display score + delta
+- Color-coded by band (green/yellow/red)
+
+----------------------------------------------------
+2.2 Active Alerts (12 total, 3 critical)
+----------------------------------------------------
+
+Meaning:
+- Count of currently open PdM alerts.
+
+Backend:
+- Query pdm_alerts where status IN (new, acknowledged, wo_created)
+- Severity breakdown required.
+
+Fields:
+- active_alerts_total
+- active_alerts_critical
+
+----------------------------------------------------
+2.3 Assets at Risk (5, RUL < 14 days)
+----------------------------------------------------
+
+Meaning:
+- Count of assets likely to fail soon.
+
+Backend logic:
+- Either:
+  - rul_p50_days <= 14
+  - OR p_fail_14d >= threshold
+
+Fields:
+- assets_at_risk_count
+- threshold_days (for label)
+
+----------------------------------------------------
+2.4 Avoided Downtime (18.5 hrs)
+----------------------------------------------------
+
+Meaning:
+- Expected downtime that WAS PREVENTED by PdM actions.
+
+Backend logic:
+- For mitigated alerts:
+  avoided_hours = p_fail_window * expected_downtime_hours
+- Must reference:
+  - alert timestamps
+  - work order completion timestamps
+  - cost/downtime config
+
+Fields:
+- avoided_downtime_hours_30d
+
+----------------------------------------------------
+2.5 Maintenance Forecast ($45k)
+----------------------------------------------------
+
+Meaning:
+- Expected maintenance cost in next 30 days.
+
+Backend logic:
+- Sum over assets:
+  p_fail_30d * expected_repair_cost
+
+Fields:
+- maintenance_forecast_cost_30d
+- currency
+
+====================================================
+3) RISK QUEUE TABLE (CORE OPERATIONAL VIEW)
+====================================================
+
+This is the PRIMARY action inbox for engineers.
+
+----------------------------------------------------
+3.1 Severity Badge
+----------------------------------------------------
+
+Meaning:
+- Derived from risk probability + business thresholds.
+
+Backend:
+- Severity classification must be computed server-side.
+
+Field:
+- severity ("critical" | "high" | "medium" | "low")
+
+----------------------------------------------------
+3.2 Vessel / Asset
+----------------------------------------------------
+
+Meaning:
+- Human-readable asset identity.
+
+Fields:
+- vessel_id, vessel_name
+- asset_id/equipment_id, asset_name
+
+----------------------------------------------------
+3.3 Failure Mode
+----------------------------------------------------
+
+Meaning:
+- Most likely failure mechanism.
+
+Backend:
+- Either ML classification OR rule-based mapping from evidence.
+
+Field:
+- failure_mode_label
+
+----------------------------------------------------
+3.4 RUL Estimate (6–10 days, <5 days)
+----------------------------------------------------
+
+Meaning:
+- Remaining Useful Life RANGE, not a single number.
+
+Backend requirement:
+- Quantile-based output:
+  - rul_p10_days
+  - rul_p50_days
+  - rul_p90_days
+
+Frontend:
+- Display P10–P90 as range
+- Use P50 for sorting
+
+----------------------------------------------------
+3.5 Recommended Action (Evidence Chips)
+----------------------------------------------------
+
+Meaning:
+- WHY the system thinks this asset is at risk.
+
+Backend:
+- Evidence must be computed:
+  - top statistical drivers (trend, z-score, threshold exceedance)
+  - OR SHAP feature contributions
+
+Field:
+- evidence_chips[] (short human labels)
+
+----------------------------------------------------
+3.6 Status (Approved / Progressive)
+----------------------------------------------------
+
+Meaning:
+- Alert lifecycle state.
+
+Backend:
+- State machine:
+  new → acknowledged → wo_created → resolved
+
+Field:
+- status
+
+----------------------------------------------------
+3.7 Row Interaction
+----------------------------------------------------
+
+Behavior:
+- Clicking row selects asset
+- Loads asset detail panel/screen
+
+====================================================
+4) TELEMETRY COVERAGE CARD
+====================================================
+
+Purpose:
+- Data trust indicator. Users must know if data is fresh.
+
+Backend logic:
+- asset_last_seen table or view
+- Compare now() vs last_seen_at
+
+Fields:
+- total_assets
+- online_assets
+- delayed_assets_count
+- delayed_assets[] { asset_name, last_seen_at }
+
+Frontend:
+- Clicking “Ingestion Health” routes to ingestion diagnostics.
+
+====================================================
+5) MODEL HEALTH CARD
+====================================================
+
+Purpose:
+- Trust indicator for ML outputs.
+
+Backend:
+- Derived from ml_models + ml_model_runs + drift metrics.
+
+Fields:
+- active_models_count
+- drift_alerts_count
+- last_training_at
+
+====================================================
+6) MAINTENANCE PIPELINE CARD
+====================================================
+
+Purpose:
+- PdM → Operations linkage.
+
+Backend:
+- Query work_orders grouped by status.
+
+Fields:
+- open_work_orders_count
+- awaiting_approval_count
+- in_progress_count
+
+====================================================
+7) ASSET DETAIL PANEL / SCREEN
+====================================================
+
+This is the “doctor’s chart” for one asset.
+
+----------------------------------------------------
+7.1 Header (Asset + RUL Gauge)
+----------------------------------------------------
+
+Fields:
+- asset_name
+- failure_mode_label
+- rul_p10/p50/p90
+- confidence_pct
+
+Gauge:
+- Visual mapping of P50 relative to risk thresholds.
+
+----------------------------------------------------
+7.2 Confidence (74%)
+----------------------------------------------------
+
+Meaning:
+- Trust level of prediction.
+
+Backend:
+- Derived from:
+  - prediction interval width
+  - or conformal coverage
+
+Field:
+- confidence_pct
+
+----------------------------------------------------
+7.3 Evidence Charts
+----------------------------------------------------
+
+Charts must show:
+- Time-series signals
+- Thresholds
+- Alert markers
+- Anomaly score overlay (if available)
+
+Backend endpoints:
+- /assets/:id/signals
+- /assets/:id/anomaly-score (if separate)
+
+----------------------------------------------------
+7.4 Recommended Actions Checklist
+----------------------------------------------------
+
+Meaning:
+- Actionable guidance derived from failure mode + risk horizon.
+
+Backend:
+- Rule-based mapping from failure_mode + severity.
+
+Field:
+- recommended_actions[]
+
+====================================================
+8) MOBILE VIEW BEHAVIOR
+====================================================
+
+Rules:
+- Same data as desktop
+- Different layout only
+
+Implementation:
+- KPI cards stack or scroll
+- Risk queue becomes list
+- Asset detail opens full screen or bottom sheet
+- Filters collapse into modal/sheet
+
+NO separate backend logic for mobile.
+
+====================================================
+FINAL IMPLEMENTATION RULES
+====================================================
+
+- All numeric KPIs come from backend aggregation.
+- Frontend NEVER computes risk, RUL, cost, or confidence.
+- Every displayed value must have a clear backend source.
+- If data is missing, show graceful fallback (N/A) and log warning.
+
+START BY:
+1) Mapping existing endpoints to these required fields.
+2) Identifying gaps.
+3) Proposing minimal backend additions ONLY where required.
+4) Wiring frontend components to these contracts.

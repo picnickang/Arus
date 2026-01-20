@@ -1,0 +1,1 @@
+export { registerAutofillLogsRoutes } from "./routes";

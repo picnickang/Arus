@@ -1,0 +1,566 @@
+@echo off
+
+setlocal ENABLEDELAYEDEXPANSION
+
+REM ==========================================================
+
+REM ARUS Patch: Must-Fix + Should-Fix (DB, UTC, Idempotency, Metrics, Range HoR)
+
+REM ==========================================================
+
+
+
+if not exist "backend\app\main.py" (
+
+  echo [ERROR] backend\app\main.py not found. Run in repo root.
+
+  exit /b 1
+
+)
+
+
+
+if not exist "frontend\src" (
+
+  echo [WARN] frontend\src not found; UI tweaks will be skipped.
+
+  set SKIP_UI=1
+
+) else (
+
+  set SKIP_UI=0
+
+)
+
+
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+
+
+REM ----------------------------------------------------------
+
+REM 1) Requirements: prometheus_client, asyncpg (optional PG)
+
+REM ----------------------------------------------------------
+
+%PS% ^
+
+  "$f='backend/requirements.txt'; $t=(Test-Path $f) ? (Get-Content -Raw $f) : '';" ^
+
+  "if ($t -notmatch 'prometheus_client') { $t += \"`nprometheus_client>=0.20\" }" ^
+
+  "if ($t -notmatch 'asyncpg') { $t += \"`nasyncpg>=0.29\" }" ^
+
+  "Set-Content -Encoding UTF8 $f $t;"
+
+
+
+REM ----------------------------------------------------------
+
+REM 2) Core: DB shim (SQLite default, Postgres via DATABASE_URL)
+
+REM ----------------------------------------------------------
+
+%PS% "$code=@'
+
+from __future__ import annotations
+
+import os, asyncio, contextlib
+
+from typing import Any, Iterable, Optional, Sequence
+
+
+
+DATABASE_URL = os.getenv(\"DATABASE_URL\", \"\").strip()
+
+SQLITE_PATH  = os.getenv(\"SQLITE_PATH\", \"./arus.sqlite\").strip()
+
+
+
+class DB:
+
+    \"\"\"Minimal async DB shim: aiosqlite (default) or asyncpg (if DATABASE_URL set).\"\"\"
+
+    def __init__(self):
+
+        self._mode = 'sqlite' if not DATABASE_URL else 'pg'
+
+        if self._mode=='sqlite':
+
+            import aiosqlite  # noqa
+
+        else:
+
+            import asyncpg    # noqa
+
+
+
+    @contextlib.asynccontextmanager
+
+    async def connect(self):
+
+        if self._mode=='sqlite':
+
+            import aiosqlite
+
+            conn = await aiosqlite.connect(SQLITE_PATH)
+
+            try:
+
+                await conn.execute('PRAGMA journal_mode=WAL;')
+
+                await conn.execute('PRAGMA synchronous=NORMAL;')
+
+                yield conn
+
+            finally:
+
+                await conn.close()
+
+        else:
+
+            import asyncpg
+
+            conn = await asyncpg.connect(DATABASE_URL)
+
+            try:
+
+                yield conn
+
+            finally:
+
+                await conn.close()
+
+
+
+    @contextlib.asynccontextmanager
+
+    async def tx(self):
+
+        if self._mode=='sqlite':
+
+            async with self.connect() as conn:
+
+                try:
+
+                    await conn.execute('BEGIN')
+
+                    yield conn
+
+                    await conn.commit()
+
+                except:
+
+                    await conn.rollback()
+
+                    raise
+
+        else:
+
+            import asyncpg
+
+            async with self.connect() as conn:
+
+                tx = conn.transaction()
+
+                await tx.start()
+
+                try:
+
+                    yield conn
+
+                    await tx.commit()
+
+                except:
+
+                    await tx.rollback()
+
+                    raise
+
+
+
+DB_SHIM = DB()
+
+'@; Set-Content -Encoding UTF8 backend/app/core/db_shim.py $code"
+
+
+
+REM ----------------------------------------------------------
+
+REM 3) UTC helpers + request logging + metrics + idempotency
+
+REM ----------------------------------------------------------
+
+%PS% "$code=@'
+
+from __future__ import annotations
+
+import uuid, time, logging
+
+from datetime import datetime, timezone
+
+from typing import Optional
+
+from fastapi import Request, Response
+
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+
+
+
+log = logging.getLogger(\"arus\")
+
+logging.basicConfig(level=logging.INFO, format=\"%(asctime)s %(levelname)s %(message)s\")
+
+
+
+REQS = Counter('arus_http_requests_total','HTTP requests', ['method','path','status'])
+
+LAT  = Histogram('arus_http_request_seconds','HTTP request latency seconds',['method','path'])
+
+INGEST_CNT = Counter('arus_ingest_payloads_total','Ingest payloads')
+
+HOR_IMPORT_CNT = Counter('arus_hor_import_total','HoR import rows')
+
+
+
+def now_utc() -> datetime:
+
+    return datetime.now(timezone.utc)
+
+
+
+def parse_iso_utc(s: str) -> datetime:
+
+    # Accept '...Z' or offset-naive; convert to UTC
+
+    s = s.replace('Z','+00:00') if s.endswith('Z') else s
+
+    dt = datetime.fromisoformat(s)
+
+    if dt.tzinfo is None:
+
+        dt = dt.replace(tzinfo=timezone.utc)
+
+    return dt.astimezone(timezone.utc)
+
+
+
+async def metrics_endpoint():
+
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
+
+async def logging_middleware(request: Request, call_next):
+
+    rid = request.headers.get('X-Request-ID') or str(uuid.uuid4())
+
+    start = time.perf_counter()
+
+    path = request.url.path
+
+    method = request.method
+
+    try:
+
+        response = await call_next(request)
+
+        status = response.status_code
+
+        return response
+
+    finally:
+
+        dur = time.perf_counter() - start
+
+        REQS.labels(method=method, path=path, status=status).inc()
+
+        LAT.labels(method=method, path=path).observe(dur)
+
+        log.info(f\"rid=%s %s %s status=%s dur=%.3fs\", rid, method, path, status, dur)
+
+
+
+# Simple idempotency store (sqlite/pg via shim)
+
+from .db_shim import DB_SHIM
+
+
+
+async def ensure_idempotent(key: str, endpoint: str) -> bool:
+
+    if not key:  # no key -> not idempotent
+
+        return True
+
+    q1 = \"CREATE TABLE IF NOT EXISTS idempotency (key TEXT PRIMARY KEY, endpoint TEXT, ts TEXT)\"
+
+    async with DB_SHIM.tx() as db:
+
+        if DB_SHIM._mode=='sqlite':
+
+            await db.execute(q1)
+
+            cur = await db.execute(\"SELECT key FROM idempotency WHERE key=?\", (key,))
+
+            row = await cur.fetchone()
+
+            if row: return False
+
+            await db.execute(\"INSERT INTO idempotency(key,endpoint,ts) VALUES(?,?,?)\", (key, endpoint, now_utc().isoformat()))
+
+        else:
+
+            await db.execute(q1.replace('TEXT','VARCHAR'))
+
+            row = await db.fetchrow(\"SELECT key FROM idempotency WHERE key=$1\", key)
+
+            if row: return False
+
+            await db.execute(\"INSERT INTO idempotency(key,endpoint,ts) VALUES($1,$2,$3)\", key, endpoint, now_utc().isoformat())
+
+    return True
+
+'@; Set-Content -Encoding UTF8 backend/app/core/obs.py $code"
+
+
+
+REM ----------------------------------------------------------
+
+REM 4) Async repo: indices, range fetch, schema hardening
+
+REM ----------------------------------------------------------
+
+%PS% ^
+
+ "$f='backend/app/core/async_repo.py'; $t=Get-Content -Raw $f;" ^
+
+ "$t = $t -replace 'from app\\.core', 'from app.core';" ^
+
+ "$t = $t -replace 'self\\._init_done = True','self._init_done = True';" ^
+
+ "$t = $t -replace 'aiosqlite\\.connect\\(self\\._sqlite\\)', 'aiosqlite.connect(self._sqlite)';" ^
+
+ "Set-Content -Encoding UTF8 $f $t;"
+
+
+
+REM Add indices + range fetch + assignment index if missing
+
+%PS% ^
+
+ "$f='backend/app/core/async_repo.py'; $t=Get-Content -Raw $f;" ^
+
+ "$needIdx = ($t -notmatch 'idx_rest_day_date');" ^
+
+ "$needRange = ($t -notmatch 'async def rest_fetch_range');" ^
+
+ "if ($needIdx) { " ^
+
+ "  $t = $t -replace 'await db.commit\\(\\)\\s*\\n\\s*\\)\\n\\s*self._init_done = True', 'CREATE INDEX IF NOT EXISTS idx_rest_day_date ON crew_rest_day(date);\\nCREATE INDEX IF NOT EXISTS idx_port_call ON port_call(vessel_id, start, end);\\nCREATE INDEX IF NOT EXISTS idx_drydock ON drydock_window(vessel_id, start, end);\\nCREATE TABLE IF NOT EXISTS crew_assignment( id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT, shift_id TEXT, crew_id TEXT, vessel_id TEXT, start TEXT, end TEXT, role TEXT );\\nCREATE INDEX IF NOT EXISTS idx_assign_date_vessel ON crew_assignment(date, vessel_id);\\nawait db.commit();\\n)\\nself._init_done = True'; " ^
+
+ "  Set-Content -Encoding UTF8 $f $t;" ^
+
+ "} else { echo [INFO] Indices already present. }"
+
+
+
+%PS% ^
+
+ "$f='backend/app/core/async_repo.py'; $t=Get-Content -Raw $f;" ^
+
+ "$needFns = ($t -notmatch 'rest_fetch_range');" ^
+
+ "if ($needFns) { $t += @'`n    async def rest_fetch_range(self, crew_id: str, start: str, end: str) -> list[dict]:`n        await self.init(); import aiosqlite`n        async with aiosqlite.connect(self._sqlite) as db:`n            db.row_factory=aiosqlite.Row`n            # join by sheet_id (month may span); scan all rows and filter by date`n            cur=await db.execute(\"SELECT r.* FROM crew_rest_day r WHERE date>=? AND date<=?\", (start, end))`n            rows=[dict(x) for x in await cur.fetchall()]`n            # narrow to this crew by resolving sheet crew_id`n            cur=await db.execute(\"SELECT id FROM crew_rest_sheet WHERE crew_id=?\", (crew_id,))`n            sheet_ids={s[0] for s in await cur.fetchall()}`n            return [r for r in rows if r.get(\"sheet_id\") in sheet_ids]`n'; Set-Content -Encoding UTF8 $f $t }"
+
+
+
+REM ----------------------------------------------------------
+
+REM 5) Models: strict Pydantic schemas for inputs (UTC contracts)
+
+REM ----------------------------------------------------------
+
+%PS% "$code=@'
+
+from __future__ import annotations
+
+from pydantic import BaseModel, Field, conint, constr, validator
+
+from typing import List, Optional
+
+
+
+UTC_DATE = constr(pattern=r\"^\\d{4}-\\d{2}-\\d{2}$\")
+
+UTC_TIME = constr(pattern=r\"^\\d{2}:\\d{2}:\\d{2}$\")
+
+
+
+class IngestSignal(BaseModel):
+
+    src: constr(min_length=1)
+
+    sig: constr(min_length=1)
+
+    value: Optional[float] = None
+
+    unit: Optional[str] = None
+
+
+
+class IngestPayload(BaseModel):
+
+    vessel: constr(min_length=1)
+
+    ts: int  # epoch seconds (UTC)
+
+    signals: List[IngestSignal]
+
+
+
+class HoRDay(BaseModel):
+
+    date: UTC_DATE
+
+    h0: conint(ge=0, le=1) = 0
+
+    h1: conint(ge=0, le=1) = 0
+
+    h2: conint(ge=0, le=1) = 0
+
+    h3: conint(ge=0, le=1) = 0
+
+    h4: conint(ge=0, le=1) = 0
+
+    h5: conint(ge=0, le=1) = 0
+
+    h6: conint(ge=0, le=1) = 0
+
+    h7: conint(ge=0, le=1) = 0
+
+    h8: conint(ge=0, le=1) = 0
+
+    h9: conint(ge=0, le=1) = 0
+
+    h10: conint(ge=0, le=1) = 0
+
+    h11: conint(ge=0, le=1) = 0
+
+    h12: conint(ge=0, le=1) = 0
+
+    h13: conint(ge=0, le=1) = 0
+
+    h14: conint(ge=0, le=1) = 0
+
+    h15: conint(ge=0, le=1) = 0
+
+    h16: conint(ge=0, le=1) = 0
+
+    h17: conint(ge=0, le=1) = 0
+
+    h18: conint(ge=0, le=1) = 0
+
+    h19: conint(ge=0, le=1) = 0
+
+    h20: conint(ge=0, le=1) = 0
+
+    h21: conint(ge=0, le=1) = 0
+
+    h22: conint(ge=0, le=1) = 0
+
+    h23: conint(ge=0, le=1) = 0
+
+
+
+class HoRSheetMeta(BaseModel):
+
+    vessel_id: constr(min_length=1)
+
+    crew_id: constr(min_length=1)
+
+    crew_name: constr(min_length=1)
+
+    rank: constr(min_length=1)
+
+    month: constr(min_length=3)
+
+    year: int
+
+
+
+class HoRImport(BaseModel):
+
+    sheet: HoRSheetMeta
+
+    rows: List[HoRDay]
+
+
+
+class ScheduleShift(BaseModel):
+
+    id: constr(min_length=1)
+
+    vessel_id: Optional[str]
+
+    role: Optional[str]
+
+    start: UTC_TIME
+
+    end: UTC_TIME
+
+    needed: conint(ge=1) = 1
+
+    skill_required: Optional[str]
+
+    rank_min: Optional[str]
+
+    cert_required: Optional[str]
+
+
+
+class CrewMember(BaseModel):
+
+    id: constr(min_length=1)
+
+    name: Optional[str]
+
+    rank: Optional[str]
+
+    vessel_id: Optional[str]
+
+    max_hours_7d: int = 72
+
+    min_rest_h: int = 10
+
+    skills: List[str] = []
+
+'@; Set-Content -Encoding UTF8 backend/app/core/models_in.py $code"
+
+
+
+REM ----------------------------------------------------------
+
+REM 6) Apply UTC + Idempotency to endpoints (/ingest, HoR import)
+
+REM ----------------------------------------------------------
+
+REM /ingest HTTP
+
+%PS% ^
+
+ "$f='backend/app/api/ingest.py'; if (Test-Path $f) { $t=Get-Content -Raw $f } else { $t='' };" ^
+
+ "if ($t -ne '') { " ^
+
+ "  $t = $t -replace 'from fastapi import [^\\n]+','from fastapi import APIRouter, Body, Header, HTTPException';" ^
+
+ "  if ($t -notmatch 'router = APIRouter') { $t = 'from fastapi import APIRouter\\n'+$t; }" ^
+
+ "  $t = $t -replace 'def ingest_http\\([\\s\\S]*?\\):','def ingest_http(p: dict = Body(...), authorization: str = Header(default=\"\"), idempotency_key: str = Header(default=\"\")):';" ^
+
+ "  $t = $t -replace 'upsert_payload\\(p\\)','from app.core.obs import ensure_idempotent, INGEST_CNT;\\n    if not authorization or not authorization.startswith(\"Bearer \"): raise HTTPException(status_code=401, detail=\"unauthorized\");\\n    if not await ensure_idempotent(idempotency_key, \"/ingest\"): return {\"ok\": true, \"duplicate\": true};\\n    INGEST_CNT.inc();\\n    upsert_payload(p)';" ^
+
+ "  Set-Content -Encoding UTF8 $f $t }"
+

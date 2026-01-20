@@ -1,0 +1,286 @@
+🚢 REPLIT AI PROMPT — Reverse-Engineered Predictive Maintenance Architecture (Cross-Reference & Auto-Enhance)
+
+
+
+Objective:
+
+Implement a complete audit + auto-build routine that compares ARUS’s current PdM system (Node.js + Express + React 18 + Wouter + TanStack Query + TypeScript) against the full reverse-engineered architectures of Kongsberg K-Fleet, Wärtsilä FOS, ABB Octopus, and ABS Wavesight — and then automatically:
+
+Cross-reference existing features, modules, and files
+
+Add missing components as fully operational code (not stubs)
+
+Enhance existing modules only if the improvement yields measurable UX/ML/telemetry value
+
+Skip redundant features
+
+🔍 Step 1: Repository Cross-Mapping
+
+Scan all directories:
+
+server/, client/, ml/, data/, scripts/, docs/.
+
+Build a feature map against the reverse-engineered reference model below.
+
+For each feature, assign:
+
+✅ Exists + Optimal → Skip
+
+⚙️ Exists + Suboptimal → Enhance
+
+❌ Missing → Create module
+
+
+
+Save results to:
+
+docs/audit/pdm_feature_crossmap.json
+
+🧠 Step 2: Reference Architecture Model (Target State)
+
+graph TD
+A[Onboard Telemetry Sensors] --> B[Edge Gateway / Store-and-Forward Agent]
+B --> C[Telemetry Ingestion API (Express)]
+C --> D[Time-Series DB (InfluxDB/Timescale)]
+D --> E[Feature & Baseline Engine]
+E --> F[ML Ensemble Layer (LSTM + XGBoost + RF + SHAP)]
+F --> G[Anomaly & RUL Engine]
+G --> H[Alert / Work-Order Engine]
+H --> I[Governance & Lineage Registry]
+I --> J[Reporting & Compliance Module]
+G --> K[Visualization API + Benchmarking Service]
+K --> L[React UI: Fleet Map / Vessel Page / Subsystem Tabs / Playback / Export]
+Each node must have a working implementation or enhancement plan.
+
+⚙️ Step 3: Module Implementation Rules
+
+Module
+
+If Missing
+
+If Exists
+
+Enhance When
+
+Telemetry Ingestion API
+
+Generate full Express route /api/telemetry + validation + queue
+
+Check header auth + schema
+
+Add batching, compression, and error logging
+
+Feature Engine
+
+Add sliding-window & baseline generator
+
+Verify numeric stability
+
+Add fleet percentile & root-cause markers
+
+ML Layer
+
+Create full pipeline (LSTM + XGB + RF + SHAP)
+
+Ensure ONNX/TF.js runtime OK
+
+Add drift detection + auto-retrain triggers
+
+RUL Engine
+
+Implement RUL model per vessel class
+
+Check existing regressors
+
+Tune per-class decay factors
+
+Alerts / WO Engine
+
+Add priority, severity, contributors
+
+Verify workflow integration
+
+Add RCA link, fuel-impact estimate
+
+Governance
+
+Implement lineage & provenance hash
+
+Ensure dataset tracking
+
+Add SHA-256 chain verify
+
+Reporting
+
+Build PDF/CSV exporters
+
+Verify export working
+
+Add CII + fleet benchmark reports
+
+Visualization
+
+Add Map, Playback, Subsystem Tabs
+
+Verify UI performance
+
+Add overlays: weather, anomalies, fleet band
+
+Benchmarking
+
+Add percentile calculations
+
+Verify fleet vs vessel logic
+
+Add “compare to fleet/peer” toggle
+
+Simulation / Digital Twin
+
+Add what-if module (speed ↔ fuel ↔ trim)
+
+Verify integration
+
+Add optimisation controls
+
+🧩 Step 4: Smart Enhancement Algorithm
+
+
+
+For each module:
+
+Query repository (grep, AST, file index) for matching code.
+
+Run static analysis (ts-morph) to detect missing exports or outdated logic.
+
+Compute value delta = UX gain + performance gain + governance impact – redundancy risk.
+
+If value_delta > 0, implement enhancement; else skip.
+
+Write summary to docs/audit/pdm_value_impact.md.
+
+🧮 Step 5: Dataset & Model Cross-Check
+
+Ensure baseline datasets per vessel class exist under /data/baselines/.
+
+If missing, auto-download open-source analogues:
+
+C-MAPSS, Marine Engine Sensor Dataset (University of Strathclyde), NOAA Weather + Sea-State, AIS Open Data.
+
+Normalize, hash, and register in /data/registry.json.
+
+Link each vessel profile (TUG_OCE, PSV, PILOT, WORK, etc.) to its baseline model.
+
+🧩 Step 6: Auto-Enhancement Tasks
+
+Create/upgrade:
+
+server/telemetry-ingestion.ts
+
+server/feature-engine.ts
+
+server/ml-ensemble-orchestrator.ts
+
+server/rul-engine.ts
+
+server/alert-workorder.ts
+
+server/governance/lineage.ts
+
+server/reporting/exporter.ts
+
+client/src/pages/FleetMap.tsx
+
+client/src/pages/VesselPage.tsx
+
+client/src/components/SubsystemTabs.tsx
+
+client/src/components/PlaybackViewer.tsx
+
+Wire them via Express + React routes; integrate with Prometheus metrics.
+
+Update .github/workflows/ci.yml to include feature-crossmap audit + perf harness run.
+
+🧾 Step 7: Final Verification & Documentation
+
+Verify every API route has validation (zod/yup) and appears in api_contract_matrix.md.
+
+Verify ML lineage JSON written to docs/audit/lineage_snapshot.json.
+
+Generate system-level Mermaid diagram (updated with real paths).
+
+Print executive summary table:
+
+Layer
+
+Status
+
+Action
+
+Impact
+
+Ingestion
+
+✅
+
+Enhanced
+
++ 15 % data coverage
+
+Feature Engine
+
+⚙️
+
+Added percentile band
+
++ UX clarity
+
+ML Layer
+
+✅
+
+Added drift detect
+
++ reliability
+
+RUL
+
+✅
+
+Tuned per vessel
+
++ accuracy
+
+Alerts / WO
+
+⚙️
+
+Enhanced
+
++ clarity
+
+Governance
+
+⚙️
+
+Added hash chain
+
++ auditability
+
+✅ Definition of Done
+
+
+
+Replit must:
+
+Output cross-map JSON and Markdown reports.
+
+Print the updated system diagram with module statuses.
+
+Confirm all missing components are implemented and passing lint/test.
+
+Save logs under docs/audit/_artifacts/build_log.txt.
+
+
+
+Execute now. No stubs, no placeholders — only verified, runnable implementations.
+

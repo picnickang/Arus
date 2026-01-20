@@ -1,0 +1,233 @@
+/**
+ * OpenAI Client Management - API key, client creation, retry logic
+ */
+
+import OpenAI from "openai";
+import { storage } from "../storage";
+import type { ErrorAnalysisResult } from "./types";
+import { cryptoRandom } from "@shared/crypto-random";
+
+/**
+ * Type for settings accessor function to enable dependency injection
+ */
+export type SettingsAccessor = () => Promise<{ openaiApiKey?: string | null }>;
+
+/**
+ * Get the effective OpenAI API key from settings or environment
+ * Priority order:
+ * 1. User-configured key in settings (database)
+ * 2. OPENAI_API_KEY environment variable
+ * 3. AI_INTEGRATIONS_OPENAI_API_KEY (Replit AI Integrations)
+ * 
+ * @param getSettingsFn Optional settings accessor function for dependency injection.
+ *                      If not provided, uses the global storage singleton.
+ */
+export async function getOpenAIApiKey(getSettingsFn?: SettingsAccessor): Promise<string | undefined> {
+  try {
+    const settingsAccessor = getSettingsFn || (async () => storage.getSettings());
+    const settings = await settingsAccessor();
+    if (settings.openaiApiKey) {
+      return settings.openaiApiKey;
+    }
+  } catch (error) {
+    console.error("Failed to get API key from settings, falling back to environment:", error);
+  }
+  
+  // Check environment variables in priority order
+  return (
+    process.env.OPENAI_API_KEY ||
+    process.env.AI_INTEGRATIONS_OPENAI_API_KEY
+  );
+}
+
+/**
+ * Create OpenAI client with dynamic API key
+ */
+export async function createOpenAIClient(): Promise<OpenAI | null> {
+  const apiKey = await getOpenAIApiKey();
+  if (!apiKey) {
+    console.error("No OpenAI API key available - AI features will be unavailable");
+    return null;
+  }
+  return new OpenAI({
+    apiKey,
+    timeout: 45000,
+  });
+}
+
+/**
+ * Calculate dynamic token allocation based on input data size
+ */
+export function calculateDynamicTokens(
+  dataSize: number,
+  baseTokens: number = 1500,
+  maxTokens: number = 4096
+): number {
+  const estimatedInputTokens = Math.ceil(dataSize / 4);
+  const scaledTokens = baseTokens + Math.floor(estimatedInputTokens / 1000) * 500;
+  return Math.min(Math.max(scaledTokens, baseTokens), maxTokens);
+}
+
+/**
+ * Determine appropriate retry strategy based on error type
+ */
+export function analyzeErrorType(error: any): ErrorAnalysisResult {
+  const errorMessage = error?.message?.toLowerCase() || "";
+  const errorCode = error?.code?.toLowerCase() || "";
+  const errorType = error?.type?.toLowerCase() || "";
+
+  if (
+    errorMessage.includes("rate limit") ||
+    errorMessage.includes("rate_limit") ||
+    errorMessage.includes("rate-limit") ||
+    errorCode === "rate_limit_exceeded" ||
+    errorType === "rate_limit_error"
+  ) {
+    return {
+      shouldRetry: true,
+      suggestedDelay: 5000,
+      fallbackModel: "gpt-4o-mini",
+      recommendation: "Rate limit hit - falling back to gpt-4o-mini",
+    };
+  }
+
+  if (errorMessage.includes("timeout") || errorCode === "timeout") {
+    return {
+      shouldRetry: true,
+      recommendation: "Timeout error - retrying with same model",
+    };
+  }
+
+  if (errorMessage.includes("server_error") || errorMessage.includes("internal_error")) {
+    return {
+      shouldRetry: true,
+      recommendation: "Server error - retrying with same model",
+    };
+  }
+
+  if (errorMessage.includes("model_overloaded") || errorMessage.includes("overloaded")) {
+    return {
+      shouldRetry: true,
+      suggestedDelay: 3000,
+      fallbackModel: "gpt-4o-mini",
+      recommendation: "Model overloaded - falling back to gpt-4o-mini",
+    };
+  }
+
+  if (errorMessage.includes("invalid_api_key") || errorMessage.includes("authentication")) {
+    return {
+      shouldRetry: false,
+      recommendation: "Authentication error - check API key configuration",
+    };
+  }
+
+  if (
+    errorMessage.includes("context_length_exceeded") ||
+    errorMessage.includes("maximum context")
+  ) {
+    return {
+      shouldRetry: false,
+      recommendation: "Input too large - reduce data size or use summarization",
+    };
+  }
+
+  if (errorMessage.includes("invalid_request") || errorCode === "invalid_request_error") {
+    return {
+      shouldRetry: false,
+      recommendation: "Invalid request format - check request parameters",
+    };
+  }
+
+  if (errorMessage.includes("content_filter") || errorMessage.includes("content_policy")) {
+    return {
+      shouldRetry: false,
+      recommendation: "Content policy violation - review input content",
+    };
+  }
+
+  return {
+    shouldRetry: true,
+    recommendation: "Unknown error - attempting retry with same model",
+  };
+}
+
+/**
+ * Retry mechanism with exponential backoff and intelligent error handling
+ */
+export async function retryWithBackoff<T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> {
+  let lastError: Error | undefined;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      lastError = error;
+      const errorAnalysis = analyzeErrorType(error);
+
+      if (!errorAnalysis.shouldRetry) {
+        console.error(`Non-retryable error: ${errorAnalysis.recommendation}`, error?.message);
+        throw error;
+      }
+
+      if (attempt === maxRetries) {
+        console.error(
+          `Max retries (${maxRetries}) reached for OpenAI operation: ${errorAnalysis.recommendation}`
+        );
+        break;
+      }
+
+      const errorSpecificDelay = errorAnalysis.suggestedDelay || baseDelay;
+      const exponentialDelay = errorSpecificDelay * Math.pow(2, attempt);
+      const jitter = cryptoRandom() * 1000;
+      const delay = exponentialDelay + jitter;
+
+      console.warn(
+        `OpenAI request failed (attempt ${attempt + 1}/${maxRetries + 1}): ${errorAnalysis.recommendation}. ` +
+          `Retrying in ${Math.round(delay)}ms...`,
+        error?.message
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+
+  throw lastError || new Error("OpenAI operation failed after retries");
+}
+
+/**
+ * Wrapper for OpenAI API calls with model fallback capability
+ */
+export async function callWithModelFallback(
+  openai: OpenAI,
+  params: {
+    model: string;
+    messages: any[];
+    response_format?: any;
+    max_completion_tokens?: number;
+  }
+): Promise<any> {
+  try {
+    return await retryWithBackoff(() => openai.chat.completions.create(params));
+  } catch (error: any) {
+    const errorAnalysis = analyzeErrorType(error);
+
+    if (errorAnalysis.fallbackModel && params.model !== errorAnalysis.fallbackModel) {
+      console.warn(
+        `Falling back from ${params.model} to ${errorAnalysis.fallbackModel} due to: ${errorAnalysis.recommendation}`
+      );
+
+      return await retryWithBackoff(() =>
+        openai.chat.completions.create({
+          ...params,
+          model: errorAnalysis.fallbackModel!,
+        })
+      );
+    }
+
+    throw error;
+  }
+}

@@ -1,0 +1,502 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==========================================================
+REM ARUS Advanced PdM Patch:
+REM - Edge protocol adapter stubs (NMEA2000/J1939/Modbus/OPC-UA)
+REM - Vibration toolkit (FFT features, ISO bands, fault bands)
+REM - Survival/RUL service (Weibull MLE), registry & history
+REM - Inventory engine (parts/stock/suppliers/lead times/subs)
+REM - Compliance packs (ABS/DNV HTML/PDF bundle + SHA256)
+REM ==========================================================
+
+if not exist "backend\app\main.py" (
+echo [ERROR] backend\app\main.py not found. Run this at the repo root.
+exit /b 1
+)
+
+if not exist "frontend\src" (
+echo [WARN] frontend\src not found; UI pieces will be skipped.
+set SKIP_UI=1
+) else (
+set SKIP_UI=0
+)
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+REM ----------------------------------------------------------
+REM 1) Requirements (numpy + optional PDF engine)
+REM ----------------------------------------------------------
+%PS% ^
+"$f='backend/requirements.txt'; if (Test-Path $f) {$t=Get-Content -Raw $f} else {$t=''};" ^
+"foreach($pkg in @('numpy>=1.26','weasyprint>=61')){ if ($t -notmatch [regex]::Escape($pkg.Split('>')[0])) { $t += \"`n$pkg\" } }" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ----------------------------------------------------------
+REM 2) DB: add advanced tables
+REM ----------------------------------------------------------
+%PS% ^
+"$f='backend/app/core/async_repo.py'; $t=Get-Content -Raw $f;" ^
+"$needVib=($t -notmatch 'CREATE TABLE IF NOT EXISTS vibration_feature');" ^
+"$needRUL=($t -notmatch 'CREATE TABLE IF NOT EXISTS rul_model');" ^
+"$needInv=($t -notmatch 'CREATE TABLE IF NOT EXISTS part\$begin:math:text$');" ^
+"$needComp=($t -notmatch 'CREATE TABLE IF NOT EXISTS compliance_bundle');" ^
+"if ($needVib -or $needRUL -or $needInv -or $needComp) {" ^
+" $t = $t -replace 'await db.commit\\\\(\\$end:math:text$\\s*\\n\\s*\\)\\n\\s*self._init_done = True', 'await db.execute(\"\"\"`nCREATE TABLE IF NOT EXISTS vibration_feature(`n id INTEGER PRIMARY KEY AUTOINCREMENT,`n ts TEXT NOT NULL, vessel_id TEXT, equipment_id TEXT, rpm REAL,`n rms REAL, crest REAL, kurtosis REAL, peak_hz REAL,`n band_1 REAL, band_2 REAL, band_3 REAL, band_4 REAL,`n raw_len INTEGER`n)\"\"\");`nawait db.execute(\"\"\"`nCREATE TABLE IF NOT EXISTS rul_model(`n id TEXT PRIMARY KEY, component_class TEXT, shape_k REAL, scale_lambda REAL,`n ci_lo REAL, ci_hi REAL, fitted_at TEXT, notes TEXT`n)\"\"\");`nawait db.execute(\"\"\"`nCREATE TABLE IF NOT EXISTS rul_fit_history(`n id INTEGER PRIMARY KEY AUTOINCREMENT, model_id TEXT,`n shape_k REAL, scale_lambda REAL, fitted_at TEXT`n)\"\"\");`nawait db.execute(\"\"\"`nCREATE TABLE IF NOT EXISTS part(`n part_no TEXT PRIMARY KEY, name TEXT, uom TEXT, min_qty REAL, max_qty REAL, cost REAL`n)\"\"\");`nawait db.execute(\"\"\"`nCREATE TABLE IF NOT EXISTS supplier(`n id TEXT PRIMARY KEY, name TEXT, lead_days INTEGER`n)\"\"\");`nawait db.execute(\"\"\"`nCREATE TABLE IF NOT EXISTS stock(`n part_no TEXT, location TEXT, qty REAL, PRIMARY KEY(part_no, location)`n)\"\"\");`nawait db.execute(\"\"\"`nCREATE TABLE IF NOT EXISTS substitution(`n primary_part TEXT, alt_part TEXT, PRIMARY KEY(primary_part, alt_part)`n)\"\"\");`nawait db.execute(\"\"\"`nCREATE TABLE IF NOT EXISTS compliance_bundle(`n id TEXT PRIMARY KEY, kind TEXT, created_at TEXT, sha256 TEXT, path TEXT, meta_json TEXT`n)\"\"\");`nawait db.commit();`n) `nself._init_done = True';" ^
+"}" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ----------------------------------------------------------
+REM 3) Core: vibration features (numpy FFT) and RUL (Weibull MLE)
+REM ----------------------------------------------------------
+%PS% "$code=@'
+from __future__ import annotations
+import numpy as np
+from typing import Dict, Any, Tuple, List, Optional
+
+def _iso_bands_hz(rpm: float) -> List[Tuple[float,float]]:
+# Simple example bands around orders 1x..4x
+base = rpm/60.0
+return [(0.8*base,1.2*base),(1.8*base,2.2*base),(2.8*base,3.2*base),(3.8*base,4.2*base)]
+
+def _band_power(freq: np.ndarray, spec: np.ndarray, lo: float, hi: float) -> float:
+mask = (freq>=lo) & (freq<=hi)
+if not np.any(mask): return 0.0
+return float(np.trapz(spec[mask], freq[mask]))
+
+def vibration_features(values: List[float], fs_hz: float, rpm: Optional[float]=None) -> Dict[str, Any]:
+x = np.asarray(values, dtype=float)
+n = x.size
+if n < 8: return {"rms":0,"crest":0,"kurtosis":0,"peak_hz":0,"bands":[0,0,0,0],"raw_len":n}
+x = x - np.mean(x)
+rms = float(np.sqrt(np.mean(x*x)))
+crest = float(np.max(np.abs(x)) / (rms+1e-12))
+kurt = float(np.mean((x/ (np.std(x)+1e-12))**4))
+# FFT
+spec = np.fft.rfft(x)
+freq = np.fft.rfftfreq(n, d=1.0/fs_hz)
+psd = (spec.real**2 + spec.imag**2) / n
+peak_idx = int(np.argmax(psd))
+peak_hz = float(freq[peak_idx])
+
+bands = [0,0,0,0]
+if rpm and rpm>0:
+for i,(lo,hi) in enumerate(_iso_bands_hz(rpm)):
+bands[i] = _band_power(freq, psd, lo, hi)
+return {"rms":rms,"crest":crest,"kurtosis":kurt,"peak_hz":peak_hz,"bands":bands,"raw_len":n}
+'@; Set-Content -Encoding UTF8 backend/app/core/vibration.py $code"
+
+%PS% "$code=@'
+from __future__ import annotations
+import math
+from typing import List, Tuple, Dict, Any
+
+def weibull_fit_mle(times: List[float]) -> Tuple[float,float]:
+"""Return (k, lambda) using grid search MLE (robust, SciPy-free)."""
+xs = [t for t in times if t>0]
+if len(xs) < 3:
+# fallback: crude moments
+m = sum(xs)/len(xs)
+v = sum((t-m)**2 for t in xs)/max(1,len(xs)-1)
+k = max(0.5, min(5.0, (m*m)/v if v>0 else 2.0))
+lam = m / math.gamma(1+1/k)
+return (k, lam)
+def nll(k: float) -> float:
+if k<=0: return 1e18
+lsum = sum(math.log(x) for x in xs)
+n = len(xs)
+# optimize lambda analytically for given k
+lam = (sum(x**k for x in xs)/n)**(1.0/k)
+return n*math.log(k) + n*k*math.log(lam) + sum((x/lam)**k for x in xs) - (k-1)*lsum
+best=(2.0,1e18)
+for k in [i/10.0 for i in range(5, 101)]: # 0.5..10.0
+val = nll(k)
+if val < best[1]: best=(k,val)
+k = best[0]
+lam = (sum(x**k for x in xs)/len(xs))**(1.0/k)
+return (k, lam)
+
+def weibull_rul(age: float, k: float, lam: float, q: float=0.5) -> float:
+"""Return RUL quantile given current age; solve t s.t. S(age+t)=q*S(age)."""
+# S(t)=exp(-(t/lam)^k). We need ( (age+t)/lam )^k - (age/lam)^k = -ln(q)
+rhs = -math.log(q)
+a = (age/lam)**k
+t = lam*((a+rhs)**(1.0/k)) - age
+return max(0.0, t)
+
+def weibull_ci(k: float, lam: float) -> Tuple[float,float]:
+# Simple fixed-width relative CI placeholder (no SciPy): ±20% of lam
+lo = max(0.0, lam*0.8); hi = lam*1.2
+return (lo, hi)
+'@; Set-Content -Encoding UTF8 backend/app/core/rul.py $code"
+
+REM ----------------------------------------------------------
+REM 4) Inventory helper
+REM ----------------------------------------------------------
+%PS% "$code=@'
+from __future__ import annotations
+from typing import Dict, Any, List, Tuple
+import aiosqlite
+
+async def parts_available(db_path: str, parts: List[str]) -> Dict[str, float]:
+out = {p:0.0 for p in parts}
+async with aiosqlite.connect(db_path) as db:
+cur = await db.execute(\"SELECT part_no, SUM(qty) as q FROM stock WHERE part_no IN ({seq}) GROUP BY part_no\".format(seq=','.join('?'*len(parts))), parts)
+for part_no,q in await cur.fetchall():
+out[part_no]=q or 0.0
+return out
+
+def cost_plan(tasks: List[Dict[str,Any]], part_costs: Dict[str,float]) -> float:
+total=0.0
+for t in tasks:
+for p in t.get('parts',[]):
+total += part_costs.get(p,0.0)
+return total
+'@; Set-Content -Encoding UTF8 backend/app/core/inventory.py $code"
+
+REM ----------------------------------------------------------
+REM 5) Compliance pack builder (HTML + SHA256; optional PDF)
+REM ----------------------------------------------------------
+%PS% "$code=@'
+from __future__ import annotations
+import os, json, hashlib, datetime
+from typing import Dict, Any, Tuple
+
+def make_bundle(kind: str, payload: Dict[str,Any], out_dir: str = \"./bundles\") -> Tuple[str,str]:
+os.makedirs(out_dir, exist_ok=True)
+ts = datetime.datetime.utcnow().replace(microsecond=0).isoformat()+\"Z\"
+html = f\"\"\"<!doctype html><meta charset='utf-8'>
+<style>body{{font-family:system-ui, sans-serif;}} pre{{white-space:pre-wrap}}</style>
+<h1>Compliance Bundle: {kind}</h1>
+<p>Generated: {ts}</p>
+<h2>Contents</h2>
+<pre>{json.dumps(payload, indent=2)}</pre>
+\"\"\"
+tmp = os.path.join(out_dir, f\"{kind}_{ts.replace(':','-')}.html\")
+with open(tmp, 'w', encoding='utf-8') as f: f.write(html)
+sha = hashlib.sha256(open(tmp,'rb').read()).hexdigest()
+# optional PDF
+try:
+from weasyprint import HTML
+pdf_path = tmp.replace('.html','.pdf')
+HTML(tmp).write_pdf(pdf_path)
+return (pdf_path, sha)
+except Exception:
+return (tmp, sha)
+'@; Set-Content -Encoding UTF8 backend/app/core/compliance.py $code"
+
+REM ----------------------------------------------------------
+REM 6) API Routers: vibration, RUL, inventory, compliance
+REM ----------------------------------------------------------
+%PS% "$code=@'
+from __future__ import annotations
+from fastapi import APIRouter, Body, HTTPException
+from typing import Dict, Any, List
+from datetime import datetime
+import aiosqlite
+
+from app.core.vibration import vibration_features
+from app.core.rul import weibull_fit_mle, weibull_rul, weibull_ci
+from app.core.inventory import parts_available, cost_plan
+from app.core.compliance import make_bundle
+from app.core.settings import SETTINGS
+
+router = APIRouter(prefix=\"/api/advanced\", tags=[\"advanced-pdm\"])
+
+# ---- VIBRATION ----
+@router.post(\"/vibration/features\")
+async def vib_features(body: Dict[str,Any] = Body(...)):
+values = body.get(\"values\", [])
+fs = float(body.get(\"fs_hz\", 1000))
+rpm = body.get(\"rpm\")
+feats = vibration_features(values, fs, rpm)
+# store
+sqlite = SETTINGS.storage.get(\"sqlite_path\") or \"./arus.sqlite\"
+async with aiosqlite.connect(sqlite) as db:
+await db.execute(\"INSERT INTO vibration_feature(ts,vessel_id,equipment_id,rpm,rms,crest,kurtosis,peak_hz,band_1,band_2,band_3,band_4,raw_len) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)\",
+(datetime.utcnow().isoformat()+\"Z\", body.get(\"vessel_id\"), body.get(\"equipment_id\"), rpm,
+feats[\"rms\"], feats[\"crest\"], feats[\"kurtosis\"], feats[\"peak_hz\"], feats[\"bands\"][0], feats[\"bands\"][1], feats[\"bands\"][2], feats[\"bands\"][3], feats[\"raw_len\"]))
+await db.commit()
+return feats
+
+@router.get(\"/vibration/recent\")
+async def vib_recent(limit: int = 50):
+sqlite = SETTINGS.storage.get(\"sqlite_path\") or \"./arus.sqlite\"
+async with aiosqlite.connect(sqlite) as db:
+db.row_factory = aiosqlite.Row
+cur = await db.execute(\"SELECT * FROM vibration_feature ORDER BY id DESC LIMIT ?\", (limit,))
+return [dict(r) for r in await cur.fetchall()]
+
+# ---- RUL ----
+@router.post(\"/rul/fit\")
+async def rul_fit(body: Dict[str,Any] = Body(...)):
+times = body.get(\"failure_times\", [])
+if not times: raise HTTPException(400, \"failure_times required (in days/hours)\")
+k, lam = weibull_fit_mle([float(t) for t in times])
+ci_lo, ci_hi = weibull_ci(k, lam)
+model_id = body.get(\"model_id\") or \"model_\"+datetime.utcnow().strftime(\"%Y%m%d%H%M%S\")
+sqlite = SETTINGS.storage.get(\"sqlite_path\") or \"./arus.sqlite\"
+async with aiosqlite.connect(sqlite) as db:
+await db.execute(\"INSERT OR REPLACE INTO rul_model(id,component_class,shape_k,scale_lambda,ci_lo,ci_hi,fitted_at,notes) VALUES(?,?,?,?,?,?,?,?)\",
+(model_id, body.get(\"component_class\"), k, lam, ci_lo, ci_hi, datetime.utcnow().isoformat()+\"Z\", body.get(\"notes\")))
+await db.execute(\"INSERT INTO rul_fit_history(model_id,shape_k,scale_lambda,fitted_at) VALUES(?,?,?,?)\",
+(model_id, k, lam, datetime.utcnow().isoformat()+\"Z\"))
+await db.commit()
+return {\"model_id\": model_id, \"k\": k, \"lambda\": lam, \"ci\": [ci_lo, ci_hi]}
+
+@router.post(\"/rul/predict\")
+async def rul_predict(body: Dict[str,Any] = Body(...)):
+age = float(body.get(\"age\", 0))
+k = float(body.get(\"k\")); lam = float(body.get(\"lambda\"))
+q = float(body.get(\"quantile\", 0.5))
+return {\"rul\": weibull_rul(age, k, lam, q), \"quantile\": q}
+
+# ---- Inventory ----
+@router.post(\"/inventory/parts\")
+async def upsert_part(body: Dict[str,Any] = Body(...)):
+sqlite = SETTINGS.storage.get(\"sqlite_path\") or \"./arus.sqlite\"
+async with aiosqlite.connect(sqlite) as db:
+await db.execute(\"INSERT OR REPLACE INTO part(part_no,name,uom,min_qty,max_qty,cost) VALUES(?,?,?,?,?,?)\",
+(body[\"part_no\"], body.get(\"name\"), body.get(\"uom\"), body.get(\"min_qty\",0), body.get(\"max_qty\",0), body.get(\"cost\",0)))
+await db.commit()
+return {\"ok\": True}
+
+@router.post(\"/inventory/stock\")
+async def set_stock(body: Dict[str,Any] = Body(...)):
+sqlite = SETTINGS.storage.get(\"sqlite_path\") or \"./arus.sqlite\"
+async with aiosqlite.connect(sqlite) as db:
+await db.execute(\"INSERT OR REPLACE INTO stock(part_no,location,qty) VALUES(?,?,?)\",
+(body[\"part_no\"], body.get(\"location\",\"MAIN\"), body.get(\"qty\",0)))
+await db.commit()
+return {\"ok\": True}
+
+@router.get(\"/inventory/parts\")
+async def list_parts():
+sqlite = SETTINGS.storage.get(\"sqlite_path\") or \"./arus.sqlite\"
+async with aiosqlite.connect(sqlite) as db:
+db.row_factory = aiosqlite.Row
+cur = await db.execute(\"SELECT * FROM part ORDER BY part_no\")
+return [dict(r) for r in await cur.fetchall()]
+
+@router.post(\"/inventory/cost-plan\")
+async def inv_cost_plan(body: Dict[str,Any] = Body(...)):
+tasks = body.get(\"tasks\", [])
+# build cost dict
+sqlite = SETTINGS.storage.get(\"sqlite_path\") or \"./arus.sqlite\"
+async with aiosqlite.connect(sqlite) as db:
+db.row_factory = aiosqlite.Row
+parts = sorted({p for t in tasks for p in t.get(\"parts\",[])})
+if not parts:
+return {\"total\":0,\"detail\":{}}
+cur = await db.execute(\"SELECT part_no, cost FROM part WHERE part_no IN ({seq})\".format(seq=','.join('?'*len(parts))), parts)
+cost_map = {r[0]: (r[1] or 0.0) for r in await cur.fetchall()}
+total = cost_plan(tasks, cost_map)
+return {\"total\": total, \"cost_map\": cost_map}
+
+# ---- Compliance ----
+@router.post(\"/compliance/bundle\")
+async def compliance_bundle(body: Dict[str,Any] = Body(...)):
+kind = body.get(\"kind\", \"ABS_DNV_PACK\")
+sqlite = SETTINGS.storage.get(\"sqlite_path\") or \"./arus.sqlite\"
+path, sha = make_bundle(kind, body.get(\"payload\", {}))
+async with aiosqlite.connect(sqlite) as db:
+await db.execute(\"INSERT OR REPLACE INTO compliance_bundle(id,kind,created_at,sha256,path,meta_json) VALUES(?,?,?,?,?,?)\",
+(kind+\"_latest\", kind, datetime.utcnow().isoformat()+\"Z\", sha, path, \"{}\")); await db.commit()
+return {\"ok\": True, \"path\": path, \"sha256\": sha}
+'@; Set-Content -Encoding UTF8 backend/app/api/advanced_pdm.py $code"
+
+REM Wire router in main.py
+%PS% ^
+"$f='backend/app/main.py'; $t=Get-Content -Raw $f;" ^
+"if ($t -notmatch 'from \\.api\\.advanced_pdm import router as advanced_pdm_router') {" ^
+" $t = $t -replace '(from \\.api\\.[^\\n]+\\n)+', '$0from .api.advanced_pdm import router as advanced_pdm_router`n'; }" ^
+"if ($t -notmatch 'app\\.include_router\\(advanced_pdm_router\\)') {" ^
+" $t = $t -replace '(?s)(app\\.include_router\\([^)]+\\)\\s*)$', '$0`napp.include_router(advanced_pdm_router)'; }" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ----------------------------------------------------------
+REM 7) Edge collectors (stubs) with local cache + sync
+REM ----------------------------------------------------------
+%PS% "$code=@'
+# Edge adapter stubs (run on the vessel edge). Normalize readings to:
+# {\"vessel\":..., \"ts\": epoch_sec, \"signals\":[{\"src\":...,\"sig\":...,\"value\":...,\"unit\":...}]}
+# Cache in local SQLite if upstream is unavailable; replay later (resumable sync).
+
+import os, json, time, sqlite3, random, threading, queue, requests
+from typing import Dict, Any
+
+DB = os.getenv(\"EDGE_CACHE\", \"edge_cache.sqlite\")
+API = os.getenv(\"UPSTREAM_URL\", \"http://localhost:8001/ingest\")
+TOKEN = os.getenv(\"INGEST_TOKEN\", \"demo-token\")
+VESSEL = os.getenv(\"VESSEL_ID\", \"DEMO_VESSEL\")
+
+def _init():
+con = sqlite3.connect(DB); cur=con.cursor()
+cur.execute(\"CREATE TABLE IF NOT EXISTS outbox (id INTEGER PRIMARY KEY AUTOINCREMENT, payload TEXT)\")
+con.commit(); con.close()
+
+def push(payload: Dict[str,Any]):
+try:
+r = requests.post(API, headers={\"Authorization\": f\"Bearer {TOKEN}\", \"Content-Type\":\"application/json\"}, data=json.dumps(payload), timeout=5)
+if r.ok: return True
+except Exception: pass
+con=sqlite3.connect(DB); cur=con.cursor()
+cur.execute(\"INSERT INTO outbox(payload) VALUES(?)\", (json.dumps(payload),)); con.commit(); con.close()
+return False
+
+def flush():
+con=sqlite3.connect(DB); cur=con.cursor()
+rows = list(cur.execute(\"SELECT id, payload FROM outbox ORDER BY id LIMIT 100\")); 
+for _id,p in rows:
+try:
+r = requests.post(API, headers={\"Authorization\": f\"Bearer {TOKEN}\", \"Content-Type\":\"application/json\"}, data=p, timeout=5)
+if r.ok:
+cur.execute(\"DELETE FROM outbox WHERE id=?\", (_id,))
+con.commit()
+except Exception:
+break
+con.close()
+
+# --- Protocol-specific collectors (stubs) ---
+def collect_nmea2000():
+while True:
+ts=int(time.time())
+pkt={\"vessel\":VESSEL,\"ts\":ts,\"signals\":[{\"src\":\"n2k_eng\",\"sig\":\"rpm\",\"value\":random.randint(800,1600),\"unit\":\"rpm\"}]}
+push(pkt); time.sleep(2)
+
+def collect_j1939():
+while True:
+ts=int(time.time())
+pkt={\"vessel\":VESSEL,\"ts\":ts,\"signals\":[{\"src\":\"j1939_eng\",\"sig\":\"oil_pressure\",\"value\":3.6,\"unit\":\"bar\"}]}
+push(pkt); time.sleep(3)
+
+def collect_modbus():
+while True:
+ts=int(time.time())
+pkt={\"vessel\":VESSEL,\"ts\":ts,\"signals\":[{\"src\":\"mb_pump1\",\"sig\":\"amps\",\"value\":12.5,\"unit\":\"A\"}]}
+push(pkt); time.sleep(4)
+
+def collect_opcua():
+while True:
+ts=int(time.time())
+pkt={\"vessel\":VESSEL,\"ts\":ts,\"signals\":[{\"src\":\"opcua_gen1\",\"sig\":\"kw\",\"value\":300,\"unit\":\"kW\"}]}
+push(pkt); time.sleep(5)
+
+if __name__=='__main__':
+_init()
+threading.Thread(target=collect_nmea2000, daemon=True).start()
+threading.Thread(target=collect_j1939, daemon=True).start()
+threading.Thread(target=collect_modbus, daemon=True).start()
+threading.Thread(target=collect_opcua, daemon=True).start()
+while True:
+flush(); time.sleep(10)
+'@; Set-Content -Encoding UTF8 backend/app/edge_adapters/edge_collectors.py $code"
+
+REM ----------------------------------------------------------
+REM 8) Frontend: cards for Vibration, RUL, Inventory, Compliance
+REM ----------------------------------------------------------
+if "%SKIP_UI%"=="0" (
+%PS% "$code=@'
+import { useEffect, useState } from \"react\";
+const BASE = (import.meta as any).env.VITE_API_URL || 'http://localhost:8000';
+
+export function VibrationCard(){
+const [out,setOut]=useState<any>(null);
+async function run(){
+const values = Array.from({length:2048}, (_,i)=> Math.sin(2*Math.PI*50*i/2048)+ (Math.random()-0.5)*0.2);
+const r = await fetch(`${BASE}/api/advanced/vibration/features`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({vessel_id:'DEMO',equipment_id:'ENG1',fs_hz:1024,rpm:1200,values})});
+setOut(await r.json());
+}
+return <div className=\"card\"><h2>Vibration Toolkit</h2>
+<button onClick={run}>Compute Features (demo)</button>
+{out && <pre className='text-xs' style={{background:'#f1f5f9',padding:8,marginTop:8,borderRadius:6,overflow:'auto'}}>{JSON.stringify(out,null,2)}</pre>}
+</div>;
+}
+
+export function RULCard(){
+const [fit,setFit]=useState<any>(null); const [pred,setPred]=useState<any>(null);
+async function doFit(){
+const r=await fetch(`${BASE}/api/advanced/rul/fit`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({component_class:'fuel_pump',failure_times:[1200,1500,1800,1300,1600]})});
+setFit(await r.json());
+}
+async function doPredict(){
+if(!fit) return;
+const r=await fetch(`${BASE}/api/advanced/rul/predict`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({age:1400,k:fit.k,lambda:fit.lambda,quantile:0.5})});
+setPred(await r.json());
+}
+return <div className=\"card\"><h2>RUL Service (Weibull)</h2>
+<button onClick={doFit}>Fit Model</button>
+<button onClick={doPredict} style={{marginLeft:6}}>Predict @ age=1400</button>
+{fit && <pre className='text-xs' style={{background:'#f1f5f9',padding:8,marginTop:8,borderRadius:6}}>{JSON.stringify(fit,null,2)}</pre>}
+{pred && <pre className='text-xs' style={{background:'#f1f5f9',padding:8,marginTop:8,borderRadius:6}}>{JSON.stringify(pred,null,2)}</pre>}
+</div>;
+}
+
+export function InventoryCard(){
+const [parts,setParts]=useState<any[]>([]);
+const [form,setForm]=useState<any>({part_no:'FILTER_A',name:'Lube Filter',uom:'ea',cost:50});
+async function save(){ await fetch(`${BASE}/api/advanced/inventory/parts`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(form)}); load(); }
+async function load(){ const r=await fetch(`${BASE}/api/advanced/inventory/parts`); setParts(await r.json()); }
+useEffect(()=>{ load(); },[]);
+return <div className=\"card\"><h2>Inventory</h2>
+<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:6}}>
+<input placeholder='part_no' value={form.part_no||''} onChange={e=>setForm({...form,part_no:e.target.value})}/>
+<input placeholder='name' value={form.name||''} onChange={e=>setForm({...form,name:e.target.value})}/>
+<input placeholder='uom' value={form.uom||''} onChange={e=>setForm({...form,uom:e.target.value})}/>
+<input placeholder='cost' value={form.cost||0} onChange={e=>setForm({...form,cost: Number(e.target.value)||0})}/>
+<button onClick={save}>Save Part</button>
+</div>
+<table className='text-xs' style={{width:'100%',marginTop:8}}>
+<thead><tr><th>part_no</th><th>name</th><th>uom</th><th>cost</th></tr></thead>
+<tbody>{parts.map((p:any)=><tr key={p.part_no}><td>{p.part_no}</td><td>{p.name}</td><td>{p.uom}</td><td>{p.cost}</td></tr>)}</tbody>
+</table>
+</div>;
+}
+
+export function ComplianceCard(){
+const [out,setOut]=useState<any>(null);
+async function build(){
+const payload={note:'Demo ABS/DNV pack', vessel_id:'DEMO', equipment_id:'ENG1'};
+const r=await fetch(`${BASE}/api/advanced/compliance/bundle`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'ABS_DNV',payload})});
+setOut(await r.json());
+}
+return <div className=\"card\"><h2>Compliance Packs</h2>
+<button onClick={build}>Generate Bundle</button>
+{out && <pre className='text-xs' style={{background:'#f1f5f9',padding:8,marginTop:8,borderRadius:6}}>{JSON.stringify(out,null,2)}</pre>}
+</div>;
+}
+'@; Set-Content -Encoding UTF8 frontend/src/components/AdvancedPDM.tsx $code"
+
+%PS% ^
+"$f='frontend/src/App.tsx'; $t=Get-Content -Raw $f;" ^
+"if ($t -notmatch 'AdvancedPDM') { $t = $t -replace 'from \\\"\\./components/TransportSettings\\\";','from \"./components/TransportSettings\";\nimport { VibrationCard, RULCard, InventoryCard, ComplianceCard } from \"./components/AdvancedPDM\";'; }" ^
+"if ($t -notmatch 'Vibration Toolkit') { $t = $t -replace '(</div>\\s*;\\s*\\}\\s*$)',' <VibrationCard/>\n <RULCard/>\n <InventoryCard/>\n <ComplianceCard/>\n </div>);\n}\n'; }" ^
+"Set-Content -Encoding UTF8 $f $t;"
+) else (
+echo [INFO] Skipping UI patch (frontend not found).
+)
+
+echo.
+echo ==========================================================
+echo [OK] Advanced PdM features installed.
+echo ----------------------------------------------------------
+echo New backend API:
+echo POST /api/advanced/vibration/features
+echo GET /api/advanced/vibration/recent
+echo POST /api/advanced/rul/fit
+echo POST /api/advanced/rul/predict
+echo POST /api/advanced/inventory/parts
+echo POST /api/advanced/inventory/stock
+echo GET /api/advanced/inventory/parts
+echo POST /api/advanced/inventory/cost-plan
+echo POST /api/advanced/compliance/bundle
+echo Edge collectors (stubs): backend/app/edge_adapters/edge_collectors.py
+echo Frontend cards: Vibration, RUL, Inventory, Compliance (added to UI)
+echo ----------------------------------------------------------
+echo Notes:
+echo - FFT features use numpy; ISO bands are basic 1x..4x orders (editable).
+echo - Weibull fit uses SciPy-free MLE grid; CI is simple placeholder.
+echo - Compliance exports HTML with SHA-256; PDF emitted if WeasyPrint is available.
+echo - Edge collectors buffer locally and replay to your /ingest.
+echo Restart backend and rebuild frontend to use new features.
+echo ==========================================================
+endlocal

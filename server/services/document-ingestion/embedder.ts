@@ -1,0 +1,39 @@
+import { generateEmbedding } from '../../embedding-service';
+
+export interface EmbedOptions {
+  openAiKey?: string;
+  orgId?: string;
+}
+
+export interface ChunkWithEmbedding {
+  text: string;
+  embedding: number[];
+  ord: number;
+}
+
+export async function embedChunks(
+  chunks: string[],
+  options: EmbedOptions = {}
+): Promise<ChunkWithEmbedding[]> {
+  const { openAiKey, orgId } = options;
+  const results: ChunkWithEmbedding[] = [];
+
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
+    console.log(`[DocIngestion:Embed] Processing chunk ${i + 1}/${chunks.length}`);
+
+    const embedding = await generateEmbedding(chunk, {
+      useOpenAIFallback: !!openAiKey,
+      openAiKey,
+      orgId,
+    });
+
+    results.push({
+      text: chunk,
+      embedding,
+      ord: i,
+    });
+  }
+
+  return results;
+}

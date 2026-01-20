@@ -1,0 +1,478 @@
+{
+  "trees": [
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    },
+    {
+      "root": {
+        "isLeaf": true,
+        "prediction": "healthy",
+        "samples": 1,
+        "impurity": 0
+      },
+      "featureImportances": {}
+    }
+  ],
+  "config": {
+    "numTrees": 50,
+    "maxDepth": 10,
+    "minSamplesSplit": 5,
+    "maxFeatures": 8,
+    "bootstrapSampleRatio": 0.8
+  },
+  "featureNames": [
+    "avgTemperature",
+    "maxTemperature",
+    "stdTemperature",
+    "avgVibration",
+    "maxVibration",
+    "stdVibration",
+    "avgPressure",
+    "minPressure",
+    "operatingHours",
+    "cycleCount",
+    "maintenanceAge",
+    "failureHistory"
+  ],
+  "classLabels": [
+    "healthy"
+  ]
+}

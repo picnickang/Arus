@@ -1,0 +1,54 @@
+    at org.sonar.plugins.javascript.bridge.JSWebSocketClient.onClose(JSWebSocketClient.java:94)
+    at org.java_websocket.client.WebSocketClient.onWebsocketClose(WebSocketClient.java:688)
+    at org.java_websocket.WebSocketImpl.closeConnection(WebSocketImpl.java:557)
+    at org.java_websocket.WebSocketImpl.closeConnection(WebSocketImpl.java:570)
+    at org.java_websocket.WebSocketImpl.eot(WebSocketImpl.java:622)
+    at org.java_websocket.client.WebSocketClient.run(WebSocketClient.java:546)
+    at java.base/java.lang.Thread.run(Unknown Source)
+[INFO]  ScannerEngine: Hit the cache for 0 out of 2091
+[INFO]  ScannerEngine: Miss the cache for 2091 out of 2091: ANALYSIS_MODE_INELIGIBLE [2091/2091]
+[ERROR] ScannerEngine: Error during SonarScanner Engine execution
+java.lang.IllegalStateException: Analysis of JS/TS files failed
+    at org.sonar.plugins.javascript.analysis.AbstractBridgeSensor.execute(AbstractBridgeSensor.java:100)
+    at org.sonar.scanner.sensor.AbstractSensorWrapper.analyse(AbstractSensorWrapper.java:68)
+    at org.sonar.scanner.sensor.ModuleSensorsExecutor.execute(ModuleSensorsExecutor.java:75)
+    at org.sonar.scanner.sensor.ModuleSensorsExecutor.lambda$execute$1(ModuleSensorsExecutor.java:48)
+    at org.sonar.scanner.sensor.ModuleSensorsExecutor.withModuleStrategy(ModuleSensorsExecutor.java:66)
+    at org.sonar.scanner.sensor.ModuleSensorsExecutor.execute(ModuleSensorsExecutor.java:48)
+    at org.sonar.scanner.scan.SpringModuleScanContainer.doAfterStart(SpringModuleScanContainer.java:66)
+    at org.sonar.core.platform.SpringComponentContainer.startComponents(SpringComponentContainer.java:210)
+    at org.sonar.core.platform.SpringComponentContainer.execute(SpringComponentContainer.java:189)
+    at org.sonar.scanner.scan.SpringProjectScanContainer.scan(SpringProjectScanContainer.java:197)
+    at org.sonar.scanner.scan.SpringProjectScanContainer.scanRecursively(SpringProjectScanContainer.java:192)
+    at org.sonar.scanner.scan.SpringProjectScanContainer.doAfterStart(SpringProjectScanContainer.java:160)
+    at org.sonar.core.platform.SpringComponentContainer.startComponents(SpringComponentContainer.java:210)
+    at org.sonar.core.platform.SpringComponentContainer.execute(SpringComponentContainer.java:189)
+    at org.sonar.scanner.bootstrap.SpringScannerContainer.doAfterStart(SpringScannerContainer.java:465)
+    at org.sonar.core.platform.SpringComponentContainer.startComponents(SpringComponentContainer.java:210)
+    at org.sonar.core.platform.SpringComponentContainer.execute(SpringComponentContainer.java:189)
+    at org.sonar.scanner.bootstrap.SpringGlobalContainer.doAfterStart(SpringGlobalContainer.java:146)
+    at org.sonar.core.platform.SpringComponentContainer.startComponents(SpringComponentContainer.java:210)
+    at org.sonar.core.platform.SpringComponentContainer.execute(SpringComponentContainer.java:189)
+    at org.sonar.scanner.bootstrap.ScannerMain.runScannerEngine(ScannerMain.java:143)
+    at org.sonar.scanner.bootstrap.ScannerMain.run(ScannerMain.java:58)
+    at org.sonar.scanner.bootstrap.ScannerMain.main(ScannerMain.java:42)
+Caused by: java.util.concurrent.CompletionException: java.lang.IllegalStateException: WebSocket connection closed abnormally: 
+    at java.base/java.util.concurrent.CompletableFuture.reportJoin(Unknown Source)
+    at java.base/java.util.concurrent.CompletableFuture.join(Unknown Source)
+    at org.sonar.plugins.javascript.bridge.BridgeServerImpl.analyzeProject(BridgeServerImpl.java:428)
+    at org.sonar.plugins.javascript.analysis.JsTsSensor.analyzeFiles(JsTsSensor.java:118)
+    at org.sonar.plugins.javascript.analysis.AbstractBridgeSensor.execute(AbstractBridgeSensor.java:75)
+    ... 22 common frames omitted
+Caused by: java.lang.IllegalStateException: WebSocket connection closed abnormally: 
+    at org.sonar.plugins.javascript.analysis.JsTsSensor$AnalyzeProjectHandler.onClose(JsTsSensor.java:244)
+    at org.sonar.plugins.javascript.bridge.JSWebSocketClient.onClose(JSWebSocketClient.java:94)
+    at org.java_websocket.client.WebSocketClient.onWebsocketClose(WebSocketClient.java:688)
+    at org.java_websocket.WebSocketImpl.closeConnection(WebSocketImpl.java:557)
+    at org.java_websocket.WebSocketImpl.closeConnection(WebSocketImpl.java:570)
+    at org.java_websocket.WebSocketImpl.eot(WebSocketImpl.java:622)
+    at org.java_websocket.client.WebSocketClient.run(WebSocketClient.java:546)
+    at java.base/java.lang.Thread.run(Unknown Source)
+[ERROR] Bootstrapper: An error occurred: Error: Scanner engine failed with code 1
+
+✅ SonarCloud scan complete!
+   View results at: https://sonarcloud.io/dashboard?id=picnickang_ARUSAPP

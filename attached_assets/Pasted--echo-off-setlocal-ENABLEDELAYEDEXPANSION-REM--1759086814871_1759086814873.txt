@@ -1,0 +1,282 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==========================================================
+REM ARUS – ECM Extensions
+REM (A) DBC → j1939.map.json converter (subset of DBC grammar)
+REM (B) J1708/J1587 serial collector with PID mapping + simulator
+REM - No auth changes. Works with your existing /v1/api/ingest (HTTP/MQTT).
+REM ==========================================================
+
+if not exist "backend-node\src" (
+echo [ERROR] backend-node/src not found. Run at repo root.
+exit /b 1
+)
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+REM ----------------------------------------------------------
+REM 0) Backend deps
+REM ----------------------------------------------------------
+%PS% ^
+"$f='backend-node/package.json'; $j=(Get-Content -Raw $f | ConvertFrom-Json);" ^
+"$j.dependencies.'serialport' = $j.dependencies.'serialport' ?? '^12.0.0';" ^
+"$j.dependencies.'yargs' = $j.dependencies.'yargs' ?? '^17.7.2';" ^
+"$j | ConvertTo-Json -Depth 12 | Set-Content -Encoding UTF8 $f;"
+
+if not exist "backend-node\config" mkdir backend-node\config
+if not exist "backend-node\src\cli" mkdir backend-node\src\cli
+if not exist "backend-node\src\tools" mkdir backend-node\src\tools
+
+REM ----------------------------------------------------------
+REM 1) DBC -> J1939 map converter (subset parser)
+REM Supports: BO_ <pgn> <name>: 8 ... and SG_ <sig> : <start>|<len>@<endian><sign> (<scale>,<offset>) [...] "<unit>"
+REM Endian: @1 = Intel(LE), @0 = Motorola(BE). Emits byte indices for 8-byte frames.
+REM ----------------------------------------------------------
+> backend-node\src\tools\dbc2map.ts (
+echo #!/usr/bin/env node
+echo /* DBC -\> j1939.map.json (subset) */
+echo import * as fs from "node:fs";
+echo import * as path from "node:path";
+echo import yargs from "yargs";
+echo import { hideBin } from "yargs/helpers";
+echo
+echo type SpnRule = { spn?:number; sig:string; src:string; unit?:string; bytes:number[]; endian?:'LE'|'BE'; scale?:number; offset?:number };
+echo type PgnRule = { pgn:number; name?:string; spns: SpnRule[] };
+echo
+echo const argv = yargs(hideBin(process.argv))
+echo .option("in",{ type:"string", demandOption:true, desc:"input .dbc" })
+echo .option("out",{ type:"string", demandOption:true, desc:"output j1939.map.json" })
+echo .option("src",{ type:"string", default:"ECM", desc:"default source name" })
+echo .parseSync();
+echo
+echo const dbc = fs.readFileSync(argv.in, "utf8").split(/\\r?\\n/);
+echo const pgns: Record<number, PgnRule> = {};
+echo
+echo function bitRangeToBytes(start:number, len:number, endian:'LE'|'BE'): number[] {
+echo // Only supports signals contained within 1..4 bytes (8B frame). Common engine signals fit this.
+echo const firstByte = Math.floor(start / 8);
+echo const lastBit = start + len - 1;
+echo const lastByte = Math.floor(lastBit / 8);
+echo const bytes:number[] = [];
+echo if (endian==='LE') { for(let b=firstByte; b<=lastByte; b++) bytes.push(b); }
+echo else { for(let b=firstByte; b<=lastByte; b++) bytes.push(b); }
+echo return bytes;
+echo }
+echo
+echo let currentPGN: number | null = null;
+echo let currentName = "";
+echo
+echo for (const line of dbc){
+echo const l = line.trim();
+echo if (l.startsWith("BO_ ")) {
+echo // BO_ 61444 EEC1: 8 Vector__XXX
+echo const m = /^BO_\\s+(\\d+)\\s+([A-Za-z0-9_]+)\\s*:\\s*(\\d+)/.exec(l);
+echo if (m) {
+echo currentPGN = parseInt(m[1],10);
+echo currentName = m[2];
+echo if (!pgns[currentPGN]) pgns[currentPGN] = { pgn: currentPGN, name: currentName, spns: [] };
+echo } else { currentPGN = null; }
+echo continue;
+echo }
+echo if (l.startsWith("SG_ ") && currentPGN!=null){
+echo /* SG_ EngineSpeed : 24|16@1+ (0.125,0) [0|8000] "rpm" ECU */
+echo const m = /^SG_\\s+([A-Za-z0-9_]+)[^:]*:\\s*(\\d+)\\|(\\d+)@(\\d)([+-])\\s*\\(([-+]?\\d*\\.?\\d+),\\s*([-+]?\\d*\\.?\\d+)\\)\\s*\\[[^\\]]*\\]\\s*"([^"]*)"/.exec(l);
+echo if (!m) continue;
+echo const sig = m[1];
+echo const start = parseInt(m[2],10); // start bit
+echo const len = parseInt(m[3],10); // length bits
+echo const isIntel = m[4]==="1"; // 1=intel(LE), 0=motorola(BE)
+echo const endian = isIntel ? "LE" : "BE";
+echo const scale = parseFloat(m[6]);
+echo const offset = parseFloat(m[7]);
+echo const unit = m[8] || undefined;
+echo const bytes = bitRangeToBytes(start, len, endian);
+echo // Best-effort SPN extraction from name like SPN190_EngineSpeed
+echo const spnMatch = /SPN\\s*([0-9]+)/i.exec(l) || /SPN([0-9]+)/i.exec(sig);
+echo const spn = spnMatch ? parseInt(spnMatch[1],10) : undefined;
+echo pgns[currentPGN].spns.push({ spn, sig, src: argv.src, unit, bytes, endian, scale, offset });
+echo }
+echo }
+echo
+echo const out = { "$schema":"https://arus.app/schemas/j1939-map-v1.json", notes:"auto-generated from DBC (subset)", signals: Object.values(pgns) };
+echo fs.writeFileSync(argv.out, JSON.stringify(out, null, 2));
+echo console.log("[dbc2map] wrote", argv.out, "PGNs:", out.signals.length);
+)
+
+REM Expose CLI in package.json
+%PS% ^
+"$f='backend-node/package.json'; $j=(Get-Content -Raw $f | ConvertFrom-Json);" ^
+"$j.scripts = $j.scripts ?? @{};" ^
+"$j.scripts.'tools:dbc2map' = 'node ./dist/tools/dbc2map.js --in ./config/engine.dbc --out ./config/j1939.map.json';" ^
+"$j | ConvertTo-Json -Depth 12 | Set-Content -Encoding UTF8 $f;"
+
+REM ----------------------------------------------------------
+REM 2) J1708/J1587 mapping (PID -> bytes -> value) + sample log
+REM ----------------------------------------------------------
+> backend-node\config\j1587.map.json (
+echo {
+echo "notes": "Cummins/CAT J1708/J1587 lite map. Edit to extend.",
+echo "signals": [
+echo { "mid": 128, "pid": 190, "sig": "rpm", "src": "ECM", "unit": "rpm", "bytes": [0,1], "endian": "LE", "scale": 0.25, "offset": 0 },
+echo { "mid": 128, "pid": 110, "sig": "coolant_temp", "src": "ECM", "unit": "C", "bytes": [0], "endian": "LE", "scale": 1, "offset": -40 },
+echo { "mid": 128, "pid": 100, "sig": "oil_pressure_kpa","src": "ECM", "unit": "kPa", "bytes": [0], "endian": "LE", "scale": 4, "offset": 0 },
+echo { "mid": 128, "pid": 183, "sig": "fuel_rate_lph", "src": "ECM", "unit": "L/h", "bytes": [0,1], "endian": "LE", "scale": 0.05, "offset": 0 }
+echo ]
+echo }
+)
+
+> backend-node\config\sample.j1708log (
+echo ; Each line: HEX MID PID <data-bytes-hex...>
+echo 80 BE 00 34 12
+echo 80 6E 28
+echo 80 64 40
+echo 80 B7 40 1F
+)
+
+REM ----------------------------------------------------------
+REM 3) J1708/J1587 collector (serial or simulator)
+REM Default serial: COM3 9600 8N1. For Linux, use /dev/ttyUSB0.
+REM ----------------------------------------------------------
+> backend-node\src\edge.j1708.ts (
+echo import fs from "node:fs";
+echo import path from "node:path";
+echo import axios from "axios";
+echo import mqtt, { MqttClient } from "mqtt";
+echo import { SerialPort } from "serialport";
+echo
+echo type MapRow = { mid:number; pid:number; sig:string; src:string; unit?:string; bytes:number[]; endian?:'LE'|'BE'; scale?:number; offset?:number };
+echo type MapDoc = { signals: MapRow[] };
+echo
+echo const VESSEL_ID = process.env.VESSEL_ID || "MV_DEMO";
+echo const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8001";
+echo const INGEST_MODE = (process.env.INGEST_MODE||"HTTP").toUpperCase(); // HTTP|MQTT
+echo const MQTT_URL = process.env.MQTT_URL || "mqtt://localhost:1883";
+echo const MQTT_TOPIC = process.env.MQTT_TOPIC || "fleet/%VESSEL%/telemetry";
+echo const J1708_TTY = process.env.J1708_TTY || "COM3"; // e.g. "COM3" or "/dev/ttyUSB0"
+echo const J1708_BAUD = Number(process.env.J1708_BAUD||"9600");
+echo const MAP_FILE = process.env.J1587_MAP_PATH || path.join(process.cwd(),"backend-node","config","j1587.map.json");
+echo const SIM_LOG = process.env.SIM_J1708LOG || ""; // file with hex lines: MID PID data...
+echo const FLUSH_MS = Number(process.env.FLUSH_MS||"2000");
+echo const MAX_BATCH = Number(process.env.MAX_BATCH||"200");
+echo
+echo let rules: MapDoc = { signals: [] };
+echo let mqttClient: MqttClient | null = null;
+echo const buf: { src:string; sig:string; value:number|null; unit?:string }[] = [];
+echo let lastFlush = Date.now();
+echo
+echo function loadRules(){ rules = JSON.parse(fs.readFileSync(MAP_FILE,'utf8')); console.log("[J1708] map:", MAP_FILE, "rows:", rules.signals.length); }
+echo
+echo function readLE(bytes:number[]): number {
+echo if (bytes.length===1) return bytes[0];
+echo if (bytes.length===2) return bytes[0] | (bytes[1]<<8);
+echo let v=0; for(let i=0;i<bytes.length;i++){ v |= bytes[i]<<(8*i); } return v;
+echo }
+echo function readBE(bytes:number[]): number {
+echo if (bytes.length===1) return bytes[0];
+echo if (bytes.length===2) return (bytes[0]<<8) | bytes[1];
+echo let v=0; for(let i=0;i<bytes.length;i++){ v = (v<<8) | bytes[i]; } return v;
+echo }
+echo
+echo function handleFrame(mid:number, pid:number, data:number[]){
+echo const rows = rules.signals.filter(r=> r.mid===mid && r.pid===pid);
+echo if (!rows.length) return;
+echo for (const r of rows){
+echo const slice = r.bytes.map(ix => data[ix] ?? 0xFF);
+echo if (slice.some(b=>b===0xFF||b===0xFE)) continue; // not available
+echo let val = (r.endian==='BE') ? readBE(slice) : readLE(slice);
+echo if (r.scale) val = val * r.scale;
+echo if (r.offset) val = val + r.offset;
+echo buf.push({ src:r.src, sig:r.sig, value: val, unit: r.unit });
+echo }
+echo }
+echo
+echo async function flush(){
+echo if (!buf.length) return;
+echo const take = buf.splice(0, Math.min(buf.length, MAX_BATCH));
+echo const payload = { vessel: VESSEL_ID, ts: Math.floor(Date.now()/1000), signals: take };
+echo try{
+echo if (INGEST_MODE==="MQTT"){
+echo if (!mqttClient) mqttClient = mqtt.connect(MQTT_URL);
+echo mqttClient.publish(MQTT_TOPIC.replace("%VESSEL%",VESSEL_ID), JSON.stringify(payload), { qos:1 });
+echo } else {
+echo await axios.post(\`\${BACKEND_URL}/v1/api/ingest\`, payload, { headers:{ "Content-Type":"application/json" }});
+echo }
+echo } catch(e:any){ console.error("[J1708] flush error:", e?.message||e); }
+echo finally { lastFlush = Date.now(); }
+echo }
+echo
+echo function flushLoop(){ const now=Date.now(); if (buf.length && (now-lastFlush)>=FLUSH_MS) flush(); setTimeout(flushLoop, 250); }
+echo
+echo function startSerial(){
+echo const port = new SerialPort({ path: J1708_TTY, baudRate: J1708_BAUD });
+echo let acc = "";
+echo port.on("data",(chunk:Buffer)=>{ acc += chunk.toString("utf8"); let idx; while((idx=acc.indexOf("\\n"))>=0){ const line=acc.slice(0,idx).trim(); acc=acc.slice(idx+1); parseLine(line); }});
+echo console.log("[J1708] serial", J1708_TTY, "@", J1708_BAUD);
+echo }
+echo
+echo function parseLine(line:string){
+echo // Expect lines like: "80 BE 00 34 12" -> MID=0x80, PID=0xBE(190), data=[0x00,0x34,0x12...]
+echo if (!line || line.startsWith(";")) return;
+echo const parts = line.trim().split(/\\s+/).map(p=>parseInt(p,16));
+echo if (parts.length<2 || parts.some(n=>Number.isNaN(n))) return;
+echo const mid = parts[0]; const pid = parts[1]; const data = parts.slice(2);
+echo handleFrame(mid, pid, data);
+echo }
+echo
+echo function startSim(){
+echo const lines = fs.readFileSync(SIM_LOG,"utf8").split(/\\r?\\n/).filter(Boolean);
+echo let i=0; setInterval(()=> parseLine(lines[i++ % lines.length]), 80);
+echo console.log("[J1708] simulator:", SIM_LOG);
+echo }
+echo
+echo export async function main(){
+echo loadRules(); flushLoop();
+echo if (SIM_LOG) startSim(); else startSerial();
+echo }
+echo
+echo if (require.main === module){ main().catch(e=>{ console.error(e); process.exit(1); }); }
+)
+
+REM Expose CLI to run the collector
+%PS% ^
+"$f='backend-node/package.json'; $j=(Get-Content -Raw $f | ConvertFrom-Json);" ^
+"$j.scripts.'collector:j1708' = 'node ./dist/edge.j1708.js';" ^
+"$j | ConvertTo-Json -Depth 12 | Set-Content -Encoding UTF8 $f;"
+
+REM ----------------------------------------------------------
+REM 4) README quickstart snippet (echo only)
+REM ----------------------------------------------------------
+echo.
+echo ==========================================================
+echo ✅ DBC Import + J1708/J1587 Collector patch applied.
+echo ----------------------------------------------------------
+echo DBC -> map:
+echo cd backend-node
+echo npm install && npm run build
+echo # Put your DBC at backend-node/config/engine.dbc
+echo npm run tools:dbc2map
+echo
+echo J1939 (already installed earlier):
+echo set VESSEL_ID=MV_DEMO
+echo set BACKEND_URL=http://localhost:8001
+echo set SIM_CANLOG=backend-node/config/sample.canlog
+echo npm run collector:j1939
+echo
+echo J1708/J1587 (serial) or simulator:
+echo set VESSEL_ID=MV_DEMO
+echo set BACKEND_URL=http://localhost:8001
+echo set J1708_TTY=COM3 ^(or /dev/ttyUSB0^)
+echo npm run build && npm run collector:j1708
+echo -- or simulator --
+echo set SIM_J1708LOG=backend-node/config/sample.j1708log
+echo npm run collector:j1708
+echo ----------------------------------------------------------
+echo Mapping files:
+echo backend-node/config/j1939.map.json (overwritten by dbc2map if you run it)
+echo backend-node/config/j1587.map.json (edit to add more PIDs)
+echo Notes:
+echo - DBC parser covers common 8-byte engine frames and SG_ syntax (scale, offset, unit).
+echo - Extend mapping by editing JSON; restart collectors, no code changes.
+echo - Both collectors publish to /v1/api/ingest (HTTP) or MQTT when INGEST_MODE=MQTT.
+echo ==========================================================
+endlocal

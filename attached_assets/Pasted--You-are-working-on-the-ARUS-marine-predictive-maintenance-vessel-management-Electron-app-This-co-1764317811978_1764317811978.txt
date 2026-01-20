@@ -1,0 +1,259 @@
+
+You are working on the ARUS marine predictive maintenance + vessel management Electron app.
+This codebase already includes:
+Electron + Vite frontend
+Node/Express server in server/index.ts bundled via esbuild into server/index.js
+Hybrid storage: local SQLite for embedded/vessel mode, optional remote libSQL/PostgreSQL/Turso via Drizzle ORM
+Existing modules: telemetry ingestion/simulator, work orders, crew scheduler, hours of rest, inventory, alerts, analytics, etc.
+Multi-tenant isolation: orgId, x-org-id middleware; vessel isolation: vesselId
+
+Goal:
+Design and implement a proper, automated Deck Log Book system per vessel (backend + frontend + exports) that integrates with existing telemetry, crew, work orders, and alerts — without breaking or duplicating existing features.
+0️⃣ First: Understand and Check Existing Architecture
+
+Scan the repo for anything related to:
+logbook, deck log, deck_log, log_book
+Any tables, routes, or React pages with similar names
+➜ If anything exists:
+Summarize what’s already implemented (schema, routes, UI) in comments at the top of your changes.
+Reuse/refactor instead of creating conflicting or duplicate structures.
+Confirm the database architecture:
+Where is SQLite configured for embedded/vessel mode?
+Where is libSQL/Postgres configured (Turso client, drizzle libsql session, etc.)?
+How is multi-tenant isolation enforced? (typically requireOrgId middleware, orgId fields, vesselId fields)
+Confirm existing modules and their locations:
+Telemetry ingestion / simulator (engine RPM, status, alarms, etc.)
+Work orders & maintenance
+Crew scheduler + hours of rest
+Alerts and notifications
+
+Do not implement anything until you’ve aligned the design with current architecture. If you find conflicts, adjust the plan instead of forcing a new pattern.
+1️⃣ Design the Deck Log Book Data Model
+
+
+Implement a normalized schema that works for both SQLite (vessel-local) and libSQL/Postgres via Drizzle.
+
+Add schema definitions (Drizzle / SQL) for at least:
+
+deck_log_days
+
+id (PK)
+orgId (FK – align with existing tenancy model)
+vesselId (FK – align with existing vessels table)
+date (DATE or TEXT – UTC date for the log day)
+startTime (nullable – first record time)
+endTime (nullable – last record time)
+masterOnWatchId (nullable FK to crew/crew_member if available)
+chiefEngineerId (nullable FK)
+status (enum: "open" | "locked" | "archived")
+weatherSummary (TEXT)
+seaState (TEXT or small enum)
+remarks (TEXT)
+createdAt, updatedAt
+lockedAt, lockedByUserId (for compliance locking)
+
+deck_log_events
+
+id (PK)
+orgId
+vesselId
+dayId (FK → deck_log_days.id)
+timestamp (datetime)
+type (string/enum, e.g. ENGINE_START, ENGINE_STOP, DEPARTURE, ARRIVAL, FUEL_TRANSFER, ALARM, WORK_ORDER_ACTION, CREW_CHANGE, MANUAL_ENTRY, etc.)
+source ("telemetry" | "manual" | "work_order" | "alert" | "crew" | "system")
+summary (short text)
+details (long text / JSON)
+Optional contextual fields (all nullable, so schema works even if data is partial):
+positionLat, positionLon
+speedOverGround
+engineRpmPort, engineRpmStbd
+fuelRobTons (remaining on board)
+distanceRunNm
+workOrderId
+alertId
+crewMemberId
+
+Requirements:
+Ensure Drizzle schema is wired for both SQLite and libSQL/Postgres usage consistent with the rest of the app.
+Add migrations or initialization paths consistent with how other tables were created (for embedded mode, usually auto-create; for remote/libSQL, via migrations where applicable).
+Respect namespacing and export patterns already in the server.
+2️⃣ Backend: Logbook Services and APIs
+
+
+Implement robust backend endpoints in server/index.ts (or appropriate router files) that:
+
+2.1 Ensure / Get Daily Log for a Vessel
+
+GET /api/logbook/days?vesselId=...&from=...&to=...
+Lists logbook days for a vessel in a date range.
+POST /api/logbook/days/ensure
+Body: { orgId?, vesselId, date }
+Behaviour:
+If a deck_log_day for (orgId, vesselId, date) exists → return it.
+Else → create it (status "open") and return.
+
+2.2 Events Management
+
+GET /api/logbook/days/:dayId/events
+Returns all events for that day (ordered by timestamp).
+POST /api/logbook/days/:dayId/events
+Create a manual or system event.
+Accepts all the contextual fields above.
+Optional: PATCH /api/logbook/events/:id for corrections (if allowed before the day is locked).
+
+2.3 Locking / Compliance
+
+POST /api/logbook/days/:dayId/lock
+Sets status = "locked", lockedAt, lockedByUserId.
+Prevents further modification except explicitly allowed actions (e.g., append-only corrections or audit trail).
+
+Important:
+Integrate requireOrgId middleware and enforce access control consistent with the rest of the app.
+Enforce that vesselId is required and correctly bound to the authenticated org.
+For any write operation, ensure handling for offline embedded mode (SQLite only) still works.
+3️⃣ Automated Event Generation from Existing Data
+
+
+The goal is to auto-generate events where possible instead of relying only on manual entry.
+
+3.1 From Telemetry
+
+Identify how engine telemetry is represented (simulator + ingestion).
+Detect:
+Engine start (RPM from 0 → > threshold)
+Engine stop (RPM from > threshold → 0)
+Significant alarms/alerts (e.g., high temp, low oil pressure)
+On these transitions, create deck_log_events of types:
+ENGINE_START / ENGINE_STOP
+ALARM_TRIGGERED
+
+Implementation approach:
+Use existing telemetry ingestion pipeline and add a thin adapter that:
+Watches for state transitions.
+Calls an internal logbook service function (not directly HTTP) to insert events.
+Ensure idempotency: avoid duplicate events if the same transition is processed multiple times.
+
+3.2 From Work Orders
+
+When work orders are completed, create events:
+WORK_ORDER_ACTION with references:
+workOrderId
+summary like “Work order #123 – Replaced lube oil filter on Main Engine 1”
+
+3.3 From Crew Scheduler / Hours of Rest
+
+When watch changes or a new shift starts:
+Generate a CREW_CHANGE or WATCH_CHANGE event.
+
+3.4 Manual Entries
+
+Allow officers to:
+Create manual entries with type MANUAL_ENTRY, REMARK, MOVEMENT, FUEL_TRANSFER, etc.
+
+Make sure all these flows:
+Respect orgId and vesselId.
+Link events to the correct deck_log_day (via date computed from the timestamp).
+4️⃣ Frontend: Deck Log Book UI (React / Vite / Shadcn)
+
+
+Implement a new Deck Log Book section in the existing navigation:
+
+4.1 Main Logbook Page
+
+Route: something like /logbook or /vessels/:vesselId/logbook
+Features:
+Vessel selector (if not already implicit in the app).
+Date range picker.
+Table/list of log days:
+Date
+Vessel
+Status (open/locked)
+Summary (e.g. “Harbour – No operation”, “Transit Brunei → Miri”, etc.)
+Button: “Open” to go into a specific day.
+Button: “Generate / Ensure Today’s Log” → calls POST /api/logbook/days/ensure.
+
+4.2 Daily Log View
+
+Shows:
+Header: date, vessel, status, master/chief engineer, weather, sea state.
+Editable fields for weather, sea state, remarks (unless locked).
+Event timeline / table:
+Timestamp
+Type
+Summary
+Key fields (position, RPM, fuel ROB, etc. if present)
+Controls:
+“Add manual entry”
+“Lock logbook day” (with confirmation and warning)
+“Export as XLSX” and “Export as PDF”
+
+UX requirements:
+Reuse your existing component patterns: Shadcn UI, tables, forms, dialogs.
+Keep performance in mind: use React Query / data hooks consistent with rest of app.
+Allow filtering/sorting of events by type or source.
+
+Important:
+Before creating completely new components, check if generic table/timeline components already exist (e.g., used for alerts, logs, or analytics). If so, reuse or extend them instead of duplicating.
+5️⃣ Export: XLSX / PDF Deck Log Book
+
+
+The app already uses jspdf and html2canvas for other exports.
+You also have a sample DECK LOG BOOK XLSX template (used as a reference, even if not directly in the repo).
+
+Implement:
+GET /api/logbook/days/:dayId/export.xlsx
+Fetch the day + events + related data (crew, vessel, etc.).
+Generate an XLSX that:
+Has one sheet per day or one row per day depending on template constraints.
+Fills fields such as:
+Vessel name, date, port/area, weather, sea state
+Engine hours, movements, major events, remarks
+Use a compact layout that is friendly for maritime record-keeping.
+GET /api/logbook/days/:dayId/export.pdf
+Option 1: Server side via jspdf.
+Option 2: Client-side via existing PDF export patterns already used by the app.
+
+Make sure:
+Export endpoints are guarded by org/vessel auth.
+Long term, exports should be stable and not tied to unstable frontend markup (prefer structural data → template).
+6️⃣ Performance, Offline Mode, and Safety
+
+Ensure that logbook queries are:
+Indexed on orgId, vesselId, date, and dayId.
+Paginated for large date ranges.
+For embedded/vessel mode:
+All functionality must work with only SQLite available.
+Any cloud sync or remote DB use must be optional and gracefully handled.
+Handle failures:
+If telemetry–>logbook event insertion fails, log but don’t crash ingestion.
+If exports fail, return a structured error.
+7️⃣ Code Quality Checklist
+
+
+Before you finish:
+Type safety: Ensure all new TS types are consistent (no any where avoidable).
+Multi-tenant safety: Every query must be properly filtered by orgId and vesselId in line with the existing TENANT_ISOLATION_SUCCESS model.
+No breaking changes:
+Do not modify existing tables or APIs in a way that breaks other modules.
+If a change is required, implement backwards-compatible migrations and explain in comments.
+Testing / sanity checks:
+Add at least minimal integration tests or manual test scripts (where testing framework exists).
+Manually verify:
+Create today’s log day.
+See telemetry-generated events.
+Create manual events.
+See crew/work order events appear.
+Lock a day and confirm it can’t be edited.
+Export XLSX/PDF successfully.
+8️⃣ Final Summary (Required)
+
+
+At the end of your changes, produce a short developer-facing summary in a markdown file or code comments that explains:
+New tables and fields
+New backend endpoints
+New frontend routes/components
+How auto-generated events work (telemetry, work orders, crew)
+How to export the logbook
+Any limitations or TODOs for future improvement
+
+Do all of this in a way that fits naturally into the existing architecture and avoids duplicating concepts that already exist elsewhere in the app.

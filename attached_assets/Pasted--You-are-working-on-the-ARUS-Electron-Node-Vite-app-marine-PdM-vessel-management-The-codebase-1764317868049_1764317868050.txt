@@ -1,0 +1,120 @@
+
+You are working on the ARUS Electron + Node/Vite app (marine PdM + vessel management).
+The codebase now has a Deck Log Book feature with:
+deck_log_days and deck_log_events tables (via Drizzle on SQLite/libSQL)
+Backend APIs for listing/ensuring log days and creating events
+Frontend pages for viewing daily logs and events
+
+I need a seed/demo + test setup so I can immediately click through a realistic vessel day in the UI and see the logbook fill with telemetry, work orders, crew changes, etc.
+0️⃣ First: Confirm What Exists
+
+Scan the repo for:
+deck_log_days, deck_log_events schema
+Logbook services / routes under /api/logbook/...
+Logbook React pages/routes (e.g. /logbook, /vessels/:vesselId/logbook)
+In comments at the top of your changes, briefly summarize:
+Where the logbook backend lives (files/modules)
+Where the logbook frontend lives
+
+If anything is missing from the previous Deck Log Book prompt, fix or complete it first in line with the existing architecture before adding demo data. Don’t duplicate or conflict with existing code.
+1️⃣ Add a Demo / Seed Script
+
+
+Create a script (for example scripts/seed-logbook-demo.ts or similar) that can be run with ts-node/node after build, consistent with how other scripts are structured in this repo.
+
+The script should:
+Initialize DB clients the same way the main server does for embedded/vessel mode:
+Use the existing Drizzle/SQLite setup for local data.
+Respect any existing helper functions for getting a DB instance (don’t open a parallel, incompatible connection).
+Ensure a demo org + vessel:
+If there is already a concept of orgId and vessels table, then:
+Reuse an existing org if appropriate (default-org-id), or create/find a clearly marked demo org like arus-demo-org.
+Ensure there is at least one demo vessel, e.g.:
+vesselId = "demo-vessel-1"
+Name: "ARUS DEMO 1"
+Create a demo logbook day (today):
+For today’s date (UTC or consistent app date handling), create/ensure one deck_log_days row for the demo vessel:
+Status: "open"
+Weather, seaState, remarks: Fill with believable demo values (e.g., “Fine, slight seas. Routine harbour operations.”).
+Insert a realistic timeline of events into deck_log_events for that day:
+Example timeline (you can adjust timestamps to “today”):
+06:30 – CREW_CHANGE – “Morning watch on deck”
+07:00 – ENGINE_START – “Main Engine 1 started”
+07:15 – DEPARTURE – “Departed Muara Harbour for offshore location”
+08:00 – MOVEMENT – “Passing waypoint A, steady 10 knots”
+09:30 – WORK_ORDER_ACTION – “Completed WO #101 – Lube oil filter change on ME1”
+10:15 – ALARM_TRIGGERED – “High temperature alarm on generator #2 – cleared after inspection”
+11:00 – FUEL_TRANSFER – “Transferred 5 m³ gas oil from settling to service tank”
+12:00 – MANUAL_ENTRY – “Lunch/crew change note, nothing significant to report”
+Fill in context fields where available:
+positionLat, positionLon
+speedOverGround
+engineRpmPort / engineRpmStbd
+Links to any existing work_orders rows if present (you may create a demo WO record too).
+Log to the console:
+The orgId, vesselId, and dayId used
+A short “how to test” message (which route to hit or which UI navigation to use)
+
+Add a convenient NPM script in package.json, e.g.:
+"scripts": {
+  "...": "...",
+  "seed:logbook-demo": "ts-node scripts/seed-logbook-demo.ts"
+}
+or, if everything is compiled to JS:
+"seed:logbook-demo": "node scripts/seed-logbook-demo.js"
+Use whatever approach is consistent with existing scripts in this repo.
+2️⃣ Wire the UI to the Demo Data (No Hardcoding)
+
+
+The goal is that after running the seed script and launching the Electron app, I can:
+Select the demo vessel
+See today’s logbook day in the logbook list
+Open it and see all the seeded events
+
+Requirements:
+Make sure the logbook list page:
+Requests log days for the correct orgId and vesselId.
+If a vessel selector exists, ensure the demo vessel appears (if user has access).
+Make sure the daily log view:
+Loads events from /api/logbook/days/:dayId/events (or equivalent).
+Renders them in time order.
+Do not hardcode IDs into the frontend; the seed script should create data in a way that the normal selection flows (org + vessel + date) naturally reach it.
+
+If there is a default org/vessel selection logic, adapt the seed script to match that instead of fighting it.
+3️⃣ Simple Manual Test Walkthrough (add to README or comments)
+
+
+Add a short section (either in README.md or a dev-focused markdown file like docs/logbook-demo.md) that explains how a developer (or I) can test this end-to-end:
+Install dependencies and build normally (if required):
+npm install
+npm run build:server
+npm run build:renderer
+npm run build:electron-main
+Run the seed script:
+npm run seed:logbook-demo
+Launch the Electron app:
+npx electron .
+In the UI:
+Choose the demo org/vessel if needed.
+Go to the Deck Log Book section.
+Select today’s log.
+Confirm the event timeline matches the seeded data (engine start, departure, work order completion, alarm, etc.).
+Optional:
+Lock the day and verify you cannot modify it.
+Trigger any export endpoints (PDF/XLSX) if implemented.
+4️⃣ Safety and Cleanliness
+
+Make sure the seed script is idempotent:
+If it’s run twice for the same date and vessel, it should either:
+Update the demo data cleanly, or
+Detect existing data and skip creating duplicates.
+Do not seed in production mode automatically; this must be a manual dev/test operation only.
+Keep all new code consistent with TypeScript types, error handling, and logging practices already used in the project.
+5️⃣ Final Dev-Facing Summary
+
+
+At the end, add a short comment block or markdown section that answers:
+Where is the seed script?
+How to run it?
+What demo org/vessel/date it uses?
+Which UI paths will show the seeded logbook day and events?

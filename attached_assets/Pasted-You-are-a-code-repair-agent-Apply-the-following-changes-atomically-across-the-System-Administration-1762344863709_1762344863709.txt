@@ -1,0 +1,261 @@
+You are a code repair agent. Apply the following changes atomically across the System Administration React module.
+
+
+
+1) Make adminQueryFn use React-Query’s context and robust URL building
+
+
+
+Replace adminQueryFn with:
+
+function adminQueryFn() {
+  return async ({ queryKey }: { queryKey: (string | number)[] }) => {
+    const sessionToken = getAdminSessionToken();
+    if (!sessionToken) throw new Error('Admin session not active. Please unlock admin mode first.');
+
+    // Accept either a single path element like "/api/admin/settings"
+    // or segments like ["/api/admin/patches", "history"]
+    const path = queryKey.join('/').replace(/\/+/g, '/'); // normalize double slashes
+
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${sessionToken}`,
+      'x-org-id': 'default-org-id',
+    };
+
+    const res = await fetch(path, { headers, credentials: 'include' });
+    if (!res.ok) {
+      const text = await res.text();
+      if (res.status === 401) throw new Error('Admin session expired. Please unlock admin mode again.');
+      throw new Error(`${res.status}: ${text}`);
+    }
+    return res.status === 204 ? null : res.json();
+  };
+}
+Then update all useQuery calls to:
+
+useQuery({ queryKey: ['/api/admin/...'], queryFn: adminQueryFn() })
+Specifically:
+
+In SystemSettingsTab keep queryKey: ['/api/admin/settings'], queryFn: adminQueryFn().
+
+In SoftwareUpdatesTab:
+
+patches: queryKey: ['/api/admin/patches'], queryFn: adminQueryFn()
+
+history: queryKey: ['/api/admin/patches','history'], queryFn: adminQueryFn()
+
+update settings: queryKey: ['/api/admin/update-settings'], queryFn: adminQueryFn()
+
+In ConfigAuditLogTab and AuditTrailTab: set queryFn: adminQueryFn() as above.
+
+In PerformanceHealthTab: add queryFn: adminQueryFn() to both queries:
+
+useQuery({ queryKey: ['/api/admin/performance-metrics'], queryFn: adminQueryFn() })
+useQuery({ queryKey: ['/api/admin/system-health'],        queryFn: adminQueryFn() })
+
+
+
+
+2) Normalize invalidateKeys to arrays of queryKeys
+
+
+
+Every useCustomMutation should use invalidateKeys: [[<key>], [<key2>], ...].
+
+
+
+Examples to change:
+
+// SystemSettingsTab
+const createMutation = useCustomMutation<SystemSettingForm, any>({
+  mutationFn: (data) => adminApiRequest('POST', '/api/admin/settings', data),
+  invalidateKeys: [['/api/admin/settings']],
+  ...
+});
+
+const updateMutation = useCustomMutation<{ id: string; data: Partial<SystemSettingForm> }, any>({
+  mutationFn: ({ id, data }) => adminApiRequest('PUT', `/api/admin/settings/${id}`, data),
+  invalidateKeys: [['/api/admin/settings']],
+  ...
+});
+
+const deleteMutation = useCustomMutation<string, any>({
+  mutationFn: (id) => adminApiRequest('DELETE', `/api/admin/settings/${id}`),
+  invalidateKeys: [['/api/admin/settings']],
+  ...
+});
+Do the same normalization wherever you currently pass a single string.
+
+
+
+3) Add 
+
+dataType
+
+ to System Settings form + convert value on submit
+
+Render a dataType <Select> and default it to 'string'.
+
+Convert value to the selected type before POST/PUT.
+
+Map isPublic (form) to isSecret (API/display) by sending isSecret: !isPublic.
+
+
+
+Add field in the dialog form (somewhere after key):
+
+<FormField
+  control={form.control}
+  name="dataType"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>Data Type</FormLabel>
+      <FormControl>
+        <Select onValueChange={field.onChange} value={field.value}>
+          <SelectTrigger data-testid="select-datatype">
+            <SelectValue placeholder="Select data type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="string">String</SelectItem>
+            <SelectItem value="number">Number</SelectItem>
+            <SelectItem value="boolean">Boolean</SelectItem>
+            <SelectItem value="object">Object (JSON)</SelectItem>
+            <SelectItem value="array">Array (JSON)</SelectItem>
+          </SelectContent>
+        </Select>
+      </FormControl>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
+Update defaultValues in useForm<SystemSettingForm> to include:
+
+dataType: 'string',
+Add a helper to coerce the value:
+
+function coerceValueByType(raw: string, dataType: SystemSettingForm['dataType']) {
+  try {
+    switch (dataType) {
+      case 'number':  return Number(raw);
+      case 'boolean': return /^(true|1|yes)$/i.test(raw);
+      case 'object':  return raw ? JSON.parse(raw) : {};
+      case 'array':   return raw ? JSON.parse(raw) : [];
+      case 'string':
+      default:        return String(raw ?? '');
+    }
+  } catch {
+    // Fallback to string if parsing fails; caller can toast error if desired
+    return raw;
+  }
+}
+Use it in onSubmit:
+
+const onSubmit = (data: SystemSettingForm) => {
+  const payload = {
+    orgId: data.orgId,
+    category: data.category,
+    key: data.key,
+    value: coerceValueByType(data.value, data.dataType),
+    dataType: data.dataType,
+    description: data.description,
+    isSecret: !data.isPublic, // map
+  };
+  if (editingItem) {
+    updateMutation.mutate({ id: editingItem.id, data: payload });
+  } else {
+    createMutation.mutate(payload);
+  }
+};
+When editing, populate the form correctly:
+
+setEditingItem(setting);
+form.reset({
+  orgId: setting.orgId,
+  category: setting.category,
+  key: setting.key,
+  // stringify objects/arrays so they’re editable
+  value: typeof setting.value === 'object' ? JSON.stringify(setting.value, null, 2) : String(setting.value ?? ''),
+  dataType: (setting as any).dataType ?? (typeof setting.value === 'number'
+    ? 'number'
+    : typeof setting.value === 'boolean'
+      ? 'boolean'
+      : typeof setting.value === 'object'
+        ? (Array.isArray(setting.value) ? 'array' : 'object')
+        : 'string'),
+  description: setting.description || '',
+  isPublic: !setting.isSecret,
+});
+setCreateDialogOpen(true);
+In the table “Value” cell, pretty-print:
+
+<TableCell className="max-w-xs truncate" data-testid={`text-value-${setting.id}`}>
+  {typeof setting.value === 'object'
+    ? <span className="font-mono text-xs">{JSON.stringify(setting.value)}</span>
+    : String(setting.value)}
+</TableCell>
+4) Make 
+
+adminApiRequest
+
+ safe for undefined bodies & keep headers
+
+
+
+(no change needed for headers; they’re fine). Keep as-is.
+
+
+
+5) Software update settings: guard against undefined 
+
+updateSettings
+
+
+
+Wrap the mutation payloads with a default object:
+
+onCheckedChange={(checked) => {
+  updateSettingsMutation.mutate({
+    ...(updateSettings ?? {}),
+    autoUpdateEnabled: checked,
+  });
+}}
+Do the same for autoUpdateCriticalOnly and requireManualApproval.
+
+
+
+6) Fix Patch Details dialog open handler
+
+{selectedPatch && (
+  <Dialog open={!!selectedPatch} onOpenChange={(open) => !open && setSelectedPatch(null)}>
+    ...
+  </Dialog>
+)}
+7) Add missing queryFns in PerformanceHealthTab
+
+
+
+(Already covered in step 1; ensure both queries include queryFn: adminQueryFn()).
+
+
+
+8) Optional polish
+
+Add aria-busy={mutation.isPending} to action buttons that trigger network calls.
+
+Replace key={index} with stable IDs where available.
+
+Consider a small JSON editor (monospace, minHeight) for value when dataType is object/array.
+
+
+
+Post-change checks
+
+Create & edit a system setting with each dataType; verify value stored as intended and displayed correctly.
+
+Toggle auto-update switches with no initial settings loaded → no crash.
+
+Software updates pages load with real queryFn and invalidate as expected.
+
+History tab works with ['/api/admin/patches','history'] key.
+
+Want me to generate a patch diff against your file paths next?

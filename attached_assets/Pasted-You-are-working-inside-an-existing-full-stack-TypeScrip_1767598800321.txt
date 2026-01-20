@@ -1,0 +1,151 @@
+You are working inside an existing full-stack TypeScript monorepo (frontend + backend) with a large shared schema/contract layer and lots of repeated CRUD + UI patterns. Your task is to implement GOLD-STANDARD FULL-STACK CODE CONSOLIDATION that reduces duplication while keeping behavior identical and keeping import paths stable.
+
+HARD CONSTRAINTS (NON-NEGOTIABLE)
+1) NO business logic changes. Behavior must remain identical.
+2) NO breaking changes to existing import paths. If you introduce new paths, keep backwards-compatible re-exports.
+3) NO renaming public exports unless you add compatibility aliases/re-exports.
+4) Prefer: (a) facades, (b) thin helpers, (c) config-driven generation, over large generic abstractions.
+5) Frontend must NOT accidentally bundle backend-only dependencies.
+
+PRIMARY CONSOLIDATION GOALS
+A) Establish stable layer facades (single import surfaces) so internal structure can evolve safely.
+B) Split shared DB/schema into runtime-vs-types entrypoints to stop “schema as gravity well” imports.
+C) Consolidate repeated backend plumbing (auth/tenant/pagination/error mapping) into small opinionated helpers.
+D) Consolidate repeated frontend patterns (tables+filters+toolbars, forms, mutations, list queries) into a small UI kit + hook library.
+E) Introduce minimal codegen for repeatable CRUD scaffolding with an entity config, with an “escape hatch” for complex cases.
+
+PHASE 0 — DISCOVERY (DO FIRST)
+- Detect workspace structure (pnpm/yarn/npm, turbo/nx, packages/* or apps/*).
+- Detect frontend framework (Next.js/React/Vite/etc) and backend framework.
+- Detect DB access layer (Drizzle/Prisma/TypeORM/Kysely/etc).
+- Print a brief summary: workspaces, tsconfigs, build scripts, testing setup.
+
+PHASE 1 — CREATE CONSOLIDATION PACKAGES / LAYERS (NO BEHAVIOR CHANGE)
+Create (or adapt) workspace packages with clear boundaries:
+
+1) packages/contracts
+   - Pure types and Zod schemas only (no Node-only deps).
+   - Exports: DTOs, enums, shared primitives, validation schemas.
+
+2) packages/db-schema
+   - Provide TWO ENTRYPOINTS:
+     - packages/db-schema/runtime: exports ORM tables/relations/db helpers (backend only)
+     - packages/db-schema/types: exports only TypeScript types (frontend-safe)
+   - Keep backwards compatibility by re-exporting from the existing public path.
+   - Ensure package.json "exports" maps runtime vs types correctly.
+   - Ensure frontend imports only from /types (or contracts).
+
+3) packages/server-kit
+   - Consolidated backend plumbing helpers:
+     - withAuth / requireRole
+     - withTenant / tenantScope
+     - parsePagination / parseFilters
+     - toHttpError / standardized error responses
+     - audit/log helpers (thin wrappers only)
+
+4) packages/ui-kit (or packages/app-kit for frontend)
+   - Consolidated UI primitives and patterns:
+     - ListPage (table+toolbar+filters+pagination)
+     - FormField primitives (text/select/date/autocomplete)
+     - useListQuery, useMutationWithToast, api client wrapper hooks
+   - Do NOT bake business logic into ui-kit.
+
+Add TS project references (if used) and ensure build still passes.
+
+PHASE 2 — FACADES (SINGLE IMPORT SURFACES)
+Introduce stable façade entrypoints (and migrate INTERNAL imports gradually):
+- @app/contracts -> re-export from packages/contracts
+- @app/db/runtime -> re-export db-schema/runtime (backend only)
+- @app/db/types -> re-export db-schema/types (frontend safe)
+- @app/server-kit -> server plumbing
+- @app/ui-kit -> UI patterns
+
+CRITICAL: Do NOT mass-edit 400+ imports at once.
+- Keep existing imports working via re-exports.
+- Migrate a few modules as examples.
+
+PHASE 3 — BACKEND CONSOLIDATION (HIGH-ROI, LOW-RISK)
+1) Identify 3–5 repeated patterns in route handlers/controllers:
+   - auth+tenant checks
+   - pagination
+   - error mapping
+   - request validation
+2) Implement thin helpers in packages/server-kit.
+3) Refactor ONLY a small set of endpoints (2–4) to use helpers as exemplars.
+4) Add tests for helpers (unit tests or minimal integration tests consistent with the repo).
+
+PHASE 4 — FRONTEND CONSOLIDATION (HIGH-ROI, LOW-RISK)
+1) Identify the most duplicated UI pattern:
+   - entity list pages (table+filters+actions)
+   - forms (create/edit)
+   - data fetching hooks
+2) Implement:
+   - <ListPage /> pattern component
+   - buildColumns(config) helper OR columns factory
+   - useListQuery/useEntityMutation hooks
+3) Refactor ONLY 2–3 pages to use the new consolidated components as exemplars.
+4) Ensure UI behavior and styling remain the same (or strictly equivalent).
+
+PHASE 5 — CONFIG-DRIVEN CRUD + OPTIONAL CODEGEN (ONLY WHERE IT PAYS OFF)
+Goal: reduce repetition for “simple entities” while keeping escape hatches.
+
+1) Create an entity registry config:
+   - packages/contracts/entities.config.ts (or /entities/*.ts)
+   Example fields:
+   - entityName
+   - tableName
+   - idField
+   - listableFields (with types)
+   - filterableFields
+   - createSchema (zod)
+   - updateSchema (zod)
+   - permissions (roles)
+   - UI list config (optional)
+
+2) Create a generator script:
+   - scripts/generate-entities.ts
+   - Output to:
+     - server: src/generated/entities/* (routes, validators, repo stubs)
+     - client: src/generated/entities/* (api client, hooks)
+   - Generated code must be deterministic and idempotent.
+   - Never hand-edit generated files; include a header comment.
+
+3) Add scripts:
+   - "generate": node scripts/generate-entities.ts
+   - "generate:check": runs generator and fails if git diff exists (CI use)
+
+4) Apply generator to 1–2 simple entities as proof, leaving complex domains manual.
+
+PHASE 6 — FRONTEND/BACKEND BUNDLE SAFETY
+- Ensure frontend bundles cannot import server-kit or db-schema/runtime.
+- Add package.json "exports" + TS path mapping to prevent accidental imports.
+- Add an ESLint rule to ban imports:
+  - frontend cannot import from @app/db/runtime or @app/server-kit
+
+PHASE 7 — DOCUMENTATION + GUARDRails
+Add docs:
+- docs/architecture/consolidation.md
+  - What goes in contracts vs db-schema types vs runtime
+  - How to add a new entity (manual vs generated)
+  - How to keep compatibility
+
+Add CI steps (if CI exists):
+- typecheck
+- lint
+- generate:check
+
+DELIVERABLES (MUST PRODUCE)
+1) New packages (contracts, db-schema, server-kit, ui-kit) OR equivalent modules if repo is not monorepo.
+2) Dual entrypoints for db-schema: /runtime and /types with correct exports.
+3) Refactored exemplars:
+   - 2–4 backend endpoints using server-kit
+   - 2–3 frontend pages using ui-kit patterns
+4) Generator scaffold + entity config + at least 1 generated entity end-to-end.
+5) Docs + lint rule preventing invalid cross-layer imports.
+6) All builds/tests/typechecks pass.
+
+BEGIN NOW.
+- Execute Phase 0 discovery and print findings in logs.
+- Then implement Phases 1–2.
+- Then complete the exemplar refactors in Phases 3–4.
+- Finally implement minimal codegen in Phase 5 and safety checks in Phase 6–7.

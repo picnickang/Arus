@@ -1,0 +1,235 @@
+You are an expert Node.js / Express / Vite / Electron engineer. I have an ARUS/RecipeRealm Electron app that builds successfully but shows a blank blue screen in the Electron window.
+
+
+
+Symptoms
+
+
+
+In the Electron DevTools console I see:
+
+[SW] Service worker loaded
+
+Refused to apply style from 'http://localhost:5000/assets/index-C8omU17M.css' because its MIME type ('text/html') is not a supported stylesheet MIME type, and strict MIME checking is enabled.
+
+index-C5tNOPsY.js:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+
+CSP warning and service worker messages (these are not the main problem).
+
+
+
+In the Node/Electron terminal logs I see that:
+
+The server starts fine, SQLite initializes, and it configures static serving like this:
+
+Candidate roots:
+
+dist, dist/public, client/dist
+
+It selects /Users/homeimac/Downloads/RecipeRealm/dist as staticRoot.
+
+Log lines like:
+
+[Static] ✓ express.static() configured for: /Users/homeimac/Downloads/RecipeRealm/dist
+
+[Static] ✓ SPA fallback route (GET *) configured
+
+[Static] ✓ Error handler registered (after SPA fallback)
+
+Electron loads http://localhost:5000 successfully:
+
+🔗 Electron loading URL: http://localhost:5000
+
+
+
+The frontend build is created with:
+
+npm run build:renderer
+node scripts/post-build.js
+That produces:
+
+dist/public/index.html
+
+dist/public/assets/index-C8omU17M.css
+
+many JS chunks like dist/public/assets/index-D3WtG8lE.js
+
+
+
+post-build.js then copies those into dist/, so final structure is:
+
+dist/index.html
+
+dist/assets/index-C8omU17M.css
+
+dist/assets/*.js
+
+plus icons, manifest, service-worker, etc.
+
+
+
+Despite that, when the app runs, the request for /assets/index-C8omU17M.css is returning HTML, not CSS, so the browser refuses it. One of the JS bundles is also 404’ing.
+
+
+
+This is a classic misconfigured SPA fallback problem: Express is serving index.html (HTML) for /assets/... paths, instead of serving the real static assets from dist/assets.
+
+
+
+What I want you to do
+
+Open the server code (likely server/index.ts or any file that configures Express static file serving and SPA routing — you’ll recognize it by the logs: “Candidate roots”, “express.static() configured”, “SPA fallback route (GET *) configured”).
+
+Fix the static file + SPA fallback configuration so that:
+
+All static assets under /assets/*, icons, JS, CSS, etc. are served directly by express.static and NOT intercepted by the SPA fallback.
+
+The SPA fallback only serves index.html for non-API, non-asset routes (e.g., /, /dashboard, /vessel/123, etc.).
+
+The order of middleware is correct:
+
+API routes
+
+express.static(staticRoot, …)
+
+SPA fallback (app.get('*', ...))
+
+Final 404/error handler
+
+Implement the routing exactly like this (adapt paths/names to match the project):
+
+import path from 'path';
+import express from 'express';
+import fs from 'fs';
+
+const app = express();
+
+// 1) API routes first (adjust if you have a different router)
+app.use('/api', apiRouter);
+
+// 2) Decide staticRoot based on existing logic (you already do candidate roots: dist, dist/public, client/dist)
+const staticRoot = /* the one you already resolve, e.g. path.resolve(__dirname, '../dist') */;
+
+// 3) Static files
+app.use(
+  express.static(staticRoot, {
+    index: 'index.html',
+    setHeaders: (res, filePath) => {
+      // Ensure correct MIME types (helps avoid strict MIME type issues)
+      if (filePath.endsWith('.css')) {
+        res.type('text/css');
+      }
+      if (filePath.endsWith('.js')) {
+        res.type('application/javascript');
+      }
+    },
+  }),
+);
+
+// 4) SPA fallback: ONLY for non-API routes that do NOT look like files
+app.get('*', (req, res, next) => {
+  // Let /api/* and any URL with an extension (.css, .js, .png, etc.) skip the SPA fallback
+  if (req.path.startsWith('/api/') || path.extname(req.path)) {
+    return next();
+  }
+
+  res.sendFile(path.join(staticRoot, 'index.html'));
+});
+
+// 5) Final 404 handler for anything that truly doesn't exist
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Not Found',
+    path: req.path,
+  });
+});
+Important details:
+
+express.static(staticRoot) must be before app.get('*', ...).
+
+The SPA fallback must not match /assets/... or any URL that has a file extension.
+
+The final 404 handler should not be returning "Cannot GET /..." HTML for asset paths.
+
+If there are any existing app.get('*', ...) routes or 404 handlers that send HTML (“Cannot GET /”), remove or rewrite them to match the structure above.
+
+Check for and fix any stale asset references in dist/index.html:
+
+Make sure the <link rel="stylesheet" href="/assets/...css"> and <script type="module" src="/assets/...js"> tags point to actual files that exist under dist/assets.
+
+If the filenames referenced in index.html don’t exist in dist/assets (e.g. old hashed names), you should:
+
+Trigger a fresh frontend build: npm run build:renderer
+
+Re-run node scripts/post-build.js to copy dist/public/* into dist/
+
+Ensure that the server is serving from the same dist directory that contains the freshly built index.html and assets folder.
+
+After making code changes, update the build and verify:
+
+In the Replit environment, run:
+
+npm run build:renderer
+node scripts/post-build.js
+npm run build:server
+
+
+Then start the server (or Electron, depending on how the Replit project is set up).
+
+Use curl from the Replit shell to verify correct behavior:
+
+curl -I http://localhost:5000/
+curl -I http://localhost:5000/assets/index-C8omU17M.css
+Expected:
+
+/ → 200 OK, Content-Type: text/html
+
+/assets/index-C8omU17M.css → 200 OK, Content-Type: text/css
+
+Make sure /assets/index-C5tNOPsY.js (or whatever the main JS bundle is called in the latest build) returns 200 OK and not 404.
+
+Don’t change unrelated features.
+
+Ignore warnings about:
+
+Electron Security Warning (Insecure Content-Security-Policy)
+
+[MQTT Reliable Sync] ... timeout
+
+[Digital Twin] Disabled
+
+[Enhanced LLM] Disabled
+
+Autofill / DevTools protocol errors
+
+These are expected in this environment and not part of the bug.
+
+
+
+Goal
+
+
+
+When you’re done, the Electron window at http://localhost:5000 should load the real SPA bundle:
+
+No blue screen
+
+CSS is applied correctly
+
+JS bundles load without 404
+
+The app UI renders normally
+
+
+
+Please:
+
+Locate the relevant server/Express configuration file(s).
+
+Apply the routing changes above.
+
+Fix any stale asset references if needed.
+
+Run the appropriate build commands.
+
+Provide a brief summary of what you changed and why.

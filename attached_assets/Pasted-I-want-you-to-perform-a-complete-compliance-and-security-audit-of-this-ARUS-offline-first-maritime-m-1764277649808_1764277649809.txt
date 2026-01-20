@@ -1,0 +1,339 @@
+I want you to perform a complete compliance and security audit of this ARUS offline-first maritime maintenance application.
+
+Before proposing any fix, first check whether the architecture already provides the feature or whether fixing it would cause duplication or conflict.
+
+1. First Task — Architecture Compatibility Check
+
+
+
+Before doing anything else:
+
+
+
+→ Examine the entire codebase and confirm whether each compliance/security feature below is already implemented, partially implemented, or missing.
+
+Mark each item as:
+
+EXISTS (fully implemented)
+
+PARTIAL (some logic present but incomplete)
+
+MISSING (requires implementation)
+
+NEEDS DESIGN REVIEW (possible conflict or architectural risk)
+
+
+
+Only after confirming compatibility should you propose any changes.
+
+2. Compliance Areas to Audit
+
+
+
+Audit and verify all layers: backend, frontend, local SQLite, cloud PostgreSQL, sync, ML, orchestration, migrations, Electron packaging, and mobile/desktop builds.
+
+
+
+Evaluate the app against the following compliance requirements:
+
+A. Maritime Operational Compliance (ISM / Class / Flag)
+
+
+
+Check if the system supports:
+
+Tamper-evident work order history
+
+Permanent record of PMS tasks + corrective actions
+
+Verified timestamps
+
+Ability to export reports inspectors accept (PDF/Excel)
+
+Critical equipment tagging (engine, gearbox, steering, fire pumps, etc.)
+
+
+
+If missing or partial → propose code changes.
+
+B. Data Privacy & Legal Compliance (GDPR/PDPA-style)
+
+
+
+Check:
+
+Data minimization (only necessary crew data stored)
+
+Crew profiles storage: is it justified and minimal?
+
+Cross-border data transfer concerns for remote sync
+
+Are exports/imports anonymizable?
+
+Ability for a user to export or delete their personal data?
+
+C. Cybersecurity (IMO 2021 Cyber Requirements / General Best Practice)
+
+
+
+Verify:
+
+Role-based access control implementation
+
+Token management and expiration
+
+Device-level encryption in SQLite
+
+Remote session revocation
+
+Secure sync (TLS enforcement)
+
+OWASP security checks
+
+Audit log for:
+
+login events
+
+threshold changes
+
+work order edits
+
+inventory stock movements
+
+D. Database Integrity & Auditability
+
+
+
+Check:
+
+Do all SQLite / PostgreSQL tables have:
+
+created_at
+
+updated_at
+
+modified_by
+
+audit log triggers?
+
+Verify migration system:
+
+safe forwards/backwards
+
+version tracking
+
+no destructive schema changes without guardrails
+
+Check if any table (e.g. update_settings, alerts_configurations) is missing or mismatched.
+
+E. ML / Predictive Maintenance Governance
+
+
+
+Check if:
+
+PdM model outputs include explanations
+
+Engineers can override recommendations (with logging)
+
+System differentiates “no data” vs “low risk”
+
+Proper dataset versioning exists
+
+Telemetry pipeline handles:
+
+missing data
+
+out-of-range values
+
+unit inconsistencies
+
+F. Upgrade / Data Migration Safety
+
+
+
+Check:
+
+App survives version upgrades without data loss
+
+Offline vessel builds sync safely later
+
+Version handshake in sync layer
+
+Backup/restore path documented
+
+Export/import system supports:
+
+work orders
+
+crew
+
+parts
+
+equipment registry
+
+maintenance schedules
+
+sensor templates
+
+telemetry data
+
+ML configs
+
+3. Required Output (Structured)
+
+
+
+When reviewing the app, respond in the following structure:
+
+1. Architecture Compatibility Report
+
+
+
+For each compliance domain (A–F), list all features and classify them as:
+
+- EXISTS
+- PARTIAL
+- MISSING
+- NEEDS DESIGN REVIEW
+Do NOT propose fixes until classification is done.
+
+2. Gap Analysis
+
+
+
+For each item marked PARTIAL or MISSING, output:
+
+root cause
+
+affected files
+
+risk level
+
+recommended pattern to implement fix
+
+3. Implementation Plan
+
+
+
+After reviewing compatibility, generate:
+
+migration scripts (if needed)
+
+API endpoint updates
+
+SQLite + PostgreSQL schema unification
+
+security patches
+
+RBAC or authentication fixes
+
+audit log middleware
+
+ML governance improvements
+
+inventory/work-order linkage validations
+
+4. Validation Tests
+
+
+
+Provide:
+
+automated tests for compliance
+
+telemetry ingestion tests
+
+sync reconciliation tests
+
+ML sanity checks
+
+data loss prevention checks
+
+offline-first regression tests
+
+4. Hard Requirements
+
+Do not break existing architecture
+
+Do not duplicate existing features
+
+Do not propose solutions until compatibility analysis is done first
+
+All suggestions must preserve:
+
+offline mode
+
+embedded SQLite mode
+
+multi-device sync
+
+cloud PostgreSQL compatibility
+
+PROMPT TO COPY
+
+
+
+↳ Paste this into Replit:
+
+REPLIT, START HERE
+
+
+
+I need you to perform a full compliance, security, and auditability review of this entire ARUS application.
+
+Before suggesting any fixes, first analyze whether each feature below already exists, partially exists, or is missing.
+
+Only propose fixes AFTER confirming architecture compatibility.
+
+
+
+Review and classify the system across these domains:
+
+
+
+A. Maritime Operational Compliance (ISM/Class/Flag)
+
+B. Data Privacy & Legal Compliance (GDPR/PDPA)
+
+C. Cybersecurity (RBAC, encryption, logging, audit trails)
+
+D. Database Integrity & Migration Safety (SQLite/PostgreSQL hybrid)
+
+E. ML/Predictive Maintenance Governance
+
+F. Update/Sync/Offline-first Resilience
+
+
+
+For EACH feature, output:
+
+
+
+EXISTS / PARTIAL / MISSING / NEEDS DESIGN REVIEW.
+
+
+
+After classification, output:
+
+→ Gap analysis
+
+→ Implementation plan
+
+→ Migration scripts (if needed)
+
+→ Security fixes
+
+→ Test plan
+
+
+
+Do NOT modify code until compatibility is confirmed.
+
+Do NOT duplicate existing features.
+
+Ensure all recommendations preserve offline-first SQLite and optional cloud PostgreSQL sync support.
+
+
+
+END PROMPT

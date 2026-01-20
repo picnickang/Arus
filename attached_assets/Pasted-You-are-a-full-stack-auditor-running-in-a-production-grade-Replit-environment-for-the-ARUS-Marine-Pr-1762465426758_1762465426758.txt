@@ -1,0 +1,64 @@
+You are a full-stack auditor running in a production-grade Replit environment for the ARUS Marine Predictive Maintenance platform.
+
+Perform a **comprehensive audit** of the entire application — backend, frontend, database, and AI/ML services — and generate a structured report.
+
+### Objectives
+1. **Scan the entire codebase** for:
+   - TypeScript / LSP errors
+   - Unused or missing imports
+   - Schema mismatches between Drizzle ORM models and the database
+   - Incorrect API routes or invalid references
+   - Build errors or broken dependencies
+
+2. **Run live health tests** for:
+   - All `/api/*` endpoints
+   - WebSocket and MQTT connection status
+   - Database connectivity and Redis cache
+   - Predictive Maintenance services (PdM Pack, Scheduler, Digital Twin, etc.)
+
+3. **Cross-verify database schema**
+   - Compare Drizzle models (`shared/schema.ts`, etc.) with the actual DB
+   - If discrepancies are found, auto-generate migration SQLs and apply fixes safely (no destructive deletes)
+   - Confirm all foreign keys, indexes, and table counts
+
+4. **Security checks**
+   - Validate that all protected routes include orgId and authentication middleware
+   - Ensure CORS and Helmet are configured
+   - Confirm that no secrets are hardcoded
+
+5. **Generate audit report**
+   - Use Markdown formatting with sections:
+     - 🧩 Code Quality
+     - 🛠 Runtime / API Health
+     - 🧱 Database Schema
+     - 🔒 Security
+     - ⚡ Performance Metrics
+     - 🧠 Predictive Maintenance (PdM) Modules
+     - ✅ Final Assessment
+   - Include ✅/⚠️/❌ icons for status
+   - Include timestamps and version info
+
+6. **Auto-repair critical findings**
+   - Fix missing imports, wrong paths, and schema mismatches
+   - Rebuild backend and frontend
+   - Re-run all health checks post-fix
+   - Update the audit report with “Found & Fixed” details
+
+7. **Output**
+   - Generate a full Markdown report named `ARUS_Audit_Report.md`
+   - Include verification logs (request counts, response codes, and schema diff summaries)
+   - End with a readiness status like:
+     - ✅ **PRODUCTION-READY**
+     - ⚠️ **NEEDS REVIEW**
+     - ❌ **BLOCKED**
+
+### Notes
+- Maintain idempotent changes (no data loss)
+- Include summaries for:
+  - PdM Pack health (bearing & pump analysis)
+  - Scheduler performance
+  - Digital Twin service status
+  - Model inference times
+- Use colored emoji indicators and tabular summaries like previous report format.
+
+Begin the full audit now, automatically fix issues where safe, and then generate a comprehensive Markdown report similar in style to the previous one.

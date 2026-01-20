@@ -1,0 +1,891 @@
+[
+  {
+    "method": "DELETE",
+    "path": "/api/work-orders/clear",
+    "clientFile": "client/src/pages/work-orders.tsx",
+    "lineNumber": 172,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/equipment",
+    "clientFile": "client/src/pages/vessel-management.tsx",
+    "lineNumber": 74,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/work-orders",
+    "clientFile": "client/src/pages/vessel-detail.tsx",
+    "lineNumber": 43,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/crew",
+    "clientFile": "client/src/pages/vessel-detail.tsx",
+    "lineNumber": 48,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/maintenance-schedules",
+    "clientFile": "client/src/pages/vessel-detail.tsx",
+    "lineNumber": 53,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/transport-settings",
+    "clientFile": "client/src/pages/transport-settings.tsx",
+    "lineNumber": 31,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/transport-settings",
+    "clientFile": "client/src/pages/transport-settings.tsx",
+    "lineNumber": 56,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/storage/config",
+    "clientFile": "client/src/pages/storage-settings.tsx",
+    "lineNumber": 63,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/storage/config/test",
+    "clientFile": "client/src/pages/storage-settings.tsx",
+    "lineNumber": 83,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/storage/ops-db/stage",
+    "clientFile": "client/src/pages/storage-settings.tsx",
+    "lineNumber": 98,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/storage/ops-db/test",
+    "clientFile": "client/src/pages/storage-settings.tsx",
+    "lineNumber": 108,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/admin/factory-reset",
+    "clientFile": "client/src/pages/settings.tsx",
+    "lineNumber": 39,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/reports/generate/pdf",
+    "clientFile": "client/src/pages/reports.tsx",
+    "lineNumber": 57,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/reports/compliance/:param",
+    "clientFile": "client/src/pages/reports.tsx",
+    "lineNumber": 88,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/reports/export/csv",
+    "clientFile": "client/src/pages/reports.tsx",
+    "lineNumber": 105,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/reports/export/json",
+    "clientFile": "client/src/pages/reports.tsx",
+    "lineNumber": 129,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/pdm/alerts",
+    "clientFile": "client/src/pages/pdm-pack.tsx",
+    "lineNumber": 71,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/pdm/health",
+    "clientFile": "client/src/pages/pdm-pack.tsx",
+    "lineNumber": 83,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/pdm/baseline/:param/:param",
+    "clientFile": "client/src/pages/pdm-pack.tsx",
+    "lineNumber": 91,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "POST",
+    "path": "/api/pdm/analyze/bearing",
+    "clientFile": "client/src/pages/pdm-pack.tsx",
+    "lineNumber": 192,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/pdm/analyze/pump",
+    "clientFile": "client/src/pages/pdm-pack.tsx",
+    "lineNumber": 226,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/users",
+    "clientFile": "client/src/pages/organization-management.tsx",
+    "lineNumber": 41,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "POST",
+    "path": "/api/organizations",
+    "clientFile": "client/src/pages/organization-management.tsx",
+    "lineNumber": 88,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/users",
+    "clientFile": "client/src/pages/organization-management.tsx",
+    "lineNumber": 146,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/optimization/configurations",
+    "clientFile": "client/src/pages/optimization-tools.tsx",
+    "lineNumber": 182,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/optimization/results",
+    "clientFile": "client/src/pages/optimization-tools.tsx",
+    "lineNumber": 191,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/optimization/trend-insights",
+    "clientFile": "client/src/pages/optimization-tools.tsx",
+    "lineNumber": 201,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/equipment",
+    "clientFile": "client/src/pages/optimization-tools.tsx",
+    "lineNumber": 211,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/equipment/:param/rul",
+    "clientFile": "client/src/pages/optimization-tools.tsx",
+    "lineNumber": 227,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "POST",
+    "path": "/api/optimization/run",
+    "clientFile": "client/src/pages/optimization-tools.tsx",
+    "lineNumber": 252,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/optimization/:param/download",
+    "clientFile": "client/src/pages/optimization-tools.tsx",
+    "lineNumber": 288,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/optimization/results",
+    "clientFile": "client/src/pages/optimization-tools.tsx",
+    "lineNumber": 312,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/optimization/run",
+    "clientFile": "client/src/pages/optimization-tools.tsx",
+    "lineNumber": 323,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/crew/schedule/plan-enhanced",
+    "clientFile": "client/src/pages/optimization-tools.tsx",
+    "lineNumber": 346,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/beast/lp/optimize",
+    "clientFile": "client/src/pages/optimization-tools.tsx",
+    "lineNumber": 374,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/analytics/ml-models",
+    "clientFile": "client/src/pages/ml-training.tsx",
+    "lineNumber": 81,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "POST",
+    "path": "/api/ml/train/lstm",
+    "clientFile": "client/src/pages/ml-training.tsx",
+    "lineNumber": 112,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/ml/train/random-forest",
+    "clientFile": "client/src/pages/ml-training.tsx",
+    "lineNumber": 136,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/acoustic/analyze",
+    "clientFile": "client/src/pages/ml-training.tsx",
+    "lineNumber": 159,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/raw-telemetry",
+    "clientFile": "client/src/pages/manual-telemetry-upload.tsx",
+    "lineNumber": 57,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "POST",
+    "path": "/api/import/telemetry/csv",
+    "clientFile": "client/src/pages/manual-telemetry-upload.tsx",
+    "lineNumber": 79,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/import/telemetry/json",
+    "clientFile": "client/src/pages/manual-telemetry-upload.tsx",
+    "lineNumber": 104,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/maintenance-schedules/upcoming",
+    "clientFile": "client/src/pages/maintenance-schedules.tsx",
+    "lineNumber": 165,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/parts-inventory",
+    "clientFile": "client/src/pages/inventory-management.tsx",
+    "lineNumber": 138,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/equipment",
+    "clientFile": "client/src/pages/health-monitor.tsx",
+    "lineNumber": 57,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/alerts/all",
+    "clientFile": "client/src/pages/alerts.tsx",
+    "lineNumber": 179,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/llm/vessel/:param/intelligence",
+    "clientFile": "client/src/pages/ai-insights.tsx",
+    "lineNumber": 290,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "POST",
+    "path": "/api/ml/predict/failure",
+    "clientFile": "client/src/pages/advanced-analytics.tsx",
+    "lineNumber": 165,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/analytics/ml-models",
+    "clientFile": "client/src/pages/advanced-analytics.tsx",
+    "lineNumber": 374,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/analytics/anomaly-detections",
+    "clientFile": "client/src/pages/advanced-analytics.tsx",
+    "lineNumber": 392,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/analytics/failure-predictions",
+    "clientFile": "client/src/pages/advanced-analytics.tsx",
+    "lineNumber": 410,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/analytics/threshold-optimizations",
+    "clientFile": "client/src/pages/advanced-analytics.tsx",
+    "lineNumber": 428,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/analytics/digital-twins",
+    "clientFile": "client/src/pages/advanced-analytics.tsx",
+    "lineNumber": 446,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/analytics/insight-snapshots",
+    "clientFile": "client/src/pages/advanced-analytics.tsx",
+    "lineNumber": 464,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "POST",
+    "path": "/api/operating-parameters",
+    "clientFile": "client/src/pages/OperatingParametersPage.tsx",
+    "lineNumber": 136,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/maintenance-templates",
+    "clientFile": "client/src/pages/MaintenanceTemplatesPage.tsx",
+    "lineNumber": 121,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/work-orders",
+    "clientFile": "client/src/lib/queryClient.ts",
+    "lineNumber": 156,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/error-logs",
+    "clientFile": "client/src/lib/errorHandler.ts",
+    "lineNumber": 19,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/insights/generate",
+    "clientFile": "client/src/lib/api.ts",
+    "lineNumber": 36,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/insights/jobs/stats",
+    "clientFile": "client/src/lib/api.ts",
+    "lineNumber": 40,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/dashboard",
+    "clientFile": "client/src/lib/api.ts",
+    "lineNumber": 53,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/dtc/dashboard-stats",
+    "clientFile": "client/src/lib/api.ts",
+    "lineNumber": 63,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/devices",
+    "clientFile": "client/src/lib/api.ts",
+    "lineNumber": 68,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/devices",
+    "clientFile": "client/src/lib/api.ts",
+    "lineNumber": 76,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/edge/heartbeats",
+    "clientFile": "client/src/lib/api.ts",
+    "lineNumber": 85,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/edge/heartbeat",
+    "clientFile": "client/src/lib/api.ts",
+    "lineNumber": 89,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/pdm/scores",
+    "clientFile": "client/src/lib/api.ts",
+    "lineNumber": 103,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/work-orders",
+    "clientFile": "client/src/lib/api.ts",
+    "lineNumber": 146,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/settings",
+    "clientFile": "client/src/lib/api.ts",
+    "lineNumber": 155,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/settings",
+    "clientFile": "client/src/lib/api.ts",
+    "lineNumber": 159,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/telemetry/trends",
+    "clientFile": "client/src/lib/api.ts",
+    "lineNumber": 169,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/telemetry/readings",
+    "clientFile": "client/src/lib/api.ts",
+    "lineNumber": 173,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/sensors/approve",
+    "clientFile": "client/src/hooks/useCrudMutations.ts",
+    "lineNumber": 215,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/sync/check-conflicts",
+    "clientFile": "client/src/hooks/useConflictResolution.ts",
+    "lineNumber": 31,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/sync/resolve-conflict",
+    "clientFile": "client/src/hooks/useConflictResolution.ts",
+    "lineNumber": 52,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/sync/auto-resolve",
+    "clientFile": "client/src/hooks/useConflictResolution.ts",
+    "lineNumber": 70,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/sensors/approve",
+    "clientFile": "client/src/components/UnknownSignals.tsx",
+    "lineNumber": 57,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/crew/:param/toggle-duty",
+    "clientFile": "client/src/components/UnifiedCrewManagement.tsx",
+    "lineNumber": 155,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/sync/reconcile",
+    "clientFile": "client/src/components/SyncAdmin.tsx",
+    "lineNumber": 85,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/sync/reconcile/comprehensive",
+    "clientFile": "client/src/components/SyncAdmin.tsx",
+    "lineNumber": 97,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/sync/process-events",
+    "clientFile": "client/src/components/SyncAdmin.tsx",
+    "lineNumber": 112,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/sensors/templates/apply",
+    "clientFile": "client/src/components/SensorTemplates.tsx",
+    "lineNumber": 43,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/equipment/health",
+    "clientFile": "client/src/components/QuickActionsFAB.tsx",
+    "lineNumber": 17,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/operating-condition-alerts",
+    "clientFile": "client/src/components/OperatingConditionAlertsPanel.tsx",
+    "lineNumber": 20,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/crew",
+    "clientFile": "client/src/components/MultiPartSelector.tsx",
+    "lineNumber": 73,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/stcw/import",
+    "clientFile": "client/src/components/HoursOfRestGrid.tsx",
+    "lineNumber": 298,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/stcw/rest/:param/:param/:param",
+    "clientFile": "client/src/components/HoursOfRestGrid.tsx",
+    "lineNumber": 343,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "POST",
+    "path": "/api/stcw/import",
+    "clientFile": "client/src/components/HoursOfRestGrid.tsx",
+    "lineNumber": 682,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/stcw/import",
+    "clientFile": "client/src/components/HoursOfRestGrid.tsx",
+    "lineNumber": 731,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/stcw/import",
+    "clientFile": "client/src/components/HoursOfRestGrid.tsx",
+    "lineNumber": 771,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/stcw/compliance/:param/:param/:param",
+    "clientFile": "client/src/components/HoursOfRestGrid.tsx",
+    "lineNumber": 814,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/stcw/export/:param/:param/:param",
+    "clientFile": "client/src/components/HoursOfRestGrid.tsx",
+    "lineNumber": 831,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/stcw/rest/:param/:param/:param",
+    "clientFile": "client/src/components/HoursOfRest.tsx",
+    "lineNumber": 71,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "POST",
+    "path": "/api/stcw/import",
+    "clientFile": "client/src/components/HoursOfRest.tsx",
+    "lineNumber": 80,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/stcw/compliance/:param/:param/:param",
+    "clientFile": "client/src/components/HoursOfRest.tsx",
+    "lineNumber": 103,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/stcw/export/:param/:param/:param",
+    "clientFile": "client/src/components/HoursOfRest.tsx",
+    "lineNumber": 121,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "POST",
+    "path": "/api/expenses",
+    "clientFile": "client/src/components/ExpenseTrackingForm.tsx",
+    "lineNumber": 137,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/error-logs",
+    "clientFile": "client/src/components/ErrorLogsTab.tsx",
+    "lineNumber": 51,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/error-logs/stats",
+    "clientFile": "client/src/components/ErrorLogsTab.tsx",
+    "lineNumber": 61,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "POST",
+    "path": "/api/error-logs",
+    "clientFile": "client/src/components/ErrorBoundary.tsx",
+    "lineNumber": 51,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/digital-twins/:param/simulate",
+    "clientFile": "client/src/components/DigitalTwinViewer.tsx",
+    "lineNumber": 150,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/crew/schedule/plan",
+    "clientFile": "client/src/components/CrewScheduler.tsx",
+    "lineNumber": 288,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/crew/schedule/plan-enhanced",
+    "clientFile": "client/src/components/CrewScheduler.tsx",
+    "lineNumber": 323,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/equipment/health",
+    "clientFile": "client/src/components/analytics/OperationsMode.tsx",
+    "lineNumber": 26,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/telemetry/trends",
+    "clientFile": "client/src/components/analytics/OperationsMode.tsx",
+    "lineNumber": 38,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/analytics/anomalies",
+    "clientFile": "client/src/components/analytics/OperationsMode.tsx",
+    "lineNumber": 50,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/analytics/failure-predictions",
+    "clientFile": "client/src/components/analytics/OperationsMode.tsx",
+    "lineNumber": 62,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/pdm/scores",
+    "clientFile": "client/src/components/analytics/OperationsMode.tsx",
+    "lineNumber": 74,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "POST",
+    "path": "/api/analytics/narrative-summary",
+    "clientFile": "client/src/components/analytics/NarrativeSummaryCard.tsx",
+    "lineNumber": 53,
+    "queryType": "useMutation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/equipment/health",
+    "clientFile": "client/src/components/analytics/MissionOverview.tsx",
+    "lineNumber": 23,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/analytics/anomalies",
+    "clientFile": "client/src/components/analytics/MissionOverview.tsx",
+    "lineNumber": 35,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/analytics/cost-trends",
+    "clientFile": "client/src/components/analytics/MissionOverview.tsx",
+    "lineNumber": 47,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/work-orders",
+    "clientFile": "client/src/components/analytics/MissionOverview.tsx",
+    "lineNumber": 59,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/analytics/model-performance/summary",
+    "clientFile": "client/src/components/analytics/MissionOverview.tsx",
+    "lineNumber": 71,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/analytics/failure-predictions",
+    "clientFile": "client/src/components/analytics/MissionOverview.tsx",
+    "lineNumber": 83,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/pdm/scores",
+    "clientFile": "client/src/components/analytics/MaintenanceMode.tsx",
+    "lineNumber": 22,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/work-orders",
+    "clientFile": "client/src/components/analytics/MaintenanceMode.tsx",
+    "lineNumber": 34,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/analytics/maintenance-records",
+    "clientFile": "client/src/components/analytics/MaintenanceMode.tsx",
+    "lineNumber": 46,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/analytics/failure-patterns",
+    "clientFile": "client/src/components/analytics/MaintenanceMode.tsx",
+    "lineNumber": 58,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/cost-savings/summary",
+    "clientFile": "client/src/components/analytics/MaintenanceMode.tsx",
+    "lineNumber": 70,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/equipment/health",
+    "clientFile": "client/src/components/analytics/MaintenanceMode.tsx",
+    "lineNumber": 82,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/analytics/cost-trends",
+    "clientFile": "client/src/components/analytics/FinanceMode.tsx",
+    "lineNumber": 34,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/analytics/cost-summary",
+    "clientFile": "client/src/components/analytics/FinanceMode.tsx",
+    "lineNumber": 46,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/cost-savings/summary",
+    "clientFile": "client/src/components/analytics/FinanceMode.tsx",
+    "lineNumber": 58,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/analytics/roi-analysis",
+    "clientFile": "client/src/components/analytics/FinanceMode.tsx",
+    "lineNumber": 70,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/insights/jobs/stats",
+    "clientFile": "client/src/components/analytics/FinanceMode.tsx",
+    "lineNumber": 82,
+    "queryType": "useQuery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/work-orders",
+    "clientFile": "client/src/components/analytics/FinanceMode.tsx",
+    "lineNumber": 94,
+    "queryType": "useQuery"
+  }
+]

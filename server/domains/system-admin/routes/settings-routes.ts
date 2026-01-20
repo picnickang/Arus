@@ -1,0 +1,138 @@
+/**
+ * System Admin Routes - System Settings
+ * Admin system settings CRUD and ML threshold calibration
+ */
+
+import { Express, Request, Response, z, SystemAdminDependencies } from "./types.js";
+import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../../lib/route-utils.js";
+import { logger } from "../../../utils/logger.js";
+
+export function registerSettingsRoutes(app: Express, deps: SystemAdminDependencies): void {
+  const {
+    storage,
+    generalApiRateLimit,
+    writeOperationRateLimit,
+    criticalOperationRateLimit,
+    requireAdminAuth,
+    auditAdminAction,
+    thresholdCalibrator,
+    insertAdminSystemSettingSchema,
+  } = deps;
+
+  app.get(
+    "/api/admin/settings",
+    requireAdminAuth,
+    generalApiRateLimit,
+    auditAdminAction("VIEW_SYSTEM_SETTINGS"),
+    withErrorHandling("fetch admin system settings", async (req: Request, res: Response) => {
+      const { orgId, category } = req.query;
+      const settings = await storage.getAdminSystemSettings(orgId as string, category as string);
+      res.json(settings);
+    })
+  );
+
+  app.get(
+    "/api/admin/settings/:orgId/:category/:key",
+    requireAdminAuth,
+    generalApiRateLimit,
+    auditAdminAction("VIEW_SYSTEM_SETTING"),
+    withErrorHandling("fetch admin system setting", async (req: Request, res: Response) => {
+      const { orgId, category, key } = req.params;
+      const setting = await storage.getAdminSystemSetting(orgId, category, key);
+      if (!setting) {
+        return sendNotFound(res, "System setting");
+      }
+      res.json(setting);
+    })
+  );
+
+  app.post(
+    "/api/admin/settings",
+    requireAdminAuth,
+    writeOperationRateLimit,
+    auditAdminAction("CREATE_SYSTEM_SETTING"),
+    withErrorHandling("create admin system setting", async (req: Request, res: Response) => {
+      const validatedData = insertAdminSystemSettingSchema.parse(req.body);
+      const setting = await storage.createAdminSystemSetting(validatedData);
+      sendCreated(res, setting);
+    })
+  );
+
+  app.put(
+    "/api/admin/settings/:id",
+    requireAdminAuth,
+    writeOperationRateLimit,
+    auditAdminAction("UPDATE_SYSTEM_SETTING"),
+    withErrorHandling("update admin system setting", async (req: Request, res: Response) => {
+      const { id } = req.params;
+      const validatedData = insertAdminSystemSettingSchema.partial().parse(req.body);
+      const setting = await storage.updateAdminSystemSetting(id, validatedData);
+      res.json(setting);
+    })
+  );
+
+  app.delete(
+    "/api/admin/settings/:id",
+    requireAdminAuth,
+    criticalOperationRateLimit,
+    auditAdminAction("DELETE_SYSTEM_SETTING"),
+    withErrorHandling("delete admin system setting", async (req: Request, res: Response) => {
+      const { id } = req.params;
+      await storage.deleteAdminSystemSetting(id);
+      sendDeleted(res);
+    })
+  );
+
+  app.get(
+    "/api/admin/settings/:orgId/:category",
+    requireAdminAuth,
+    generalApiRateLimit,
+    auditAdminAction("VIEW_SETTINGS_BY_CATEGORY"),
+    withErrorHandling("fetch settings by category", async (req: Request, res: Response) => {
+      const { orgId, category } = req.params;
+      const settings = await storage.getSettingsByCategory(orgId, category);
+      res.json(settings);
+    })
+  );
+
+  app.post(
+    "/api/admin/calibrate-threshold",
+    requireAdminAuth,
+    writeOperationRateLimit,
+    auditAdminAction("CALIBRATE_ML_THRESHOLD"),
+    withErrorHandling("calibrate ML threshold", async (req: Request, res: Response) => {
+      const calibrationSchema = z.object({
+        equipmentId: z.string().min(1, "Equipment ID is required"),
+      });
+
+      const { equipmentId } = calibrationSchema.parse(req.body);
+
+      const orgId = (req as Request & { session?: { orgId?: string } }).session?.orgId;
+      if (!orgId) {
+        res.status(401).json({ error: "Organization context required" });
+        return;
+      }
+
+      logger.info("AdminSettings", `Calibrating threshold for equipment ${equipmentId} (org: ${orgId})`);
+
+      const result = await thresholdCalibrator.calibrateForEquipment(orgId, equipmentId);
+
+      try {
+        const { realtimePredictionEngine } = await import("../../../ml-realtime-prediction.js");
+        realtimePredictionEngine.invalidateThresholdCache(equipmentId);
+      } catch (cacheError) {
+        logger.warn("AdminSettings", "Could not invalidate threshold cache", cacheError);
+      }
+
+      res.status(200).json({
+        success: true,
+        equipmentId,
+        threshold: result.threshold,
+        sampleCount: result.sampleCount,
+        statistics: result.statistics,
+        calibratedAt: result.calibratedAt,
+        method: result.method,
+      });
+    })
+  );
+}

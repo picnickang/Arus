@@ -1,0 +1,72 @@
+homeimac@Homes-iMac RecipeRealm % tail -100 ~/Library/Logs/ARUS/stderr.log
+homeimac@Homes-iMac RecipeRealm % ps aux | grep node
+homeimac         92799   0.0  0.0 34122828    796 s001  R+   12:19PM   0:00.00 grep node
+homeimac@Homes-iMac RecipeRealm % launchctl list | grep arus
+-	0	com.arus.app
+homeimac@Homes-iMac RecipeRealm % ls -lh ~/Library/Application\ Support/ARUS/dist/index.js
+-rw-r--r--@ 1 homeimac  staff   2.3M Oct 23 12:17 /Users/homeimac/Library/Application Support/ARUS/dist/index.js
+homeimac@Homes-iMac RecipeRealm % npx esbuild server/production-server.ts --platform=node --format=esm --outfile=dist/index.js
+
+  dist/index.js  4.2kb
+
+⚡ Done in 6ms
+homeimac@Homes-iMac RecipeRealm % ls -lh dist/index.js
+-rw-r--r--@ 1 homeimac  staff   4.2K Oct 23 12:19 dist/index.js
+homeimac@Homes-iMac RecipeRealm % launchctl stop com.arus.app
+cp dist/index.js ~/Library/Application\ Support/ARUS/dist/
+launchctl start com.arus.app
+homeimac@Homes-iMac RecipeRealm % sleep 8
+curl http://localhost:31888/api/health
+tail -50 ~/Library/Logs/ARUS/app.log
+curl: (7) Failed to connect to localhost port 31888 after 0 ms: Couldn't connect to server
+[DEBUG] Loading main server module...
+2025-10-23 12:17:53.428911: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 FMA
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+
+=== Database Configuration ===
+Deployment Mode: VESSEL (Offline-First)
+⚠ Turso Sync: Disabled (credentials not configured)
+  Running in offline-only mode without cloud sync
+  Set TURSO_SYNC_URL and TURSO_AUTH_TOKEN to enable sync
+→ Applying SQLite performance optimizations...
+✓ SQLite performance optimizations applied
+  • WAL mode enabled (better concurrency)
+  • Cache: 64MB
+  • Sync: NORMAL (safe with WAL)
+  • Foreign keys: ON
+✓ Local SQLite: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+→ Initializing SQLite database tables...
+[SQLite Init] Initializing vessel mode database...
+[SQLite Init] Database initialized successfully with 131 tables (100% feature parity) at: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+✓ SQLite tables initialized
+==============================
+
+[DEBUG] Wrapper script starting...
+[DEBUG] Loading main server module...
+[DEBUG] Module import failed: Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/Users/homeimac/Library/Application Support/ARUS/dist/routes.js' imported from /Users/homeimac/Library/Application Support/ARUS/dist/index.js
+    at finalizeResolution (node:internal/modules/esm/resolve:264:11)
+    at moduleResolve (node:internal/modules/esm/resolve:917:10)
+    at defaultResolve (node:internal/modules/esm/resolve:1130:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:396:12)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:365:25)
+    at ModuleLoader.getModuleJob (node:internal/modules/esm/loader:240:38)
+    at ModuleWrap.<anonymous> (node:internal/modules/esm/module_job:85:39)
+    at link (node:internal/modules/esm/module_job:84:36) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///Users/homeimac/Library/Application%20Support/ARUS/dist/routes.js'
+}
+[DEBUG] Wrapper script starting...
+[DEBUG] Loading main server module...
+[DEBUG] Module import failed: Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/Users/homeimac/Library/Application Support/ARUS/dist/routes.js' imported from /Users/homeimac/Library/Application Support/ARUS/dist/index.js
+    at finalizeResolution (node:internal/modules/esm/resolve:264:11)
+    at moduleResolve (node:internal/modules/esm/resolve:917:10)
+    at defaultResolve (node:internal/modules/esm/resolve:1130:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:396:12)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:365:25)
+    at ModuleLoader.getModuleJob (node:internal/modules/esm/loader:240:38)
+    at ModuleWrap.<anonymous> (node:internal/modules/esm/module_job:85:39)
+    at link (node:internal/modules/esm/module_job:84:36) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///Users/homeimac/Library/Application%20Support/ARUS/dist/routes.js'
+}
+homeimac@Homes-iMac RecipeRealm % 

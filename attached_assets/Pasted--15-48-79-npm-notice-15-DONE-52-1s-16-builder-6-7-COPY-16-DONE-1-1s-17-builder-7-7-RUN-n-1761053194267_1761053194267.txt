@@ -1,0 +1,88 @@
+#15 48.79 npm notice
+#15 DONE 52.1s
+#16 [builder 6/7] COPY . .
+#16 DONE 1.1s
+#17 [builder 7/7] RUN npm run build
+#17 0.211 
+#17 0.211 > rest-express@1.0.0 build
+#17 0.211 > vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+#17 0.211 
+#17 0.439 vite v5.4.20 building for production...
+#17 0.509 transforming...
+#17 15.42 ✓ 3794 modules transformed.
+#17 16.19 rendering chunks...
+#17 16.78 [plugin:vite:reporter] [plugin vite:reporter] 
+#17 16.78 (!) /app/client/src/pages/ai-insights.tsx is dynamically imported by /app/client/src/pages/ml-ai-consolidated.tsx but also statically imported by /app/client/src/App.tsx, dynamic import will not move module into another chunk.
+#17 16.78 
+#17 16.78 [plugin:vite:reporter] [plugin vite:reporter] 
+#17 16.78 (!) /app/client/src/pages/ml-training.tsx is dynamically imported by /app/client/src/pages/ml-ai-consolidated.tsx but also statically imported by /app/client/src/App.tsx, dynamic import will not move module into another chunk.
+#17 16.78 
+#17 16.85 computing gzip size...
+#17 16.90 ../dist/public/index.html                              4.02 kB │ gzip:   1.41 kB
+#17 16.90 ../dist/public/assets/index-_0SUaLr4.css             117.72 kB │ gzip:  18.54 kB
+#17 16.90 ../dist/public/assets/purify.es-DfngIMfA.js           22.26 kB │ gzip:   8.72 kB
+#17 16.90 ../dist/public/assets/index.es-B9cyO-QT.js           150.57 kB │ gzip:  51.50 kB
+#17 16.90 ../dist/public/assets/html2canvas.esm-CBrSDip1.js    201.42 kB │ gzip:  48.03 kB
+#17 16.90 ../dist/public/assets/jspdf.es.min-vodt-ERg.js       413.63 kB │ gzip: 135.01 kB
+#17 16.90 ../dist/public/assets/index-QFLnkQuD.js            2,150.20 kB │ gzip: 536.07 kB
+#17 16.90 
+#17 16.90 (!) Some chunks are larger than 500 kB after minification. Consider:
+#17 16.90 - Using dynamic import() to code-split the application
+#17 16.90 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+#17 16.90 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+#17 16.91 ✓ built in 16.44s
+#17 17.18 
+#17 17.18   dist/index.js  2.3mb ⚠️
+#17 17.18 
+#17 17.18 ⚡ Done in 127ms
+#17 DONE 17.4s
+#18 [production 7/8] COPY --from=builder /app/dist ./dist
+#18 DONE 1.4s
+#19 [production 8/8] RUN chown -R arus:nodejs /app
+#19 DONE 326.9s
+#20 exporting to docker image format
+#20 exporting layers
+#20 exporting layers 41.6s done
+#20 exporting manifest sha256:85e707a3aa648bb1b42222e91f48fec01443aa3c007fe36523c34917a6d1947a done
+#20 exporting config sha256:8bae0ea163cc3270c03d0f26540550d832a8ddfacfd288bdbf9ea3df7d2cea15 done
+#20 DONE 46.0s
+#21 exporting cache to client directory
+#21 preparing build cache for export
+#21 writing cache image manifest sha256:178d8b139969fb542f7b05aca5f1aa9a7853cef60ea14c47dc2bf407cd4deb73 done
+#21 DONE 94.0s
+Pushing image to registry...
+Upload succeeded
+==> Deploying...
+node:internal/modules/esm/resolve:873
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'vite' imported from /app/dist/index.js
+    at packageResolve (node:internal/modules/esm/resolve:873:9)
+    at moduleResolve (node:internal/modules/esm/resolve:946:18)
+    at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:708:12)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:657:25)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:640:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:264:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:168:49) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+Node.js v20.19.5
+==> Exited with status 1
+==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+node:internal/modules/esm/resolve:873
+  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+        ^
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'vite' imported from /app/dist/index.js
+    at packageResolve (node:internal/modules/esm/resolve:873:9)
+    at moduleResolve (node:internal/modules/esm/resolve:946:18)
+    at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:708:12)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:657:25)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:640:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:264:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:168:49) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+Node.js v20.19.5
+Need better ways to work with logs? Try theRender CLI, Render MCP Server, or set up a log stream integration 

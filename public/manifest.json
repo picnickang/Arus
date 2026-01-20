@@ -1,0 +1,51 @@
+{
+  "name": "ARUS - Marine Predictive Maintenance",
+  "short_name": "ARUS Marine",
+  "description": "Marine Predictive Maintenance & Scheduling System for fleet management and equipment monitoring",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1e40af",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png", 
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "lang": "en-US",
+  "dir": "ltr",
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "View fleet overview and system status",
+      "url": "/",
+      "icons": [{"src": "/icon-192x192.png", "sizes": "192x192"}]
+    },
+    {
+      "name": "Equipment Health",
+      "short_name": "Health",
+      "description": "Monitor equipment health and alerts",
+      "url": "/health",
+      "icons": [{"src": "/icon-192x192.png", "sizes": "192x192"}]
+    },
+    {
+      "name": "Work Orders",
+      "short_name": "Work Orders",
+      "description": "Manage maintenance work orders",
+      "url": "/work-orders",
+      "icons": [{"src": "/icon-192x192.png", "sizes": "192x192"}]
+    }
+  ]
+}

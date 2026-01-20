@@ -1,0 +1,66 @@
+# ARUS (Marine Predictive Maintenance & Scheduling) - Prometheus Configuration
+# Monitoring configuration for ARUS system metrics
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Alertmanager configuration (optional)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - alertmanager:9093
+
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+# A scrape configuration containing exactly one endpoint to scrape:
+scrape_configs:
+  # ARUS Application Metrics
+  - job_name: 'arus-app'
+    static_configs:
+      - targets: ['arus-app:5000']
+    metrics_path: '/api/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    
+    # Relabeling for better metric organization
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        target_label: service
+        replacement: arus
+
+  # PostgreSQL Database Metrics (if postgres_exporter is added)
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres:5432']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    # Note: Requires postgres_exporter sidecar container
+
+  # Caddy Metrics (if enabled)
+  - job_name: 'caddy'
+    static_configs:
+      - targets: ['caddy:2019']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    metrics_path: '/metrics'
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s
+
+  # Docker container metrics (if node_exporter/cadvisor is added)
+  # - job_name: 'docker'
+  #   static_configs:
+  #     - targets: ['cadvisor:8080']
+  #   scrape_interval: 30s
+
+# Optional: Recording rules for ARUS-specific metrics
+# rule_files:
+#   - "/etc/prometheus/arus_rules.yml"

@@ -1,0 +1,207 @@
+You are refactoring a React + TanStack Query page (WorkOrders) to remove runtime errors and harden UX. Make minimal, safe changes that compile in strict TS and don’t change public behaviors.
+
+
+
+Fixes to implement
+
+Provide queryFns for all useQuery calls
+
+Create and use lightweight fetchers (or reuse existing apiRequest):
+
+// at top, near other imports
+import { useQueryClient } from "@tanstack/react-query";
+
+// simple helpers
+const fetchJSON = <T,>(url: string) => apiRequest<T>("GET", url);
+
+// work orders already use fetchWorkOrders
+// add these:
+const fetchVessels = () => fetchJSON<any[]>("/api/vessels");
+const fetchEquipment = () => fetchJSON<any[]>("/api/equipment");
+const fetchCrew = (vesselId?: string) =>
+  vesselId ? fetchJSON<any[]>(`/api/crew?vessel_id=${vesselId}`) : fetchJSON<any[]>("/api/crew");
+Wire them into useQuery:
+
+const { data: vessels = [] } = useQuery({
+  queryKey: ["/api/vessels"],
+  queryFn: fetchVessels,
+  refetchInterval: 60000,
+});
+
+const { data: equipment = [] } = useQuery({
+  queryKey: ["/api/equipment"],
+  queryFn: fetchEquipment,
+  refetchInterval: 60000,
+});
+
+const crewQueryKey = selectedVesselIdForCreate 
+  ? ["/api/crew", { vessel_id: selectedVesselIdForCreate }]
+  : ["/api/crew"];
+
+const { data: crewMembers = [] } = useQuery({
+  queryKey: crewQueryKey,
+  queryFn: () => fetchCrew(selectedVesselIdForCreate),
+  enabled: !!selectedVesselIdForCreate,
+  refetchInterval: 60000,
+});
+Create a queryClient instance via hook
+
+Add:
+
+const queryClient = useQueryClient();
+Then keep the existing queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
+
+Guard direct window usage for SSR safety
+
+Wrap the “open create modal on query param” effect:
+
+useEffect(() => {
+  if (typeof window === "undefined") return;
+
+  const searchParams = new URLSearchParams(window.location.search);
+  if (searchParams.get("action") === "create") {
+    const equipmentId = searchParams.get("equipmentId") ?? "";
+    const rawPriority = searchParams.get("priority");
+    const priorityNum = [1,2,3].includes(Number(rawPriority)) ? Number(rawPriority) : 2;
+
+    if (equipmentId && equipment.length > 0) {
+      const selectedEquipment = equipment.find((eq: any) => eq.id === equipmentId);
+      if (selectedEquipment) {
+        setSelectedVesselIdForCreate(selectedEquipment.vesselId || "");
+        setCreateForm(prev => ({
+          ...prev,
+          equipmentId,
+          vesselId: selectedEquipment.vesselId || "",
+          priority: priorityNum,
+        }));
+      }
+    }
+    setCreateModalOpen(true);
+
+    // clean URL
+    setTimeout(() => {
+      if (typeof window !== "undefined") {
+        window.history.replaceState({}, "", "/work-orders");
+      }
+    }, 100);
+  }
+}, [location, equipment]);
+Remove unused imports
+
+
+
+Delete format from date-fns (not used).
+
+Delete ConfirmDialog import (not used).
+
+Ensure ESLint/TS passes with no unused imports.
+
+
+
+Harden types & defaults
+
+
+
+Narrow error to show a safe message:
+
+if (error) {
+  const message = (error as any)?.message ?? "Unknown error";
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-destructive">Error loading work orders: {message}</div>
+    </div>
+  );
+}
+In completeWorkOrderMutation:
+
+const partsUsed = Array.isArray(await apiRequest<any[]>("GET", `/api/work-orders/${orderId}/parts`)) 
+  ? await apiRequest<any[]>("GET", `/api/work-orders/${orderId}/parts`) 
+  : [];
+
+const costs = Array.isArray(await apiRequest<any[]>("GET", `/api/work-orders/${orderId}/costs`))
+  ? await apiRequest<any[]>("GET", `/api/work-orders/${orderId}/costs`)
+  : [];
+
+const totalCostImpact = costs.reduce((sum, cost) => sum + (Number(cost?.amount) || 0), 0);
+In getWorkOrderDuration, don’t rely on actualDuration unless it exists:
+
+const getWorkOrderDuration = (order: WorkOrder) => {
+  if (order.status === "completed") {
+    if (typeof (order as any).actualDuration === "number") {
+      const m = (order as any).actualDuration;
+      const h = Math.floor(m / 60);
+      const minutes = m % 60;
+      return `${h}h ${minutes}m`;
+    }
+    if (order.actualStartDate && order.completedAt) {
+      const start = new Date(order.actualStartDate).getTime();
+      const end = new Date(order.completedAt).getTime();
+      const m = Math.max(0, Math.round((end - start) / (1000 * 60)));
+      const h = Math.floor(m / 60);
+      const minutes = m % 60;
+      return `${h}h ${minutes}m`;
+    }
+  }
+  if (order.actualStartDate && order.status !== "completed") {
+    const start = new Date(order.actualStartDate).getTime();
+    const now = Date.now();
+    const m = Math.max(0, Math.round((now - start) / (1000 * 60)));
+    const h = Math.floor(m / 60);
+    const minutes = m % 60;
+    return `${h}h ${minutes}m (in progress)`;
+  }
+  return "Not started";
+};
+Memoize sorted rows for perf
+
+Replace sortWorkOrders calls with memo:
+
+import { useMemo } from "react";
+
+const sortedWorkOrders = useMemo(() => {
+  const orders = workOrders ?? [];
+  const sorted = [...orders].sort((a, b) => {
+    let aValue: any;
+    let bValue: any;
+    switch (sortColumn) {
+      case "orderId": aValue = a.woNumber || a.id; bValue = b.woNumber || b.id; break;
+      case "equipment": aValue = getEquipmentName(a.equipmentId); bValue = getEquipmentName(b.equipmentId); break;
+      case "priority": aValue = a.priority; bValue = b.priority; break;
+      case "status": aValue = a.status; bValue = b.status; break;
+      case "created": aValue = a.createdAt ? new Date(a.createdAt).getTime() : 0; bValue = b.createdAt ? new Date(b.createdAt).getTime() : 0; break;
+      default: return 0;
+    }
+    if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+    if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+    return 0;
+  });
+  return sorted;
+}, [workOrders, sortColumn, sortDirection, equipment]);
+Then pass data={sortedWorkOrders} into ResponsiveTable.
+
+Create payload safety
+
+Keep your existing payload but ensure priority is 1|2|3 and required fields exist (you already toast on missing). Optionally coerce:
+
+const safePriority = [1,2,3].includes(Number(createForm.priority)) ? Number(createForm.priority) : 2;
+const payload: InsertWorkOrder = {
+  ...createForm,
+  orgId: getCurrentOrgId(),
+  vesselId: selectedVesselIdForCreate,
+  equipmentId: createForm.equipmentId!,
+  reason: createForm.reason!,
+  priority: safePriority,
+};
+Acceptance criteria
+
+No runtime errors from missing queryFn or undefined queryClient.
+
+Page renders under SSR without crashing (browser globals guarded).
+
+No unused imports.
+
+Completing a work order works even when parts/costs endpoints return empty/non-array.
+
+Sorting is stable and memoized; UI behavior unchanged.
+
+If you want, I can also supply a ready-to-paste patch for just the useQuery + useQueryClient + SSR guards to drop in immediately.

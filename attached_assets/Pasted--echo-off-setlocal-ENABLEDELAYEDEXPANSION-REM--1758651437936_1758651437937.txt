@@ -1,0 +1,328 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==========================================================
+REM ARUS Patch: LLM Reports (on-demand) + Reports Console UI
+REM - Backend endpoints:
+REM POST /api/report/health
+REM POST /api/report/maintenance
+REM POST /api/report/fleet-summary
+REM POST /api/report/compliance/maintenance
+REM POST /api/report/compliance/alerts
+REM - Pluggable LLM client (env-based, safe fallback if no key)
+REM - React Reports Console to trigger and view outputs
+REM ==========================================================
+
+if not exist "backend\app\main.py" (
+echo [ERROR] backend\app\main.py not found. Run this at the repo root.
+exit /b 1
+)
+
+if not exist "frontend\src" (
+echo [WARN] frontend\src not found; UI card will be skipped.
+set SKIP_UI=1
+) else (
+set SKIP_UI=0
+)
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+REM ==========================================================
+REM 1) BACKEND: LLM client (env-driven) with safe fallback
+REM ==========================================================
+%PS% "$code=@'
+from __future__ import annotations
+import os, json
+from typing import Optional, Dict, Any, List
+
+"""
+Pluggable LLM client:
+- Runs ONLY when called by report endpoints.
+- If OPENAI_API_KEY (or another provider) is not set, returns a safe, local fallback
+that formats the provided structured data into an engineer-style report.
+Environment:
+LLM_PROVIDER=openai|none (default: none)
+OPENAI_API_KEY=sk-... (when using openai)
+OPENAI_MODEL=gpt-4o-mini (optional; default set below)
+"""
+
+class LLMClient:
+def __init__(self):
+self.provider = os.getenv("LLM_PROVIDER", "none").lower()
+self.model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+self.api_key = os.getenv("OPENAI_API_KEY")
+
+def _fallback(self, title: str, role_prompt: str, payload: Dict[str, Any]) -> str:
+# Deterministic senior-engineer style fallback
+def short(x): return json.dumps(x, indent=2)[:2000]
+return (
+f"# {title}\n\n"
+f"**Mode:** fallback (no external LLM configured)\n\n"
+f"## Briefing Premise\n{role_prompt.strip()}\n\n"
+f"## Key Inputs (truncated)\n```json\n{short(payload)}\n```\n\n"
+f"## Executive Summary\n"
+f"- Health: derived from recent telemetry / errors if available\n"
+f"- Compliance: computed counts vs. schedule/history if present\n"
+f"- Risks: highlighted from anomalies/errors and overdue tasks\n\n"
+f"## Suggested Actions\n"
+f"- Verify flagged equipment; schedule opportunistic maintenance windows\n"
+f"- Confirm spares and crew availability for the next call at port\n"
+f"- Review sensors with repeated validation errors (calibration / replacement)\n"
+)
+
+def generate(self, title: str, role_prompt: str, structured: Dict[str, Any]) -> str:
+if self.provider != "openai" or not self.api_key:
+return self._fallback(title, role_prompt, structured)
+
+# Lazy import to avoid dependency if not used
+try:
+import requests
+except Exception:
+return self._fallback(title, role_prompt, structured)
+
+# Minimal OpenAI chat-completions call (no SDK), safe timeouts
+try:
+sys_prompt = role_prompt.strip()
+user_payload = json.dumps(structured, ensure_ascii=False)
+body = {
+"model": self.model,
+"messages": [
+{"role": "system", "content": sys_prompt},
+{"role": "user", "content": f"Generate the '{title}' using this JSON:\n```json\n{user_payload}\n```"}
+],
+"temperature": 0.2,
+}
+r = requests.post(
+"https://api.openai.com/v1/chat/completions",
+headers={
+"Authorization": f"Bearer {self.api_key}",
+"Content-Type": "application/json",
+},
+json=body,
+timeout=30,
+)
+r.raise_for_status()
+data = r.json()
+txt = data["choices"][0]["message"]["content"]
+return txt
+except Exception:
+return self._fallback(title, role_prompt, structured)
+
+LLM = LLMClient()
+'@; Set-Content -Encoding UTF8 backend/app/core/llm_client.py $code"
+
+REM ==========================================================
+REM 2) BACKEND: LLM Reports API Router
+REM - Lightweight data assembly from DB (SQLite path from settings)
+REM - No background jobs; runs only on request
+REM ==========================================================
+%PS% "$code=@'
+from __future__ import annotations
+from fastapi import APIRouter, Body, HTTPException, Query
+from typing import Optional, Dict, Any, List
+from datetime import datetime, timedelta
+import aiosqlite, os, json
+
+from app.core.settings import SETTINGS
+from app.core.llm_client import LLM
+
+router = APIRouter(tags=[\"llm-reports\"])
+
+ROLE_PROMPT = """
+You are an expert predictive maintenance and scheduling assistant for industrial vessels and heavy equipment.
+Always brief as a senior maintenance engineer.
+
+Tasks:
+1) Condition Overview: health + anomalies; include RUL if present. Use short, precise bullet points. Bold critical risks.
+2) Optimization & Scheduling: suggest windows considering downtime, cost, parts, crew; propose alternatives if constraints provided.
+3) Diagnostics & Prescriptions: explain why flags happened; give concrete actions.
+4) Executive Summary: 1-2 tight paragraphs for management with risks, costs, and priorities.
+
+Format with headings, bullets, short paragraphs. If data is missing, state assumptions clearly.
+"""
+
+async def _read_all(sqlite_path: str, since_iso: Optional[str]=None) -> Dict[str, Any]:
+out: Dict[str, Any] = {}
+async with aiosqlite.connect(sqlite_path) as db:
+db.row_factory = aiosqlite.Row
+
+# equipment registry (vessel->equipment)
+cur = await db.execute(\"SELECT * FROM vessel ORDER BY id\")
+out[\"vessels\"] = [dict(r) for r in await cur.fetchall()]
+cur = await db.execute(\"SELECT * FROM equipment ORDER BY vessel_id, id\")
+out[\"equipment\"] = [dict(r) for r in await cur.fetchall()]
+
+# optional telemetry_raw/rollups if your schema has them
+try:
+if since_iso:
+cur = await db.execute(\"SELECT * FROM telemetry_raw WHERE ts >= ? ORDER BY ts DESC LIMIT 2000\", (since_iso,))
+else:
+cur = await db.execute(\"SELECT * FROM telemetry_raw ORDER BY ts DESC LIMIT 2000\")
+out[\"telemetry_raw\"] = [dict(r) for r in await cur.fetchall()]
+except Exception:
+out[\"telemetry_raw\"] = []
+
+# validation errors
+try:
+cur = await db.execute(\"SELECT * FROM validation_error ORDER BY id DESC LIMIT 500\")
+out[\"errors\"] = [dict(r) for r in await cur.fetchall()]
+except Exception:
+out[\"errors\"] = []
+
+# optional: maintenance tables if present from imports
+# tasks (planned) and history (executed)
+try:
+cur = await db.execute(\"SELECT * FROM pms_task ORDER BY equipment_id, job_title\")
+out[\"pms_task\"] = [dict(r) for r in await cur.fetchall()]
+except Exception:
+out[\"pms_task\"] = []
+try:
+cur = await db.execute(\"SELECT * FROM pms_history ORDER BY done_at DESC LIMIT 1000\")
+out[\"pms_history\"] = [dict(r) for r in await cur.fetchall()]
+except Exception:
+out[\"pms_history\"] = []
+
+return out
+
+def _since(hours: Optional[int]) -> Optional[str]:
+if not hours: return None
+dt = datetime.utcnow() - timedelta(hours=hours)
+return dt.replace(microsecond=0).isoformat() + \"Z\"
+
+async def _gen_report(title: str, params: Dict[str, Any]) -> Dict[str, Any]:
+sqlite_path = SETTINGS.storage.get(\"sqlite_path\") or \"./arus.sqlite\"
+since_iso = _since(params.get(\"lookback_hours\"))
+payload = await _read_all(sqlite_path, since_iso=since_iso)
+
+# narrow scope if requested
+vessel = params.get(\"vessel_id\")
+equipment = params.get(\"equipment_id\")
+if vessel:
+payload[\"equipment\"] = [e for e in payload.get(\"equipment\", []) if e.get(\"vessel_id\") == vessel]
+payload[\"telemetry_raw\"] = [t for t in payload.get(\"telemetry_raw\", []) if t.get(\"vessel_id\") == vessel or t.get(\"vessel\") == vessel]
+payload[\"errors\"] = [x for x in payload.get(\"errors\", []) if x.get(\"vessel_id\") == vessel]
+if equipment:
+payload[\"telemetry_raw\"] = [t for t in payload.get(\"telemetry_raw\", []) if t.get(\"equipment_id\") == equipment]
+payload[\"errors\"] = [x for x in payload.get(\"errors\", []) if x.get(\"equipment_id\") == equipment]
+
+text = LLM.generate(title, ROLE_PROMPT, payload | {\"params\": params})
+return {\"title\": title, \"generated_at\": datetime.utcnow().isoformat()+\"Z\", \"report\": text}
+
+@router.post(\"/api/report/health\")
+async def report_health(body: Dict[str, Any] = Body(default_factory=dict)):
+\"\"\"Per-equipment or per-vessel condition & anomalies report.\"\"\"
+return await _gen_report(\"Comprehensive Health Report\", body or {})
+
+@router.post(\"/api/report/maintenance\")
+async def report_maintenance(body: Dict[str, Any] = Body(default_factory=dict)):
+\"\"\"Scheduled vs actual maintenance; overdue & upcoming.\"\"\"
+return await _gen_report(\"Maintenance Report\", body or {})
+
+@router.post(\"/api/report/fleet-summary\")
+async def report_fleet_summary(body: Dict[str, Any] = Body(default_factory=dict)):
+\"\"\"Fleet-level KPIs: health, backlog, risks, next windows.\"\"\"
+return await _gen_report(\"Fleet Summary\", body or {})
+
+@router.post(\"/api/report/compliance/maintenance\")
+async def report_compliance_maintenance(body: Dict[str, Any] = Body(default_factory=dict)):
+\"\"\"Maintenance compliance by period (planned vs executed).\"\"\"
+return await _gen_report(\"Maintenance Compliance\", body or {})
+
+@router.post(\"/api/report/compliance/alerts\")
+async def report_compliance_alerts(body: Dict[str, Any] = Body(default_factory=dict)):
+\"\"\"Alert/validation response compliance vs SLA targets.\"\"\"
+return await _gen_report(\"Alert Response Compliance\", body or {})
+'@; Set-Content -Encoding UTF8 backend/app/api/reports_llm.py $code"
+
+REM Wire router in main.py
+%PS% ^
+"$f='backend/app/main.py'; $t=Get-Content -Raw $f;" ^
+"if ($t -notmatch 'from \\.api\\.reports_llm import router as reports_llm_router') {" ^
+" $t = $t -replace '(from \\.api\\.[^\\n]+\\n)+', '$0from .api.reports_llm import router as reports_llm_router`n';" ^
+"}" ^
+"if ($t -notmatch 'app\\.include_router\$begin:math:text$reports_llm_router\\$end:math:text$') {" ^
+" $t = $t -replace '(?s)(app\\.include_router\$begin:math:text$[^)]+\\$end:math:text$\\s*)$', '$0`napp.include_router(reports_llm_router)';" ^
+"}" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ==========================================================
+REM 3) FRONTEND: Reports Console (buttons for all LLM reports)
+REM ==========================================================
+if "%SKIP_UI%"=="0" (
+%PS% "$code=@'
+import { useState } from \"react\";
+const BASE = (import.meta as any).env.VITE_API_URL || \"http://localhost:8000\";
+
+function Btn({label,onClick}:{label:string;onClick:()=>void}) {
+return <button className=\"bg\" onClick={onClick} style={{marginRight:8,marginBottom:8}}>{label}</button>;
+}
+
+export default function ReportsConsole(){
+const [out,setOut]=useState<string>(\"\");
+const [busy,setBusy]=useState(false);
+const [err,setErr]=useState<string| null>(null);
+
+async function run(path:string, body:any = {}) {
+setBusy(true); setErr(null); setOut(\"\");
+try{
+const r = await fetch(`${BASE}${path}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+if (!r.ok) throw new Error(await r.text());
+const j = await r.json();
+setOut(j.report || JSON.stringify(j,null,2));
+}catch(e:any){
+setErr(e.message||String(e));
+}finally{
+setBusy(false);
+}
+}
+
+return (
+<div className=\"card\">
+<h2>Reports Console (LLM on-demand)</h2>
+<div style={{display:'flex',flexWrap:'wrap',marginTop:8}}>
+<Btn label=\"Health Report\" onClick={()=>run('/api/report/health', {lookback_hours: 24})}/>
+<Btn label=\"Maintenance Report\" onClick={()=>run('/api/report/maintenance', {lookback_hours: 168})}/>
+<Btn label=\"Fleet Summary\" onClick={()=>run('/api/report/fleet-summary', {lookback_hours: 168})}/>
+<Btn label=\"Maintenance Compliance\" onClick={()=>run('/api/report/compliance/maintenance', {period: 'QTD'})}/>
+<Btn label=\"Alert Response Compliance\" onClick={()=>run('/api/report/compliance/alerts', {sla_hours: 24, lookback_hours: 168})}/>
+</div>
+{busy && <div style={{marginTop:8}}>Running…</div>}
+{err && <div style={{color:'#dc2626',marginTop:8}}>{err}</div>}
+{out && <pre className=\"text-xs\" style={{background:'#f1f5f9',padding:8,borderRadius:6,overflow:'auto',marginTop:8}}>{out}</pre>}
+<div style={{fontSize:12, color:'#475569', marginTop:8}}>
+Tip: Set <code>LLM_PROVIDER=openai</code> and <code>OPENAI_API_KEY</code> in the backend env to enable real LLM.
+Without it, the backend uses a deterministic fallback so you can test now.
+</div>
+</div>
+);
+}
+'@; Set-Content -Encoding UTF8 frontend/src/components/ReportsConsole.tsx $code"
+
+REM Hook console into App.tsx (adds a card if not present)
+%PS% ^
+"$f='frontend/src/App.tsx'; $t=Get-Content -Raw $f;" ^
+"if ($t -notmatch 'ReportsConsole') { $t = $t -replace 'from \\\"\\./components/TransportSettings\\\";','from \"./components/TransportSettings\";\nimport ReportsConsole from \"./components/ReportsConsole\";'; }" ^
+"if ($t -notmatch 'Reports Console') { $t = $t -replace '(</div>\\s*;\\s*\\}\\s*$)',' <ReportsConsole/>\n </div>);\n}\n'; }" ^
+"Set-Content -Encoding UTF8 $f $t;"
+) else (
+echo [INFO] Skipping UI patch (frontend not found).
+)
+
+echo.
+echo ==========================================================
+echo [OK] LLM report endpoints and Reports Console installed.
+echo ----------------------------------------------------------
+echo BACKEND endpoints (on-demand):
+echo POST /api/report/health
+echo POST /api/report/maintenance
+echo POST /api/report/fleet-summary
+echo POST /api/report/compliance/maintenance
+echo POST /api/report/compliance/alerts
+echo Env (optional): LLM_PROVIDER=openai, OPENAI_API_KEY=..., OPENAI_MODEL=gpt-4o-mini
+echo Fallback works with NO keys (deterministic summary).
+echo ----------------------------------------------------------
+echo FRONTEND:
+echo - New "Reports Console (LLM on-demand)" card added to UI (if frontend present).
+echo ----------------------------------------------------------
+echo DONE. Restart backend and rebuild frontend to use new features.
+echo ==========================================================
+endlocal

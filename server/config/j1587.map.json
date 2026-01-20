@@ -1,0 +1,49 @@
+{
+  "notes": "Cummins/CAT J1708/J1587 lite mapping for common marine engine parameters",
+  "signals": [
+    {
+      "mid": 128,
+      "pid": 190,
+      "sig": "engine_rpm",
+      "src": "ECM",
+      "unit": "rpm",
+      "bytes": [0, 1],
+      "endian": "LE",
+      "scale": 0.25,
+      "offset": 0
+    },
+    {
+      "mid": 128,
+      "pid": 110,
+      "sig": "coolant_temp",
+      "src": "ECM",
+      "unit": "°C",
+      "bytes": [0],
+      "endian": "LE",
+      "scale": 1,
+      "offset": -40
+    },
+    {
+      "mid": 128,
+      "pid": 100,
+      "sig": "oil_pressure",
+      "src": "ECM",
+      "unit": "kPa",
+      "bytes": [0],
+      "endian": "LE",
+      "scale": 4,
+      "offset": 0
+    },
+    {
+      "mid": 128,
+      "pid": 183,
+      "sig": "fuel_rate",
+      "src": "ECM",
+      "unit": "L/h",
+      "bytes": [0, 1],
+      "endian": "LE",
+      "scale": 0.05,
+      "offset": 0
+    }
+  ]
+}

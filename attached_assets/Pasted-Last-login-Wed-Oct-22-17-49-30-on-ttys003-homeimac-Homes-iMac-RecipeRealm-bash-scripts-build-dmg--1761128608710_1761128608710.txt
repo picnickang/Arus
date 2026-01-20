@@ -1,0 +1,214 @@
+Last login: Wed Oct 22 17:49:30 on ttys003
+homeimac@Homes-iMac RecipeRealm % bash scripts/build-dmg-release.sh
+╔═══════════════════════════════════════════════════════════╗
+║                                                           ║
+║     ARUS macOS DMG Build Pipeline v1.0.0              ║
+║     Complete Production Build Process                    ║
+║                                                           ║
+╚═══════════════════════════════════════════════════════════╝
+
+This will create a production-ready .dmg installer for macOS.
+
+The process includes:
+  1. Building the application
+  2. Preparing dependencies
+  3. Creating seed database
+  4. Creating installer app
+  5. Creating uninstaller app
+  6. Packaging into DMG
+
+Estimated time: 5-10 minutes
+
+Continue with build? (y/N): y
+
+Starting build pipeline...
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Phase 1/6: Building Application Bundle
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔═══════════════════════════════════════════════════════════╗
+║        Building ARUS Standalone Bundle                   ║
+╚═══════════════════════════════════════════════════════════╝
+
+
+Version: 1.0.0
+Bundle directory: dist-standalone/ARUS-bundle
+
+→ Cleaning previous builds...
+✓ Clean complete
+
+→ Building application...
+
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+
+vite v5.4.20 building for production...
+✓ 3794 modules transformed.
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /Users/homeimac/Downloads/RecipeRealm/client/src/pages/ai-insights.tsx is dynamically imported by /Users/homeimac/Downloads/RecipeRealm/client/src/pages/ml-ai-consolidated.tsx but also statically imported by /Users/homeimac/Downloads/RecipeRealm/client/src/App.tsx, dynamic import will not move module into another chunk.
+
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /Users/homeimac/Downloads/RecipeRealm/client/src/pages/ml-training.tsx is dynamically imported by /Users/homeimac/Downloads/RecipeRealm/client/src/pages/ml-ai-consolidated.tsx but also statically imported by /Users/homeimac/Downloads/RecipeRealm/client/src/App.tsx, dynamic import will not move module into another chunk.
+
+../dist/public/index.html                              4.02 kB │ gzip:   1.41 kB
+../dist/public/assets/index-_0SUaLr4.css             117.72 kB │ gzip:  18.54 kB
+../dist/public/assets/purify.es-DfngIMfA.js           22.26 kB │ gzip:   8.72 kB
+../dist/public/assets/index.es-B9cyO-QT.js           150.57 kB │ gzip:  51.50 kB
+../dist/public/assets/html2canvas.esm-CBrSDip1.js    201.42 kB │ gzip:  48.03 kB
+../dist/public/assets/jspdf.es.min-vodt-ERg.js       413.63 kB │ gzip: 135.01 kB
+../dist/public/assets/index-QFLnkQuD.js            2,150.20 kB │ gzip: 536.07 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 19.36s
+
+  dist/index.js  2.3mb ⚠️
+
+⚡ Done in 234ms
+✓ Application built
+
+→ Copying application files...
+✓ Application files copied
+
+→ Preparing dependencies...
+  Copying local node_modules...
+  ⚠️  WARNING: Local modules may not work on all architectures!
+  ✓ Local modules copied
+✓ Dependencies ready
+
+→ Creating data directory...
+✓ Data directory created
+
+→ Copying installation scripts...
+✓ Installation scripts copied
+
+→ Creating launcher script...
+✓ Launcher script created
+
+→ Creating version file...
+✓ Version file created
+
+╔═══════════════════════════════════════════════════════════╗
+║              ✅  Bundle Build Complete!                   ║
+╚═══════════════════════════════════════════════════════════╝
+
+Bundle location: dist-standalone/ARUS-bundle
+Bundle size:     2.2G
+
+Next steps:
+  1. Create seed database: bash scripts/create-seed-database.sh
+  2. Create installer app: bash scripts/create-installer-app.sh
+  3. Build DMG:           bash scripts/create-dmg.sh
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Phase 2/6: Creating Seed Database
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔═══════════════════════════════════════════════════════════╗
+║         Creating Pre-Seeded Database                     ║
+╚═══════════════════════════════════════════════════════════╝
+
+→ Database path: dist-standalone/ARUS-bundle/data/vessel-local-seed.db
+
+→ Initializing database schema...
+  Initializing database at: dist-standalone/ARUS-bundle/data/vessel-local-seed.db
+  ✓ Minimal schema created
+  ℹ️  Full schema will be initialized on first application start
+✓ Database schema initialized
+
+Add sample data (vessels, equipment)? (y/N): 
+
+ℹ️  Skipping sample data (users will add their own)
+
+╔═══════════════════════════════════════════════════════════╗
+║           ✅  Seed Database Created!                      ║
+╚═══════════════════════════════════════════════════════════╝
+
+Database:     dist-standalone/ARUS-bundle/data/vessel-local-seed.db
+Size:         4.0K
+Tables:       1
+
+Database is ready for packaging!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Phase 3/6: Creating Installer Application
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔═══════════════════════════════════════════════════════════╗
+║         Creating ARUS Installer.app                      ║
+╚═══════════════════════════════════════════════════════════╝
+
+→ Creating application structure...
+✓ Structure created
+
+→ Copying application bundle...
+✓ Bundle copied
+
+→ Creating installer wrapper...
+✓ Installer wrapper created
+
+→ Creating Info.plist...
+✓ Info.plist created
+
+→ Creating application icon...
+  ℹ️  Icon creation skipped (add AppIcon.icns to Contents/Resources/)
+
+╔═══════════════════════════════════════════════════════════╗
+║          ✅  Installer App Created!                       ║
+╚═══════════════════════════════════════════════════════════╝
+
+Application: dist-standalone/ARUS Installer.app
+Size:        2.2G
+
+To test: Double-click 'ARUS Installer.app'
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Phase 4/6: Creating Uninstaller Application
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔═══════════════════════════════════════════════════════════╗
+║         Creating Uninstall ARUS.app                      ║
+╚═══════════════════════════════════════════════════════════╝
+
+→ Creating application structure...
+✓ Structure created
+
+→ Creating uninstaller script...
+✓ Uninstaller script created
+
+→ Creating Info.plist...
+✓ Info.plist created
+
+╔═══════════════════════════════════════════════════════════╗
+║        ✅  Uninstaller App Created!                       ║
+╚═══════════════════════════════════════════════════════════╝
+
+Application: dist-standalone/Uninstall ARUS.app
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Phase 5/6: Building DMG Package
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔═══════════════════════════════════════════════════════════╗
+║            Creating ARUS DMG Installer                   ║
+╚═══════════════════════════════════════════════════════════╝
+
+Version: 1.0.0
+DMG name: ARUS-1.0.0-macOS-universal.dmg
+
+→ Preparing staging directory...
+✓ Staging directory ready
+
+→ Copying installer app...
+✓ Installer app copied
+
+→ Copying uninstaller app...
+✓ Uninstaller app copied
+
+→ Creating README...
+✓ README created
+
+→ Creating DMG with hdiutil (create-dmg not installed)...
+...............................................................
+2025-10-22 18:09:09.564 hdiutil[35588:1650772] -[DIHelperProxy(Thread) waitForHelperDone] timed out waiting for helper registration
+created: /Users/homeimac/Downloads/RecipeRealm/dist-standalone/temp.dmg
+hdiutil: detach failed - No such file or directory
+homeimac@Homes-iMac RecipeRealm % 

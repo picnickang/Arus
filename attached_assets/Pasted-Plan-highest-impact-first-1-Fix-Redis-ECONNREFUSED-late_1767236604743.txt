@@ -1,0 +1,97 @@
+Plan (highest impact first)
+
+1) Fix Redis “ECONNREFUSED” latency (Critical)
+
+Goal: Redis should either work, or fail instantly without adding delay.
+
+Actions
+	•	Add a fast-fail timeout (e.g., 150–300ms) on Redis connect + command attempts.
+	•	In dev, either:
+	•	disable Redis entirely via env (REDIS_ENABLED=false), OR
+	•	point to a real Redis instance, OR
+	•	use a mock/in-memory adapter with no retries.
+	•	Ensure all Redis-backed modules (rate limiter, analytics cache, inventory cache) use a shared Redis client and do not each retry independently.
+	•	Add a “Redis unavailable” circuit breaker: after 1 failure, stop trying for 60s and use memory.
+
+Success metric
+	•	Remove repeated ECONNREFUSED spam
+	•	Reduce server request latency spikes during startup
+
+⸻
+
+2) Reduce backend event-loop lag during startup (High)
+
+You’re loading 61+ route modules on init; that’s classic “synchronous boot” pain.
+
+Actions
+	•	Convert heavy startup work into lazy/deferrable init:
+	•	Initialize analytics/inventory/rate limiter on first use, not at boot.
+	•	Defer non-critical schedulers/cron-like tasks until after server is listening (setImmediate / background init).
+	•	Ensure any CPU-heavy work (schema validation, large JSON parsing) isn’t happening at import time.
+	•	Split route registration: core routes first, optional modules loaded dynamically.
+
+Success metric
+	•	Event loop lag under 100ms during boot
+	•	Faster first response
+
+⸻
+
+3) Vite build & chunking optimizations (High)
+
+Your frontend is ~5MB+ source. You need chunking + vendor grouping.
+
+Actions
+	•	Add build.rollupOptions.output.manualChunks to split:
+	•	react, react-dom, react-router, etc.
+	•	UI libs (shadcn/radix, icons)
+	•	charts / heavy libs
+	•	“crew scheduling” feature bundle separate
+	•	Add chunk size warnings (chunkSizeWarningLimit)
+	•	Ensure optimizeDeps.include covers your most-used deps to speed dev server
+	•	Confirm production build uses minify: 'esbuild' (or terser if needed)
+
+Success metric
+	•	Smaller initial bundle
+	•	Faster /@vite/client and first render
+
+⸻
+
+4) Fix Vite dev client slowness (Medium)
+
+/@vite/client at ~1s suggests dev server is struggling (often due to dependency scanning + big module graph).
+
+Actions
+	•	Ensure cacheDir is stable (not wiped)
+	•	Add optimizeDeps config:
+	•	include hot deps
+	•	exclude problematic huge deps
+	•	If using monorepo-like paths, fix aliasing to avoid duplicate React instances / double dependency graphs
+	•	Reduce plugin overhead (disable nonessential plugins in dev)
+
+Success metric
+	•	GET /@vite/client consistently < 200–300ms after first run
+
+⸻
+
+5) Reduce page/component weight (Medium/Low)
+
+This helps, but it’s not the first lever.
+
+Actions
+	•	Route-level lazy loading:
+	•	React.lazy() / dynamic imports for large pages (Schedule, Compliance, Analytics)
+	•	Move heavy components behind user interaction (modals, charts)
+	•	Audit for duplicated libraries (two date libs, multiple UI kits)
+
+Success metric
+	•	Faster nav to core pages
+	•	Lower memory footprint
+
+⸻
+
+Instrumentation (so we don’t guess)
+
+Add quick measurements:
+	•	Backend: log startup milestones + route registration timings
+	•	Frontend: bundle analyzer (rollup-plugin-visualizer) + route chunk sizes
+	•	Redis: log connect time and fast-fail behavior

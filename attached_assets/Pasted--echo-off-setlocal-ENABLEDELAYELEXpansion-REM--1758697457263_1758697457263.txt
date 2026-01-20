@@ -1,0 +1,292 @@
+@echo off
+setlocal ENABLEDELAYELEXpansion
+REM ==========================================================
+REM ARUS Patch: STCW Hours of Rest (ingest + compliance + PDF + UI)
+REM ==========================================================
+
+if not exist "backend\app\main.py" (
+echo [ERROR] backend\app\main.py not found. Run at repo root.
+exit /b 1
+)
+
+if not exist "frontend\src" (
+echo [WARN] frontend\src not found; UI part will be skipped.
+set SKIP_UI=1
+) else (
+set SKIP_UI=0
+)
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+REM ----------------------------------------------------------
+REM 1) Backend deps (reportlab for PDF if missing)
+REM ----------------------------------------------------------
+%PS% ^
+"$f='backend/requirements.txt'; if (Test-Path $f){$t=Get-Content -Raw $f}else{$t=''};" ^
+"if ($t -notmatch 'reportlab') { $t += \"`nreportlab>=4.2\" }" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ----------------------------------------------------------
+REM 2) DB schema in async_repo.py
+REM - crew_rest_sheet: one per seafarer per month
+REM - crew_rest_day: 24 flags per day (0=work,1=rest)
+REM ----------------------------------------------------------
+%PS% ^
+"$f='backend/app/core/async_repo.py'; $t=Get-Content -Raw $f;" ^
+"$need = ($t -notmatch 'crew_rest_sheet');" ^
+"if ($need) {" ^
+" $t = $t -replace 'await db.commit\$begin:math:text$\\$end:math:text$\\s*\\n\\s*\\)\\n\\s*self._init_done = True', 'await db.execute(\"\"\"`nCREATE TABLE IF NOT EXISTS crew_rest_sheet(`n id TEXT PRIMARY KEY, vessel_id TEXT, crew_id TEXT, crew_name TEXT, rank TEXT, month TEXT, year INTEGER, created_at TEXT`n)\"\"\");`nawait db.execute(\"\"\"`nCREATE TABLE IF NOT EXISTS crew_rest_day(`n sheet_id TEXT, date TEXT, h0 INTEGER,h1 INTEGER,h2 INTEGER,h3 INTEGER,h4 INTEGER,h5 INTEGER,h6 INTEGER,h7 INTEGER,h8 INTEGER,h9 INTEGER,h10 INTEGER,h11 INTEGER,h12 INTEGER,h13 INTEGER,h14 INTEGER,h15 INTEGER,h16 INTEGER,h17 INTEGER,h18 INTEGER,h19 INTEGER,h20 INTEGER,h21 INTEGER,h22 INTEGER,h23 INTEGER,`n PRIMARY KEY(sheet_id,date)`n)\"\"\");`nawait db.commit();`n) `nself._init_done = True';" ^
+" Set-Content -Encoding UTF8 $f $t;" ^
+"} else { echo [INFO] DB schema already has Hours-of-Rest tables. }"
+
+REM Add simple helpers for CRUD
+%PS% ^
+"$f='backend/app/core/async_repo.py'; $t=Get-Content -Raw $f;" ^
+"$needFns = ($t -notmatch 'async def rest_sheet_upsert');" ^
+"if ($needFns) { $t += @'`n async def rest_sheet_upsert(self, sheet: dict) -> dict:`n await self.init(); from datetime import datetime`n sheet=dict(sheet); sheet.setdefault(\"id\", f\"rest_{int(datetime.utcnow().timestamp())}\")`n async with aiosqlite.connect(self._sqlite) as db:`n await db.execute(\"INSERT OR REPLACE INTO crew_rest_sheet(id,vessel_id,crew_id,crew_name,rank,month,year,created_at) VALUES(?,?,?,?,?,?,?,?)\", (sheet[\"id\"], sheet.get(\"vessel_id\"), sheet.get(\"crew_id\"), sheet.get(\"crew_name\"), sheet.get(\"rank\"), sheet.get(\"month\"), int(sheet.get(\"year\",0)), datetime.utcnow().isoformat()+\"Z\")); await db.commit();`n return sheet`n async def rest_day_upsert_many(self, sheet_id: str, rows: list[dict]) -> int:`n await self.init(); async with aiosqlite.connect(self._sqlite) as db:`n for r in rows:`n vals=[r.get(f\"h{i}\",0) for i in range(24)];`n await db.execute(\"INSERT OR REPLACE INTO crew_rest_day(sheet_id,date,h0,h1,h2,h3,h4,h5,h6,h7,h8,h9,h10,h11,h12,h13,h14,h15,h16,h17,h18,h19,h20,h21,h22,h23) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)\", (sheet_id, r[\"date\"], *vals));`n await db.commit(); return len(rows)`n async def rest_fetch_month(self, crew_id: str, year: int, month: str) -> tuple[dict,list[dict]]:`n await self.init(); async with aiosqlite.connect(self._sqlite) as db:`n db.row_factory=aiosqlite.Row; cur=await db.execute(\"SELECT * FROM crew_rest_sheet WHERE crew_id=? AND year=? AND month=? ORDER BY created_at DESC LIMIT 1\", (crew_id, year, month)); sh=await cur.fetchone();`n if not sh: return ({}, [])`n cur=await db.execute(\"SELECT * FROM crew_rest_day WHERE sheet_id=? ORDER BY date\", (sh[\"id\"],)); return (dict(sh), [dict(r) for r in await cur.fetchall()])`n'; Set-Content -Encoding UTF8 $f $t }"
+
+REM ----------------------------------------------------------
+REM 3) Compliance engine
+REM ----------------------------------------------------------
+%PS% "$code=@'
+from __future__ import annotations
+from typing import List, Dict, Any
+from datetime import datetime, timedelta
+
+STCW_MIN_REST_24 = 10
+STCW_MIN_REST_7D = 77
+
+def _chunks_from_day(day: dict) -> List[tuple[int,int]]:
+"""Return list of contiguous rest chunks as (start_hour, end_hour_excl)."""
+chunks=[]; cur=None
+for h in range(24):
+v=int(day.get(f\"h{h}\",0))
+if v==1 and cur is None: cur=h
+if (v==0 or h==23) and cur is not None:
+end=h if v==0 else 24
+chunks.append((cur,end)); cur=None
+return chunks
+
+def _rest_hours_in_window(days: List[dict], center: int) -> float:
+"""
+Compute rest hours in any 24h window ending at 'center' (index hours from day0 00:00).
+days is an ordered list for the month.
+"""
+# Flatten hours into array
+hist=[]
+for d in days:
+hist.extend([int(d.get(f\"h{i}\",0)) for i in range(24)])
+start=max(0, center-24); win=hist[start:center]
+return sum(win)
+
+def check_month(days: List[dict]) -> Dict[str, Any]:
+"""Return detailed compliance for the month (each day & rolling 7d)."""
+results=[]
+# Per-day checks
+for di,day in enumerate(days):
+chunks=_chunks_from_day(day)
+total=sum(int(day.get(f\"h{i}\",0)) for i in range(24))
+# split rule: ≤2 periods and one ≥6h
+split_ok = (len(chunks) <= 2) and (any((b-a)>=6 for (a,b) in chunks) if chunks else False)
+# 10h/24 rule (use sliding 24h windows ending at each hour boundary of that day+1)
+worst24=24
+# compute minimal rest across sliding windows overlapping this civil day
+# evaluate 24 windows ending at di*24+1..di*24+24
+min_rest_24=999
+for hh in range(di*24+1, di*24+25):
+r=_rest_hours_in_window(days, hh)
+if r<min_rest_24: min_rest_24=r
+day_ok = (min_rest_24 >= STCW_MIN_REST_24) and split_ok
+results.append({
+"date": day["date"],
+"rest_total": total,
+"min_rest_24": float(min_rest_24),
+"chunks": chunks,
+"split_ok": bool(split_ok),
+"day_ok": bool(day_ok)
+})
+# 77h/7d rolling
+rolling=[]
+for i in range(len(days)):
+block=days[max(0,i-6):i+1]
+total=sum(int(d.get(f"h{h}",0)) for d in block for h in range(24))
+rolling.append({"end_date": days[i]["date"], "rest_7d": total, "ok": total>=STCW_MIN_REST_7D})
+# monthly summary
+ok_all = all(r["day_ok"] for r in results) and all(r["ok"] for r in rolling)
+return {"ok": ok_all, "days": results, "rolling7d": rolling}
+'@; Set-Content -Encoding UTF8 backend/app/core/hours_of_rest.py $code"
+
+REM ----------------------------------------------------------
+REM 4) PDF export (simple form-like layout)
+REM ----------------------------------------------------------
+%PS% "$code=@'
+from __future__ import annotations
+from typing import List, Dict, Any
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import mm
+
+def render_pdf(sheet: dict, days: List[dict], out_path: str) -> str:
+c = canvas.Canvas(out_path, pagesize=A4)
+W,H = A4
+c.setFont(\"Helvetica-Bold\", 12)
+c.drawString(20*mm, H-20*mm, \"RECORD OF HOURS OF REST (STCW)\")
+c.setFont(\"Helvetica\", 10)
+c.drawString(20*mm, H-28*mm, f\"Vessel: {sheet.get('vessel_id','')} Crew: {sheet.get('crew_name','')} Rank: {sheet.get('rank','')}\")
+c.drawString(20*mm, H-34*mm, f\"Month: {sheet.get('month','')} {sheet.get('year','')}\")
+# Grid
+top = H-45*mm; left=15*mm; cellW=7*mm; cellH=5.2*mm
+c.setFont(\"Helvetica\", 7)
+# header hours
+for h in range(24):
+c.drawString(left + (h+1)*cellW + 1, top+cellH, f\"{h:02d}\")
+# rows
+y=top
+for d in days:
+date = d['date'][-2:]
+c.drawString(left-11*mm, y+1, date)
+for h in range(24):
+v=int(d.get(f\"h{h}\",0))
+x = left + (h+1)*cellW
+c.rect(x, y, cellW, cellH)
+if v==1:
+c.line(x+1, y+1, x+cellW-1, y+cellH-1)
+c.line(x+1, y+cellH-1, x+cellW-1, y+1)
+y -= cellH
+if y < 20*mm:
+c.showPage(); y=H-20*mm
+c.showPage(); c.save()
+return out_path
+'@; Set-Content -Encoding UTF8 backend/app/core/hours_of_rest_pdf.py $code"
+
+REM ----------------------------------------------------------
+REM 5) API router
+REM ----------------------------------------------------------
+%PS% "$code=@'
+from __future__ import annotations
+from fastapi import APIRouter, Body, Query
+from typing import Dict, Any, List
+import csv, io, os, tempfile
+from app.core.async_repo import REPO
+from app.core.hours_of_rest import check_month
+from app.core.hours_of_rest_pdf import render_pdf
+
+router = APIRouter(prefix=\"/api/crew/rest\", tags=[\"crew-rest\"])
+
+def _normalize_rows(rows: List[dict]) -> List[dict]:
+# ensure h0..h23 ints
+out=[]
+for r in rows:
+o={\"date\": r[\"date\"]}
+for i in range(24):
+o[f\"h{i}\"] = int(r.get(f\"h{i}\", r.get(str(i), 0)) or 0)
+out.append(o)
+return out
+
+@router.post(\"/import\")
+async def import_rest(body: Dict[str,Any] = Body(...)):
+\"\"\"Accept JSON {sheet:{...}, rows:[{date, h0..h23}]} or CSV text.\"\"\"
+if \"csv\" in body:
+f=io.StringIO(body[\"csv\"]) # columns: date,h0,h1,...,h23
+reader=csv.DictReader(f)
+rows=[{**r, **{f\"h{i}\": int(r.get(f\"h{i}\",0) or 0) for i in range(24)}} for r in reader]
+else:
+rows=body.get(\"rows\",[])
+sheet=await REPO.rest_sheet_upsert(body.get(\"sheet\",{}))
+cnt=await REPO.rest_day_upsert_many(sheet[\"id\"], _normalize_rows(rows))
+return {\"ok\": True, \"sheet_id\": sheet[\"id\"], \"rows\": cnt}
+
+@router.post(\"/check\")
+async def check(body: Dict[str,Any] = Body(...)):
+\"\"\"Run compliance for {crew_id, year, month} or with inline rows.\"\"\"
+if \"rows\" in body:
+rows=_normalize_rows(body[\"rows\"])
+return check_month(rows)
+sh, rows = await REPO.rest_fetch_month(body[\"crew_id\"], int(body[\"year\"]), body[\"month\"])
+if not sh: return {\"ok\": False, \"error\": \"no sheet\"}
+return check_month(rows)
+
+@router.get(\"/export_pdf\")
+async def export_pdf(crew_id: str = Query(...), year: int = Query(...), month: str = Query(...)):
+sh, rows = await REPO.rest_fetch_month(crew_id, int(year), month)
+if not sh: return {\"ok\": False, \"error\": \"no sheet\"}
+os.makedirs(\"bundles\", exist_ok=True)
+path = os.path.join(\"bundles\", f\"hours_rest_{crew_id}_{year}_{month}.pdf\")
+render_pdf(sh, rows, path)
+return {\"ok\": True, \"path\": path}
+'@; Set-Content -Encoding UTF8 backend/app/api/crew_rest.py $code"
+
+REM Wire router into main.py
+%PS% ^
+"$f='backend/app/main.py'; $t=Get-Content -Raw $f;" ^
+"if ($t -notmatch 'from \\.api\\.crew_rest import router as crew_rest_router') { $t = $t -replace '(from \\.api\\.[^\\n]+\\n)+', '$0from .api.crew_rest import router as crew_rest_router`n'; }" ^
+"if ($t -notmatch 'app\\.include_router\$begin:math:text$crew_rest_router\\$end:math:text$') { $t = $t -replace '(?s)(app\\.include_router\$begin:math:text$[^)]+\\$end:math:text$\\s*)$', '$0`napp.include_router(crew_rest_router)'; }" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ----------------------------------------------------------
+REM 6) Frontend: Hours of Rest card
+REM ----------------------------------------------------------
+if "%SKIP_UI%"=="0" (
+%PS% "$code=@'
+import { useState } from \"react\";
+const BASE = (import.meta as any).env.VITE_API_URL || 'http://localhost:8000';
+
+export default function HoursOfRest(){
+const [meta,setMeta]=useState<any>({vessel_id:\"GREEN BELAIT\",crew_id:\"c_lee\",crew_name:\"C. Lee\",rank:\"Chief Eng\",month:\"AUGUST\",year:2025});
+const [csv,setCsv]=useState<string>('date,h0,h1,h2,h3,h4,h5,h6,h7,h8,h9,h10,h11,h12,h13,h14,h15,h16,h17,h18,h19,h20,h21,h22,h23\\n2025-08-01,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1');
+const [out,setOut]=useState<any>(null);
+const [check,setCheck]=useState<any>(null);
+async function upload(){ const r=await fetch(`${BASE}/api/crew/rest/import`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sheet:meta,csv})}); setOut(await r.json()); }
+async function runCheck(){ const r=await fetch(`${BASE}/api/crew/rest/check`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({crew_id:meta.crew_id,year:meta.year,month:meta.month})}); setCheck(await r.json()); }
+async function exportPdf(){ const q=new URLSearchParams({crew_id:meta.crew_id,year:String(meta.year),month:meta.month}); const r=await fetch(`${BASE}/api/crew/rest/export_pdf?${q.toString()}`); const j=await r.json(); alert(j.ok?`PDF at ${j.path}`:JSON.stringify(j)); }
+return <div className=\"card\"><h2>Hours of Rest (STCW)</h2>
+<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:6}}>
+<input placeholder='Vessel' value={meta.vessel_id||''} onChange={e=>setMeta({...meta,vessel_id:e.target.value})}/>
+<input placeholder='Crew ID' value={meta.crew_id||''} onChange={e=>setMeta({...meta,crew_id:e.target.value})}/>
+<input placeholder='Crew Name' value={meta.crew_name||''} onChange={e=>setMeta({...meta,crew_name:e.target.value})}/>
+<input placeholder='Rank' value={meta.rank||''} onChange={e=>setMeta({...meta,rank:e.target.value})}/>
+<input placeholder='Month (e.g., AUGUST)' value={meta.month||''} onChange={e=>setMeta({...meta,month:e.target.value})}/>
+<input placeholder='Year' type='number' value={meta.year||2025} onChange={e=>setMeta({...meta,year:Number(e.target.value)})}/>
+</div>
+<div style={{marginTop:8}}>
+<label>CSV (date,h0..h23; 1=rest,0=work)</label>
+<textarea style={{width:'100%',height:140}} value={csv} onChange={e=>setCsv(e.target.value)} />
+</div>
+<div style={{display:'flex',gap:8,marginTop:8,flexWrap:'wrap'}}>
+<button onClick={upload}>Upload</button>
+<button onClick={runCheck}>Run Compliance Check</button>
+<button onClick={exportPdf}>Export PDF</button>
+</div>
+{out && <pre className='text-xs' style={{background:'#f1f5f9',padding:8,marginTop:8,borderRadius:6,overflow:'auto'}}>{JSON.stringify(out,null,2)}</pre>}
+{check && <pre className='text-xs' style={{background:'#ecfeff',padding:8,marginTop:8,borderRadius:6,overflow:'auto'}}>{JSON.stringify(check,null,2)}</pre>}
+</div>;
+}
+'@; Set-Content -Encoding UTF8 frontend/src/components/HoursOfRest.tsx $code"
+
+REM Add card into App.tsx under Crew cards
+%PS% ^
+"$f='frontend/src/App.tsx'; $t=Get-Content -Raw $f;" ^
+"if ($t -notmatch 'HoursOfRest') { $t = $t -replace 'from \\\"\\./components/Crew\\\";','from \"./components/Crew\";\\nimport HoursOfRest from \"./components/HoursOfRest\";'; }" ^
+"if ($t -notmatch '<HoursOfRest') { $t = $t -replace '(</div>\\s*;\\s*\\}\\s*$)',' <HoursOfRest/>\\n </div>);\\n}\\n'; }" ^
+"Set-Content -Encoding UTF8 $f $t;"
+) ELSE (
+echo [INFO] Skipping UI patch (frontend not present).
+)
+
+echo.
+echo ==========================================================
+echo [OK] Hours-of-Rest ingestion, compliance & PDF added.
+echo ----------------------------------------------------------
+echo Backend:
+echo - POST /api/crew/rest/import (JSON or CSV text)
+echo - POST /api/crew/rest/check (by crew_id+month or inline rows)
+echo - GET /api/crew/rest/export_pdf?crew_id=&year=&month=
+echo Frontend:
+echo - Card: Hours of Rest (CSV paste, check, export)
+echo Data model:
+echo - 1 = REST, 0 = WORK per hour (h0..h23)
+echo Compliance:
+echo - 10h/24h, 77h/7d, <=2 rest periods/day with one >=6h
+echo Rebuild backend (pip install -r) and frontend (npm run dev) after patch.
+echo ==========================================================
+endlocal

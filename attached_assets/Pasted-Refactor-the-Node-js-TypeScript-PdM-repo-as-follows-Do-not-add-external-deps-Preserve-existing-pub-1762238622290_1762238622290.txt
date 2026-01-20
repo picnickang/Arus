@@ -1,0 +1,349 @@
+Refactor the Node.js/TypeScript PdM repo as follows. Do not add external deps. Preserve existing public function signatures unless noted. Prefer small, local utility modules.
+
+
+
+Goals
+
+Calibration: fit & apply Platt (logistic) and Isotonic (PAV) calibration on validation folds; persist artifacts { type, params } next to model; report Brier and ECE.
+
+Conformal intervals: produce risk confidence band and RUL lower/upper (non-parametric split-conformal).
+
+Drift monitoring: weekly PSI + KS/JS on top features per equipment type; persist to storage; raise warning via existing alerts/metrics.
+
+Backtest: CLI to replay a date range, compute confusion matrix, cost curves, downtime avoided, and optimal thresholds.
+
+Wire-up: training → saves artifacts; prediction → loads & applies; insights → logs drift & calibration health.
+
+1) Add calibration utilities
+
+
+
+File: src/ml-calibration.ts
+
+export type CalibKind = 'platt' | 'isotonic';
+export type CalibArtifact =
+  | { kind: 'platt'; a: number; b: number } // sigmoid: p' = 1/(1+exp(a*p+b))
+  | { kind: 'isotonic'; x: number[]; y: number[] }; // monotone step fn
+
+export function brierScore(y: number[], p: number[]) {
+  let s = 0; for (let i=0;i<y.length;i++) { const d = p[i]-y[i]; s += d*d; } return s/y.length;
+}
+
+export function expectedCalibrationError(y: number[], p: number[], bins=10) {
+  const idx = p.map((v,i)=>[v,i]).sort((a,b)=>a[0]-b[0]);
+  const bsz = Math.ceil(p.length/bins);
+  let ece = 0;
+  for (let b=0;b<bins;b++){
+    const slice = idx.slice(b*bsz,(b+1)*bsz).map(([,i])=>i);
+    if (!slice.length) continue;
+    const avgP = slice.reduce((s,i)=>s+p[i],0)/slice.length;
+    const avgY = slice.reduce((s,i)=>s+y[i],0)/slice.length;
+    ece += Math.abs(avgP-avgY) * (slice.length/p.length);
+  }
+  return ece;
+}
+
+// --- Platt scaling (simple logistic fit with fixed steps) ---
+export function fitPlatt(y: number[], p: number[], epochs=200, lr=1.0): CalibArtifact {
+  // y in {0,1}, p in [0,1]
+  let a = 0, b = 0; // initialize sigmoid params
+  for (let t=0;t<epochs;t++){
+    let ga=0, gb=0;
+    for (let i=0;i<p.length;i++){
+      const z = a*p[i] + b;
+      const q = 1/(1+Math.exp(-z));
+      const diff = q - y[i];
+      ga += diff * p[i];
+      gb += diff;
+    }
+    a -= lr * ga / p.length;
+    b -= lr * gb / p.length;
+    lr *= 0.99;
+  }
+  return { kind: 'platt', a, b };
+}
+export function applyPlatt(art: Extract<CalibArtifact,{kind:'platt'}>, p: number[]) {
+  return p.map(v => 1/(1+Math.exp(-(art.a*v + art.b))));
+}
+
+// --- Isotonic regression (PAV) ---
+export function fitIsotonic(y:number[], p:number[]): CalibArtifact {
+  const pairs = p.map((v,i)=>({v, y:y[i], w:1})).sort((a,b)=>a.v-b.v);
+  // Pool Adjacent Violators
+  const blocks:{sumY:number; sumW:number; vMin:number; vMax:number}[] = [];
+  for (const r of pairs){ blocks.push({sumY:r.y, sumW:r.w, vMin:r.v, vMax:r.v});
+    while (blocks.length>=2){
+      const b2 = blocks[blocks.length-1], b1 = blocks[blocks.length-2];
+      if (b1.sumY/b1.sumW <= b2.sumY/b2.sumW) break;
+      blocks.pop();
+      b1.sumY += b2.sumY; b1.sumW += b2.sumW; b1.vMax = b2.vMax;
+    }
+  }
+  const x:number[] = [], yhat:number[] = [];
+  for (const b of blocks){ x.push(b.vMax); yhat.push(b.sumY/b.sumW); }
+  return { kind:'isotonic', x, y: yhat };
+}
+export function applyIsotonic(art: Extract<CalibArtifact,{kind:'isotonic'}>, p:number[]) {
+  const out:number[] = [];
+  for (const v of p){
+    let i = art.x.findIndex(x=>v<=x);
+    if (i<0) i = art.x.length-1;
+    out.push(art.y[i]);
+  }
+  return out;
+}
+
+// Convenience
+export function applyCalibration(art: CalibArtifact | null, p:number[]): number[] {
+  if (!art) return p;
+  return art.kind==='platt' ? applyPlatt(art,p) : applyIsotonic(art,p);
+}
+2) Save/load calibration artifacts
+
+
+
+File: src/ml-training-pipeline.ts
+
+After each model trains and you have validation probs pVal: number[] and labels yVal: (0|1)[], compute both Platt & Isotonic, pick best by Brier, persist artifact as <modelPath>.calib.json, and store brier, ece, and calibrationKind in performance.
+
+
+
+Add near where you already compute validation metrics:
+
+import fs from 'fs/promises';
+import { fitPlatt, fitIsotonic, brierScore, expectedCalibrationError } from './ml-calibration.js';
+
+// assume you have arrays yVal (0/1) and pVal (uncalibrated probs)
+const platt = fitPlatt(yVal, pVal);
+const iso = fitIsotonic(yVal, pVal);
+const bPlatt = brierScore(yVal, pVal.map(v=>1/(1+Math.exp(-(platt.a*v+platt.b)))) );
+const bIso   = brierScore(yVal, (function(){ // quick apply isotonic
+  const art = iso; const out:number[]=[]; 
+  for (const v of pVal){ let i = art.x.findIndex(x=>v<=x); if (i<0) i=art.x.length-1; out.push(art.y[i]); }
+  return out;
+})());
+const chosen = bIso <= bPlatt ? iso : platt;
+const calKind = chosen.kind;
+const ece = expectedCalibrationError(yVal, /* apply chosen */ (await (async () => {
+  const tmp = chosen.kind==='platt'
+    ? pVal.map(v=>1/(1+Math.exp(-(chosen.a*v+chosen.b))))
+    : (function(){ const out:number[]=[]; for (const v of pVal){ let i = chosen.x.findIndex(x=>v<=x); if (i<0) i=chosen.x.length-1; out.push(chosen.y[i]); } return out; })();
+  return tmp;
+})()));
+await fs.writeFile(`${modelPath}.calib.json`, JSON.stringify(chosen, null, 2));
+
+// merge into stored model performance:
+performance: {
+  ...existing,
+  brier: Math.min(bIso, bPlatt),
+  ece,
+  calibrationKind: calKind
+}
+File: src/ml-prediction-service.ts (or where you assemble final probabilities)
+
+After raw model probability is produced, load calibration if present and apply to the scalar:
+
+import fs from 'fs/promises';
+import { applyCalibration, type CalibArtifact } from './ml-calibration.js';
+
+async function loadCalibration(modelPath: string): Promise<CalibArtifact | null> {
+  try { const j = await fs.readFile(`${modelPath}.calib.json`, 'utf8'); return JSON.parse(j); }
+  catch { return null; }
+}
+
+// when you have modelPath & raw probability `pRaw`
+const calib = await loadCalibration(modelPath);
+const pCal = applyCalibration(calib, [pRaw])[0];
+Use pCal in downstream risk/health.
+
+3) Add conformal prediction (risk & RUL)
+
+
+
+File: src/ml-conformal.ts
+
+export interface ConformalArtifact {
+  // empirical residual quantiles (alpha → q)
+  alpha: number; // e.g., 0.1 for 90% coverage
+  qRisk: number; // add/subtract around prob
+  qRUL: number;  // days
+}
+
+export function fitSplitConformalRisk(y:number[], p:number[], alpha=0.1): ConformalArtifact {
+  // residuals: |y - p|
+  const r = y.map((yi,i)=>Math.abs(yi - p[i])).sort((a,b)=>a-b);
+  const k = Math.min(r.length-1, Math.max(0, Math.ceil((1-alpha)*(r.length+1))-1));
+  return { alpha, qRisk: r[k], qRUL: 0 };
+}
+
+export function fitSplitConformalRUL(actualDays:number[], predDays:number[], alpha=0.1): ConformalArtifact {
+  const r = predDays.map((d,i)=>Math.abs((actualDays[i] ?? predDays[i]) - d)).sort((a,b)=>a-b);
+  const k = Math.min(r.length-1, Math.max(0, Math.ceil((1-alpha)*(r.length+1))-1));
+  return { alpha, qRisk: 0, qRUL: r[k] };
+}
+
+export function applyConformalRisk(p:number, art:ConformalArtifact){
+  return { lower: Math.max(0, p - art.qRisk), upper: Math.min(1, p + art.qRisk) };
+}
+export function applyConformalRUL(days:number|null, art:ConformalArtifact){
+  if (days==null) return { lower:null, upper:null };
+  return { lower: Math.max(0, Math.round(days - art.qRUL)), upper: Math.max(0, Math.round(days + art.qRUL)) };
+}
+Training: for each model after calibration, compute fitSplitConformalRisk on validation (yVal, pVal_calibrated) and save to <modelPath>.conformal.json. If you have historical actual failure times to compute RUL residuals, also save RUL artifact.
+
+
+
+Prediction path: if artifact exists, append confidenceInterval for risk and rulInterval for RUL to the returned object.
+
+4) Drift monitoring
+
+
+
+File: src/ml-drift.ts
+
+export interface DriftStat { feature: string; psi: number; ks: number; js: number; nRef: number; nCur: number; }
+function hist(v:number[], bins=20){ if(!v.length) return {edges:[],counts:[]}; const min=Math.min(...v), max=Math.max(...v); const step=(max-min)||1; const edges=[...Array(bins+1)].map((_,i)=>min + (i*step/bins)); const cnt=new Array(bins).fill(0); for (const x of v){ let b = Math.min(bins-1, Math.max(0, Math.floor(((x-min)/step)*bins))); cnt[b]++; } return {edges,counts:cnt}; }
+function toProb(c:number[]){ const s=c.reduce((a,b)=>a+b,0)||1; return c.map(x=>x/s); }
+export function psi(p:number[], q:number[]){ let s=0; for (let i=0;i<p.length;i++){ const a=Math.max(1e-6,p[i]), b=Math.max(1e-6,q[i]); s += (a-b)*Math.log(a/b); } return s; }
+export function js(p:number[], q:number[]){ const m=p.map((x,i)=>(x+q[i])/2); const kl=(a:any,b:any)=>a.reduce((s:(number),x:number,i:number)=>s+(x>0?x*Math.log(x/Math.max(1e-12,b[i])):0),0); return 0.5*(kl(p,m)+kl(q,m)); }
+export function ks(ref:number[], cur:number[]){ const sr=[...ref].sort((a,b)=>a-b), sc=[...cur].sort((a,b)=>a-b); const all=[...new Set(sr.concat(sc))].sort((a,b)=>a-b); const cdf=(arr:number[],x:number)=>{ let i=0; while(i<arr.length && arr[i]<=x) i++; return i/arr.length; }; let d=0; for(const x of all){ d = Math.max(d, Math.abs(cdf(sr,x)-cdf(sc,x))); } return d; }
+
+export function driftForFeature(ref:number[], cur:number[]): { psi:number; js:number; ks:number }{
+  const Hr = hist(ref), Hc = hist(cur);
+  const pr = toProb(Hr.counts), pc = toProb(Hc.counts);
+  return { psi: psi(pr, pc), js: js(pr, pc), ks: ks(ref, cur) };
+}
+File: src/jobs/drift-weekly.ts
+
+New job that, per equipmentType, loads a reference window (e.g., previous 30 days) and a current window (latest 7–14 days), computes drift on top-N features you already compute for classification (temperature, vibration, pressure, etc.), writes storage.createDriftMetric(orgId, {...}), and, if thresholds exceeded (e.g., PSI > 0.2 or KS > 0.2), triggers an alert via your existing alert system.
+
+
+
+Pseudocode:
+
+export async function computeWeeklyDrift(orgId: string) {
+  const eq = await storage.getEquipmentRegistry(orgId);
+  const types = Array.from(new Set(eq.map(e=>e.type)));
+  const out:any[] = [];
+  for (const t of types){
+    const ref = await storage.getFeatureSnapshot(orgId, t, {start: daysAgo(60), end: daysAgo(30)});
+    const cur = await storage.getFeatureSnapshot(orgId, t, {start: daysAgo(30), end: new Date()});
+    const features = Object.keys(cur ?? {}).slice(0, 16);
+    for (const f of features){
+      const rVals = ref[f] ?? []; const cVals = cur[f] ?? [];
+      if (rVals.length<50 || cVals.length<50) continue;
+      const d = driftForFeature(rVals, cVals);
+      out.push({ equipmentType: t, feature: f, ...d, nRef:rVals.length, nCur:cVals.length, ts:new Date() });
+      await storage.createDriftMetric(orgId, t, f, d.psi, d.ks, d.js, rVals.length, cVals.length);
+      if (d.psi>0.2 || d.ks>0.2) await storage.createAlert(orgId, { alertType:'warning', message:`Drift on ${t}.${f}: PSI=${d.psi.toFixed(2)} KS=${d.ks.toFixed(2)}` });
+    }
+  }
+  return out;
+}
+Hook this job into your existing cron (same scheduler used by generateDailySnapshot).
+
+5) Backtest CLI
+
+
+
+File: scripts/backtest.ts (run with tsx or node --loader tsx)
+
+#!/usr/bin/env ts-node
+import { storage } from '../src/storage';
+import { predictFailureRisk } from '../src/ml-prediction-service';
+
+type Args = { orgId:string; start:string; end:string; costFail:number; costPM:number; threshold:number };
+function arg(name:string, def?:string){ const v = process.argv.find(a=>a.startsWith(`--${name}=`)); return v ? v.split('=')[1] : def; }
+
+(async () => {
+  const args:Args = {
+    orgId: arg('org','default-org-id')!,
+    start: arg('start')!,
+    end: arg('end')!,
+    costFail: Number(arg('costFail','10000')),
+    costPM: Number(arg('costPM','1000')),
+    threshold: Number(arg('thr','0.5'))
+  };
+  if (!args.start || !args.end){ console.error('Usage: backtest --org=ORG --start=YYYY-MM-DD --end=YYYY-MM-DD [--thr=0.5] [--costFail=10000] [--costPM=1000]'); process.exit(1); }
+
+  const equip = (await storage.getEquipmentRegistry(args.orgId)).filter(e=>e.isActive);
+  const start = new Date(args.start), end = new Date(args.end);
+
+  let TP=0, FP=0, FN=0, TN=0; let cost=0;
+  for (const e of equip){
+    // get daily snapshots of telemetry/events within range
+    const days = Math.ceil((end.getTime()-start.getTime())/86400000);
+    for (let d=0; d<=days; d++){
+      const t = new Date(start.getTime()+d*86400000);
+      const pred = await predictFailureRisk(e.id, args.orgId, { atTime: t }); // add optional atTime support (no-op if not available)
+      const p = pred?.failureProbability ?? 0;
+      const alarm = p >= args.threshold;
+
+      const failure = await storage.didFailureOccur(e.id, args.orgId, { withinDays:7, atTime:t }); // true if a failure happened within next 7 days
+      if (alarm && failure){ TP++; cost += args.costPM; }        // you intervened (PM cost), avoided failure cost
+      else if (alarm && !failure){ FP++; cost += args.costPM; }  // unnecessary PM
+      else if (!alarm && failure){ FN++; cost += args.costFail; } // miss → failure cost
+      else { TN++; /* no cost */ }
+    }
+  }
+
+  const precision = TP/(TP+FP||1), recall = TP/(TP+FN||1), f1 = (2*precision*recall)/(precision+recall||1);
+  console.log(JSON.stringify({ msg:'backtest_done', orgId: args.orgId, threshold: args.threshold, TP,FP,FN,TN, precision, recall, f1, totalCost: cost }, null, 2));
+  process.exit(0);
+})();
+If predictFailureRisk lacks the optional { atTime } param, ignore it; the code should still compile. The intent is to allow time-sliced replay later.
+6) Wire calibration + conformal into prediction responses
+
+
+
+In your prediction result objects (RF/XGB/LSTM/ensemble), append:
+
+// after computing calibrated pCal and daysToFailure
+const riskCI = conformalRiskArtifact ? applyConformalRisk(pCal, conformalRiskArtifact) : null;
+const rulCI  = conformalRulArtifact  ? applyConformalRUL(daysToFailure, conformalRulArtifact) : null;
+
+// include fields:
+confidenceInterval: riskCI ?? undefined,
+rulInterval: rulCI ?? undefined,
+Store these in DB when you already call createFailurePrediction.
+
+7) Surface calibration & drift in Insights
+
+
+
+File: arus-insights-engine (the insights file you shared)
+
+When composing fleet KPIs, add:
+
+// pull last drift metrics summary (optional)
+const drift = await storage.getRecentDriftMetrics?.(orgId, { days: 14 }) || [];
+const highDrift = drift.filter((d:any)=> d.psi>0.2 || d.ks>0.2).slice(0,5);
+if (highDrift.length) {
+  risks.warnings.push(`${highDrift.length} features showing distribution drift (14d)`);
+  recommendations.push('Review drift dashboard; consider retraining affected equipment types.');
+}
+In TechnicianInsightView, if prediction carries confidenceInterval or rulInterval, add a line to the explanation, e.g.,
+
+"Calibrated risk, 90% band: ${lower.toFixed(2)}–${upper.toFixed(2)}; RUL band: ${rulLower}–${rulUpper} days."
+
+Add a structured log with calibration quality if available in model metadata (Brier/ECE).
+
+8) Acceptance checklist
+
+Each trained model now writes <model>.calib.json and optionally <model>.conformal.json.
+
+Stored performance includes brier, ece, and calibrationKind.
+
+Prediction path applies calibration and appends risk/RUL bands when artifacts exist.
+
+Weekly drift job writes metrics and raises warnings when thresholds exceeded.
+
+Backtest CLI runs and prints JSON summary with TP/FP/FN/TN, precision/recall/F1, and total cost.
+
+Insights show drift warnings and calibration/confidence bands where available.
+
+No new external dependencies; all TypeScript compiles.
+
+
+
+At the end, print a short summary of modified/created files and the main diffs applied.

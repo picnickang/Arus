@@ -1,0 +1,61 @@
+Review the entire ARUS Node/React project with this focus:
+
+Goal:
+Ensure the entire organization (multi-tenant) context system is correctly implemented, secure, and consistent across client and server.
+
+---
+
+### 1️⃣ FRONTEND VALIDATION (React/Next/SPA)
+Tasks:
+- Identify all files managing org context, including:
+- `OrganizationProvider` / `useOrganization` hooks
+- `getCurrentOrgId()` utilities
+- any localStorage-based org state
+- Ensure:
+- SSR-safe (guards for `window`)
+- uses stable `isReady` and `isLoading` states
+- cross-tab sync (`BroadcastChannel` + `storage`)
+- no hard-coded `default-org-id` in production
+- robust JWT parsing (no Unicode/expired tokens)
+- fallback only in `NODE_ENV=development`
+- Verify all API calls include the correct `x-org-id` header from state.
+- Add tests to confirm correct org context resolution order:
+1. `currentUser` in localStorage
+2. JWT claims
+3. Development fallback
+4. Null in production if no org context
+
+Deliverables:
+- Refactored `useOrganization()` hook (client)
+- Refactored `OrganizationProvider`
+- Safe, SSR-ready `getCurrentOrgId()`
+- Test snippet that prints resolved org context and shows updates on storage changes
+
+---
+
+### 2️⃣ BACKEND VALIDATION (Node.js / Express)
+Tasks:
+- Locate and audit:
+- `validateOrgIdHeader`
+- `logOrgIdRequests`
+- all middleware using org context
+- Fixes to apply:
+- Skip OPTIONS (CORS preflights)
+- Normalize `req.originalUrl` instead of `req.path`
+- Enforce that `/api/` routes require valid org header, except:
+- `/api/healthz`, `/api/readyz`, `/api/metrics`, `/api/admin/auth/verify`
+- Validate and sanitize orgId (regex: `/^[a-z0-9-]{3,128}$/i`)
+- Set `req.orgId` for downstream access
+- Skip hard-coded `default-org-id` entirely
+- When `req.user.orgId` exists, enforce equality with `x-org-id` header
+- Return consistent structured errors: `{ code, message, error }`
+- Ensure middleware order: runs **after auth**, before routers.
+- Create minimal `d.ts` augmentation:
+```ts
+declare global {
+namespace Express {
+interface Request {
+orgId?: string;
+}
+}
+}

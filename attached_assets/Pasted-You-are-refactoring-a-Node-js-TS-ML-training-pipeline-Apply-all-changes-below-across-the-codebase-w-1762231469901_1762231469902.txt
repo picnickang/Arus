@@ -1,0 +1,264 @@
+You are refactoring a Node.js/TS ML training pipeline. Apply all changes below across the codebase while preserving existing public APIs where possible. Keep dependencies unchanged.
+
+
+
+Objectives
+
+Time-series safe split for LSTM: chronological split (no leakage).
+
+Stratified split for classification (RF/XGB): balanced train/val by label.
+
+Persist preprocessing params used during training to <modelPath>.preproc.json; inference will reuse them.
+
+Richer metrics for XGBoost: accuracy, precision, recall, F1, macroF1.
+
+Tiered minimum-data thresholds based on adaptive window tier (A/B/C).
+
+Reproducibility: seeded shuffles.
+
+Artifact metadata: optional ONNX flag recorded for serving.
+
+TrainingResult type: add macroF1? and error?.
+
+1) Add split & shuffle utilities
+
+
+
+File: ml-training-data.ts (or .js if JS)
+
+Append these exports:
+
+export function chronoSplit<T extends { timestamp: Date }>(rows: T[], trainFrac = 0.8) {
+  const sorted = [...rows].sort((a,b) => a.timestamp.getTime() - b.timestamp.getTime());
+  const k = Math.max(1, Math.floor(sorted.length * trainFrac));
+  return { train: sorted.slice(0, k), validation: sorted.slice(k) };
+}
+
+const SEED = 1337;
+function seededShuffle<T>(arr: T[]) {
+  let seed = SEED; const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    seed = (seed * 9301 + 49297) % 233280;
+    const r = seed / 233280;
+    const j = Math.floor(r * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+export function stratifiedSplit<T extends { label: string }>(rows: T[], trainFrac = 0.8) {
+  const by = new Map<string, T[]>();
+  for (const r of rows) by.set(r.label, [ ...(by.get(r.label) ?? []), r ]);
+  const train: T[] = [], validation: T[] = [];
+  for (const [, arr] of by) {
+    const shuffled = seededShuffle(arr);
+    const k = Math.max(1, Math.floor(shuffled.length * trainFrac));
+    train.push(...shuffled.slice(0, k));
+    validation.push(...shuffled.slice(k));
+  }
+  return { train, validation };
+}
+2) Ensure LSTM training saves preprocessing params
+
+
+
+File: ml-lstm-model.ts (or .js)
+
+Ensure trainLSTMModel returns { model, config, featureNames, trainingMetrics, preprocParams }.
+
+Modify saveLSTMModel to persist preproc params:
+
+import fs from 'fs/promises';
+
+export async function saveLSTMModel(m: TrainedLSTMModel, path: string) {
+  await m.model.save(`file://${path}`);
+  const preproc = m.preprocParams ?? {};
+  await fs.writeFile(`${path}.preproc.json`, JSON.stringify(preproc, null, 2));
+}
+If TrainedLSTMModel lacks preprocParams, add preprocParams?: Record<string, any> to its type.
+3) Extend TrainingResult shape
+
+
+
+File: where TrainingResult is defined (your training pipeline file)
+
+Replace interface with:
+
+export interface TrainingResult {
+  modelId: string;
+  modelType: 'lstm' | 'random_forest' | 'xgboost';
+  equipmentType?: string;
+  metrics: {
+    accuracy?: number;
+    precision?: number;
+    recall?: number;
+    f1Score?: number;
+    macroF1?: number; // NEW
+    loss?: number;
+  };
+  modelPath: string;
+  trainingDuration: number;
+  datasetInfo: {
+    totalSamples: number;
+    trainingSamples: number;
+    validationSamples: number;
+    featureCount: number;
+  };
+  trainingWindowConfig?: TrainingWindowConfig;
+  error?: string; // NEW for failed jobs
+}
+4) Tiered minimum data thresholds for LSTM
+
+
+
+File: training pipeline (the file you sent)
+
+Before validating dataset size, compute thresholds by windowConfig.tier:
+
+function minSamplesForTier(tier: 'A'|'B'|'C'|string) {
+  if (tier === 'A') return 300;
+  if (tier === 'B') return 100;
+  return 30; // C or unknown
+}
+Replace the current LSTM min-sample check:
+
+const minNeeded = minSamplesForTier(windowConfig.tier);
+if (dataset.statistics.totalSamples < minNeeded) {
+  throw new Error(
+    `Insufficient training data: ${dataset.statistics.totalSamples} < ${minNeeded} samples required for LSTM (tier ${windowConfig.tier}).`
+  );
+}
+5) Use 
+
+chronological split
+
+ for LSTM
+
+Replace:
+
+const { train, validation } = splitDataset(dataset.timeSeries, 0.8);
+With:
+
+import { chronoSplit } from './ml-training-data.js';
+const { train, validation } = chronoSplit(dataset.timeSeries, 0.8);
+6) Use 
+
+stratified split
+
+ for RF/XGB
+
+Replace:
+
+const { train, validation } = splitDataset(classificationData, 0.8);
+With:
+
+import { stratifiedSplit } from './ml-training-data.js';
+const { train, validation } = stratifiedSplit(classificationData, 0.8);
+7) XGBoost macro-F1 & richer metrics
+
+
+
+File: training pipeline, inside trainXGBoostForHealthClassification
+
+After you compute per-sample predictions, add macro-F1:
+
+const labels = Array.from(new Set(validation.map(v => v.label)));
+const perClass = new Map<string, {tp: number; fp: number; fn: number}>();
+for (const l of labels) perClass.set(l, {tp:0, fp:0, fn:0});
+
+for (const sample of validation) {
+  const { predictWithXGBoost } = await import('./ml-xgboost-model.js');
+  const pred = predictWithXGBoost(trainedModel, sample.features).prediction;
+  for (const l of labels) {
+    const s = perClass.get(l)!;
+    if (pred === l && sample.label === l) s.tp++;
+    else if (pred === l && sample.label !== l) s.fp++;
+    else if (pred !== l && sample.label === l) s.fn++;
+  }
+}
+
+const f1s = [...perClass.values()].map(({tp,fp,fn}) => {
+  const P = tp / Math.max(1, tp + fp);
+  const R = tp / Math.max(1, tp + fn);
+  return (P+R) ? (2*P*R)/(P+R) : 0;
+});
+const macroF1 = f1s.reduce((a,b)=>a+b,0) / Math.max(1, f1s.length);
+Add macroF1 to stored performance and TrainingResult.metrics.
+
+performance: { accuracy, precision, recall, f1Score, macroF1, numTrees: trainedModel.trees.length }
+8) Record artifact metadata (optional ONNX) after save
+
+After each save (saveLSTMModel, saveRandomForest, saveXGBoostModel), upsert an artifact record that can be used by serving code to prefer ONNX if present. If you don’t have an artifact API, add a boolean flag in the model metadata.
+
+await storage.updateMlModel(modelRecord.id, {
+  artifacts: { onnx: false, path: modelPath } // set true later if converted
+}, config.orgId);
+(If you already have this method, reuse it; otherwise keep this section as a no-op comment.)
+
+9) Retrain-all: remove 
+
+as any
+
+ and carry failure message
+
+
+
+File: training pipeline, in retrainAllModels
+
+When a train call fails, push a structured TrainingResult with error:
+
+results.push({
+  modelId: `failed-lstm-${equipmentType}`,
+  modelType: 'lstm',
+  equipmentType,
+  metrics: {},
+  modelPath: '',
+  trainingDuration: 0,
+  datasetInfo: { totalSamples: 0, trainingSamples: 0, validationSamples: 0, featureCount: 0 },
+  error: error instanceof Error ? error.message : String(error)
+});
+(Same for RF failures.)
+
+10) Minor: log structured summary at end of each train
+
+
+
+Add a concise JSON log after each training completes:
+
+console.log(JSON.stringify({
+  msg: 'training_complete',
+  modelType: 'lstm',
+  equipmentType: config.equipmentType ?? null,
+  orgId: config.orgId,
+  durationMs: trainingDuration,
+  metrics: {
+    acc: trainedModel.trainingMetrics.accuracy,
+    f1: trainedModel.trainingMetrics.f1Score,
+    loss: trainedModel.trainingMetrics.loss
+  },
+  samples: dataset.statistics.totalSamples,
+  tier: windowConfig.tier
+}));
+(Adjust fields for RF/XGB.)
+
+Acceptance
+
+Type-check passes.
+
+LSTM uses chronological split.
+
+RF/XGB use stratified split.
+
+<modelPath>.preproc.json is created for LSTM.
+
+XGBoost stores macroF1.
+
+Tiered thresholds enforced for LSTM.
+
+TrainingResult extended with macroF1? and error?.
+
+No new external dependencies.
+
+
+
+When done, show a summary of files changed and the key diffs applied.

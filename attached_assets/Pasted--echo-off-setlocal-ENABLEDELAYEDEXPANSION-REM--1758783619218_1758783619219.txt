@@ -1,0 +1,181 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==========================================================
+REM ARUS Hub & Sync — End-to-End Patch (Node/TS + Caddy reverse proxy)
+REM - Adds device registry, idempotent replay helper, sheet locks & versions
+REM - Adds docker-compose + Caddyfile for central deployment (SQLite volume)
+REM - Light-touch UI: no breaking changes (existing uploads still work)
+REM ==========================================================
+
+if not exist "backend-node\src\index.ts" (
+echo [ERROR] backend-node\src\index.ts not found. Run this at your monorepo root.
+exit /b 1
+)
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+REM ----------------------------------------------------------
+REM 1) Backend DB schema: device registry, locks, sheet versioning, replay log
+REM ----------------------------------------------------------
+%PS% ^
+"$f='backend-node/src/db.ts'; $t=Get-Content -Raw $f;" ^
+"$needs=($t -notmatch 'CREATE TABLE IF NOT EXISTS device');" ^
+"if($needs){ $t = $t -replace 'CREATE TABLE IF NOT EXISTS idempotency\\([\\s\\S]*?\\);', '$0`nCREATE TABLE IF NOT EXISTS device(`n id TEXT PRIMARY KEY,`n label TEXT,`n created_at TEXT`n);`nCREATE TABLE IF NOT EXISTS replay_incoming(`n id INTEGER PRIMARY KEY AUTOINCREMENT,`n device_id TEXT,`n endpoint TEXT,`n key TEXT,`n received_at TEXT`n);`nCREATE TABLE IF NOT EXISTS sheet_lock(`n sheet_key TEXT PRIMARY KEY, -- crew_id:year:month`n token TEXT,`n holder TEXT, -- device_id or user`n expires_at TEXT,`n version INTEGER DEFAULT 1`n);'; Set-Content -Encoding UTF8 $f $t }"
+
+REM RestFetchRange helper if missing (cross-month)
+%PS% ^
+"$f='backend-node/src/db.ts'; $t=Get-Content -Raw $f;" ^
+"$needRange = ($t -notmatch 'export function restFetchRange');" ^
+"if ($needRange) { $t = $t + @'`nexport function restFetchRange(crewId: string, start: string, end: string){`n const sheets = db.prepare(`SELECT id FROM crew_rest_sheet WHERE crew_id=?`).all(crewId) as {id:string}[];`n if(!sheets.length) return [];`n const rows = db.prepare(`SELECT * FROM crew_rest_day WHERE sheet_id IN (${sheets.map(()=>'?').join(',')}) AND date>=? AND date<=? ORDER BY date`).all(...sheets.map(s=>s.id), start, end);`n return rows;`n}`n'; Set-Content -Encoding UTF8 $f $t }"
+
+echo [OK] DB schema patched (device, replay, locks, versioning).
+
+REM ----------------------------------------------------------
+REM 2) Observability + Idempotency helper (already added earlier, ensure present)
+REM ----------------------------------------------------------
+if not exist "backend-node\src\obs.ts" (
+%PS% "$code=@'
+import { Request, Response, NextFunction } from 'express';
+import { Counter, Histogram, register, collectDefaultMetrics } from 'prom-client';
+import { db } from './db.js';
+collectDefaultMetrics();
+export const REQS = new Counter({ name:'arus_http_requests_total', help:'HTTP requests', labelNames:['method','path','status'] as const });
+export const LAT = new Histogram({ name:'arus_http_request_seconds', help:'HTTP request latency', labelNames:['method','path'] as const });
+export const HOR_IMPORT_CNT = new Counter({ name:'arus_hor_import_total', help:'HoR import rows' });
+export const nowISO = () => new Date().toISOString();
+export function loggingMetrics(){ return (req:Request,res:Response,next:NextFunction)=>{ const t=process.hrtime.bigint(); const m=req.method,p=req.path; res.on('finish',()=>{ const d=Number(process.hrtime.bigint()-t)/1e9; LAT.labels(m,p).observe(d); REQS.labels(m,p,String(res.statusCode)).inc(); }); next(); }; }
+export async function metricsHandler(_req:Request,res:Response){ res.set('Content-Type', register.contentType); res.end(await register.metrics()); }
+export function ensureIdempotent(key:string, endpoint:string){ if(!key) return true; const r=db.prepare('SELECT key FROM idempotency WHERE key=?').get(key); if(r) return false; db.prepare('INSERT INTO idempotency(key,endpoint,ts) VALUES(?,?,datetime(''now''))').run(key,endpoint); return true; }
+'@; Set-Content -Encoding UTF8 backend-node/src/obs.ts $code"
+echo [OK] Created backend-node/src/obs.ts
+) else (
+echo [INFO] obs.ts already exists.
+)
+
+REM ----------------------------------------------------------
+REM 3) Backend routes: device registry, replay helper, locks, versioning
+REM ----------------------------------------------------------
+%PS% ^
+"$f='backend-node/src/index.ts'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace 'import pino from \\''pino-http\\'';','import pino from ''pino-http'';';" ^
+"$t = 'import { loggingMetrics, metricsHandler, ensureIdempotent, HOR_IMPORT_CNT } from ''./obs.js'';\n' + $t;" ^
+"$t = $t -replace 'app.use\\(pino\\(\\)\\);', 'app.use(pino());\napp.use(loggingMetrics());';" ^
+"$t = $t -replace 'app.get\\('/metrics',[\\s\\S]*?\\);', 'app.get(''/metrics'', metricsHandler);';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM Add device register + list endpoints (id + label)
+%PS% ^
+"$f='backend-node/src/index.ts'; $t=Get-Content -Raw $f;" ^
+"$needDev = ($t -notmatch '/api/devices');" ^
+"if ($needDev) { $t = $t + @'`n// ---- Devices`napp.get(\"/api/devices\", (_req,res)=>{ const rows=db.prepare(\"SELECT * FROM device ORDER BY created_at DESC\").all(); res.json(rows); });`napp.post(\"/api/devices\", (req,res)=>{ const b=req.body||{}; if(!b.id) return res.status(400).json({ok:false,error:\"id required\"}); db.prepare(\"INSERT OR REPLACE INTO device(id,label,created_at) VALUES(?,?,datetime(''now''))\").run(String(b.id), String(b.label||'')); res.json({ok:true}); });`n'; Set-Content -Encoding UTF8 $f $t }"
+
+REM Add HoR sheet lock/unlock + version fetch
+%PS% ^
+"$f='backend-node/src/index.ts'; $t=Get-Content -Raw $f;" ^
+"$needLock = ($t -notmatch '/api/crew/rest/lock');" ^
+"if ($needLock) { $t = $t + @'`n// ---- HoR sheet locks (soft enforcement)`nfunction keyForSheet(crew_id:string, year:number, month:string){ return `${'${'}crew_id{'}'}:${'${'}year{'}'}:${'${'}month{'}'}`; }`napp.get(\"/api/crew/rest/version\", (req,res)=>{ const {crew_id,year,month}=req.query as any; if(!crew_id||!year||!month) return res.status(400).json({ok:false,error:\"crew_id,year,month required\"}); const k=keyForSheet(String(crew_id),Number(year),String(month)); const row=db.prepare(\"SELECT version,expires_at,holder FROM sheet_lock WHERE sheet_key=?\").get(k); res.json({ok:true, version: row?.version||1, lock: row||null}); });`napp.post(\"/api/crew/rest/lock\", (req,res)=>{ const {crew_id,year,month,holder,ttl_sec} = req.body||{}; if(!crew_id||!year||!month) return res.status(400).json({ok:false,error:\"crew_id,year,month required\"}); const k=keyForSheet(String(crew_id),Number(year),String(month)); const token=crypto.randomUUID(); const expires=`now`; db.prepare(\"INSERT OR REPLACE INTO sheet_lock(sheet_key,token,holder,expires_at) VALUES(?,?,?,datetime(''now'', '+' || ? || ' seconds'))\").run(k, token, String(holder||'device'), Number(ttl_sec||1800)); const cur=db.prepare(\"SELECT version,expires_at FROM sheet_lock WHERE sheet_key=?\").get(k); res.json({ok:true, token, version: cur?.version||1}); });`napp.post(\"/api/crew/rest/unlock\", (req,res)=>{ const {crew_id,year,month,token} = req.body||{}; if(!crew_id||!year||!month||!token) return res.status(400).json({ok:false,error:\"crew_id,year,month,token required\"}); const k=keyForSheet(String(crew_id),Number(year),String(month)); const row=db.prepare(\"SELECT token FROM sheet_lock WHERE sheet_key=?\").get(k); if(!row||row.token!==token) return res.status(403).json({ok:false,error:\"invalid token\"}); db.prepare(\"DELETE FROM sheet_lock WHERE sheet_key=?\").run(k); res.json({ok:true}); });`n'; Set-Content -Encoding UTF8 $f $t }"
+
+REM Enforce (lightly) on HoR import: optional If-Match version + lock warning
+%PS% ^
+"$f='backend-node/src/index.ts'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace 'const parsed = HoRImport\\.safeParse\\(req\\.body\\);[\\s\\S]*?return ok\\(res,\\{ok:true, sheet_id:id, rows:rowsIn\\.length\\}\\);', 'const parsed = HoRImport.safeParse(req.body); if(!parsed.success) return res.status(400).json({ok:false,error:parsed.error.flatten()}); const {sheet,rows:rowsIn}=parsed.data; const k = `${'${'}sheet.crew_id{'}'}:${'${'}sheet.year{'}'}:${'${'}sheet.month{'}'}`; const match=req.header(\"If-Match\"); const cur=db.prepare(\"SELECT version,token,expires_at FROM sheet_lock WHERE sheet_key=?\").get(k); if(match && cur && Number(match)!==(cur.version||1)) return res.status(409).json({ok:false,error:\"version_mismatch\", server_version: cur.version||1}); const id=''rest_''+crypto.randomUUID(); tx(()=>{ db.prepare(''INSERT OR REPLACE INTO crew_rest_sheet(id,vessel_id,crew_id,crew_name,rank,month,year,created_at) VALUES(?,?,?,?,?,?,?,datetime(''''now''''))'').run(id,sheet.vessel_id,sheet.crew_id,sheet.crew_name,sheet.rank,sheet.month,sheet.year); rowsIn.forEach(r=>{ const vals=[id,r.date,...Array.from({length:24},(_,i)=> (r as any)[''h''+i]??0)]; db.prepare(''INSERT OR REPLACE INTO crew_rest_day(sheet_id,date,h0,h1,h2,h3,h4,h5,h6,h7,h8,h9,h10,h11,h12,h13,h14,h15,h16,h17,h18,h19,h20,h21,h22,h23) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'').run(...vals); }); db.prepare(\"UPDATE sheet_lock SET version = COALESCE(version,1)+1 WHERE sheet_key=?\").run(k); }); HOR_IMPORT_CNT.inc(rowsIn.length); return ok(res,{ok:true, sheet_id:id, rows:rowsIn.length, version: (db.prepare(\"SELECT version FROM sheet_lock WHERE sheet_key=?\").get(k)?.version)||null});';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM Replay helper endpoint (optional): server logs receipt and forwards to existing handler logic
+%PS% ^
+"$f='backend-node/src/index.ts'; $t=Get-Content -Raw $f;" ^
+"$needReplay = ($t -notmatch '/api/outbox/replay');" ^
+"if ($needReplay) { $t = $t + @'`n// ---- Replay helper (optional): logs receipt; clients should still POST to real endpoints with Idempotency-Key`napp.post(\"/api/outbox/replay\", async (req,res)=>{ const device=String(req.header(\"X-Device-Id\")||''); const key=String(req.header(\"Idempotency-Key\")||''); const endpoint=String((req.body||{}).endpoint||''); const body=(req.body||{}).body; if(!device||!key||!endpoint) return res.status(400).json({ok:false,error:\"X-Device-Id, Idempotency-Key, endpoint required\"}); db.prepare(\"INSERT INTO replay_incoming(device_id,endpoint,key,received_at) VALUES(?,?,?,datetime(''now''))\").run(device,endpoint,key); if(endpoint==='crew/rest/import'){ req.url='/api/crew/rest/import'; req.body=body; return (app as any)._router.handle(req,res,()=>{}); } return res.json({ok:false,error:'unsupported endpoint'}); });`n'; Set-Content -Encoding UTF8 $f $t }"
+
+echo [OK] Backend endpoints patched (devices, locks/version, replay).
+
+REM ----------------------------------------------------------
+REM 4) Frontend: (optional) send device ID on uploads if not present
+REM ----------------------------------------------------------
+if exist "frontend\src\components\HoursOfRest.tsx" (
+%PS% ^
+"$f='frontend/src/components/HoursOfRest.tsx'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace 'fetch\\(`\\$\\{BASE\\}/api/crew/rest/import`\\, \\{method:\\\"POST\\\"\\, headers:\\{\\\"Content-Type\\\":\\\"application/json\\\", \\\"Idempotency-Key\\\": idem\\}\\, body: JSON\\.stringify\\(body\\)\\}\\);', 'fetch(`${BASE}/api/crew/rest/import`, {method:\"POST\", headers:{\"Content-Type\":\"application/json\", \"Idempotency-Key\": idem, \"X-Device-Id\": (localStorage.getItem(\"device_id\")|| (localStorage.setItem(\"device_id\", crypto?.randomUUID?.()||String(Math.random())), localStorage.getItem(\"device_id\"))) }, body: JSON.stringify(body)});';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+echo [OK] Frontend now sends X-Device-Id automatically (persisted).
+) else (
+echo [INFO] Frontend not found; skipping UI header patch.
+)
+
+REM ----------------------------------------------------------
+REM 5) Compose files for central deployment (Caddy reverse proxy + backend)
+REM SQLite is persisted via a Docker volume.
+REM ----------------------------------------------------------
+if not exist "deploy" mkdir deploy
+
+> deploy\docker-compose.yml (
+echo version: "3.9"
+echo services:
+echo backend:
+echo image: node:20
+echo working_dir: /srv/app
+echo command: sh -c "npm ci && npm run build && node dist/index.js"
+echo volumes:
+echo - ../backend-node:/srv/app
+echo - arus_data:/srv/app/data
+echo - arus_bundles:/srv/app/bundles
+echo environment:
+echo - PORT=8001
+echo - NODE_ENV=production
+echo expose:
+echo - "8001"
+echo caddy:
+echo image: caddy:2
+echo ports:
+echo - "80:80"
+echo - "443:443"
+echo volumes:
+echo - ./Caddyfile:/etc/caddy/Caddyfile:ro
+echo - caddy_data:/data
+echo - caddy_config:/config
+echo depends_on:
+echo - backend
+echo volumes:
+echo arus_data: {}
+echo arus_bundles: {}
+echo caddy_data: {}
+echo caddy_config: {}
+)
+
+> deploy\Caddyfile (
+echo api.local.arus.test {
+echo reverse_proxy backend:8001
+echo encode zstd gzip
+echo }
+)
+
+echo [OK] Deployment files created in deploy/
+
+echo.
+echo ==========================================================
+echo DONE ✅ Hub & Sync patch applied.
+echo ----------------------------------------------------------
+echo Run locally (dev):
+echo cd backend-node ^&^& npm install ^&^& npm run dev
+echo # UI: set VITE_API_URL to http://localhost:8001 and npm run dev
+echo
+echo Deploy centrally with Docker:
+echo cd deploy
+echo docker compose up -d
+echo # Point clients to https://api.local.arus.test (configure DNS/TLS)
+echo ----------------------------------------------------------
+echo New/Updated endpoints:
+echo GET /metrics
+echo GET /api/devices
+echo POST /api/devices {id,label?}
+echo POST /api/outbox/replay {endpoint,body} (adds logs; forwards crew/rest/import)
+echo GET /api/crew/rest/version ?crew_id&year&month -> {version,lock}
+echo POST /api/crew/rest/lock {crew_id,year,month,holder?,ttl_sec?} -> {token,version}
+echo POST /api/crew/rest/unlock {crew_id,year,month,token}
+echo POST /api/crew/rest/import (unchanged; now bumps sheet version, respects If-Match)
+echo Notes:
+echo - Frontend now sends X-Device-Id and Idempotency-Key automatically.
+echo - Version check is soft: If-Match optional (409 if provided and mismatched).
+echo - SQLite persists via Docker volume; Postgres can be added later without UI changes.
+echo ==========================================================
+endlocal

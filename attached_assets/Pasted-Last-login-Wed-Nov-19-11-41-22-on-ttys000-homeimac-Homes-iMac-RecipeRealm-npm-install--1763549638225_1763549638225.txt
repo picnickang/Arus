@@ -1,0 +1,102 @@
+Last login: Wed Nov 19 11:41:22 on ttys000
+homeimac@Homes-iMac RecipeRealm % npm install           
+npm warn skipping integrity check for git dependency ssh://git@github.com/electron/node-gyp.git
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm warn deprecated npmlog@5.0.1: This package is no longer supported.
+npm warn deprecated @npmcli/move-file@2.0.1: This functionality has been moved to @npmcli/fs
+npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
+npm warn deprecated rimraf@2.6.3: Rimraf versions prior to v4 are no longer supported
+npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated glob@8.1.0: Glob versions prior to v9 are no longer supported
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated glob@8.1.0: Glob versions prior to v9 are no longer supported
+npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+npm warn deprecated are-we-there-yet@2.0.0: This package is no longer supported.
+npm warn deprecated gauge@3.0.2: This package is no longer supported.
+npm warn deprecated boolean@3.2.0: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+
+added 1957 packages, and audited 1958 packages in 1m
+
+307 packages are looking for funding
+  run `npm fund` for details
+
+7 vulnerabilities (6 moderate, 1 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+homeimac@Homes-iMac RecipeRealm % npm run build:electron-main
+
+> rest-express@1.0.0 build:electron-main
+> NODE_ENV=production vite build --config electron.vite.config.ts
+
+vite v5.4.21 building for production...
+✓ 1 modules transformed.
+dist-electron/main.cjs  8.46 kB │ gzip: 3.42 kB
+✓ built in 531ms
+homeimac@Homes-iMac RecipeRealm % npm run build:server  
+
+> rest-express@1.0.0 build:server
+> esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=server/index.js --allow-overwrite
+
+
+  server/index.js  3.3mb ⚠️
+
+⚡ Done in 309ms
+homeimac@Homes-iMac RecipeRealm % npx electron .             
+🎬 ARUS Electron app starting...
+🔧 Mode: Development
+🖥️  Platform: darwin
+🚀 Starting ARUS embedded server...
+🔌 Allocated port: 5000
+📂 Project root: /Users/homeimac/Downloads/RecipeRealm
+📂 Dev server path: /Users/homeimac/Downloads/RecipeRealm/server/index-wrapper.js
+🔧 Dev command: node /Users/homeimac/Downloads/RecipeRealm/server/index-wrapper.js
+ℹ️  Using wrapper to handle async IIFE initialization
+✅ Server process spawned with PID 66110
+⏳ Waiting for server... (3/30)
+⏳ Waiting for server... (6/30)
+[Server:66110:Error] objc[66110]: Class GNotificationCenterDelegate is implemented in both /Users/homeimac/Downloads/RecipeRealm/node_modules/@xenova/transformers/node_modules/sharp/vendor/8.14.5/darwin-x64/lib/libvips-cpp.42.dylib (0x11b99efa0) and /Users/homeimac/Downloads/RecipeRealm/node_modules/@img/sharp-libvips-darwin-x64/lib/libvips-cpp.8.17.3.dylib (0x11cd06b30). One of the two will be used. Which one is undefined.
+⏳ Waiting for server... (9/30)
+⏳ Waiting for server... (12/30)
+[Server:66110:Error] 2025-11-19 18:53:25.439995: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 FMA
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+[Server:66110] === Database Configuration ===
+[Server:66110] Deployment Mode: VESSEL (Offline-First)
+[Server:66110:Error] [WARN ] 2025-11-19T10:53:25.802Z [Turso Sync] Cloud sync not configured - running offline-only Set TURSO_SYNC_URL and TURSO_AUTH_TOKEN to enable cloud sync
+Offline-only mode is normal for desktop/vessel deployments
+[Server:66110] → Applying SQLite performance optimizations...
+[Server:66110] ✓ SQLite performance optimizations applied
+  • WAL mode enabled (better concurrency)
+  • Cache: 64MB
+  • Sync: NORMAL (safe with WAL)
+[Server:66110] • Foreign keys: ON
+[Server:66110] ✓ Local SQLite: /Users/homeimac/Downloads/RecipeRealm/data/vessel-local.db
+[Server:66110] → Initializing SQLite database tables...
+[Server:66110] [SQLite Init] Initializing vessel mode database...
+[Server:66110] [SQLite Init] Database initialized successfully with 131 tables (100% feature parity) at: /Users/homeimac/Downloads/RecipeRealm/data/vessel-local.db
+✓ SQLite tables initialized
+==============================
+📴 Server exited (code: 0, signal: null)
+⏳ Waiting for server... (15/30)
+⏳ Waiting for server... (18/30)
+⏳ Waiting for server... (21/30)
+⏳ Waiting for server... (24/30)
+⏳ Waiting for server... (27/30)
+⏳ Waiting for server... (30/30)
+❌ Fatal startup error: Error: Server failed health check after 30 seconds
+    at /Users/homeimac/Downloads/RecipeRealm/dist-electron/main.cjs:37:490

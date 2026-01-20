@@ -1,0 +1,59 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==========================================================
+REM ARUS Patch: Vessel-first flow + crew-to-vessel enforcement
+REM - Backend: require vessel_id on crew POST; HoR import validates crew↔vessel
+REM - Frontend: HoursOfRest selectors enforce vessel-first and disable crew until chosen
+REM ==========================================================
+
+if not exist "backend-node\src\index.ts" (
+echo [ERROR] backend-node\src\index.ts not found. Run at repo root.
+exit /b 1
+)
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+REM ---------------------- Backend: enforce vessel_id on /api/crew and validate HoR import
+%PS% ^
+"$f='backend-node/src/index.ts'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace 'app.post\\('/api/crew',[\\s\\S]*?\\);', 'app.post(''/api/crew'', (req,res)=>{ const c=req.body||{}; if(!c.id||!c.name) return res.status(400).json({ok:false,error:''id,name required''}); if(!c.vessel_id) return res.status(400).json({ok:false,error:''vessel_id required''}); const v=db.prepare(''SELECT id FROM vessel WHERE id=?'').get(c.vessel_id); if(!v) return res.status(400).json({ok:false,error:''vessel not found''}); db.prepare(''INSERT OR REPLACE INTO crew(id,name,rank,vessel_id,created_at) VALUES(?,?,?,?,datetime(''''now''''))'').run(c.id,c.name,c.rank||null,c.vessel_id); res.json({ok:true}); });';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM Validate crew belongs to vessel during HoR import
+%PS% ^
+"$f='backend-node/src/index.ts'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace 'const id=''''rest_'''+crypto\\.randomUUID\\(\\);\\s*tx\\(\\(\\)=>\\{\\s*db\\.prepare\\(''INSERT OR REPLACE INTO crew_rest_sheet\\([\\s\\S]*?\\)\\);\\s*\\}\\);', 'const id=''rest_''+crypto.randomUUID(); const crewRow=db.prepare(''SELECT vessel_id,name,rank FROM crew WHERE id=?'').get(sheet.crew_id); if(!crewRow) return res.status(400).json({ok:false,error:''crew not found''}); if(crewRow.vessel_id!==sheet.vessel_id) return res.status(400).json({ok:false,error:''crew not assigned to selected vessel''}); const vRow=db.prepare(''SELECT id FROM vessel WHERE id=?'').get(sheet.vessel_id); if(!vRow) return res.status(400).json({ok:false,error:''vessel not found''}); tx(()=>{ db.prepare(''INSERT OR REPLACE INTO crew_rest_sheet(id,vessel_id,crew_id,crew_name,rank,month,year,created_at) VALUES(?,?,?,?,?,?,?,datetime(''''now''''))'').run(id,sheet.vessel_id,sheet.crew_id,sheet.crew_name||crewRow.name||'''',sheet.rank||crewRow.rank||'''',sheet.month,sheet.year); rowsIn.forEach(r=>{ const vals=[id,r.date,...Array.from({length:24},(_,i)=>(r as any)[''h''+i]??0)]; db.prepare(''INSERT OR REPLACE INTO crew_rest_day(sheet_id,date,h0,h1,h2,h3,h4,h5,h6,h7,h8,h9,h10,h11,h12,h13,h14,h15,h16,h17,h18,h19,h20,h21,h22,h23) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'').run(...vals); }); });';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM CSV branch validation inside HoR import
+%PS% ^
+"$f='backend-node/src/index.ts'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace 'const s=req\\.body\\.sheet;\\s*const id=''''rest_'''+crypto\\.randomUUID\\(\\);\\s*tx\\(\\(\\)=>\\{', 'const s=req.body.sheet; const crewRow=db.prepare(''SELECT vessel_id,name,rank FROM crew WHERE id=?'').get(s.crew_id); if(!crewRow) return res.status(400).json({ok:false,error:''crew not found''}); if(crewRow.vessel_id!==s.vessel_id) return res.status(400).json({ok:false,error:''crew not assigned to selected vessel''}); const vRow=db.prepare(''SELECT id FROM vessel WHERE id=?'').get(s.vessel_id); if(!vRow) return res.status(400).json({ok:false,error:''vessel not found''}); const id=''rest_''+crypto.randomUUID(); tx(()=>{';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ---------------------- Frontend: disable crew until vessel selected; block upload if missing
+if not exist "frontend\src\components\HoursOfRest.tsx" (
+echo [WARN] frontend\src\components\HoursOfRest.tsx not found. UI patch skipped.
+) else (
+%PS% ^
+"$f='frontend/src/components/HoursOfRest.tsx'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace '<select value=\\{meta\\.vessel_id\\} onChange=\\{e=>setMeta\\(\\{\\.\\.\\.meta,vessel_id:e\\.target\\.value, crew_id:\\\"\\\", crew_name:\\\"\\\", rank:\\\"\\\"\\}\\)\\}\\}>', '<select value={meta.vessel_id} onChange={e=>setMeta({...meta,vessel_id:e.target.value, crew_id:\"\", crew_name:\"\", rank:\"\"})}>';" ^
+"$t = $t -replace '<select value=\\{meta\\.crew_id\\} onChange=\\{e=>\\{[^}]+\\}\\}>', '<select value={meta.crew_id} disabled={!meta.vessel_id} title={!meta.vessel_id?\"Select a vessel first\":\"\"} onChange={e=>{ const id=e.target.value; const c=crew.find((x:any)=>x.id===id); setMeta({...meta, crew_id:id, crew_name:c?.name||\"\", rank:c?.rank||meta.rank}); }}>';" ^
+"$t = $t -replace 'async function upload\\(\\)\\{[\\s\\S]*?\\}', 'async function upload(){ if(!meta.vessel_id||!meta.crew_id){ alert(\"Select a vessel and crew first\"); return; } const body = { sheet: meta, rows }; const idem = (crypto as any)?.randomUUID?.() || String(Math.random()); const r = await fetch(`${BASE}/api/crew/rest/import`, {method:\"POST\", headers:{\"Content-Type\":\"application/json\",\"Idempotency-Key\": idem}, body: JSON.stringify(body)}); const j = await r.json(); setResult(j); }';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+)
+
+echo.
+echo ==========================================================
+echo [OK] Vessel-first flow is enforced.
+echo Backend:
+echo - /api/crew requires vessel_id and vessel must exist.
+echo - HoR import checks crew belongs to selected vessel.
+echo Frontend:
+echo - Crew dropdown disabled until a vessel is selected.
+echo - Upload blocked unless both vessel and crew are chosen.
+echo ----------------------------------------------------------
+echo Restart backend: cd backend-node && npm run dev
+echo Rebuild frontend: cd frontend && npm run dev
+echo ==========================================================
+endlocal

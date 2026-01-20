@@ -1,0 +1,46 @@
+#17 0.973 
+#17 1.513 vite v5.4.20 building for production...
+#17 1.607 transforming...
+#17 19.24 ✓ 3794 modules transformed.
+#17 19.98 rendering chunks...
+#17 20.67 [plugin:vite:reporter] [plugin vite:reporter] 
+#17 20.67 (!) /app/client/src/pages/ai-insights.tsx is dynamically imported by /app/client/src/pages/ml-ai-consolidated.tsx but also statically imported by /app/client/src/App.tsx, dynamic import will not move module into another chunk.
+#17 20.67 
+#17 20.67 [plugin:vite:reporter] [plugin vite:reporter] 
+#17 20.67 (!) /app/client/src/pages/ml-training.tsx is dynamically imported by /app/client/src/pages/ml-ai-consolidated.tsx but also statically imported by /app/client/src/App.tsx, dynamic import will not move module into another chunk.
+#17 20.67 
+#17 20.73 computing gzip size...
+#17 20.78 ../dist/public/index.html                              4.02 kB │ gzip:   1.41 kB
+#17 20.78 ../dist/public/assets/index-_0SUaLr4.css             117.72 kB │ gzip:  18.54 kB
+#17 20.78 ../dist/public/assets/purify.es-DfngIMfA.js           22.26 kB │ gzip:   8.72 kB
+#17 20.78 ../dist/public/assets/index.es-B9cyO-QT.js           150.57 kB │ gzip:  51.50 kB
+#17 20.79 ../dist/public/assets/html2canvas.esm-CBrSDip1.js    201.42 kB │ gzip:  48.03 kB
+#17 20.79 ../dist/public/assets/jspdf.es.min-vodt-ERg.js       413.63 kB │ gzip: 135.01 kB
+#17 20.79 ../dist/public/assets/index-QFLnkQuD.js            2,150.20 kB │ gzip: 536.07 kB
+#17 20.79 
+#17 20.79 (!) Some chunks are larger than 500 kB after minification. Consider:
+#17 20.79 - Using dynamic import() to code-split the application
+#17 20.79 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+#17 20.79 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+#17 20.79 ✓ built in 19.24s
+#17 20.99 
+#17 20.99   dist/index.js  2.3mb ⚠️
+#17 20.99 
+#17 20.99 ⚡ Done in 79ms
+#17 DONE 25.6s
+#18 [production 7/9] COPY --from=builder /app/dist ./dist
+#18 CACHED
+#19 [production 8/9] COPY --from=builder /app/client/dist ./client/dist
+#19 ERROR: failed to calculate checksum of ref l34r86wzfrsyy9o3qgppn6vv6::swd7b280m8ikj05vpzgz6ogco: "/app/client/dist": not found
+------
+ > [production 8/9] COPY --from=builder /app/client/dist ./client/dist:
+------
+Dockerfile:38
+--------------------
+  36 |     
+  37 |     # Copy any other necessary files (configs, etc.)
+  38 | >>> COPY --from=builder /app/client/dist ./client/dist
+  39 |     
+  40 |     # Change ownership to non-root user
+--------------------
+error: failed to solve: failed to compute cache key: failed to calculate checksum of ref l34r86wzfrsyy9o3qgppn6vv6::swd7b280m8ikj05vpzgz6ogco: "/app/client/dist": not found

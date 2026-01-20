@@ -1,0 +1,19 @@
+node_modules
+dist
+.DS_Store
+server/public
+vite.config.ts.*
+*.tar.gz
+
+# Electron build artifacts
+dist-electron/
+macos-build-bundled/
+macos-build-arm64/
+dist/installers/
+electron/nodejs/
+electron/nodejs-arm64/
+electron/bin/
+
+# Desktop app logs
+.arus/.scannerwork/
+data-exports/

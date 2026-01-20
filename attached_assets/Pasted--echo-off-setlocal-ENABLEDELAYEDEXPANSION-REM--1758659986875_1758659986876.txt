@@ -1,0 +1,226 @@
+@echo off
+setlocal ENABLEDELAYEDEXPANSION
+REM ==========================================================
+REM ARUS Patch: ISO 10816/20816 bands + Bearing fault calc + PDF sign hook
+REM - Core: vibration ISO severity & bearing fault frequencies
+REM - API: /api/advanced/vibration/iso_assess, /api/advanced/vibration/bearing_freq
+REM - Extend /api/advanced/vibration/features to optionally return ISO severity
+REM - UI: ISO Alarm Tuning + Bearing Calculator cards
+REM - Compliance: optional PDF_SIGN_CMD external signing hook
+REM ==========================================================
+
+if not exist "backend\app\main.py" (
+echo [ERROR] backend\app\main.py not found. Run this at the repo root.
+exit /b 1
+)
+
+if not exist "frontend\src" (
+echo [WARN] frontend\src not found; UI pieces will be skipped.
+set SKIP_UI=1
+) else (
+set SKIP_UI=0
+)
+
+set PS=PowerShell -NoProfile -ExecutionPolicy Bypass
+
+REM ----------------------------------------------------------
+REM 1) Core: ISO bands & assessors
+REM ----------------------------------------------------------
+%PS% "$code=@'
+from __future__ import annotations
+from typing import Dict, Tuple
+
+"""
+ISO 10816/20816 guidance (simplified, velocity RMS in mm/s).
+We provide pragmatic defaults for two foundations and two size classes.
+You can extend these tables in admin later if needed.
+
+Severity zones:
+A=Good, B=Satisfactory, C=Unsatisfactory (plan maintenance), D=Unacceptable (urgent)
+"""
+
+# {profile_id: (A_max, B_max, C_max)} -> thresholds are upper bounds for each zone
+ISO_VELOCITY_MM_S: Dict[str, Tuple[float,float,float]] = {
+# Small machines on rigid foundation (e.g., small pumps, motors)
+"small_rigid": (2.8, 4.5, 7.1),
+# Medium/large on rigid foundation (e.g., main engines auxiliaries)
+"large_rigid": (4.5, 7.1, 11.2),
+# Small on flexible foundation
+"small_flexible": (4.5, 7.1, 11.2),
+# Large on flexible foundation
+"large_flexible": (7.1, 11.2, 18.0),
+}
+
+def list_profiles():
+return [{"id": k, "A": v[0], "B": v[1], "C": v[2]} for k,v in ISO_VELOCITY_MM_S.items()]
+
+def severity_zone_mm_s(v_mm_s: float, profile_id: str) -> str:
+v = float(v_mm_s)
+if profile_id not in ISO_VELOCITY_MM_S:
+# default to large_rigid if unknown
+profile_id = "large_rigid"
+a,b,c = ISO_VELOCITY_MM_S[profile_id]
+if v <= a: return "A"
+if v <= b: return "B"
+if v <= c: return "C"
+return "D"
+'@; Set-Content -Encoding UTF8 backend/app/core/vibration_iso.py $code"
+
+REM ----------------------------------------------------------
+REM 2) Core: Bearing fault frequency calculator
+REM ----------------------------------------------------------
+%PS% "$code=@'
+from __future__ import annotations
+import math
+from typing import Dict
+
+"""
+Bearing fault frequencies for rolling-element bearings.
+Inputs:
+n = number of rolling elements
+d = rolling element diameter (m)
+Dp = pitch diameter (m)
+theta_deg = contact angle in degrees
+fr = shaft rotational frequency (Hz)
+Formulas assume no slip; good enough for diagnostics + alarm tuning.
+"""
+
+def bearing_fault_freq(n: int, d: float, Dp: float, theta_deg: float, fr_hz: float) -> Dict[str, float]:
+n = int(n)
+d = float(d); Dp = float(Dp)
+if n <= 0 or d <= 0 or Dp <= 0 or fr_hz <= 0:
+raise ValueError("invalid bearing geometry or speed")
+theta = math.radians(theta_deg)
+ratio = d / Dp
+cos_t = math.cos(theta)
+
+ftf = 0.5 * fr_hz * (1 - ratio * cos_t) # Fundamental Train Frequency
+bpfo = 0.5 * n * fr_hz * (1 - ratio * cos_t) # Ball Pass Frequency Outer
+bpfi = 0.5 * n * fr_hz * (1 + ratio * cos_t) # Ball Pass Frequency Inner
+bsf = (Dp/(2*d)) * fr_hz * (1 - (ratio * cos_t)**2) # Ball Spin Frequency
+
+return {"FTF": ftf, "BPFO": bpfo, "BPFI": bpfi, "BSF": bsf}
+'@; Set-Content -Encoding UTF8 backend/app/core/bearing.py $code"
+
+REM ----------------------------------------------------------
+REM 3) API: ISO assess + bearing freq; enhance existing features
+REM ----------------------------------------------------------
+%PS% ^
+"$f='backend/app/api/advanced_pdm.py';" ^
+"if (Test-Path $f) { $t=Get-Content -Raw $f } else { $t='' }" ^
+"$needISO = ($t -notmatch 'iso_assess'); $needBearing = ($t -notmatch 'bearing_freq');" ^
+"$add=@'"
+from app.core.vibration_iso import severity_zone_mm_s, list_profiles
+from app.core.bearing import bearing_fault_freq
+'@';" ^
+"if ($t -notmatch 'from app\\.core\\.vibration_iso import') { $t = $t -replace '(from app\\.core\\.vibration import vibration_features)', '$0\n' + $add.Trim(); }" ^
+"if ($needISO) { $t += @'`n@router.get(\"/vibration/iso_profiles\")\nasync def iso_profiles():\n return list_profiles()\n\n@router.post(\"/vibration/iso_assess\")\nasync def iso_assess(body: dict):\n v = float(body.get(\"velocity_mm_s\", 0))\n profile = body.get(\"profile_id\", \"large_rigid\")\n z = severity_zone_mm_s(v, profile)\n return {\"velocity_mm_s\": v, \"profile_id\": profile, \"zone\": z}\n'; }" ^
+"if ($needBearing) { $t += @'`n@router.post(\"/vibration/bearing_freq\")\nasync def vib_bearing_freq(body: dict):\n freq = bearing_fault_freq(int(body.get(\"n\",8)), float(body.get(\"d\",0.01)), float(body.get(\"Dp\",0.05)), float(body.get(\"theta_deg\",0.0)), float(body.get(\"fr_hz\",10.0)))\n return freq\n'; }" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM Extend features endpoint to optionally compute ISO zone when velocity metric present
+%PS% ^
+"$f='backend/app/api/advanced_pdm.py'; $t=Get-Content -Raw $f;" ^
+"$t = $t -replace 'return feats\\s*$', ' # optional ISO severity if caller passes velocity & profile\\n v = body.get(\"velocity_mm_s\")\\n profile = body.get(\"profile_id\")\\n if v is not None and profile:\\n from app.core.vibration_iso import severity_zone_mm_s\\n feats[\"iso_zone\"] = severity_zone_mm_s(float(v), str(profile))\\n return feats';" ^
+"Set-Content -Encoding UTF8 $f $t;"
+
+REM ----------------------------------------------------------
+REM 4) Compliance: optional external signer (PDF_SIGN_CMD)
+REM ----------------------------------------------------------
+%PS% ^
+"$f='backend/app/core/compliance.py'; $t=Get-Content -Raw $f;" ^
+"$needsHook = ($t -notmatch 'PDF_SIGN_CMD');" ^
+"if ($needsHook) { " ^
+" $t = $t -replace 'def make_bundle\\(kind: str, payload: Dict\\[str,Any\\], out_dir: str = \"\\./bundles\"\\) -> Tuple\\[str,str\\]:', 'def make_bundle(kind: str, payload: Dict[str,Any], out_dir: str = \"./bundles\") -> Tuple[str,str]:';" ^
+" $t = $t -replace 'return \\(pdf_path, sha\\)', ' # External signer hook (optional)\\n path = pdf_path\\n import os, subprocess\\n sign_cmd = os.getenv(\"PDF_SIGN_CMD\")\\n if sign_cmd:\\n try:\\n subprocess.check_call(sign_cmd.format(INPUT=pdf_path, OUTPUT=pdf_path).split(\" \"))\\n except Exception:\\n pass\\n return (path, sha)';" ^
+" Set-Content -Encoding UTF8 $f $t; " ^
+"} else { echo [INFO] Compliance signer hook already present. }"
+
+REM ----------------------------------------------------------
+REM 5) UI: ISO Alarm Tuning + Bearing Calculator
+REM ----------------------------------------------------------
+if "%SKIP_UI%"=="0" (
+%PS% "$code=@'
+import { useEffect, useState } from \"react\";
+const BASE = (import.meta as any).env.VITE_API_URL || 'http://localhost:8000';
+
+export function ISOAlarmTuning(){
+const [profiles,setProfiles]=useState<any[]>([]);
+const [profile,setProfile]=useState('large_rigid');
+const [vel,setVel]=useState<number>(3.5);
+const [zone,setZone]=useState<string>('');
+const [out,setOut]=useState<any>(null);
+
+useEffect(()=>{ fetch(`${BASE}/api/advanced/vibration/iso_profiles`).then(r=>r.json()).then(setProfiles); },[]);
+async function assess(){
+const r = await fetch(`${BASE}/api/advanced/vibration/iso_assess`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({velocity_mm_s: vel, profile_id: profile})});
+const j = await r.json(); setZone(j.zone);
+// also demo: call features with iso overlay
+const f = await fetch(`${BASE}/api/advanced/vibration/features`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fs_hz:1024, rpm:1200, values:Array.from({length:2048},(_,i)=>Math.sin(2*Math.PI*50*i/2048)), velocity_mm_s: vel, profile_id: profile})});
+setOut(await f.json());
+}
+
+return <div className=\"card\"><h2>ISO 10816/20816 Alarm Tuning</h2>
+<div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+<label>Profile</label>
+<select value={profile} onChange={e=>setProfile(e.target.value)}>
+{profiles.map((p:any)=><option key={p.id} value={p.id}>{p.id} (A≤{p.A}, B≤{p.B}, C≤{p.C})</option>)}
+</select>
+<label>Velocity (mm/s)</label>
+<input type=\"number\" step=\"0.1\" value={vel} onChange={e=>setVel(Number(e.target.value))}/>
+<button onClick={assess}>Assess</button>
+{zone && <span>Zone: <b>{zone}</b></span>}
+</div>
+{out && <pre className='text-xs' style={{background:'#f1f5f9',padding:8,marginTop:8,borderRadius:6,overflow:'auto'}}>{JSON.stringify(out,null,2)}</pre>}
+</div>;
+}
+
+export function BearingCalc(){
+const [n,setN]=useState(8), [d,setD]=useState(0.01), [Dp,setDp]=useState(0.05), [theta,setTheta]=useState(0), [rpm,setRpm]=useState(1200);
+const [out,setOut]=useState<any>(null);
+async function calc(){
+const fr = rpm/60.0;
+const r = await fetch(`${BASE}/api/advanced/vibration/bearing_freq`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({n, d, Dp, theta_deg: theta, fr_hz: fr})});
+setOut(await r.json());
+}
+return <div className=\"card\"><h2>Bearing Fault Frequencies</h2>
+<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:6}}>
+<input placeholder='n (balls)' type=\"number\" value={n} onChange={e=>setN(Number(e.target.value))}/>
+<input placeholder='d (m)' type=\"number\" step=\"0.001\" value={d} onChange={e=>setD(Number(e.target.value))}/>
+<input placeholder='Dp (m)' type=\"number\" step=\"0.001\" value={Dp} onChange={e=>setDp(Number(e.target.value))}/>
+<input placeholder='θ (deg)' type=\"number\" step=\"0.1\" value={theta} onChange={e=>setTheta(Number(e.target.value))}/>
+<input placeholder='RPM' type=\"number\" value={rpm} onChange={e=>setRpm(Number(e.target.value))}/>
+<button onClick={calc}>Compute</button>
+</div>
+{out && <pre className='text-xs' style={{background:'#f1f5f9',padding:8,marginTop:8,borderRadius:6,overflow:'auto'}}>{JSON.stringify(out,null,2)}</pre>}
+</div>;
+}
+'@; Set-Content -Encoding UTF8 frontend/src/components/ISO_Bearing.tsx $code"
+
+REM Hook new cards into App.tsx (after existing AdvancedPDM cards)
+%PS% ^
+"$f='frontend/src/App.tsx'; $t=Get-Content -Raw $f;" ^
+"if ($t -notmatch 'ISO_Bearing') { $t = $t -replace 'from \\\"\\./components/AdvancedPDM\\\";','from \"./components/AdvancedPDM\";\nimport { ISOAlarmTuning, BearingCalc } from \"./components/ISO_Bearing\";'; }" ^
+"if ($t -notmatch 'ISO 10816/20816 Alarm Tuning') { $t = $t -replace '(</div>\\s*;\\s*\\}\\s*$)',' <ISOAlarmTuning/>\n <BearingCalc/>\n </div>);\n}\n'; }" ^
+"Set-Content -Encoding UTF8 $f $t;"
+) ELSE (
+echo [INFO] Skipping UI patch (frontend not found).
+)
+
+echo.
+echo ==========================================================
+echo [OK] ISO bands + Bearing calculator + PDF sign hook installed.
+echo ----------------------------------------------------------
+echo New/updated API:
+echo GET /api/advanced/vibration/iso_profiles
+echo POST /api/advanced/vibration/iso_assess
+echo POST /api/advanced/vibration/bearing_freq
+echo POST /api/advanced/vibration/features (now supports velocity_mm_s + profile_id -> iso_zone)
+echo Compliance signing:
+echo Set env PDF_SIGN_CMD=\"signer --in {INPUT} --out {OUTPUT}\" to enable true signing.
+echo UI:
+echo Added cards: ISO Alarm Tuning, Bearing Calculator.
+echo ----------------------------------------------------------
+echo Restart backend and rebuild frontend. Enjoy!
+echo ==========================================================
+endlocal

@@ -1,0 +1,180 @@
+🚀 REPLIT AI PROMPT — Stabilize Perf Harness, Optimize Dashboard, Regenerate Artifacts, Gate CI
+
+
+
+Goal (non-negotiable): Deliver working code + real metrics. No skeletons. If a file path differs in our repo, search and adapt; don’t invent paths.
+
+
+
+Context
+
+Backend: Node.js + Express (TypeScript) with JWT RBAC, zod validation, Prometheus.
+
+Frontend: React 18 + Wouter + TanStack Query.
+
+Perf target: most endpoints p95 ≤ 1500 ms, Dashboard allowed p95 ≤ 1600 ms due to aggregation.
+
+1) Upgrade the performance harness (scripts/perf-harness.ts)
+
+
+
+Actions
+
+Open scripts/perf-harness.ts. If file name differs, find the existing perf harness and modify that file.
+
+Replace the runner with a robust version that includes:
+
+org/auth headers,
+
+warm-up phase,
+
+token-bucket rate limiter (global QPS),
+
+exponential backoff for 429/503/504 honoring Retry-After,
+
+per-scenario thresholds,
+
+safe handling for empty latency arrays,
+
+artifact output to:
+
+docs/audit/_artifacts/perf_results.json
+
+docs/audit/performance_benchmarks.md
+
+
+
+Implementation Requirements
+
+Scenarios to test (names must match exactly):
+
+Score (POST /score), VesselPerformance (GET /vessels/V001/performance),
+
+Dashboard (GET /dashboard/summary), EquipmentList (GET /equipment?limit=50),
+
+WorkOrders (GET /workorders?state=open&limit=50)
+
+Thresholds (overridable via env):
+
+Score ≤ 1500 ms p95
+
+VesselPerformance ≤ 1500 ms p95
+
+EquipmentList ≤ 1200 ms p95
+
+WorkOrders ≤ 1200 ms p95
+
+Dashboard ≤ 1600 ms p95
+
+Global QPS default: PERF_QPS=20 (env override allowed).
+
+Always write artifacts (even on partial failure) and exit non-zero if any scenario exceeds its threshold or has errors.
+
+
+
+(Use the stable script body I gave earlier; adapt imports/paths if needed.)
+
+2) Optimize 
+
+/dashboard/summary
+
+
+
+Find the actual handler for GET /dashboard/summary and:
+
+Add a 30–60s in-memory TTL cache (env DASHBOARD_TTL_MS, default 60000).
+
+Run internal calls in parallel via Promise.all.
+
+Return ETag and Cache-Control: private, max-age=30:
+
+If If-None-Match matches current ETag → return 304.
+
+No functional changes to response shape.
+
+
+
+(If your file is named differently, apply this in the real route module. Keep the API identical.)
+
+3) Re-run harness & regenerate artifacts
+
+
+
+Commands Replit should execute:
+
+export API_BASE=${API_BASE:-http://localhost:8000}
+export ORG_ID=${ORG_ID:-demo-org}
+export API_TOKEN=${API_TOKEN:-dev-token}
+export PERF_QPS=20
+export THRESHOLD_SCORE_MS=1500
+export THRESHOLD_PERF_MS=1500
+export THRESHOLD_EQUIP_MS=1200
+export THRESHOLD_WO_MS=1200
+export THRESHOLD_DASH_MS=1600
+
+npx tsx scripts/perf-harness.ts
+Expected outputs (must be written):
+
+docs/audit/_artifacts/perf_results.json
+
+docs/audit/performance_benchmarks.md
+
+4) CI Perf Gate (scenario-specific)
+
+
+
+If .github/workflows/ci.yml exists, update; else create it with a “Perf” step:
+
+- name: Perf (scenario thresholds)
+  run: |
+    export PERF_QPS=20
+    export THRESHOLD_SCORE_MS=1500
+    export THRESHOLD_PERF_MS=1500
+    export THRESHOLD_EQUIP_MS=1200
+    export THRESHOLD_WO_MS=1200
+    export THRESHOLD_DASH_MS=1600
+    npx tsx scripts/perf-harness.ts
+Also upload artifacts:
+
+- name: Upload perf artifacts
+  uses: actions/upload-artifact@v4
+  with:
+    name: perf-artifacts
+    path: |
+      docs/audit/_artifacts/perf_results.json
+      docs/audit/performance_benchmarks.md
+5) Definition of Done (Replit must verify and print)
+
+Harness runs clean (exit code 0) with no errors and p95 under per-scenario thresholds.
+
+docs/audit/_artifacts/perf_results.json contains real numbers (no NaN, no empty arrays).
+
+docs/audit/performance_benchmarks.md shows a table with p50/p95/p99 for all 5 scenarios.
+
+/dashboard/summary handler now:
+
+uses TTL cache,
+
+aggregates subcalls in parallel,
+
+sends ETag + Cache-Control and responds 304 when If-None-Match matches.
+
+CI workflow contains scenario-specific perf gate and uploads artifacts.
+
+
+
+Final console summary to print:
+
+p50/p95/p99 per scenario
+
+Any retries due to 429/503/504 and final error count (should be 0)
+
+Artifact paths written
+
+Pass/Fail line per scenario and overall status
+
+
+
+Execute now. Produce code + artifacts — no placeholders.
+
+End of prompt.

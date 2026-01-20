@@ -1,0 +1,232 @@
+Context:
+
+I have a TypeScript module called Advanced Inventory Management Engine that handles: parts availability, substitutions, maintenance cost planning, inventory optimization (EOQ/ROP), and supplier performance. It currently has correctness and scalability issues (per-part N+1 queries, brittle substitution mapping, currency floats, date/TZ inconsistencies, misuse of minStock as current stock, etc.).
+
+
+
+Your goals (do all):
+
+Introduce a typed storage interface and replace any usages.
+
+Batch all storage calls (no N+1 loops). Add getPartsByNumbers, getStockByParts, and (optional) getOpenPOs.
+
+Fix substitution mapping + savings (map by alternatePartNo, compute savings vs. the substitute’s standardCost).
+
+Currency safety: switch internal arithmetic to cents (integers) in cost calculations; keep external API shape unchanged (still returns dollars).
+
+Date/TZ hygiene: standardize I/O to ISO strings at edges; use UTC internally for ETA. Prefer PO ETA over naive lead-time addition.
+
+Stock status guards for minStock == 0, maxStock == 0, and consider onOrder when computing “critical/low” messaging.
+
+EOQ/ROP: make service level and variability tunable; avoid NaNs for zero-usage series; pass real current stock via a currentStockByPart map (stop using minStockQty as stock).
+
+Supplier KPI scoring: clip the lead-time component to 0..1; avoid negative contribution; keep weights (40% on-time, 40% quality, 20% lead time).
+
+Add unit tests (Jest or Vitest) covering the edge cases listed below.
+
+Keep public function signatures; where you add params, make them optional with sane defaults to avoid breaking callers.
+
+Files to create / modify
+
+
+
+1) 
+
+src/inventory/storage.ts
+
+
+
+Create a proper interface and stubs:
+
+export interface InventoryStorage {
+  getPartByNumber(partNo: string, orgId: string): Promise<Part | null>;
+  getPartsByNumbers(partNos: string[], orgId: string): Promise<Part[]>;
+  getStockByPart(partNo: string, orgId: string): Promise<Stock[]>;
+  getStockByParts(partNos: string[], orgId: string): Promise<Stock[]>;
+  getPartSubstitutions(partNo: string, orgId: string): Promise<PartSubstitution[]>;
+  getWorkOrderParts(workOrderId: string, orgId: string): Promise<Array<{ partNo: string; quantity: number }>>;
+  getWorkOrderWorklogs(workOrderId: string): Promise<Array<{ durationMinutes: number; laborCostPerHour: number }>>;
+  // Optional: use to compute ETA
+  getOpenPOs?(partNo: string, orgId: string): Promise<Array<{ expectedDate: string }>>;
+}
+2) 
+
+src/inventory/availability.ts
+
+Replace any storage with InventoryStorage.
+
+Batch inside checkPartsAvailability(partNumbers, storage, orgId):
+
+Use getPartsByNumbers and getStockByParts to build maps.
+
+Guard calculateStockStatus for minStock <= 0, maxStock == 0.
+
+Prefer getOpenPOs ETA when present, else Date.now() + leadTimeDays.
+
+Work in UTC (use new Date(Date.UTC(...)) where relevant).
+
+
+
+Patch (key snippets to apply):
+
+// calculateStockStatus guard
+function calculateStockStatus(onHand: number, reserved: number, minStock: number, maxStock: number) {
+  const available = Math.max(0, onHand - reserved);
+  if (available <= 0) return 'critical';
+  if (minStock <= 0) return available > 0 ? 'adequate' : 'critical';
+  if (available < Math.max(1, Math.floor(minStock * 0.5))) return 'critical';
+  if (available < minStock) return 'low';
+  if (maxStock > 0 && available > Math.ceil(maxStock * 1.2)) return 'excess';
+  return 'adequate';
+}
+3) 
+
+src/inventory/substitutions.ts
+
+Fix order-sensitive mapping bug: map substitutions by alternatePartNo.
+
+Return availability merged with { substitutionType, notes }.
+
+
+
+Patch:
+
+const subsByAlt = new Map(substitutions.map(s => [s.alternatePartNo, s]));
+return availability.map(a => {
+  const s = subsByAlt.get(a.partNo);
+  return { ...a, substitutionType: s?.substitutionType ?? 'unknown', notes: s?.notes };
+});
+4) 
+
+src/inventory/cost-planning.ts
+
+Convert all monetary arithmetic to cents internally.
+
+When recommending substitutions, compare original part unitCost vs. substitute part standardCost.
+
+Keep API responses in dollars (divide by 100 at the very end, round to 2dp).
+
+
+
+Patch (key idea):
+
+const toCents = (x: number) => Math.round((x ?? 0) * 100);
+const toDollars = (c: number) => Math.round(c) / 100;
+
+// unit cost cents
+const unitCostC = toCents(part?.standardCost ?? 0);
+const totalPartCostC = unitCostC * quantity;
+
+const subPart = await storage.getPartByNumber(availableSub.partNo, orgId);
+const subUnitCostC = toCents(subPart?.standardCost ?? (unitCostC/100));
+const potentialSavingsC = Math.max(0, (unitCostC - subUnitCostC) * quantity);
+Return fields converted via toDollars.
+
+
+
+5) 
+
+src/inventory/optimize.ts
+
+Update optimizeInventoryLevels signature to accept currentStockByPart: Record<string, number> and optional { serviceLevel?: number, demandVariability?: number }.
+
+Compute EOQ/ROP with the tunables and real current stock (not minStockQty).
+
+
+
+Patch (signature):
+
+export function optimizeInventoryLevels(
+  parts: Part[],
+  usageHistory: Array<{ partNo: string; monthlyUsage: number[] }>,
+  costs: { orderingCost: number; holdingCostRate: number; stockoutCostRate: number },
+  currentStockByPart: Record<string, number>,
+  opts?: { serviceLevel?: number; demandVariability?: number }
+)
+Skip parts with all-zero usage to avoid NaN; default serviceLevel = 0.95, demandVariability = 0.2.
+
+
+
+6) 
+
+src/inventory/suppliers.ts
+
+Clip lead-time component to 0..1 to avoid negative scores:
+
+const baseline = supplier.leadTimeDays || 30;
+const ratio = Math.min(Math.max(averageLeadTime / baseline, 0), 2); // 0..2
+const leadTimeScore = 1 - ((ratio - 1) / 1); // 0..1, centered at 1
+const score = (onTime * 0.4) + ((avgQuality/10) * 0.4) + (Math.max(0, Math.min(1, leadTimeScore)) * 0.2);
+Acceptance criteria (must pass)
+
+Type safety: No any remains for storage in these modules; all compile under tsc --noEmit.
+
+No N+1: checkPartsAvailability and planMaintenanceCosts each execute ≤ 3 storage calls per batch (parts, stocks, optional POs), not per-part.
+
+Correct substitution mapping: Order of arrays does not affect mapping; tests prove it.
+
+Currency correctness: Internal money math in cents; round-trip outputs in dollars with two decimals; tests verify no float drift.
+
+Dates & ETA: When getOpenPOs returns ETAs, they’re used; otherwise lead-time fallback. ETAs computed in UTC.
+
+EOQ/ROP robustness: Passing zeros in usage history doesn’t crash; returns sensible defaults; tunables honored.
+
+Supplier scores: Lead-time component is clipped; no negative contribution; unit tests cover extremes.
+
+All tests green (see below).
+
+Add tests (Vitest or Jest)
+
+
+
+Create tests/inventory.spec.ts with these cases:
+
+Availability:
+
+minStock = 0, onHand > 0 → adequate; onHand = 0 → critical.
+
+available < 0.5 * minStock → critical; < minStock → low; > 1.2 * maxStock → excess.
+
+Batching:
+
+Spy on storage methods; ensure getPartsByNumbers and getStockByParts called once per batch, not per part.
+
+Substitutions:
+
+Two substitutions returned in different order; availability mapped correctly by alternatePartNo.
+
+Savings only positive if substitute cheaper.
+
+Currency math:
+
+Add a part with 19.99, qty 3; ensure total 59.97 exactly (no 59.97000000000001).
+
+EOQ/ROP:
+
+All-zero monthly usage → no NaN; returns finite EOQ/ROP.
+
+Passing { serviceLevel: 0.99 } raises ROP relative to 0.95.
+
+Suppliers:
+
+Extreme long lead time doesn’t produce negative contribution; score remains within 0..100.
+
+Developer ergonomics
+
+Add tiny helper money.ts for toCents/toDollars.
+
+Add logger tags [Inventory] with structured context (partNo, onHand, reserved, status).
+
+Keep public exports backward compatible; any new params optional.
+
+Finally, run & verify
+
+Install deps if needed: npm i -D vitest @types/jest (or Jest), ensure tsconfig strict.
+
+npm run test → all green.
+
+tsc --noEmit → passes with no any on storage.
+
+
+
+Apply all patches and return the updated files plus a brief summary of what changed and why.

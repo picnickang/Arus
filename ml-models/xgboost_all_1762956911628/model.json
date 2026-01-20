@@ -1,0 +1,30 @@
+{
+  "trees": [],
+  "config": {
+    "maxDepth": 6,
+    "learningRate": 0.1,
+    "numRounds": 100,
+    "objective": "binary:logistic",
+    "eval_metric": "logloss"
+  },
+  "featureNames": [
+    "avgTemperature",
+    "maxTemperature",
+    "stdTemperature",
+    "avgVibration",
+    "maxVibration",
+    "stdVibration",
+    "avgPressure",
+    "minPressure",
+    "operatingHours",
+    "cycleCount",
+    "maintenanceAge",
+    "failureHistory"
+  ],
+  "classLabels": [
+    "healthy",
+    "critical"
+  ],
+  "baseScore": 0,
+  "numClasses": 2
+}

@@ -1,0 +1,118 @@
+You are a senior platform engineer performing a comprehensive SCHEMA + API review for this monorepo.
+
+Goals (deliver all):
+1) Exhaustive audit of all database schemas (Postgres + any SQLite/offline mirrors) for correctness, safety, and performance.
+2) Exhaustive audit of all HTTP endpoints (and MQTT/WebSocket sync endpoints where applicable) for security, validation, multi-tenant isolation, and spec completeness.
+3) Auto-generate an OpenAPI 3.1 spec from the live code (routes + zod/validators), a Postman collection, and ERD diagrams.
+4) Add an automated contract test suite that enforces the spec (Supertest) and a fast schema-consistency checker.
+5) Produce a single Markdown **Schema & API Audit Report** with findings, fixes, and coverage.
+
+If the project layout differs, auto-detect and adapt—but keep the deliverables.
+
+──────────────────────────────────────────────────────────────────────────────
+# 0) Bootstrap & assumptions
+- Backend: Node/Express (or similar) with Drizzle ORM.
+- Schemas likely in `@shared/schema` and/or `server/db/*` plus SQLite vessel-mode mirrors.
+- Multi-tenant via `orgId` (mandatory on protected routes).
+- Realtime: WebSocket + MQTT reliable sync (state/events).
+- Validation: Zod or similar.
+
+Do:
+- Ensure `.env(.local)` has DATABASE_URL, ORG_ID=default-org-id, and any required keys.
+- Run all pending migrations; if drift is detected, generate **safe** migrations (non-destructive) and apply.
+
+Artifacts:
+- `logs/bootstrap.log`
+- `db/migrations/*` (only if created)
+
+──────────────────────────────────────────────────────────────────────────────
+# 1) Schema Audit (Postgres + SQLite vessel mode)
+Create `tools/schema-audit.ts` that loads all Drizzle table definitions:
+
+Scope:
+- Enumerate **every table** and field; detect:
+- Missing `orgId` on multi-tenant entities; inconsistent NOT NULL on `orgId`.
+- Missing **primary keys** or composite PKs where appropriate.
+- Missing or weak **foreign keys**, missing ON UPDATE/DELETE policies.
+- Inconsistent **timestamps** (`createdAt`, `updatedAt` types/defaults).
+- Enum/string constants drift between code & DB.
+- Orphan rows (FK targets missing) with sample counts.
+- Duplicate active rows that should be unique (e.g., multiple active thresholds per device/sensor).
+- Missing **unique indexes** (e.g., (orgId, name) for vessels; (orgId, sku) for parts).
+- Missing **performance indexes** for hot filters/joins seen in code (e.g., (orgId, equipmentId), (orgId, deviceId, sensorType), (orgId, updatedAt DESC)).
+- Mis-typed numerics (cost/quantity/rates) and unit fields; threshold ordering (warnLo < critLo < warnHi < critHi).
+- Parity check: **SQLite mirror** tables (e.g., `*Sqlite`) must match the canonical Postgres shapes (types mapped, JSON→TEXT, booleans→integer mode). Report all diffs.
+
+Outputs:
+- Auto-build a **Mermaid ERD** and write to `reports/erd.md`.
+- Write a machine-readable diff to `reports/schema-diff.json`.
+- If critical gaps are found (e.g., missing PK/FK), generate **idempotent migrations** in `db/migrations/auto/*` and print what they fix.
+
+Run:
+- `pnpm tsx tools/schema-audit.ts`
+
+──────────────────────────────────────────────────────────────────────────────
+# 2) Endpoint Discovery & Spec Generation
+Create `tools/route-scan.ts` to statically discover endpoints:
+- Walk `server/` for `Router`/`app.(get|post|put|patch|delete)` calls.
+- Resolve base paths from `app.use('/x', router)` chains.
+- Detect per-route middlewares: auth, org-scoping, rate-limit, zod validation.
+- Extract zod schemas (if present) into JSON Schema.
+
+Create `tools/openapi-generate.ts`:
+- Compose an **OpenAPI 3.1** spec from discovered routes and validators.
+- Ensure every route declares: summary, tags, params/query/body schemas, 2xx/4xx/401/403/429/5xx responses.
+- Include component schemas derived from zod/TypeScript types used by handlers.
+- Emit:
+- `openapi/openapi.yaml`
+- `openapi/openapi.json`
+- `docs/ARUS.postman_collection.json` (generate from the OpenAPI)
+
+Validation:
+- Lint spec with `@redocly/cli` or `speccy`.
+- Fail the script on undefined schemas or unreferenced routes.
+
+Run:
+- `pnpm tsx tools/route-scan.ts`
+- `pnpm tsx tools/openapi-generate.ts`
+
+──────────────────────────────────────────────────────────────────────────────
+# 3) Endpoint Hardening Checklist (auto-check & patch)
+Implement `tools/api-audit.ts` that:
+- For each route:
+- Confirms **auth** + **orgId** gating where required. If missing, add middleware or inline checks.
+- Confirms **input validation** present; if absent, create zod schemas and wire them.
+- Confirms **pagination** (limit/offset or cursor), **sorting** (whitelisted), **filtering** (safe), and max limits.
+- Asserts **idempotency** for POST that can be retried (support `Idempotency-Key`).
+- Standardizes error responses `{ code, message, details? }`.
+- Ensures no secrets leak in errors/logs.
+- Adds `Cache-Control` for GET that are cacheable; disables for sensitive endpoints.
+- Ensures inventory endpoints offer **vendor sorting** (case-insensitive) and safe column allow-list.
+
+If the script can auto-fix (add missing middleware/validators/allow-lists) do so; otherwise, open TODOs with file/line references in `reports/api-todos.md`.
+
+Outputs:
+- `reports/api-audit.md` with a route matrix: METHOD, PATH, Auth?, Org scope?, Validation?, Pagination?, Sort/Filter?, Idempotency?, MQTT/WebSocket events?, Status.
+- `reports/api-risk-score.json` per route.
+
+──────────────────────────────────────────────────────────────────────────────
+# 4) Contract Tests (Supertest) + Negative Cases
+Create `server/tests/api.contract.test.ts` that:
+- Boots the app against a **test DB** (migrated & seeded).
+- Uses the generated OpenAPI spec to drive positive/negative tests.
+- For each endpoint:
+- 2xx happy path with minimal valid payload.
+- 4xx invalid payload (violates zod).
+- 401/403 without auth or wrong orgId.
+- Pagination/sorting/filtering behavior, including vendor sort for Parts.
+- Business invariants (e.g., reservations must not exceed on-hand; unique active threshold per device/sensor).
+- Snapshot response shapes against OpenAPI using `openapi-response-validator`.
+
+Run:
+- `pnpm test:contract`
+
+──────────────────────────────────────────────────────────────────────────────
+# 5) Realtime & Sync contracts (MQTT/WebSocket)
+Create `server/tests/realtime.contract.test.ts` that verifies:
+- On create/update/delete for key entities (parts, equipment, sensors, work_orders):
+- MQTT publishes **state** (retained) and **event** (sequenced) topics.

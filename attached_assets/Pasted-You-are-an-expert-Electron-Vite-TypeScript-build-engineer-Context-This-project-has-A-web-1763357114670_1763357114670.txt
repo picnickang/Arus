@@ -1,0 +1,149 @@
+You are an expert Electron + Vite + TypeScript build engineer.
+
+Context:
+- This project has:
+- A web client built with Vite/React in ./client
+- Shared code in ./shared
+- A Node/Express backend in ./server
+- An Electron main process entry at ./electron/main.ts
+- We use **electron-builder** with `electron-builder.json` to package the app.
+- We want a **single-file CommonJS bundle** for the Electron main process at:
+- dist-electron/main.cjs
+- The platform target is **Node 20** (Electron 28+ runtime).
+- This config must work reliably in Replit and for production builds.
+
+Task:
+1. Open the Vite config used for the Electron main process:
+- The file is currently named something like:
+- `vite.electron.config.ts`
+- OR `vite.config.electron.ts`
+- If you can’t find it, search for a config that:
+- imports `defineConfig` from "vite"
+- imports `path` from "path"
+- has `outDir: "dist-electron"`
+- has `lib.entry` pointing to `"electron/main.ts"`
+- Once found, treat that file as the **source of truth** for the Electron main build.
+
+2. Repair and improve that Vite config with the following requirements:
+- It must:
+- Build `electron/main.ts` to `dist-electron/main.cjs`
+- Use **CommonJS** output (for Electron main)
+- Target Node 20 (`target: "node20"`)
+- Bundle app code but **externalize**:
+- `"electron"`
+- Node built-ins such as `"fs"`, `"path"`, `"os"`, `"http"`, `"https"`, `"stream"`, `"crypto"`, etc.
+- It must NOT:
+- Use or rely on Vite SSR options (`ssr` config is not needed here)
+- Introduce unnecessary complexity; keep it focused on bundling the Electron main process.
+- It must:
+- Force a **single-file bundle** (no code-splitting) via:
+- `rollupOptions.output.inlineDynamicImports = true`
+- Use environment-aware settings:
+- In development (`NODE_ENV !== "production"`):
+- `sourcemap: "inline"`
+- `minify: false`
+- In production (`NODE_ENV === "production"`):
+- `sourcemap: false`
+- `minify: "esbuild"`
+- Set `esbuild.platform = "node"` to clarify it’s a Node/Electron target.
+- It must support these aliases:
+- `@` → `<project-root>/client/src`
+- `@shared` → `<project-root>/shared`
+- The final config should look roughly like this structurally (you can adjust small details as needed, but keep the intent):
+
+```ts
+import { defineConfig } from "vite";
+import path from "path";
+
+export default defineConfig({
+build: {
+target: "node20",
+outDir: "dist-electron",
+emptyOutDir: false,
+lib: {
+entry: path.resolve(__dirname, "electron/main.ts"),
+formats: ["cjs"],
+fileName: () => "main.cjs",
+},
+rollupOptions: {
+external: [
+"electron",
+"child_process",
+"fs",
+"path",
+"http",
+"https",
+"os",
+"stream",
+"util",
+"events",
+"buffer",
+"crypto",
+"net",
+"tty",
+"zlib",
+"url",
+"process",
+"module",
+],
+output: {
+inlineDynamicImports: true,
+},
+},
+sourcemap: process.env.NODE_ENV === "development" ? "inline" : false,
+minify: process.env.NODE_ENV === "production" ? "esbuild" : false,
+},
+esbuild: {
+platform: "node",
+},
+resolve: {
+alias: {
+"@": path.resolve(__dirname, "client", "src"),
+"@shared": path.resolve(__dirname, "shared"),
+},
+},
+});
+```
+
+IMPORTANT:
+- Remove any `ssr` block (`ssr: { target: "node", noExternal: true }`) from this config. It is not appropriate for the Electron main build and can cause confusion.
+
+3. Make sure this config is actually **used** by the build:
+- Open `package.json` in the project root.
+- Add or fix a script that builds the Electron main process using this config. For example:
+
+```json
+"scripts": {
+"build:electron-main": "vite build --config vite.electron.config.ts"
+}
+```
+
+- Adjust the config filename if needed (e.g. `vite.config.electron.ts`).
+- Ensure this script does **not** interfere with the normal web client build, which likely uses a separate `vite.config.ts` in `client/` or the root.
+
+4. Verify the build end-to-end:
+- Run the Electron main build script:
+- `npm run build:electron-main`
+- Confirm:
+- `dist-electron/main.cjs` exists.
+- It is a single bundle (no extra chunks in `dist-electron`).
+- Check that imports inside the bundle are correct:
+- Node builtins and `"electron"` should remain `require("electron")`, `require("fs")`, etc., not inlined code.
+- If TypeScript path resolution or aliases are broken, fix them:
+- Make sure `tsconfig.json` (or `tsconfig.base.json`) `paths` match:
+- `"@/*"` → `["client/src/*"]`
+- `"@shared/*"` → `["shared/*"]`
+
+5. Apply the same level of scrutiny as a production build engineer:
+- Clean up any unused or misleading options.
+- Add brief inline comments where helpful to explain **why** an option exists (e.g., why we use `inlineDynamicImports`, why externals are there, etc.).
+- Ensure the final config is robust both in Replit and in CI/CD (local dev & production).
+
+When you’re done:
+- Show me the full updated Electron Vite config file.
+- Show me the updated relevant `scripts` section from `package.json`.
+- Briefly explain what you changed and why, focusing on:
+- Single-file CJS bundling
+- Externalization of Node/Electron modules
+- Environment-aware sourcemap/minify behavior
+- Removal of unnecessary SSR config

@@ -1,0 +1,29 @@
+#!/bin/sh
+# Pre-commit hook for code quality checks
+# To enable: bash scripts/setup-hooks.sh
+# Note: Only checks for ESLint errors, not warnings
+
+echo "🔍 Running pre-commit quality checks..."
+
+# Run format check (optional - comment out if too strict)
+# npx prettier --check "**/*.{ts,tsx,json,css,md}" --ignore-unknown
+# FORMAT_EXIT=$?
+# if [ $FORMAT_EXIT -ne 0 ]; then
+#   echo "❌ Code formatting issues detected."
+#   echo "💡 Run 'bash scripts/format.sh' to auto-format, or commit with --no-verify to skip."
+#   exit 1
+# fi
+
+# Run lint check (errors only)
+npx eslint . --ext .ts,.tsx --quiet
+LINT_EXIT=$?
+
+if [ $LINT_EXIT -ne 0 ]; then
+  echo "❌ ESLint errors detected."
+  echo "💡 Run 'bash scripts/lint-fix.sh' to auto-fix, or commit with --no-verify to skip."
+  exit 1
+fi
+
+echo "✅ Pre-commit checks passed (no ESLint errors)!"
+echo "💡 Run 'bash scripts/quality-check.sh' for full quality audit including warnings"
+exit 0

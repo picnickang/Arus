@@ -1,0 +1,363 @@
+You are acting as a senior TS/Node engineer with marine PdM domain knowledge.
+
+Goal: audit, fix, and upgrade the provided modules (signal classification & normalization, statistical thresholding, sensor fusion, outlier detection, adaptive weighting, and LLM tuning) for correctness, consistency, safety, and ops readiness. Apply changes directly in the repo; create tests and a short migration/README.
+
+
+
+Context — Code to review & fix
+
+
+
+The project includes (from the pasted source):
+
+classifySignal(...), toCanonical(...)
+
+SensorOptimizationService (stats thresholds)
+
+KalmanFilter, MultiSensorFusion, AdaptiveSensorWeighting, detectOutliers
+
+LLMSensorTuningService
+
+
+
+High-Priority Issues to Fix (make code & tests reflect these)
+
+Signal taxonomy & naming
+
+Unify sensor kinds ("flow" vs "flow_rate", "pressure" vs "oil_pressure", etc.). Adopt a canonical set:
+
+rpm | temperature | pressure | flow | vibration | voltage | current | frequency | level
+
+
+Map synonyms to the canonical set. Keep a single source of truth (TS enum or const union).
+
+Regex + unit parsing
+
+NAME_HINTS overlaps and misses underscores/spaces/Unicode symbols. Add robust parsing:
+
+Normalize: trim, collapse spaces/underscores/dashes, lowercase, strip diacritics, handle °C, ℃, ºC, and “deg C”.
+
+Disallow ambiguous tokens like bare “f” mapping to temperature; require °f or deg f (or explicit "F" unit) to avoid false positives.
+
+Add priority tie-breaker: prefer name match over unit match when both exist but conflict; expose final score and “matched_by” (name|unit|spn|pid).
+
+Units & conversions
+
+In toCanonical, extend/verify:
+
+Temperature: support °C|C|°F|F|K. Convert K→C and F→C.
+
+Pressure: accept psi|bar|kPa|Pa|MPa (convert to kPa).
+
+Flow: support L/h|L/min|gph|gpm|m³/h (convert to L/h).
+
+Vibration: support mm/s|ips|g_rms (convert ips→mm/s).
+
+Frequency: Hz|kHz (convert to Hz).
+
+If unit unknown but kind known, still return canonical unit with value unchanged.
+
+Return {value:null} for non-finite or out-of-range values; guard division by zero.
+
+SPN/PID mapping
+
+Replace ad-hoc checks with a small lookup table:
+
+e.g., SPN 190 = engine speed (RPM), SPN 110 = engine coolant temp, SPN 100 = oil pressure, SPN 183 = fuel rate. (Allow PID aliases.)
+
+Make it extensible (map & types), and prefer SPN/PID over name/unit when present.
+
+Stat thresholding correctness & robustness
+
+Use sample std dev (simple-statistics sampleStandardDeviation) and handle NaNs.
+
+Guard CV/mean==0: if |mean|<ε, skip CV-based confidence; base on IQR/robust MAD.
+
+For “higher-is-worse” kinds use both robust percentiles and σ-based options. Prefer:
+
+warnHi = P95, critHi = P99 if distribution is skewed/heavy-tailed (skewness>0.5 or kurtosis>3.5).
+
+Otherwise warnHi = μ+2σ, critHi = μ+3σ.
+
+For symmetric sensors with two-sided risk (voltage/current/flow/pressure), set both sides using robust z or percentiles (P1–P99).
+
+RPM logic: remove min*0.8/*0.7. Instead, use operational band percentiles:
+
+warnLo = P05, critLo = P01, warnHi = P95, critHi = P99.
+
+Include min sample size per sensor kind; return null below threshold.
+
+Add reasoning strings that state which method chosen and why.
+
+Outlier handling before stats
+
+Add robust filtering pipeline:
+
+Remove NaN/Inf, drop physical impossibles (negative rpm, negative absolute temp in C, etc.) via kind-specific guards.
+
+Use MAD-based outlier filter (|x-median|/MAD > k) before computing stats, not mean/σ only.
+
+Expose counts: n_raw, n_filtered, %dropped.
+
+Fusion correctness
+
+Ensure per-sensorId identity is unique (not just ${equipmentId}_${sensorType}) — include channel or source id if available.
+
+Integrate AdaptiveSensorWeighting into MultiSensorFusion by pulling measurementNoise from it; update accuracy when ground truth available.
+
+Make timeWindowMs binning stable: sliding or fixed windows with inclusive bounds; don’t drop tail window.
+
+Confidence calculation: base on state variance and number of contributing sensors; clamp 0–1.
+
+DB writes & schemas
+
+In saveOptimization, ensure we do not swap max with critHi accidentally; store full {warnLo,warnHi,critLo,critHi} separately from {min,max} if you keep a display range.
+
+Avoid double-import of db; keep module boundaries clean.
+
+Validate equipment fetch; handle missing equipment type safely.
+
+LLM service safety & determinism
+
+Explicitly fail fast if OPENAI_API_KEY is missing (you already warn); throw a typed error.
+
+Validate JSON from the LLM with Zod (add zod), coerce numbers, clamp hysteresis (0–20% of relevant threshold), clamp emaAlpha (0–1).
+
+Normalize recommended kinds to the canonical set and units to canonical units.
+
+Add a dry-run flag in compare mode; never write back automatically.
+
+Telemetry & observability
+
+Add lightweight counters and logs (success/fail, n_filtered, method chosen, confidence) using your existing logger; no PII.
+
+
+
+Deliverables (must commit these)
+
+Refactors/Fixes
+
+sensorKinds.ts (new): canonical kinds enum/union + helpers.
+
+signalClassification.ts: improved hints, unit parsing, SPN/PID map, deterministic scoring & explanation.
+
+units.ts: centralized conversion utilities with tests.
+
+thresholds.ts: robust stats (Pxx/MAD/σ) with method selection + confidence calc.
+
+fusion.ts: corrected IDs, adaptive weighting integration, time windowing, confidence.
+
+outliers.ts: MAD filter + kind rules.
+
+llmTuning.ts: Zod validation + clamping + normalization.
+
+Tests (Vitest or Jest)
+
+__tests__/classification.test.ts
+
+__tests__/units.test.ts
+
+__tests__/thresholds.test.ts
+
+__tests__/fusion.test.ts
+
+__tests__/outliers.test.ts
+
+__tests__/llmTuning.test.ts
+
+Docs
+
+docs/threshold-methods.md — when percentile vs σ, per kind.
+
+docs/sensor-kinds-and-units.md — canonical kinds/units + conversions matrix.
+
+README-pdm-upgrade.md — what changed, how to run tests.
+
+
+
+Concrete Changes to Make
+
+
+
+A) Canonical kinds & scoring
+
+Create:
+
+export type SensorKind =
+  | "rpm" | "temperature" | "pressure" | "flow" | "vibration"
+  | "voltage" | "current" | "frequency" | "level";
+
+
+In classifySignal, return:
+
+type Classified = {
+  sig: string;
+  kind: SensorKind | "unknown";
+  unit?: string;
+  confidence: number; // 0–1
+  matchedBy?: "spn" | "pid" | "name" | "unit";
+  explanation?: string;
+}
+
+
+Add normalizeUnit(str) and normalizeName(str) utils.
+
+Replace bare "f" unit hint with explicit Fahrenheit handling ("°f"|"f" only if accompanied by degree context or source unit).
+
+
+
+B) Unit conversions
+
+Extend toCanonical(kind,value,unit):
+
+Temp: F→C ((v-32)*5/9), K→C (v-273.15)
+
+Pressure: psi*6.894757, bar*100, Pa/1000, MPa*1000
+
+Flow: L/min * 60, gpm*227.1247, m3/h*1000
+
+Vibration: ips*25.4
+
+Frequency: kHz*1000
+
+Guard divisions; return {value:null, unit:<canonical>} when invalid.
+
+
+
+C) Robust statistics & thresholds
+
+Use sampleStandardDeviation & quantileSorted.
+
+Pre-filter using MAD:
+
+// drop if |x - median| / (1.4826*MAD) > 3.5
+
+
+Compute skewness & excess kurtosis; choose percentile paths for skewed/heavy-tailed data.
+
+RPM: warnLo=P05, critLo=P01, warnHi=P95, critHi=P99.
+
+
+
+D) Fusion & adaptive weighting
+
+Sensor identity key: ${equipmentId}:${sensorType}:${sensorId} (use a provided channel id if exists; otherwise include db primary key or config id).
+
+Pull measurement noise from AdaptiveSensorWeighting.getMeasurementNoise(id).
+
+Update accuracy when ground truth later arrives; expose hooks:
+
+updateGroundTruth(equipmentId, sensorType, actualValue, t)
+
+
+Confidence = 1 / (1 + variance_normalized) (clamp 0–1), incorporate number of sensors in window.
+
+
+
+E) DB writes
+
+Store thresholds as:
+
+optimizedThresholds: { warnLo, warnHi, critLo, critHi, confidence }
+currentThresholds:   { warnLo, warnHi, critLo, critHi }
+Do not alias max to critHi. If you keep display min/max, compute from warn/crit ranges but keep them separate.
+
+
+
+F) LLM tuning
+
+Add Zod schema:
+
+const Rec = z.object({
+  sensorType: z.string(),
+  parameters: z.object({
+    gain: z.number().optional(),
+    offset: z.number().optional(),
+    emaAlpha: z.number().min(0).max(1).optional(),
+    hysteresis: z.number().min(0).max(100).optional(), // % if you use percentage
+    warnLo: z.number().nullable().optional(),
+    warnHi: z.number().nullable().optional(),
+    critLo: z.number().nullable().optional(),
+    critHi: z.number().nullable().optional(),
+  }),
+  reasoning: z.string(),
+  confidence: z.enum(["high","medium","low"]),
+  sources: z.array(z.string()).default([]),
+});
+
+
+Normalize sensorType to the canonical set; convert any recommendation units to canonical units before diffing.
+
+
+
+Acceptance Criteria (CI must pass)
+
+✅ All tests pass with pnpm test (or npm test).
+
+✅ Classification returns deterministic matchedBy and explanation.
+
+✅ toCanonical handles F/K/psi/bar/Pa/MPa/L/min/gpm/m³/h/ips/kHz.
+
+✅ Thresholds choose percentile vs σ based on skewness/kurtosis; confidence never NaN; no division by zero.
+
+✅ Fusion uses unique sensor keys; confidence ∈ [0,1].
+
+✅ Outlier filter drops obvious physical impossibles per kind.
+
+✅ LLM JSON is validated and normalized; no writes without explicit apply step.
+
+✅ README-pdm-upgrade.md explains changes in ≤500 words.
+
+
+
+Test Vectors (add to unit tests)
+
+Classification:
+
+"Engine Speed RPM", unit rpm → kind rpm, matchedBy name, conf ≥ 0.95
+
+"Coolant Temp", unit °F → kind temperature, toCanonical ≈ 90°F→32.2°C
+
+"Lube Oil Press", unit psi → pressure, toCanonical psi*6.894757
+
+"Fuel Rate", unit gpm → flow L/h = gpm*227.1247
+
+"VIB RMS", unit ips → vibration mm/s = ips*25.4
+
+Thresholds (simulate skewed data with outliers; ensure percentile path chosen).
+
+Fusion (3 sensors with different noise; later ground truth reduces noise for best sensor).
+
+Outliers (negative rpm rejected; −10°C allowed but not below −273.15°C).
+
+LLM (malformed JSON throws; valid JSON clamps emaAlpha 0–1).
+
+
+
+Repo Ops
+
+Add scripts:
+
+"scripts": {
+  "test": "vitest run",
+  "test:watch": "vitest",
+  "lint": "eslint .",
+  "typecheck": "tsc -p tsconfig.json"
+}
+
+
+Run lint & typecheck; fix any any leaks with proper types.
+
+
+
+Make all changes now, generate the diffs, and show:
+
+a summary of files changed,
+
+the key code snippets for the most important fixes,
+
+how to run the tests, and
+
+one example output from analyzeSensorThresholds showing robust percentile selection with reasoning.
+
+End of prompt.

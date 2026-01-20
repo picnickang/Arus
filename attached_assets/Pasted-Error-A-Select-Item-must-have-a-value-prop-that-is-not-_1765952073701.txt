@@ -1,0 +1,14 @@
+Error: A <Select.Item /> must have a value prop that is not an empty string. This is because the Select value can be set to an empty string to clear the selection and show the placeholder.
+
+Error: A <Select.Item /> must have a value prop that is not an empty string. This is because the Select value can be set to an empty string to clear the selection and show the placeholder.
+    at https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=40ffd0d0:871:13
+    at renderWithHooks (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=40ffd0d0:11548:26)
+    at updateForwardRef (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=40ffd0d0:14325:28)
+    at beginWork (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=40ffd0d0:15946:22)
+    at beginWork$1 (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=40ffd0d0:19753:22)
+    at performUnitOfWork (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=40ffd0d0:19198:20)
+    at workLoopSync (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=40ffd0d0:19137:13)
+    at renderRootSync (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=40ffd0d0:19116:15)
+    at recoverFromConcurrentError (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=40ffd0d0:18736:28)
+    at performSyncWorkOnRoot (https://7bafcd45-52e7-4fa9-bc4b-3b9e1d653817-00-2qpoxtmp7zgwn.kirk.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=40ffd0d0:18879:28)
+Reload Application

@@ -1,0 +1,241 @@
+You are a senior SDET + QA lead + platform engineer. You are working inside an existing Node.js/TypeScript app (ARUS) that implements Predictive Maintenance (PdM) including:
+- telemetry ingestion (raw-first + decoding + last_seen)
+- PdM outputs (alerts, risk queue, RUL range, evidence, confidence)
+- PdM Schedule tab (tasks derived from alerts + scheduling windows + greedy placement)
+- optional Work Orders integration
+- frontend PdM pages (Risk Queue + Schedule) with mobile-first UX
+
+Your job is to TEST FULL FUNCTIONALITY end-to-end and prove the PdM system works as designed. You must build/extend automated tests and provide a repeatable test harness that can be run locally and in CI.
+
+DO NOT assume tooling. Discover existing frameworks and reuse them (Jest/Vitest, Playwright/Cypress, supertest, etc.). Only add tools if required and minimal.
+
+====================================================
+0) DEFINITIONS: “WORKS AS DESIGNED”
+====================================================
+The system “works as designed” if all these are true:
+
+A) Telemetry ingestion correctness
+- valid telemetry is accepted and persisted raw-first
+- invalid telemetry is rejected and goes to DLQ
+- idempotency prevents duplicates on retries
+- last_seen updates for assets
+
+B) PdM computation correctness
+- alerts are created/updated when degradation patterns exist
+- risk queue returns expected fields (severity, failure mode, RUL range, evidence)
+- RUL quantiles are monotonic (P10 ≤ P50 ≤ P90) when present
+- confidence is present or gracefully null and does not break UI
+
+C) Scheduling correctness
+- PdM alerts are converted into TaskDTOs
+- schedule windows are computed correctly from RUL + buffers + prep time:
+  earliest_start, preferred_date, latest_safe_finish
+- tasks are placed into a vessel x day schedule grid when capacity allows
+- tasks become UNASSIGNED/BLOCKED with correct block_reason when placement fails or lead times exceed RUL window
+- KPI tiles match the computed schedule (scheduled this week, unassigned high-risk)
+
+D) UI correctness (Risk Queue + Schedule)
+- pages load and render data without errors
+- selecting a risk item opens details
+- schedule grid renders task chips in correct dates and vessels
+- task detail drawer shows RUL range, confidence, evidence, recommended actions
+- export CSV matches current filters and includes scheduled/unassigned tasks
+
+E) Work Orders integration (if enabled)
+- “Create Work Order Draft” creates a WO linked to alert/task
+- task/alert status updates after WO creation
+- completed WO can resolve alert (if implemented)
+
+====================================================
+1) DISCOVERY (MANDATORY FIRST STEP)
+====================================================
+A) Identify current test tooling:
+- package.json scripts (test, e2e)
+- jest/vitest configs
+- playwright/cypress configs
+- existing test directories and helpers
+
+B) Identify runtime boot commands:
+- how to start API server in test mode
+- how to start worker/decoder/job runner (if separate)
+- DB stack used in dev/prod and in tests
+
+C) Identify the key endpoints and tables used by PdM:
+- telemetry ingestion endpoint(s)
+- pdm risk queue endpoint(s)
+- /api/pdm/schedule endpoint
+- work order endpoints (if any)
+- DB tables: telemetry_raw, telemetry_signal, telemetry_dlq, asset_last_seen, pdm_alerts, any predictions/evidence, work_orders
+
+Output:
+- A “Test Plan Map” listing each major capability and what file/endpoint/table proves it.
+
+====================================================
+2) CREATE A REPEATABLE TEST HARNESS
+====================================================
+A) Test DB environment
+- If Postgres/Timescale is used: add docker-compose.test.yml (separate DB name/port)
+- Add scripts:
+  - scripts/test/waitForDb.ts
+  - scripts/test/bootstrap.ts (runs migrations/index provisioning)
+  - scripts/test/seedBase.ts (org/vessel/assets/signal defs)
+  - scripts/test/seedTelemetryCases.ts (good + bad telemetry)
+  - scripts/test/seedPdMCases.ts (creates or triggers alerts if pipeline supports)
+
+B) Make tests deterministic
+- Use fixed timestamps (freeze time)
+- Use known asset ids and signal ids
+- Avoid reliance on real external services
+
+C) Add package scripts:
+- test:unit
+- test:integration
+- test:e2e
+- test:pdm (runs the full suite)
+- test:db:up / down / reset
+
+====================================================
+3) AUTOMATED TESTS TO IMPLEMENT (MUST-HAVE)
+====================================================
+
+---------------------------
+3.1 Telemetry Ingestion (Integration)
+---------------------------
+Test: valid payload accepted and stored raw-first
+- POST ingest valid telemetry
+Assert:
+- telemetry_raw contains event
+- asset_last_seen updated
+- if decode is synchronous: telemetry_signal populated
+- if decode async: verify decoded appears after worker run
+
+Test: invalid payload goes to DLQ
+- POST invalid telemetry
+Assert:
+- HTTP error is correct
+- telemetry_dlq row exists with reason
+
+Test: idempotency
+- POST same valid telemetry twice (same event_id or source+seq)
+Assert:
+- raw rows not duplicated
+- decoded not duplicated
+- response indicates duplicate/no-op
+
+---------------------------
+3.2 PdM Risk Queue (Integration)
+---------------------------
+Test: risk queue returns required fields
+- Ensure there is at least one alert in pdm_alerts (seed or trigger)
+- GET risk queue endpoint
+Assert:
+- response includes severity, vessel/asset, failure_mode_label
+- response includes rul range or documented fallback
+- response includes status
+
+Optional checks:
+- RUL quantiles monotonic if present
+- confidence is number or null but never undefined in UI contract
+
+---------------------------
+3.3 Scheduling Engine (Unit + Integration)
+---------------------------
+Unit tests (pure):
+- window calculation
+Given: rul_p10/p50/p90, prep_days, buffer_days
+Assert:
+- earliest_start, preferred_date, latest_safe_finish computed correctly
+- blocked when earliest_start > latest_safe_finish
+
+- greedy placement respects capacity
+Given: 2 tasks on same vessel/day with durations exceeding daily capacity
+Assert:
+- one scheduled, one unassigned with block_reason="capacity"
+
+Integration tests:
+- /api/pdm/schedule returns grid + summary
+Seed: 3 alerts with known RUL/severity and known vessel assignments
+Call: GET /api/pdm/schedule?week=...
+Assert:
+- summary.scheduled_this_week_count matches scheduled items
+- unassigned_high_risk_count matches unassigned urgent tasks
+- grid.cells contain task chips on correct dates
+- unassigned list contains correct block reasons
+
+---------------------------
+3.4 UI E2E Tests (Playwright/Cypress if available)
+---------------------------
+Test: PdM Risk Queue loads
+- Navigate to Maintenance > Predictive Maintenance > Risk Queue
+Assert:
+- table/list shows seeded alerts
+- selecting an item opens details (if implemented)
+
+Test: PdM Schedule tab loads and renders grid
+- Navigate to Schedule tab
+Assert:
+- KPI tiles show counts consistent with API
+- grid shows at least one task chip
+- tap chip opens detail drawer showing RUL/confidence/evidence/actions
+
+Test: CSV export
+- Trigger export
+Assert:
+- downloaded CSV contains scheduled and unassigned tasks
+- includes required columns including scheduled_start/end and block_reason
+
+Mobile viewport:
+- run at least one test in mobile viewport to ensure layout and detail drawer works
+
+---------------------------
+3.5 Work Orders (Integration + optional E2E)
+---------------------------
+If WO exists:
+- Create work order from task
+Assert:
+- WO created and linked to alert/task
+- task/alert status updates
+If WO does not exist:
+- tests must confirm UI disables WO button with correct message
+
+====================================================
+4) TEST DATA STRATEGY (CRITICAL)
+====================================================
+You MUST create deterministic PdM cases.
+
+Preferred:
+- Seed pdm_alerts directly for schedule tests (fast, reliable)
+- Also include at least one “full pipeline” test that triggers an alert from telemetry if the pipeline supports it.
+
+Create 3 canonical cases:
+Case A: “Schedulable High Risk”
+- rul_p10=6, rul_p50=8, severity=high, duration=2h -> should schedule within week
+
+Case B: “Blocked by Lead Time”
+- rul_p10=2, prep_days=3 -> blocked lead_time
+
+Case C: “Unassigned by Capacity”
+- two critical tasks same vessel same window with capacity limit -> one scheduled, one unassigned capacity
+
+====================================================
+5) DOCUMENTATION + REPORTING
+====================================================
+Produce:
+- TESTING_PDM.md with:
+  - how to run tests
+  - how to bring up test DB
+  - how to seed data
+- A summary report printed at end of test run:
+  - ingestion tests pass/fail
+  - risk queue pass/fail
+  - schedule pass/fail
+  - UI e2e pass/fail
+
+====================================================
+START NOW
+====================================================
+1) Run discovery and report current tooling and entrypoints.
+2) Implement the test DB harness and seed scripts.
+3) Implement unit + integration tests for ingestion, risk queue, scheduling, schedule endpoint.
+4) Add UI E2E tests if feasible with existing tooling.
+5) Ensure all tests run via a single command: npm run test:pdm

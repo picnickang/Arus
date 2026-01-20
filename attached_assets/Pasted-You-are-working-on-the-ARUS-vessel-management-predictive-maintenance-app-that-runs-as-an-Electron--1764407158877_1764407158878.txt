@@ -1,0 +1,487 @@
+You are working on the ARUS vessel management / predictive maintenance app that runs as an Electron desktop app with an embedded server.
+
+
+
+High-level context (do NOT change this):
+
+Frontend: React + TypeScript, using shadcn/ui, React Query, Zod, React Hook Form, etc.
+
+Backend: Node/TypeScript (or JS) API server (Express / similar) with modular routes, Drizzle ORM, and a hybrid database setup:
+
+Local SQLite for embedded/vessel mode
+
+PostgreSQL / Turso for cloud/central mode (dual-write and sync abstractions already exist)
+
+The app is multi-tenant: all important data is scoped by orgId (x-org-id / currentOrgId).
+
+App already has:
+
+Telemetry ingestion and equipment health
+
+Logbook modules (deck & engine)
+
+Alerts & notifications logic (API endpoints like /api/alerts/... and websocket subscriptions)
+
+Basic email/notification utilities may or may not exist – you need to check first.
+
+GOAL
+
+
+
+Add a complete, configurable “Email & Alerts Settings” system end-to-end, without breaking the existing architecture.
+
+
+
+This includes:
+
+Detection & compatibility check
+
+Scan the entire codebase for:
+
+Any existing email sending utilities (SMTP, SendGrid, SES, etc.).
+
+Any existing “settings” tables or configuration models.
+
+Any existing alert dispatch logic or notification modules (for telemetry or compliance).
+
+Before you implement anything, summarize what already exists for:
+
+Alerts
+
+Email / notifications
+
+Settings / config storage (per org, per vessel)
+
+Design your changes to extend or wrap the current architecture, not duplicate it.
+
+If something similar already exists, prefer refactoring / reusing over building parallel logic.
+
+Output a short summary in comments (or a markdown file like docs/alerts-email-settings-notes.md) explaining:
+
+What you found
+
+What you are going to add
+
+Why it doesn’t conflict with existing features
+
+Data model & persistence (multi-tenant, dual DBs)
+
+Add schema + storage for email/alert config, making sure it works for:
+
+Local SQLite (embedded/vessel)
+
+Remote Postgres/Turso (cloud/office)
+
+Requirements:
+
+A table (or tables) for org-level alert settings, e.g. alert_settings:
+
+id
+
+orgId
+
+Global email config:
+
+enabled (boolean)
+
+defaultToEmail
+
+ccEmails (optional list/string)
+
+bccEmails (optional list/string)
+
+timezone (string)
+
+Email transport config:
+
+provider (enum: "smtp" | "sendgrid" | "ses" | "mailgun" | "gmail_smtp" | "custom" etc.)
+
+For SMTP: smtpHost, smtpPort, smtpUser, smtpEncryptedPassword, smtpUseTls
+
+For API providers: apiKeyEncrypted, apiBaseUrl (if needed), etc.
+
+Other options:
+
+lastTestStatus
+
+lastTestAt
+
+createdAt, updatedAt
+
+A table (or tables) for vessel-specific alert overrides, e.g. alert_settings_vessel:
+
+id
+
+orgId
+
+vesselId
+
+enabled (boolean)
+
+overrideEmails (optional)
+
+criticalAlertsEnabled (boolean)
+
+warningAlertsEnabled (boolean)
+
+Optional JSON for per-vessel thresholds (but try to reuse global thresholds structure).
+
+A table for alert category thresholds/config, e.g. alert_thresholds:
+
+id
+
+orgId
+
+category (e.g. "machinery", "telemetry", "compliance")
+
+key (e.g. "ME_EXHAUST_TEMP_HIGH", "LUB_OIL_PRESSURE_LOW", "ENGINE_LOG_UNSIGNED_DAYS", "DECK_LOG_UNSIGNED_HOURS", "WORK_ORDER_OVERDUE_DAYS", etc.)
+
+severity ("warning" | "critical")
+
+minValue, maxValue or a generic thresholdValue (number/string)
+
+enabled (boolean)
+
+description
+
+createdAt, updatedAt
+
+A table for sent email audit logs, e.g. alert_email_log:
+
+id
+
+orgId
+
+vesselId (optional)
+
+alertType (string)
+
+recipients (string/json)
+
+subject
+
+status ("sent" | "failed")
+
+errorMessage (nullable)
+
+payloadPreview (optional JSON)
+
+createdAt
+
+Important:
+
+Implement Drizzle ORM models for all of the above.
+
+Wire them into both SQLite and Postgres/Turso migrations (or the project’s existing migration mechanism).
+
+Use the existing dual-write / client abstraction style (LibSQL/Postgres) if present.
+
+Secure secret handling
+
+Identify existing patterns for storing secrets (API keys, SMTP passwords, etc.).
+
+If nothing exists, implement a small abstraction for encryption at rest, e.g.:
+
+Use Node crypto or whatever the project already uses.
+
+Encrypt secrets before storing in DB (smtpEncryptedPassword, apiKeyEncrypted) and decrypt only when sending.
+
+Never log secrets.
+
+Make sure this works in both:
+
+Electron embedded (single-user-ish, local DB)
+
+Cloud / multi-tenant scenario.
+
+Backend API layer
+
+Add new REST endpoints like:
+
+GET /api/settings/alerts
+
+Returns org-level global alert/email config, per-vessel overrides, and thresholds.
+
+PUT /api/settings/alerts
+
+Updates org-level config.
+
+GET /api/settings/alerts/vessels
+
+Returns per-vessel alert configs.
+
+PUT /api/settings/alerts/vessels/:vesselId
+
+Updates per-vessel config.
+
+GET /api/settings/alerts/thresholds
+
+Returns alert categories & thresholds.
+
+PUT /api/settings/alerts/thresholds
+
+Bulk update thresholds.
+
+POST /api/settings/alerts/test-email
+
+Sends a test email using current settings to the specified address.
+
+Reuse existing middleware:
+
+Tenant isolation (requireOrgId, x-org-id headers)
+
+Auth
+
+Error handling/logging
+
+Requirements:
+
+Full validation of payloads (use Zod or existing validation layer).
+
+Correct orgId scoping everywhere.
+
+Respect existing deployment mode (embedded vs cloud).
+
+Add unit-level or integration tests following the project’s existing test patterns.
+
+Email sending abstraction
+
+Create or extend a single module, e.g. emailService or alertEmailService, that:
+
+Reads org-level settings, and falls back to:
+
+Global defaults
+
+Environment variables (for dev-only)
+
+Supports at minimum:
+
+SMTP provider
+
+One API provider (e.g. SendGrid or SES) – choose whichever pattern is easiest or already exists.
+
+Has a single function like:
+
+sendAlertEmail({
+  orgId,
+  vesselId,
+  alertType,
+  severity,
+  subject,
+  bodyHtml,
+  bodyText,
+  toOverride?, // optional
+})
+
+
+Automatically:
+
+Resolves recipients (org-level default + vessel override).
+
+Applies severity rules (e.g. maybe only critical severity if configured).
+
+Logs to alert_email_log.
+
+Add a “test mode” branch used by /test-email endpoint without raising real alerts.
+
+Alert engine integration
+
+Integrate the new settings with existing alert logic:
+
+Find all places where:
+
+Telemetry anomalies are detected (e.g., high exhaust temperature, low lub oil pressure, abnormal RPM, etc.).
+
+Compliance issues are determined:
+
+Unsigned engine logs
+
+Unsigned deck logs
+
+Overdue work orders
+
+Hours-of-rest violations (if implemented)
+
+Other compliance/safety triggers
+
+For each place where you currently:
+
+Log alerts
+
+Push WebSocket/Realtime UI alerts
+
+Wrap or extend that logic to optionally send email via sendAlertEmail only if:
+
+Org and vessel settings enable that alert category.
+
+Thresholds indicate email should be sent.
+
+There is not an excessive frequency for the same alert (add basic dedup / cooldown; e.g., “don’t email the same alert more than once per X minutes per vessel”).
+
+Implement a simple dedup/cooldown mechanism, for example:
+
+A small in-memory or DB-backed cache keyed by (orgId, vesselId, alertType, severity).
+
+Store lastSentAt and skip if recent (e.g. within 15 or 30 minutes).
+
+Make cooldown configurable via thresholds or a global setting if appropriate.
+
+Frontend: Settings → Email & Alerts UI
+
+Add a new page in the frontend, e.g. under Settings:
+
+Route something like: /settings/alerts or similar to existing structure.
+
+Use existing layout, navigation, and design system (shadcn/ui).
+
+UI sections:
+
+A. Global Settings Panel
+
+Switch: “Enable email alerts”
+
+Input: “Default alert email” (To)
+
+Input: “Additional recipients (comma-separated)”
+
+Input: “Timezone” (or select)
+
+Provider select: SMTP / SendGrid / SES / Mailgun / Gmail SMTP / Custom
+
+If SMTP selected:
+
+Host, port, username, password, TLS toggle
+
+If API provider selected:
+
+API key, region/endpoint if needed
+
+Button: “Save”
+
+Button: “Send Test Email” (asks for a test email address, calls /test-email)
+
+B. Per-vessel Settings Panel
+
+Table/list of vessels (use existing /api/vessels endpoint):
+
+Columns:
+
+Vessel name
+
+Enable alerts (switch)
+
+Critical alerts (switch)
+
+Warning alerts (switch)
+
+Override email (optional)
+
+Inline save or “Save all” depending on existing form patterns.
+
+C. Alert Categories & Thresholds Panel
+
+Grouped by category (machinery, telemetry, compliance)
+
+For each threshold from alert_thresholds:
+
+Label
+
+Severity (dropdown if editable)
+
+Numeric threshold or min/max
+
+Enabled toggle
+
+Save button.
+
+D. Email Logs Panel (basic)
+
+Table with:
+
+Timestamp
+
+Vessel
+
+Alert type
+
+Recipients
+
+Status (sent/failed)
+
+Paginated, read-only.
+
+Use:
+
+React Query for data fetching/mutations.
+
+Zod schemas + React Hook Form for validation.
+
+Existing toast system for success/error feedback.
+
+Compatibility, performance, and safety checks
+
+After implementing:
+
+Scan for:
+
+Typescript errors
+
+ESLint/prettier issues (if present)
+
+Broken imports or circular dependencies
+
+Ensure:
+
+No secret values are logged
+
+Org isolation is respected in all new endpoints
+
+SQLite schema and Postgres/Turso schema remain in sync
+
+Add at least a minimal test coverage:
+
+A unit or integration test for /api/settings/alerts GET/PUT
+
+A test for /api/settings/alerts/test-email using a stubbed email provider
+
+Non-goals (do NOT do this):
+
+Do NOT remove or rewrite the entire existing alert system.
+
+Do NOT hardcode single-tenant behavior.
+
+Do NOT break embedded/vessel mode or assume cloud DB is always present.
+
+Do NOT log SMTP passwords or API keys.
+
+WHAT TO OUTPUT
+
+All necessary backend changes:
+
+Drizzle schema/migrations
+
+Email service abstraction
+
+New alert settings endpoints
+
+Integration into existing alert/telemetry/compliance logic
+
+All necessary frontend changes:
+
+New Settings → Alerts page
+
+Data fetching/mutations
+
+Full UI structure as described
+
+Any docs or comments that briefly explain:
+
+How to configure email alerts
+
+Where to add SMTP/API keys
+
+How to test the feature
+
+
+
+Make all changes incrementally and ensure the project builds and runs successfully at the end.

@@ -1,0 +1,229 @@
+You are a senior data/platform architect + full-stack engineer. You are working inside an existing Node.js/TypeScript PdM app (ARUS). Your task is to:
+
+1) Compare the “ideal PdM modeling outputs” required by the Predictive Maintenance UI against the CURRENT backend + database + telemetry pipeline + frontend.
+2) Propose pragmatic amendments (DB, compute jobs, endpoints, UI wiring) ONLY where necessary.
+3) ENSURE proper routing of data end-to-end: telemetry -> storage -> features -> models -> alerts/risk queue -> API -> frontend, with clear ownership of where each computation happens.
+4) Implement patch-ready changes after analysis, preserving backward compatibility.
+
+Do NOT assume the stack—discover it from the repo. Reuse existing patterns and endpoints whenever possible.
+
+====================================================
+A) TARGET UI OUTPUTS (WHAT THE FRONTEND MUST DISPLAY)
+====================================================
+
+1) Risk Queue rows (sortable operational inbox)
+Required per row:
+- alert_id
+- severity (critical/high/medium/low)
+- vessel_id, vessel_name
+- asset_id/equipment_id, asset_name
+- failure_mode_label (string) + optional probabilities
+- RUL quantiles: rul_p10_days, rul_p50_days, rul_p90_days (display P10–P90 as range; P50 as “typical”)
+- p_fail_14d (probability of failure within 14 days) OR equivalent risk metric
+- confidence_pct (calibrated; or derived from interval width)
+- evidence_chips[] (top drivers like “Vibration rising”, “EGT spread high”)
+- recommended_action (short text)
+- status (new/ack/wo_created/resolved)
+- last_seen_at (telemetry freshness)
+- updated_at
+
+2) Fleet KPI cards:
+- fleet_health_score_0_100 + delta_7d
+- active_alerts_total + active_alerts_critical
+- assets_at_risk_count (RUL <= 14 days OR p_fail_14d >= threshold)
+- avoided_downtime_hours_30d (expected value)
+- maintenance_spend_forecast_30d (expected value)
+
+3) Telemetry coverage:
+- total_assets
+- online_assets
+- delayed_assets_count
+- delayed_assets[] {asset_id, asset_name, last_seen_at}
+- data_completeness_pct (optional)
+
+4) Model health:
+- active_models_count
+- drift_alerts_count
+- last_training_at
+- drift_details (optional)
+
+5) Asset detail view:
+- header: severity, online/delayed, RUL quantiles + confidence, failure mode
+- evidence charts: signal time series + thresholds/markers + anomaly_score series
+- recommended actions checklist
+- history tabs: maintenance history, telemetry notes, documents (optional), similar past events (optional)
+
+6) Actions:
+- acknowledge alert
+- create work order from alert (if system supports)
+- assign / add notes
+
+====================================================
+B) REFERENCE: BEST MATH / MODELING TO GENERATE UI OUTPUTS
+====================================================
+Use these as the “ideal benchmark”:
+
+- RUL + probability of failure: survival models (Cox/AFT/boosted survival) or quantile regression.
+  Outputs: S(t), p_fail_Xd, rul quantiles (P10/P50/P90).
+- Confidence: conformal prediction or quantile intervals; can proxy from interval width if needed.
+- Evidence chips: statistical drivers (z-score, trend slope, threshold exceedance) and/or SHAP.
+- Anomaly score: EWMA residual + robust z-score baseline (fast) or Isolation Forest/autoencoder.
+- Fleet health score: weighted composite of hazard/p_fail + anomaly + freshness penalty.
+- Avoided downtime + spend forecast: expected value
+  sum_over_assets(p_event_window * expected_downtime_or_cost_by_asset_class/failure_mode).
+- Drift: PSI/KS + performance drift if labels exist.
+
+====================================================
+C) STEP 1 — DISCOVER CURRENT STRUCTURE (MANDATORY)
+====================================================
+Scan repo and produce an evidence-based map.
+
+1) Telemetry pipeline discovery:
+- Ingestion entrypoints: HTTP routes, MQTT handlers, WebSockets, file replay, cron jobs
+- Validation/DTO schemas
+- Dedup/idempotency logic
+- Storage tables: raw telemetry, decoded signals, any feature tables
+- Any queues/workers and retry behavior
+- DLQ (if any)
+- Freshness tracking: last_seen, heartbeat
+- Retention policies
+- Where “hybrid storage” is used (DB + filesystem/object storage)
+
+2) PdM backend discovery:
+- Endpoints for dashboard, risk queue, alert detail, charts
+- How alerts are generated and updated
+- Tables: pdm_alerts, pdm_alert_evidence, ml_models, ml_model_runs, maintenance_records, work_orders, etc.
+- How statuses/transitions are stored
+
+3) PdM frontend discovery:
+- Locate current Predictive Maintenance page and components (file paths)
+- Identify API client hooks/patterns (React Query/SWR)
+- Identify what data it requests today and how it renders it
+- Identify routing (React Router/Next routes) and state passing
+
+OUTPUT (REQUIRED):
+- List of key files (paths)
+- Text diagrams:
+  a) Current telemetry flow
+  b) Current PdM data flow (alerts + UI)
+- A mapping table: “UI section -> current endpoint/hook -> fields present”
+
+====================================================
+D) STEP 2 — DATA ROUTING AUDIT (END-TO-END)
+====================================================
+You MUST ensure “proper routing” of data. Build a routing map that shows:
+
+Telemetry -> where ingested -> where persisted raw -> where decoded -> where features computed -> where models scored -> where alerts generated -> where results stored -> which endpoints expose them -> which frontend components consume them.
+
+For each hop, specify:
+- Producer component (file path)
+- Data contract (fields)
+- Storage location (table + keys)
+- Consumer component (file path)
+- Failure modes (what happens if delayed/missing)
+- Latency expectations (near real-time vs batch)
+
+Identify broken/unclear routes (e.g., computations happening in frontend, missing joins, missing keys like equipment_id, mismatched timestamps).
+
+====================================================
+E) STEP 3 — GAP ANALYSIS VS IDEAL OUTPUTS
+====================================================
+Create a gap matrix:
+
+Rows: each required UI output in section A
+Columns:
+- Exists today? (Y/N/Partial)
+- Source (DB/API/worker/frontend)
+- Data quality risks (missing labels, no confidence, no last_seen, etc.)
+- Routing issue? (Y/N + description)
+- Recommended amendment (minimal)
+- Effort (S/M/L)
+- Dependency
+
+Rules:
+- If RUL is a single number, recommend quantiles.
+- If confidence missing, implement interval/proxy.
+- If evidence chips missing, implement statistical drivers first.
+- If data is computed client-side, move to backend use-case or view.
+
+====================================================
+F) STEP 4 — PROPOSE AMENDMENTS (PRAGMATIC + INCREMENTAL)
+====================================================
+Propose amendments in priority order:
+
+1) Foundations (routing keys + freshness + quality)
+- Standardize join keys: asset_id/equipment_id, vessel_id, signal_id
+- Add asset_last_seen (table/view) if missing
+- Add idempotency constraints + DLQ if missing
+
+2) Feature layer (for evidence/anomaly)
+- Create minimal windowed features table(s): mean/std/p95/slope/zscore
+- Ensure feature generation job consumes decoded signals and writes features with correct keys/timestamps
+
+3) Anomaly score baseline
+- Compute anomaly score time series per asset and/or per signal window
+- Store it where charts can fetch it reliably
+
+4) Risk + RUL outputs
+- Phase 1 (no survival yet): risk score + pseudo RUL range based on hazard proxy (clearly marked)
+- Phase 2: survival/quantile model outputs: rul_p10/p50/p90 + p_fail_14d + confidence
+- Store latest predictions per asset and optionally prediction history
+
+5) Business KPIs
+- Avoided downtime + spend forecast using expected value
+- If costs/downtime tables missing, add minimal lookup tables or compute from maintenance_records.
+
+6) Drift + model health
+- Drift calculations job; store drift alerts count and details
+- Expose last_training_at from model runs
+
+For each amendment:
+- DB schema changes (idempotent SQL)
+- Worker/job changes
+- Endpoint changes (or minimal new endpoints only if needed)
+- Frontend display changes and fallbacks
+
+====================================================
+G) STEP 5 — FRONTEND CONTRACTS + DISPLAY RULES
+====================================================
+For each UI section:
+- Define primary fields to display + UX (RUL shown as P10–P90; confidence badge; evidence chips)
+- Fallback behavior when fields missing
+- Sorting/filtering logic (sort by p_fail_14d or RUL P50)
+- Loading/error states
+
+Create/Update shared TypeScript contracts:
+- DashboardDTO
+- RiskQueueItemDTO
+- AlertDetailDTO
+- ChartSeriesDTO
+
+Ensure the contracts match actual backend responses and are used by hooks/components.
+
+====================================================
+H) STEP 6 — PATCH-READY IMPLEMENTATION (ONLY AFTER ANALYSIS)
+====================================================
+After discovery + routing audit + gap analysis:
+1) Implement minimal changes to fix routing first (keys, last_seen, joins).
+2) Add missing computed outputs in backend jobs/use-cases (Phase 1 baseline if needed).
+3) Update/extend endpoints to return required fields (keep backward compat).
+4) Update PdM frontend components to render the new fields, using fallbacks.
+
+Deliver patch-ready outputs:
+- New/updated TS types/contracts
+- DB SQL: CREATE TABLE/INDEX IF NOT EXISTS consistent with repo style
+- Worker/job stubs for features/anomaly/risk if missing
+- Endpoint updates
+- Frontend wiring updates
+
+Also add a small “Routing Verification Checklist”:
+- For a selected asset, prove that:
+  raw telemetry exists -> decoded signals exist -> features exist -> predictions exist -> alert exists -> UI shows it.
+
+====================================================
+START NOW
+====================================================
+1) Search the repo for telemetry, pdm, alerts, rul, models, maintenance, ingestion, raw_telemetry, telemetry_signal.
+2) Output the current architecture map + data routing map.
+3) Build the gap matrix vs the ideal outputs.
+4) Propose amendments and then implement minimal patch-ready changes.

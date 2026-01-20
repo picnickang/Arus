@@ -1,0 +1,152 @@
+So at this point, if you’re still seeing “Cannot GET /”, it can only be coming from Express routing, not from the Electron side.
+
+
+
+Let’s just force-fix the routing with a small, explicit patch.
+
+1. Add a guaranteed root route + SPA fallback
+
+
+
+Open your server entry (the one that esbuild bundles to server/index.js – from your logs it’s server/index.ts).
+
+
+
+Find the section where Express app is created and where static files are configured (the code that logs [Static] Candidate roots etc).
+
+
+
+Replace that whole “static + SPA + error handler” block with something like this:
+
+// server/index.ts (or wherever app is defined)
+
+import path from 'path';
+import express from 'express';
+
+const app = express();
+
+// ... all your other imports and middleware
+
+// Make sure staticRoot is exactly the folder the logs show:
+// /Users/homeimac/Downloads/RecipeRealm/dist
+const staticRoot = path.join(__dirname, '..', 'dist');
+
+// 1) API routes FIRST
+app.use('/api', apiRouter); // whatever your API router is called
+
+// 2) Serve static files from root
+app.use(express.static(staticRoot));
+
+/**
+ * 3) Root route for sanity
+ *    This guarantees that GET / sends index.html
+ */
+app.get('/', (req, res) => {
+  res.sendFile(path.join(staticRoot, 'index.html'));
+});
+
+/**
+ * 4) SPA fallback for anything that is not /api/*
+ *    (keeps React Router working on deep links)
+ */
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    return next(); // let API 404 handler deal with it
+  }
+  res.sendFile(path.join(staticRoot, 'index.html'));
+});
+
+/**
+ * 5) FINAL 404 handler (for real misses like /api/does-not-exist)
+ */
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Not Found',
+    path: req.path,
+  });
+});
+Important:
+
+Make sure there is no other earlier handler that does:
+
+res.status(404).send('Cannot GET ' + req.path);
+or similar. If you see one, delete or change it to the JSON handler above and keep it after the SPA fallback.
+
+There should be only one app.get('*', …) SPA route and only one final 404 handler.
+
+2. Quick sanity test (no Electron involved)
+
+
+
+After editing server/index.ts, rebuild and run just the server:
+
+npm run build:server
+node server/index.js
+In a second terminal:
+
+cd /Users/homeimac/Downloads/RecipeRealm
+curl -i http://localhost:5000
+What you want to see in the response headers/body:
+
+HTTP/1.1 200 OK
+
+An HTML document with <html>, <head>, <body> etc coming from dist/index.html.
+
+
+
+If you still see Cannot GET / in the curl output, it means some other 404 middleware is still shadowing the root. Search your repo for the string Cannot GET and kill/modify that handler.
+
+3. Electron is already correct
+
+
+
+From your logs:
+
+🔗 Electron loading URL: http://localhost:5000
+That’s exactly what we want. Once curl http://localhost:5000 returns your HTML, the Electron window will stop showing “Cannot GET /” and show the ARUS UI instead.
+
+4. If you want a Replit “fix it for me” prompt
+
+
+
+Here’s a tighter Replit prompt tailored to your current state:
+
+I have a Node + Express + Vite + Electron app. The renderer builds to dist/public and then a script copies those files to dist/. The server log clearly shows:
+
+[Static] Candidate roots: [ '<projectRoot>/dist', ... ]
+[Static] ✓ Selected frontend build from: <projectRoot>/dist
+[Static] ✓ express.static() configured for: <projectRoot>/dist
+[Static] ✓ SPA fallback route (GET *) configured
+[Static] ✓ Error handler registered (after SPA fallback)
+✅ Application initialization complete
+🚀 ARUS application is now live!
+
+Electron logs:
+
+🔗 Electron loading URL: http://localhost:5000
+
+But the Electron window still shows “Cannot GET /”. That means Express is still returning a 404 for /, despite the static + SPA logs.
+
+Tasks:
+
+1. Open the main Express server file (the one compiled to server/index.js, currently server/index.ts).
+2. Replace the static + SPA + error handler logic with the following structure:
+
+   - app.use('/api', apiRouter);
+   - app.use(express.static(staticRoot));  // staticRoot must be <projectRoot>/dist
+   - app.get('/', (req, res) => res.sendFile(path.join(staticRoot, 'index.html')));
+   - app.get('*', (req, res, next) => { if (req.path.startsWith('/api/')) return next(); res.sendFile(path.join(staticRoot, 'index.html')); });
+   - app.use((req, res) => res.status(404).json({ error: 'Not Found', path: req.path }));
+
+3. Remove or rewrite any other middleware that sends plain text “Cannot GET …” so it no longer runs for the / route, and ensure there is only one SPA fallback and one 404 handler, in that order.
+
+4. Confirm the code that starts the server actually uses this Express app instance.
+
+5. After changes, run:
+
+   npm run build:server
+   node server/index.js
+
+   and verify that `curl -i http://localhost:5000` returns the contents of dist/index.html (200 OK), not “Cannot GET /”.
+
+Make all necessary edits to server/index.ts (or equivalent) to achieve this.

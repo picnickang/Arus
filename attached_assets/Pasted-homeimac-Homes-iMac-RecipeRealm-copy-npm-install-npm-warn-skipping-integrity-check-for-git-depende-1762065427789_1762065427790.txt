@@ -1,0 +1,107 @@
+homeimac@Homes-iMac RecipeRealm copy % npm install
+npm warn skipping integrity check for git dependency ssh://git@github.com/electron/node-gyp.git
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm warn deprecated npmlog@5.0.1: This package is no longer supported.
+npm warn deprecated @npmcli/move-file@2.0.1: This functionality has been moved to @npmcli/fs
+npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
+npm warn deprecated rimraf@2.6.3: Rimraf versions prior to v4 are no longer supported
+npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated glob@8.1.0: Glob versions prior to v9 are no longer supported
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated glob@8.1.0: Glob versions prior to v9 are no longer supported
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+npm warn deprecated are-we-there-yet@2.0.0: This package is no longer supported.
+npm warn deprecated gauge@3.0.2: This package is no longer supported.
+npm warn deprecated boolean@3.2.0: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+npm error code 1
+npm error path /Users/homeimac/Downloads/RecipeRealm copy/node_modules/@tensorflow/tfjs-node
+npm error command failed
+npm error command sh -c node scripts/install.js
+npm error CPU-darwin-4.22.0.tar.gz
+npm error https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-darwin-x86_64-2.9.1.tar.gz
+npm error node-pre-gyp install failed with error: Error: Command failed: node-pre-gyp install --fallback-to-build
+npm error node-pre-gyp info it worked if it ends with ok
+npm error node-pre-gyp info using node-pre-gyp@1.0.9
+npm error node-pre-gyp info using node@24.11.0 | darwin | x64
+npm error node-pre-gyp info check checked for "/Users/homeimac/Downloads/RecipeRealm copy/node_modules/@tensorflow/tfjs-node/lib/napi-v8/tfjs_binding.node" (not found)
+npm error node-pre-gyp http GET https://storage.googleapis.com/tf-builds/pre-built-binary/napi-v8/4.22.0/CPU-darwin-4.22.0.tar.gz
+npm error node-pre-gyp ERR! install response status 404 Not Found on https://storage.googleapis.com/tf-builds/pre-built-binary/napi-v8/4.22.0/CPU-darwin-4.22.0.tar.gz 
+npm error node-pre-gyp WARN Pre-built binaries not installable for @tensorflow/tfjs-node@4.22.0 and node@24.11.0 (node-v137 ABI, unknown) (falling back to source compile with node-gyp) 
+npm error node-pre-gyp WARN Hit error response status 404 Not Found on https://storage.googleapis.com/tf-builds/pre-built-binary/napi-v8/4.22.0/CPU-darwin-4.22.0.tar.gz 
+npm error gyp info it worked if it ends with ok
+npm error gyp info using node-gyp@11.4.2
+npm error gyp info using node@24.11.0 | darwin | x64
+npm error gyp info ok 
+npm error gyp info it worked if it ends with ok
+npm error gyp info using node-gyp@11.4.2
+npm error gyp info using node@24.11.0 | darwin | x64
+npm error gyp info find Python using Python version 3.9.6 found at "/Library/Developer/CommandLineTools/usr/bin/python3"
+npm error gyp info spawn /Library/Developer/CommandLineTools/usr/bin/python3
+npm error gyp info spawn args [
+npm error gyp info spawn args '/usr/local/lib/node_modules/npm/node_modules/node-gyp/gyp/gyp_main.py',
+npm error gyp info spawn args 'binding.gyp',
+npm error gyp info spawn args '-f',
+npm error gyp info spawn args 'make',
+npm error gyp info spawn args '-I',
+npm error gyp info spawn args '/Users/homeimac/Downloads/RecipeRealm copy/node_modules/@tensorflow/tfjs-node/build/config.gypi',
+npm error gyp info spawn args '-I',
+npm error gyp info spawn args '/usr/local/lib/node_modules/npm/node_modules/node-gyp/addon.gypi',
+npm error gyp info spawn args '-I',
+npm error gyp info spawn args '/Users/homeimac/Library/Caches/node-gyp/24.11.0/include/node/common.gypi',
+npm error gyp info spawn args '-Dlibrary=shared_library',
+npm error gyp info spawn args '-Dvisibility=default',
+npm error gyp info spawn args '-Dnode_root_dir=/Users/homeimac/Library/Caches/node-gyp/24.11.0',
+npm error gyp info spawn args '-Dnode_gyp_dir=/usr/local/lib/node_modules/npm/node_modules/node-gyp',
+npm error gyp info spawn args '-Dnode_lib_file=/Users/homeimac/Library/Caches/node-gyp/24.11.0/<(target_arch)/node.lib',
+npm error gyp info spawn args '-Dmodule_root_dir=/Users/homeimac/Downloads/RecipeRealm copy/node_modules/@tensorflow/tfjs-node',
+npm error gyp info spawn args '-Dnode_engine=v8',
+npm error gyp info spawn args '--depth=.',
+npm error gyp info spawn args '--no-parallel',
+npm error gyp info spawn args '--generator-output',
+npm error gyp info spawn args 'build',
+npm error gyp info spawn args '-Goutput_dir=.'
+npm error gyp info spawn args ]
+npm error gyp info ok 
+npm error gyp info it worked if it ends with ok
+npm error gyp info using node-gyp@11.4.2
+npm error gyp info using node@24.11.0 | darwin | x64
+npm error gyp info spawn make
+npm error gyp info spawn args [ 'BUILDTYPE=Release', '-C', 'build' ]
+npm error clang: error: no such file or directory: 'copy/node_modules/@tensorflow/tfjs-node/deps/include'
+npm error make: *** [Release/obj.target/tfjs_binding/binding/tfjs_backend.o] Error 1
+npm error gyp ERR! build error 
+npm error gyp ERR! stack Error: `make` failed with exit code: 2
+npm error gyp ERR! stack at ChildProcess.<anonymous> (/usr/local/lib/node_modules/npm/node_modules/node-gyp/lib/build.js:219:23)
+npm error gyp ERR! System Darwin 21.6.0
+npm error gyp ERR! command "/usr/local/bin/node" "/usr/local/lib/node_modules/npm/node_modules/node-gyp/bin/node-gyp.js" "build" "--fallback-to-build" "--module=/Users/homeimac/Downloads/RecipeRealm copy/node_modules/@tensorflow/tfjs-node/lib/napi-v8/tfjs_binding.node" "--module_name=tfjs_binding" "--module_path=/Users/homeimac/Downloads/RecipeRealm copy/node_modules/@tensorflow/tfjs-node/lib/napi-v8" "--napi_version=10" "--node_abi_napi=napi" "--napi_build_version=8" "--node_napi_label=napi-v8"
+npm error gyp ERR! cwd /Users/homeimac/Downloads/RecipeRealm copy/node_modules/@tensorflow/tfjs-node
+npm error gyp ERR! node -v v24.11.0
+npm error gyp ERR! node-gyp -v v11.4.2
+npm error gyp ERR! not ok 
+npm error node-pre-gyp ERR! build error 
+npm error node-pre-gyp ERR! stack Error: Failed to execute '/usr/local/bin/node /usr/local/lib/node_modules/npm/node_modules/node-gyp/bin/node-gyp.js build --fallback-to-build --module=/Users/homeimac/Downloads/RecipeRealm copy/node_modules/@tensorflow/tfjs-node/lib/napi-v8/tfjs_binding.node --module_name=tfjs_binding --module_path=/Users/homeimac/Downloads/RecipeRealm copy/node_modules/@tensorflow/tfjs-node/lib/napi-v8 --napi_version=10 --node_abi_napi=napi --napi_build_version=8 --node_napi_label=napi-v8' (1)
+npm error node-pre-gyp ERR! stack     at ChildProcess.<anonymous> (/Users/homeimac/Downloads/RecipeRealm copy/node_modules/@mapbox/node-pre-gyp/lib/util/compile.js:89:23)
+npm error node-pre-gyp ERR! stack     at ChildProcess.emit (node:events:508:28)
+npm error node-pre-gyp ERR! stack     at maybeClose (node:internal/child_process:1101:16)
+npm error node-pre-gyp ERR! stack     at ChildProcess._handle.onexit (node:internal/child_process:305:5)
+npm error node-pre-gyp ERR! System Darwin 21.6.0
+npm error node-pre-gyp ERR! command "/usr/local/bin/node" "/Users/homeimac/Downloads/RecipeRealm copy/node_modules/.bin/node-pre-gyp" "install" "--fallback-to-build"
+npm error node-pre-gyp ERR! cwd /Users/homeimac/Downloads/RecipeRealm copy/node_modules/@tensorflow/tfjs-node
+npm error node-pre-gyp ERR! node -v v24.11.0
+npm error node-pre-gyp ERR! node-pre-gyp -v v1.0.9
+npm error node-pre-gyp ERR! not ok
+npm error * Downloading libtensorflow
+npm error
+npm error * Building TensorFlow Node.js bindings
+npm error A complete log of this run can be found in: /Users/homeimac/.npm/_logs/2025-11-02T06_34_35_661Z-debug-0.log
+homeimac@Homes-iMac RecipeRealm copy % 

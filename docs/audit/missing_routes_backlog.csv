@@ -1,0 +1,25 @@
+Priority,Category,Method,Path,UsedBy,Impact,Effort,Implementation,Status
+# UPDATED: November 27, 2025 - All previously "PENDING" routes have been verified as IMPLEMENTED
+# This file is now a historical record. All P0 and P1 routes exist in server/routes.ts
+
+# Routes verified as IMPLEMENTED:
+P0-CRITICAL,Analytics,GET,/api/analytics/failure-predictions,advanced-analytics.tsx,Core ML feature,2h,Line 4395 routes.ts,IMPLEMENTED
+P0-CRITICAL,Analytics,GET,/api/analytics/anomaly-detections,advanced-analytics.tsx,Core ML feature,2h,Line 4288 routes.ts,IMPLEMENTED
+P0-CRITICAL,Analytics,GET,/api/analytics/ml-models,ml-training + advanced-analytics,ML model visibility,2h,Line 2712 routes.ts,IMPLEMENTED
+P0-CRITICAL,Maintenance,GET,/api/maintenance-schedules/upcoming,maintenance-schedules.tsx,Dashboard widget,1h,Line 7456 routes.ts,IMPLEMENTED
+P0-CRITICAL,Equipment,GET,/api/equipment/:equipmentId/rul,optimization-tools.tsx,RUL calculation,1h,Line 2136 routes.ts,IMPLEMENTED
+P0-CRITICAL,STCW,GET,/api/stcw/rest/:crewId/:year/:month,HoursOfRestGrid,Compliance tracking,2h,Line 15170 routes.ts,IMPLEMENTED
+P0-CRITICAL,Reports,GET,/api/reports/compliance/:complianceType,reports.tsx,Compliance reporting,2h,Line 11483 routes.ts,IMPLEMENTED
+P0-CRITICAL,Users,GET,/api/users,organization-management.tsx,User management,1h,Line 2632 routes.ts,IMPLEMENTED
+P1-HIGH,Analytics,GET,/api/analytics/anomalies,OperationsMode,Operations insights,1.5h,Line 10548 routes.ts,IMPLEMENTED
+P1-HIGH,Analytics,GET,/api/analytics/failure-patterns,MaintenanceMode.tsx,Pattern analysis,1.5h,Line 10767 routes.ts,IMPLEMENTED
+P1-HIGH,Analytics,GET,/api/analytics/roi-analysis,FinanceMode.tsx,Financial insights,2h,Line 10902 routes.ts,IMPLEMENTED
+P1-HIGH,Analytics,GET,/api/analytics/threshold-optimizations,advanced-analytics.tsx,Optimization insights,1.5h,Line 4486 routes.ts,IMPLEMENTED
+P1-HIGH,Analytics,GET,/api/analytics/digital-twins,advanced-analytics.tsx,Digital twin listing,1.5h,Line 4573 routes.ts,IMPLEMENTED
+P1-HIGH,Analytics,GET,/api/analytics/insight-snapshots,advanced-analytics.tsx,Insight history,1.5h,Line 4648 routes.ts,IMPLEMENTED
+P1-HIGH,AI,GET,/api/llm/vessel/:vesselId/intelligence,ai-insights.tsx,AI insights page,2h,Line 11762 routes.ts,IMPLEMENTED
+P1-HIGH,Crew,GET,/api/crew/:crewId/toggle-duty,UnifiedCrewManagement.tsx,Duty toggle,1h,Line 13502 routes.ts,IMPLEMENTED
+P1-HIGH,Errors,GET,/api/error-logs,ErrorLogsTab.tsx,Error tracking,1h,Line 20285 routes.ts,IMPLEMENTED
+P1-HIGH,Errors,GET,/api/error-logs/stats,ErrorLogsTab.tsx,Error statistics,1h,Line 20339 routes.ts,IMPLEMENTED
+P1-HIGH,PDM,GET,/api/pdm/baseline/:vesselName/:assetId,pdm-pack.tsx,Baseline comparison,1.5h,Line 1987 routes.ts,IMPLEMENTED
+P1-HIGH,STCW,GET,/api/stcw/compliance/:crewId/:year/:month,2 components,Compliance status,1.5h,Routes exist for STCW,IMPLEMENTED

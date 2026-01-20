@@ -1,0 +1,267 @@
+Replit Agent Prompt
+
+
+
+You are an expert in Node.js, TypeScript, esbuild, and Electron.
+
+This project is a desktop app (ARUS / RecipeRealm) that runs a Node server embedded in Electron.
+
+
+
+I’m on macOS. I run:
+
+npm install
+npm run build:electron-main
+npm run build:server
+npx electron .
+The server now fails to start and Electron’s health check never succeeds.
+
+
+
+Current error
+
+
+
+Here is the full console output:
+
+npx electron .
+🎬 ARUS Electron app starting...
+🔧 Mode: Development
+🖥️  Platform: darwin
+🚀 Starting ARUS embedded server...
+🔌 Allocated port: 5000
+📂 Project root: /Users/homeimac/Downloads/RecipeRealm
+📂 Dev server path: /Users/homeimac/Downloads/RecipeRealm/server/index-wrapper.js
+🔧 Dev command: node /Users/homeimac/Downloads/RecipeRealm/server/index-wrapper.js
+ℹ️  Using wrapper to handle async IIFE initialization
+✅ Server process spawned with PID 69214
+[Health Check] Connection error: 
+[Server:69214:Error] ❌ Server initialization failed: SyntaxError: Unexpected reserved word
+    at compileSourceTextModule (node:internal/modules/esm/utils:357:16)
+    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:109:18)
+    at #translate (node:internal/modules/esm/loader:564:20)
+    at afterLoad (node:internal/modules/esm/loader:614:29)
+    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:619:12)
+    at #createModuleJob (node:internal/modules/esm/loader:643:36)
+    at #getJobFromResolveResult (node:internal/modules/esm/loader:353:34)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:318:41)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:685:25)
+[Server:69214:Error] Stack trace: SyntaxError: Unexpected reserved word
+    at compileSourceTextModule (node:internal/modules/esm/utils:357:16)
+    ...
+📴 Server exited (code: 1, signal: null)
+⏳ Waiting for server... (3/30)
+[Health Check] Connection error: 
+...
+❌ Health check failed after 30 attempts
+❌ Fatal startup error: Error: Server failed health check after 30 seconds
+My build script for the server is:
+
+"build:server": "esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=server/index.js --allow-overwrite"
+Electron’s main process spawns node server/index-wrapper.js in dev, and that wrapper is responsible for starting the bundled server and keeping the process alive. The health check hits the server at http://localhost:<PORT>/health (or /api/dashboard depending on what you see in the code).
+
+
+
+The key problem is:
+
+server/index.js is built as ESM (--format=esm),
+
+but the wrapper / runtime is not configured correctly for that, leading to SyntaxError: Unexpected reserved word from the ESM loader and the server exiting with code 1.
+
+
+
+What I need you to do
+
+
+
+Goal: Make the dev server run reliably when called via node server/index-wrapper.js, and ensure Electron’s embedded server startup & health check succeed.
+
+
+
+1. Inspect the server entry
+
+Open all of these:
+
+server/index-wrapper.js
+
+server/index.ts
+
+server/index.js (the esbuild output)
+
+Electron main process file (whatever builds to dist-electron/main.cjs, e.g. electron/main.ts)
+
+In index-wrapper.js, see how it tries to load/run index.js:
+
+Is it using require('./index.js')?
+
+Is it doing import('./index.js')?
+
+Is it wrapping an async function or IIFE and then logging Server initialization failed?
+
+In server/index.js, verify:
+
+It is indeed an ES module (e.g., uses import syntax, export, etc).
+
+Whether it has await at the top level or inside a script context that could cause Unexpected reserved word if accidentally treated as CommonJS.
+
+
+
+2. Choose 
+
+one consistent approach
+
+ and fix the mismatch
+
+Pick one of the following and implement it cleanly (you decide which is best for this project):
+
+
+
+Option A – Keep the server as ESM and fix the wrapper
+
+Keep the esbuild command as:
+
+esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=server/index.js --allow-overwrite
+
+
+Make server/index-wrapper.js a small CommonJS script that uses dynamic import to load the ESM bundle correctly, for example:
+
+(async () => {
+  try {
+    const { startServer } = await import('./index.js');
+    // If index.js already starts the server when imported, just import it.
+    // Otherwise, call startServer({ port: process.env.PORT || 5000 });
+  } catch (err) {
+    console.error('❌ Server initialization failed:', err);
+    console.error('Stack trace:', err.stack);
+    process.exit(1);
+  }
+})();
+
+
+Make sure you’re not require-ing an ESM file.
+
+Make sure you don’t await a top-level ESM module in a way that converts it into script mode.
+
+If the compiled index.js already starts the server on import and does not export anything, then the wrapper should just:
+
+(async () => {
+  try {
+    await import('./index.js');
+  } catch (err) {
+    ...
+  }
+})();
+
+
+
+
+Option B – Build server as CommonJS and simplify
+
+Change the build:server script to:
+
+"build:server": "esbuild server/index.ts --platform=node --packages=external --bundle --format=cjs --outfile=server/index.js --allow-overwrite"
+
+
+Then change server/index-wrapper.js to a straightforward CommonJS launcher:
+
+try {
+  require('./index.js');
+} catch (err) {
+  console.error('❌ Server initialization failed:', err);
+  console.error('Stack trace:', err.stack);
+  process.exit(1);
+}
+
+
+Remove any unnecessary async IIFE complexity if the server can just start and keep running on require.
+
+
+
+Whichever option you choose, make sure:
+
+Node version in this project (and in Electron’s embedded runtime) is compatible with how you’re using ESM or CJS.
+
+There are no leftover type: "module" / .cjs vs .mjs conflicts in package.json that contradict your choice.
+
+
+
+3. Verify the server actually starts and stays up
+
+In the Replit shell, run the dev command that Electron uses:
+
+node server/index-wrapper.js
+
+
+Confirm:
+
+No SyntaxError: Unexpected reserved word appears.
+
+The process stays running (doesn’t exit immediately).
+
+Hit the health endpoint manually:
+
+curl -i -H "x-org-id: default-org-id" http://localhost:5000/health
+# or /api/dashboard if that’s the configured health path
+
+
+If the route is different, align it with Electron’s health check.
+
+
+
+4. Align and harden the Electron health check
+
+In the Electron main process (compiled to dist-electron/main.cjs), confirm how startEmbeddedServer does health checks.
+
+Make sure:
+
+It uses the correct URL (/health or /api/dashboard) that definitely exists.
+
+If needed, create a minimal, always-available health route in the server:
+
+app.get('/health', (_req, res) => {
+  res.status(200).json({ ok: true });
+});
+
+
+Health check logs the HTTP status code and any error when it fails so debugging is easier (some logging is already present; keep it or improve it).
+
+
+
+5. Clean up & re-test Electron startup
+
+After you fix the wrapper / module format and health endpoint, run:
+
+npm run build:electron-main
+npm run build:server
+npx electron .
+
+
+Confirm:
+
+No SyntaxError: Unexpected reserved word.
+
+Server process stays alive (no early exit).
+
+Health checks succeed (see a log like “Server is healthy at http://localhost:5000/health”).
+
+The Electron window opens and the app loads successfully.
+
+
+
+6. Show me the final changes
+
+When you’re done, show:
+
+The final contents (or diffs) of:
+
+server/index-wrapper.js
+
+server/index.ts (only if you had to change its startup pattern)
+
+server/index.js build format (CJS vs ESM) and any build script changes in package.json
+
+Electron main process file where the health check is implemented
+
+
+
+Please explain briefly which option you chose (keep ESM or switch to CJS) and why, and confirm that the end-to-end flow now works.

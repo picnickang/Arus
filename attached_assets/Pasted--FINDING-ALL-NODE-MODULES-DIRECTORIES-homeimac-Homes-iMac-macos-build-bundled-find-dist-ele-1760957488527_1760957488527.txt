@@ -1,0 +1,118 @@
+=== FINDING ALL NODE_MODULES DIRECTORIES ===
+homeimac@Homes-iMac macos-build-bundled % find dist/electron/mac/"ARUS Marine Monitoring.app" -type d -name "node_modules" 2>/dev/null | while read dir; do
+pipe while>   echo "Found: $dir"
+pipe while>   du -sh "$dir"
+pipe while> done
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules
+328M	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/temp/node_modules
+ 52K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/temp/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/temp-file/node_modules
+188K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/temp-file/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/app-builder-lib/node_modules
+452K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/app-builder-lib/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/global-agent/node_modules
+264K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/global-agent/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/node-api-version/node_modules
+264K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/node-api-version/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/tiny-async-pool/node_modules
+ 76K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/tiny-async-pool/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/postject/node_modules
+204K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/postject/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/dir-compare/node_modules
+ 44K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/dir-compare/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/socks-proxy-agent/node_modules
+ 60K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/socks-proxy-agent/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/decompress-response/node_modules
+ 20K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/decompress-response/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/@isaacs/cliui/node_modules
+256K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/@isaacs/cliui/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/cacache/node_modules
+296K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/cacache/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/builder-util/node_modules
+188K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/builder-util/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/foreground-child/node_modules
+164K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/foreground-child/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/make-fetch-happen/node_modules
+296K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/make-fetch-happen/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/@npmcli/fs/node_modules
+264K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/@npmcli/fs/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/node-abi/node_modules
+264K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/node-abi/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/simple-update-notifier/node_modules
+264K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/simple-update-notifier/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/filelist/node_modules
+ 84K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/filelist/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/@malept/flatpak-bundler/node_modules
+260K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/@malept/flatpak-bundler/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/glob/node_modules
+ 44K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/glob/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/electron-winstaller/node_modules
+208K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/electron-winstaller/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/config-file-ts/node_modules
+1.5M	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/config-file-ts/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/electron-publish/node_modules
+188K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/electron-publish/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/tar/node_modules
+ 84K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/tar/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/@electron/universal/node_modules
+788K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/@electron/universal/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/@electron/asar/node_modules
+ 44K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/@electron/asar/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/@electron/osx-sign/node_modules
+212K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/@electron/osx-sign/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/@electron/node-gyp/node_modules
+416K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/@electron/node-gyp/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/@electron/notarize/node_modules
+260K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/@electron/notarize/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/@electron/rebuild/node_modules
+452K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/@electron/rebuild/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/@electron/fuses/node_modules
+260K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/@electron/fuses/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/@electron/windows-sign/node_modules
+188K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/@electron/windows-sign/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/dmg-builder/node_modules
+188K	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/dmg-builder/node_modules
+Found: dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/path-scurry/node_modules
+1.1M	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/path-scurry/node_modules
+homeimac@Homes-iMac macos-build-bundled % # 2. Check the ASAR file (might have node_modules inside)
+zsh: number expected
+homeimac@Homes-iMac macos-build-bundled % echo ""
+
+homeimac@Homes-iMac macos-build-bundled % echo "=== CHECKING ASAR SIZE ==="
+=== CHECKING ASAR SIZE ===
+homeimac@Homes-iMac macos-build-bundled % ls -lh dist/electron/mac/"ARUS Marine Monitoring.app"/Contents/Resources/app.asar
+-rw-r--r--  1 homeimac  staff    67M Oct 20 17:29 dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app.asar
+homeimac@Homes-iMac macos-build-bundled % # 3. Check extraResources app folder
+zsh: command not found: #
+homeimac@Homes-iMac macos-build-bundled % echo ""
+
+homeimac@Homes-iMac macos-build-bundled % echo "=== CHECKING APP FOLDER SIZE ==="
+=== CHECKING APP FOLDER SIZE ===
+homeimac@Homes-iMac macos-build-bundled % du -sh dist/electron/mac/"ARUS Marine Monitoring.app"/Contents/Resources/app
+7.8G	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app
+homeimac@Homes-iMac macos-build-bundled % du -sh dist/electron/mac/"ARUS Marine Monitoring.app"/Contents/Resources/app/node_modules 2>/dev/null
+328M	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules
+homeimac@Homes-iMac macos-build-bundled % # 4. Top space users
+zsh: command not found: #
+homeimac@Homes-iMac macos-build-bundled % echo ""
+
+homeimac@Homes-iMac macos-build-bundled % echo "=== TOP 15 LARGEST ITEMS ==="
+=== TOP 15 LARGEST ITEMS ===
+homeimac@Homes-iMac macos-build-bundled % du -h dist/electron/mac/"ARUS Marine Monitoring.app"/Contents/Resources | sort -h | tail -15
+ 53M	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/nodejs/include
+ 53M	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/nodejs/include/node
+ 68M	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/app-builder-bin/win
+ 96M	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/nodejs/bin
+101M	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/app-builder-bin/linux
+149M	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/nodejs
+207M	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules/app-builder-bin
+273M	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/dist/installers/electron/linux-unpacked/resources
+328M	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/node_modules
+549M	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/dist/installers/electron/linux-unpacked
+725M	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/dist/installers/electron
+7.5G	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/dist
+7.5G	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app/dist/installers
+7.8G	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources/app
+8.0G	dist/electron/mac/ARUS Marine Monitoring.app/Contents/Resources
+homeimac@Homes-iMac macos-build-bundled % 

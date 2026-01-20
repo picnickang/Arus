@@ -1,0 +1,353 @@
+
+You are refactoring the LinearProgrammingOptimizer class to add (1) parts stock constraints and (2) a soft lateness penalty to the objective.
+Edit the file that contains the class export class LinearProgrammingOptimizer (the one that imports javascript-lp-solver and defines formulateLinearProgram, processSolution, etc.). If the file extension is .ts or .js, keep it consistent. Make the following precise changes:
+
+1) Add a helper for lateness penalty
+Inside the class (private method), add:
+private latenessPenalty(job: MaintenanceJob, dayOffset: number, weights: OptimizationConstraints['priorityWeights']): number {
+  // Scheduled date approximation = today + dayOffset days
+  const scheduledTime = Date.now() + dayOffset * 24 * 60 * 60 * 1000;
+  const deadlineMs = job.deadline ? job.deadline.getTime() : null;
+  if (!deadlineMs) return 0;
+  const lateDays = Math.max(0, Math.ceil((scheduledTime - deadlineMs) / (24 * 60 * 60 * 1000)));
+  // Scale by job priority cost; critical jobs get heavier penalty
+  const priorityWeight = this.getPriorityCost(job.priority, weights); // you already have this helper
+  // Tunable factor: 10 per late day per priority weight (kept simple and linear)
+  return lateDays * priorityWeight * 10;
+}
+2) Extend getPartsAvailability type to include stock (defensive):
+Update its return type and comments to reflect optional stock:
+private async getPartsAvailability(): Promise<Array<{ partId: string; stock?: number; unitCost?: number }>> {
+  try {
+    return (await storage.getPartsInventory?.(this.orgId)) || [];
+  } catch {
+    return [];
+  }
+}
+3) In formulateLinearProgram, after existing constraintDefs are created, add parts stock constraints:
+Right after you finish building constraintDefs (after parts budget constraint), insert:
+// Constraint 5: per-part stock limits (only if stock is provided)
+const partStock: Record<string, number> = {};
+for (const p of partsData || []) {
+  if (p?.partId && typeof p.stock === 'number' && isFinite(p.stock)) {
+    const key = `stock_${p.partId}`;
+    // Avoid redefining if repeated part IDs appear
+    if (!constraintDefs[key]) {
+      constraintDefs[key] = { max: p.stock };
+      partStock[p.partId] = p.stock;
+    }
+  }
+}
+4) In the decision variable construction, add stock usage coefficients and lateness cost to the objective:
+Find where each variable is built (inside loops over jobIdx/crewIdx/day/hour). You already compute laborCost, partsCost, and priorityCost. Add:
+const latenessCost = this.latenessPenalty(job, day, constraints.priorityWeights);
+Change the variable seed from:
+const variableCoeffs: any = {
+  objective: laborCost + partsCost + priorityCost
+};
+to:
+const variableCoeffs: any = {
+  objective: laborCost + partsCost + priorityCost + latenessCost
+};
+Then, for each job part, contribute to the stock constraint:
+for (const part of job.parts || []) {
+  if (part && part.partId && partStock[part.partId] != null) {
+    // consume stock by quantity when this variable (assignment) is 1
+    variableCoeffs[`stock_${part.partId}`] = (part.quantity || 0);
+  }
+}
+5) Keep everything else intact (especially your existing crew capacity, concurrent limits, and parts budget). Do not change optimize: 'objective' or integer restrictions.
+
+6) Minor robustness: ensure infeasible-start filter remains
+Preserve your existing check that skips start times where hour + ceil(jobDurationHours) > 17.
+
+7) Optional: persist a richer equipment scope (nice-to-have)
+In persistOptimizationResults, change equipmentScope: JSON.stringify([]) to:
+equipmentScope: JSON.stringify(Array.from(new Set(result.schedule.map(s => s.equipmentId)))),
+8) Build & quick self-checks
+Ensure it compiles without type errors.
+Log counts so we can see constraints got added:
+After building the model, log number of stock_ constraints found and number of variables.
+Do not change solver usage; keep solver.solve(lpProblem).
+
+Success criteria
+If partsData has { partId, stock }, the model has stock_<partId> constraints with max = stock and variables add coefficients equal to the part quantity.
+The optimized objective includes a lateness cost that increases when dayOffset exceeds the job’s deadline.
+Existing objectives/constraints remain functional; infeasible starts skipped.
+Code compiles and runs.
+If you want, I can also give you a tiny seed test (mock partsData with a tight stock and a job that uses that part) to see the solver choose assignments that respect stock.
+
+
+
+Great component! You’re close to a solid LP engine, but there are a few critical correctness bugs and several design/robustness gaps. Here’s a tight review with drop-in fixes.
+
+
+
+🔥 Critical correctness issues (fix these first)
+
+Wrong parsing of javascript-lp-solver result
+
+javascript-lp-solver returns variables at the top level plus meta fields (result, bounded, feasible). Your code assumes solution.result is an object of variables and also reads solution.objective.
+
+Fix: iterate over Object.entries(solution) and skip meta keys; the objective is solution.result (number).
+
+const META_KEYS = new Set(['feasible','bounded','result']);
+
+if (solution.feasible) {
+  for (const [k, v] of Object.entries(solution)) {
+    if (META_KEYS.has(k)) continue;
+    if (v !== 1) continue; // binary selection
+    // parse var name j{job}_c{crew}_d{day}_h{hour}
+    const m = k.match(/j(\d+)_c(\d+)_d(\d+)_h(\d+)/);
+    if (!m) continue;
+    const [ , jIdx, cIdx, day, hour ] = m.map(Number);
+    // ... build schedule row
+  }
+}
+const objectiveValue = Number(solution.result) || 0;
+Use binaries, not ints
+
+Your decision vars are 0/1. ints allows 2, 3, … which can break constraints.
+
+Fix: replace ints with binaries.
+
+binaries: Object.keys(variables).reduce((acc:any, k) => (acc[k]=1, acc), {})
+Per-crew overlap not prevented
+
+You cap daily hours per crew, but a crew can be assigned to overlapping jobs on the same day.
+
+Fix: add per-crew-per-hour occupancy constraints (like your global concurrent limit, but indexed by crew).
+
+// before creating variables, define:
+for (let c=0; c<constraints.crewAvailability.length; c++) {
+  for (let d=0; d<constraints.timeHorizonDays; d++) {
+    for (let h=8; h<=16; h++) {
+      constraintDefs[`crew_busy_c${c}_d${d}_h${h}`] = { max: 1 };
+    }
+  }
+}
+
+// when building each variable:
+for (let blockHour=hour; blockHour<jobEndHour; blockHour++) {
+  variableCoeffs[`crew_busy_c${crewIdx}_d${day}_h${blockHour}`] = 1;
+}
+“Each job exactly once” can make model infeasible
+
+You set {min:1,max:1} for every job; if a job has no feasible assignment, the entire model fails.
+
+Fix: allow unassigned with a penalty. Add a dummy “unassigned” binary per job with a big penalty weighted by priority.
+
+// constraint: sum(assignments for job j) + unassigned_j = 1
+constraintDefs[`job_assignment_${j}`] = { equal: 1 };
+
+// create a var per job for unassignment
+const penalty = this.unassignedPenalty(jobs[j], constraints.priorityWeights); // e.g. critical >> low
+variables[`j${j}_unassigned`] = {
+  [`job_assignment_${j}`]: 1,
+  objective: penalty
+};
+// and include it in binaries
+Drizzle query misuse
+
+You use .equals(...) in getOptimizationResults. In Drizzle you should use eq(...) (like you do elsewhere) and where(eq(table.col, value)).
+
+Fix:
+
+import { eq } from 'drizzle-orm';
+
+const [optimizationRecord] = await db
+  .select()
+  .from(optimizationResults)
+  .where(eq(optimizationResults.id, resultId))
+  .limit(1);
+
+const scheduleRecords = await db
+  .select()
+  .from(scheduleOptimizations)
+  .where(eq(scheduleOptimizations.optimizationResultId, resultId));
+Date objects inside JSON fields
+
+You serialize recommendations with Date objects; JSON stringifies them as ISO, but relying on implicit behavior is brittle and timezone-sensitive.
+
+Fix: coerce to ISO strings explicitly when building JSON blobs.
+
+recommendations: JSON.stringify(result.schedule.map(s => ({
+  ...,
+  scheduledDate: new Date(s.scheduledDate).toISOString(),
+}))),
+Inconsistent interface vs returned result
+
+OptimizationResult interface lacks optimizationId, but you attach it in the returned object.
+
+Fix: extend the interface or remove the extra property.
+
+⚙️ Modeling & constraint gaps (quality / realism)
+
+Max daily hours (global) unused: You accept maxDailyWorkHours in OptimizationConstraints but don’t add it. You use per-crew maxHoursPerDay; either remove the unused param or apply it as an upper bound across all crew/day.
+
+Equipment exclusivity: Multiple jobs can be scheduled concurrently on the same equipment. Add equipment_busy_e{eq}_d{day}_h{hour} ≤ 1.
+
+Parts stock, not just budget: You only constrain by budget. If you have inventory levels, add constraints like sum(qty_of_part_p * x_var) ≤ stock_p.
+
+Deadlines / preferred dates ignored: If a job has a deadline or preferredDate, add (a) hard windows (only create variables in allowed days), or (b) soft penalties for late/early.
+
+Priority handling & objective direction: You minimize labor + parts + priorityCost. If weights.critical is larger than weights.low, minimization disfavors critical work. If you want to favor higher priorities, use negative reward or inverse weights. A simple approach: objective = labor + parts - α * priorityReward(priority). Or keep the unassignment penalty proportional to priority so low-priority jobs are the first dropped if infeasible.
+
+Horizon & work hours rigidity: You hardcode 08:00–17:00 and ceil durations. Consider using half-hours and parameters for start/end day bounds.
+
+Multi-tenant leakage: storage.getWorkOrders() isn’t filtered by orgId. Pass and enforce orgId everywhere.
+
+Utilization division by zero: If maxHoursPerDay is 0, your utilization rate becomes NaN. Guard it.
+
+🛠️ Drop-in code patches
+
+
+
+A) Build binaries + meta keys + correct solution parsing
+
+private static META_KEYS = new Set(['feasible','bounded','result']);
+
+private buildBinaries(variables: Record<string, any>) {
+  return Object.fromEntries(Object.keys(variables).map(k => [k, 1]));
+}
+Use in model:
+
+return {
+  optimize: 'objective',
+  opType: 'min',
+  constraints: constraintDefs,
+  variables,
+  binaries: this.buildBinaries(variables),
+};
+Parse solution:
+
+const parseSolution = (sol: any) => {
+  const picks: string[] = [];
+  if (sol && sol.feasible) {
+    for (const [k, v] of Object.entries(sol)) {
+      if (LinearProgrammingOptimizer.META_KEYS.has(k)) continue;
+      if (v === 1) picks.push(k as string);
+    }
+  }
+  return { picks, objective: Number(sol?.result) || 0, feasible: !!sol?.feasible };
+};
+Then in processSolution consume picks rather than solution.result object.
+
+
+
+B) Add per-crew occupancy & equipment exclusivity
+
+
+
+When creating constraint defs:
+
+// per-crew per-hour
+for (let c=0; c<constraints.crewAvailability.length; c++) {
+  for (let d=0; d<constraints.timeHorizonDays; d++) {
+    for (let h=8; h<=16; h++) {
+      constraintDefs[`crew_busy_c${c}_d${d}_h${h}`] = { max: 1 };
+    }
+  }
+}
+// per-equipment per-hour
+const eqIds = Array.from(new Set(jobs.map(j => j.equipmentId)));
+for (const e of eqIds) {
+  for (let d=0; d<constraints.timeHorizonDays; d++) {
+    for (let h=8; h<=16; h++) {
+      constraintDefs[`equip_busy_e${e}_d${d}_h${h}`] = { max: 1 };
+    }
+  }
+}
+When creating each variable:
+
+for (let blockHour=hour; blockHour<jobEndHour; blockHour++) {
+  variableCoeffs[`crew_busy_c${crewIdx}_d${day}_h${blockHour}`] = 1;
+  variableCoeffs[`equip_busy_e${job.equipmentId}_d${day}_h${blockHour}`] = 1;
+}
+C) Make jobs optionally unassigned (with penalty)
+
+
+
+Replace {min:1,max:1} by {equal:1} and add an unassigned var:
+
+for (let j=0; j<jobs.length; j++) {
+  constraintDefs[`job_assignment_${j}`] = { equal: 1 };
+  const penalty = this.unassignedPenalty(jobs[j], constraints.priorityWeights); // e.g. 10_000 for critical, 1_000 for low
+  variables[`j${j}_unassigned`] = {
+    [`job_assignment_${j}`]: 1,
+    objective: penalty
+  };
+}
+Helper:
+
+private unassignedPenalty(job: MaintenanceJob, w: OptimizationConstraints['priorityWeights']) {
+  const map = {1:w.critical, 2:w.high, 3:w.medium, 4:w.low};
+  // scale so that dropping a critical job is very expensive
+  return (map[job.priority as 1|2|3|4] ?? w.low) * 10_000;
+}
+D) Respect deadlines / preferred dates (simple hard window)
+
+
+
+Skip creating variables outside [earliest, latest]:
+
+const earliestDay = job.preferredDate ? 0 : 0;
+const latestDay = job.deadline ? Math.min(
+  constraints.timeHorizonDays-1,
+  Math.floor((job.deadline.getTime() - Date.now()) / 86_400_000)
+) : constraints.timeHorizonDays-1;
+
+for (let day=0; day<=latestDay; day++) { /* ... */ }
+E) Drizzle fixes in 
+
+getOptimizationResults
+
+import { eq } from 'drizzle-orm';
+
+const records = await db
+  .select()
+  .from(optimizationResults)
+  .where(eq(optimizationResults.id, resultId))
+  .limit(1);
+F) Safe utilization
+
+const denom = crew.maxHoursPerDay * constraints.timeHorizonDays;
+const utilizationRate = denom > 0 ? (hours / denom) * 100 : 0;
+G) Persist ISO in JSON blobs
+
+recommendations: JSON.stringify(result.schedule.map(s => ({
+  equipmentId: s.equipmentId,
+  assignedCrew: s.assignedCrew,
+  scheduledDate: new Date(s.scheduledDate).toISOString(),
+  estimatedCost: s.estimatedCost
+}))),
+🚀 Replit AI Prompt (paste this to auto-apply fixes)
+
+
+
+Replit AI — Refactor LinearProgrammingOptimizer for Correct LP behavior & Robust Constraints
+
+Open LinearProgrammingOptimizer and apply the following:
+Solver Parsing: Replace any usage of solution.objective and solution.result (as an object) with:
+Objective value: Number(solution.result) || 0
+Variables: iterate over Object.entries(solution) and skip ['feasible','bounded','result'].
+Binary Variables: In the LP model, replace ints with binaries for all decision variables.
+Per-Crew Non-Overlap: Add per-crew-per-hour constraints (crew_busy_c{c}_d{d}_h{h} ≤ 1) and include coefficients for every hour a job occupies.
+Equipment Exclusivity: Add per-equipment-per-hour constraints (equip_busy_e{eq}_d{d}_h{h} ≤ 1) to prevent overlapping jobs on the same equipment.
+Job Optionality: Change every job constraint to { equal: 1 } and add a j{j}_unassigned binary with big penalty unassignedPenalty(job, weights) so infeasible jobs can be left unassigned rather than making the model infeasible.
+Deadlines / Preferred Dates: Do not create variables for days after a job’s deadline. Optionally bias toward preferredDate (soft: add small penalty for distance; hard: only allow that day).
+Objective & Priorities: Keep objective as cost minimization, but ensure the unassigned penalty grows with priority (critical ≫ low) so high-priority jobs are retained when infeasible.
+Drizzle Queries: In getOptimizationResults, replace .equals(...) with where(eq(table.col, value)) and import eq from drizzle-orm.
+Serialization: When storing JSON blobs (recommendations, etc.), serialize Date fields explicitly via toISOString().
+Safe Utilization: Guard division by zero in utilization rate computations.
+Multi-Tenant Safety: Ensure storage.getWorkOrders() and any other storage calls filter by orgId.
+
+Acceptance tests
+Model returns feasible: true with realistic schedules when data allows; otherwise schedules subset of jobs and marks others unassigned.
+No overlapping jobs for the same crew or the same equipment.
+solution.result is used for objective; variables come from top-level keys.
+Drizzle queries compile and run with eq(...).
+JSON blobs contain ISO timestamps, not raw Date objects.
+Utilization rate is numeric (no NaN) even if maxHoursPerDay is zero.
+
+Provide the diff and a brief summary of changes.

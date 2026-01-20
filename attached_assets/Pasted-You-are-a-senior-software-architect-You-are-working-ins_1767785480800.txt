@@ -1,0 +1,213 @@
+You are a senior software architect. You are working inside an existing Node.js + TypeScript full-stack app for ARUS (vessel/equipment telemetry + Predictive Maintenance). Your job is to refactor the system toward an IDEAL, HEXAGONAL (ports & adapters) architecture with proper modularity—WITHOUT rewriting everything.
+
+You must:
+- Discover the current state of the repo (routes, DB schema, PdM UI, telemetry pipeline).
+- Propose the ideal target architecture (hexagonal + modules).
+- Then implement an incremental refactor plan with patch-ready changes that preserve current behavior.
+
+========================
+HIGH-LEVEL GOALS
+========================
+1) Make telemetry ingestion resilient, replayable, idempotent, and observable.
+2) Make Predictive Maintenance (PdM) backend a clear bounded context with clean use-cases and ports.
+3) Make the PdM frontend modular and responsive (desktop + mobile) while drawing data from the correct EXISTING endpoints.
+4) Reduce coupling: controllers/routes should be thin; business logic should live in application/use-cases; DB/HTTP/MQTT are adapters.
+
+========================
+STEP 1 — REPO DISCOVERY (MANDATORY)
+========================
+Scan the repository and output a clear “CURRENT ARCHITECTURE MAP”.
+
+A) Identify telemetry ingestion:
+- Entry points: HTTP routes, MQTT handlers, WebSockets, cron/jobs, file replay tools
+- Validation/DTO schemas
+- Dedup/idempotency (if any)
+- Where raw telemetry is stored (tables, files)
+- Where decoded signals are stored (tables)
+- Any queues/workers
+- Error handling & retries
+- Observability: logs/metrics, ingestion health checks
+
+B) Identify PdM backend:
+- Where alerts/risk queue/RUL are computed and stored
+- Tables: pdm_alerts, maintenance_records, work_orders, ml_models, raw_telemetry, etc.
+- Existing endpoints: search for "pdm", "predictive", "alerts", "rul", "telemetry", "models", "work_orders"
+
+C) Identify PdM frontend:
+- Locate the current Predictive Maintenance page file(s)
+- Identify UI components, state management, query library (React Query/SWR/etc)
+- Identify current API hooks/clients and endpoints used
+
+Output:
+- A bullet list of key files (paths) for telemetry + PdM backend + PdM frontend
+- A simple text diagram showing current telemetry flow and current PdM flow
+
+========================
+STEP 2 — TARGET IDEAL ARCHITECTURE (HEXAGONAL + MODULAR)
+========================
+Define the target architecture as follows and map to this repo:
+
+BACKEND BOUNDED CONTEXT MODULES:
+- telemetry (raw + decoded + ingestion health)
+- pdm (alerts, risk queue, health score, evidence, RUL)
+- models (training runs, drift, registry)
+- maintenance (work orders, maintenance records, parts)
+- assets (vessels, equipment hierarchy, tags)
+
+Within each module, define folders:
+module/
+  domain/        (pure, no I/O)
+  application/   (use-cases)
+  ports/         (interfaces)
+  adapters/      (inbound + outbound)
+  infra/         (db schema/index provisioning, config)
+
+HEXAGONAL RULES:
+- Domain: no DB, no HTTP, no framework imports.
+- Application/use-cases orchestrate via ports.
+- Inbound adapters: routes/controllers/MQTT handlers call use-cases.
+- Outbound adapters: DB repositories, object storage, queue publishers, metrics.
+
+TELEMETRY “IDEAL FLOW” (for reference):
+Edge agent -> Ingestion gateway -> (optional stream/queue) -> Raw store -> Decode worker -> Time-series store -> PdM consumers
+Mandatory principles:
+- Raw-first (store raw payloads before decoding)
+- Async decoding + replayable
+- Idempotent ingestion (device seq or event_id hash)
+- DLQ for bad payloads
+- Last-seen freshness tracking
+- UTC timestamps
+
+FRONTEND MODULARITY (hexagonal-ish):
+src/
+  domain/pdm/* (types + rules)
+  application/pdm/* (use-cases, selectors)
+  ports/PdMApi.ts (interfaces)
+  adapters/api/* (HTTP implementation)
+  ui/pages/PdMPage/* (responsive components)
+
+UI TARGET (DESKTOP + MOBILE):
+- Desktop: KPI cards row; Risk Queue tabs (table); right-side cards (Telemetry Coverage, Model Health, Maintenance Pipeline); Asset Detail panel with charts/actions.
+- Mobile: stacked layout; filters in a sheet; KPI cards scroll/grid; risk queue list; asset detail full-screen route or bottom sheet.
+(Implement as one page with responsive breakpoints.)
+
+========================
+STEP 3 — GAP ANALYSIS
+========================
+Create a gap analysis table:
+- Area (Telemetry / PdM backend / PdM frontend)
+- Current state
+- Ideal state
+- Impact
+- Effort (S/M/L)
+- Risk
+- Recommended action (MUST/SHOULD/NICE)
+
+========================
+STEP 4 — INCREMENTAL REFACTOR PLAN (NO BIG REWRITE)
+========================
+Provide a staged plan:
+A) Quick wins (1–3 days)
+B) Medium changes (1–2 weeks)
+C) Longer-term scale changes (1–2 months)
+
+Emphasize incremental changes:
+- Extract use-cases and ports first without changing behavior.
+- Introduce idempotency + DLQ + raw-first behind feature flags if needed.
+- Build a “dashboard aggregator” endpoint only if it doesn’t exist; otherwise reuse what exists.
+
+========================
+STEP 5 — IMPLEMENTATION (PATCH-READY CHANGES)
+========================
+After the analysis, implement the refactor with minimal disruption.
+
+A) Create/adjust module skeletons and move code carefully:
+- Add telemetry module skeleton and extract ingestion orchestration into application use-case.
+- Add pdm module skeleton and extract dashboard/risk queue assembly into application use-cases.
+- Add ports + adapters for DB access.
+
+B) Database standards (idempotent, in repo’s style)
+If the repo uses startup-time index provisioning (CREATE INDEX IF NOT EXISTS), follow that.
+Add/adjust minimal tables/indexes if needed:
+Telemetry tables (minimum):
+- telemetry_raw (append-only)
+- telemetry_signal (decoded time-series)
+- telemetry_dlq (dead letter)
+- asset_last_seen (freshness)
+PdM tables (if missing):
+- pdm_alerts
+- pdm_alert_evidence (link signals/time windows/features)
+Work order linking (if needed):
+- work_order_links (alert_id <-> work_order_id)
+
+Provide idempotent SQL for:
+- CREATE TABLE IF NOT EXISTS ...
+- CREATE INDEX IF NOT EXISTS ...
+- UNIQUE constraints for idempotency (source_id + seq) OR event_id primary key
+
+C) Frontend refactor to match UI mockups
+- Refactor Predictive Maintenance page into components:
+  - PdMPage container
+  - FiltersBar (desktop) + FiltersSheet (mobile)
+  - KpiCards
+  - RiskQueueTabs (table on desktop, list on mobile)
+  - TelemetryCoverageCard
+  - ModelHealthCard
+  - MaintenancePipelineCard
+  - AssetDetailPanel (desktop) / AssetDetailScreen (mobile)
+  - EvidenceCharts wrapper
+- Use existing API hooks/patterns (React Query/SWR) and wire to existing endpoints.
+- If endpoints are missing, propose minimal backend additions AND implement them only if necessary.
+
+D) Data wiring requirements (discover and reuse)
+Do NOT invent endpoints up front. First search repo and map existing endpoints to these needs:
+1) KPI summary data
+2) Risk Queue / Alerts list with tabs (new/active/resolved)
+3) Telemetry coverage (online/delayed + last seen)
+4) Model health (active models, drift, last training)
+5) Maintenance pipeline (WO counts by status)
+6) Asset detail (RUL/confidence/failure mode/actions + evidence charts)
+7) Actions: acknowledge alert, create work order from alert (if existing)
+
+Create a “UI section -> endpoint/hook -> file path” mapping.
+
+E) Testing (minimum)
+Add tests:
+- telemetry ingestion integration test (stores raw, idempotency works)
+- DLQ test (bad payload goes to dlq)
+- PdM dashboard endpoint test (returns required fields)
+- Frontend smoke test (page renders and calls hooks)
+
+F) Observability (minimum)
+Add structured logs + counters:
+- ingest_received/accepted/duplicate/rejected
+- decode_failed
+- last_seen lag metrics
+Add an ingestion health view or endpoint if one exists; otherwise create a minimal one.
+
+========================
+CONSTRAINTS
+========================
+- Do not break existing behavior.
+- No massive rewrites.
+- Prefer minimal and reversible changes.
+- Keep ingestion handler fast; decoding async.
+- Keep domain code free of infra imports.
+- Use the repo’s existing style conventions, folder structure patterns, and libraries.
+
+========================
+DELIVERABLES
+========================
+1) Current architecture map (files + flow diagram)
+2) Target hexagonal modular architecture (concrete folder structure)
+3) Gap analysis table
+4) Refactor plan (quick/medium/long)
+5) Implemented patches:
+   - backend module skeleton + extracted use-cases + ports/adapters
+   - idempotent SQL updates
+   - refactored PdM frontend (responsive desktop+mobile)
+   - endpoint mapping and wiring
+   - tests + minimal observability
+
+START NOW:
+First do repo discovery and print the current map + the endpoint/hook map. Then proceed to implement the incremental refactor.

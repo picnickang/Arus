@@ -1,0 +1,141 @@
+Here’s a practical, no-guesswork way to test that the v3 dataflow is correct, from hardware (or simulator) all the way to Postgres — including the failure cases that prove cursor/commit safety.
+
+The 6 checks that prove dataflow correctness
+
+1) Agent → SQLite is working
+
+What to prove: raw frames are being written continuously and in the right format.
+
+Run (Windows vessel PC):
+	•	Confirm file exists: C:\ARUS\data\arus.sqlite
+	•	Query SQLite:
+
+SELECT COUNT(*) FROM raw_frames;
+SELECT id, unix_time_ms, source, protocol, payload_format_version, length(payload)
+FROM raw_frames
+ORDER BY id DESC
+LIMIT 5;
+
+Pass criteria:
+	•	COUNT(*) increases over time
+	•	payload_format_version = 1
+	•	payload length matches your envelope (min 5 bytes; max 13 for J1939 v1)
+
+⸻
+
+2) Bridge sees frames and cursor exists
+
+What to prove: bridge is reading the same SQLite and cursor table is initialized.
+
+SELECT * FROM ingest_cursor WHERE key='raw_frames';
+SELECT MAX(id) FROM raw_frames;
+
+Compute lag:
+	•	lagFrames = MAX(raw_frames.id) - ingest_cursor.last_id
+
+Pass criteria:
+	•	cursor row exists
+	•	last_id increases when Postgres is reachable
+	•	lagFrames is stable or decreasing
+
+⸻
+
+3) Decoder produces readings (not silently dropping)
+
+What to prove: frames turn into TelemetryReading[] and survive validation.
+
+In Node logs/metrics (or add a temporary debug endpoint):
+	•	bridge_frames_read increases
+	•	bridge_readings_decoded increases (should be >0)
+	•	validation reject count is low (or expected)
+
+Pass criteria:
+	•	decoded readings per second roughly track frames/sec for the supported PGNs
+	•	unknown payload_format_version yields decoded=0 (but bridge stays alive)
+
+⸻
+
+4) Postgres writes occur only through TelemetryBatchWriter.writeBatch
+
+What to prove: no bypass writes and commits are happening.
+	•	/api/ingestion/verify should show postgresLastCommitAt moving forward.
+	•	In Postgres:
+
+SELECT COUNT(*) FROM equipment_telemetry;
+SELECT MAX(created_at) FROM equipment_telemetry;   -- if you have it
+
+Pass criteria:
+	•	counts increase under load
+	•	commit timestamp is recent
+	•	writer guard test: calling writeBatch(..., {source:"not-bridge"}) throws in production mode
+
+⸻
+
+5) Cursor advances only after Postgres commit (the most important proof)
+
+What to prove: you never “skip” frames if Postgres fails.
+
+Test procedure:
+	1.	Start agent + bridge, let it run for ~30s
+	2.	Record:
+	•	maxIdBefore = MAX(raw_frames.id)
+	•	cursorBefore = ingest_cursor.last_id
+	3.	Simulate Postgres failure (stop DB / block network / use a bad connection string)
+	4.	Let it run another ~30s
+	5.	Record again:
+	•	maxIdAfter should grow
+	•	cursorAfter should not advance
+	6.	Restore Postgres
+	7.	Verify cursor starts advancing again and lag decreases.
+
+Pass criteria:
+	•	During outage: MAX(id) increases, cursor.last_id stays the same
+	•	After restore: cursor.last_id climbs and eventually catches up
+
+⸻
+
+6) “Single-path” ingestion proof (no legacy / no duplicates)
+
+What to prove: nothing else can write telemetry.
+
+You prove this in three layers:
+	1.	Static audit test: search repo for direct inserts into equipment_telemetry outside TelemetryBatchWriter.
+	2.	Runtime proof: only startIngestion.ts starts ingestion; legacy files deleted.
+	3.	Database proof: idempotency key constraint exists:
+
+\d equipment_telemetry   -- check unique constraint on idempotency_key
+
+Pass criteria:
+	•	static test passes
+	•	legacy modules deleted, no startup wiring references
+	•	unique constraint exists
+
+⸻
+
+The single “golden” test: /api/ingestion/verify
+
+Once implemented, you should be able to run one command:
+	•	curl http://localhost:5000/api/ingestion/verify
+
+And see:
+	•	agentAlive: true
+	•	rawFramesRecentCount > 0
+	•	bridgeLagFrames stable/decreasing
+	•	postgresLastCommitAt recent
+	•	pipelineHealthy: true
+
+That becomes your operational go/no-go.
+
+⸻
+
+If you want a quick checklist to run on a vessel PC
+	1.	Start agent service → raw_frames grows
+	2.	Start Electron/Node → cursor starts advancing
+	3.	Kill Electron UI → raw_frames still grows
+	4.	Kill Node → raw_frames still grows
+	5.	Kill Postgres connectivity → cursor stops, backlog grows
+	6.	Restore connectivity → backlog drains
+
+Pass all six and your dataflow is correct.
+
+If you tell me what tools you’ll have on the vessel PC (sqlite3 CLI? DB browser? PowerShell only?), I’ll tailor the exact commands.

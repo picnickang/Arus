@@ -1,0 +1,215 @@
+🔧 REPLIT AI PROMPT — Evidence-Based Production Hardening (Implement Missing Routes, Validation, Tests, Perf, CI, Docs)
+
+
+
+Intent (non-negotiable): Deliver working code, not scaffolds. All claims must be backed by code or recorded artifacts. Do not fabricate file paths, features, metrics, or screenshots. If something is unknown, make a reasonable decision, implement it, and document the assumption.
+
+
+
+Context you MUST use
+
+Backend: Node.js + Express (TypeScript), JWT RBAC, zod validation, rate limiting, Prometheus metrics, worker threads (or queue) for inference.
+
+Frontend: React 18 + Wouter + TanStack Query, Tailwind, Recharts, Leaflet, PWA offline.
+
+ML: LSTM + XGBoost + Random Forest ensemble with SHAP explainability; dataset mixer; drift monitoring; adaptive retrain suggestions.
+
+Governance: Model Lineage + Event Provenance already exist (files under server/governance/).
+
+Verified ML files (use these or auto-discover close variants):
+
+server/ml-prediction-service.ts, server/ml-lstm-model.ts, server/ml-xgboost-model.ts, server/ml-random-forest.ts, server/ml-explainability-service.ts, server/ml-ensemble-orchestrator.ts, server/rul.ts, server/rul-engine.ts, server/ml-retraining-service.ts, server/ml-analytics-service.ts.
+
+
+
+If your repo uses slightly different paths/names, search and adapt instead of assuming. All reports must reference actual paths found.
+Task 0 — Truth-first inventory (must run before changes)
+
+Scan the repo and build a machine-readable map of:
+
+All Express routes (method, path, handler file).
+
+All client API calls (TanStack Query keys/URLs/methods).
+
+All zod validators present/missing per route.
+
+Save artifacts:
+
+docs/audit/_artifacts/api_routes.json
+
+docs/audit/_artifacts/client_calls.json
+
+docs/audit/api_contract_matrix.md (✓/✗ mapping, with real file paths and line numbers)
+
+
+
+Acceptance: api_contract_matrix.md shows the exact count of missing routes (previously ~42) and missing validations (previously ~52), with file links that open.
+Task 1 — Implement missing server routes (no stubs)
+
+
+
+For every client call with no server implementation:
+
+Implement the route in Express (TypeScript), wire to real service logic or a deterministic fixture when external data is gated.
+
+Add zod request/response schemas and RBAC where applicable.
+
+Update OpenAPI (if present) or generate minimal docs/audit/openapi.json.
+
+
+
+Acceptance:
+
+
+api_contract_matrix.md re-generated shows 0 missing routes.
+
+Each new handler has: zod validation, RBAC guard (if admin/manager), and unit/API tests (see Tasks 3–4).
+
+Task 2 — Add zod validation to uncovered routes
+
+
+
+For the ~52 endpoints lacking validation:
+
+Create schemas/<feature>/<route>.ts with zod request/query/response types.
+
+Validate on entry; return structured 400 errors.
+
+Add shared error formatter middleware.
+
+
+
+Acceptance: validation_coverage.md (new) lists 100% POST/PUT/PATCH routes validated.
+Task 3 — Performance harness (real numbers, saved artifacts)
+
+
+
+Create scripts/perf_harness.js:
+
+Fire parallel requests against /score and /vessels/:id/performance using realistic windows from your dataset mixer.
+
+Collect p50/p95/p99, throughput, and error rate; fail if p95 > PERF_P95_MS (default 1500).
+
+Save raw results to docs/audit/_artifacts/perf/results.json and a summary to docs/audit/performance_benchmarks.md.
+
+
+
+Acceptance: Harness runs to completion, writes JSON & MD, and exits non-zero on regression.
+Task 4 — Tests (must pass)
+
+Unit (Vitest): dataset mixer, thresholds, explainability summarizer, lineage/provenance utils, RBAC guards.
+
+API (Supertest): success/error paths for all newly implemented routes; schema 400s; RBAC 401/403s.
+
+E2E (Playwright): Fleet→Vessel (VPS overlays + anomaly tooltips), Alerts→WO flow, Governance chain verify, Offline replay.
+
+
+
+Acceptance:
+
+
+npm run test and npm run e2e both pass.
+
+Coverage summary saved to docs/audit/_artifacts/coverage/summary.json.
+
+Task 5 — Observability & security hardening (evidence only)
+
+Prometheus: ensure /metrics includes http_request_duration_seconds, inference_latency_seconds, inference_batch_size, inference_queue_depth, data_freshness_seconds, drift_events_total, retrain_suggestions_total.
+
+Security: ensure helmet, CORS allowlist (prod), express-rate-limit on public & admin routes; no secrets in logs.
+
+Save a live scrape of /metrics to docs/audit/_artifacts/metrics/sample.prom.
+
+
+
+Acceptance: observability.md lists metric names with a snippet from sample.prom proving presence. security_checklist.md references actual code paths configuring helmet/CORS/rate-limits.
+Task 6 — Documentation (evidence-based; no fabrication)
+
+
+
+Regenerate docs only from real artifacts:
+
+docs/audit/api_contract_matrix.md (updated, zero gaps)
+
+docs/audit/feature_parity.md (for each feature, add a ✅ with links to code; if feature uses fixtures, say so)
+
+docs/audit/performance_benchmarks.md (embed numbers from results.json)
+
+docs/audit/ml_governance.md (show snippets of real lineage/provenance entries + chain verifier output)
+
+docs/audit/security_checklist.md (link to the actual middleware files)
+
+docs/audit/architecture_map.md (Mermaid diagram auto-generated from route map + key services)
+
+Produce a hash ledger of referenced files: docs/audit/_artifacts/file_hashes.json (sha256 of each cited file)
+
+
+
+Acceptance: Every doc claim links to a real path in repo and/or an artifact JSON with a matching sha256.
+Task 7 — CI (fail on perf regressions)
+
+
+
+Create .github/workflows/ci.yml to run: lint → test → perf → build.
+
+Upload artifacts from Tasks 0, 3, 4, 5 as CI artifacts.
+
+Fail PR if perf p95 exceeds PERF_P95_MS.
+
+
+
+Acceptance: CI file present; includes artifact uploads and perf gate.
+Commands & scripts you must add (top-level package.json)
+
+{
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "concurrently -n server,client \"pnpm --filter @marine/server dev\" \"pnpm --filter @marine/client dev\"",
+    "test": "pnpm -r test",
+    "e2e": "playwright test",
+    "perf": "node scripts/perf_harness.js",
+    "audit:routes": "node scripts/audit_routes.js",
+    "audit:client": "node scripts/audit_client_calls.js",
+    "audit:contracts": "node scripts/audit_contracts.js",
+    "audit:docs": "node scripts/emit_audit_docs.js"
+  }
+}
+Final acceptance (print this summary and write to 
+
+docs/audit/audit_report.md
+
+)
+
+API/UI Contract: 0 missing routes; 100% validated writes (POST/PUT/PATCH).
+
+Features: Fleet, Vessel (4 VPS + overlays + anomaly shading), Alerts→WO, Governance, CII, Co-Pilot, PWA offline all verified (links to code).
+
+Perf: /score and /vessels/:id/performance p95 ≤ PERF_P95_MS (numbers shown from results.json).
+
+Security: helmet/CORS/limits enforced (code paths listed).
+
+Observability: metrics present (snippet included).
+
+Tests: unit + API + E2E passing; coverage summary saved.
+
+Docs: all claims link to real files; file hashes recorded.
+
+Remediation backlog: If anything failed, create docs/audit/remediation_backlog.csv with priority, file, fix, owner_suggested, ETA.
+
+
+
+Important guardrails
+
+Do not cite non-existent files. If a path differs, search and reference the real one.
+
+If an external dependency (e.g., Kaggle) isn’t available, use deterministic fixtures but keep the route live and mark it as fixture-backed in docs.
+
+Keep changes incremental and committed; show a concise diff summary at the end.
+
+
+
+Execute now. Produce working code, updated tests, measurable perf artifacts, and evidence-based documentation.
+
+
+
+End of prompt.

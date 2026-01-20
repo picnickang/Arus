@@ -1,0 +1,110 @@
+homeimac@Homes-iMac RecipeRealm % launchctl stop com.arus.app
+cp ~/Library/Application\ Support/ARUS/dist/index.js ~/Library/Application\ Support/ARUS/dist/index.js.backup
+cp dist/index.js ~/Library/Application\ Support/ARUS/dist/
+launchctl start com.arus.app
+homeimac@Homes-iMac RecipeRealm % sleep 5
+echo "Testing server..."
+curl http://localhost:31888/api/health
+echo ""
+echo ""
+echo "Checking logs..."
+tail -20 ~/Library/Logs/ARUS/app.log
+Testing server...
+{"status":"ok","mode":"VESSEL","timestamp":"2025-10-23T04:01:25.069Z","version":"1.0.0"}
+
+Checking logs...
+  • Foreign keys: ON
+✓ Local SQLite: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+→ Initializing SQLite database tables...
+[SQLite Init] Initializing vessel mode database...
+[SQLite Init] Database initialized successfully with 131 tables (100% feature parity) at: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+✓ SQLite tables initialized
+==============================
+
+[DEBUG] Wrapper script starting...
+[DEBUG] Loading main server module...
+
+=== ARUS Minimal Server v1.0 ===
+
+[DEBUG] Module loaded successfully
+✅ ARUS Server running on http://localhost:31888
+   Health check: http://localhost:31888/api/health
+   Mode: VESSEL (Offline)
+
+   Server is ready to accept connections.
+
+homeimac@Homes-iMac RecipeRealm % >....                                         
+app.use(express.json());
+app.use(express.static(path.join(__dirname, '../client/dist')));
+// Register all routes
+registerRoutes(app);
+// Start server
+app.listen(PORT, HOST, () => {
+  console.log(`\n✅ ARUS Server running on http://localhost:${PORT}`);
+  console.log(`   All imports successful - no crashes detected!\n`);
+
+  // Start background jobs after server is up
+  startBackgroundJobs().catch(console.error);
+});
+// Error handlers
+process.on('uncaughtException', (error) => {
+  console.error('\n❌ UNCAUGHT EXCEPTION:', error);
+  console.error('Stack:', error.stack);
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('\n❌ UNHANDLED REJECTION:', reason);
+  process.exit(1);
+});
+EOF
+homeimac@Homes-iMac RecipeRealm % npx esbuild server/diagnostic-server.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js
+
+  dist/index.js  2.3mb ⚠️
+
+⚡ Done in 188ms
+homeimac@Homes-iMac RecipeRealm % launchctl stop com.arus.app
+cp dist/index.js ~/Library/Application\ Support/ARUS/dist/
+launchctl start com.arus.app
+homeimac@Homes-iMac RecipeRealm % sleep 8
+echo "=== DIAGNOSTIC RESULTS ==="
+tail -40 ~/Library/Logs/ARUS/app.log
+=== DIAGNOSTIC RESULTS ===
+[SQLite Init] Initializing vessel mode database...
+[SQLite Init] Database initialized successfully with 131 tables (100% feature parity) at: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+✓ SQLite tables initialized
+==============================
+
+[DEBUG] Wrapper script starting...
+[DEBUG] Loading main server module...
+
+=== ARUS Minimal Server v1.0 ===
+
+[DEBUG] Module loaded successfully
+✅ ARUS Server running on http://localhost:31888
+   Health check: http://localhost:31888/api/health
+   Mode: VESSEL (Offline)
+
+   Server is ready to accept connections.
+
+[DEBUG] Wrapper script starting...
+[DEBUG] Loading main server module...
+2025-10-23 12:03:04.861267: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 FMA
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+
+=== Database Configuration ===
+Deployment Mode: VESSEL (Offline-First)
+⚠ Turso Sync: Disabled (credentials not configured)
+  Running in offline-only mode without cloud sync
+  Set TURSO_SYNC_URL and TURSO_AUTH_TOKEN to enable sync
+→ Applying SQLite performance optimizations...
+✓ SQLite performance optimizations applied
+  • WAL mode enabled (better concurrency)
+  • Cache: 64MB
+  • Sync: NORMAL (safe with WAL)
+  • Foreign keys: ON
+✓ Local SQLite: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+→ Initializing SQLite database tables...
+[SQLite Init] Initializing vessel mode database...
+[SQLite Init] Database initialized successfully with 131 tables (100% feature parity) at: /Users/homeimac/Library/Application Support/ARUS/data/vessel-local.db
+✓ SQLite tables initialized
+==============================

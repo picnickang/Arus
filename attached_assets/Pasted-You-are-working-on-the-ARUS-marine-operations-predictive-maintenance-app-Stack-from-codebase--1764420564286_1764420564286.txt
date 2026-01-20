@@ -1,0 +1,529 @@
+You are working on the ARUS marine operations + predictive maintenance app.
+
+
+
+Stack (from codebase + context):
+
+Electron desktop app (sandboxed renderer, main process, IPC)
+
+React + TypeScript + React Query frontend
+
+Node/Express server (embedded dev server at http://localhost:5000)
+
+SQLite (embedded / vessel mode) + optional PostgreSQL/Turso (cloud mode)
+
+Telemetry ingestion + digital twin + MQTT
+
+Engine logbook, deck logbook, work orders, parts inventory, crew management, hours of rest, alerts, compliance
+
+
+
+Your job is to:
+
+Analyze the entire codebase first
+
+Avoid duplicating existing modules
+
+Design and implement a full test + hardening + CI/CD + diagnostic layer for the whole app
+
+Ensure compatibility with current architecture and no breaking changes to existing behavior
+
+PHASE 0 — ARCHITECTURE & GAP ANALYSIS (MANDATORY BEFORE CODING)
+
+Scan the entire repo and produce a structured summary of:
+
+Telemetry ingestion & processing pipeline
+
+Vessel / equipment / engine / generator models
+
+Engine Room logbook (ER)
+
+Deck logbook
+
+Work orders & parts inventory linkage
+
+Crew management & hours of rest
+
+Alerts & notifications (including any email logic)
+
+Sync & dual database (SQLite + PostgreSQL/Turso) approach
+
+Electron integration (IPC channels, startup, dev server)
+
+React/React Query usage
+
+Any existing tests (unit, integration, E2E)
+
+Any existing telemetry simulators or mock data
+
+Any existing CI scripts or GitHub Actions
+
+For each subsystem, classify:
+
+✅ Already testable (existing tests/utilities)
+
+🟡 Partially testable (some tests, many gaps)
+
+🔴 Not testable (no hooks/tests)
+
+Identify:
+
+API routes that have no tests
+
+Critical business logic with no coverage
+
+Database schemas that have no integration tests
+
+IPC channels that are not validated
+
+UI flows that are not covered by E2E tests
+
+Any telemetry or logging blind spots
+
+
+
+Output this as a short architecture + gap report BEFORE creating new files.
+
+
+
+Do NOT create new test harnesses if a suitable one already exists; instead, extend and refactor safely.
+
+PHASE 1 — FULL SYSTEM TEST KIT
+
+
+
+Design and implement a modular, pluggable test kit that can be run:
+
+Locally by developers
+
+As part of CI/CD
+
+Against both SQLite and Postgres/Turso backends (where applicable)
+
+
+
+1. Telemetry Simulation Engine
+
+
+
+Create a test/simulation module that can:
+
+Simulate engine telemetry:
+
+Main Engine: RPM, load %, exhaust temperatures (port/stbd), scav air pressure/temp, coolant temp in/out, lube oil pressure/temp, fuel oil temp/viscosity, turbocharger RPM & exhaust temp, engine room temp/humidity
+
+Generators: DG load (kW), voltage, frequency, exhaust temp, LO press, coolant temp, running hours, status
+
+Simulate location & voyage data:
+
+Vessel position, heading, speed over ground
+
+Track segments suitable for deck & fuel/emissions logs
+
+Where possible, align with how existing telemetry is modeled in the app
+
+Simulate external sources:
+
+Aquametro FMCC: fuel consumption & (if modeled) GPS or voyage-related data
+
+StormGeo (or similar): mock weather + sea state inputs
+
+Support:
+
+Batch ingestion (historic replay)
+
+Live WS/stream-style simulation, matching the app’s telemetry ingestion endpoints & protocols
+
+Fault/anomaly injection (high temp, low pressure, sudden load spikes, etc.)
+
+
+
+2. Logbook Automation Test Suite
+
+
+
+Build automated tests (unit + integration + E2E where appropriate) for:
+
+
+
+Engine Room Logbook (ER)
+
+Hourly entries (24 hours)
+
+Generator entries (DG1–DGn, at 0, 6, 12, 18 hrs, etc.)
+
+Daily summary fields (running hours, revolutions, averages, fuel/oil consumption, FW produced/consumed, remarks)
+
+Auto-fill from telemetry (via /api/logbook/engine/autofill)
+
+Anomaly detection & highlighting (using ENGINE_ANOMALY_THRESHOLDS / similar logic)
+
+Signing and locking (immutable after lock)
+
+
+
+Deck Logbook
+
+Voyage entries per vessel
+
+Weather & sea state
+
+Position/time entries
+
+Fuel & emissions log behavior
+
+Integration with telemetry & simulated voyage data
+
+Signing & locking logic
+
+
+
+Verify that auto-fill for both ER and deck logs behaves correctly given simulated telemetry.
+
+
+
+3. Vessel Movement & Tracking Test Harness
+
+
+
+Add tests that confirm:
+
+Vessel tracking is correctly associated with each vessel ID
+
+Track segments are correctly persisted (and, if applicable, exportable)
+
+Any views / APIs that consume vessel tracks work as expected
+
+FMCC-based signals and fallback GPS/telemetry are compatible with the current domain model
+
+
+
+4. Database Integrity & Migration Tester
+
+
+
+For SQLite (embedded) and Postgres/Turso (cloud):
+
+Verify schema parity where expected (tables that exist in both should match structure)
+
+Foreign key constraints and referential integrity
+
+Orphan record detection (e.g., work orders without equipment, log entries without vessels)
+
+Compare results of:
+
+Creating, updating, deleting records
+
+Running migrations forward/backward
+
+Import/export test:
+
+Export data (e.g., logbooks, work orders, parts, crew) from a “vessel/embedded” DB
+
+Import into a “new version” schema
+
+Assert no data loss and backward compatibility for critical fields
+
+
+
+5. Business Logic Test Groups
+
+
+
+Create test suites for:
+
+
+
+Work Orders
+
+CRUD operations
+
+Correct linking to equipment and parts inventory
+
+Creating work orders from anomalies/events (e.g., ENGINE_EVENT_TYPES.WORK_ORDER_ACTION or similar)
+
+Status transitions (open → in progress → completed → closed)
+
+Required fields and validation
+
+
+
+Inventory
+
+Large inventory sets (thousands of parts)
+
+Searching and filtering
+
+Performance of long lists (test the optimizations already in place or implemented earlier: virtualization, caching, etc.)
+
+Stock levels and reserved stock logic
+
+Reorder suggestions or thresholds, if implemented
+
+
+
+Crew Management & Hours of Rest
+
+CRUD crew members and ranks
+
+Scheduling shifts / watches
+
+Hours of rest compliance checks
+
+Fatigue/violation detection (e.g., crossing IMO/MLC thresholds)
+
+Links between crew log, hours-of-rest, and any logbooks
+
+Email/alert integration for crew-related compliance violations (see Phase 3)
+
+
+
+6. Alerts Engine Test Suite
+
+
+
+Create tests that simulate:
+
+Engine anomalies (high exhaust temp, low lube oil pressure, etc.)
+
+Telemetry-based alerts (temperature, pressure, load, RPM thresholds)
+
+Compliance violations (hours-of-rest, missing logbook entries, unsigned logbooks, etc.)
+
+Fuel/emissions limit alerts (if modeled)
+
+
+
+Verify:
+
+Alert creation in the database
+
+WebSocket event broadcasting (if applicable)
+
+Email notifications to configured company email(s), once the settings system is in place
+
+Ability to adjust alert conditions via settings and confirm new thresholds apply correctly
+
+
+
+7. Performance & Stress Testing
+
+
+
+Create scripts (Node test runners, load scripts, or simple stress harnesses) that:
+
+Simulate high telemetry load (e.g., 1,000 telemetry messages per minute, multiple vessels)
+
+Load heavy datasets (inventory, logbooks, work orders)
+
+Exercise UI navigation under load (via headless browser E2E tests if feasible)
+
+Exercise the sync engine (offline/online transitions)
+
+
+
+Record and output:
+
+Latency stats
+
+CPU/memory usage red flags
+
+Long-running queries or bottlenecks
+
+Backpressure behavior in telemetry ingestion
+
+Any crashes or unhandled promise rejections
+
+
+
+8. Electron IPC + UI Tests
+
+
+
+Using Playwright or Vitest + React Testing Library (or the existing testing stack):
+
+Validate IPC contracts between Electron main and renderer processes
+
+Ensure that startup flow (dev server → health checks → loading frontend) does not break under common failure modes
+
+Add UI smoke tests for:
+
+Navigation between main areas (telemetry, logbooks, inventory, crew, settings)
+
+Creation/editing of ER and deck logbook entries
+
+Creation/editing of work orders
+
+Inventory searching
+
+Crew scheduling
+
+Settings (including any new email/alert settings introduced later)
+
+PHASE 2 — CI/CD PIPELINE FOR AUTOMATED TESTING
+
+
+
+Implement a CI/CD pipeline (e.g., GitHub Actions or whatever is already used) that:
+
+On PR / main branch push:
+
+Installs dependencies
+
+Runs linting & type checks (TypeScript)
+
+Runs unit tests
+
+Runs integration tests
+
+Runs headless UI tests if supported (Playwright or equivalent)
+
+Optionally runs a light version of the performance tests
+
+Artifacts & reporting:
+
+Provide clear pass/fail status per test suite group (backend, frontend, logbooks, telemetry, crew, alerts, etc.)
+
+Save test reports and coverage reports as artifacts
+
+Fail builds on critical failures (e.g., schema mismatch, core business logic failures)
+
+Environment matrix (if feasible):
+
+SQLite-only test
+
+Postgres/Turso-backed test (if credentials and infra are available for CI)
+
+
+
+Prefer to reuse and extend existing CI files if any exist, not replace them.
+
+PHASE 3 — IN-APP DIAGNOSTIC DASHBOARD
+
+
+
+Add a “System Diagnostics” dashboard inside the Electron/React app (or reuse an existing admin/maintenance screen):
+
+Show:
+
+Latest test kit run status (if tests are run locally or results can be summarized)
+
+Connectivity status (DB, telemetry, MQTT, FMCC, StormGeo, etc.)
+
+Background job/scheduler status (where applicable)
+
+Sync status (for cloud sync / Turso)
+
+Alerts engine status (e.g., last alert processed, last email sent without error)
+
+Highlight:
+
+Failing subsystems
+
+Schema or migration mismatch detections
+
+Telemetry ingestion problems
+
+
+
+This dashboard does not need to run the full CI test suite inside the app; it should rely on:
+
+Simple quick health checks, and
+
+Optionally, a summarized result of any locally-run “health check” command (see next phase).
+
+PHASE 4 — ONE-CLICK HEALTH CHECK (SETTINGS PAGE)
+
+
+
+Add a “Run Health Check” button in Settings (or a suitable admin area) that:
+
+Runs a local diagnostic routine, lighter than the full CI suite, that tests:
+
+DB connection & schema sanity
+
+Telemetry ingestion endpoint reachability
+
+Essential API endpoints (/api/logbook/*, /api/equipment/*, /api/crew/*, etc.)
+
+Basic logbook creation & save flow (non-destructive checks if possible)
+
+Email settings validity (can we connect to SMTP or email service?)
+
+Returns a human-readable summary:
+
+✅ OK – for subsystems that pass
+
+⚠ Warning – for issues that don’t prevent operation but should be addressed
+
+❌ Critical – for issues that likely break core functionality
+
+Shows these results in the System Diagnostics dashboard as well.
+
+
+
+Ensure:
+
+The health check code respects current architecture
+
+It reuses existing health endpoints (e.g., /livez, /readyz) if present, instead of duplicating logic
+
+PHASE 5 — DEVELOPER DOCUMENTATION
+
+
+
+Generate a TESTING_AND_HEALTHCHECKS.md (or similar) that explains:
+
+How to run:
+
+All test suites
+
+Telemetry simulators
+
+Logbook auto-fill tests
+
+Work order & inventory tests
+
+Crew & hours-of-rest tests
+
+Alerts tests
+
+Performance tests
+
+How to set up environment:
+
+Required .env variables
+
+Config for SQLite vs Postgres/Turso
+
+Optional StormGeo/Aquametro FMCC integration flags (mock vs real)
+
+How CI/CD is structured and how to interpret failures
+
+How the in-app diagnostic dashboard and Run Health Check button work
+
+IMPORTANT IMPLEMENTATION RULES
+
+Do not break existing APIs or data models unless absolutely necessary; prefer additive changes.
+
+Do not duplicate existing test or utility files; extend them instead.
+
+Keep new test modules and tools clearly organized, e.g.:
+
+tests/backend/...
+
+tests/frontend/...
+
+tests/performance/...
+
+tests/telemetry_simulation/...
+
+When you propose changes, respect the current architecture and patterns already used in this repo.
+
+Begin now:
+
+Analyze the codebase and output the architecture + gap report.
+
+Propose the structure of the test kit, CI, diagnostics dashboard, and health check.
+
+Then implement them step by step, ensuring compatibility with existing code.
