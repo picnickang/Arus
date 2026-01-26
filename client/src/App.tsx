@@ -70,6 +70,7 @@ const AISensorAudits = lazy(() => import("@/pages/ai-sensor-audits"));
 const AIStudioPage = lazy(() => import("@/pages/AIStudioPage"));
 const GovernanceDashboard = lazy(() => import("@/pages/governance-dashboard"));
 const ScheduledReports = lazy(() => import("@/pages/scheduled-reports"));
+const ScheduledReportsSettings = lazy(() => import("@/pages/scheduled-reports-settings"));
 const ActiveTelemetry = lazy(() => import("@/pages/active-telemetry"));
 const AIHealthDashboard = lazy(() => import("@/pages/ai-health-dashboard"));
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -307,6 +308,7 @@ function Router() {
               <Route path="/governance-dashboard" component={GovernanceDashboard} />
               <Route path="/governance">{() => <Redirect to="/governance-dashboard" />}</Route>
               <Route path="/scheduled-reports" component={ScheduledReports} />
+              <Route path="/scheduled-reports-settings" component={ScheduledReportsSettings} />
 
             {/* 404 */}
             <Route component={NotFound} />

@@ -13,6 +13,7 @@ export * from "./hooks/useSettingsData";
 export * from "./hooks/useStorageSettings";
 export * from "./hooks/useNotificationSettings";
 export * from "./hooks/useSchedulingSettingsData";
+export * from "./hooks/useScheduledReportsSettingsData";
 export * from "./lib/adminSchemas";
 export * from "./lib/updateSettingsUtils";
 export * from "./lib/governanceUtils";

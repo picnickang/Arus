@@ -9,16 +9,20 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Edit, Trash2, Mail, Bell, ChevronRight } from "lucide-react";
+import { Plus, Edit, Trash2, Mail, Bell, FileText, ChevronRight } from "lucide-react";
 import { useSystemSettingsTabData } from "@/features/settings";
+import { useLocation } from "wouter";
 import type { AdminSystemSetting } from "@shared/schema";
 
 function SystemSettingsTabContent() {
+  const [, setLocation] = useLocation();
   const {
     settings, isLoading, form, createDialogOpen, setCreateDialogOpen, editingItem,
     createMutation, updateMutation, deleteMutation, handleSubmit, handleEdit, handleDelete,
     handleCloseDialog, handleOpenCreate, navigateToEmailSettings, navigateToNotificationSettings,
   } = useSystemSettingsTabData();
+  
+  const navigateToScheduledReportsSettings = () => setLocation("/scheduled-reports-settings");
 
   if (isLoading) {
     return <div className="flex items-center justify-center py-8">Loading system settings...</div>;
@@ -49,6 +53,20 @@ function SystemSettingsTabContent() {
                 <div>
                   <CardTitle className="text-base">Notification Settings</CardTitle>
                   <CardDescription className="text-sm">Manage in-app notifications and push notification preferences</CardDescription>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </div>
+          </CardHeader>
+        </Card>
+        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={navigateToScheduledReportsSettings} data-testid="card-scheduled-reports-settings">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg"><FileText className="h-5 w-5 text-primary" /></div>
+                <div>
+                  <CardTitle className="text-base">Scheduled Reports Settings</CardTitle>
+                  <CardDescription className="text-sm">Configure report retention, defaults, and generation limits</CardDescription>
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-muted-foreground" />
