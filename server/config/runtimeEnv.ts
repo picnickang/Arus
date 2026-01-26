@@ -105,6 +105,9 @@ export const cloudOnlyFeatures = {
   
   /** Telemetry pruning service (large-scale data cleanup) */
   telemetryPruning: hasPostgresFeatures,
+  
+  /** Scheduled reports with email delivery */
+  scheduledReports: isCloudMode,
 };
 
 /**

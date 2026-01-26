@@ -43,7 +43,7 @@ export interface ReportScheduleInput {
   timezone?: string;
   format?: ReportFormat;
   recipients: string[];
-  vesselIds?: string[];
+  vesselIds?: string[] | null;
   enabled?: boolean;
 }
 

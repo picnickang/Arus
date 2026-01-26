@@ -159,6 +159,13 @@ export async function registerRoutes(
   app.use("/api/pdm", requireOrgId, generalApiRateLimit, pdmRouter);
   console.log("[PdM Routes] Registered (dashboard, risk-queue, asset detail)");
 
+  // Scheduled Reports domain
+  const { createScheduledReportsDomain } = await import("./domains/scheduled-reports/index.js");
+  const scheduledReportsDomain = createScheduledReportsDomain();
+  app.use("/api/scheduled-reports", requireOrgId, generalApiRateLimit, scheduledReportsDomain.router);
+  scheduledReportsDomain.initialize().catch((err) => console.error("[Scheduled Reports] Init failed:", err));
+  console.log("[Scheduled Reports] Registered (CRUD, generation, delivery)");
+
   // Create HTTP server
   const httpServer = createServer(app);
 
