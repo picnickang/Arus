@@ -29,9 +29,12 @@ import {
   type ReportDeliveryFailedEvent,
 } from '../domain/events.js';
 import { logger } from '../../../utils/logger.js';
+import { DbSettingsStorage } from '../../../db/system-admin/db-settings.js';
+import { DEFAULT_SCHEDULED_REPORTS_SETTINGS, type ScheduledReportsSettings } from '../interfaces/routes.js';
 
 const LOG_CTX = 'ReportGenerationService';
-const REPORT_RETENTION_DAYS = 7;
+const SETTINGS_CATEGORY = 'scheduled_reports';
+const settingsStorage = new DbSettingsStorage();
 
 export class ReportGenerationService {
   constructor(
@@ -46,6 +49,7 @@ export class ReportGenerationService {
   async generateAndDeliver(schedule: ReportScheduleConfig): Promise<GeneratedReport> {
     const reportId = uuidv4();
     const startTime = Date.now();
+    const settings = await this.getSettings(schedule.orgId);
 
     await this.eventPublisher.publish(
       createEvent<ReportGenerationStartedEvent>('ReportGenerationStarted', schedule.orgId, {
@@ -75,7 +79,7 @@ export class ReportGenerationService {
         status: 'completed',
         generatedAt: new Date(),
         deliveredAt: null,
-        expiresAt: this.calculateExpiryDate(),
+        expiresAt: this.calculateExpiryDate(settings.reportRetentionDays),
         metadata: {
           generationTimeMs,
           vesselIds: schedule.vesselIds,
@@ -116,7 +120,7 @@ export class ReportGenerationService {
         status: 'failed',
         generatedAt: new Date(),
         deliveredAt: null,
-        expiresAt: this.calculateExpiryDate(),
+        expiresAt: this.calculateExpiryDate(settings.reportRetentionDays),
         metadata: {},
         errorMessage,
       });
@@ -380,9 +384,33 @@ export class ReportGenerationService {
     return `${schedule.reportType}_${date}_${time}.${ext}`;
   }
 
-  private calculateExpiryDate(): Date {
+  private calculateExpiryDate(retentionDays: number): Date {
     const expiry = new Date();
-    expiry.setDate(expiry.getDate() + REPORT_RETENTION_DAYS);
+    expiry.setDate(expiry.getDate() + retentionDays);
     return expiry;
+  }
+
+  private async getSettings(orgId: string): Promise<ScheduledReportsSettings> {
+    try {
+      const dbSettings = await settingsStorage.getSettingsByCategory(orgId, SETTINGS_CATEGORY);
+      const settings: ScheduledReportsSettings = { ...DEFAULT_SCHEDULED_REPORTS_SETTINGS };
+      
+      for (const setting of dbSettings) {
+        if (setting.key === 'report_retention_days' && typeof setting.value === 'number') {
+          settings.reportRetentionDays = setting.value;
+        } else if (setting.key === 'default_timezone' && typeof setting.value === 'string') {
+          settings.defaultTimezone = setting.value;
+        } else if (setting.key === 'max_recipients_per_schedule' && typeof setting.value === 'number') {
+          settings.maxRecipientsPerSchedule = setting.value;
+        } else if (setting.key === 'report_generation_timeout_seconds' && typeof setting.value === 'number') {
+          settings.reportGenerationTimeoutSeconds = setting.value;
+        }
+      }
+      
+      return settings;
+    } catch (error) {
+      logger.warn(LOG_CTX, 'Failed to load settings, using defaults', String(error));
+      return DEFAULT_SCHEDULED_REPORTS_SETTINGS;
+    }
   }
 }
