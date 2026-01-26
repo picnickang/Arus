@@ -95,6 +95,64 @@ export class EmailSender {
     }
   }
 
+  async sendWithAttachment(
+    to: string,
+    subject: string,
+    text: string,
+    html: string,
+    attachment: { filename: string; content: Buffer; contentType: string }
+  ): Promise<SendResult> {
+    if (!this.emailEnabled || !this.sendGridApiKey) {
+      log("info", "DEV MODE - Would send email with attachment", {
+        to,
+        subject,
+        filename: attachment.filename,
+        size: attachment.content.length,
+      });
+      return { success: true, messageId: `dev-${Date.now()}` };
+    }
+
+    try {
+      const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.sendGridApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          personalizations: [{ to: [{ email: to }] }],
+          from: { email: this.fromEmail },
+          subject,
+          content: [
+            { type: "text/plain", value: text },
+            { type: "text/html", value: html },
+          ],
+          attachments: [
+            {
+              content: attachment.content.toString("base64"),
+              filename: attachment.filename,
+              type: attachment.contentType,
+              disposition: "attachment",
+            },
+          ],
+        }),
+      });
+
+      if (response.ok) {
+        const messageId = response.headers.get("x-message-id") || `sg-${Date.now()}`;
+        log("info", "Email with attachment sent successfully", { messageId, to });
+        return { success: true, messageId };
+      }
+
+      log("warn", "SendGrid API error (attachment)", { status: response.status });
+      return { success: false, error: `SendGrid error: ${response.status}`, retriable: false };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      log("error", "Email send with attachment exception", { error: errorMessage });
+      return { success: false, error: errorMessage, retriable: false };
+    }
+  }
+
   getRetryConfig(): RetryConfig {
     return this.retryConfig;
   }
