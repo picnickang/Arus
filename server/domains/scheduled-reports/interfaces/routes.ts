@@ -1,0 +1,224 @@
+/**
+ * Scheduled Reports - REST API Routes
+ */
+
+import { Router, Request, Response } from 'express';
+import { z } from 'zod';
+import { ReportSchedulerService } from '../application/report-scheduler-service.js';
+import { ReportGenerationService } from '../application/report-generation-service.js';
+import { isCloudMode, canUseCloudFeature } from '../../../config/runtimeEnv.js';
+import { DEFAULT_ORG_ID } from '../../../../shared/config/tenant.js';
+import { logger } from '../../../utils/logger.js';
+
+const LOG_CTX = 'ScheduledReportsRoutes';
+
+const REPORT_TYPES = ['fleet_health', 'maintenance_due', 'inventory_status', 'crew_compliance', 'cost_summary'] as const;
+const FREQUENCIES = ['daily', 'weekly', 'monthly'] as const;
+const FORMATS = ['pdf', 'csv', 'json'] as const;
+
+const CreateScheduleSchema = z.object({
+  name: z.string().min(1).max(100),
+  reportType: z.enum(REPORT_TYPES),
+  frequency: z.enum(FREQUENCIES),
+  cronExpression: z.string().optional(),
+  timezone: z.string().default('UTC'),
+  format: z.enum(FORMATS).default('pdf'),
+  recipients: z.array(z.string().email()).min(1),
+  vesselIds: z.array(z.string().uuid()).nullable().optional(),
+  enabled: z.boolean().default(true),
+});
+
+const UpdateScheduleSchema = CreateScheduleSchema.partial();
+
+const GenerateOnDemandSchema = z.object({
+  reportType: z.enum(REPORT_TYPES),
+  format: z.enum(FORMATS).default('pdf'),
+  vesselIds: z.array(z.string().uuid()).nullable().optional(),
+});
+
+export function createScheduledReportsRouter(
+  schedulerService: ReportSchedulerService,
+  generationService: ReportGenerationService
+): Router {
+  const router = Router();
+
+  const requireCloudFeature = (req: Request, res: Response, next: Function) => {
+    if (!isCloudMode || !canUseCloudFeature('scheduledReports')) {
+      return res.status(403).json({
+        error: 'Scheduled reports are only available in cloud mode',
+        code: 'FEATURE_DISABLED',
+      });
+    }
+    next();
+  };
+
+  router.get('/schedules', requireCloudFeature, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+      const schedules = await schedulerService.getSchedulesByOrg(orgId);
+      res.json({ data: schedules });
+    } catch (error) {
+      logger.error(LOG_CTX, 'Failed to list schedules', String(error));
+      res.status(500).json({ error: 'Failed to list schedules' });
+    }
+  });
+
+  router.get('/schedules/:id', requireCloudFeature, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+      const schedule = await schedulerService.getSchedule(req.params.id, orgId);
+      
+      if (!schedule) {
+        return res.status(404).json({ error: 'Schedule not found' });
+      }
+      
+      res.json({ data: schedule });
+    } catch (error) {
+      logger.error(LOG_CTX, 'Failed to get schedule', String(error));
+      res.status(500).json({ error: 'Failed to get schedule' });
+    }
+  });
+
+  router.post('/schedules', requireCloudFeature, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+      const userId = (req as any).userId || 'system';
+
+      const validation = CreateScheduleSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({
+          error: 'Invalid request body',
+          details: validation.error.errors,
+        });
+      }
+
+      const schedule = await schedulerService.createSchedule(orgId, validation.data, userId);
+      res.status(201).json({ data: schedule });
+    } catch (error) {
+      logger.error(LOG_CTX, 'Failed to create schedule', String(error));
+      res.status(500).json({ error: 'Failed to create schedule' });
+    }
+  });
+
+  router.patch('/schedules/:id', requireCloudFeature, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+      const userId = (req as any).userId || 'system';
+
+      const validation = UpdateScheduleSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({
+          error: 'Invalid request body',
+          details: validation.error.errors,
+        });
+      }
+
+      const schedule = await schedulerService.updateSchedule(
+        req.params.id,
+        orgId,
+        validation.data,
+        userId
+      );
+      res.json({ data: schedule });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes('not found')) {
+        return res.status(404).json({ error: 'Schedule not found' });
+      }
+      logger.error(LOG_CTX, 'Failed to update schedule', message);
+      res.status(500).json({ error: 'Failed to update schedule' });
+    }
+  });
+
+  router.delete('/schedules/:id', requireCloudFeature, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+      const userId = (req as any).userId || 'system';
+
+      await schedulerService.deleteSchedule(req.params.id, orgId, userId);
+      res.status(204).send();
+    } catch (error) {
+      logger.error(LOG_CTX, 'Failed to delete schedule', String(error));
+      res.status(500).json({ error: 'Failed to delete schedule' });
+    }
+  });
+
+  router.post('/schedules/:id/run', requireCloudFeature, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+      await schedulerService.runScheduleNow(req.params.id, orgId);
+      res.json({ message: 'Report generation started' });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes('not found')) {
+        return res.status(404).json({ error: 'Schedule not found' });
+      }
+      logger.error(LOG_CTX, 'Failed to run schedule', message);
+      res.status(500).json({ error: 'Failed to run schedule' });
+    }
+  });
+
+  router.get('/schedules/:id/history', requireCloudFeature, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const reports = await schedulerService.getReportHistory(req.params.id, orgId, limit);
+      res.json({ data: reports });
+    } catch (error) {
+      logger.error(LOG_CTX, 'Failed to get report history', String(error));
+      res.status(500).json({ error: 'Failed to get report history' });
+    }
+  });
+
+  router.get('/reports', requireCloudFeature, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const reports = await schedulerService.getAllReports(orgId, limit);
+      res.json({ data: reports });
+    } catch (error) {
+      logger.error(LOG_CTX, 'Failed to list reports', String(error));
+      res.status(500).json({ error: 'Failed to list reports' });
+    }
+  });
+
+  router.post('/reports/generate', async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+
+      const validation = GenerateOnDemandSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({
+          error: 'Invalid request body',
+          details: validation.error.errors,
+        });
+      }
+
+      const { reportType, format, vesselIds } = validation.data;
+      const result = await generationService.generateOnDemand(
+        orgId,
+        reportType,
+        vesselIds || null,
+        format
+      );
+
+      res.setHeader('Content-Type', result.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+      res.send(result.content);
+    } catch (error) {
+      logger.error(LOG_CTX, 'Failed to generate report', String(error));
+      res.status(500).json({ error: 'Failed to generate report' });
+    }
+  });
+
+  router.get('/report-types', (req: Request, res: Response) => {
+    res.json({
+      data: REPORT_TYPES.map((type) => ({
+        id: type,
+        name: type.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+      })),
+    });
+  });
+
+  return router;
+}
