@@ -9,8 +9,31 @@ import { ReportGenerationService } from '../application/report-generation-servic
 import { isCloudMode, canUseCloudFeature } from '../../../config/runtimeEnv.js';
 import { DEFAULT_ORG_ID } from '../../../../shared/config/tenant.js';
 import { logger } from '../../../utils/logger.js';
+import { DbSettingsStorage } from '../../../db/system-admin/db-settings.js';
 
 const LOG_CTX = 'ScheduledReportsRoutes';
+const SETTINGS_CATEGORY = 'scheduled_reports';
+
+export interface ScheduledReportsSettings {
+  reportRetentionDays: number;
+  defaultTimezone: string;
+  maxRecipientsPerSchedule: number;
+  reportGenerationTimeoutSeconds: number;
+}
+
+export const DEFAULT_SCHEDULED_REPORTS_SETTINGS: ScheduledReportsSettings = {
+  reportRetentionDays: 7,
+  defaultTimezone: 'UTC',
+  maxRecipientsPerSchedule: 10,
+  reportGenerationTimeoutSeconds: 120,
+};
+
+const UpdateSettingsSchema = z.object({
+  reportRetentionDays: z.number().min(1).max(365).optional(),
+  defaultTimezone: z.string().min(1).optional(),
+  maxRecipientsPerSchedule: z.number().min(1).max(50).optional(),
+  reportGenerationTimeoutSeconds: z.number().min(30).max(600).optional(),
+});
 
 const REPORT_TYPES = ['fleet_health', 'maintenance_due', 'inventory_status', 'crew_compliance', 'cost_summary'] as const;
 const FREQUENCIES = ['daily', 'weekly', 'monthly'] as const;
@@ -218,6 +241,94 @@ export function createScheduledReportsRouter(
         name: type.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
       })),
     });
+  });
+
+  // ============================================================================
+  // SETTINGS ENDPOINTS
+  // ============================================================================
+
+  const settingsStorage = new DbSettingsStorage();
+
+  async function getSettingsFromDb(orgId: string): Promise<ScheduledReportsSettings> {
+    const dbSettings = await settingsStorage.getSettingsByCategory(orgId, SETTINGS_CATEGORY);
+    const settings: ScheduledReportsSettings = { ...DEFAULT_SCHEDULED_REPORTS_SETTINGS };
+    
+    for (const setting of dbSettings) {
+      if (setting.key === 'report_retention_days' && typeof setting.value === 'number') {
+        settings.reportRetentionDays = setting.value;
+      } else if (setting.key === 'default_timezone' && typeof setting.value === 'string') {
+        settings.defaultTimezone = setting.value;
+      } else if (setting.key === 'max_recipients_per_schedule' && typeof setting.value === 'number') {
+        settings.maxRecipientsPerSchedule = setting.value;
+      } else if (setting.key === 'report_generation_timeout_seconds' && typeof setting.value === 'number') {
+        settings.reportGenerationTimeoutSeconds = setting.value;
+      }
+    }
+    
+    return settings;
+  }
+
+  async function upsertSetting(orgId: string, key: string, value: number | string, dataType: 'string' | 'number' | 'boolean' | 'object' | 'array'): Promise<void> {
+    const existing = await settingsStorage.getAdminSystemSetting(orgId, SETTINGS_CATEGORY, key);
+    if (existing) {
+      await settingsStorage.updateAdminSystemSetting(existing.id, { value });
+    } else {
+      await settingsStorage.createAdminSystemSetting({
+        orgId,
+        category: SETTINGS_CATEGORY,
+        key,
+        value,
+        dataType,
+        description: `Scheduled reports setting: ${key}`,
+      });
+    }
+  }
+
+  router.get('/settings', requireCloudFeature, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+      const settings = await getSettingsFromDb(orgId);
+      res.json({ data: settings });
+    } catch (error) {
+      logger.error(LOG_CTX, 'Failed to get settings', String(error));
+      res.status(500).json({ error: 'Failed to get settings' });
+    }
+  });
+
+  router.patch('/settings', requireCloudFeature, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as any).orgId || DEFAULT_ORG_ID;
+      
+      const validation = UpdateSettingsSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({
+          error: 'Invalid request body',
+          details: validation.error.errors,
+        });
+      }
+
+      const updates = validation.data;
+      
+      if (updates.reportRetentionDays !== undefined) {
+        await upsertSetting(orgId, 'report_retention_days', updates.reportRetentionDays, 'number');
+      }
+      if (updates.defaultTimezone !== undefined) {
+        await upsertSetting(orgId, 'default_timezone', updates.defaultTimezone, 'string');
+      }
+      if (updates.maxRecipientsPerSchedule !== undefined) {
+        await upsertSetting(orgId, 'max_recipients_per_schedule', updates.maxRecipientsPerSchedule, 'number');
+      }
+      if (updates.reportGenerationTimeoutSeconds !== undefined) {
+        await upsertSetting(orgId, 'report_generation_timeout_seconds', updates.reportGenerationTimeoutSeconds, 'number');
+      }
+
+      const updatedSettings = await getSettingsFromDb(orgId);
+      logger.info(LOG_CTX, 'Settings updated', { orgId, updates });
+      res.json({ data: updatedSettings });
+    } catch (error) {
+      logger.error(LOG_CTX, 'Failed to update settings', String(error));
+      res.status(500).json({ error: 'Failed to update settings' });
+    }
   });
 
   return router;
