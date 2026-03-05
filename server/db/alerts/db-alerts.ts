@@ -8,7 +8,7 @@ import { db } from "../../db-config";
 import { alertConfigurations, alertNotifications, alertSuppressions, alertComments, type AlertConfiguration, type InsertAlertConfig, type AlertNotification, type InsertAlertNotification, type AlertSuppression, type InsertAlertSuppression, type AlertComment, type InsertAlertComment } from "@shared/schema-runtime";
 
 export class DatabaseAlertStorage {
-  private validateOrgId(orgId: string | undefined, method: string): void { if (!orgId) {console.warn(`[${method}] Missing orgId - potential security issue`);} }
+  private validateOrgId(orgId: string | undefined, method: string): void { if (!orgId) { throw new Error(`[${method}] orgId is required`); } }
 
   async getAlertConfigurations(equipmentId?: string, orgId?: string): Promise<AlertConfiguration[]> { const conditions: any[] = []; if (orgId) {conditions.push(eq(alertConfigurations.orgId, orgId));} if (equipmentId) {conditions.push(eq(alertConfigurations.equipmentId, equipmentId));} if (conditions.length > 0) {return db.select().from(alertConfigurations).where(and(...conditions));} return db.select().from(alertConfigurations); }
   async getAlertConfiguration(id: string, orgId?: string): Promise<AlertConfiguration | undefined> { const conditions = orgId ? and(eq(alertConfigurations.id, id), eq(alertConfigurations.orgId, orgId)) : eq(alertConfigurations.id, id); const [result] = await db.select().from(alertConfigurations).where(conditions); return result; }

@@ -25,7 +25,7 @@ export async function generateComplianceReport(
   const standards = MARITIME_STANDARDS.filter((std) => config.standardCodes.includes(std.code));
 
   const equipment = await Promise.all(
-    config.equipmentIds.map((id) => storage.getEquipment(id, orgId))
+    config.equipmentIds.map((id) => storage.getEquipment(orgId, id))
   );
 
   const telemetryData = await storage.getTelemetryByPeriod(

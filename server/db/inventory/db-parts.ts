@@ -9,7 +9,7 @@ import { parts, partsInventory, type Part, type InsertPart, type PartsInventory,
 import type { PartFilters, AvailabilityResult } from "./types.js";
 
 export class DbPartsStorage {
-  private validateOrgId(orgId: string | undefined, method: string): void { if (!orgId) {console.warn(`[${method}] Missing orgId - potential security issue`);} }
+  private validateOrgId(orgId: string | undefined, method: string): void { if (!orgId) { throw new Error(`[${method}] orgId is required`); } }
 
   async getParts(orgId?: string, filters?: PartFilters): Promise<Part[]> {
     const conditions: any[] = [];

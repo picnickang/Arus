@@ -10,7 +10,7 @@ import type { EquipmentHealthFilters, EquipmentHealth } from "./types.js";
 import { getWebSocketServer } from "./websocket.js";
 
 export class DatabaseEquipmentStorage {
-  private validateOrgId(orgId: string | undefined, method: string): void { if (!orgId) {console.warn(`[${method}] Missing orgId - potential security issue`);} }
+  private validateOrgId(orgId: string | undefined, method: string): void { if (!orgId) { throw new Error(`[${method}] orgId is required`); } }
 
   async getEquipment(orgId: string, equipmentId: string): Promise<Equipment | undefined> { this.validateOrgId(orgId, "getEquipment"); const [result] = await db.select().from(equipment).where(and(eq(equipment.id, equipmentId), eq(equipment.orgId, orgId))); return result; }
   async getEquipmentRegistry(orgId?: string): Promise<Equipment[]> { const results = await db.select().from(equipment).leftJoin(vessels, eq(equipment.vesselId, vessels.id)).where(orgId ? eq(equipment.orgId, orgId) : undefined).orderBy(equipment.name); return results.map((row) => ({ ...row.equipment, vesselName: row.vessels?.name || row.equipment.vesselName || null })); }

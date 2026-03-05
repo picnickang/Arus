@@ -26,7 +26,7 @@ export async function createWorkOrderFromDtc(storage: IStorage, dtc: DtcWithDefi
     return null;
   }
 
-  const eq = await storage.getEquipment(dtc.equipmentId, orgId);
+  const eq = await storage.getEquipment(orgId, dtc.equipmentId);
   if (!eq) {
     console.warn(`[DTC Integration] Equipment ${dtc.equipmentId} not found`);
     return null;

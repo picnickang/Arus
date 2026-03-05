@@ -42,7 +42,7 @@ export class InventoryRiskAnalyzer {
   ): Promise<EquipmentPartsRisk | null> {
     console.log(`[Inventory Risk] Analyzing parts risk for equipment: ${equipmentId}`);
 
-    const equipment = await this.storage.getEquipment(equipmentId, orgId);
+    const equipment = await this.storage.getEquipment(orgId, equipmentId);
     if (!equipment) {return null;}
 
     const workOrderParts = await this.storage.getWorkOrderPartsByEquipment(orgId, equipmentId);

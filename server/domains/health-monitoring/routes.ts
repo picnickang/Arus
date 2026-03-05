@@ -1,8 +1,18 @@
 import { Express, Request, Response, RequestHandler } from "express";
 import { withErrorHandling } from "../../lib/route-utils";
 
+interface IHealthStorage {
+  getEquipmentRegistry(orgId: string): Promise<any[]>;
+  getAlertNotifications(): Promise<any[]>;
+  getPdmScores(equipmentId?: string): Promise<any[]>;
+  getErrorLogs?(filters: Record<string, any>): Promise<any[]>;
+  createErrorLog?(data: Record<string, any>): Promise<any>;
+  deleteErrorLog?(id: string): Promise<void>;
+  clearErrorLogs?(olderThan?: Date): Promise<void>;
+}
+
 interface HealthMonitoringConfig {
-  storage: any;
+  storage: IHealthStorage;
   requireOrgId: RequestHandler;
   generalApiRateLimit: RequestHandler;
 }

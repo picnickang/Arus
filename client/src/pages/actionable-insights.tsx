@@ -9,12 +9,15 @@ import { AlertTriangle, CheckCircle2, Clock, AlertCircle, Info, Wrench, FileText
 import { useActionableInsightsData } from "@/features/insights";
 import { formatDate } from "@/lib/formatters";
 
-const SeverityBadgeVariants: Record<string, "destructive" | "default" | "secondary" | "outline"> = { critical: "destructive", high: "default", medium: "secondary", low: "outline" };
-const SeverityBadgeColors: Record<string, string> = { critical: "bg-red-500 dark:bg-red-600", high: "bg-orange-500 dark:bg-orange-600", medium: "bg-yellow-500 dark:bg-yellow-600", low: "bg-blue-500 dark:bg-blue-600" };
-const TypeIcons: Record<string, typeof AlertTriangle> = { FAILURE_PREDICTED: AlertTriangle, MAINTENANCE_DUE: Wrench, CONDITION_DETERIORATING: ArrowUpCircle, SENSOR_ANOMALY: AlertCircle, OPTIMIZATION_OPPORTUNITY: Info, COMPLIANCE_RISK: FileText };
+type Severity = "critical" | "high" | "medium" | "low";
+type InsightType = "FAILURE_PREDICTED" | "MAINTENANCE_DUE" | "CONDITION_DETERIORATING" | "SENSOR_ANOMALY" | "OPTIMIZATION_OPPORTUNITY" | "COMPLIANCE_RISK";
 
-const SeverityBadge = ({ severity }: { severity: string }) => (<Badge variant={SeverityBadgeVariants[severity]} className={SeverityBadgeColors[severity]}>{severity.toUpperCase()}</Badge>);
-const TypeIcon = ({ type }: { type: string }) => { const Icon = TypeIcons[type] || Info; return <Icon className="h-5 w-5" />; };
+const SeverityBadgeVariants: Record<Severity, "destructive" | "default" | "secondary" | "outline"> = { critical: "destructive", high: "default", medium: "secondary", low: "outline" };
+const SeverityBadgeColors: Record<Severity, string> = { critical: "bg-red-500 dark:bg-red-600", high: "bg-orange-500 dark:bg-orange-600", medium: "bg-yellow-500 dark:bg-yellow-600", low: "bg-blue-500 dark:bg-blue-600" };
+const TypeIcons: Record<InsightType, typeof AlertTriangle> = { FAILURE_PREDICTED: AlertTriangle, MAINTENANCE_DUE: Wrench, CONDITION_DETERIORATING: ArrowUpCircle, SENSOR_ANOMALY: AlertCircle, OPTIMIZATION_OPPORTUNITY: Info, COMPLIANCE_RISK: FileText };
+
+const SeverityBadge = ({ severity }: { severity: string }) => (<Badge variant={SeverityBadgeVariants[severity as Severity] ?? "outline"} className={SeverityBadgeColors[severity as Severity] ?? ""}>{severity.toUpperCase()}</Badge>);
+const TypeIcon = ({ type }: { type: string }) => { const Icon = TypeIcons[type as InsightType] || Info; return <Icon className="h-5 w-5" />; };
 
 export default function ActionableInsightsPage() {
   const { stats, insights, insightsLoading, selectedSeverity, setSelectedSeverity, showResolved, toggleShowResolved, selectedInsight, detailsOpen, setDetailsOpen, resolveDialogOpen, setResolveDialogOpen, resolutionNotes, setResolutionNotes, handleAcknowledge, handleResolve, handleSelectInsight, acknowledgeMutation, resolveMutation } = useActionableInsightsData();

@@ -18,7 +18,7 @@ export function shouldTriggerAlert(dtc: DtcWithDefinition): boolean {
 export async function createDtcAlert(storage: IStorage, dtc: DtcWithDefinition, orgId: string): Promise<any | null> {
   if (!shouldTriggerAlert(dtc)) { return null; }
 
-  const equipment = await storage.getEquipment(dtc.equipmentId, orgId);
+  const equipment = await storage.getEquipment(orgId, dtc.equipmentId);
   if (!equipment) { return null; }
 
   let alertLevel: "critical" | "warning" | "info" = "warning";

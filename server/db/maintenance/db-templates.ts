@@ -8,7 +8,7 @@ import { db } from "../../db-config";
 import { maintenanceTemplates, type MaintenanceTemplate, type InsertMaintenanceTemplate } from "@shared/schema-runtime";
 
 export class DbMaintenanceTemplates {
-  private validateOrgId(orgId: string | undefined, method: string): void { if (!orgId) {console.warn(`[${method}] Missing orgId - potential security issue`);} }
+  private validateOrgId(orgId: string | undefined, method: string): void { if (!orgId) { throw new Error(`[${method}] orgId is required`); } }
 
   async getMaintenanceTemplates(orgId?: string, equipmentType?: string): Promise<MaintenanceTemplate[]> { const conditions: any[] = []; if (orgId) {conditions.push(eq(maintenanceTemplates.orgId, orgId));} if (equipmentType) {conditions.push(eq(maintenanceTemplates.equipmentType, equipmentType));} if (conditions.length > 0) {return db.select().from(maintenanceTemplates).where(and(...conditions)).orderBy(maintenanceTemplates.name);} return db.select().from(maintenanceTemplates).orderBy(maintenanceTemplates.name); }
   async getMaintenanceTemplate(id: string, orgId?: string): Promise<MaintenanceTemplate | undefined> { const conditions = orgId ? and(eq(maintenanceTemplates.id, id), eq(maintenanceTemplates.orgId, orgId)) : eq(maintenanceTemplates.id, id); const [result] = await db.select().from(maintenanceTemplates).where(conditions); return result; }

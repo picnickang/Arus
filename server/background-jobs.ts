@@ -17,9 +17,15 @@ export const JOB_TYPES = {
 export const jobQueue = {
   add: async (_type: string, _data: any) => {},
   process: (_type: string, _handler: Function) => {},
-  registerProcessor: (_type: string, _processor: Function) => {
-    // No-op stub
-  },
+  registerProcessor: (_type: string, _processor: Function) => {},
   start: async () => {},
   stop: async () => {},
+  getStats: () => ({
+    supported: false,
+    queued: 0,
+    processing: 0,
+    failed: 0,
+    completed: 0,
+  }),
+  getRecentJobs: (_limit: number): Array<{ id: string; name: string; status: string; createdAt: string; finishedAt?: string }> => [],
 };

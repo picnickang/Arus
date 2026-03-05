@@ -67,3 +67,12 @@ The backend employs hexagonal architecture for clean separation of concerns, com
 -   **StormGeo**: Weather and routing data provider.
 -   **Aquametro FMCC**: Fuel Mass Consumption Computer.
 -   **Edge Devices**: Marine equipment and IoT devices.
+
+# Code Quality (Recent Fixes)
+
+-   **Tenant Isolation**: All `validateOrgId` methods across 11 DB storage files now throw errors instead of logging warnings when orgId is missing, enforcing tenant isolation on mutating operations.
+-   **Parameter Order**: `storage.getEquipment()` calls standardized to `(orgId, equipmentId)` across 8 files that previously had reversed arguments.
+-   **Health Monitoring**: `IHealthStorage` interface replaces `any` type. `jobQueue.getStats()` and `getRecentJobs()` stub methods added to prevent runtime crashes on `/api/health/background-jobs`.
+-   **Type Safety**: Actionable insights page uses typed `Severity` and `InsightType` unions instead of `Record<string, ...>`.
+-   **CI Scripts**: `typecheck`, `lint`, `format`, `format:check` scripts added to package.json.
+-   **Stub Documentation**: `getScheduleAssignmentsByRun` now logs a warning instead of silently returning empty array.

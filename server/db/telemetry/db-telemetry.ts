@@ -9,7 +9,7 @@ import { equipmentTelemetry, pdmScoreLogs, edgeHeartbeats, type EquipmentTelemet
 import type { TelemetryTrend } from "./types.js";
 
 export class DatabaseTelemetryStorage {
-  private validateOrgId(orgId: string | undefined, method: string): void { if (!orgId) {console.warn(`[${method}] Missing orgId - potential security issue`);} }
+  private validateOrgId(orgId: string | undefined, method: string): void { if (!orgId) { throw new Error(`[${method}] orgId is required`); } }
 
   async getTelemetryHistory(equipmentId: string, sensorType?: string, limit?: number, offset?: number): Promise<EquipmentTelemetry[]> { const conditions: any[] = [eq(equipmentTelemetry.equipmentId, equipmentId)]; if (sensorType) {conditions.push(eq(equipmentTelemetry.sensorType, sensorType));} let query = db.select().from(equipmentTelemetry).where(and(...conditions)).orderBy(sql`${equipmentTelemetry.ts} DESC`); if (limit !== undefined) {query = query.limit(limit) as any;} if (offset !== undefined) {query = query.offset(offset) as any;} return query; }
   async getTelemetryByEquipmentAndDateRange(equipmentId: string, startDate: Date, endDate: Date, sensorType?: string): Promise<EquipmentTelemetry[]> { const conditions: any[] = [eq(equipmentTelemetry.equipmentId, equipmentId), gte(equipmentTelemetry.ts, startDate), lte(equipmentTelemetry.ts, endDate)]; if (sensorType) {conditions.push(eq(equipmentTelemetry.sensorType, sensorType));} return db.select().from(equipmentTelemetry).where(and(...conditions)).orderBy(equipmentTelemetry.ts); }

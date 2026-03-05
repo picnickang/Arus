@@ -9,7 +9,7 @@ import { workOrders, type WorkOrder, type InsertWorkOrder } from "@shared/schema
 import { broadcastChange, type WorkOrderFilters, type WorkOrderPaginationResult } from "./types.js";
 
 export class DbWorkOrderCore {
-  private validateOrgId(orgId: string | undefined, method: string): void { if (!orgId) { console.warn(`[${method}] Missing orgId - potential security issue`); } }
+  private validateOrgId(orgId: string | undefined, method: string): void { if (!orgId) { throw new Error(`[${method}] orgId is required`); } }
 
   async getWorkOrders(equipmentId?: string, orgId?: string, filters?: WorkOrderFilters): Promise<WorkOrder[]> {
     const conditions: any[] = [];

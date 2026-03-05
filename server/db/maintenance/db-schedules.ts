@@ -9,7 +9,7 @@ import { maintenanceSchedules, maintenanceRecords, maintenanceCosts, type Mainte
 import type { MaintenanceFilters } from "./types.js";
 
 export class DbMaintenanceSchedules {
-  private validateOrgId(orgId: string | undefined, method: string): void { if (!orgId) {console.warn(`[${method}] Missing orgId - potential security issue`);} }
+  private validateOrgId(orgId: string | undefined, method: string): void { if (!orgId) { throw new Error(`[${method}] orgId is required`); } }
 
   async getMaintenanceSchedules(equipmentId?: string, orgId?: string, filters?: MaintenanceFilters): Promise<MaintenanceSchedule[]> {
     const conditions: any[] = [];

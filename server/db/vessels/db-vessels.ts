@@ -9,7 +9,7 @@ import { vessels, portCall as portCallTable, drydockWindow as drydockWindowTable
 import type { FleetOverview } from "./types.js";
 
 export class DatabaseVesselStorage {
-  private validateOrgId(orgId: string | undefined, method: string): void { if (!orgId) { console.warn(`[${method}] Missing orgId - potential security issue`); } }
+  private validateOrgId(orgId: string | undefined, method: string): void { if (!orgId) { throw new Error(`[${method}] orgId is required`); } }
 
   async getVessels(orgId?: string): Promise<Vessel[]> { if (orgId) { return db.select().from(vessels).where(eq(vessels.orgId, orgId)).orderBy(vessels.name); } return db.select().from(vessels).orderBy(vessels.name); }
   async getVesselsPaginated(orgId: string | undefined, limit: number, offset: number): Promise<{ items: Vessel[]; total: number }> { const countQuery = db.select({ count: sql<number>`count(*)` }).from(vessels); const countResult = orgId ? await countQuery.where(eq(vessels.orgId, orgId)) : await countQuery; const total = Number(countResult[0]?.count ?? 0); const query = db.select().from(vessels).orderBy(vessels.name).limit(limit).offset(offset); const items = orgId ? await query.where(eq(vessels.orgId, orgId)) : await query; return { items, total }; }

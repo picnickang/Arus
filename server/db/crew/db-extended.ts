@@ -9,7 +9,7 @@ import { crew, crewAssignment as crewAssignmentTable, crewCertification as crewC
 import type { CrewAssignmentFilters } from "./types.js";
 
 export class DbCrewExtended {
-  private validateOrgId(orgId: string | undefined, method: string): void { if (!orgId) {console.warn(`[${method}] Missing orgId - potential security issue`);} }
+  private validateOrgId(orgId: string | undefined, method: string): void { if (!orgId) { throw new Error(`[${method}] orgId is required`); } }
 
   async getCrewAssignments(orgId?: string, filters?: CrewAssignmentFilters): Promise<CrewAssignment[]> {
     const conditions: any[] = [];

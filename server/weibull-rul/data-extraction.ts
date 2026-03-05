@@ -137,7 +137,7 @@ export function calculateDegradationMetric(dayData: any[]): number {
 
 export async function getCurrentEquipmentAge(equipmentId: string, orgId: string): Promise<number> {
   try {
-    const equipmentInfo = await storage.getEquipment(equipmentId, orgId);
+    const equipmentInfo = await storage.getEquipment(orgId, equipmentId);
 
     if (equipmentInfo?.commissioningDate) {
       const commissioningDate = new Date(equipmentInfo.commissioningDate);

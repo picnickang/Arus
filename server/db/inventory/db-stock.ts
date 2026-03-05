@@ -9,7 +9,7 @@ import { suppliers, stock, partSubstitutions, parts, partsInventory, type Suppli
 import type { StockFilters } from "./types.js";
 
 export class DbStockStorage {
-  private validateOrgId(orgId: string | undefined, method: string): void { if (!orgId) {console.warn(`[${method}] Missing orgId - potential security issue`);} }
+  private validateOrgId(orgId: string | undefined, method: string): void { if (!orgId) { throw new Error(`[${method}] orgId is required`); } }
 
   async getPartStockWithSupplierLeadTime(partId: string, orgId: string): Promise<{
     partId: string;

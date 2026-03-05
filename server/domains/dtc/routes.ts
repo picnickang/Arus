@@ -151,7 +151,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
 
       const faultData = insertDtcFaultSchema.parse({ ...req.body, orgId });
 
-      const equipment = await storage.getEquipment(faultData.equipmentId, orgId);
+      const equipment = await storage.getEquipment(orgId, faultData.equipmentId);
       if (!equipment) {
         return sendNotFound(res, "Equipment");
       }

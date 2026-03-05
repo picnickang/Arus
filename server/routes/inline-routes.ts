@@ -124,7 +124,7 @@ export function registerInlineRoutes(app: Express): void {
         return res.status(400).json({ message: "Organization ID is required" });
       }
 
-      const equipment = await storage.getEquipment(equipmentId, orgId);
+      const equipment = await storage.getEquipment(orgId, equipmentId);
       if (!equipment) {
         return res.status(404).json({ message: "Equipment not found" });
       }

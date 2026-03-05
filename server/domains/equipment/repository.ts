@@ -11,8 +11,7 @@ export class EquipmentRepository {
   }
 
   async findById(equipmentId: string, orgId: string): Promise<Equipment | undefined> {
-    // FIXED: correct parameter order
-    return storage.getEquipment(equipmentId, orgId);
+    return storage.getEquipment(orgId, equipmentId);
   }
 
   async create(data: InsertEquipment): Promise<Equipment> {
