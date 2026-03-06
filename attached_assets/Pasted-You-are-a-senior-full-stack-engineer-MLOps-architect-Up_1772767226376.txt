@@ -1,0 +1,349 @@
+You are a senior full-stack engineer + MLOps architect. Upgrade and repair this existing AI/ML Predictive Maintenance (PdM) system as a FULL-STACK update so it functions more like a fleet-scale industrial PdM platform (Wärtsilä/GE/Siemens style), while keeping the codebase modular and hexagonal (ports/adapters). Do NOT rewrite from scratch; evolve incrementally. Revise your work as you go, run checks, and polish.
+
+========================
+PRIMARY OUTCOMES
+========================
+This must be a FULL-STACK update:
+- Backend/domain/services/storage/migrations
+- API routes/controllers
+- Background jobs / schedulers / health checks
+- Frontend hooks / pages / components / query keys / API integration
+- Documentation / report output
+
+Implement and repair all of the following:
+1) Fix all current PdM/ML code-quality, correctness, and multi-tenant issues.
+2) Fix known platform issues (jobQueue health mismatch, invalid GDPR file syntax, silent stubs, orgId validation problems).
+3) Add the missing industrial PdM layers:
+   - Feature Store
+   - Fleet Analytics
+   - Versioned Model Registry / Deployments
+   - Inference Pipeline
+   - Explainability
+   - Model Monitoring / Drift
+4) Update the frontend so the new backend functionality is actually surfaced and usable.
+5) Produce a text-file audit report of all code added/changed when complete.
+
+========================
+NON-NEGOTIABLE ARCHITECTURE (HEXAGONAL)
+========================
+- Domain layer: pure TypeScript, no framework imports, no DB/HTTP/logging side effects.
+- Ports: interfaces for storage, telemetry source, feature computation, model registry, inference runner, monitoring.
+- Application layer: use-cases/services orchestrating ports; owns validation, transactions, and error mapping.
+- Adapters: Drizzle DB adapters, Express controllers/routes, background job adapters, model runner adapters, telemetry adapters.
+- Routes/controllers must be thin: validate input, call application service, return DTOs.
+- All org-scoped operations MUST require orgId and enforce it in storage adapters.
+- Keep modules small, cohesive, and testable.
+
+========================
+WORK ORDER (DO IN THIS ORDER)
+========================
+
+A) TOOLING / QUALITY GUARDRAILS
+1) Add or verify scripts in package.json:
+   - format
+   - format:check
+   - lint
+   - typecheck
+2) Run prettier repo-wide.
+3) Fix lint/type issues until these pass:
+   - npm run format:check
+   - npm run lint
+   - npm run typecheck
+
+B) FIX CURRENT PLATFORM BLOCKERS
+1) Fix invalid syntax in server/db/gdpr/db-gdpr.ts.
+   - Repair broken spread syntax and function call syntax.
+   - Ensure file compiles and passes typecheck.
+
+2) Fix background jobs health mismatch.
+   - Either implement jobQueue.getStats() and jobQueue.getRecentJobs(limit) in server/background-jobs.ts stub
+   - Or feature-detect in server/domains/health-monitoring/routes.ts and return supported:false without crashing.
+   - Health endpoints must never throw due to stubbed background jobs.
+
+3) Remove silent stubs.
+   - Replace silent empty-array placeholders for unsupported functionality with explicit NotImplemented behavior or supported:false responses.
+   - Do not allow missing functionality to masquerade as valid empty data.
+
+4) Tenant isolation hardening.
+   - Any validateOrgId that warns must THROW.
+   - Any tenant-scoped DB access must require orgId in function signatures and enforce org filters in queries.
+
+C) FIXES TO THE CURRENT AI/ML PdM SYSTEM
+1) Remove orgId defaults in all ML/PdM schemas.
+   - Remove any `.default("default-org-id")`
+   - Make orgId NOT NULL everywhere
+   - Require explicit orgId on all inserts/updates
+
+2) Add missing foreign keys and cascade rules.
+   - Every orgId column in PdM/ML tables: FK -> organizations.id
+   - Every equipmentId column: FK -> equipment.id
+   - Every model reference must point to the correct canonical model/version table
+
+3) Canonicalize model tables.
+   - Stop ambiguous legacy/new model usage
+   - Create and use a canonical registry:
+     - models
+     - model_versions
+     - model_deployments
+     - model_metrics
+   - Keep backward compatibility where necessary, but all new writes should use canonical versioned model references
+
+4) Standardize timestamps.
+   - Use timezone-aware timestamps for event records
+   - Keep createdAt/updatedAt consistent
+
+5) Add missing composite indexes including orgId.
+   - For time-series lookups: (orgId, equipmentId, timestamp DESC)
+   - For filtering fields like severity/risk/status: include orgId
+
+6) Tighten types and nullability.
+   - Convert repeated status/severity/risk strings into enums/unions
+   - Make required fields NOT NULL
+   - Remove broad Record<string,...> and any where better typing is possible
+
+7) Remove `any` in PdM services/adapters.
+   - Replace db:any and storage:any with proper interfaces and typed DB access
+
+8) Replace console.* with structured logger where available.
+
+9) Fix frontend PdM hooks.
+   - Remove hardcoded default vessel/equipment IDs
+   - Ensure React Query keys include orgId for org-scoped data
+   - Use shared API request helpers consistently
+   - Preserve existing UX where possible
+
+D) ADD INDUSTRIAL PdM PLATFORM LAYERS (BACKEND + API + FRONTEND)
+Implement these as modular full-stack features, not backend-only.
+
+1) FEATURE STORE
+Backend:
+- Add schema/table: equipment_features
+  - id uuid PK
+  - orgId FK NOT NULL
+  - equipmentId FK NOT NULL
+  - timestamp timezone-aware NOT NULL
+  - small initial set of engineered feature columns
+  - createdAt
+- Add index: (orgId, equipmentId, timestamp DESC)
+- Create:
+  - FeatureStorePort
+  - DB adapter
+  - application service to compute/store features from telemetry via TelemetryPort
+- Add endpoints:
+  - GET /api/pdm/features?equipmentId=&from=&to=
+  - GET /api/pdm/features/latest?equipmentId=
+
+Frontend:
+- Add/update hooks to fetch features
+- Add UI section/card/table/chart-ready component to surface latest features and feature history on the PdM page
+
+2) FLEET ANALYTICS
+Backend:
+- Add schema/table: fleet_baselines
+  - orgId
+  - equipmentClass or equipmentType
+  - featureName
+  - mean
+  - stddev
+  - sampleSize
+  - computedAt
+- Add indexes
+- Create:
+  - FleetAnalyticsPort
+  - DB adapter
+  - service to compute baselines
+- Integrate z-score / percentile calculations into anomalies and predictions where applicable
+- Add endpoints to read fleet baseline data
+
+Frontend:
+- Add UI to compare an asset against fleet baselines
+- Show simple relative indicators such as z-score, percentile, above/below baseline
+
+3) MODEL LIFECYCLE / REGISTRY
+Backend:
+- Add canonical schemas:
+  - models
+  - model_versions
+  - model_deployments
+  - model_metrics
+- Create:
+  - ModelRegistryPort
+  - DB adapter
+  - services for create/register/deploy/list/rollback
+- Add endpoints:
+  - POST /api/pdm/models
+  - POST /api/pdm/models/:id/versions
+  - POST /api/pdm/deployments
+  - GET endpoints for listing models/versions/deployments
+
+Frontend:
+- Add basic admin-style UI or settings section for:
+  - listing models
+  - viewing versions
+  - seeing active deployment
+- Keep simple and clean, no redesign needed
+
+4) INFERENCE PIPELINE
+Backend:
+- Add schema/table: inference_runs
+  - orgId
+  - equipmentId
+  - modelVersionId
+  - startedAt
+  - finishedAt
+  - latencyMs
+  - status
+  - inputSnapshotRef optional
+- Create:
+  - InferenceRunnerPort
+  - safe deterministic stub runner if no real model runtime exists
+  - PredictionEngine application service
+- Flow:
+  a) resolve equipment class
+  b) resolve active deployment
+  c) fetch latest features
+  d) run inference
+  e) write predictions/anomalies
+  f) create maintenance recommendations using risk logic
+- Add endpoint:
+  - POST /api/pdm/infer?equipmentId=
+
+Frontend:
+- Add UI action/button to trigger inference for an asset if appropriate
+- Show inference status/result cleanly
+- Surface generated predictions and recommendations
+
+5) EXPLAINABILITY
+Backend:
+- Add schema/table: prediction_explanations
+  - predictionId FK
+  - featureName
+  - importance
+  - featureValue
+  - baselineValue
+  - createdAt
+- Store top contributing features for each prediction
+- Add endpoint:
+  - GET /api/pdm/predictions/:id/explanations
+
+Frontend:
+- Add UI to display why a prediction was produced
+- Show top drivers in a clean list/card format
+
+6) MODEL MONITORING / DRIFT
+Backend:
+- Add schema/table: model_drift_metrics
+  - orgId
+  - modelVersionId
+  - featureName
+  - trainingMean
+  - liveMean
+  - driftScore
+  - computedAt
+  - window
+- Create monitoring service and scheduled job
+- Add endpoint:
+  - GET /api/pdm/models/:versionId/drift
+
+Frontend:
+- Add simple model-health UI showing drift metrics or status badges for deployed models
+
+E) FULL-STACK UI / UX POLISH
+This must be a full-stack update, so do not stop at backend changes.
+1) Update existing PdM pages to use new endpoints and data structures.
+2) Split oversized PdM pages/components into smaller components where beneficial.
+3) Add typed presentation helpers for severity/risk/model status.
+4) Keep current styling approach and make changes polished but not overdesigned.
+5) Ensure loading/error/empty states are handled properly for new views.
+6) Do not leave new backend features inaccessible from the frontend.
+
+F) TESTS / VERIFICATION
+Add minimal tests or integration checks for:
+1) Background-jobs health endpoint returns supported:false and does not crash.
+2) orgId required on any org-scoped adapter.
+3) PredictionEngine happy path with stub telemetry + stub inference.
+4) Frontend hooks/query keys correctly isolate org-scoped data where feasible.
+5) Basic route-level validation for new PdM endpoints.
+
+========================
+DELIVERABLES
+========================
+1) Implemented code changes across backend and frontend.
+2) Short README section describing the new PdM architecture and how to plug in a real model runner.
+3) Confirm these pass:
+   - npm run format:check
+   - npm run lint
+   - npm run typecheck
+   - tests, if added
+4) Provide a concise changelog.
+
+========================
+FINAL REPORT REQUIREMENT
+========================
+After implementation is complete, generate a detailed audit report of every change made during this full-stack upgrade.
+
+Create a text file in the project root called:
+
+PDM_UPGRADE_REPORT.txt
+
+Write the report to the file, not only to console.
+
+The report must include these sections:
+
+1) SUMMARY
+- What was implemented
+- What was repaired
+- Which backend and frontend areas were updated
+
+2) FILES CREATED
+- List every new file added with full paths
+
+3) FILES MODIFIED
+- List every existing file changed with full paths
+
+4) DATABASE CHANGES
+- Tables added
+- Columns added/removed
+- Indexes added
+- Foreign keys added
+- Migrations required
+
+5) BACKEND API CHANGES
+- All new endpoints
+- Any modified endpoints
+- Any deprecated endpoints
+
+6) FRONTEND CHANGES
+- Hooks added/updated
+- Pages/components added/updated
+- UI areas changed to expose new PdM functionality
+
+7) NEW SERVICES / MODULES
+- List and describe major ports, services, adapters, jobs, and modules
+
+8) ARCHITECTURE CHANGES
+- Explain end-to-end flow, such as:
+  Telemetry → Feature Store → Fleet Analytics → Inference → Predictions → Explainability → Recommendations
+
+9) REMAINING STUBS OR PLACEHOLDERS
+- Anything intentionally stubbed or deferred
+
+10) VALIDATION
+- Confirm results of:
+  - npm run format:check
+  - npm run lint
+  - npm run typecheck
+  - tests
+
+11) MIGRATION NOTES
+- Explain safe deployment order and migration concerns
+
+========================
+OUTPUT REQUIREMENTS
+========================
+- This is a FULL-STACK update. Backend-only work is not sufficient.
+- Do not leave new backend features without frontend integration.
+- Keep the code modular and hexagonal wherever possible.
+- Revise your own work before finalizing.
+- Write the report to /PDM_UPGRADE_REPORT.txt
+- Make the report clear, structured, and human-readable.
