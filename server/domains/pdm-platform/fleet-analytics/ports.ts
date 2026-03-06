@@ -5,8 +5,11 @@ export interface FleetComparisonResult {
   equipmentValue: number;
   fleetMean: number;
   fleetStddev: number;
+  fleetP5: number;
+  fleetP95: number;
   zScore: number;
   percentile: number;
+  aboveFleetAvg: boolean;
   status: "normal" | "warning" | "critical";
 }
 

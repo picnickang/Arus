@@ -3,17 +3,17 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Database, BarChart3, Box, Zap, AlertTriangle, TrendingUp, TrendingDown, Minus, RefreshCw } from "lucide-react";
+import { Loader2, Database, BarChart3, Box, Zap, AlertTriangle, TrendingUp, TrendingDown, Minus, RefreshCw, ArrowUp, ArrowDown, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLatestFeatures, useComputeFeatures } from "@/features/pdm/hooks/use-feature-store";
 import { useFleetBaselines, useFleetComparison, useComputeBaselines } from "@/features/pdm/hooks/use-fleet-analytics";
-import { useModels, useModelVersions, useActiveDeployment, useDeployModel, useCreateVersion } from "@/features/pdm/hooks/use-model-registry";
+import { useModels, useModelVersions, useActiveDeployment } from "@/features/pdm/hooks/use-model-registry";
 import { useRunInference, usePredictionExplanations } from "@/features/pdm/hooks/use-inference";
 import { useModelDrift, useComputeDrift } from "@/features/pdm/hooks/use-model-monitoring";
 
 function FeatureStoreTab() {
   const [equipmentId, setEquipmentId] = useState("");
-  const { data: features, isLoading } = useLatestFeatures(equipmentId);
+  const { data: features, isLoading, refetch } = useLatestFeatures(equipmentId);
   const computeMutation = useComputeFeatures();
   const { toast } = useToast();
 
@@ -22,12 +22,17 @@ function FeatureStoreTab() {
     try {
       await computeMutation.mutateAsync({ equipmentId });
       toast({ title: "Features computed successfully" });
+      refetch();
     } catch {
       toast({ title: "Failed to compute features", variant: "destructive" });
     }
   };
 
-  const featureEntries = features && !features.message ? [
+  const hasFeatures = features && !features.message;
+  const sampleCount = hasFeatures ? features.sampleCount : 0;
+  const dataSource = sampleCount > 0 ? "telemetry" : "stub";
+
+  const featureEntries = hasFeatures ? [
     { name: "Mean Temperature", value: features.meanTemp, unit: "°C" },
     { name: "Std Temperature", value: features.stdTemp, unit: "°C" },
     { name: "Mean Vibration", value: features.meanVibration, unit: "mm/s" },
@@ -62,8 +67,18 @@ function FeatureStoreTab() {
       {featureEntries.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle data-testid="text-features-title" className="text-lg">Latest Equipment Features</CardTitle>
-            <CardDescription>Window: {features.windowMinutes} min | Samples: {features.sampleCount}</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle data-testid="text-features-title" className="text-lg">Latest Equipment Features</CardTitle>
+                <CardDescription>Window: {features.windowMinutes ?? 60} min | Samples: {sampleCount}</CardDescription>
+              </div>
+              <Badge
+                data-testid="badge-data-source"
+                variant={dataSource === "telemetry" ? "default" : "secondary"}
+              >
+                {dataSource === "telemetry" ? "Live Telemetry" : "Estimated"}
+              </Badge>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -71,7 +86,7 @@ function FeatureStoreTab() {
                 <div key={f.name} className="p-3 rounded-lg border bg-muted/50">
                   <div className="text-xs text-muted-foreground">{f.name}</div>
                   <div className="text-lg font-semibold" data-testid={`text-feature-${f.name.toLowerCase().replace(/\s/g, '-')}`}>
-                    {f.value != null ? f.value.toFixed(2) : "—"} <span className="text-xs text-muted-foreground">{f.unit}</span>
+                    {f.value != null ? Number(f.value).toFixed(2) : "—"} <span className="text-xs text-muted-foreground">{f.unit}</span>
                   </div>
                 </div>
               ))}
@@ -96,13 +111,12 @@ function FleetAnalyticsTab() {
   const { toast } = useToast();
 
   const statusColor = (status: string) => status === "critical" ? "destructive" : status === "warning" ? "secondary" : "default";
-  const statusIcon = (status: string) => status === "critical" ? <AlertTriangle className="w-3 h-3" /> : status === "warning" ? <TrendingUp className="w-3 h-3" /> : <Minus className="w-3 h-3" />;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3 flex-wrap">
         <input data-testid="input-equipment-type" type="text" placeholder="Equipment type" value={equipmentType} onChange={(e) => setEquipmentType(e.target.value)} className="flex h-10 w-48 rounded-md border border-input bg-background px-3 py-2 text-sm" />
-        <Button data-testid="button-compute-baselines" onClick={() => computeMutation.mutateAsync(equipmentType).then(() => toast({ title: "Baselines computed" })).catch(() => toast({ title: "Failed", variant: "destructive" }))} disabled={!equipmentType || computeMutation.isPending}>
+        <Button data-testid="button-compute-baselines" onClick={() => computeMutation.mutateAsync(equipmentType).then(() => toast({ title: "Baselines computed from feature records" })).catch(() => toast({ title: "Failed to compute baselines", variant: "destructive" }))} disabled={!equipmentType || computeMutation.isPending}>
           {computeMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
           Compute Baselines
         </Button>
@@ -113,7 +127,7 @@ function FleetAnalyticsTab() {
 
       {Array.isArray(baselines) && baselines.length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="text-lg">Fleet Baselines: {equipmentType}</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-lg">Fleet Baselines: {equipmentType}</CardTitle><CardDescription>{baselines[0]?.sampleSize ?? 0} source records</CardDescription></CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -136,17 +150,22 @@ function FleetAnalyticsTab() {
 
       {Array.isArray(comparison) && comparison.length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="text-lg">Fleet Comparison</CardTitle><CardDescription>Equipment vs fleet average</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="text-lg">Fleet Comparison</CardTitle><CardDescription>Equipment vs fleet average with z-scores and percentiles</CardDescription></CardHeader>
           <CardContent>
             <div className="space-y-2">
               {comparison.map((c: any) => (
                 <div key={c.featureName} className="flex items-center justify-between p-3 rounded-lg border" data-testid={`row-comparison-${c.featureName}`}>
-                  <div className="font-medium">{c.featureName}</div>
-                  <div className="flex items-center gap-4 text-sm">
-                    <span>Value: {c.equipmentValue?.toFixed(2)}</span>
-                    <span className="text-muted-foreground">Fleet: {c.fleetMean?.toFixed(2)}</span>
-                    <span>Z: {c.zScore?.toFixed(2)}</span>
-                    <Badge variant={statusColor(c.status)}>{statusIcon(c.status)} {c.status}</Badge>
+                  <div className="font-medium w-32">{c.featureName}</div>
+                  <div className="flex items-center gap-4 text-sm flex-wrap">
+                    <span className="font-mono">{c.equipmentValue?.toFixed(2)}</span>
+                    <span className="text-muted-foreground">Fleet: {c.fleetMean?.toFixed(2)} ± {c.fleetStddev?.toFixed(2)}</span>
+                    <span className="font-mono">Z: {c.zScore?.toFixed(2)}</span>
+                    <span className="text-muted-foreground">P{c.percentile?.toFixed(0)}</span>
+                    <span className="flex items-center gap-1">
+                      {c.aboveFleetAvg ? <ArrowUp className="w-3 h-3 text-orange-500" /> : <ArrowDown className="w-3 h-3 text-blue-500" />}
+                      <span className="text-xs">{c.aboveFleetAvg ? "Above" : "Below"}</span>
+                    </span>
+                    <Badge variant={statusColor(c.status)}>{c.status}</Badge>
                   </div>
                 </div>
               ))}
@@ -199,6 +218,7 @@ function ModelRegistryTab() {
                   <div>
                     <span className="font-medium">v{v.version}</span>
                     <span className="text-sm text-muted-foreground ml-2">{v.artifactPath || "no artifact"}</span>
+                    {v.trainingDataPoints && <span className="text-xs text-muted-foreground ml-2">({v.trainingDataPoints} training pts)</span>}
                   </div>
                   <Badge variant={v.status === "production" ? "default" : "secondary"}>{v.status}</Badge>
                 </div>
@@ -259,7 +279,15 @@ function InferenceTab() {
 
       {lastResult?.prediction && (
         <Card>
-          <CardHeader><CardTitle className="text-lg">Prediction Result</CardTitle></CardHeader>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Prediction Result</CardTitle>
+              <Badge variant="outline" className="text-xs">
+                {lastResult.inferenceRun?.status === "completed" ? <CheckCircle2 className="w-3 h-3 mr-1" /> : null}
+                {lastResult.inferenceRun?.status}
+              </Badge>
+            </div>
+          </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="p-3 rounded-lg border bg-muted/50">
@@ -271,7 +299,7 @@ function InferenceTab() {
                 <Badge variant={riskColor(lastResult.prediction.riskLevel)} data-testid="text-risk-level" className="mt-1">{lastResult.prediction.riskLevel}</Badge>
               </div>
               <div className="p-3 rounded-lg border bg-muted/50">
-                <div className="text-xs text-muted-foreground">RUL</div>
+                <div className="text-xs text-muted-foreground">Remaining Useful Life</div>
                 <div className="text-2xl font-bold" data-testid="text-rul">{lastResult.prediction.remainingUsefulLife}d</div>
               </div>
               <div className="p-3 rounded-lg border bg-muted/50">
@@ -293,7 +321,7 @@ function InferenceTab() {
 
       {Array.isArray(explanations) && explanations.length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="text-lg">Prediction Explanations</CardTitle><CardDescription>Feature contributions sorted by importance</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="text-lg">Prediction Explanations</CardTitle><CardDescription>Feature contributions to prediction — normalized importance with deviation direction</CardDescription></CardHeader>
           <CardContent>
             <div className="space-y-2">
               {explanations.map((e: any) => (
@@ -303,8 +331,10 @@ function InferenceTab() {
                     <div className="bg-primary h-full rounded-full transition-all" style={{ width: `${e.importance * 100}%` }} />
                   </div>
                   <div className="text-sm text-right w-16">{(e.importance * 100).toFixed(1)}%</div>
-                  <div className="text-sm text-muted-foreground w-20">{e.featureValue?.toFixed(2)}</div>
-                  {e.direction === "increasing" ? <TrendingUp className="w-4 h-4 text-red-500" /> : e.direction === "decreasing" ? <TrendingDown className="w-4 h-4 text-blue-500" /> : <Minus className="w-4 h-4" />}
+                  <div className="text-sm text-muted-foreground w-24 text-right">
+                    {e.featureValue?.toFixed(2)} <span className="text-xs">/ {e.baselineValue?.toFixed(2)}</span>
+                  </div>
+                  {e.direction === "increasing" ? <TrendingUp className="w-4 h-4 text-red-500" /> : e.direction === "decreasing" ? <TrendingDown className="w-4 h-4 text-blue-500" /> : <Minus className="w-4 h-4 text-muted-foreground" />}
                 </div>
               ))}
             </div>
@@ -321,11 +351,14 @@ function DriftMonitoringTab() {
   const computeMutation = useComputeDrift();
   const { toast } = useToast();
 
+  const driftedCount = Array.isArray(driftMetrics) ? driftMetrics.filter((d: any) => d.driftDetected).length : 0;
+  const totalCount = Array.isArray(driftMetrics) ? driftMetrics.length : 0;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <input data-testid="input-model-version-id" type="text" placeholder="Model Version ID" value={modelVersionId} onChange={(e) => setModelVersionId(e.target.value)} className="flex h-10 w-72 rounded-md border border-input bg-background px-3 py-2 text-sm" />
-        <Button data-testid="button-compute-drift" onClick={() => computeMutation.mutateAsync({ modelVersionId }).then(() => toast({ title: "Drift computed" })).catch(() => toast({ title: "Failed", variant: "destructive" }))} disabled={!modelVersionId || computeMutation.isPending}>
+        <Button data-testid="button-compute-drift" onClick={() => computeMutation.mutateAsync({ modelVersionId }).then(() => toast({ title: "Drift computed (normalized mean shift)" })).catch(() => toast({ title: "Failed to compute drift", variant: "destructive" }))} disabled={!modelVersionId || computeMutation.isPending}>
           {computeMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
           Compute Drift
         </Button>
@@ -333,28 +366,38 @@ function DriftMonitoringTab() {
 
       {isLoading && <div className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Loading drift metrics...</div>}
 
-      {Array.isArray(driftMetrics) && driftMetrics.length > 0 && (
-        <Card>
-          <CardHeader><CardTitle className="text-lg">Drift Metrics</CardTitle><CardDescription>Feature distribution shifts</CardDescription></CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead><tr className="border-b"><th className="text-left p-2">Feature</th><th className="text-right p-2">Training Mean</th><th className="text-right p-2">Live Mean</th><th className="text-right p-2">Drift Score</th><th className="text-center p-2">Status</th></tr></thead>
-                <tbody>{driftMetrics.map((d: any) => (
-                  <tr key={d.id} className="border-b" data-testid={`row-drift-${d.featureName}`}>
-                    <td className="p-2 font-medium">{d.featureName}</td>
-                    <td className="p-2 text-right">{d.trainingMean?.toFixed(2)}</td>
-                    <td className="p-2 text-right">{d.liveMean?.toFixed(2)}</td>
-                    <td className="p-2 text-right">{d.driftScore?.toFixed(2)}</td>
-                    <td className="p-2 text-center">
-                      <Badge variant={d.driftDetected ? "destructive" : "default"}>{d.driftDetected ? "DRIFT" : "OK"}</Badge>
-                    </td>
-                  </tr>
-                ))}</tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+      {totalCount > 0 && (
+        <>
+          <div className="flex items-center gap-3">
+            <Badge variant={driftedCount > 0 ? "destructive" : "default"} data-testid="badge-drift-summary">
+              {driftedCount}/{totalCount} features drifted
+            </Badge>
+            <span className="text-xs text-muted-foreground">Method: normalized mean shift (|μ_live - μ_train| / σ_train) &gt; 2.0</span>
+          </div>
+          <Card>
+            <CardHeader><CardTitle className="text-lg">Drift Metrics</CardTitle><CardDescription>Feature distribution shifts — training vs live</CardDescription></CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b"><th className="text-left p-2">Feature</th><th className="text-right p-2">Training μ</th><th className="text-right p-2">Training σ</th><th className="text-right p-2">Live μ</th><th className="text-right p-2">Live σ</th><th className="text-right p-2">Drift Score</th><th className="text-center p-2">Status</th></tr></thead>
+                  <tbody>{driftMetrics.map((d: any) => (
+                    <tr key={d.id} className="border-b" data-testid={`row-drift-${d.featureName}`}>
+                      <td className="p-2 font-medium">{d.featureName}</td>
+                      <td className="p-2 text-right font-mono">{d.trainingMean?.toFixed(2)}</td>
+                      <td className="p-2 text-right font-mono text-muted-foreground">{d.trainingStd?.toFixed(2)}</td>
+                      <td className="p-2 text-right font-mono">{d.liveMean?.toFixed(2)}</td>
+                      <td className="p-2 text-right font-mono text-muted-foreground">{d.liveStd?.toFixed(2)}</td>
+                      <td className="p-2 text-right font-mono font-semibold">{d.driftScore?.toFixed(2)}</td>
+                      <td className="p-2 text-center">
+                        <Badge variant={d.driftDetected ? "destructive" : "default"}>{d.driftDetected ? "DRIFT" : "OK"}</Badge>
+                      </td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </>
       )}
     </div>
   );

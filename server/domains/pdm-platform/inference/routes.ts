@@ -1,12 +1,11 @@
 import { Router, type Request, type Response } from "express";
 import { z } from "zod";
-import { eq, desc } from "drizzle-orm";
-import { db } from "../../../db";
-import { predictionExplanations } from "@shared/schema";
 import { StubInferenceRunner } from "./stub-runner";
+import { PredictionEngineService } from "./prediction-engine.service";
 
 const router = Router();
-const inferenceRunner = new StubInferenceRunner();
+const runner = new StubInferenceRunner();
+const predictionEngine = new PredictionEngineService(runner);
 
 const inferSchema = z.object({
   equipmentId: z.string().min(1),
@@ -19,7 +18,7 @@ router.post("/", async (req: Request, res: Response) => {
     const parsed = inferSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
     const { equipmentId, modelVersionId } = parsed.data;
-    const result = await inferenceRunner.runInference(orgId, equipmentId, modelVersionId);
+    const result = await predictionEngine.predict(orgId, equipmentId, modelVersionId);
     res.json(result);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -28,12 +27,10 @@ router.post("/", async (req: Request, res: Response) => {
 
 router.get("/predictions/:predictionId/explanations", async (req: Request, res: Response) => {
   try {
+    const orgId = req.headers["x-org-id"] as string;
     const predictionId = parseInt(req.params.predictionId);
     if (isNaN(predictionId)) return res.status(400).json({ error: "Invalid predictionId" });
-    const result = await db.select()
-      .from(predictionExplanations)
-      .where(eq(predictionExplanations.predictionId, predictionId))
-      .orderBy(desc(predictionExplanations.importance));
+    const result = await predictionEngine.getExplanations(orgId, predictionId);
     res.json(result);
   } catch (error: any) {
     res.status(500).json({ error: error.message });

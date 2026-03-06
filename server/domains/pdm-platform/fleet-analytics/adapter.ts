@@ -1,28 +1,94 @@
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, inArray } from "drizzle-orm";
 import { db } from "../../../db";
-import { fleetBaselines, equipmentFeatures, type FleetBaseline } from "@shared/schema";
+import { fleetBaselines, equipmentFeatures, equipment, type FleetBaseline } from "@shared/schema";
 import type { FleetAnalyticsPort, FleetComparisonResult } from "./ports";
 import { logger } from "../../../utils/logger";
 
+type FeatureExtractor = (row: typeof equipmentFeatures.$inferSelect) => number | null;
+
+const FEATURE_EXTRACTORS: Record<string, FeatureExtractor> = {
+  meanTemp: (r) => r.meanTemp,
+  stdTemp: (r) => r.stdTemp,
+  meanVibration: (r) => r.meanVibration,
+  stdVibration: (r) => r.stdVibration,
+  meanPressure: (r) => r.meanPressure,
+  stdPressure: (r) => r.stdPressure,
+  rmsVibration: (r) => r.rmsVibration,
+  peakToPeak: (r) => r.peakToPeak,
+  kurtosis: (r) => r.kurtosis,
+  skewness: (r) => r.skewness,
+};
+
+function round(v: number): number {
+  return Math.round(v * 100) / 100;
+}
+
+function percentile(sorted: number[], p: number): number {
+  if (sorted.length === 0) return 0;
+  const idx = (p / 100) * (sorted.length - 1);
+  const lower = Math.floor(idx);
+  const upper = Math.ceil(idx);
+  if (lower === upper) return sorted[lower];
+  return sorted[lower] + (idx - lower) * (sorted[upper] - sorted[lower]);
+}
+
 export class FleetAnalyticsAdapter implements FleetAnalyticsPort {
   async computeBaselines(orgId: string, equipmentType: string): Promise<FleetBaseline[]> {
-    const featureNames = [
-      "meanTemp", "stdTemp", "meanVibration", "stdVibration",
-      "meanPressure", "stdPressure", "rmsVibration", "peakToPeak",
-      "kurtosis", "skewness"
-    ];
+    const matchingEquipment = await db.select({ id: equipment.id })
+      .from(equipment)
+      .where(and(eq(equipment.orgId, orgId), eq(equipment.type, equipmentType)));
+
+    const equipmentIds = matchingEquipment.map(e => e.id);
+
+    let allFeatures;
+    if (equipmentIds.length > 0) {
+      allFeatures = await db.select()
+        .from(equipmentFeatures)
+        .where(and(
+          eq(equipmentFeatures.orgId, orgId),
+          inArray(equipmentFeatures.equipmentId, equipmentIds),
+        ))
+        .orderBy(desc(equipmentFeatures.timestamp))
+        .limit(2000);
+    } else {
+      allFeatures = await db.select()
+        .from(equipmentFeatures)
+        .where(eq(equipmentFeatures.orgId, orgId))
+        .orderBy(desc(equipmentFeatures.timestamp))
+        .limit(2000);
+      logger.warn("[FleetAnalytics] No equipment found for type, using all features as fallback", { orgId, equipmentType });
+    }
+
+    if (allFeatures.length === 0) {
+      logger.warn("[FleetAnalytics] No feature records found for baseline computation", { orgId, equipmentType });
+      return [];
+    }
 
     const results: FleetBaseline[] = [];
-    for (const featureName of featureNames) {
+    for (const [featureName, extractor] of Object.entries(FEATURE_EXTRACTORS)) {
+      const values = allFeatures
+        .map(extractor)
+        .filter((v): v is number => v != null && !isNaN(v));
+
+      if (values.length < 3) continue;
+
+      const sorted = [...values].sort((a, b) => a - b);
+      const n = values.length;
+      const mean = values.reduce((a, b) => a + b, 0) / n;
+      const variance = values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / Math.max(n - 1, 1);
+      const stddev = Math.sqrt(variance);
+      const p5 = percentile(sorted, 5);
+      const p95 = percentile(sorted, 95);
+
       const baseline = {
         orgId,
         equipmentType,
         featureName,
-        mean: this.randomStat(20, 80),
-        stddev: this.randomStat(2, 15),
-        p5: this.randomStat(5, 20),
-        p95: this.randomStat(80, 95),
-        sampleSize: Math.floor(50 + Math.random() * 200),
+        mean: round(mean),
+        stddev: round(stddev),
+        p5: round(p5),
+        p95: round(p95),
+        sampleSize: n,
       };
 
       const [result] = await db.insert(fleetBaselines)
@@ -35,7 +101,7 @@ export class FleetAnalyticsAdapter implements FleetAnalyticsPort {
       results.push(result);
     }
 
-    logger.info("[FleetAnalytics] Baselines computed", { orgId, equipmentType, count: results.length });
+    logger.info("[FleetAnalytics] Baselines computed from feature records", { orgId, equipmentType, count: results.length, sourceRecords: allFeatures.length });
     return results;
   }
 
@@ -57,32 +123,30 @@ export class FleetAnalyticsAdapter implements FleetAnalyticsPort {
 
     if (!latestFeatures) return [];
 
-    const featureMap: Record<string, number | null> = {
-      meanTemp: latestFeatures.meanTemp,
-      stdTemp: latestFeatures.stdTemp,
-      meanVibration: latestFeatures.meanVibration,
-      stdVibration: latestFeatures.stdVibration,
-      meanPressure: latestFeatures.meanPressure,
-      stdPressure: latestFeatures.stdPressure,
-      rmsVibration: latestFeatures.rmsVibration,
-      peakToPeak: latestFeatures.peakToPeak,
-      kurtosis: latestFeatures.kurtosis,
-      skewness: latestFeatures.skewness,
-    };
+    const featureMap: Record<string, number | null> = {};
+    for (const [name, extractor] of Object.entries(FEATURE_EXTRACTORS)) {
+      featureMap[name] = extractor(latestFeatures);
+    }
 
     return baselines
       .filter(b => featureMap[b.featureName] != null)
       .map(b => {
         const value = featureMap[b.featureName]!;
-        const zScore = b.stddev > 0 ? (value - b.mean) / b.stddev : 0;
+        const zScore = b.stddev && b.stddev > 0 ? (value - (b.mean ?? 0)) / b.stddev : 0;
         const absZ = Math.abs(zScore);
+        const pctl = this.zToPercentile(zScore);
+        const aboveFleet = value > (b.mean ?? 0);
+
         return {
           featureName: b.featureName,
           equipmentValue: value,
-          fleetMean: b.mean,
-          fleetStddev: b.stddev,
-          zScore: Math.round(zScore * 100) / 100,
-          percentile: Math.round(this.zToPercentile(zScore) * 100) / 100,
+          fleetMean: b.mean ?? 0,
+          fleetStddev: b.stddev ?? 0,
+          fleetP5: b.p5 ?? 0,
+          fleetP95: b.p95 ?? 0,
+          zScore: round(zScore),
+          percentile: round(pctl),
+          aboveFleetAvg: aboveFleet,
           status: absZ > 3 ? "critical" as const : absZ > 2 ? "warning" as const : "normal" as const,
         };
       });
@@ -93,9 +157,5 @@ export class FleetAnalyticsAdapter implements FleetAnalyticsPort {
     const d = 0.3989422804014327;
     const p = d * Math.exp(-z * z / 2) * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
     return z > 0 ? (1 - p) * 100 : p * 100;
-  }
-
-  private randomStat(min: number, max: number): number {
-    return Math.round((min + Math.random() * (max - min)) * 100) / 100;
   }
 }

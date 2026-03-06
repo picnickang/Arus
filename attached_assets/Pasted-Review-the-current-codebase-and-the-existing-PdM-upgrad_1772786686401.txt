@@ -1,0 +1,210 @@
+Review the current codebase and the existing PdM upgrade work already completed, then compare it against the following gap analysis and fill in only the missing pieces. Do not rewrite working modules. Preserve the current architecture, keep everything modular and hexagonal, and revise your work before finishing.
+
+CONTEXT
+The app already has a significant PdM upgrade in place, including:
+- Feature Store
+- Fleet Analytics
+- Model Registry
+- Inference Pipeline
+- Model Monitoring / Drift
+- Unified PdM Platform frontend page
+- Hexagonal modules with ports/adapters/routes
+- Multi-tenant orgId fixes
+- Full-stack UI wiring
+
+Your job is to REVIEW what already exists in the repo relative to the suggestions below, identify the remaining gaps, and implement only what is still missing or too stubbed to be useful.
+
+GAP ANALYSIS TO REVIEW AGAINST
+The current system appears strong structurally, but still has likely gaps in these areas:
+
+1) Feature Store is still stubbed
+- Current compute likely returns deterministic placeholder features
+- Missing real feature engineering from telemetry
+- Need rolling statistics and practical engineered signals
+
+2) Inference engine is still stubbed
+- Current inference likely uses deterministic heuristics
+- Need a cleaner abstraction for real model execution
+- Need better orchestration separation if route logic still directly coordinates too much
+
+3) Fleet analytics may exist but may still rely on stub feature data
+- Need meaningful baseline calculations once real features exist
+- Need better comparison output if currently too shallow
+
+4) Telemetry ingestion / telemetry source abstraction may still be missing
+- Need to check whether the app already has telemetry tables, sensor history, or equipment metrics
+- If telemetry already exists somewhere in the app, integrate with it instead of inventing a parallel system
+- If it does not exist, add a clean telemetry port and a minimal but real schema/service path
+
+5) Model registry may still be incomplete
+- Need to verify whether model versions include training stats/distributions needed for drift monitoring
+- Need to verify whether deployment records are complete enough for production-style version tracking
+
+6) Drift detection may still be stubbed
+- Need real drift calculations where feasible
+- At minimum implement a simple numeric drift method using available data rather than placeholder scores
+
+7) Application service layering may still be weak
+- Need to verify whether orchestration lives in routes instead of services
+- Prefer routes -> application service -> ports -> adapters
+
+PRIMARY INSTRUCTION
+Do a repo-aware review and then fill the gaps based on what actually exists.
+Do NOT blindly implement everything from scratch.
+First inspect the current implementation and determine:
+- what already exists and is adequate
+- what exists but is still stubbed
+- what is missing
+- what should be improved for production readiness
+
+Then implement the missing/improved pieces.
+
+WORK ORDER
+
+A) REVIEW CURRENT IMPLEMENTATION
+Inspect the existing PdM modules, schemas, adapters, routes, hooks, and UI.
+Specifically review:
+- server/domains/pdm-platform/*
+- server/domains/pdm/*
+- shared/schema/ml-analytics-*
+- shared/schema/pdm-feature-store.ts
+- server/routes.ts
+- client/src/features/pdm/*
+- client/src/pages/pdm-platform.tsx
+- any telemetry/equipment/analytics/history/sensor tables or services already in the app
+
+Produce an internal plan before coding:
+1) What already exists and is good
+2) What is stubbed
+3) What is missing
+4) What should be refactored to better match hexagonal architecture
+
+B) FILL THE MOST IMPORTANT GAPS
+
+1) REAL FEATURE COMPUTATION
+If telemetry or time-series data already exists in the app:
+- Integrate the feature store with that existing data source
+- Compute real engineered features from recent windows where feasible, such as:
+  - rolling average
+  - rolling standard deviation
+  - min/max
+  - delta over window
+  - simple rate of change
+  - anomaly-friendly derived ratios if source fields exist
+Use whatever telemetry fields actually exist in the app instead of inventing fake ones.
+
+If telemetry does NOT already exist:
+- Add a minimal telemetry abstraction cleanly:
+  - TelemetryPort
+  - adapter backed by existing DB if possible, otherwise add a small schema/table only if necessary
+- Keep it minimal and useful, not bloated
+
+Acceptance:
+- Feature computation should no longer be purely deterministic placeholder logic
+- It should use real recent data when available
+
+2) IMPROVE INFERENCE ORCHESTRATION
+- Ensure there is a real application service such as prediction-engine.service.ts
+- Routes must be thin and call the service
+- Keep InferenceRunnerPort so a real model runtime can be plugged in later
+- If the current runner is still stubbed, keep a safe default runner but improve the structure so the stub is isolated behind the port
+- Use computed features and fleet-relative context if available
+
+Acceptance:
+- Clear separation: route -> app service -> ports/adapters
+- No orchestration-heavy route files
+
+3) MAKE FLEET ANALYTICS MORE MEANINGFUL
+- If fleet baselines already exist, improve them using real feature store data
+- Add useful comparison output such as:
+  - z-score
+  - percentile if feasible
+  - above/below fleet average indicators
+- Surface the richer comparison in backend DTOs and frontend UI
+
+Acceptance:
+- Fleet comparison should be based on actual feature records, not just placeholder values
+
+4) IMPROVE MODEL REGISTRY FOR MONITORING
+Review whether model versions include enough metadata for drift/monitoring.
+If missing, add support for:
+- training statistics / reference distributions for important features
+- better deployment metadata
+- artifact or model reference fields if appropriate
+
+Do this incrementally and compatibly.
+
+Acceptance:
+- Drift monitoring has actual reference values to compare against
+
+5) REPLACE STUB DRIFT WITH REAL BASIC DRIFT CALCULATION
+Implement a practical lightweight drift metric using available data.
+Examples:
+- normalized mean shift
+- z-score against training mean/std
+- simple PSI-like bucketed comparison if feasible from current data
+Do not leave drift as a made-up constant if real data is available.
+
+Acceptance:
+- Drift results should come from actual calculations over stored live features vs stored training/reference stats
+
+6) FRONTEND FULL-STACK FOLLOW-THROUGH
+Review the PdM Platform page and hooks.
+Update the UI so any improved backend outputs are actually shown:
+- richer fleet comparison
+- real feature computation status/results
+- drift explanation/status
+- inference status with explanation details if improved
+Keep styling aligned with the current app.
+Do not redesign the entire UI.
+
+Acceptance:
+- New backend improvements are visible and usable in the frontend
+
+C) REFACTOR FOR CLEAN HEXAGONAL SHAPE
+Where beneficial, refactor PdM modules to this pattern:
+- domain/ports.ts
+- application/*.service.ts
+- infrastructure/*.adapter.ts
+- http/routes.ts
+Do not churn files unnecessarily if structure is already clean.
+Refactor only where it materially improves clarity and separation.
+
+D) VALIDATION
+Run and verify:
+- npm run format:check
+- npm run lint
+- npm run typecheck
+
+Also verify:
+- PdM routes still register cleanly
+- frontend builds or typechecks cleanly if applicable
+- no new hardcoded org IDs
+- org-scoped data still requires orgId
+
+E) FINAL REPORT
+When complete, update or regenerate the root text file:
+
+PDM_UPGRADE_REPORT.txt
+
+Add a new section clearly titled:
+
+12. GAP REVIEW AND FILL-IN WORK
+
+This section must include:
+1) What suggestions were already satisfied by the current app
+2) What gaps were found
+3) What you implemented to fill those gaps
+4) Which areas remain intentionally stubbed and why
+5) Any new files added
+6) Any existing files modified
+
+Also update the rest of the report so it accurately reflects the current final state after this follow-up work.
+
+IMPORTANT CONSTRAINTS
+- Be repo-aware: inspect before changing
+- Prefer integrating with existing telemetry/data sources over inventing parallel structures
+- Keep everything modular and hexagonal wherever possible
+- Full-stack follow-through is required
+- Do not break existing endpoints unless replacing them compatibly
+- Revise and polish before finishing
