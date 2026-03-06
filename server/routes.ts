@@ -53,6 +53,11 @@ import { fleetAnalyticsRouter } from "./domains/pdm-platform/fleet-analytics/rou
 import { modelRegistryRouter } from "./domains/pdm-platform/model-registry/routes";
 import { inferenceRouter } from "./domains/pdm-platform/inference/routes";
 import { monitoringRouter } from "./domains/pdm-platform/monitoring/routes";
+import { twinDefinitionRouter } from "./domains/pdm-platform/digital-twin/twin-definition/routes";
+import { twinStateRouter } from "./domains/pdm-platform/digital-twin/twin-state/routes";
+import { residualAnalysisRouter } from "./domains/pdm-platform/digital-twin/residual-analysis/routes";
+import { scenarioSimRouter } from "./domains/pdm-platform/digital-twin/scenario-sim/routes";
+import { replayRouter } from "./domains/pdm-platform/digital-twin/replay/routes";
 import {
   writeOperationRateLimit,
 } from "./routes/route-dependencies";
@@ -171,6 +176,14 @@ export async function registerRoutes(
   app.use("/api/pdm/infer", requireOrgId, generalApiRateLimit, inferenceRouter);
   app.use("/api/pdm/drift", requireOrgId, generalApiRateLimit, monitoringRouter);
   console.log("[PdM Platform] Registered (feature-store, fleet-analytics, model-registry, inference, monitoring)");
+
+  // Digital Twin routes
+  app.use("/api/pdm/twin/def", requireOrgId, generalApiRateLimit, twinDefinitionRouter);
+  app.use("/api/pdm/twin/state", requireOrgId, generalApiRateLimit, twinStateRouter);
+  app.use("/api/pdm/twin/residuals", requireOrgId, generalApiRateLimit, residualAnalysisRouter);
+  app.use("/api/pdm/twin/scenarios", requireOrgId, generalApiRateLimit, scenarioSimRouter);
+  app.use("/api/pdm/twin/replay", requireOrgId, generalApiRateLimit, replayRouter);
+  console.log("[Digital Twin] Registered (definition, state, residuals, scenarios, replay)");
 
   // Scheduled Reports domain
   const { createScheduledReportsDomain } = await import("./domains/scheduled-reports/index.js");

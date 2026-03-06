@@ -33,6 +33,7 @@ export * from './scheduling-settings';
 export * from './purchasing';
 export * from './stormgeo';
 export * from './pdm-feature-store';
+export * from './digital-twin';
 
 import * as core from './core';
 import * as purchasing from './purchasing';
@@ -50,6 +51,7 @@ import * as compliance from './compliance';
 import * as mlCore from './ml-analytics-core';
 import * as mlAdvanced from './ml-analytics-advanced';
 import * as pdmFeatureStore from './pdm-feature-store';
+import * as digitalTwin from './digital-twin';
 import * as iotEdge from './iot-edge';
 import * as kb from './knowledge-base';
 import * as rag from './rag';
@@ -74,6 +76,7 @@ export const MlAnalyticsCoreSchema = { ...mlCore };
 export const MlAnalyticsAdvancedSchema = { ...mlAdvanced };
 export const MlAnalyticsSchema = { ...mlCore, ...mlAdvanced };
 export const PdmFeatureStoreSchema = { ...pdmFeatureStore };
+export const DigitalTwinSchema = { ...digitalTwin };
 export const IoTEdgeSchema = { ...iotEdge };
 export const KnowledgeBaseSchema = { ...kb };
 export const RagSchema = { ...rag };
@@ -110,7 +113,8 @@ export type DomainName =
   | 'core' | 'sync' | 'vessels' | 'equipment' | 'work-orders'
   | 'alerts' | 'maintenance' | 'telemetry' | 'sensors' | 'inventory'
   | 'crew' | 'compliance' | 'ml-analytics' | 'ml' | 'iot-edge' | 'knowledge-base'
-  | 'rag' | 'insights' | 'optimizer' | 'permissions' | 'settings' | 'purchasing';
+  | 'rag' | 'insights' | 'optimizer' | 'permissions' | 'settings' | 'purchasing'
+  | 'digital-twin';
 
 export const SchemaDomains: Record<DomainName, object> = {
   'core': CoreSchema,
@@ -135,4 +139,5 @@ export const SchemaDomains: Record<DomainName, object> = {
   'permissions': PermissionsSchema,
   'settings': SettingsSchema,
   'purchasing': PurchasingSchema,
+  'digital-twin': DigitalTwinSchema,
 };

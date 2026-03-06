@@ -26,6 +26,7 @@ import {
   Clipboard,
   Anchor,
   Bot,
+  Box,
   type LucideIcon,
 } from "lucide-react";
 
@@ -75,6 +76,7 @@ export const routeResourceMap: Record<string, string> = {
   "/pdm-pack": "predictive_maintenance",
   "/pdm-dashboard": "predictive_maintenance",
   "/pdm-platform": "predictive_maintenance",
+  "/digital-twin": "predictive_maintenance",
   
   // Crew
   "/crew": "crew_members",
@@ -164,6 +166,7 @@ export const navigationCategories: NavigationCategory[] = [
       { name: "PdM Pack", href: "/pdm-pack", icon: Zap, description: "Predictive maintenance tools" },
       { name: "PdM Dashboard", href: "/pdm-dashboard", icon: TrendingUp, description: "Risk queue & fleet health" },
       { name: "PdM Platform", href: "/pdm-platform", icon: Database, description: "Feature store, models, inference & monitoring" },
+      { name: "Digital Twin", href: "/digital-twin", icon: Box, description: "Asset-level digital twins with state, residuals & scenarios" },
     ],
   },
   {

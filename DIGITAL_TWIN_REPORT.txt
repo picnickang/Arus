@@ -1,0 +1,201 @@
+DIGITAL TWIN PLATFORM UPGRADE REPORT
+=====================================
+Date: 2026-03-06
+
+SUMMARY
+-------
+Added an asset-level Digital Twin platform on top of the existing PdM
+infrastructure. Six new database tables, five backend domain modules
+following hexagonal architecture, and a full frontend page with five tabs.
+
+FILES CREATED (22 new files)
+----------------------------
+
+Schema:
+  shared/schema/digital-twin.ts
+
+Backend — Twin Definition (templates + twins CRUD):
+  server/domains/pdm-platform/digital-twin/twin-definition/ports.ts
+  server/domains/pdm-platform/digital-twin/twin-definition/adapter.ts
+  server/domains/pdm-platform/digital-twin/twin-definition/routes.ts
+
+Backend — Twin State Service:
+  server/domains/pdm-platform/digital-twin/twin-state/ports.ts
+  server/domains/pdm-platform/digital-twin/twin-state/adapter.ts
+  server/domains/pdm-platform/digital-twin/twin-state/twin-state.service.ts
+  server/domains/pdm-platform/digital-twin/twin-state/routes.ts
+
+Backend — Residual Analysis Service:
+  server/domains/pdm-platform/digital-twin/residual-analysis/ports.ts
+  server/domains/pdm-platform/digital-twin/residual-analysis/adapter.ts
+  server/domains/pdm-platform/digital-twin/residual-analysis/residual-analysis.service.ts
+  server/domains/pdm-platform/digital-twin/residual-analysis/routes.ts
+
+Backend — Scenario Simulation Service:
+  server/domains/pdm-platform/digital-twin/scenario-sim/ports.ts
+  server/domains/pdm-platform/digital-twin/scenario-sim/adapter.ts
+  server/domains/pdm-platform/digital-twin/scenario-sim/scenario-sim.service.ts
+  server/domains/pdm-platform/digital-twin/scenario-sim/routes.ts
+
+Backend — Replay / Time Travel:
+  server/domains/pdm-platform/digital-twin/replay/ports.ts
+  server/domains/pdm-platform/digital-twin/replay/adapter.ts
+  server/domains/pdm-platform/digital-twin/replay/routes.ts
+
+Frontend:
+  client/src/features/digital-twin/hooks/useTwinApi.ts
+  client/src/pages/digital-twin.tsx
+
+Report:
+  DIGITAL_TWIN_REPORT.txt
+
+FILES MODIFIED (4 files)
+------------------------
+  shared/schema/index.ts          — added digital-twin exports and domain registration
+  server/routes.ts                — registered 5 digital twin routers under /api/pdm/twin/*
+  client/src/App.tsx              — added lazy import and route for /digital-twin
+  client/src/config/navigationConfig.ts — added Digital Twin nav item + route-resource mapping
+
+SCHEMA CHANGES (6 new tables)
+-----------------------------
+  asset_twin_templates  — reusable twin blueprints per equipment type
+    - id (UUID PK), orgId, equipmentType, name, description
+    - expectedBehavior (JSONB) — model coefficients per sensor
+    - operatingEnvelope (JSONB) — min/max bounds per sensor
+    - sensorMappings (JSONB) — sensor type aliases
+    - createdAt, updatedAt
+    - Indexes: org, (org + equipmentType)
+
+  asset_twins — twin instances linked to equipment
+    - id (UUID PK), orgId, equipmentId (FK→equipment), templateId (FK→templates)
+    - name, status, config (JSONB), createdAt, updatedAt
+    - Indexes: org, (org + equipmentId)
+
+  asset_twin_state — computed state snapshots
+    - id (UUID PK), orgId, twinId (FK→twins), timestamp
+    - observedValues (JSONB), expectedValues (JSONB)
+    - healthScore (real), efficiencyScore (real), remainingUsefulLifeHours (real)
+    - operatingContext (JSONB)
+    - Indexes: org, twinId, (twinId + timestamp)
+
+  twin_residuals — residual analysis records
+    - id (UUID PK), orgId, twinId (FK→twins), timestamp
+    - sensorType, observed, expected, residual, zScore, severity
+    - Indexes: org, twinId, (twinId + severity)
+
+  twin_scenarios — what-if simulation runs
+    - id (UUID PK), orgId, twinId (FK→twins)
+    - name, parameters (JSONB), results (JSONB), createdAt
+    - Indexes: org, twinId
+
+  twin_events — immutable event log for replay
+    - id (UUID PK), orgId, twinId (FK→twins), timestamp
+    - eventType, payload (JSONB), source
+    - Indexes: org, twinId, (twinId + timestamp)
+
+NEW ENDPOINTS (17 routes)
+-------------------------
+All routes require x-org-id header. Mounted under /api/pdm/twin/*.
+
+Twin Definition (/api/pdm/twin/def):
+  GET  /templates                  — list all templates
+  GET  /templates/:templateId      — get template by ID
+  POST /templates                  — create template
+  GET  /twins                      — list all twins
+  GET  /twins/:twinId              — get twin by ID
+  POST /twins                      — create twin
+
+Twin State (/api/pdm/twin/state):
+  POST /compute                    — compute state snapshot for twin
+  GET  /latest/:twinId             — get latest state
+  GET  /history/:twinId            — get state history (?limit=N)
+
+Residual Analysis (/api/pdm/twin/residuals):
+  POST /compute                    — compute residuals for twin
+  GET  /twin/:twinId               — get residuals (?limit=N)
+  GET  /rankings                   — get ranked residuals across all twins
+
+Scenario Simulation (/api/pdm/twin/scenarios):
+  POST /run                        — run what-if scenario
+  GET  /twins/:twinId              — list scenarios for twin
+  GET  /:scenarioId                — get scenario by ID
+
+Replay (/api/pdm/twin/replay):
+  POST /events                     — log a twin event
+  GET  /timeline                   — get timeline (?twinId, startTime, endTime, limit)
+  GET  /timeline/anomaly           — get timeline around anomaly (?twinId, anomalyTimestamp, windowMinutes)
+
+NEW FRONTEND VIEWS
+------------------
+Page: /digital-twin (Digital Twin)
+Navigation: Under Maintenance category, after PdM Platform
+
+Tab 1 — Overview:
+  - Lists all templates with create-template form
+  - Lists all asset twins with create-twin form
+  - Twin cards show live health/efficiency/RUL from latest state
+
+Tab 2 — State:
+  - Enter twin ID to view or compute state
+  - Shows health score, efficiency score, RUL gauges
+  - Expected vs Observed table with deviation percentages
+
+Tab 3 — Residuals:
+  - Enter twin ID to compute or view residuals
+  - Table: sensor, observed, expected, residual, z-score, severity badge
+  - Rankings section showing worst residuals across all twins
+
+Tab 4 — Scenarios:
+  - What-if form: load %, temperature offset, maintenance delay sliders
+  - Run scenario and see projected health, efficiency, RUL, risk level
+  - Scenario history list with results
+
+Tab 5 — Replay:
+  - Twin ID + time window selector (1h to 7 days)
+  - Event timeline with color-coded event types
+  - Shows merged twin events and telemetry readings
+
+INTEGRATION WITH EXISTING MODULES
+----------------------------------
+  - TelemetryAdapter: twin-state service uses existing TelemetryPort to
+    fetch real sensor readings from equipment_telemetry table
+  - Fleet Analytics: residual analysis service queries fleet_baselines for
+    z-score reference values, scoped by equipment type
+  - Feature Store: compatible schema patterns, shared telemetry port
+  - Replay: merges twin_events with equipment_telemetry records for
+    unified timeline reconstruction
+
+WHAT IS STILL STUBBED
+---------------------
+  1. RUL Calculation — uses linear extrapolation from health score
+     (currentHealth / 100 * 8760 hours). A real implementation would use
+     degradation curves or ML models from the inference pipeline.
+
+  2. Expected Value Model — uses simple linear coefficients from template
+     (intercept + loadFactor * load + ambientTempFactor * ambientTemp).
+     Production would use trained ML models or physics-based simulations.
+
+  3. Residual Fallback — when no state snapshot exists, generates deterministic
+     stub residuals for temperature/vibration/pressure sensors.
+
+  4. Scenario Simulation — projects health/efficiency/RUL based on parameter
+     scaling. A real implementation would run the full physics/ML model
+     forward in time with modified operating conditions.
+
+  5. Replay Timeline — currently returns stored events and telemetry readings.
+     Does not yet reconstruct full state snapshots at arbitrary historical
+     timestamps (would require state interpolation).
+
+ARCHITECTURE
+------------
+All modules follow hexagonal architecture:
+  - ports.ts   — interface definitions (domain boundary)
+  - adapter.ts — Drizzle ORM implementations (driven adapters)
+  - *.service.ts — domain logic (application layer)
+  - routes.ts  — HTTP adapters (driving adapters), thin delegation
+
+Dependencies flow inward:
+  routes → service → ports ← adapters
+  
+Multi-tenant isolation enforced via orgId on every query and mutation.
+No hardcoded org IDs anywhere in the codebase.
