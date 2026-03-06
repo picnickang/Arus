@@ -17,5 +17,5 @@
  * - visualizationAssets, arMaintenanceProcedures
  */
 
-export * from "./ml-analytics-core.js";
-export * from "./ml-analytics-advanced.js";
+export * from "./ml-analytics-core";
+export * from "./ml-analytics-advanced";

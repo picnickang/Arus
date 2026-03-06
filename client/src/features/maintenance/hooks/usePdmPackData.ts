@@ -12,8 +12,8 @@ import { bearingFormSchema, pumpFormSchema, createDefaultBearingFormValues, crea
 export function usePdmPackData() {
   const { currentOrgId } = useOrganization();
 
-  const [selectedVessel, setSelectedVessel] = useState<string>("MV Green Belt");
-  const [selectedAsset, setSelectedAsset] = useState<string>("PUMP001");
+  const [selectedVessel, setSelectedVessel] = useState<string>("");
+  const [selectedAsset, setSelectedAsset] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>("overview");
   const [bearingAnalysisResult, setBearingAnalysisResult] = useState<AnalysisResult | null>(null);
   const [pumpAnalysisResult, setPumpAnalysisResult] = useState<AnalysisResult | null>(null);

@@ -18,10 +18,10 @@ import {
   index,
   createInsertSchema,
   z,
-} from "./base.js";
-import { organizations } from "./core.js";
-import { vessels } from "./vessels.js";
-import { equipment } from "./equipment.js";
+} from "./base";
+import { organizations } from "./core";
+import { vessels } from "./vessels";
+import { equipment } from "./equipment";
 
 // Insights and Analytics Engine - Fleet KPI Snapshots and Risk Analysis
 export const insightSnapshots = pgTable("insight_snapshots", {

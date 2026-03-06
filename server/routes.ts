@@ -48,6 +48,11 @@ import { suppliersRouter } from "./suppliers";
 import { serviceOrderRoutes } from "./service-orders";
 import agentRoutes from "./routes/agent-routes";
 import { pdmRouter } from "./pdm/routes";
+import { featureStoreRouter } from "./domains/pdm-platform/feature-store/routes";
+import { fleetAnalyticsRouter } from "./domains/pdm-platform/fleet-analytics/routes";
+import { modelRegistryRouter } from "./domains/pdm-platform/model-registry/routes";
+import { inferenceRouter } from "./domains/pdm-platform/inference/routes";
+import { monitoringRouter } from "./domains/pdm-platform/monitoring/routes";
 import {
   writeOperationRateLimit,
 } from "./routes/route-dependencies";
@@ -158,6 +163,14 @@ export async function registerRoutes(
   // Predictive Maintenance Dashboard routes
   app.use("/api/pdm", requireOrgId, generalApiRateLimit, pdmRouter);
   console.log("[PdM Routes] Registered (dashboard, risk-queue, asset detail)");
+
+  // PdM Platform routes
+  app.use("/api/pdm/features", requireOrgId, generalApiRateLimit, featureStoreRouter);
+  app.use("/api/pdm/fleet", requireOrgId, generalApiRateLimit, fleetAnalyticsRouter);
+  app.use("/api/pdm/models", requireOrgId, generalApiRateLimit, modelRegistryRouter);
+  app.use("/api/pdm/infer", requireOrgId, generalApiRateLimit, inferenceRouter);
+  app.use("/api/pdm/drift", requireOrgId, generalApiRateLimit, monitoringRouter);
+  console.log("[PdM Platform] Registered (feature-store, fleet-analytics, model-registry, inference, monitoring)");
 
   // Scheduled Reports domain
   const { createScheduledReportsDomain } = await import("./domains/scheduled-reports/index.js");

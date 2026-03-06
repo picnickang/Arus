@@ -19,11 +19,11 @@ import {
   index,
   createInsertSchema,
   z,
-} from "./base.js";
-import { organizations } from "./core.js";
-import { vessels } from "./vessels.js";
-import { parts, suppliers } from "./inventory.js";
-import { workOrders } from "./work-orders.js";
+} from "./base";
+import { organizations } from "./core";
+import { vessels } from "./vessels";
+import { parts, suppliers } from "./inventory";
+import { workOrders } from "./work-orders";
 
 // ============================================================================
 // RESERVATIONS

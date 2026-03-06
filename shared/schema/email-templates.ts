@@ -12,8 +12,8 @@ import {
   index,
   createInsertSchema,
   z,
-} from "./base.js";
-import { organizations } from "./core.js";
+} from "./base";
+import { organizations } from "./core";
 
 export const emailTemplates = pgTable("email_templates", {
   id: varchar("id")

@@ -19,9 +19,9 @@ import {
   z,
   uuidPrimaryKey,
   tenantColumn,
-} from "./base.js";
-import { organizations } from "./core.js";
-import { vessels } from "./vessels.js";
+} from "./base";
+import { organizations } from "./core";
+import { vessels } from "./vessels";
 
 // Compliance audit trail table for regulatory tracking - uses shared column builders
 export const complianceAuditLog = pgTable("compliance_audit_log", {

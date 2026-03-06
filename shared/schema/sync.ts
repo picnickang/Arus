@@ -16,8 +16,8 @@ import {
   index,
   createInsertSchema,
   z,
-} from "./base.js";
-import { users } from "./core.js";
+} from "./base";
+import { users } from "./core";
 
 // Sync journal for audit trails and change tracking
 export const syncJournal = pgTable(

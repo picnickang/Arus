@@ -3,6 +3,7 @@ import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useOrganization } from "@/contexts/OrganizationContext";
 
 export interface EquipmentDetail { id: string; name: string; type: string; vesselName?: string; status?: string; isActive?: boolean; location?: string; }
 export interface PdmHealthData { equipmentId: string; healthScore: number; rul: number | null; rulUncertainty: number | null; status: "healthy" | "warning" | "critical" | "unknown"; pFail30d: number; aiSummary: string | null; lastUpdated: string; confidence: "high" | "medium" | "low"; }
@@ -35,15 +36,17 @@ export function usePdmEquipmentDetailData() {
 }
 
 export function useOverviewTabData(equipmentId: string, healthData?: PdmHealthData) {
+  const { currentOrgId } = useOrganization();
   const [timeRange, setTimeRange] = useState<"1h" | "6h" | "24h" | "7d">("24h");
   const hoursMap = { "1h": 1, "6h": 6, "24h": 24, "7d": 168 };
 
   const { data: telemetryHistory, isLoading: isLoadingTelemetry } = useQuery<TelemetryReading[]>({
-    queryKey: ["/api/telemetry/history-multi", equipmentId, timeRange],
+    queryKey: ["/api/telemetry/history-multi", equipmentId, timeRange, currentOrgId],
     queryFn: async () => {
       const sensorTypes = ["temperature", "pressure", "vibration", "flow_rate", "oil_quality"];
       const hours = hoursMap[timeRange];
-      const results = await Promise.all(sensorTypes.map(async (sensorType) => { try { const response = await fetch(`/api/telemetry/history/${equipmentId}/${sensorType}?hours=${hours}`, { headers: { "x-org-id": "default-org-id" } }); if (!response.ok) {return [];} return response.json(); } catch { return []; } }));
+      const orgHeader = currentOrgId || "";
+      const results = await Promise.all(sensorTypes.map(async (sensorType) => { try { const response = await fetch(`/api/telemetry/history/${equipmentId}/${sensorType}?hours=${hours}`, { headers: { "x-org-id": orgHeader } }); if (!response.ok) {return [];} return response.json(); } catch { return []; } }));
       return results.flat();
     },
     refetchInterval: 60_000,

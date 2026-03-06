@@ -16,13 +16,13 @@ import {
   index,
   createInsertSchema,
   z,
-} from "./base.js";
-import { organizations } from "./core.js";
-import { users } from "./core.js";
-import { vessels } from "./vessels.js";
-import { workOrders } from "./work-orders.js";
-import { equipment } from "./equipment.js";
-import { failurePredictions } from "./ml-analytics-core.js";
+} from "./base";
+import { organizations } from "./core";
+import { users } from "./core";
+import { vessels } from "./vessels";
+import { workOrders } from "./work-orders";
+import { equipment } from "./equipment";
+import { failurePredictions } from "./ml-analytics-core";
 
 // ============================================================================
 // LABOR RATES

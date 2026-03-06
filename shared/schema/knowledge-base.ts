@@ -17,7 +17,7 @@ import {
   jsonb,
   createInsertSchema,
   z,
-} from "./base.js";
+} from "./base";
 
 // RAG Search System: Knowledge base for enhanced LLM report citations
 export const knowledgeBaseItems = pgTable("knowledge_base_items", {

@@ -16,9 +16,9 @@ import {
   jsonb,
   createInsertSchema,
   z,
-} from "./base.js";
-import { organizations } from "./core.js";
-import { workOrders } from "./work-orders.js";
+} from "./base";
+import { organizations } from "./core";
+import { workOrders } from "./work-orders";
 
 // Suppliers: Vendor and supplier management (includes both suppliers and service providers)
 export const suppliers = pgTable(

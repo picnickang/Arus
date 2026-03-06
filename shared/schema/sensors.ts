@@ -17,9 +17,9 @@ import {
   index,
   createInsertSchema,
   z,
-} from "./base.js";
-import { organizations } from "./core.js";
-import { devices } from "./equipment.js";
+} from "./base";
+import { organizations } from "./core";
+import { devices } from "./equipment";
 
 // Sensor types catalog for standardization
 export const sensorTypes = pgTable("sensor_types", {

@@ -19,12 +19,12 @@ import {
   index,
   createInsertSchema,
   z,
-} from "./base.js";
-import { organizations } from "./core.js";
-import { vessels } from "./vessels.js";
-import { crew } from "./crew.js";
-import { workOrders } from "./work-orders.js";
-import { equipment } from "./equipment.js";
+} from "./base";
+import { organizations } from "./core";
+import { vessels } from "./vessels";
+import { crew } from "./crew";
+import { workOrders } from "./work-orders";
+import { equipment } from "./equipment";
 
 // ============================================================================
 // DIGITAL DECK LOGBOOK

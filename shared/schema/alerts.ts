@@ -18,11 +18,11 @@ import {
   unique,
   createInsertSchema,
   z,
-} from "./base.js";
-import { organizations } from "./core.js";
-import { equipment } from "./equipment.js";
-import { workOrders } from "./work-orders.js";
-import { vessels } from "./vessels.js";
+} from "./base";
+import { organizations } from "./core";
+import { equipment } from "./equipment";
+import { workOrders } from "./work-orders";
+import { vessels } from "./vessels";
 
 // Alert configurations
 export const alertConfigurations = pgTable(

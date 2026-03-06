@@ -18,11 +18,11 @@ import {
   index,
   createInsertSchema,
   z,
-} from "./base.js";
-import { organizations } from "./core.js";
-import { vessels } from "./vessels.js";
-import { equipment } from "./equipment.js";
-import { workOrders } from "./work-orders.js";
+} from "./base";
+import { organizations } from "./core";
+import { vessels } from "./vessels";
+import { equipment } from "./equipment";
+import { workOrders } from "./work-orders";
 
 // Maintenance schedules
 export const maintenanceSchedules = pgTable("maintenance_schedules", {

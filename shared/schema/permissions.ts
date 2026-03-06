@@ -17,8 +17,8 @@ import {
   index,
   createInsertSchema,
   z,
-} from "./base.js";
-import { organizations } from "./core.js";
+} from "./base";
+import { organizations } from "./core";
 
 // Custom roles defined by organization
 export const roles = pgTable(

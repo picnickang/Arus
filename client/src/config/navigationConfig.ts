@@ -74,6 +74,7 @@ export const routeResourceMap: Record<string, string> = {
   "/maintenance-templates": "maintenance_templates",
   "/pdm-pack": "predictive_maintenance",
   "/pdm-dashboard": "predictive_maintenance",
+  "/pdm-platform": "predictive_maintenance",
   
   // Crew
   "/crew": "crew_members",
@@ -162,6 +163,7 @@ export const navigationCategories: NavigationCategory[] = [
       { name: "Templates", href: "/maintenance-templates", icon: Clipboard, description: "Maintenance templates" },
       { name: "PdM Pack", href: "/pdm-pack", icon: Zap, description: "Predictive maintenance tools" },
       { name: "PdM Dashboard", href: "/pdm-dashboard", icon: TrendingUp, description: "Risk queue & fleet health" },
+      { name: "PdM Platform", href: "/pdm-platform", icon: Database, description: "Feature store, models, inference & monitoring" },
     ],
   },
   {

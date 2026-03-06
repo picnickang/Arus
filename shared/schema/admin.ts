@@ -20,12 +20,12 @@ import {
   numeric,
   createInsertSchema,
   z,
-} from "./base.js";
-import { organizations, users } from "./core.js";
-import { vessels } from "./vessels.js";
-import { equipment, devices } from "./equipment.js";
-import { purchaseRequests } from "./purchasing.js";
-import { suppliers } from "./inventory.js";
+} from "./base";
+import { organizations, users } from "./core";
+import { vessels } from "./vessels";
+import { equipment, devices } from "./equipment";
+import { purchaseRequests } from "./purchasing";
+import { suppliers } from "./inventory";
 
 // ============================================================================
 // ADMIN AUDIT EVENTS

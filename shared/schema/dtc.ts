@@ -16,9 +16,9 @@ import {
   index,
   createInsertSchema,
   z,
-} from "./base.js";
-import { organizations } from "./core.js";
-import { equipment, devices } from "./equipment.js";
+} from "./base";
+import { organizations } from "./core";
+import { equipment, devices } from "./equipment";
 
 // ============================================================================
 // DTC DEFINITIONS - J1939 SPN/FMI Mappings

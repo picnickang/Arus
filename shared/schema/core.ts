@@ -17,7 +17,7 @@ import {
   index,
   createInsertSchema,
   z,
-} from "./base.js";
+} from "./base";
 
 // Organizations for multi-tenancy
 export const organizations = pgTable("organizations", {

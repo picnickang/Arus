@@ -20,17 +20,17 @@ import {
   index,
   createInsertSchema,
   z,
-} from "./base.js";
-import { organizations } from "./core.js";
-import { equipment } from "./equipment.js";
-import { workOrders } from "./work-orders.js";
+} from "./base";
+import { organizations } from "./core";
+import { equipment } from "./equipment";
+import { workOrders } from "./work-orders";
 
 // LEGACY ML model management and versioning
 export const mlModelsLegacy = pgTable(
   "ml_models_legacy",
   {
     id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    orgId: varchar("org_id").notNull().references(() => organizations.id).default("default-org-id"),
+    orgId: varchar("org_id").notNull().references(() => organizations.id),
     name: varchar("name").notNull(),
     version: varchar("version").notNull(),
     modelType: varchar("model_type").notNull(),
@@ -83,6 +83,57 @@ export const mlModels = pgTable(
     statusIdx: index("idx_ml_models_status").on(table.status),
     equipmentTypeIdx: index("idx_ml_models_equipment_type").on(table.equipmentType),
     trainedOnIdx: index("idx_ml_models_trained_on").on(table.trainedOn),
+    orgStatusIdx: index("idx_ml_models_org_status").on(table.orgId, table.status),
+    orgEquipTypeStatusIdx: index("idx_ml_models_org_equip_status").on(table.orgId, table.equipmentType, table.status),
+  })
+);
+
+export const modelVersions = pgTable(
+  "model_versions",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    modelId: varchar("model_id").notNull().references(() => mlModels.id, { onDelete: "cascade" }),
+    version: varchar("version", { length: 50 }).notNull(),
+    artifactPath: varchar("artifact_path", { length: 500 }),
+    status: varchar("status", { length: 50 }).notNull().default("staging"),
+    accuracy: numeric("accuracy", { precision: 5, scale: 2 }),
+    precision: numeric("precision", { precision: 5, scale: 2 }),
+    recall: numeric("recall", { precision: 5, scale: 2 }),
+    f1Score: numeric("f1_score", { precision: 5, scale: 2 }),
+    trainingDataPoints: integer("training_data_points"),
+    trainingDurationMs: integer("training_duration_ms"),
+    hyperparameters: jsonb("hyperparameters"),
+    featureNames: jsonb("feature_names"),
+    changelog: text("changelog"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    promotedAt: timestamp("promoted_at", { withTimezone: true }),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+  },
+  (table) => ({
+    modelIdx: index("idx_model_versions_model").on(table.modelId),
+    orgStatusIdx: index("idx_model_versions_org_status").on(table.orgId, table.status),
+    modelVersionIdx: index("idx_model_versions_model_version").on(table.modelId, table.version),
+  })
+);
+
+export const modelMetrics = pgTable(
+  "model_metrics",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    modelVersionId: varchar("model_version_id").notNull().references(() => modelVersions.id, { onDelete: "cascade" }),
+    metricName: varchar("metric_name", { length: 100 }).notNull(),
+    metricValue: real("metric_value").notNull(),
+    datasetName: varchar("dataset_name", { length: 100 }),
+    sampleSize: integer("sample_size"),
+    computedAt: timestamp("computed_at", { withTimezone: true }).defaultNow().notNull(),
+    metadata: jsonb("metadata"),
+  },
+  (table) => ({
+    versionIdx: index("idx_model_metrics_version").on(table.modelVersionId),
+    nameIdx: index("idx_model_metrics_name").on(table.metricName),
+    versionNameIdx: index("idx_model_metrics_version_name").on(table.modelVersionId, table.metricName),
   })
 );
 
@@ -91,7 +142,7 @@ export const anomalyDetections = pgTable(
   "anomaly_detections",
   {
     id: serial("id").primaryKey(),
-    orgId: varchar("org_id").notNull().default("default-org-id"),
+    orgId: varchar("org_id").notNull(),
     equipmentId: varchar("equipment_id").notNull(),
     sensorType: varchar("sensor_type").notNull(),
     detectionTimestamp: timestamp("detection_timestamp", { withTimezone: true }).defaultNow(),
@@ -124,7 +175,7 @@ export const failurePredictions = pgTable(
   "failure_predictions",
   {
     id: serial("id").primaryKey(),
-    orgId: varchar("org_id").notNull().default("default-org-id"),
+    orgId: varchar("org_id").notNull(),
     equipmentId: varchar("equipment_id").notNull(),
     predictionTimestamp: timestamp("prediction_timestamp", { withTimezone: true }).defaultNow(),
     failureProbability: real("failure_probability").notNull(),
@@ -158,7 +209,7 @@ export const thresholdOptimizations = pgTable(
   "threshold_optimizations",
   {
     id: serial("id").primaryKey(),
-    orgId: varchar("org_id").notNull().references(() => organizations.id).default("default-org-id"),
+    orgId: varchar("org_id").notNull().references(() => organizations.id),
     equipmentId: varchar("equipment_id").notNull(),
     sensorType: varchar("sensor_type").notNull(),
     optimizationTimestamp: timestamp("optimization_timestamp", { withTimezone: true }).defaultNow(),
@@ -183,7 +234,7 @@ export const componentDegradation = pgTable(
   "component_degradation",
   {
     id: serial("id").primaryKey(),
-    orgId: varchar("org_id").notNull().references(() => organizations.id).default("default-org-id"),
+    orgId: varchar("org_id").notNull().references(() => organizations.id),
     equipmentId: varchar("equipment_id").notNull().references(() => equipment.id),
     componentType: varchar("component_type").notNull(),
     measurementTimestamp: timestamp("measurement_timestamp", { withTimezone: true }).defaultNow(),
@@ -214,7 +265,7 @@ export const failureHistory = pgTable(
   "failure_history",
   {
     id: serial("id").primaryKey(),
-    orgId: varchar("org_id").notNull().references(() => organizations.id).default("default-org-id"),
+    orgId: varchar("org_id").notNull().references(() => organizations.id),
     equipmentId: varchar("equipment_id").notNull().references(() => equipment.id),
     failureTimestamp: timestamp("failure_timestamp", { withTimezone: true }).notNull(),
     failureMode: varchar("failure_mode").notNull(),
@@ -255,6 +306,8 @@ export const failureHistory = pgTable(
 export const insertMlModelLegacySchema = createInsertSchema(mlModelsLegacy).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertMlModelSchema = createInsertSchema(mlModels).omit({ id: true, createdAt: true, updatedAt: true });
 export const updateMlModelSchema = insertMlModelSchema.partial();
+export const insertModelVersionSchema = createInsertSchema(modelVersions).omit({ id: true, createdAt: true });
+export const insertModelMetricSchema = createInsertSchema(modelMetrics).omit({ id: true, computedAt: true });
 export const insertAnomalyDetectionSchema = createInsertSchema(anomalyDetections).omit({ id: true, detectionTimestamp: true });
 export const insertFailurePredictionSchema = createInsertSchema(failurePredictions).omit({ id: true, predictionTimestamp: true });
 export const insertThresholdOptimizationSchema = createInsertSchema(thresholdOptimizations).omit({ id: true, optimizationTimestamp: true });
@@ -267,6 +320,10 @@ export type InsertMlModelLegacy = z.infer<typeof insertMlModelLegacySchema>;
 export type MlModel = typeof mlModels.$inferSelect;
 export type InsertMlModel = z.infer<typeof insertMlModelSchema>;
 export type UpdateMlModel = z.infer<typeof updateMlModelSchema>;
+export type ModelVersion = typeof modelVersions.$inferSelect;
+export type InsertModelVersion = z.infer<typeof insertModelVersionSchema>;
+export type ModelMetric = typeof modelMetrics.$inferSelect;
+export type InsertModelMetric = z.infer<typeof insertModelMetricSchema>;
 export type AnomalyDetection = typeof anomalyDetections.$inferSelect;
 export type InsertAnomalyDetection = z.infer<typeof insertAnomalyDetectionSchema>;
 export type FailurePrediction = typeof failurePredictions.$inferSelect;

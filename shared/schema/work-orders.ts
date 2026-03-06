@@ -22,10 +22,10 @@ import {
   timestamps,
   tenantColumn,
   versionTracking,
-} from "./base.js";
-import { organizations } from "./core.js";
-import { vessels } from "./vessels.js";
-import { equipment } from "./equipment.js";
+} from "./base";
+import { organizations } from "./core";
+import { vessels } from "./vessels";
+import { equipment } from "./equipment";
 
 // Work Orders - uses shared column builders to reduce duplication
 export const workOrders = pgTable(

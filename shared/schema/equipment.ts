@@ -22,11 +22,11 @@ import {
   timestamps,
   tenantColumn,
   versionTracking,
-} from "./base.js";
-import { organizations } from "./core.js";
-import { vessels } from "./vessels.js";
-import { suppliers, parts } from "./inventory.js";
-import { workOrders } from "./work-orders.js";
+} from "./base";
+import { organizations } from "./core";
+import { vessels } from "./vessels";
+import { suppliers, parts } from "./inventory";
+import { workOrders } from "./work-orders";
 
 // Central equipment registry - uses shared column builders to reduce duplication
 export const equipment = pgTable(

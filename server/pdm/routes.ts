@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { logger } from '../utils/logger';
 import { pdmPostgresRepository } from './adapters/pdm-postgres.repository';
 import { createGetDashboardUseCase } from './application/get-dashboard.use-case';
 import { createGetRiskQueueUseCase } from './application/get-risk-queue.use-case';
@@ -80,7 +81,7 @@ router.get('/dashboard', async (req, res) => {
     
     res.json(dashboardData);
   } catch (error) {
-    console.error('Error fetching PdM dashboard data:', error);
+    logger.error('Error fetching PdM dashboard data:', error);
     res.status(500).json({ error: 'Failed to fetch dashboard data' });
   }
 });
@@ -96,7 +97,7 @@ router.get('/filter-options', async (req, res) => {
     
     res.json({ vessels, equipmentTypes });
   } catch (error) {
-    console.error('Error fetching filter options:', error);
+    logger.error('Error fetching filter options:', error);
     res.status(500).json({ error: 'Failed to fetch filter options' });
   }
 });
@@ -111,7 +112,7 @@ router.get('/risk-queue/:status', async (req, res) => {
     const items = await getRiskQueueUseCase.execute({ orgId, status: statusResult.data });
     res.json(items);
   } catch (error) {
-    console.error('Error fetching risk queue:', error);
+    logger.error('Error fetching risk queue:', error);
     res.status(500).json({ error: 'Failed to fetch risk queue' });
   }
 });
@@ -129,7 +130,7 @@ router.get('/asset/:equipmentId', async (req, res) => {
     }
     res.json(assetDetail);
   } catch (error) {
-    console.error('Error fetching asset detail:', error);
+    logger.error('Error fetching asset detail:', error);
     res.status(500).json({ error: 'Failed to fetch asset detail' });
   }
 });
@@ -145,7 +146,7 @@ router.post('/risk/:itemId/acknowledge', async (req, res) => {
     await acknowledgeRiskUseCase.execute({ orgId, itemId, userId });
     res.json({ success: true });
   } catch (error) {
-    console.error('Error acknowledging risk item:', error);
+    logger.error('Error acknowledging risk item:', error);
     res.status(500).json({ error: 'Failed to acknowledge risk item' });
   }
 });
@@ -161,7 +162,7 @@ router.post('/risk/:itemId/create-work-order', async (req, res) => {
     const result = await createWorkOrderFromRiskUseCase.execute({ orgId, itemId, userId });
     res.json({ success: true, workOrderId: result.workOrderId });
   } catch (error) {
-    console.error('Error creating work order from risk:', error);
+    logger.error('Error creating work order from risk:', error);
     res.status(500).json({ error: 'Failed to create work order' });
   }
 });
@@ -192,7 +193,7 @@ router.get('/schedule', async (req, res) => {
     
     res.json(result.data);
   } catch (error) {
-    console.error('Error fetching PdM schedule:', error);
+    logger.error('Error fetching PdM schedule:', error);
     res.status(500).json({ error: 'Failed to fetch schedule' });
   }
 });
@@ -258,7 +259,7 @@ router.get('/export/schedule', async (req, res) => {
       res.status(400).json({ error: 'Invalid format. Supported: csv, json' });
     }
   } catch (error) {
-    console.error('Error exporting schedule:', error);
+    logger.error('Error exporting schedule:', error);
     res.status(500).json({ error: 'Failed to export schedule' });
   }
 });
@@ -308,7 +309,7 @@ router.get('/export/risk-queue', async (req, res) => {
       res.status(400).json({ error: 'Invalid format. Supported: csv, json' });
     }
   } catch (error) {
-    console.error('Error exporting risk queue:', error);
+    logger.error('Error exporting risk queue:', error);
     res.status(500).json({ error: 'Failed to export risk queue' });
   }
 });
@@ -341,7 +342,7 @@ router.get('/export/kpis', async (req, res) => {
       res.json(kpis);
     }
   } catch (error) {
-    console.error('Error exporting KPIs:', error);
+    logger.error('Error exporting KPIs:', error);
     res.status(500).json({ error: 'Failed to export KPIs' });
   }
 });
@@ -379,7 +380,7 @@ router.get('/equipment/:equipmentId/telemetry', async (req, res) => {
     
     res.json(formatted);
   } catch (error) {
-    console.error('Error fetching equipment telemetry:', error);
+    logger.error('Error fetching equipment telemetry:', error);
     res.status(500).json({ error: 'Failed to fetch telemetry data' });
   }
 });
@@ -392,7 +393,7 @@ router.get('/telemetry/trends', async (req, res) => {
     const trends = await telemetryStorage.getTelemetryTrends(equipmentId, hours);
     res.json(trends);
   } catch (error) {
-    console.error('Error fetching telemetry trends:', error);
+    logger.error('Error fetching telemetry trends:', error);
     res.status(500).json({ error: 'Failed to fetch telemetry trends' });
   }
 });

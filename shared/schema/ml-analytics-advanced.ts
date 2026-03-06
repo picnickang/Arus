@@ -20,18 +20,18 @@ import {
   unique,
   createInsertSchema,
   z,
-} from "./base.js";
-import { organizations } from "./core.js";
-import { vessels } from "./vessels.js";
-import { equipment } from "./equipment.js";
-import { mlModels, failurePredictions, anomalyDetections } from "./ml-analytics-core.js";
+} from "./base";
+import { organizations } from "./core";
+import { vessels } from "./vessels";
+import { equipment } from "./equipment";
+import { mlModels, modelVersions, failurePredictions, anomalyDetections } from "./ml-analytics-core";
 
 // Model performance validation - tracks predictions vs actual outcomes
 export const modelPerformanceValidations = pgTable(
   "model_performance_validations",
   {
     id: serial("id").primaryKey(),
-    orgId: varchar("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }).default("default-org-id"),
+    orgId: varchar("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
     modelId: varchar("model_id").notNull().references(() => mlModels.id, { onDelete: "cascade" }),
     equipmentId: varchar("equipment_id").notNull().references(() => equipment.id, { onDelete: "cascade" }),
     predictionId: integer("prediction_id"),
@@ -63,7 +63,7 @@ export const predictionFeedback = pgTable(
   "prediction_feedback",
   {
     id: serial("id").primaryKey(),
-    orgId: varchar("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }).default("default-org-id"),
+    orgId: varchar("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
     predictionId: integer("prediction_id").notNull(),
     predictionType: varchar("prediction_type").notNull(),
     equipmentId: varchar("equipment_id").notNull().references(() => equipment.id, { onDelete: "cascade" }),
@@ -230,8 +230,7 @@ export const realTimePredictions = pgTable(
     id: serial("id").primaryKey(),
     orgId: varchar("org_id")
       .notNull()
-      .references(() => organizations.id, { onDelete: "cascade" })
-      .default("default-org-id"),
+      .references(() => organizations.id, { onDelete: "cascade" }),
     equipmentId: varchar("equipment_id")
       .notNull()
       .references(() => equipment.id, { onDelete: "cascade" }),
@@ -271,8 +270,7 @@ export const featureImportances = pgTable(
     id: serial("id").primaryKey(),
     orgId: varchar("org_id")
       .notNull()
-      .references(() => organizations.id, { onDelete: "cascade" })
-      .default("default-org-id"),
+      .references(() => organizations.id, { onDelete: "cascade" }),
     realTimePredictionId: integer("real_time_prediction_id").references(
       () => realTimePredictions.id,
       { onDelete: "cascade" }
@@ -317,8 +315,7 @@ export const sensorFusionSnapshots = pgTable(
     id: serial("id").primaryKey(),
     orgId: varchar("org_id")
       .notNull()
-      .references(() => organizations.id, { onDelete: "cascade" })
-      .default("default-org-id"),
+      .references(() => organizations.id, { onDelete: "cascade" }),
     equipmentId: varchar("equipment_id")
       .notNull()
       .references(() => equipment.id, { onDelete: "cascade" }),
@@ -351,8 +348,7 @@ export const acousticEvents = pgTable(
     id: serial("id").primaryKey(),
     orgId: varchar("org_id")
       .notNull()
-      .references(() => organizations.id, { onDelete: "cascade" })
-      .default("default-org-id"),
+      .references(() => organizations.id, { onDelete: "cascade" }),
     equipmentId: varchar("equipment_id")
       .notNull()
       .references(() => equipment.id, { onDelete: "cascade" }),
@@ -395,11 +391,12 @@ export const modelDeployments = pgTable(
     id: serial("id").primaryKey(),
     orgId: varchar("org_id")
       .notNull()
-      .references(() => organizations.id, { onDelete: "cascade" })
-      .default("default-org-id"),
+      .references(() => organizations.id, { onDelete: "cascade" }),
     modelId: varchar("model_id")
       .notNull()
       .references(() => mlModels.id, { onDelete: "cascade" }),
+    modelVersionId: varchar("model_version_id")
+      .references(() => modelVersions.id),
     deploymentTarget: varchar("deployment_target").notNull(),
     deploymentStatus: varchar("deployment_status").notNull().default("pending"),
     trafficPercentage: integer("traffic_percentage").default(100),
@@ -461,8 +458,7 @@ export const retrainingTriggers = pgTable(
     id: serial("id").primaryKey(),
     orgId: varchar("org_id")
       .notNull()
-      .references(() => organizations.id, { onDelete: "cascade" })
-      .default("default-org-id"),
+      .references(() => organizations.id, { onDelete: "cascade" }),
     modelId: varchar("model_id")
       .notNull()
       .references(() => mlModels.id, { onDelete: "cascade" }),
@@ -692,7 +688,78 @@ export const predictionDataQuality = pgTable(
   })
 );
 
+// Inference runs — tracks each prediction invocation
+export const inferenceRuns = pgTable(
+  "inference_runs",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    equipmentId: varchar("equipment_id").notNull().references(() => equipment.id),
+    modelVersionId: varchar("model_version_id").references(() => modelVersions.id),
+    startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    latencyMs: integer("latency_ms"),
+    status: varchar("status", { length: 50 }).notNull().default("running"),
+    inputSnapshotRef: varchar("input_snapshot_ref", { length: 500 }),
+    predictionId: integer("prediction_id"),
+    errorMessage: text("error_message"),
+  },
+  (table) => ({
+    orgEquipIdx: index("idx_inference_runs_org_equip").on(table.orgId, table.equipmentId),
+    statusIdx: index("idx_inference_runs_status").on(table.status),
+    startedIdx: index("idx_inference_runs_started").on(table.startedAt),
+  })
+);
+
+// Prediction explanations — feature contributions for each prediction
+export const predictionExplanations = pgTable(
+  "prediction_explanations",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    predictionId: integer("prediction_id").notNull(),
+    inferenceRunId: varchar("inference_run_id").references(() => inferenceRuns.id, { onDelete: "cascade" }),
+    featureName: varchar("feature_name", { length: 100 }).notNull(),
+    importance: real("importance").notNull(),
+    featureValue: real("feature_value"),
+    baselineValue: real("baseline_value"),
+    direction: varchar("direction", { length: 20 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    predictionIdx: index("idx_pred_expl_prediction").on(table.predictionId),
+    inferenceRunIdx: index("idx_pred_expl_inference_run").on(table.inferenceRunId),
+    importanceIdx: index("idx_pred_expl_importance").on(table.importance),
+  })
+);
+
+// Model drift metrics — distribution shift detection
+export const modelDriftMetrics = pgTable(
+  "model_drift_metrics",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id").notNull().references(() => organizations.id),
+    modelVersionId: varchar("model_version_id").notNull().references(() => modelVersions.id, { onDelete: "cascade" }),
+    featureName: varchar("feature_name", { length: 100 }).notNull(),
+    trainingMean: real("training_mean").notNull(),
+    trainingStd: real("training_std"),
+    liveMean: real("live_mean").notNull(),
+    liveStd: real("live_std"),
+    driftScore: real("drift_score").notNull(),
+    driftDetected: boolean("drift_detected").default(false),
+    windowDays: integer("window_days").notNull().default(7),
+    computedAt: timestamp("computed_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    versionIdx: index("idx_drift_metrics_version").on(table.modelVersionId),
+    orgVersionIdx: index("idx_drift_metrics_org_version").on(table.orgId, table.modelVersionId),
+    computedIdx: index("idx_drift_metrics_computed").on(table.computedAt),
+  })
+);
+
 // Insert schemas
+export const insertInferenceRunSchema = createInsertSchema(inferenceRuns).omit({ id: true });
+export const insertPredictionExplanationSchema = createInsertSchema(predictionExplanations).omit({ id: true, createdAt: true });
+export const insertModelDriftMetricSchema = createInsertSchema(modelDriftMetrics).omit({ id: true, computedAt: true });
 export const insertModelPerformanceValidationSchema = createInsertSchema(modelPerformanceValidations).omit({ id: true, createdAt: true });
 export const insertPredictionFeedbackSchema = createInsertSchema(predictionFeedback).omit({ id: true, createdAt: true });
 export const insertVibrationFeatureSchema = createInsertSchema(vibrationFeatures).omit({ id: true, createdAt: true });
@@ -764,3 +831,9 @@ export type MlModelAccuracyHistory = typeof mlModelAccuracyHistory.$inferSelect;
 export type InsertMlModelAccuracyHistory = z.infer<typeof insertMlModelAccuracyHistorySchema>;
 export type PredictionDataQuality = typeof predictionDataQuality.$inferSelect;
 export type InsertPredictionDataQuality = z.infer<typeof insertPredictionDataQualitySchema>;
+export type InferenceRun = typeof inferenceRuns.$inferSelect;
+export type InsertInferenceRun = z.infer<typeof insertInferenceRunSchema>;
+export type PredictionExplanation = typeof predictionExplanations.$inferSelect;
+export type InsertPredictionExplanation = z.infer<typeof insertPredictionExplanationSchema>;
+export type ModelDriftMetric = typeof modelDriftMetrics.$inferSelect;
+export type InsertModelDriftMetric = z.infer<typeof insertModelDriftMetricSchema>;

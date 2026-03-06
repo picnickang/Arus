@@ -7,9 +7,9 @@
 
 import {
   sql, pgTable, text, varchar, integer, real, timestamp, boolean, jsonb, serial, index, createInsertSchema, z,
-} from "./base.js";
-import { organizations } from "./core.js";
-import { devices } from "./equipment.js";
+} from "./base";
+import { organizations } from "./core";
+import { devices } from "./equipment";
 
 // MQTT device management for sensor networks
 export const mqttDevices = pgTable(

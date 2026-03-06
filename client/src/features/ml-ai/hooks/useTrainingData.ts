@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useCustomMutation } from "@/hooks/useCrudMutations";
 import { createDefaultLstmConfig, createDefaultRandomForestConfig, parseAcousticData, validateAcousticData, getUniqueEquipmentTypes } from "../lib/trainingUtils";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import type { MlModelDisplay } from "../types";
 
 interface AcousticAnalysisResult { healthScore?: number; severity: string; }
@@ -18,7 +19,8 @@ export const trainingKeys = {
 
 export function useTrainingData() {
   const { toast } = useToast();
-  const [orgId] = useState("default-org-id");
+  const { currentOrgId } = useOrganization();
+  const orgId = currentOrgId || "";
   const [selectedEquipmentType, setSelectedEquipmentType] = useState("");
   const [acousticData, setAcousticData] = useState("");
   const [sampleRate, setSampleRate] = useState("44100");

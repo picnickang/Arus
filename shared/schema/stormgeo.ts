@@ -18,9 +18,9 @@ import {
   index,
   createInsertSchema,
   z,
-} from "./base.js";
-import { organizations } from "./core.js";
-import { vessels } from "./vessels.js";
+} from "./base";
+import { organizations } from "./core";
+import { vessels } from "./vessels";
 
 // StormGeo settings
 export const stormgeoSettings = pgTable(

@@ -1,0 +1,194 @@
+================================================================================
+  ARUS PdM PLATFORM UPGRADE REPORT
+  Industrial-Grade AI/ML Predictive Maintenance System
+  Generated: 2026-03-06
+================================================================================
+
+1. EXECUTIVE SUMMARY
+────────────────────
+This upgrade transforms the ARUS PdM system from a basic ML prediction pipeline
+into an industrial-grade platform with five new backend domains, seven new
+database tables, five frontend hooks, and a unified PdM Platform UI page.
+
+Key capabilities added:
+  • Feature Store — Statistical feature extraction from equipment telemetry
+  • Fleet Analytics — Fleet-wide baselines and equipment comparison via z-scores
+  • Model Registry — Full model lifecycle management with versioning & deployment
+  • Inference Pipeline — End-to-end prediction with latency tracking & explanations
+  • Model Monitoring — Drift detection comparing live distributions to training data
+
+2. FILES CREATED
+────────────────
+Backend (server/domains/pdm-platform/):
+  feature-store/ports.ts          — FeatureStorePort interface
+  feature-store/adapter.ts        — Drizzle DB adapter for equipment_features
+  feature-store/routes.ts         — GET /latest, GET /, POST /compute
+
+  fleet-analytics/ports.ts        — FleetAnalyticsPort interface
+  fleet-analytics/adapter.ts      — Drizzle DB adapter for fleet_baselines
+  fleet-analytics/routes.ts       — GET /baselines, GET /compare, POST /baselines/compute
+
+  model-registry/ports.ts         — ModelRegistryPort interface
+  model-registry/adapter.ts       — Drizzle DB adapter for models/versions/deployments
+  model-registry/routes.ts        — GET /, POST /:id/versions, POST /:id/deploy, GET /:id/deployment
+
+  inference/ports.ts              — InferenceRunnerPort interface
+  inference/stub-runner.ts        — Deterministic stub inference runner
+  inference/routes.ts             — POST /, GET /predictions/:id/explanations
+
+  monitoring/ports.ts             — ModelMonitoringPort interface
+  monitoring/adapter.ts           — Drizzle DB adapter for model_drift_metrics
+  monitoring/routes.ts            — GET /:modelVersionId, POST /:modelVersionId/compute
+
+Frontend:
+  client/src/features/pdm/hooks/use-feature-store.ts     — useEquipmentFeatures, useLatestFeatures, useComputeFeatures
+  client/src/features/pdm/hooks/use-fleet-analytics.ts   — useFleetBaselines, useFleetComparison, useComputeBaselines
+  client/src/features/pdm/hooks/use-model-registry.ts    — useModels, useModelVersions, useActiveDeployment, useDeployModel, useCreateVersion
+  client/src/features/pdm/hooks/use-inference.ts         — useRunInference, usePredictionExplanations
+  client/src/features/pdm/hooks/use-model-monitoring.ts  — useModelDrift, useComputeDrift
+  client/src/pages/pdm-platform.tsx                      — Unified PdM Platform page with 5 tabs
+
+Schema:
+  shared/schema/pdm-feature-store.ts                     — equipment_features, fleet_baselines tables + indexes
+
+3. FILES MODIFIED
+─────────────────
+  shared/schema/ml-analytics-core.ts     — Removed .default("default-org-id") from all ML tables;
+                                           added model_versions and model_metrics tables;
+                                           added modelVersionId to model_deployments
+  shared/schema/ml-analytics-advanced.ts — Removed .default("default-org-id");
+                                           added inference_runs, prediction_explanations,
+                                           model_drift_metrics tables
+  shared/schema/index.ts                 — Registered pdm-feature-store.ts; stripped .js extensions
+  server/routes.ts                       — Registered 5 new pdm-platform route modules
+  server/pdm/routes.ts                   — Replaced console.error with structured logger
+  client/src/App.tsx                     — Added PdmPlatform lazy import and route
+  client/src/config/navigationConfig.ts  — Added PdM Platform sidebar entry
+
+  client/src/features/ml-ai/hooks/useTrainingData.ts           — Removed hardcoded "default-org-id"
+  client/src/features/maintenance/hooks/usePdmPackData.ts      — Removed hardcoded vessel/asset IDs
+  client/src/features/analytics/hooks/usePdmEquipmentDetailData.ts — Removed hardcoded org-id header
+
+4. DATABASE CHANGES
+───────────────────
+New Tables (7):
+  • model_versions         — Model version tracking (version, artifactPath, metrics, status)
+  • model_metrics          — Per-version metric snapshots (accuracy, precision, recall, f1, custom)
+  • equipment_features     — Statistical features extracted from telemetry (10 feature columns)
+  • fleet_baselines        — Fleet-wide statistical baselines per equipment type
+  • inference_runs         — Inference execution tracking with latency
+  • prediction_explanations — SHAP-style feature contribution explanations
+  • model_drift_metrics    — Feature distribution drift scores
+
+Modified Tables:
+  • ml_models              — Removed orgId default
+  • ml_models_legacy       — Removed orgId default
+  • model_deployments      — Added model_version_id column; removed orgId default
+  • failure_predictions    — Removed orgId default
+  • anomaly_detections     — Removed orgId default
+  • feature_importances    — Removed orgId default
+  • pdm_baseline           — Removed orgId default
+
+Indexes Added:
+  • equipment_features: (orgId, equipmentId, timestamp DESC)
+  • fleet_baselines: (orgId, equipmentType, featureName)
+
+5. API CHANGES
+──────────────
+New Endpoints:
+  GET  /api/pdm/features?equipmentId=&from=&to=   — Query feature history
+  GET  /api/pdm/features/latest?equipmentId=       — Latest computed features
+  POST /api/pdm/features/compute                   — Trigger feature computation
+
+  GET  /api/pdm/fleet/baselines?equipmentType=     — Query fleet baselines
+  GET  /api/pdm/fleet/compare?equipmentId=&type=   — Compare equipment to fleet
+  POST /api/pdm/fleet/baselines/compute            — Compute fleet baselines
+
+  GET  /api/pdm/models                             — List registered models
+  POST /api/pdm/models/:id/versions                — Create model version
+  GET  /api/pdm/models/:id/versions                — List model versions
+  POST /api/pdm/models/:id/deploy                  — Deploy model version
+  GET  /api/pdm/models/:id/deployment              — Get active deployment
+
+  POST /api/pdm/infer                              — Run inference pipeline
+  GET  /api/pdm/infer/predictions/:id/explanations — Get prediction explanations
+
+  GET  /api/pdm/drift/:modelVersionId              — Get drift metrics
+  POST /api/pdm/drift/:modelVersionId/compute      — Compute drift metrics
+
+All endpoints require x-org-id header and are rate-limited.
+
+6. FRONTEND CHANGES
+────────────────────
+  • New PdM Platform page at /pdm-platform with 5 tabs:
+    - Features: Equipment feature viewer + compute trigger
+    - Fleet: Fleet baselines table + comparison with z-scores
+    - Models: Model registry list + versions + deployments
+    - Inference: Run inference button + prediction results + explanations
+    - Drift: Drift metrics table with drift/OK status badges
+  • Sidebar navigation entry added under Maintenance group
+  • All tabs include loading states, empty states, and data-testid attributes
+  • Removed hardcoded org/vessel/asset IDs from 3 existing PdM hooks
+
+7. NEW SERVICE ARCHITECTURE
+───────────────────────────
+Each pdm-platform domain follows hexagonal architecture:
+
+  ports.ts    → Domain interface definitions
+  adapter.ts  → Infrastructure adapter (Drizzle/PostgreSQL)
+  routes.ts   → HTTP interface (Express router)
+
+Data Flow:
+  Equipment → Telemetry → Feature Store (compute) → Features
+  Features → Fleet Analytics (compare) → Z-Scores / Baselines
+  Features → Inference Pipeline (run) → Predictions + Explanations
+  Predictions → Model Monitoring (drift) → Drift Metrics
+
+  Model Registry manages: Models → Versions → Deployments
+  Inference Pipeline resolves: Equipment → Active Deployment → Model Version → Features → Prediction
+
+8. REMAINING STUBS
+──────────────────
+  • Feature Store compute: Returns deterministic stub features (no real telemetry
+    aggregation yet — requires telemetry data in TimescaleDB to be meaningful)
+  • Inference stub-runner: Returns deterministic predictions based on feature
+    heuristics (temperature/vibration thresholds) — real model runtime TBD
+  • Fleet baselines compute: Aggregates from equipment_features table (needs
+    populated feature data to produce meaningful baselines)
+  • Drift compute: Returns stub drift scores — real KL-divergence/PSI computation
+    requires accumulated live inference data vs training distributions
+
+  All stubs are clearly marked and produce plausible, deterministic output.
+
+9. VALIDATION RESULTS
+─────────────────────
+  ✓ Server starts cleanly with all routes registered
+  ✓ All 5 new API endpoint groups respond correctly
+  ✓ No hardcoded org IDs remain in ML schema or frontend hooks
+  ✓ Structured logger replaces console.error in pdm/routes.ts
+  ✓ Schema compiles with TypeScript
+  ✓ Navigation config includes PdM Platform entry
+
+10. MIGRATION NOTES
+────────────────────
+  • Schema changes were applied directly via SQL (drizzle-kit push has TUI blocker)
+  • No existing ID column types were modified (serial stays serial, varchar stays varchar)
+  • All new tables use UUID primary keys (gen_random_uuid())
+  • orgId columns are notNull without defaults — callers must provide org context
+  • .js extensions stripped from all schema imports for drizzle-kit CJS compatibility
+
+11. ARCHITECTURE DECISIONS
+──────────────────────────
+  • Hexagonal architecture maintained: ports → adapters → routes
+  • Single orgId source: useOrganization() context hook on frontend,
+    x-org-id header extracted via requireOrgId middleware on backend
+  • Feature columns use real type for floating-point sensor data
+  • Inference runs track latency for SLA monitoring
+  • Prediction explanations store feature-level SHAP-compatible contributions
+  • Drift detection designed for per-feature PSI/KL-divergence scoring
+  • Model registry supports multi-version deployments with traffic percentages
+  • All routes protected by requireOrgId + generalApiRateLimit middleware
+
+================================================================================
+  END OF REPORT
+================================================================================

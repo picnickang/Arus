@@ -21,8 +21,8 @@ import {
   uuidPrimaryKey,
   timestamps,
   tenantColumn,
-} from "./base.js";
-import { organizations } from "./core.js";
+} from "./base";
+import { organizations } from "./core";
 
 // Vessels in the fleet - uses shared column builders to reduce duplication
 export const vessels = pgTable("vessels", {

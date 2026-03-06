@@ -2,10 +2,10 @@
  * Schema Crew - Crew Management, Skills, Certifications, and Scheduling
  */
 
-import { sql, pgTable, text, varchar, integer, real, timestamp, boolean, index, unique, createInsertSchema, z } from "./base.js";
-import { organizations } from "./core.js";
-import { vessels } from "./vessels.js";
-import { roles } from "./permissions.js";
+import { sql, pgTable, text, varchar, integer, real, timestamp, boolean, index, unique, createInsertSchema, z } from "./base";
+import { organizations } from "./core";
+import { vessels } from "./vessels";
+import { roles } from "./permissions";
 
 export const crew = pgTable("crew", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

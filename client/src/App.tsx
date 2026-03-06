@@ -62,6 +62,7 @@ const SystemAdministration = lazy(() => import("@/pages/system-administration"))
 const PdmPack = lazy(() => import("@/pages/pdm-pack"));
 const PdmDashboard = lazy(() => import("@/pages/pdm-dashboard"));
 const PdmSchedule = lazy(() => import("@/pages/pdm-schedule"));
+const PdmPlatform = lazy(() => import("@/pages/pdm-platform"));
 const Diagnostics = lazy(() => import("@/pages/DiagnosticsDashboard"));
 const Equipment = lazy(() => import("@/pages/equipment"));
 const MaintenanceTemplatesPage = lazy(() => import("@/pages/MaintenanceTemplatesPage"));
@@ -237,6 +238,7 @@ function Router() {
               <Route path="/maintenance-templates" component={MaintenanceTemplatesPage} />
               <Route path="/pdm-pack" component={PdmPack} />
               <Route path="/pdm-dashboard" component={PdmDashboard} />
+              <Route path="/pdm-platform" component={PdmPlatform} />
               <Route path="/inventory-management" component={InventoryManagement} />
               <Route path="/vendors" component={VendorsPage} />
               <Route path="/suppliers">{() => <Redirect to="/vendors" />}</Route>

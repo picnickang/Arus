@@ -26,7 +26,7 @@ import {
   index,
   createInsertSchema,
   z,
-} from "./base.js";
+} from "./base";
 
 // =============================================================================
 // DOCUMENT STORAGE

@@ -19,7 +19,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Re-export all modular schema tables
-export * from "./schema/index.js";
+export * from "./schema/index";
 
 // Re-export sync conflicts schema
 export * from "./sync-conflicts-schema";
@@ -43,7 +43,7 @@ import {
   maintenanceChecklistCompletions,
   syncJournal,
   syncOutbox,
-} from "./schema/index.js";
+} from "./schema/index";
 
 // Additional imports for tables whose insertSchemas are not in modular schema
 import {
@@ -97,7 +97,7 @@ import {
   predictionFeedback,
   mlModelsLegacy,
   shiftTemplate,
-} from "./schema/index.js";
+} from "./schema/index";
 
 // ============================================================================
 // INSERT SCHEMAS FOR MODULAR TABLES (not exported from modular schema)

@@ -18,10 +18,10 @@ import {
   index,
   createInsertSchema,
   z,
-} from "./base.js";
-import { organizations } from "./core.js";
-import { equipment, devices } from "./equipment.js";
-import { vessels } from "./vessels.js";
+} from "./base";
+import { organizations } from "./core";
+import { equipment, devices } from "./equipment";
+import { vessels } from "./vessels";
 
 // Equipment telemetry data - TimescaleDB hypertable with composite primary key
 export const equipmentTelemetry = pgTable(

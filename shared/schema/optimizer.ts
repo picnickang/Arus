@@ -16,7 +16,7 @@ import {
   jsonb,
   createInsertSchema,
   z,
-} from "./base.js";
+} from "./base";
 
 // Optimizer configurations
 export const optimizerConfigurations = pgTable("optimizer_configurations", {
