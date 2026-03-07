@@ -47,6 +47,12 @@ import {
   useRunScenario,
   useTwinTimeline,
 } from "@/features/digital-twin/hooks/useTwinApi";
+import {
+  useTwinFreshness,
+  useRefreshTwin,
+  useRefreshAllTwins,
+  type TwinFreshnessInfo,
+} from "@/features/digital-twin/hooks/useTwinFreshness";
 
 function severityColor(severity: string) {
   switch (severity) {
@@ -69,6 +75,9 @@ function healthColor(score: number | null | undefined) {
 function OverviewTab() {
   const { data: twins, isLoading: twinsLoading } = useTwins();
   const { data: templates, isLoading: templatesLoading } = useTemplates();
+  const { data: freshnessData, isLoading: freshnessLoading } = useTwinFreshness();
+  const refreshTwin = useRefreshTwin();
+  const refreshAll = useRefreshAllTwins();
   const createTemplate = useCreateTemplate();
   const createTwin = useCreateTwin();
   const { toast } = useToast();
@@ -80,6 +89,31 @@ function OverviewTab() {
   const [twinName, setTwinName] = useState("");
   const [twinEquipmentId, setTwinEquipmentId] = useState("");
   const [twinTemplateId, setTwinTemplateId] = useState("");
+
+  const freshnessMap = new Map<string, TwinFreshnessInfo>();
+  if (freshnessData) {
+    for (const f of freshnessData) {
+      freshnessMap.set(f.twinId, f);
+    }
+  }
+
+  const handleRefreshTwin = async (twinId: string) => {
+    try {
+      await refreshTwin.mutateAsync(twinId);
+      toast({ title: "Twin refreshed successfully" });
+    } catch {
+      toast({ title: "Failed to refresh twin", variant: "destructive" });
+    }
+  };
+
+  const handleRefreshAll = async () => {
+    try {
+      await refreshAll.mutateAsync();
+      toast({ title: "All twins refreshed" });
+    } catch {
+      toast({ title: "Failed to refresh twins", variant: "destructive" });
+    }
+  };
 
   const handleCreateTemplate = async () => {
     if (!templateName || !templateType) return;
@@ -207,21 +241,37 @@ function OverviewTab() {
         </p>
       )}
 
-      <div className="border-t pt-6 flex items-center justify-between">
+      <div className="border-t pt-6 flex items-center justify-between gap-2">
         <div>
           <h3 className="text-lg font-semibold">Asset Twins</h3>
           <p className="text-sm text-muted-foreground">
             Digital twin instances linked to equipment
           </p>
         </div>
-        <Button
-          data-testid="button-show-create-twin"
-          variant="outline"
-          size="sm"
-          onClick={() => setShowCreateTwin(!showCreateTwin)}
-        >
-          <Plus className="w-4 h-4 mr-1" /> New Twin
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            data-testid="button-refresh-all-twins"
+            variant="outline"
+            size="sm"
+            onClick={handleRefreshAll}
+            disabled={refreshAll.isPending}
+          >
+            {refreshAll.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin mr-1" />
+            ) : (
+              <RefreshCw className="w-4 h-4 mr-1" />
+            )}
+            Refresh All
+          </Button>
+          <Button
+            data-testid="button-show-create-twin"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowCreateTwin(!showCreateTwin)}
+          >
+            <Plus className="w-4 h-4 mr-1" /> New Twin
+          </Button>
+        </div>
       </div>
 
       {showCreateTwin && (
@@ -284,7 +334,13 @@ function OverviewTab() {
       ) : twins?.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {twins.map((tw: any) => (
-            <TwinOverviewCard key={tw.id} twin={tw} />
+            <TwinOverviewCard
+              key={tw.id}
+              twin={tw}
+              freshness={freshnessMap.get(tw.id)}
+              onRefresh={handleRefreshTwin}
+              isRefreshing={refreshTwin.isPending}
+            />
           ))}
         </div>
       ) : (
@@ -296,24 +352,56 @@ function OverviewTab() {
   );
 }
 
-function TwinOverviewCard({ twin }: { twin: any }) {
+function formatTimeAgo(dateStr: string | null | undefined): string {
+  if (!dateStr) return "Never";
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+function TwinOverviewCard({
+  twin,
+  freshness,
+  onRefresh,
+  isRefreshing,
+}: {
+  twin: any;
+  freshness?: TwinFreshnessInfo;
+  onRefresh: (twinId: string) => void;
+  isRefreshing: boolean;
+}) {
   const { data: state } = useLatestTwinState(twin.id);
+  const isStale = freshness?.isStale ?? true;
+  const lastUpdated = freshness?.lastStateUpdate;
+  const lastResidual = freshness?.lastResidualUpdate;
 
   return (
     <Card data-testid={`card-twin-${twin.id}`}>
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-1">
           <CardTitle className="text-base">{twin.name}</CardTitle>
-          <Badge
-            variant={twin.status === "active" ? "default" : "secondary"}
-            data-testid={`badge-twin-status-${twin.id}`}
-          >
-            {twin.status}
-          </Badge>
+          <div className="flex items-center gap-1 flex-wrap">
+            <Badge
+              variant={isStale ? "destructive" : "default"}
+              data-testid={`badge-freshness-${twin.id}`}
+            >
+              {isStale ? "Stale" : "Fresh"}
+            </Badge>
+            <Badge
+              variant={twin.status === "active" ? "default" : "secondary"}
+              data-testid={`badge-twin-status-${twin.id}`}
+            >
+              {twin.status}
+            </Badge>
+          </div>
         </div>
         <CardDescription>Equipment: {twin.equipmentId?.slice(0, 12)}...</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-3">
         {state && !state.error ? (
           <div className="grid grid-cols-3 gap-2 text-center">
             <div>
@@ -341,6 +429,43 @@ function TwinOverviewCard({ twin }: { twin: any }) {
         ) : (
           <p className="text-xs text-muted-foreground">No state computed yet</p>
         )}
+
+        <div className="border-t pt-2 space-y-1">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              State: {formatTimeAgo(lastUpdated)}
+            </span>
+            <span data-testid={`text-last-updated-${twin.id}`}>
+              {lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : "—"}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <BarChart3 className="w-3 h-3" />
+              Residual: {formatTimeAgo(lastResidual)}
+            </span>
+            <span data-testid={`text-last-residual-${twin.id}`}>
+              {lastResidual ? new Date(lastResidual).toLocaleTimeString() : "—"}
+            </span>
+          </div>
+        </div>
+
+        <Button
+          data-testid={`button-refresh-twin-${twin.id}`}
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={() => onRefresh(twin.id)}
+          disabled={isRefreshing}
+        >
+          {isRefreshing ? (
+            <Loader2 className="w-4 h-4 animate-spin mr-1" />
+          ) : (
+            <RefreshCw className="w-4 h-4 mr-1" />
+          )}
+          Refresh
+        </Button>
       </CardContent>
     </Card>
   );

@@ -196,11 +196,21 @@ export const failurePredictions = pgTable(
     outcomeLabel: varchar("outcome_label"),
     outcomeVerifiedAt: timestamp("outcome_verified_at", { withTimezone: true }),
     outcomeVerifiedBy: varchar("outcome_verified_by"),
+    predictionValidUntil: timestamp("prediction_valid_until", { withTimezone: true }),
+    modelVersionId: varchar("model_version_id").references(() => modelVersions.id),
+    featureSetVersion: varchar("feature_set_version", { length: 100 }),
+    reviewStatus: varchar("review_status", { length: 50 }).default("pending"),
+    reviewedBy: varchar("reviewed_by", { length: 255 }),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    suppressionReason: text("suppression_reason"),
+    governanceMetadata: jsonb("governance_metadata"),
     metadata: jsonb("metadata"),
   },
   (table) => ({
     equipmentRiskIdx: index("idx_failure_equipment_risk").on(table.equipmentId, table.riskLevel),
     predictionTimeIdx: index("idx_failure_prediction_time").on(table.predictionTimestamp),
+    orgReviewStatusIdx: index("idx_failure_pred_org_review").on(table.orgId, table.reviewStatus),
+    orgValidUntilIdx: index("idx_failure_pred_org_valid_until").on(table.orgId, table.predictionValidUntil),
   })
 );
 

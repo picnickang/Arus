@@ -19,3 +19,4 @@
 
 export * from "./ml-analytics-core";
 export * from "./ml-analytics-advanced";
+export * from "./ml-training-pipeline";

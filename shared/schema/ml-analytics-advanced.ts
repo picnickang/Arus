@@ -706,6 +706,7 @@ export const inferenceRuns = pgTable(
   },
   (table) => ({
     orgEquipIdx: index("idx_inference_runs_org_equip").on(table.orgId, table.equipmentId),
+    orgStartedIdx: index("idx_inference_runs_org_started").on(table.orgId, table.startedAt),
     statusIdx: index("idx_inference_runs_status").on(table.status),
     startedIdx: index("idx_inference_runs_started").on(table.startedAt),
   })

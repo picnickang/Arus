@@ -58,6 +58,9 @@ import { twinStateRouter } from "./domains/pdm-platform/digital-twin/twin-state/
 import { residualAnalysisRouter } from "./domains/pdm-platform/digital-twin/residual-analysis/routes";
 import { scenarioSimRouter } from "./domains/pdm-platform/digital-twin/scenario-sim/routes";
 import { replayRouter } from "./domains/pdm-platform/digital-twin/replay/routes";
+import { predictionGovernanceRouter } from "./domains/pdm-platform/prediction-governance/routes";
+import { twinUpdatesRouter } from "./domains/pdm-platform/twin-updates/routes";
+import { trainingPipelineRouter } from "./domains/pdm-platform/training-pipeline/routes";
 import {
   writeOperationRateLimit,
 } from "./routes/route-dependencies";
@@ -183,7 +186,15 @@ export async function registerRoutes(
   app.use("/api/pdm/twin/residuals", requireOrgId, generalApiRateLimit, residualAnalysisRouter);
   app.use("/api/pdm/twin/scenarios", requireOrgId, generalApiRateLimit, scenarioSimRouter);
   app.use("/api/pdm/twin/replay", requireOrgId, generalApiRateLimit, replayRouter);
-  console.log("[Digital Twin] Registered (definition, state, residuals, scenarios, replay)");
+  app.use("/api/pdm/twin/updates", requireOrgId, generalApiRateLimit, twinUpdatesRouter);
+  console.log("[Digital Twin] Registered (definition, state, residuals, scenarios, replay, updates)");
+
+  app.use("/api/pdm/training", requireOrgId, generalApiRateLimit, trainingPipelineRouter);
+  console.log("[Training Pipeline] Registered (datasets, runs, promote, artifacts)");
+
+  // Prediction Governance routes
+  app.use("/api/pdm/governance", requireOrgId, generalApiRateLimit, predictionGovernanceRouter);
+  console.log("[Prediction Governance] Registered (list, review, approve, suppress, expire)");
 
   // Scheduled Reports domain
   const { createScheduledReportsDomain } = await import("./domains/scheduled-reports/index.js");
