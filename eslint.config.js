@@ -15,7 +15,6 @@ export default [
       '**/client/public/service-worker.js',
       '**/public/service-worker.js',
       '**/test-standalone.js',
-      '**/fix-package-json.js',
       '**/package-config.js',
       'scripts/**/*.cjs',
       'scripts/**/*.js',

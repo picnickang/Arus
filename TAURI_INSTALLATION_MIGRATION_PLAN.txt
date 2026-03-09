@@ -1,0 +1,482 @@
+================================================================================
+  ARUS MARINE — TAURI & INSTALLATION MIGRATION PLAN
+  Generated: 2026-03-09
+  Status: Post-initial-migration audit (Electron source removed, Tauri shell built)
+================================================================================
+
+================================================================================
+1. REPOSITORY OVERVIEW
+================================================================================
+
+ARUS (Marine Predictive Maintenance & Scheduling) is a full-stack web application
+for marine fleet management. It provides predictive maintenance, crew scheduling,
+inventory management, compliance tracking, and AI-powered analytics.
+
+Tech Stack:
+  Frontend:    React 18, TypeScript, Tailwind CSS, shadcn/ui, Wouter, TanStack Query
+  Backend:     Express.js, TypeScript, Zod validation, PostgreSQL (Drizzle ORM)
+  Desktop:     Tauri v2 (Rust) — recently migrated from Electron
+  Mobile:      Capacitor (iOS/iPadOS)
+  Database:    PostgreSQL (cloud) / SQLite via libSQL (vessel/embedded mode)
+  AI/ML:       TensorFlow.js, XGBoost, OpenAI integration
+
+Deployment Modes:
+  CLOUD    — PostgreSQL, hosted on Neon/Replit, accessed via browser
+  VESSEL   — SQLite (WAL mode), offline-first, runs on vessel hardware
+  DESKTOP  — Tauri v2 native app connecting to local or remote backend
+  MOBILE   — Capacitor iOS app
+
+Repository Structure (key directories):
+  client/           — React frontend (Vite)
+  server/           — Express.js backend (hexagonal architecture)
+  shared/           — Shared types, schemas, config (Drizzle schema)
+  src-tauri/        — Tauri v2 desktop shell (Rust)
+  ios/              — Capacitor iOS project
+  scripts/          — Build and setup scripts
+  docs/             — Technical documentation
+
+
+================================================================================
+2. CURRENT DESKTOP RUNTIME ARCHITECTURE
+================================================================================
+
+The Electron→Tauri migration (Phase 1) was completed in the previous session.
+The current architecture is:
+
+Desktop Shell (src-tauri/):
+  - src-tauri/src/lib.rs: Production-ready Tauri app shell with 4 IPC commands:
+      get_app_version  — returns {version, name, identifier} from Tauri config
+      get_runtime_state — returns {packaged, debug, platform, arch}
+      get_app_data_dir  — resolves app data directory path
+      get_backend_config — returns {url, mode} from env vars
+  - Plugins: tauri-plugin-shell, tauri-plugin-process, tauri-plugin-fs,
+             tauri-plugin-updater
+  - Window: 1400x900 (min 1024x680), labeled "main", DevTools auto-open in debug
+  - Updater: configured with endpoint template, empty pubkey (dev mode)
+
+Frontend Desktop Bridge (client/src/lib/desktop.ts):
+  - Runtime-agnostic abstraction over Tauri APIs
+  - isDesktop() — detects Tauri via window.__TAURI__ / __TAURI_INTERNALS__
+  - getDesktopAPI() — returns typed API object with version, update, runtime methods
+  - All Tauri imports use "new Function('m','return import(m)')" pattern to prevent
+    Vite from statically analyzing the dynamic imports at build time
+  - Safe degradation: all functions return sensible defaults in web mode
+
+Update Panel (client/src/components/admin/DesktopUpdatePanel.tsx):
+  - Shows "Web Deployment" info card when running in browser
+  - Shows Tauri update UI (check/download/install) when running in desktop
+  - State machine: idle → checking → available → downloading → downloaded
+
+Backend Connectivity Strategy:
+  - The Tauri app bundles only the frontend (frontendDist: ../dist/public)
+  - Backend runs as a separate process (not embedded as a Tauri sidecar)
+  - ARUS_BACKEND_URL env var configures the backend URL (default: localhost:5000)
+  - In production vessel deployments, the Express server runs as a system service
+    and the Tauri desktop app connects to it
+
+
+================================================================================
+3. ELECTRON DEPENDENCIES FOUND
+================================================================================
+
+All primary Electron source code was removed in the initial migration session.
+The following residual artifacts were identified and cleaned up in this audit:
+
+STALE DIRECTORIES (DELETED):
+  dist-electron/          — 1.4 MB: legacy main.cjs, icons, manifest, service-worker
+  build/                  — 784 KB: Electron-era icon files, empty .icns/.ico,
+                            entitlements.mac.plist, .placeholder files
+  release/                — 0 B: empty directory (was electron-builder output)
+
+STALE FILES (DELETED):
+  fix-package-json.js     — Electron-only utility that sets main: electron/main.js,
+                            pins electron@38.3.0, moves electron-builder to devDeps
+
+STALE DOCUMENTATION (82 root-level .md files, ALL DELETED):
+  Electron-specific build/install docs:
+    BUILD_INSTRUCTIONS.md, DMG_BUILD_STATUS.md, DMG-FIX-COMPLETE.md,
+    DMG_PACKAGING_GUIDE.md, DMG_SUCCESS_GUARANTEES.md, INSTALL_SIMPLIFIED.md,
+    INSTALL.md, INSTALLATION-GUIDE.md, INSTALLER_FIXES_APPLIED.md,
+    LAUNCHER-FIX.md, MACOS-DEPLOYMENT.md, MACOS_INSTALLATION_PLAN.md,
+    MACOS_STANDALONE_SUMMARY.md, QUICK-START-MACOS.md, QUICK_START.md,
+    README-MACOS-INSTALLATION.md, SETUP_MAC.md, START_HERE.md,
+    WINDOWS-INSTALLATION.md, WINDOWS_INSTALLATION_SUMMARY.md
+
+  Historical fix/audit reports (not actively maintained):
+    ALL_BUGS_FIXED.md, CLEANUP_SUMMARY.md, CRITICAL_BUGS_FIXED.md,
+    CRITICAL_FIXES_REQUIRED.md, DEPLOYMENT-MODE-FIXES.md, FINAL_FIX_SUMMARY.md,
+    FINAL_SOLUTION_SUMMARY.md, FIXES_APPLIED.md, HASH_MISMATCH_FIX.md,
+    NOT-FOUND-AND-PWA-FAILURE-ANALYSIS.md, PATCH-MAC-OFFLINE-GUIDE.md,
+    ROOT_CAUSE_ANALYSIS.md, ROUTING_FIX_COMPLETE.md, SQLITE_SCHEMA_FIX.md,
+    STANDALONE-SERVER-FIX-STRATEGY.md, STATIC_FILE_SERVING_FIX.md,
+    SERVER-AND-NOT-FOUND-ANALYSIS.md, VERIFY_BEFORE_INSTALL.md
+
+  Stale analysis/report JSON files (DELETED):
+    eslint-report.json, eslint-report.final.json, eslint-report.phase1.json,
+    eslint-report.phase2.json, sonar-analysis-report.json,
+    sonar-critical-issues.json, sonar-analysis-report.md, diagnostic.json,
+    ml-accuracy-report.json, perf-results.json, telemetry-dataset.json,
+    sonar-hotspots.json
+
+ACTIVE CODE REFERENCES (non-actionable):
+  shared/schema/costs.ts  — contains "electronics_technician" (valid domain term)
+  package-lock.json       — may contain transitive electron references (benign)
+
+ACTIVE CODE REFERENCES (already cleaned):
+  client/src/lib/electron.ts              — DELETED
+  client/src/components/admin/ElectronUpdatePanel.tsx — DELETED
+  electron-builder.json                   — DELETED
+  vite.config.electron.ts                 — DELETED
+  install-mac.sh                          — DELETED
+  verify-fixes.sh                         — DELETED
+  test-bundle-structure.sh                — DELETED
+  test-final-bundle.sh                    — DELETED
+  test-minimal-build.sh                   — DELETED
+  14 ELECTRON_*.md root docs              — DELETED
+
+
+================================================================================
+4. TAURI IMPLEMENTATION STATUS
+================================================================================
+
+COMPLETED:
+  ✅ Tauri v2 scaffold with production Rust commands (lib.rs)
+  ✅ 4 IPC commands: version, runtime state, app data dir, backend config
+  ✅ 4 plugins: shell, process, fs, updater
+  ✅ Window configuration with proper sizing and label
+  ✅ CSP security policy in tauri.conf.json
+  ✅ Release profile optimized (LTO, strip, codegen-units=1)
+  ✅ Frontend desktop bridge (client/src/lib/desktop.ts)
+  ✅ DesktopUpdatePanel component with web fallback
+  ✅ useSystemAdminData hook migrated to isDesktop()
+  ✅ Build docs rewritten for Tauri (docs/BUILD_GUIDE.md, CODE_SIGNING_GUIDE.md)
+  ✅ Developer setup script (scripts/dev-setup.sh)
+  ✅ Icon files in src-tauri/icons/ (copied from PWA icons)
+
+MISSING / INCOMPLETE:
+  ❌ Updater public key (plugins.updater.pubkey is empty in tauri.conf.json)
+     Required before any production release; must be generated with
+     `npx @tauri-apps/cli signer generate`
+  
+  ❌ Tauri v2 capabilities/permissions
+     Tauri v2 requires explicit permission declarations in
+     src-tauri/capabilities/ for frontend to invoke IPC commands.
+     Currently only autogenerated schemas exist in src-tauri/gen/.
+  
+  ❌ Properly-sized icon files
+     Current icons are all 512x512 (copied from PWA source).
+     tauri.conf.json references 128x128@2x.png, icon.icns, icon.ico
+     which don't exist. Must run generate-icons.mjs or resize manually.
+  
+  ❌ Tauri JS plugin packages not in package.json
+     @tauri-apps/plugin-updater and @tauri-apps/plugin-process are
+     dynamically imported but not listed in package.json dependencies.
+     Works in web mode (imports fail silently) but the Tauri build
+     may need them. Currently mitigated by the new Function() pattern.
+  
+  ❌ Backend sidecar / process management
+     No mechanism to start the Express.js backend automatically when
+     the desktop app launches. Options:
+       a) Tauri sidecar plugin — spawn node server as child process
+       b) External service manager — systemd/launchd manages the backend
+       c) Remote backend — desktop connects to cloud/vessel server
+     Current approach: option (c) via ARUS_BACKEND_URL env var.
+  
+  ❌ First-run setup wizard
+     No UI for initial configuration when the desktop app is first
+     launched (database setup, vessel ID, backend URL, admin password).
+  
+  ❌ One-click customer installer
+     Tauri's built-in bundler creates platform installers (DMG, MSI,
+     AppImage, DEB) but no post-install hooks are configured for
+     database initialization or service registration.
+  
+  ❌ beforeBuildCommand references "npm run build:renderer"
+     This script exists but only builds the frontend. The backend
+     is not built or bundled as part of the Tauri build process.
+
+
+================================================================================
+5. INSTALLATION WORKFLOW ANALYSIS
+================================================================================
+
+CURRENT STATE:
+
+  Developer Setup:
+    scripts/dev-setup.sh — checks Node.js/Rust prerequisites, runs npm install,
+    creates data directory, prints instructions for web/desktop development.
+    Status: ✅ Complete and functional.
+
+  Customer Installation:
+    No customer-facing installer exists. The previous Electron installer scripts
+    (install-mac.sh, build-electron-complete.sh, etc.) have been deleted.
+    Status: ❌ Not implemented.
+
+TAURI NATIVE INSTALLER SUPPORT:
+
+  Tauri's bundler (invoked by `npm run tauri:build`) automatically produces
+  platform-native installers:
+    macOS:   .dmg and .app bundle
+    Windows: .msi (WiX) and .exe (NSIS)
+    Linux:   .deb and .AppImage
+
+  These are configured in tauri.conf.json under bundle.targets: "all".
+
+RECOMMENDED INSTALLATION FLOW:
+
+  1. Customer downloads platform-specific installer from GitHub Releases
+  2. Installer runs (DMG drag-to-Applications / MSI wizard / dpkg)
+  3. First launch triggers first-run setup wizard:
+     a. Backend configuration (cloud URL or local server)
+     b. Vessel identification (for vessel deployments)
+     c. Admin password setup
+     d. SQLite database initialization (if vessel mode)
+  4. Application connects to backend and loads dashboard
+
+POST-INSTALL HOOKS:
+
+  macOS:   No post-install hooks needed; first-run handles setup
+  Windows: WiX supports custom actions for service registration
+  Linux:   .deb postinst script can register systemd service
+
+  For vessel deployments where the backend runs as a service:
+    - macOS:  launchd plist for Express server
+    - Windows: Windows Service or NSSM wrapper
+    - Linux:  systemd unit file for Express server
+
+
+================================================================================
+6. SQLITE BOOTSTRAP ANALYSIS
+================================================================================
+
+CURRENT IMPLEMENTATION (scripts/init-sqlite-schema.js):
+
+  Uses @libsql/client to create a SQLite database file.
+  Default path: dist-standalone/ARUS-bundle/data/vessel-local-seed.db
+  (Configurable via DATABASE_PATH env var)
+
+  Initialization sequence:
+    1. Enable foreign keys and WAL mode
+    2. Set synchronous = NORMAL for performance
+    3. Create _schema_version table (version marker: '1.0.0-embedded')
+    4. Create organizations table + seed default org ('default-org-id')
+    5. Create update_settings table + seed default settings
+    6. Create admin_sessions table
+    7. Create admin_audit_events table
+    8. Create admin_system_settings table
+    9. Create performance indexes
+
+  Additional tables are created on first application start by the server
+  (Drizzle ORM pushes the full schema).
+
+LOCAL MODE DETECTION (server/config/runtimeEnv.ts):
+  isLocalMode = LOCAL_MODE=true OR EMBEDDED_MODE=true OR DEPLOYMENT_MODE=VESSEL
+  isVesselMode = DEPLOYMENT_MODE=VESSEL OR EMBEDDED_MODE=true
+  isCloudMode = !isLocalMode
+
+  Database selection:
+    Cloud mode  → PostgreSQL via DATABASE_URL
+    Vessel mode → SQLite via libSQL (TURSO_DB_URL or local file)
+
+FIRST-RUN BEHAVIOR NEEDED:
+
+  When the Tauri desktop app launches for the first time on a vessel:
+    1. Check if SQLite database exists at app data directory
+    2. If not, run schema initialization (equivalent to init-sqlite-schema.js)
+    3. Prompt for vessel ID, fleet assignment, admin credentials
+    4. Store configuration in SQLite
+    5. Start backend server (or connect to running backend)
+    6. Load the application
+
+  This should be implemented as:
+    a. A Tauri Rust command that checks for first-run state
+    b. A React first-run wizard component
+    c. Backend endpoint for initial setup
+
+
+================================================================================
+7. FRONTEND RUNTIME DEPENDENCIES
+================================================================================
+
+DESKTOP BRIDGE (client/src/lib/desktop.ts):
+  Exports:
+    isDesktop()        — synchronous check for Tauri runtime
+    getDesktopAPI()    — returns DesktopAPI object or undefined
+    getAppVersion()    — async, returns version string or 'web'
+    isPackaged()       — async, returns boolean
+    checkForUpdates()  — async, returns UpdateInfo | null
+    installUpdate()    — async, downloads and relaunches
+
+  Dynamic Import Strategy:
+    Uses `new Function('m', 'return import(m)')` to prevent Vite from
+    statically analyzing Tauri module imports. This is critical because:
+      - @tauri-apps/api/core is not installed in the web project
+      - @tauri-apps/plugin-updater is not installed
+      - @tauri-apps/plugin-process is not installed
+    All imports are wrapped in try/catch with null fallbacks.
+
+COMPONENTS USING DESKTOP BRIDGE:
+  client/src/components/admin/DesktopUpdatePanel.tsx
+    - Imports: isDesktop, getDesktopAPI, UpdateInfo
+    - Shows web fallback or Tauri update UI based on isDesktop()
+
+  client/src/features/settings/hooks/useSystemAdminData.ts
+    - Imports: isDesktop
+    - useSystemAdminData() exposes isDesktopEnv for conditional rendering
+    - useSoftwareUpdatesData() disables server API queries in desktop mode
+
+  client/src/pages/system-administration.tsx
+    - Imports: DesktopUpdatePanel
+    - Conditionally renders DesktopUpdatePanel or server update UI
+
+NO OTHER FRONTEND FILES import from desktop.ts or reference Tauri APIs.
+
+
+================================================================================
+8. REQUIRED MIGRATION STEPS
+================================================================================
+
+PHASE 1: CLEANUP (Low risk, immediate) ✅ PARTIALLY DONE
+  [1.1] ✅ Delete Electron source files (electron.ts, ElectronUpdatePanel.tsx)
+  [1.2] ✅ Delete Electron config (electron-builder.json, vite.config.electron.ts)
+  [1.3] ✅ Delete Electron docs (14 ELECTRON_*.md files)
+  [1.4] ✅ Delete Electron scripts (install-mac.sh, verify-fixes.sh, etc.)
+  [1.5] ✅ Clean Electron references from active source files
+  [1.6] ✅ Delete stale directories: dist-electron/, build/, release/
+  [1.7] ✅ Delete fix-package-json.js
+  [1.8] ✅ Delete 82 stale root-level .md documentation files
+  [1.9] ✅ Delete stale JSON report files (eslint-report.*.json, sonar-*.json, etc.)
+  [1.10] ✅ Clean sonar-project.properties (removed "electron" from sonar.sources)
+  [1.11] ✅ Clean eslint.config.js (removed fix-package-json.js from ignores)
+
+PHASE 2: TAURI HARDENING (Medium risk, before desktop release)
+  [2.1] ⬜ Generate Tauri updater signing keypair
+         `npx @tauri-apps/cli signer generate -w ~/.tauri/arus-marine.key`
+         Set pubkey in tauri.conf.json plugins.updater.pubkey
+  [2.2] ⬜ Create Tauri v2 capabilities configuration
+         Add src-tauri/capabilities/default.json with permissions for
+         shell:allow-open, process:allow-relaunch, fs:allow-*, updater:default,
+         and custom IPC commands
+  [2.3] ⬜ Generate properly-sized icons
+         Run `node scripts/generate-icons.mjs` with proper resizing to create
+         32x32, 128x128, 128x128@2x, icon.icns, icon.ico in src-tauri/icons/
+  [2.4] ⬜ Decide on Tauri JS plugin installation strategy
+         Either install @tauri-apps/plugin-updater and @tauri-apps/plugin-process
+         in package.json, or verify the new Function() dynamic import pattern
+         works correctly in the Tauri build output
+  [2.5] ⬜ Test Tauri build on each target platform
+         Verify `npm run tauri:build` produces working installers
+
+PHASE 3: BACKEND STRATEGY (High risk, architectural decision)
+  [3.1] ⬜ Decide backend deployment model for desktop:
+         Option A: Tauri sidecar — spawn Express server as child process
+           Pro: Single-app installation, auto-start
+           Con: Complex process management, port conflicts
+         Option B: System service — backend managed by OS service manager
+           Pro: Robust lifecycle, starts at boot
+           Con: Separate installation step, platform-specific config
+         Option C: Remote backend — desktop connects to cloud/vessel server
+           Pro: Simplest desktop app, already works
+           Con: Requires network, separate server deployment
+         Current: Option C (ARUS_BACKEND_URL env var)
+  [3.2] ⬜ Implement chosen strategy
+  [3.3] ⬜ Update tauri.conf.json CSP to match production backend URLs
+
+PHASE 4: FIRST-RUN SETUP (Medium risk, UX-critical)
+  [4.1] ⬜ Create first-run detection (check for config file in app data dir)
+  [4.2] ⬜ Create first-run setup wizard React component:
+         - Backend URL configuration
+         - Vessel identification (if vessel mode)
+         - Admin password setup
+         - Database initialization trigger
+  [4.3] ⬜ Create backend endpoint for initial setup
+  [4.4] ⬜ Integrate SQLite bootstrap into first-run flow
+
+PHASE 5: INSTALLER POLISH (Low risk, before release)
+  [5.1] ⬜ Configure macOS bundle signing and notarization env vars
+  [5.2] ⬜ Configure Windows code signing
+  [5.3] ⬜ Set up GitHub Actions for multi-platform builds
+  [5.4] ⬜ Configure auto-update endpoint (releases.arus.io or GitHub Releases)
+  [5.5] ⬜ Test one-click install flow on each platform
+
+
+================================================================================
+9. RISK AREAS
+================================================================================
+
+HIGH RISK:
+  • Backend connectivity in packaged app
+    The Tauri desktop app has no embedded backend. If ARUS_BACKEND_URL is not set
+    or the backend is not running, the app will show empty/error states for all
+    data. This is the biggest UX risk for desktop deployments.
+    Mitigation: First-run wizard validates backend connectivity.
+
+  • Updater security (empty pubkey)
+    The updater pubkey is empty. If deployed without a pubkey, update signature
+    verification is disabled. This is a security vulnerability.
+    Mitigation: Generate keypair before any production build.
+
+MEDIUM RISK:
+  • Tauri v2 permissions model
+    Tauri v2 requires explicit capability declarations. Without them, IPC commands
+    and plugin APIs may be silently blocked in production builds even though they
+    work in development mode.
+    Mitigation: Create capabilities/default.json before first production build.
+
+  • Icon sizing
+    Current icons are all 512x512 copies. Production builds may fail or produce
+    blurry icons. macOS requires .icns, Windows requires .ico.
+    Mitigation: Run generate-icons.mjs with proper conversion tools.
+
+  • Dynamic import pattern
+    The new Function() pattern for Tauri imports bypasses Vite's module resolution.
+    This works but may cause issues with:
+      - Content Security Policy (eval-like behavior)
+      - TypeScript type checking (no type information)
+      - Future Vite versions
+    Mitigation: Consider installing Tauri JS packages as optional dependencies.
+
+LOW RISK:
+  • Stale documentation confusion
+    82 root-level .md files, most from the Electron era, may confuse developers
+    reading the repo. None affect runtime behavior.
+    Mitigation: Delete stale docs (Phase 1 cleanup).
+
+  • SQLite bootstrap path
+    init-sqlite-schema.js defaults to dist-standalone/ARUS-bundle/data/ which is
+    an Electron-era path. For Tauri, the path should use the app data directory.
+    Mitigation: Update DATABASE_PATH default for Tauri deployments.
+
+
+================================================================================
+10. RECOMMENDED EXECUTION ORDER
+================================================================================
+
+IMMEDIATE (can be done now, no risk):
+  1. Delete stale artifacts: dist-electron/, build/, release/, fix-package-json.js
+  2. Delete stale root .md docs and JSON reports
+  3. Update replit.md to reflect cleanup
+
+BEFORE FIRST DESKTOP BUILD:
+  4. Generate updater signing keypair and set pubkey
+  5. Create Tauri capabilities/default.json
+  6. Generate properly-sized icons (32x32, 128x128, .icns, .ico)
+  7. Test `npm run tauri:build` on macOS/Windows/Linux
+
+BEFORE FIRST DESKTOP RELEASE:
+  8. Decide and implement backend connectivity strategy
+  9. Build first-run setup wizard
+  10. Configure code signing (macOS notarization, Windows certificate)
+  11. Set up CI/CD for multi-platform builds
+  12. Configure auto-update infrastructure
+
+BEFORE CUSTOMER DEPLOYMENT:
+  13. End-to-end test: download → install → first-run → daily use
+  14. Update init-sqlite-schema.js path for Tauri app data directory
+  15. Create platform-specific service configurations for vessel backend
+  16. Write customer-facing installation documentation
+
+
+================================================================================
+END OF MIGRATION PLAN
+================================================================================
