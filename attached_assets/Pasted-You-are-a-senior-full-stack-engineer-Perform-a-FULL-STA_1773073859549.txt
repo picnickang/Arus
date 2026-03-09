@@ -1,0 +1,474 @@
+You are a senior full-stack engineer. Perform a FULL-STACK migration of the ARUS desktop/runtime/installation architecture so the app becomes Tauri-first and Electron is fully removed.
+
+This is not a small cleanup. It is a repo-aware migration and consolidation project across:
+- desktop runtime
+- frontend bridge APIs
+- build scripts
+- packaging
+- installation flows
+- local/offline backend startup
+- embedded SQLite bootstrap
+- docs
+- reports
+
+Do NOT rewrite the entire product. Extend and consolidate what already exists.
+
+==================================================
+PRIMARY GOAL
+==================================================
+
+Make ARUS use TAURI as the only desktop runtime.
+
+Electron must be fully removed.
+
+The final platform strategy should be:
+
+- Web app
+- Tauri desktop app
+- Capacitor mobile app only if still needed
+- No Electron runtime, no Electron build path, no Electron docs, no Electron API bridge
+
+==================================================
+CONTEXT FROM REPO REVIEW
+==================================================
+
+The repo currently has an inconsistent installation/runtime story:
+
+- Electron is still the real integrated desktop runtime
+  - electron-builder.json
+  - vite.config.electron.ts
+  - client/src/lib/electron.ts
+  - Electron-focused docs/scripts/verification/build flow
+
+- Tauri exists but is currently only a minimal scaffold
+  - src-tauri/main.rs
+  - src-tauri/lib.rs
+  - tauri.conf.json
+  - only basic greet command / shell plugin
+
+- Capacitor config exists for mobile
+
+- Installer/build docs are still Electron-centered
+
+- install-mac.sh is a developer bootstrap script, not a real customer installer
+  - requires Node on target machine
+  - runs npm install
+  - rebuilds native modules
+  - launches via npx electron
+  - contains leftover naming bugs
+
+- SQLite embedded bootstrap still seeds a default tenant identity for local mode
+
+This means the installation and desktop runtime architecture is currently not coherent and must be consolidated.
+
+==================================================
+NON-NEGOTIABLE OUTCOMES
+==================================================
+
+1) TAURI becomes the only desktop runtime
+2) ELECTRON is fully removed from runtime/build/docs/scripts
+3) FRONTEND no longer depends on window.electron or Electron-only utilities
+4) DESKTOP installation becomes a real packaged Tauri install flow, not a Node bootstrap flow
+5) DEV setup is separated from CUSTOMER installation
+6) LOCAL / EMBEDDED mode is explicit and safe
+7) REPORTS are generated documenting all migration work
+
+==================================================
+ARCHITECTURE REQUIREMENTS
+==================================================
+
+Maintain clean full-stack architecture.
+
+Preferred layers:
+
+Frontend
+- app UI
+- desktop runtime bridge
+- hooks/components/pages
+- Tauri-aware environment utilities
+
+Backend / App Core
+- existing ARUS server/domain logic
+- local embedded/offline mode if applicable
+- explicit startup mode for desktop
+
+Desktop Runtime
+- Tauri commands/events/plugins
+- Tauri-specific lifecycle and updater integration
+- app data directory / native shell integration
+
+Build / Packaging
+- Tauri build commands
+- Tauri packaging/signing setup
+- desktop dist docs/scripts
+
+Do not leave mixed Electron/Tauri abstractions.
+Do not add new duplication.
+
+==================================================
+REPO-AWARE REVIEW FIRST
+==================================================
+
+Before changing code, inspect the repo and determine:
+
+1) What desktop runtime paths currently exist
+2) Which frontend code depends on Electron APIs
+3) Which build scripts and package.json scripts still assume Electron
+4) Which docs and verification scripts still assume Electron
+5) How the current desktop app is expected to start the backend/local DB
+6) Whether Capacitor should remain or be left untouched
+7) How SQLite embedded/local mode is currently initialized
+8) What installer/dev-setup scripts are really doing vs what they claim
+
+Inspect especially:
+- src-tauri/*
+- electron-builder.json
+- vite.config.electron.ts
+- client/src/lib/electron.ts
+- package.json scripts
+- install-mac.sh
+- scripts/*
+- docs/BUILD_GUIDE.md
+- docs/CODE_SIGNING_GUIDE.md
+- any Electron main/preload files
+- any frontend imports of Electron APIs
+- local database/bootstrap scripts
+- runtime/env detection utilities
+
+Produce an internal plan before coding:
+- what already exists and is reusable
+- what must be replaced
+- what can be deleted
+- what needs frontend follow-through
+- what needs backend/runtime clarification
+
+==================================================
+MIGRATION WORK
+==================================================
+
+SECTION A — MAKE TAURI THE REAL DESKTOP RUNTIME
+
+A1) Upgrade src-tauri from scaffold to real app shell
+Review src-tauri and implement the missing pieces needed for ARUS desktop runtime.
+
+This may include:
+- real Tauri commands
+- runtime state / config access
+- app version access
+- packaged/dev mode detection
+- app data directory access
+- shell integration if needed
+- desktop updater integration if appropriate
+- backend launch / coordination strategy if needed
+
+Do NOT keep Tauri as a trivial greet-template app.
+
+A2) Decide and implement the desktop runtime mode clearly
+Determine the correct desktop mode for ARUS and implement it cleanly.
+
+Choose one clear approach:
+- Tauri shell + bundled frontend + local ARUS backend/data mode
+OR
+- Tauri shell + bundled frontend only, with remote server
+OR
+- hybrid explicit modes if the repo already supports both
+
+Given the app’s architecture and embedded/local DB support, prefer a clear explicit local/offline desktop mode if the codebase already supports it.
+
+The final runtime behavior must be obvious from code and docs.
+
+A3) Create a neutral frontend desktop bridge
+Replace direct Electron runtime coupling with a desktop abstraction.
+
+Create or refactor to something like:
+- client/src/lib/desktop.ts
+- client/src/lib/tauri.ts
+
+Responsibilities:
+- desktop runtime detection
+- version lookup
+- packaged/dev state
+- update capability if supported
+- desktop-only actions
+
+Frontend code must no longer directly depend on Electron-specific runtime globals.
+
+==================================================
+SECTION B — REMOVE ELECTRON COMPLETELY
+
+B1) Remove Electron runtime/build code
+Delete or replace all Electron-specific code paths, including but not limited to:
+- electron-builder.json
+- vite.config.electron.ts
+- client/src/lib/electron.ts
+- Electron main/preload/update bridge code
+- Electron-only packaging scripts
+- Electron verification scripts
+- Electron-specific docs references
+- Electron environment checks in frontend
+
+B2) Clean package.json scripts
+Update package.json so the canonical desktop scripts are Tauri-based.
+
+Examples of desired script categories:
+- tauri:dev
+- tauri:build
+- tauri:build:mac
+- tauri:build:win
+- tauri:build:linux
+
+Remove or deprecate:
+- build:electron
+- build:electron-main
+- dist paths based on electron-builder
+- electron-specific runtime launch scripts
+
+B3) Remove Electron references from the codebase
+Search for:
+- electron
+- window.electron
+- process.versions.electron
+- Electron-specific update terminology
+- Electron-specific docs/comments
+- Electron packaging assumptions
+
+Clean all remaining references.
+
+==================================================
+SECTION C — FULL-STACK FRONTEND FOLLOW-THROUGH
+
+C1) Replace Electron environment utilities
+Review every frontend import/use of:
+- client/src/lib/electron.ts
+- window.electron
+- update-related Electron APIs
+- Electron environment detection
+
+Replace with new Tauri/desktop abstraction.
+
+C2) Preserve user-visible desktop functionality
+If the UI currently expects:
+- version display
+- update state
+- desktop-only controls
+- packaged mode checks
+
+Make sure those continue to work through Tauri or are honestly marked unsupported if not yet implemented.
+
+Do not leave broken buttons or dead desktop UI affordances.
+
+C3) Keep web compatibility
+The frontend must continue to run safely in web mode.
+Desktop-only APIs should degrade safely outside Tauri.
+
+==================================================
+SECTION D — INSTALLATION AND DISTRIBUTION CLEANUP
+
+D1) Separate developer setup from customer installation
+Your current install scripts appear to mix dev bootstrap with end-user installation.
+Fix this.
+
+Create two clearly separate flows:
+
+Developer setup
+- installs dependencies
+- runs local dev environment
+- may use Node/npm
+- may run Tauri dev mode
+
+Customer installation
+- installs packaged Tauri app
+- does NOT require Node/npm on target machine
+- does NOT rebuild native modules
+- does NOT run tsx or npx electron
+- behaves like a real desktop app install
+
+D2) Replace or remove install-mac.sh
+Review install-mac.sh and either:
+- rename/refactor it into a true developer bootstrap script, e.g. scripts/dev-setup-mac.sh
+OR
+- replace it with a real packaged-install helper if appropriate
+
+Fix obvious leftover naming mistakes and incorrect instructions.
+
+D3) Update platform build/distribution scripts
+Replace Electron-centered packaging assumptions with Tauri build/distribution flows.
+Make sure platform-specific build paths are coherent.
+
+D4) Rewrite docs around Tauri
+Update docs so they describe the actual desktop installation/build system.
+
+At minimum review and update:
+- docs/BUILD_GUIDE.md
+- docs/CODE_SIGNING_GUIDE.md
+- any README/build/install docs
+- any verification/check scripts docs
+
+The docs must no longer describe ARUS as an Electron app.
+
+==================================================
+SECTION E — LOCAL / EMBEDDED DB MODE CLEANUP
+
+E1) Review embedded SQLite bootstrap
+Inspect scripts/init-sqlite-schema.js and related local-mode startup logic.
+
+Clarify and harden the concept of local embedded mode.
+
+Requirements:
+- local/embedded mode should be explicit
+- if a seed org is required, it must be clearly documented as embedded single-tenant mode
+- avoid leaking generic “default-org-id” semantics into broader multi-tenant runtime assumptions
+- improve naming if needed, e.g. embedded-local-org or similar
+
+E2) Clarify local desktop data paths
+For Tauri desktop mode, define where app data lives:
+- database path
+- logs
+- local assets/cache
+- update metadata if relevant
+
+Use Tauri-native app data directory concepts where appropriate.
+
+E3) Ensure desktop bootstrap is deterministic
+The desktop app should have a clear startup flow:
+- initialize local data paths
+- initialize local DB if needed
+- start or connect to the correct backend/runtime mode
+- serve/load the frontend
+- expose desktop bridge functionality
+
+==================================================
+SECTION F — CLEAN UP BUILD / TEST / VERIFICATION SCRIPTS
+
+F1) Review all build/verification scripts
+Inspect scripts like:
+- verify-fixes.sh
+- test-bundle-structure.sh
+- test-final-bundle.sh
+- test-minimal-build.sh
+- build-shared.mjs
+- icon generation scripts
+- any platform verification/build scripts
+
+Update them so they reflect the new Tauri-first reality.
+Delete scripts that only exist for Electron packaging if obsolete.
+
+F2) Keep useful generic scripts
+Retain scripts that are still useful and runtime-agnostic.
+Do not delete good tooling unnecessarily.
+
+F3) Add Tauri verification if needed
+Add or update a verification script that checks:
+- Tauri config exists and is valid
+- desktop scripts point to Tauri
+- Electron references are gone
+- docs are aligned
+- packaged frontend path is correct
+- dev URL / frontendDist are correct
+
+==================================================
+SECTION G — API / BACKEND INTEGRATION CHECK
+
+This is a full-stack migration, so review backend/runtime assumptions too.
+
+G1) Confirm admin/system routes are not confused with platform naming
+For example, windows-routes currently refers to maintenance windows, not Microsoft Windows.
+That may be technically fine, but review naming/documentation to avoid confusion in a repo doing desktop-platform migration.
+
+Refactor only if the ambiguity materially hurts maintainability.
+
+G2) Ensure backend startup assumptions match Tauri desktop mode
+Review how backend services are expected to start in desktop mode:
+- local mode
+- embedded DB mode
+- packaged mode
+- dev mode
+
+Make sure the code and docs tell one clear story.
+
+==================================================
+SECTION H — VALIDATION
+==================================================
+
+Run and verify:
+- npm run format:check
+- npm run lint
+- npm run typecheck
+
+Also verify where possible:
+- Tauri app builds or at least Tauri config validates
+- desktop frontend runs in Tauri dev mode if practical
+- no remaining Electron imports/usages
+- frontend compiles without Electron bridge
+- docs/scripts point to Tauri, not Electron
+- install/dev scripts are clearly separated
+- local embedded mode still works if supported
+
+If the repo has relevant frontend/build commands, run them too.
+
+==================================================
+SECTION I — REPORTING (IMPORTANT)
+==================================================
+
+Update the existing root report:
+PDM_UPGRADE_REPORT.txt
+
+Also create a new focused migration report:
+TAURI_MIGRATION_AND_INSTALLATION_REPORT.txt
+
+Requirements for PDM_UPGRADE_REPORT.txt:
+Add a new major section titled exactly:
+
+16. DESKTOP RUNTIME + INSTALLATION CONSOLIDATION WORK
+
+This section must include:
+16.1 What runtime/install architecture existed before
+16.2 What issues were found in the installation/runtime files
+16.3 What was implemented to make Tauri canonical
+16.4 What Electron code/scripts/docs were removed
+16.5 What frontend runtime bridge changes were made
+16.6 What installer/dev-setup changes were made
+16.7 What local/embedded DB bootstrap changes were made
+16.8 New files added
+16.9 Existing files modified
+16.10 What remains intentionally deferred
+16.11 Validation results
+16.12 Final runtime/installation architecture
+
+Requirements for TAURI_MIGRATION_AND_INSTALLATION_REPORT.txt:
+Create a full detailed report with these sections:
+
+1) EXECUTIVE SUMMARY
+2) REPO REVIEW FINDINGS
+3) PREVIOUS RUNTIME/INSTALLATION STATE
+4) TAURI IMPLEMENTATION WORK
+5) ELECTRON REMOVAL WORK
+6) FRONTEND DESKTOP BRIDGE CHANGES
+7) INSTALLATION / BUILD / DOCS CHANGES
+8) LOCAL EMBEDDED MODE CHANGES
+9) FILES CREATED
+10) FILES MODIFIED
+11) REMAINING LIMITATIONS / FOLLOW-UPS
+12) VALIDATION RESULTS
+13) FINAL RECOMMENDED PLATFORM STRATEGY
+
+Both reports must:
+- be written to the project root
+- be human-readable
+- list files created and modified with full paths
+- clearly distinguish between reviewed existing behavior and new migration work
+- not exist only in console output
+
+==================================================
+IMPORTANT CONSTRAINTS
+==================================================
+
+- Be repo-aware and inspect before modifying
+- Do not blindly rewrite working code
+- This is a FULL-STACK task, not a Rust-only or frontend-only task
+- Tauri must become the canonical desktop runtime
+- Electron must be fully removed
+- Keep web compatibility intact
+- Preserve or clarify local/offline embedded mode
+- Separate developer setup from customer installation
+- Revise and polish before finalizing
