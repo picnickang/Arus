@@ -1,0 +1,96 @@
+You are a senior full-stack engineer auditing the ARUS repository before a major migration.
+
+Your job is to analyze the codebase and produce a migration plan for converting the desktop runtime from Electron to Tauri and implementing one-click installation.
+
+DO NOT MODIFY CODE.
+
+==================================================
+GOAL
+==================================================
+
+Identify everything that must change to support:
+
+• Tauri as the only desktop runtime
+• One-click installation
+• First-run setup
+• Removal of Electron
+• Separation of developer setup vs customer installation
+
+==================================================
+ANALYSIS TASKS
+==================================================
+
+Scan the entire repository and identify:
+
+1. Electron usage
+Find all files referencing:
+electron
+electron-builder
+window.electron
+process.versions.electron
+
+2. Desktop runtime architecture
+Determine how the desktop app currently launches and interacts with the backend.
+
+3. Tauri implementation state
+Review src-tauri and determine:
+• what is implemented
+• what is missing
+
+4. Frontend dependencies
+Find all frontend files that rely on Electron runtime APIs.
+
+5. Installation scripts
+Review all install scripts including:
+install-mac.sh
+scripts/*
+any platform installers
+
+Determine which are developer scripts vs actual installers.
+
+6. SQLite bootstrap logic
+Review:
+scripts/init-sqlite-schema.js
+
+Determine:
+• how the DB is initialized
+• how local mode works
+• what first-run behavior should be
+
+7. Build scripts
+Review package.json scripts and determine:
+• electron build steps
+• tauri build steps
+• packaging flow
+
+8. Documentation
+Review:
+docs/BUILD_GUIDE.md
+docs/CODE_SIGNING_GUIDE.md
+
+Determine where Electron assumptions still exist.
+
+==================================================
+OUTPUT
+==================================================
+
+Create a file in the repo root:
+
+TAURI_INSTALLATION_MIGRATION_PLAN.txt
+
+Include sections:
+
+1. Repository Overview
+2. Current Desktop Runtime Architecture
+3. Electron Dependencies Found
+4. Tauri Implementation Status
+5. Installation Workflow Analysis
+6. SQLite Bootstrap Analysis
+7. Frontend Runtime Dependencies
+8. Required Migration Steps
+9. Risk Areas
+10. Recommended Execution Order
+
+This file will be used to guide the migration.
+
+DO NOT MODIFY THE APPLICATION CODE.
