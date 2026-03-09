@@ -29,7 +29,6 @@ export function isDesktop(): boolean {
 }
 
 const TAURI_CORE = '@tauri-apps/api/core';
-const TAURI_PATH = '@tauri-apps/api/path';
 const TAURI_UPDATER = '@tauri-apps/plugin-updater';
 const TAURI_PROCESS = '@tauri-apps/plugin-process';
 
@@ -102,9 +101,7 @@ export function getDesktopAPI(): DesktopAPI | undefined {
 
     async getAppDataDir(): Promise<string> {
       try {
-        const pathModule = await dynamicImport(TAURI_PATH);
-        if (!pathModule) return '';
-        return await pathModule.appDataDir();
+        return await tauriInvoke<string>('get_app_data_dir');
       } catch {
         return '';
       }

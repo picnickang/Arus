@@ -1,0 +1,24 @@
+{
+  "identifier": "default",
+  "description": "Default capabilities for the main ARUS window",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "shell:allow-open",
+    "process:allow-relaunch",
+    "process:allow-exit",
+    "updater:default",
+    {
+      "identifier": "fs:allow-app-read",
+      "allow": [
+        { "path": "$APPDATA/**" }
+      ]
+    },
+    {
+      "identifier": "fs:allow-app-write",
+      "allow": [
+        { "path": "$APPDATA/**" }
+      ]
+    }
+  ]
+}
