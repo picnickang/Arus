@@ -42,7 +42,7 @@ echo "1/7: Shared schemas, config, and migrations..."
   echo "./eslint.config.js"
   echo "./jest.config.mjs"
   echo "./knip.json"
-  echo "./electron-builder.json"
+  echo "./src-tauri/tauri.conf.json"
 } | export_files "$EXPORT_DIR/export-1-shared-and-config.txt"
 
 echo "2/7: Server core — routes, db, services, middleware, lib, config..."

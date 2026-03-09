@@ -14,7 +14,7 @@
 
 /**
  * Detect if running in LOCAL/EMBEDDED mode (vessel/desktop deployment)
- * Checks environment variables set by Electron or vessel configuration
+ * Checks environment variables set by Tauri or vessel configuration
  * 
  * IMPORTANT: This module is PURE (no side effects). The auto-fallback logic
  * for EMBEDDED_MODE is handled by db-config.ts BEFORE importing this module.

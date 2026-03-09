@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useCustomMutation } from "@/hooks/useCrudMutations";
 import { useToast } from "@/hooks/use-toast";
 import { adminApiRequest, adminQueryFn } from "@/lib/admin-api";
-import { isElectron } from "@/lib/electron";
+import { isDesktop } from "@/lib/desktop";
 import { publishPatchSchema, changePasswordSchema } from "../lib/adminSchemas";
 import type { PublishPatchForm, ChangePasswordForm } from "../lib/adminSchemas";
 import type { SoftwarePatch, UpdateSettings } from "@shared/schema";
@@ -21,24 +21,24 @@ export const adminKeys = {
 export function useSystemAdminData() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("configuration");
-  const isElectronEnv = isElectron();
+  const isDesktopEnv = isDesktop();
 
-  return { toast, activeTab, setActiveTab, isElectronEnv };
+  return { toast, activeTab, setActiveTab, isDesktopEnv };
 }
 
 export function useSoftwareUpdatesData() {
   const { toast } = useToast();
   const [selectedPatch, setSelectedPatch] = useState<SoftwarePatch | null>(null);
-  const isElectronEnv = isElectron();
+  const isDesktopEnv = isDesktop();
 
   const { data: patches, isLoading: patchesLoading, isError: patchesError, error: patchesErrorData } = useQuery({
-    queryKey: adminKeys.patches, queryFn: adminQueryFn(adminKeys.patches), enabled: !isElectronEnv,
+    queryKey: adminKeys.patches, queryFn: adminQueryFn(adminKeys.patches), enabled: !isDesktopEnv,
   });
   const { data: patchHistory, isLoading: historyLoading, isError: historyError, error: historyErrorData } = useQuery({
-    queryKey: adminKeys.patchHistory, queryFn: adminQueryFn(["/api/admin/patches/history"]), enabled: !isElectronEnv,
+    queryKey: adminKeys.patchHistory, queryFn: adminQueryFn(["/api/admin/patches/history"]), enabled: !isDesktopEnv,
   });
   const { data: updateSettings, isLoading: settingsLoading, isError: settingsError, error: settingsErrorData } = useQuery<UpdateSettings>({
-    queryKey: adminKeys.updateSettings, queryFn: adminQueryFn(adminKeys.updateSettings), enabled: !isElectronEnv,
+    queryKey: adminKeys.updateSettings, queryFn: adminQueryFn(adminKeys.updateSettings), enabled: !isDesktopEnv,
   });
 
   const checkUpdatesMutation = useCustomMutation<void, void>({ mutationFn: () => adminApiRequest("POST", "/api/admin/updates/check"), invalidateKeys: [adminKeys.patches], successMessage: "Checking for updates..." });
@@ -65,7 +65,7 @@ export function useSoftwareUpdatesData() {
   const errors = { patches: patchesError ? (patchesErrorData as Error | null)?.message : null, history: historyError ? (historyErrorData as Error | null)?.message : null, settings: settingsError ? (settingsErrorData as Error | null)?.message : null };
 
   return {
-    isElectronEnv, isLoading, hasError, errors,
+    isDesktopEnv, isLoading, hasError, errors,
     patches: patches as SoftwarePatch[] | undefined, patchHistory: patchHistory as SoftwarePatch[] | undefined, updateSettings,
     selectedPatch, setSelectedPatch,
     checkUpdatesMutation, downloadMutation, applyMutation, rollbackMutation, previewMutation, publishMutation,

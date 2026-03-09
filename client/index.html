@@ -19,7 +19,6 @@
       
       DEVELOPMENT MODE:
       - Vite HMR requires 'unsafe-eval' for hot module replacement
-      - Electron DevTools may show security warnings about this - this is expected and acceptable in development
       - The relaxed CSP is only active when NODE_ENV=development
       
       PRODUCTION MODE:
@@ -30,9 +29,7 @@
       Current approach:
       - Development: Permissive CSP (allows Vite HMR and devtools)
       - Production: Strict CSP via server headers (no unsafe directives)
-      
-      Note: Electron security warnings in development are informational only.
-      Production builds use strict CSP enforced at the server level.
+      - Desktop (Tauri): CSP is configured in src-tauri/tauri.conf.json
     -->
     
     <!-- PWA App Manifest -->

@@ -16,7 +16,7 @@ The frontend is a mobile-first React 18 single-page application using TypeScript
 
 ### Frontend
 
-Built with React 18, TypeScript, Wouter, TanStack Query, Tailwind CSS, and `shadcn/ui`. Features include WebSocket-based real-time synchronization, Progressive Web App (PWA) capabilities, and cross-platform deployment via Capacitor.
+Built with React 18, TypeScript, Wouter, TanStack Query, Tailwind CSS, and `shadcn/ui`. Features include WebSocket-based real-time synchronization, Progressive Web App (PWA) capabilities, cross-platform deployment via Capacitor (mobile), and a neutral desktop bridge (`client/src/lib/desktop.ts`) for Tauri v2 desktop integration with safe web degradation.
 
 ### Backend
 
@@ -81,3 +81,4 @@ The backend employs hexagonal architecture for clean separation of concerns, com
 -   **Type Safety**: Actionable insights page uses typed `Severity` and `InsightType` unions instead of `Record<string, ...>`.
 -   **CI Scripts**: `typecheck`, `lint`, `format`, `format:check` scripts added to package.json.
 -   **Stub Documentation**: `getScheduleAssignmentsByRun` now logs a warning instead of silently returning empty array.
+-   **Electron→Tauri Migration**: All Electron source files, 14 documentation files, build scripts, and `electron-builder.json` removed. Desktop bridge (`client/src/lib/desktop.ts`) provides runtime-agnostic Tauri v2 integration with safe web degradation. `DesktopUpdatePanel` replaces `ElectronUpdatePanel`. Tauri scaffold upgraded to production-ready app shell with updater, process, and filesystem plugins. Build/signing docs rewritten for Tauri.

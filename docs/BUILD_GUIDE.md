@@ -4,74 +4,56 @@ Quick reference for building and distributing the ARUS Marine application across
 
 ## Quick Start
 
-### Development Builds (Unsigned)
+### Web Build
 
 ```bash
-# Build for macOS (creates DMG + ZIP)
-npm run dist:mac
-
-# Build for Windows (creates NSIS installer + portable)
-npm run dist:win
-
-# Build for Linux (creates AppImage + DEB)
-npm run dist:linux
-
-# Build all platforms
-npm run dist
+npm run build
 ```
 
-**Output location:** `release/` directory
+**Output location:** `dist/public/` directory
 
-### Custom Build Script (Recommended)
-
-Uses the optimized build process with TypeScript transpilation:
+### Desktop Build (Tauri v2)
 
 ```bash
-# Build for macOS
-./scripts/build-electron-complete.sh mac
+# Build for current platform
+npm run tauri:build
 
-# Build for Windows
-./scripts/build-electron-complete.sh win
-
-# Build for Linux
-./scripts/build-electron-complete.sh linux
-
-# Build all platforms
-./scripts/build-electron-complete.sh
+# Development mode with hot reload
+npm run tauri:dev
 ```
+
+**Output location:** `src-tauri/target/release/bundle/`
+
+### Prerequisites
+
+- **Web:** Node.js 20+
+- **Desktop:** Node.js 20+ and Rust toolchain (install via https://rustup.rs)
 
 ## Build Process
 
-The complete build process includes 5 steps:
+### Web Build
 
-1. **Transpile shared/ TypeScript** → JavaScript (reduces package size)
-2. **Build frontend** (Vite) → `dist/`
-3. **Build Electron main process** → `dist-electron/`
-4. **Build server bundle** (esbuild) → `server/index.js`
-5. **Package with electron-builder** → `release/`
+1. **Build frontend** (Vite) → `dist/public/`
+2. **Build server** (esbuild) → production server bundle
+3. Deploy to cloud infrastructure
+
+### Desktop Build (Tauri)
+
+1. **Build frontend** (Vite) → `dist/public/`
+2. **Compile Rust backend** (Tauri) → native binary
+3. **Bundle installer** → platform-specific package
 
 ### Manual Step-by-Step
 
 ```bash
-# 1. Transpile shared TypeScript files
-node scripts/build-shared.mjs
+# 1. Build frontend
+npm run build
 
-# 2. Build frontend
-npm run build:renderer
-
-# 3. Build Electron main process
-npm run build:electron-main
-
-# 4. Build server bundle
-npm run build:server
-
-# 5. Package (choose platform)
-electron-builder --mac
-electron-builder --win
-electron-builder --linux
+# 2. Build desktop app (includes frontend build automatically)
+npm run tauri:build
 ```
 
-## Production Builds (Signed & Notarized)
+## Production Builds (Signed)
 
 ### Prerequisites
 
@@ -84,27 +66,21 @@ See [Code Signing Guide](./CODE_SIGNING_GUIDE.md) for detailed setup instruction
 
 ```bash
 # macOS Code Signing
-export CSC_NAME="Developer ID Application: Your Name (TEAM_ID)"
+export APPLE_SIGNING_IDENTITY="Developer ID Application: Your Name (TEAM_ID)"
 export APPLE_ID="your-apple-id@example.com"
-export APPLE_APP_SPECIFIC_PASSWORD="xxxx-xxxx-xxxx-xxxx"
+export APPLE_PASSWORD="xxxx-xxxx-xxxx-xxxx"
 export APPLE_TEAM_ID="TEAM_ID"
 
 # Windows Code Signing
-export WIN_CSC_LINK="./certs/windows-cert.pfx"
-export WIN_CSC_KEY_PASSWORD="YOUR_PASSWORD"
+export TAURI_SIGNING_PRIVATE_KEY="path/to/private-key"
+export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="YOUR_PASSWORD"
 ```
 
 ### Build Commands
 
 ```bash
-# Build signed macOS app (with notarization)
-npm run dist:mac
-
-# Build signed Windows app
-npm run dist:win
-
-# Build all platforms signed
-npm run dist
+# Build signed desktop app for current platform
+npm run tauri:build
 ```
 
 ## Build Artifacts
@@ -113,144 +89,83 @@ npm run dist
 
 | File | Type | Size | Use Case |
 |------|------|------|----------|
-| `ARUS Marine-x.x.x-arm64.dmg` | DMG | ~150MB | Apple Silicon Macs |
-| `ARUS Marine-x.x.x-x64.dmg` | DMG | ~150MB | Intel Macs |
-| `ARUS Marine-x.x.x-arm64-mac.zip` | ZIP | ~120MB | Alternative distribution |
-| `ARUS Marine-x.x.x-x64-mac.zip` | ZIP | ~120MB | Alternative distribution |
-
-**Universal Binary:** Both architectures included in each DMG
+| `ARUS Marine.app` | App Bundle | ~30MB | Direct use |
+| `ARUS Marine_x.x.x_aarch64.dmg` | DMG | ~35MB | Apple Silicon Macs |
+| `ARUS Marine_x.x.x_x64.dmg` | DMG | ~35MB | Intel Macs |
 
 ### Windows
 
 | File | Type | Size | Use Case |
 |------|------|------|----------|
-| `ARUS Marine Setup x.x.x.exe` | NSIS Installer | ~100MB | Standard installation |
-| `ARUS Marine x.x.x.exe` | Portable | ~100MB | No installation required |
+| `ARUS Marine_x.x.x_x64-setup.exe` | NSIS Installer | ~25MB | Standard installation |
+| `ARUS Marine_x.x.x_x64_en-US.msi` | MSI Installer | ~25MB | Enterprise deployment |
 
 ### Linux
 
 | File | Type | Size | Use Case |
 |------|------|------|----------|
-| `ARUS Marine-x.x.x.AppImage` | AppImage | ~120MB | Universal Linux |
-| `arus-marine_x.x.x_amd64.deb` | DEB | ~100MB | Debian/Ubuntu |
+| `arus-marine_x.x.x_amd64.AppImage` | AppImage | ~30MB | Universal Linux |
+| `arus-marine_x.x.x_amd64.deb` | DEB | ~25MB | Debian/Ubuntu |
+
+## Mobile Build (Capacitor)
+
+### iOS/iPadOS
+
+```bash
+npx cap sync ios
+npx cap open ios
+```
+
+Build via Xcode for iOS/iPadOS deployment.
 
 ## Icon Generation
 
-Icons are automatically generated from `public/icon-512x512.png`:
+Icons are generated from `public/icon-512x512.png`:
 
 ```bash
 node scripts/generate-icons.mjs
 ```
 
 **Generated icons:**
-- `build/icon-1024.png` → Auto-converts to ICNS (macOS)
-- `build/icon-256.png` → Auto-converts to ICO (Windows)
-- Plus intermediate sizes for proper multi-resolution support
-
-## Package Size Optimization
-
-### TypeScript Exclusion
-
-The build process now excludes TypeScript source files from the package:
-
-**Before optimization:**
-- Package includes: 100+ server .ts files + 12 shared .ts files (~500KB)
-- Total package: ~150MB
-
-**After optimization:**
-- TypeScript transpiled to JavaScript first
-- Only .js files included in package
-- TypeScript sources excluded via electron-builder.json
-- **Size reduction:** ~500KB smaller package
-
-### What's Included
-
-```
-release/mac/ARUS Marine.app/
-├── Contents/
-│   ├── MacOS/
-│   │   └── ARUS Marine (executable)
-│   └── Resources/
-│       ├── app.asar (compressed application)
-│       │   ├── dist/ (frontend - Vite build)
-│       │   ├── dist-electron/ (Electron main process)
-│       │   ├── server/
-│       │   │   ├── index.js (bundled backend - 3.4MB)
-│       │   │   ├── index-wrapper.js
-│       │   │   └── data/ (runtime data)
-│       │   ├── shared/ (JavaScript only - .ts excluded)
-│       │   ├── scripts/ (build scripts)
-│       │   └── node_modules/
-│       └── app.asar.unpacked/
-│           ├── server/ (for native modules)
-│           └── shared/ (for runtime access)
-```
-
-### What's Excluded
-
-- ❌ TypeScript source files (`**/*.ts`)
-- ❌ Source maps (`**/*.map`)
-- ❌ Test files (`**/*.test.*`, `**/*.spec.*`)
-- ❌ Test directories (`__tests__`, `test/`)
-- ❌ Development configs (`tsconfig.json`)
-- ❌ Log files (`**/*.log`)
-- ❌ Local env files (`.env.local`)
+- `src-tauri/icons/` — Tauri desktop icons (32x32, 128x128, 256x256, icon.png)
+- `build/icon-1024.png` — macOS base icon
+- `build/icon-*.png` — Multi-resolution PNGs
 
 ## Testing Builds
 
 ### Before Distribution
 
-1. **Test unsigned build first:**
+1. **Test development mode first:**
    ```bash
-   npm run dist:mac
-   open release/mac/ARUS\ Marine.app
+   npm run tauri:dev
    ```
 
-2. **Check application launches:**
+2. **Build and test release:**
+   ```bash
+   npm run tauri:build
+   ```
+
+3. **Check application launches:**
    - Verify UI loads correctly
-   - Test database connection (SQLite mode)
+   - Test database connection
    - Check all core features work
-
-3. **Verify package contents:**
-   ```bash
-   # macOS
-   ls -lh release/mac/ARUS\ Marine.app/Contents/Resources/
-   
-   # Windows
-   7z l "release/ARUS Marine Setup.exe"
-   ```
-
-4. **Check file sizes:**
-   ```bash
-   du -sh release/mac/*.dmg
-   du -sh release/*.exe
-   ```
 
 ### Common Issues
 
 **Issue:** App won't open on macOS
 
 ```bash
-# Check why app was blocked
-xattr -l /Applications/ARUS\ Marine.app
-
-# Remove quarantine attribute for testing
 xattr -cr /Applications/ARUS\ Marine.app
 ```
 
 **Issue:** "Unidentified developer" warning
-
 - **Cause:** App is not signed or notarized
 - **Solution:** Follow [Code Signing Guide](./CODE_SIGNING_GUIDE.md)
-- **Workaround:** System Preferences → Security → "Open Anyway"
 
-**Issue:** Build fails on missing modules
+**Issue:** Build fails on missing Rust toolchain
 
 ```bash
-# Clean and rebuild
-rm -rf node_modules dist dist-electron server/index.js
-npm install
-npm run build:electron
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
 ## CI/CD Integration
@@ -266,71 +181,47 @@ on:
       - 'v*'
 
 jobs:
-  build-mac:
-    runs-on: macos-latest
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+
+    runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      
+      - uses: dtolnay/rust-toolchain@stable
+
       - name: Install dependencies
         run: npm install
-      
-      - name: Build application
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
         env:
-          CSC_NAME: ${{ secrets.MAC_CSC_NAME }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: ./scripts/build-electron-complete.sh mac
-      
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: mac-builds
-          path: release/*.dmg
-
-  build-windows:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '20'
-      
-      - name: Install dependencies
-        run: npm install
-      
-      - name: Build application
-        env:
-          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
-          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_PASSWORD }}
-        run: npm run dist:win
-      
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: windows-builds
-          path: release/*.exe
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 ```
-
-### Secrets Configuration
-
-**GitHub Repository Settings → Secrets:**
-
-- `MAC_CSC_NAME`: Developer ID Application certificate name
-- `APPLE_ID`: Apple Developer email
-- `APPLE_PASSWORD`: App-specific password
-- `APPLE_TEAM_ID`: Team ID from Apple Developer
-- `WIN_CSC_LINK`: Base64-encoded .pfx certificate
-- `WIN_CSC_PASSWORD`: Certificate password
 
 ## Version Management
 
 ### Updating Version Number
 
-Update in `package.json`:
+Update in both `package.json` and `src-tauri/tauri.conf.json`:
 
 ```json
 {
@@ -338,68 +229,24 @@ Update in `package.json`:
 }
 ```
 
-Electron-builder automatically uses this version for all builds.
-
-### Release Naming Convention
-
-```
-ARUS Marine-{version}-{arch}-{platform}.{ext}
-
-Examples:
-- ARUS Marine-1.2.3-arm64.dmg
-- ARUS Marine-1.2.3-x64.dmg
-- ARUS Marine Setup 1.2.3.exe
-- ARUS Marine-1.2.3.AppImage
-```
-
 ## Distribution
 
 ### macOS
-
-**Option 1: Direct Distribution (Notarized)**
-- Distribute DMG via website download
-- Users can install immediately (no warnings)
-
-**Option 2: Mac App Store**
-- Requires App Store provisioning profile
-- Apple review process (1-7 days)
-- 30% revenue share for paid apps
+- **Direct Distribution:** Distribute signed/notarized DMG via website
+- **Mac App Store:** Submit via Xcode after App Store provisioning
 
 ### Windows
-
-**Option 1: Direct Distribution (Signed)**
-- Distribute NSIS installer or portable exe
-- Standard certificate: SmartScreen warnings for 3-6 months
-- EV certificate: No warnings from day 1
-
-**Option 2: Microsoft Store**
-- Requires Microsoft Developer account ($19 one-time)
-- Microsoft review process
-- Better discoverability
+- **Direct Distribution:** Distribute signed NSIS/MSI installer
+- **Microsoft Store:** Submit via Microsoft Partner Center
 
 ### Linux
-
-**Option 1: Direct Distribution**
-- AppImage (universal)
-- DEB package (Debian/Ubuntu)
-
-**Option 2: Package Managers**
-- Snapcraft
-- Flatpak
-- AUR (Arch User Repository)
+- **AppImage:** Universal distribution
+- **DEB package:** Debian/Ubuntu
+- **Snapcraft/Flatpak:** Package manager distribution
 
 ## Resources
 
-- [Electron Builder Docs](https://www.electron.build/)
+- [Tauri v2 Documentation](https://v2.tauri.app/)
+- [Tauri Build Guide](https://v2.tauri.app/distribute/)
 - [Code Signing Guide](./CODE_SIGNING_GUIDE.md)
 - [Apple Notarization Guide](https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution)
-- [Windows Code Signing](https://docs.microsoft.com/en-us/windows/win32/seccrypto/using-signtool-to-sign-a-file)
-
----
-
-**Questions or Issues?**
-
-Check the troubleshooting sections in:
-1. This guide (above)
-2. [Code Signing Guide](./CODE_SIGNING_GUIDE.md)
-3. Electron Builder documentation

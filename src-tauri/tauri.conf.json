@@ -12,16 +12,19 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "ARUS - Marine PdM System",
         "width": 1400,
         "height": 900,
+        "minWidth": 1024,
+        "minHeight": 680,
         "resizable": true,
         "fullscreen": false,
         "center": true
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:5000 https://*.arus.io; img-src 'self' data: blob:"
     }
   },
   "bundle": {
@@ -33,6 +36,28 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "category": "Utility",
+    "shortDescription": "ARUS Marine Predictive Maintenance System",
+    "longDescription": "ARUS is a comprehensive marine predictive maintenance and vessel management system for fleet operators.",
+    "macOS": {
+      "minimumSystemVersion": "10.15"
+    },
+    "windows": {
+      "wix": {
+        "language": "en-US"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "",
+      "endpoints": [
+        "https://releases.arus.io/{{target}}/{{arch}}/{{current_version}}"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

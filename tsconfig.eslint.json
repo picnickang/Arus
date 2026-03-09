@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "include": ["client/src/**/*", "shared/**/*"],
-  "exclude": ["node_modules", "build", "dist", "**/*.test.ts", "electron/**", "ios/**"],
+  "exclude": ["node_modules", "build", "dist", "**/*.test.ts", "src-tauri/**", "ios/**"],
   "compilerOptions": {
     "noEmit": true
   }
