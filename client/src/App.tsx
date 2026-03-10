@@ -12,9 +12,11 @@ import { OrganizationProvider, useOrganization } from "@/contexts/OrganizationCo
 import { PermissionsProvider } from "@/contexts/PermissionsContext";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { DevPerformanceOverlay } from "@/components/DevPerformanceOverlay";
-import { useEffect, lazy, Suspense } from "react";
+import { useEffect, lazy, Suspense, useState, useCallback } from "react";
 import { Loader2 } from "lucide-react";
 import { isFeatureEnabled } from "@/lib/feature-flags";
+import { isDesktop } from "@/lib/desktop";
+import { isDesktopSetupComplete, bootstrapDesktopBackend } from "@/lib/desktopFetch";
 
 // Lazy load: All pages for better initial bundle size
 const HomePage = lazy(() => import("@/pages/home"));
@@ -85,6 +87,7 @@ const OperationsHub = lazy(() => import("@/pages/operations-hub"));
 const FleetHub = lazy(() => import("@/pages/fleet-hub"));
 const LogisticsHub = lazy(() => import("@/pages/logistics-hub"));
 const SystemHub = lazy(() => import("@/pages/system-hub"));
+const DesktopSetup = lazy(() => import("@/pages/desktop-setup"));
 
 // Loading fallback component
 function PageLoader() {
@@ -328,10 +331,45 @@ function Router() {
 }
 
 function App() {
-  // Setup global error handler on mount
+  const [setupState, setSetupState] = useState<'loading' | 'setup' | 'ready'>(() => {
+    if (!isDesktop()) return 'ready';
+    return isDesktopSetupComplete() ? 'ready' : 'loading';
+  });
+
   useEffect(() => {
     initializeGlobalErrorHandlers();
   }, []);
+
+  useEffect(() => {
+    if (setupState !== 'loading') return;
+    bootstrapDesktopBackend().then((resolved) => {
+      setSetupState(resolved ? 'ready' : 'setup');
+    });
+  }, [setupState]);
+
+  const handleSetupComplete = useCallback(() => {
+    setSetupState('ready');
+  }, []);
+
+  if (setupState === 'loading') {
+    return (
+      <ThemeProvider defaultTheme="dark" storageKey="arus-ui-theme">
+        <PageLoader />
+      </ThemeProvider>
+    );
+  }
+
+  if (setupState === 'setup') {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider defaultTheme="dark" storageKey="arus-ui-theme">
+          <Suspense fallback={<PageLoader />}>
+            <DesktopSetup onComplete={handleSetupComplete} />
+          </Suspense>
+        </ThemeProvider>
+      </QueryClientProvider>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>

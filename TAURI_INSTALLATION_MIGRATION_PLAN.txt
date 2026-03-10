@@ -328,6 +328,21 @@ COMPONENTS USING DESKTOP BRIDGE:
     - Imports: DesktopUpdatePanel
     - Conditionally renders DesktopUpdatePanel or server update UI
 
+DESKTOP FETCH LAYER (client/src/lib/desktopFetch.ts):
+  - resolveBackendUrl() — async, reads from localStorage or Tauri IPC
+  - getBackendUrlSync() — synchronous, reads from cache or localStorage
+  - setBackendUrl(url) — stores backend URL in localStorage + cache
+  - isDesktopSetupComplete() — returns true in web mode or if backend URL set
+  - testBackendConnection(url) — pings /api/healthz with 5s timeout
+
+  Used by client/src/lib/queryClient.ts to prepend backend URL to all relative
+  API calls (both queries and mutations) in desktop mode.
+
+FIRST-RUN SETUP (client/src/pages/desktop-setup.tsx):
+  - Shown only when isDesktop() && !isDesktopSetupComplete()
+  - Renders backend URL input + connection test + continue button
+  - App.tsx guards the entire router with this check
+
 NO OTHER FRONTEND FILES import from desktop.ts or reference Tauri APIs.
 
 
@@ -384,14 +399,18 @@ PHASE 3: BACKEND STRATEGY (High risk, architectural decision)
   [3.3] ⬜ Update tauri.conf.json CSP to match production backend URLs
 
 PHASE 4: FIRST-RUN SETUP (Medium risk, UX-critical)
-  [4.1] ⬜ Create first-run detection (check for config file in app data dir)
-  [4.2] ⬜ Create first-run setup wizard React component:
-         - Backend URL configuration
-         - Vessel identification (if vessel mode)
-         - Admin password setup
-         - Database initialization trigger
-  [4.3] ⬜ Create backend endpoint for initial setup
-  [4.4] ⬜ Integrate SQLite bootstrap into first-run flow
+  [4.1] ✅ Create first-run detection
+         isDesktopSetupComplete() checks localStorage for backend URL config.
+         App.tsx guards the entire router — desktop + no config → setup wizard.
+  [4.2] ✅ Create first-run setup wizard React component
+         client/src/pages/desktop-setup.tsx with backend URL input, connection
+         test against /api/healthz, success/error status display, and continue.
+  [4.3] ✅ Wire backend URL into fetch layer
+         client/src/lib/desktopFetch.ts provides resolveUrl() used by queryClient
+         to prepend configured backend URL to all relative API calls in desktop mode.
+  [4.4] ⬜ Integrate SQLite bootstrap into first-run flow (vessel mode only)
+  [4.5] ⬜ Add vessel identification step to setup wizard (vessel mode)
+  [4.6] ⬜ Add admin password setup step to setup wizard
 
 PHASE 5: INSTALLER POLISH (Low risk, before release)
   [5.1] ⬜ Configure macOS bundle signing and notarization env vars

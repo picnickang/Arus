@@ -1,6 +1,13 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { getCurrentDeviceId } from "@/hooks/useDeviceId";
 import { getCurrentOrgId } from "@/contexts/OrganizationContext";
+import { getBackendUrlSync } from "@/lib/desktopFetch";
+
+function resolveUrl(url: string): string {
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  const base = getBackendUrlSync();
+  return base ? `${base}${url}` : url;
+}
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -62,7 +69,7 @@ export async function apiRequest(
   data?: unknown | undefined,
   options?: ApiRequestOptions
 ): Promise<unknown> {
-  const res = await fetch(url, {
+  const res = await fetch(resolveUrl(url), {
     method,
     headers: createHeaders(!!data),
     body: data ? JSON.stringify(data) : undefined,
@@ -119,8 +126,8 @@ export const getQueryFn: <T>(options: { on401: UnauthorizedBehavior }) => QueryF
       url = queryKey.join("/");
     }
 
-    const res = await fetch(url, {
-      headers: createHeaders(false), // Include device ID headers for queries too
+    const res = await fetch(resolveUrl(url), {
+      headers: createHeaders(false),
       credentials: "include",
     });
 
