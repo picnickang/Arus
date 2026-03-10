@@ -395,8 +395,18 @@ PHASE 3: BACKEND STRATEGY (High risk, architectural decision)
            Pro: Simplest desktop app, already works
            Con: Requires network, separate server deployment
          Current: Option C (ARUS_BACKEND_URL env var)
-  [3.2] ⬜ Implement chosen strategy
-  [3.3] ⬜ Update tauri.conf.json CSP to match production backend URLs
+  [3.2] ✅ Option C implemented — desktop fetch layer resolves ARUS_BACKEND_URL
+         from Tauri IPC at startup, with fallback to manual setup wizard.
+         queryClient.ts prefixes all relative API URLs with backend URL.
+  [3.3] ✅ Update tauri.conf.json CSP
+         connect-src now allows localhost:*, 127.0.0.1:*, 192.168.*.* and *.arus.io
+         for flexible vessel and cloud backend connections.
+  [3.4] ✅ CORS updated for Tauri origins
+         server/bootstrap/middleware.ts allows tauri://localhost and
+         https://tauri.localhost in addition to existing origins.
+  [3.5] ✅ Backend URL reconfiguration from System Admin
+         DesktopConnectionPanel in system-administration.tsx allows testing
+         and saving a new backend URL without reinstalling.
 
 PHASE 4: FIRST-RUN SETUP (Medium risk, UX-critical)
   [4.1] ✅ Create first-run detection

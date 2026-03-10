@@ -7,7 +7,7 @@
 import { createClient } from '@libsql/client';
 import { existsSync, unlinkSync } from 'node:fs';
 
-const DB_PATH = process.env.DATABASE_PATH || 'dist-standalone/ARUS-bundle/data/vessel-local-seed.db';
+const DB_PATH = process.env.DATABASE_PATH || 'data/vessel-local.db';
 
 console.log(`  Initializing database at: ${DB_PATH}`);
 

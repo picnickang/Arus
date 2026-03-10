@@ -15,6 +15,7 @@ import { Settings, Users, Activity, FileText, AlertTriangle, CheckCircle, Clock,
 import { PerformanceHealthTab } from "@/components/admin/PerformanceHealthTab";
 import { SystemSettingsTab } from "@/components/admin/SystemSettingsTab";
 import { DesktopUpdatePanel } from "@/components/admin/DesktopUpdatePanel";
+import { DesktopConnectionPanel } from "@/components/admin/DesktopConnectionPanel";
 import { MLTestingToolsTab } from "@/components/admin/MLTestingToolsTab";
 import { AuditTrailTab } from "@/components/admin/AuditTrailTab";
 import { ConfigAuditLogTab } from "@/components/admin/ConfigAuditLogTab";
@@ -46,7 +47,7 @@ function GitHubSettingsTab() {
 
 function SoftwareUpdatesTab() {
   const s = useSoftwareUpdatesData();
-  if (s.isDesktopEnv) {return <div className="space-y-6"><DesktopUpdatePanel /></div>;}
+  if (s.isDesktopEnv) {return <div className="space-y-6"><DesktopConnectionPanel /><DesktopUpdatePanel /></div>;}
   if (s.isLoading) {return <div className="flex items-center justify-center py-8" data-testid="loading-software-updates">Loading software updates...</div>;}
   if (s.hasError) {return <div className="space-y-4"><div className="flex items-center justify-between"><div><h3 className="text-lg font-medium">Software Updates</h3><p className="text-sm text-muted-foreground">Manage system updates, patches, and auto-update configuration</p></div></div><Card className="border-destructive" data-testid="error-software-updates"><CardHeader><CardTitle className="text-destructive">Failed to Load Updates</CardTitle><CardDescription>Unable to retrieve software update information. Please check your connection or admin permissions.</CardDescription></CardHeader><CardContent><div className="space-y-2 text-sm">{s.errors.patches && <p data-testid="error-patches">Patches: {s.errors.patches}</p>}{s.errors.history && <p data-testid="error-history">History: {s.errors.history}</p>}{s.errors.settings && <p data-testid="error-settings">Settings: {s.errors.settings}</p>}</div></CardContent></Card></div>;}
 

@@ -71,6 +71,8 @@ export function configureMiddleware(app: Express): void {
       "https://localhost:*",
       "http://127.0.0.1:*",
       "https://127.0.0.1:*",
+      "tauri://localhost",
+      "https://tauri.localhost",
     ];
 
     const allowed = originAllowed(origin, allowedOrigins);
