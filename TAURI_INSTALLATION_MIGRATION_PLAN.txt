@@ -364,9 +364,13 @@ PHASE 1: CLEANUP (Low risk, immediate) ✅ PARTIALLY DONE
   [1.11] ✅ Clean eslint.config.js (removed fix-package-json.js from ignores)
 
 PHASE 2: TAURI HARDENING (Medium risk, before desktop release)
-  [2.1] ⬜ Generate Tauri updater signing keypair
-         `npx @tauri-apps/cli signer generate -w ~/.tauri/arus-marine.key`
-         Set pubkey in tauri.conf.json plugins.updater.pubkey
+  [2.1] 📋 Generate Tauri updater signing keypair (REQUIRES LOCAL TOOLCHAIN)
+         Run on a machine with Rust/Tauri CLI installed:
+           npx @tauri-apps/cli signer generate -w ~/.tauri/arus-marine.key
+         Then:
+           1. Copy the public key into tauri.conf.json → plugins.updater.pubkey
+           2. Store the private key as TAURI_SIGNING_PRIVATE_KEY GitHub secret
+           3. Store the password as TAURI_SIGNING_PRIVATE_KEY_PASSWORD GitHub secret
   [2.2] ✅ Create Tauri v2 capabilities configuration
          Created src-tauri/capabilities/default.json with permissions for
          core:default, shell:allow-open, process:allow-relaunch,
@@ -375,16 +379,17 @@ PHASE 2: TAURI HARDENING (Medium risk, before desktop release)
          Ran `node scripts/generate-icons.mjs` — created 32x32, 128x128,
          128x128@2x (256), icon.png (512) from SVG source. Removed stale
          256x256.png. icon.icns and icon.ico still need platform-native conversion.
-  [2.4] ⬜ Decide on Tauri JS plugin installation strategy
-         The new Function() dynamic import pattern is verified working for web mode.
-         @tauri-apps/plugin-updater and @tauri-apps/plugin-process are NOT in
-         package.json. They will be resolved at runtime within the Tauri webview
-         from the Rust plugin bindings. Verify during first Tauri desktop build.
-  [2.5] ⬜ Test Tauri build on each target platform
-         Verify `npm run tauri:build` produces working installers
+  [2.4] 📋 Verify Tauri JS plugin resolution in desktop build (REQUIRES TAURI BUILD)
+         Strategy decided: new Function() dynamic import pattern for web-safe plugin
+         loading. @tauri-apps/plugin-updater and @tauri-apps/plugin-process resolve
+         from Rust plugin bindings at Tauri runtime — no npm package needed.
+         Verification: build the Tauri app and confirm updater/process calls succeed.
+  [2.5] 📋 Test Tauri build on each target platform (REQUIRES NATIVE TOOLCHAINS)
+         Run `npm run tauri:build` on macOS, Windows, and Linux.
+         Verify installers launch, connect to backend, and complete setup wizard.
 
 PHASE 3: BACKEND STRATEGY (High risk, architectural decision)
-  [3.1] ⬜ Decide backend deployment model for desktop:
+  [3.1] ✅ Backend deployment model decided: Option C (Remote backend)
          Option A: Tauri sidecar — spawn Express server as child process
            Pro: Single-app installation, auto-start
            Con: Complex process management, port conflicts
@@ -418,16 +423,56 @@ PHASE 4: FIRST-RUN SETUP (Medium risk, UX-critical)
   [4.3] ✅ Wire backend URL into fetch layer
          client/src/lib/desktopFetch.ts provides resolveUrl() used by queryClient
          to prepend configured backend URL to all relative API calls in desktop mode.
-  [4.4] ⬜ Integrate SQLite bootstrap into first-run flow (vessel mode only)
-  [4.5] ⬜ Add vessel identification step to setup wizard (vessel mode)
-  [4.6] ⬜ Add admin password setup step to setup wizard
+  [4.4] 📋 Integrate SQLite bootstrap into first-run flow (VESSEL MODE ONLY)
+         For vessel deployments with local SQLite, the setup wizard should trigger
+         `scripts/init-sqlite-schema.js` on first run. This requires the Tauri sidecar
+         or shell command capability. Default path updated to `data/vessel-local.db`.
+         Implementation: Add Tauri command to invoke SQLite init from Rust backend.
+  [4.5] ✅ Add vessel identification step to setup wizard
+         Step 2 of 3-step wizard fetches vessels from GET /api/vessels, displays
+         selectable list with IMO/type, stores selection in localStorage
+         (arus-vessel-id, arus-vessel-name). Skip option when no vessels exist.
+  [4.6] ✅ Add admin password setup step to setup wizard
+         Step 3 of 3-step wizard. Checks GET /api/admin/auth/status to determine
+         if password is configured. If not: shows new password + confirm form,
+         calls POST /api/admin/auth/setup. If configured: shows verify form,
+         calls POST /api/admin/auth/verify. Both steps are skippable.
 
 PHASE 5: INSTALLER POLISH (Low risk, before release)
-  [5.1] ⬜ Configure macOS bundle signing and notarization env vars
-  [5.2] ⬜ Configure Windows code signing
-  [5.3] ⬜ Set up GitHub Actions for multi-platform builds
-  [5.4] ⬜ Configure auto-update endpoint (releases.arus.io or GitHub Releases)
-  [5.5] ⬜ Test one-click install flow on each platform
+  [5.1] 📋 Configure macOS bundle signing and notarization (REQUIRES APPLE DEVELOPER ACCOUNT)
+         Required GitHub secrets:
+           APPLE_CERTIFICATE — Base64-encoded .p12 certificate
+           APPLE_CERTIFICATE_PASSWORD — Certificate password
+           APPLE_SIGNING_IDENTITY — e.g. "Developer ID Application: Your Org"
+           APPLE_ID — Apple Developer email
+           APPLE_PASSWORD — App-specific password from appleid.apple.com
+           APPLE_TEAM_ID — From developer.apple.com membership
+         Guide: https://tauri.app/distribute/sign/macos/
+  [5.2] 📋 Configure Windows code signing (REQUIRES CODE SIGNING CERTIFICATE)
+         Options: EV certificate (hardware token) or OV certificate
+         Required GitHub secret: WINDOWS_CERTIFICATE (Base64 .pfx)
+         For EV: use SignTool with cloud signing service (e.g. SSL.com eSigner)
+         Guide: https://tauri.app/distribute/sign/windows/
+  [5.3] ✅ GitHub Actions CI/CD workflow created
+         .github/workflows/tauri-build.yml with matrix builds for:
+           - macOS arm64 + x64
+           - Windows x64
+           - Linux x64
+         Triggers on version tags (v*) and manual dispatch.
+         Uploads build artifacts and creates draft GitHub releases.
+  [5.4] ✅ Auto-update endpoint configured: GitHub Releases
+         The Tauri updater plugin is configured to check GitHub Releases.
+         tauri.conf.json has updater plugin with GitHub endpoint.
+         Desktop app checks for updates via DesktopUpdatePanel in System Admin.
+         Release flow: push tag → GitHub Actions builds → creates draft release →
+         publish release → desktop apps auto-detect update.
+  [5.5] 📋 Test one-click install flow on each platform (REQUIRES NATIVE TESTING)
+         After first successful CI build:
+           1. Download installer artifacts from GitHub Actions
+           2. Install on clean macOS, Windows, and Linux machines
+           3. Verify setup wizard completes (backend URL → vessel → admin)
+           4. Verify app connects to backend and loads dashboard
+           5. Verify auto-update detects new release
 
 
 ================================================================================

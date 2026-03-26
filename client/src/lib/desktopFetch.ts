@@ -74,6 +74,22 @@ export async function bootstrapDesktopBackend(): Promise<boolean> {
   return false;
 }
 
+export function getVesselId(): string {
+  return localStorage.getItem('arus-vessel-id') || '';
+}
+
+export function setVesselId(vesselId: string): void {
+  localStorage.setItem('arus-vessel-id', vesselId);
+}
+
+export function getVesselName(): string {
+  return localStorage.getItem('arus-vessel-name') || '';
+}
+
+export function setVesselName(name: string): void {
+  localStorage.setItem('arus-vessel-name', name);
+}
+
 export async function testBackendConnection(url: string): Promise<{ ok: boolean; message: string }> {
   try {
     const normalized = url.replace(/\/+$/, '');
