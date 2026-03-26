@@ -27,7 +27,14 @@ export function registerInsightsRoutes(app: Express) {
       }
       const { vesselId, equipmentId, severity, resolved, acknowledged } = req.query;
 
-      let query = db
+      const conditions = [eq(actionableInsights.orgId, orgId)];
+      if (vesselId) conditions.push(eq(actionableInsights.vesselId, vesselId as string));
+      if (equipmentId) conditions.push(eq(actionableInsights.equipmentId, equipmentId as string));
+      if (severity) conditions.push(eq(actionableInsights.severity, severity as string));
+      if (resolved !== undefined) conditions.push(eq(actionableInsights.resolved, resolved === 'true'));
+      if (acknowledged !== undefined) conditions.push(eq(actionableInsights.acknowledged, acknowledged === 'true'));
+
+      const results = await db
         .select({
           insight: actionableInsights,
           equipment: {
@@ -39,30 +46,8 @@ export function registerInsightsRoutes(app: Express) {
         })
         .from(actionableInsights)
         .leftJoin(equipment, eq(actionableInsights.equipmentId, equipment.id))
-        .$dynamic()
-        .where(eq(actionableInsights.orgId, orgId));
-
-      if (vesselId) {
-        query = query.where(eq(actionableInsights.vesselId, vesselId as string));
-      }
-
-      if (equipmentId) {
-        query = query.where(eq(actionableInsights.equipmentId, equipmentId as string));
-      }
-
-      if (severity) {
-        query = query.where(eq(actionableInsights.severity, severity as string));
-      }
-
-      if (resolved !== undefined) {
-        query = query.where(eq(actionableInsights.resolved, resolved === 'true'));
-      }
-
-      if (acknowledged !== undefined) {
-        query = query.where(eq(actionableInsights.acknowledged, acknowledged === 'true'));
-      }
-
-      const results = await query.orderBy(sql`${actionableInsights.createdAt} DESC`);
+        .where(and(...conditions))
+        .orderBy(sql`${actionableInsights.createdAt} DESC`);
 
       const insights = results.map((r) => ({
         ...r.insight,
@@ -92,12 +77,11 @@ export function registerInsightsRoutes(app: Express) {
       }
       const { scope } = req.query;
       const { insightSnapshots } = await import('@shared/schema-runtime');
-      let query = db.select().from(insightSnapshots).$dynamic()
-        .where(eq(insightSnapshots.orgId, orgId));
-      if (scope) {
-        query = query.where(eq(insightSnapshots.scope, scope as string));
-      }
-      const snapshots = await query.orderBy(sql`${insightSnapshots.createdAt} DESC`).limit(100);
+      const conditions = [eq(insightSnapshots.orgId, orgId)];
+      if (scope) conditions.push(eq(insightSnapshots.scope, scope as string));
+      const snapshots = await db.select().from(insightSnapshots)
+        .where(and(...conditions))
+        .orderBy(sql`${insightSnapshots.createdAt} DESC`).limit(100);
       res.json(snapshots);
     } catch (error) {
       logger.error('Failed to fetch insight snapshots', { error });
@@ -280,21 +264,17 @@ export function registerInsightsRoutes(app: Express) {
       }
       const { vesselId } = req.query;
 
-      let baseQuery = db
+      const conditions = [eq(actionableInsights.orgId, orgId)];
+      if (vesselId) conditions.push(eq(actionableInsights.vesselId, vesselId as string));
+
+      const stats = await db
         .select({
           severity: actionableInsights.severity,
           resolved: actionableInsights.resolved,
           count: sql<number>`count(*)`.as('count'),
         })
         .from(actionableInsights)
-        .$dynamic()
-        .where(eq(actionableInsights.orgId, orgId));
-
-      if (vesselId) {
-        baseQuery = baseQuery.where(eq(actionableInsights.vesselId, vesselId as string));
-      }
-
-      const stats = await baseQuery
+        .where(and(...conditions))
         .groupBy(actionableInsights.severity, actionableInsights.resolved);
 
       const summary = {
