@@ -310,7 +310,13 @@ export function useHoursOfRestData(): UseHoursOfRestDataReturn {
   useEffect(() => {
     const handleMouseUp = () => { endDrag(); };
     globalThis.addEventListener("mouseup", handleMouseUp);
-    return () => globalThis.removeEventListener("mouseup", handleMouseUp);
+    globalThis.addEventListener("touchend", handleMouseUp);
+    globalThis.addEventListener("touchcancel", handleMouseUp);
+    return () => {
+      globalThis.removeEventListener("mouseup", handleMouseUp);
+      globalThis.removeEventListener("touchend", handleMouseUp);
+      globalThis.removeEventListener("touchcancel", handleMouseUp);
+    };
   }, [endDrag]);
 
   const exportCSV = useCallback(() => { setCsv(toCSV(rows)); setMode("CSV"); }, [rows]);
