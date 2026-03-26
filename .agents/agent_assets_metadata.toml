@@ -6,3 +6,9 @@ id = "gYZXfTISF4u_dwb1OUEtT"
 uri = "file://tauri-migration-review.md"
 type = "text"
 title = "Tauri v2 Migration — Complete Code Review Package"
+
+[[outputs]]
+id = "HTKdGR9aJbeR0ClZN1zT4"
+uri = "file://backend-system-admin-routes.md"
+type = "text"
+title = "Backend Code — All System Admin Tabs"
