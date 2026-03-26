@@ -62,6 +62,7 @@ export interface UseDocumentExpiryDataReturn {
   setAcknowledgeNotes: (notes: string) => void;
   handleAcknowledge: (doc: ExpiringDocument) => void;
   confirmAcknowledge: () => void;
+  markRenewed: (doc: ExpiringDocument) => void;
   isAcknowledging: boolean;
   unacknowledgedDocs: ExpiringDocument[];
   criticalCount: number;
@@ -114,6 +115,11 @@ export function useDocumentExpiryData({ daysAhead = 90 }: UseDocumentExpiryDataP
     }
   }, [selectedDoc, acknowledgeNotes, acknowledgeMutation]);
 
+  const markRenewed = useCallback((doc: ExpiringDocument) => {
+    acknowledgeMutation.mutate({ docId: doc.id, notes: `Renewed — ${doc.documentType || "document"}` });
+    toast({ title: "Marked as Renewed", description: `${doc.documentType || "Document"} has been marked as renewed. Update the expiry date in your records.` });
+  }, [acknowledgeMutation, toast]);
+
   const unacknowledgedDocs = useMemo(() => {
     return (data?.documents ?? []).filter((d) => !d.alertAcknowledged);
   }, [data?.documents]);
@@ -144,6 +150,7 @@ export function useDocumentExpiryData({ daysAhead = 90 }: UseDocumentExpiryDataP
     setAcknowledgeNotes,
     handleAcknowledge,
     confirmAcknowledge,
+    markRenewed,
     isAcknowledging: acknowledgeMutation.isPending,
     unacknowledgedDocs,
     criticalCount,

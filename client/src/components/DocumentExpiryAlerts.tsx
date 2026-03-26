@@ -82,7 +82,7 @@ function DocumentRow({ doc, onAcknowledge, onMarkRenewed, getDocumentTypeLabel }
 export function DocumentExpiryAlertBanner() {
   const {
     data, isLoading, error, isExpanded, setIsExpanded, acknowledgeDialogOpen, setAcknowledgeDialogOpen,
-    selectedDoc, acknowledgeNotes, setAcknowledgeNotes, handleAcknowledge, confirmAcknowledge, isAcknowledging,
+    selectedDoc, acknowledgeNotes, setAcknowledgeNotes, handleAcknowledge, confirmAcknowledge, markRenewed, isAcknowledging,
     criticalCount, warningCount, getDocumentTypeLabel,
   } = useDocumentExpiryData();
 
@@ -132,7 +132,7 @@ export function DocumentExpiryAlertBanner() {
             </CardHeader>
             <CardContent className="py-2">
               <div className="space-y-2">
-                {documents.map((doc) => <DocumentRow key={doc.id} doc={doc} onAcknowledge={handleAcknowledge} onMarkRenewed={(d) => { setAcknowledgeNotes("Document renewed"); handleAcknowledge(d); }} getDocumentTypeLabel={getDocumentTypeLabel} />)}
+                {documents.map((doc) => <DocumentRow key={doc.id} doc={doc} onAcknowledge={handleAcknowledge} onMarkRenewed={markRenewed} getDocumentTypeLabel={getDocumentTypeLabel} />)}
               </div>
             </CardContent>
           </Card>

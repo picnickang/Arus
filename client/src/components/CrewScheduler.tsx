@@ -239,7 +239,7 @@ export function CrewScheduler() {
                     <tbody>{p.enhancedScheduleResult.compliance.per_crew.map((crewComp, idx) => (<tr key={`crew-${crewComp.name}-${idx}`} className={crewComp.ok ? "" : "bg-red-50 dark:bg-red-900/20"}><td className="border border-border px-2 py-1">{crewComp.name}</td><td className="border border-border px-2 py-1 text-center"><Badge variant={crewComp.ok ? "default" : "destructive"}>{crewComp.ok ? "OK" : "BREACH"}</Badge></td><td className="border border-border px-2 py-1 text-center">{crewComp.min_rest_24?.toFixed(1) || "N/A"}h</td><td className="border border-border px-2 py-1 text-center">{crewComp.rest_7d?.toFixed(1) || "N/A"}h</td><td className="border border-border px-2 py-1 text-center">{crewComp.nights_this_week || 0}</td><td className="border border-border px-2 py-1 text-center">{crewComp.violations || 0}</td></tr>))}</tbody>
                   </table>
                 </div>
-                <p className="text-xs text-muted-foreground mt-3" data-testid="text-stcw-disclaimer">STCW compliance checks are advisory. Always verify with your designated person ashore (DPA) and flag state requirements.</p>
+                <p className="text-xs text-muted-foreground mt-3" data-testid="text-stcw-disclaimer">STCW compliance results shown here are projected and simulated based on the current schedule. They are advisory only and do not constitute official compliance verification. Always verify with your designated person ashore (DPA) and flag state requirements.</p>
               </div>
             )}
             <div className="flex flex-wrap gap-3 mb-4 p-4 bg-muted/50 rounded-lg">

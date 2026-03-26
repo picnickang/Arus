@@ -81,7 +81,7 @@ function CertRow({ cert, onAcknowledge, onMarkRenewed }: { cert: ExpiringCertifi
 export function CertificationExpiryAlertBanner() {
   const {
     data, isLoading, error, isExpanded, setIsExpanded, acknowledgeDialogOpen, setAcknowledgeDialogOpen,
-    selectedCert, acknowledgeNotes, setAcknowledgeNotes, handleAcknowledge, confirmAcknowledge, isAcknowledging,
+    selectedCert, acknowledgeNotes, setAcknowledgeNotes, handleAcknowledge, confirmAcknowledge, markRenewed, isAcknowledging,
     criticalCount, warningCount,
   } = useCertificationExpiryData();
 
@@ -131,7 +131,7 @@ export function CertificationExpiryAlertBanner() {
             </CardHeader>
             <CardContent className="py-2">
               <div className="space-y-2">
-                {certifications.map((cert) => <CertRow key={cert.id} cert={cert} onAcknowledge={handleAcknowledge} onMarkRenewed={(c) => { setAcknowledgeNotes("Certification renewed"); handleAcknowledge(c); }} />)}
+                {certifications.map((cert) => <CertRow key={cert.id} cert={cert} onAcknowledge={handleAcknowledge} onMarkRenewed={markRenewed} />)}
               </div>
             </CardContent>
           </Card>

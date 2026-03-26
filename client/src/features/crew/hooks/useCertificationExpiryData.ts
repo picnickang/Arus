@@ -53,6 +53,7 @@ export interface UseCertificationExpiryDataReturn {
   setAcknowledgeNotes: (notes: string) => void;
   handleAcknowledge: (cert: ExpiringCertification) => void;
   confirmAcknowledge: () => void;
+  markRenewed: (cert: ExpiringCertification) => void;
   isAcknowledging: boolean;
   unacknowledgedCerts: ExpiringCertification[];
   criticalCount: number;
@@ -104,6 +105,11 @@ export function useCertificationExpiryData({ daysAhead = 90 }: UseCertificationE
     }
   }, [selectedCert, acknowledgeNotes, acknowledgeMutation]);
 
+  const markRenewed = useCallback((cert: ExpiringCertification) => {
+    acknowledgeMutation.mutate({ certId: cert.id, notes: `Renewed — ${cert.certificationName || "certification"}` });
+    toast({ title: "Marked as Renewed", description: `${cert.certificationName || "Certification"} has been marked as renewed. Update the expiry date in your records.` });
+  }, [acknowledgeMutation, toast]);
+
   const unacknowledgedCerts = useMemo(() => {
     return (data?.certifications ?? []).filter((c) => !c.alertAcknowledged);
   }, [data?.certifications]);
@@ -130,6 +136,7 @@ export function useCertificationExpiryData({ daysAhead = 90 }: UseCertificationE
     setAcknowledgeNotes,
     handleAcknowledge,
     confirmAcknowledge,
+    markRenewed,
     isAcknowledging: acknowledgeMutation.isPending,
     unacknowledgedCerts,
     criticalCount,
