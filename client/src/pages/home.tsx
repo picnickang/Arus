@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Anchor, X, GripHorizontal, Plus, Check, Pin, Clock } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -66,7 +66,25 @@ function CategoryCard({ category, onAddToDock, dockItems }: CategoryCardProps) {
     description: category.description,
   };
   const isInDock = dockItems.some(d => d.href === category.hubRoute);
-  
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressFired = useRef(false);
+
+  const handleTouchStart = useCallback(() => {
+    longPressFired.current = false;
+    longPressTimer.current = setTimeout(() => {
+      longPressFired.current = true;
+      if (!isInDock) onAddToDock(hubItem);
+    }, 500);
+  }, [isInDock, onAddToDock, hubItem]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+  }, []);
+
+  const handleTouchMove = useCallback(() => {
+    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+  }, []);
+
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
@@ -77,9 +95,12 @@ function CategoryCard({ category, onAddToDock, dockItems }: CategoryCardProps) {
             "hover:scale-105 active:scale-95"
           )}
           data-testid={`category-card-${category.id}`}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onTouchMove={handleTouchMove}
         >
           <div className="relative">
-            <Link href={category.hubRoute} className="block">
+            <Link href={category.hubRoute} className="block" onClick={(e) => { if (longPressFired.current) e.preventDefault(); }}>
               <div className={cn(
                 "w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center cursor-pointer",
                 "bg-primary shadow-lg",

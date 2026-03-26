@@ -52,10 +52,10 @@ export function HoursOfRestGrid() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-end gap-2">
-        {saveStatus === "saved" && <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200"><Save className="w-3 h-3 mr-1" />Saved</Badge>}
-        {saveStatus === "saving" && <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200"><Clock className="w-3 h-3 mr-1 animate-spin" />Saving...</Badge>}
-        {saveStatus === "unsaved" && <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200"><AlertTriangle className="w-3 h-3 mr-1" />Unsaved changes</Badge>}
+      <div className="sticky top-0 z-20 flex items-center justify-end gap-2 bg-background/95 backdrop-blur-sm py-1 px-2 rounded" data-testid="save-status-bar">
+        {saveStatus === "saved" && <Badge variant="outline" className="bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"><Save className="w-3 h-3 mr-1" />Saved</Badge>}
+        {saveStatus === "saving" && <Badge variant="outline" className="bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"><Clock className="w-3 h-3 mr-1 animate-spin" />Saving...</Badge>}
+        {saveStatus === "unsaved" && <Badge variant="outline" className="bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800"><AlertTriangle className="w-3 h-3 mr-1" />Unsaved changes</Badge>}
       </div>
 
       <Card>
@@ -306,15 +306,15 @@ export function HoursOfRestGrid() {
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">Save & Verify</Label>
                 <div className="flex gap-2 flex-wrap">
-                  <Button onClick={upload} size="default" disabled={!isReadyForActions} className={`shadow-md transition-all duration-200 ${!isReadyForActions ? "opacity-50 cursor-not-allowed bg-gray-400 hover:bg-gray-400 text-gray-200" : "bg-blue-600 hover:bg-blue-700 text-white hover:shadow-lg"}`} data-testid="button-upload-grid" title={!isReadyForActions ? "Select vessel and crew member first" : "Save rest data to database"}><Upload className="w-4 h-4 mr-2" />Save to Database</Button>
-                  <Button onClick={runCheck} variant="outline" size="default" disabled={!isReadyForActions} className={`transition-all duration-200 ${!isReadyForActions ? "opacity-50 cursor-not-allowed border-gray-300 text-gray-500" : "border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-400 dark:text-amber-400 dark:border-amber-600 dark:hover:bg-amber-950"}`} data-testid="button-check-grid" title={!isReadyForActions ? "Select vessel and crew member first" : "Check STCW compliance"}><FileCheck className="w-4 h-4 mr-2" />Check Compliance</Button>
+                  <Button onClick={upload} size="default" disabled={!isReadyForActions} className={`shadow-md transition-all duration-200 ${!isReadyForActions ? "opacity-50 cursor-not-allowed bg-muted hover:bg-muted text-muted-foreground" : "bg-blue-600 hover:bg-blue-700 text-white hover:shadow-lg"}`} data-testid="button-upload-grid" title={!isReadyForActions ? "Select vessel and crew member first" : "Save rest data to database"}><Upload className="w-4 h-4 mr-2" />Save to Database</Button>
+                  <Button onClick={runCheck} variant="outline" size="default" disabled={!isReadyForActions} className={`transition-all duration-200 ${!isReadyForActions ? "opacity-50 cursor-not-allowed border-border text-muted-foreground" : "border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-400 dark:text-amber-400 dark:border-amber-600 dark:hover:bg-amber-950"}`} data-testid="button-check-grid" title={!isReadyForActions ? "Select vessel and crew member first" : "Check STCW compliance"}><FileCheck className="w-4 h-4 mr-2" />Check Compliance</Button>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">Data Management</Label>
                 <div className="flex gap-2 flex-wrap">
-                  <Button onClick={loadFromProposedPlan} variant="outline" size="sm" disabled={!isReadyForActions} className={`transition-all duration-200 ${!isReadyForActions ? "opacity-50 cursor-not-allowed border-gray-300 text-gray-500" : "border-indigo-300 text-indigo-700 hover:bg-indigo-50 hover:border-indigo-400 dark:text-indigo-400 dark:border-indigo-600 dark:hover:bg-indigo-950"}`} data-testid="button-load-proposed-plan" title={!isReadyForActions ? "Select vessel and crew member first" : "Load from crew schedule"}><FileCheck className="w-4 h-4 mr-2" />Load from Schedule</Button>
+                  <Button onClick={loadFromProposedPlan} variant="outline" size="sm" disabled={!isReadyForActions} className={`transition-all duration-200 ${!isReadyForActions ? "opacity-50 cursor-not-allowed border-border text-muted-foreground" : "border-indigo-300 text-indigo-700 hover:bg-indigo-50 hover:border-indigo-400 dark:text-indigo-400 dark:border-indigo-600 dark:hover:bg-indigo-950"}`} data-testid="button-load-proposed-plan" title={!isReadyForActions ? "Select vessel and crew member first" : "Load from crew schedule"}><FileCheck className="w-4 h-4 mr-2" />Load from Schedule</Button>
                   <Button onClick={exportPdf} variant="outline" size="sm" className="border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-400 dark:text-purple-400 dark:border-purple-600 dark:hover:bg-purple-950 transition-all duration-200" data-testid="button-export-pdf-grid" title="Generate PDF report"><Download className="w-4 h-4 mr-2" />Export PDF</Button>
                   <Button onClick={exportCSV} variant="outline" size="sm" className="border-cyan-300 text-cyan-700 hover:bg-cyan-50 hover:border-cyan-400 dark:text-cyan-400 dark:border-cyan-600 dark:hover:bg-cyan-950 transition-all duration-200" data-testid="button-export-csv" title="Export to CSV file">Export CSV</Button>
                   <Button onClick={importCSV} variant="outline" size="sm" className="border-teal-300 text-teal-700 hover:bg-teal-50 hover:border-teal-400 dark:text-teal-400 dark:border-teal-600 dark:hover:bg-teal-950 transition-all duration-200" data-testid="button-import-csv" title="Import from CSV file">Import CSV</Button>
