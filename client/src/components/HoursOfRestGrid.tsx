@@ -382,7 +382,7 @@ export function HoursOfRestGrid() {
                       return <div key={`chunk-${start}-${end}`} className={`absolute h-full ${isRest ? "bg-emerald-400" : "bg-rose-400"}`} style={{ left: `${left}%`, width: `${width}%` }} title={`${isRest ? "REST" : "WORK"} ${start}:00-${end}:00`} />;
                     })}
                     <div className="absolute inset-0 grid grid-cols-24">
-                      {hours.map((h) => <button key={h} onMouseDown={() => startDrag(ri, h)} onMouseEnter={() => isDragging && onDrag(ri, h)} className="border-l border-slate-300 dark:border-slate-600 first:border-l-0 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors" />)}
+                      {hours.map((h) => <button key={h} data-testid={`mobile-cell-${ri}-${h}`} onMouseDown={() => startDrag(ri, h)} onMouseEnter={() => isDragging && onDrag(ri, h)} onTouchStart={(e) => { e.preventDefault(); startDrag(ri, h); }} onTouchMove={(e) => { const touch = e.touches[0]; const el = document.elementFromPoint(touch.clientX, touch.clientY); const tid = el?.getAttribute("data-testid"); if (tid?.startsWith("mobile-cell-")) { const parts = tid.split("-"); onDrag(Number(parts[2]), Number(parts[3])); } }} className="border-l border-slate-300 dark:border-slate-600 first:border-l-0 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors" />)}
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-xs">

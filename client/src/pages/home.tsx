@@ -43,10 +43,12 @@ function getRecentPages(): NavigationItem[] {
 
 export function trackPageVisit(href: string) {
   try {
+    const normalized = href.split("?")[0].split("#")[0];
+    if (!normalized || normalized === "/") return;
     const saved = localStorage.getItem(RECENT_PAGES_KEY);
     const hrefs: string[] = saved ? JSON.parse(saved) : [];
-    const filtered = hrefs.filter(h => h !== href);
-    filtered.unshift(href);
+    const filtered = hrefs.filter(h => h !== normalized);
+    filtered.unshift(normalized);
     localStorage.setItem(RECENT_PAGES_KEY, JSON.stringify(filtered.slice(0, 10)));
   } catch {}
 }
