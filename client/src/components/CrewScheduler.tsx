@@ -1,5 +1,5 @@
 import { useShiftPlanning } from "@/features/crew";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,11 +19,28 @@ import type { SelectShiftTemplate } from "@shared/schema";
 
 interface Crew { id: string; name: string; rank: string; vesselId?: string; maxHours7d: number; minRestH: number; active: boolean; skills: string[]; }
 
+function calcDuration(start: string, end: string): number {
+  if (!start || !end) return 0;
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  let mins = (eh * 60 + em) - (sh * 60 + sm);
+  if (mins <= 0) mins += 24 * 60;
+  return Math.round((mins / 60) * 10) / 10;
+}
+
 export function CrewScheduler() {
   const { toast } = useToast();
   const p = useShiftPlanning();
   const [showAllCrew, setShowAllCrew] = useState(false);
 
+  const startVal = p.shiftForm.watch("start");
+  const endVal = p.shiftForm.watch("end");
+  useEffect(() => {
+    if (startVal && endVal) {
+      const dur = calcDuration(startVal, endVal);
+      if (dur > 0) p.shiftForm.setValue("durationH", dur);
+    }
+  }, [startVal, endVal]);
 
   if (p.isLoadingCrew) {return <div className="p-6">Loading crew data...</div>;}
 
@@ -63,9 +80,9 @@ export function CrewScheduler() {
                 <div className="space-y-3">
                   <Label className="text-sm font-medium">Priority Weights</Label>
                   <div className="space-y-3">
-                    <div><div className="flex justify-between mb-2"><Label className="text-sm">Fairness ({p.preferences.weights.fairness})</Label></div><Slider value={[p.preferences.weights.fairness]} onValueChange={(val) => p.setPreferences({ ...p.preferences, weights: { ...p.preferences.weights, fairness: val[0] } })} min={0} max={100} step={1} data-testid="slider-fairness" /><p className="text-xs text-muted-foreground mt-1">Balance workload across crew</p></div>
-                    <div><div className="flex justify-between mb-2"><Label className="text-sm">Night Shift Weight ({p.preferences.weights.night_over})</Label></div><Slider value={[p.preferences.weights.night_over]} onValueChange={(val) => p.setPreferences({ ...p.preferences, weights: { ...p.preferences.weights, night_over: val[0] } })} min={0} max={50} step={1} data-testid="slider-night" /><p className="text-xs text-muted-foreground mt-1">Penalty for too many night shifts</p></div>
-                    <div><div className="flex justify-between mb-2"><Label className="text-sm">Crew Preferences ({p.preferences.weights.pref_off})</Label></div><Slider value={[p.preferences.weights.pref_off]} onValueChange={(val) => p.setPreferences({ ...p.preferences, weights: { ...p.preferences.weights, pref_off: val[0] } })} min={0} max={50} step={1} data-testid="slider-preferences" /><p className="text-xs text-muted-foreground mt-1">Honor crew day-off requests</p></div>
+                    <div><div className="flex justify-between items-center mb-2"><Label className="text-sm">Fairness</Label><Input type="number" value={p.preferences.weights.fairness} onChange={(e) => { const v = Math.min(100, Math.max(0, Number(e.target.value) || 0)); p.setPreferences({ ...p.preferences, weights: { ...p.preferences.weights, fairness: v } }); }} className="w-16 h-7 text-xs text-right" min={0} max={100} data-testid="input-fairness" /></div><Slider value={[p.preferences.weights.fairness]} onValueChange={(val) => p.setPreferences({ ...p.preferences, weights: { ...p.preferences.weights, fairness: val[0] } })} min={0} max={100} step={1} data-testid="slider-fairness" /><p className="text-xs text-muted-foreground mt-1">Balance workload across crew</p></div>
+                    <div><div className="flex justify-between items-center mb-2"><Label className="text-sm">Night Shift Weight</Label><Input type="number" value={p.preferences.weights.night_over} onChange={(e) => { const v = Math.min(50, Math.max(0, Number(e.target.value) || 0)); p.setPreferences({ ...p.preferences, weights: { ...p.preferences.weights, night_over: v } }); }} className="w-16 h-7 text-xs text-right" min={0} max={50} data-testid="input-night" /></div><Slider value={[p.preferences.weights.night_over]} onValueChange={(val) => p.setPreferences({ ...p.preferences, weights: { ...p.preferences.weights, night_over: val[0] } })} min={0} max={50} step={1} data-testid="slider-night" /><p className="text-xs text-muted-foreground mt-1">Penalty for too many night shifts</p></div>
+                    <div><div className="flex justify-between items-center mb-2"><Label className="text-sm">Crew Preferences</Label><Input type="number" value={p.preferences.weights.pref_off} onChange={(e) => { const v = Math.min(50, Math.max(0, Number(e.target.value) || 0)); p.setPreferences({ ...p.preferences, weights: { ...p.preferences.weights, pref_off: v } }); }} className="w-16 h-7 text-xs text-right" min={0} max={50} data-testid="input-preferences" /></div><Slider value={[p.preferences.weights.pref_off]} onValueChange={(val) => p.setPreferences({ ...p.preferences, weights: { ...p.preferences.weights, pref_off: val[0] } })} min={0} max={50} step={1} data-testid="slider-preferences" /><p className="text-xs text-muted-foreground mt-1">Honor crew day-off requests</p></div>
                   </div>
                 </div>
                 <div className="space-y-3"><Label className="text-sm font-medium">Rules</Label><div className="flex items-center gap-3"><Label className="text-sm">Max Nights per Week:</Label><Input type="number" value={p.preferences.rules.max_nights_per_week} onChange={(e) => p.setPreferences({ ...p.preferences, rules: { ...p.preferences.rules, max_nights_per_week: Number.parseInt(e.target.value) || 4 } })} className="w-20" min={0} max={7} data-testid="input-max-nights" /></div></div>
@@ -94,9 +111,13 @@ export function CrewScheduler() {
                       <div className="space-y-2">
                         <Select value={p.newPortCall.vesselId} onValueChange={(val) => p.setNewPortCall({ ...p.newPortCall, vesselId: val })}><SelectTrigger data-testid="select-port-vessel"><SelectValue placeholder="Select Vessel" /></SelectTrigger><SelectContent>{(p.vessels as Array<{id: string; name?: string}>).filter((v) => v.id?.trim()).map((v) => <SelectItem key={v.id} value={v.id}>{v.name || v.id}</SelectItem>)}</SelectContent></Select>
                         <Input placeholder="Port Name" value={p.newPortCall.port} onChange={(e) => p.setNewPortCall({ ...p.newPortCall, port: e.target.value })} data-testid="input-port-name" />
-                        <div className="grid grid-cols-2 gap-2"><Input type="datetime-local" value={p.newPortCall.start} onChange={(e) => p.setNewPortCall({ ...p.newPortCall, start: e.target.value })} data-testid="input-port-start" /><Input type="datetime-local" value={p.newPortCall.end} onChange={(e) => p.setNewPortCall({ ...p.newPortCall, end: e.target.value })} data-testid="input-port-end" /></div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1"><Label className="text-xs">Start</Label><Input type="datetime-local" value={p.newPortCall.start} onChange={(e) => p.setNewPortCall({ ...p.newPortCall, start: e.target.value })} data-testid="input-port-start" /></div>
+                          <div className="space-y-1"><Label className="text-xs">End</Label><Input type="datetime-local" value={p.newPortCall.end} onChange={(e) => p.setNewPortCall({ ...p.newPortCall, end: e.target.value })} min={p.newPortCall.start || undefined} data-testid="input-port-end" /></div>
+                        </div>
+                        {p.newPortCall.start && p.newPortCall.end && p.newPortCall.end < p.newPortCall.start && <p className="text-xs text-destructive">End date must be after start date</p>}
                         <Input type="number" placeholder="Crew Required" value={p.newPortCall.crewRequired} onChange={(e) => p.setNewPortCall({ ...p.newPortCall, crewRequired: Number.parseInt(e.target.value) || 2 })} data-testid="input-port-crew" />
-                        <Button onClick={p.handleAddPortCall} className="w-full" data-testid="button-add-port">Add Port Call</Button>
+                        <Button onClick={p.handleAddPortCall} className="w-full" disabled={!!(p.newPortCall.start && p.newPortCall.end && p.newPortCall.end < p.newPortCall.start)} data-testid="button-add-port">Add Port Call</Button>
                       </div>
                     </div>
                     <div><h4 className="font-medium mb-2">Existing Port Calls</h4><div className="space-y-2">{(p.allPortCalls as Array<{id: string; port: string; vesselId: string; start: string; end: string; crewRequired: number}>).map((port) => <div key={port.id} className="border rounded p-2"><div className="font-medium">{port.port}</div><div className="text-sm text-gray-600">{port.vesselId} • {new Date(port.start).toLocaleDateString()} - {new Date(port.end).toLocaleDateString()}</div><div className="text-sm">Crew: {port.crewRequired}</div></div>)}</div></div>
@@ -109,9 +130,13 @@ export function CrewScheduler() {
                       <div className="space-y-2">
                         <Select value={p.newDrydock.vesselId} onValueChange={(val) => p.setNewDrydock({ ...p.newDrydock, vesselId: val })}><SelectTrigger data-testid="select-drydock-vessel"><SelectValue placeholder="Select Vessel" /></SelectTrigger><SelectContent>{(p.vessels as Array<{id: string; name?: string}>).filter((v) => v.id?.trim()).map((v) => <SelectItem key={v.id} value={v.id}>{v.name || v.id}</SelectItem>)}</SelectContent></Select>
                         <Input placeholder="Description" value={p.newDrydock.description} onChange={(e) => p.setNewDrydock({ ...p.newDrydock, description: e.target.value })} data-testid="input-drydock-description" />
-                        <div className="grid grid-cols-2 gap-2"><Input type="datetime-local" value={p.newDrydock.start} onChange={(e) => p.setNewDrydock({ ...p.newDrydock, start: e.target.value })} data-testid="input-drydock-start" /><Input type="datetime-local" value={p.newDrydock.end} onChange={(e) => p.setNewDrydock({ ...p.newDrydock, end: e.target.value })} data-testid="input-drydock-end" /></div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1"><Label className="text-xs">Start</Label><Input type="datetime-local" value={p.newDrydock.start} onChange={(e) => p.setNewDrydock({ ...p.newDrydock, start: e.target.value })} data-testid="input-drydock-start" /></div>
+                          <div className="space-y-1"><Label className="text-xs">End</Label><Input type="datetime-local" value={p.newDrydock.end} onChange={(e) => p.setNewDrydock({ ...p.newDrydock, end: e.target.value })} min={p.newDrydock.start || undefined} data-testid="input-drydock-end" /></div>
+                        </div>
+                        {p.newDrydock.start && p.newDrydock.end && p.newDrydock.end < p.newDrydock.start && <p className="text-xs text-destructive">End date must be after start date</p>}
                         <Input type="number" placeholder="Crew Required" value={p.newDrydock.crewRequired} onChange={(e) => p.setNewDrydock({ ...p.newDrydock, crewRequired: Number.parseInt(e.target.value) || 5 })} data-testid="input-drydock-crew" />
-                        <Button onClick={p.handleAddDrydock} className="w-full" data-testid="button-add-drydock">Add Drydock Window</Button>
+                        <Button onClick={p.handleAddDrydock} className="w-full" disabled={!!(p.newDrydock.start && p.newDrydock.end && p.newDrydock.end < p.newDrydock.start)} data-testid="button-add-drydock">Add Drydock Window</Button>
                       </div>
                     </div>
                     <div><h4 className="font-medium mb-2">Existing Drydock Windows</h4><div className="space-y-2">{(p.allDrydockWindows as Array<{id: string; yard: string; vesselId: string; start: string; end: string; crewRequired: number}>).map((dd) => <div key={dd.id} className="border rounded p-2"><div className="font-medium">{dd.yard}</div><div className="text-sm text-gray-600">{dd.vesselId} • {new Date(dd.start).toLocaleDateString()} - {new Date(dd.end).toLocaleDateString()}</div><div className="text-sm">Crew: {dd.crewRequired}</div></div>)}</div></div>
@@ -143,7 +168,7 @@ export function CrewScheduler() {
                           <div className="grid grid-cols-3 gap-4">
                             <FormField control={p.shiftForm.control} name="start" render={({ field }) => (<FormItem><FormLabel>Start Time</FormLabel><FormControl><Input {...field} type="time" data-testid="input-shift-start" /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={p.shiftForm.control} name="end" render={({ field }) => (<FormItem><FormLabel>End Time</FormLabel><FormControl><Input {...field} type="time" data-testid="input-shift-end" /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={p.shiftForm.control} name="durationH" render={({ field }) => (<FormItem><FormLabel>Duration (Hours)</FormLabel><FormControl><Input {...field} type="number" min="0.5" max="24" step="0.5" data-testid="input-shift-duration" /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={p.shiftForm.control} name="durationH" render={({ field }) => (<FormItem><FormLabel>Duration (Hours)</FormLabel><FormControl><Input {...field} type="number" min="0.5" max="24" step="0.5" readOnly className="bg-muted" data-testid="input-shift-duration" /></FormControl><FormMessage><span className="text-xs text-muted-foreground">Auto-calculated from start/end</span></FormMessage></FormItem>)} />
                           </div>
                           <div className="grid grid-cols-2 gap-4">
                             <FormField control={p.shiftForm.control} name="requiredSkills" render={({ field }) => (<FormItem><FormLabel>Required Skills (Optional)</FormLabel><FormControl><Input {...field} data-testid="input-shift-skills" placeholder="e.g. watchkeeping, navigation" /></FormControl><FormMessage /></FormItem>)} />

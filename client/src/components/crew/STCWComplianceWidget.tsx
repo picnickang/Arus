@@ -137,7 +137,7 @@ export const STCWComplianceWidget = memo(function STCWComplianceWidget({ lookbac
         {sortedVessels.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-medium">Vessel Breakdown</h4>
-            <ScrollArea className="h-64" onTouchStart={() => {}}>
+            <ScrollArea className="h-64">
               <p className="text-xs text-muted-foreground mb-2 md:hidden">Swipe to scroll through vessels</p>
               <div className="space-y-1">
                 {sortedVessels.map((vessel) => (

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Anchor, X, GripHorizontal, Plus, Check, Pin } from "lucide-react";
 import { Link } from "wouter";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/context-menu";
 
 const DOCK_STORAGE_KEY = "arus-dock-items";
+const DOCK_TOOLTIP_DISMISSED_KEY = "arus-dock-tooltip-dismissed";
 const MAX_DOCK_ITEMS = 6;
 
 interface CategoryCardProps {
@@ -161,8 +162,14 @@ function Dock({ items, onRemoveItem }: { items: NavigationItem[]; onRemoveItem: 
 
 export default function HomePage() {
   const [dockItems, setDockItems] = useState<NavigationItem[]>([]);
+  const [tooltipDismissed, setTooltipDismissed] = useState(() => localStorage.getItem(DOCK_TOOLTIP_DISMISSED_KEY) === "true");
   const { toast } = useToast();
   
+  const dismissTooltip = useCallback(() => {
+    setTooltipDismissed(true);
+    localStorage.setItem(DOCK_TOOLTIP_DISMISSED_KEY, "true");
+  }, []);
+
   useEffect(() => {
     const saved = localStorage.getItem(DOCK_STORAGE_KEY);
     if (saved) {
@@ -263,11 +270,14 @@ export default function HomePage() {
 
       <Dock items={dockItems} onRemoveItem={removeFromDock} />
       
-      {dockItems.length === 0 && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
+      {dockItems.length === 0 && !tooltipDismissed && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50" data-testid="dock-onboarding-tooltip">
           <div className="flex items-center gap-2 px-4 py-2 bg-muted/80 backdrop-blur-sm rounded-full text-xs text-muted-foreground">
-            <GripHorizontal className="h-4 w-4" />
-            <span>Right-click any category to add to dock</span>
+            <Pin className="h-4 w-4" />
+            <span>Hover over a category and tap the pin icon to add to dock</span>
+            <button type="button" onClick={dismissTooltip} className="ml-1 hover:text-foreground transition-colors" aria-label="Dismiss tooltip" data-testid="button-dismiss-tooltip">
+              <X className="h-3.5 w-3.5" />
+            </button>
           </div>
         </div>
       )}

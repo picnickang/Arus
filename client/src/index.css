@@ -292,7 +292,8 @@
   }
 
   /* Safe area for notched devices */
-  .safe-bottom {
+  .safe-bottom,
+  .pb-safe {
     padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
   }
 

@@ -159,11 +159,13 @@ export function useShiftPlanning(): UseShiftPlanningReturn {
 
   const handleAddPortCall = () => {
     if (!newPortCall.vesselId || !newPortCall.port || !newPortCall.start || !newPortCall.end) { toast({ title: "Please fill all port call fields", variant: "destructive" }); return; }
+    if (newPortCall.end < newPortCall.start) { toast({ title: "Invalid date range", description: "End date must be after start date", variant: "destructive" }); return; }
     addPortCallMutation.mutate({ vesselId: newPortCall.vesselId, port: newPortCall.port, start: newPortCall.start, end: newPortCall.end });
   };
 
   const handleAddDrydock = () => {
     if (!newDrydock.vesselId || !newDrydock.description || !newDrydock.start || !newDrydock.end) { toast({ title: "Please fill all drydock fields", variant: "destructive" }); return; }
+    if (newDrydock.end < newDrydock.start) { toast({ title: "Invalid date range", description: "End date must be after start date", variant: "destructive" }); return; }
     addDrydockMutation.mutate({ vesselId: newDrydock.vesselId, yard: newDrydock.description, start: newDrydock.start, end: newDrydock.end });
   };
 
