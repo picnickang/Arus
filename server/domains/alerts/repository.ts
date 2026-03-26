@@ -61,8 +61,8 @@ export class AlertsRepository {
   /**
    * Get all alert notifications, optionally filtered by acknowledgment status
    */
-  async findAllNotifications(acknowledged?: boolean): Promise<AlertNotification[]> {
-    return storage.getAlertNotifications(acknowledged);
+  async findAllNotifications(acknowledged?: boolean, orgId?: string): Promise<AlertNotification[]> {
+    return storage.getAlertNotifications(acknowledged, orgId);
   }
 
   /**
@@ -119,8 +119,8 @@ export class AlertsRepository {
   /**
    * Get all active suppressions
    */
-  async findAllSuppressions(): Promise<AlertSuppression[]> {
-    return storage.getActiveSuppressions();
+  async findAllSuppressions(orgId?: string): Promise<AlertSuppression[]> {
+    return storage.getActiveSuppressions(orgId);
   }
 
   /**

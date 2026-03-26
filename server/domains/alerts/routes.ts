@@ -31,10 +31,11 @@ export function registerAlertsRoutes(
     "/api/alerts",
     generalApiRateLimit,
     withErrorHandling("fetch alerts", async (req: Request, res: Response) => {
+      const orgId = req.headers["x-org-id"] as string | undefined;
       const { acknowledged } = req.query;
       const ackParam =
         acknowledged === "true" ? true : acknowledged === "false" ? false : undefined;
-      const notifications = await alertsService.listNotifications(ackParam);
+      const notifications = await alertsService.listNotifications(ackParam, orgId);
       res.json(notifications);
     })
   );
@@ -110,10 +111,11 @@ export function registerAlertsRoutes(
     "/api/alerts/notifications",
     generalApiRateLimit,
     withErrorHandling("fetch alert notifications", async (req: Request, res: Response) => {
+      const orgId = req.headers["x-org-id"] as string | undefined;
       const { acknowledged } = req.query;
       const ackParam =
         acknowledged === "true" ? true : acknowledged === "false" ? false : undefined;
-      const notifications = await alertsService.listNotifications(ackParam);
+      const notifications = await alertsService.listNotifications(ackParam, orgId);
       res.json(notifications);
     })
   );
@@ -204,7 +206,8 @@ export function registerAlertsRoutes(
     "/api/alerts/suppressions",
     generalApiRateLimit,
     withErrorHandling("get suppressions", async (req: Request, res: Response) => {
-      const suppressions = await alertsService.listSuppressions();
+      const orgId = req.headers["x-org-id"] as string | undefined;
+      const suppressions = await alertsService.listSuppressions(orgId);
       res.json(suppressions);
     })
   );

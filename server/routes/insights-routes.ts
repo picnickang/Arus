@@ -21,6 +21,7 @@ const resolveInsightSchema = z.object({
 export function registerInsightsRoutes(app: Express) {
   app.get('/api/insights', async (req, res) => {
     try {
+      const orgId = req.headers["x-org-id"] as string | undefined;
       const { vesselId, equipmentId, severity, resolved, acknowledged } = req.query;
 
       let query = db
@@ -36,6 +37,10 @@ export function registerInsightsRoutes(app: Express) {
         .from(actionableInsights)
         .leftJoin(equipment, eq(actionableInsights.equipmentId, equipment.id))
         .$dynamic();
+
+      if (orgId) {
+        query = query.where(eq(actionableInsights.orgId, orgId));
+      }
 
       if (vesselId) {
         query = query.where(eq(actionableInsights.vesselId, vesselId as string));
@@ -81,10 +86,13 @@ export function registerInsightsRoutes(app: Express) {
   // to prevent "snapshots" from being treated as an ID parameter
   app.get('/api/insights/snapshots', async (req, res) => {
     try {
+      const orgId = req.headers["x-org-id"] as string | undefined;
       const { scope } = req.query;
-      // Query database directly since adapter method may not exist
       const { insightSnapshots } = await import('@shared/schema-runtime');
       let query = db.select().from(insightSnapshots).$dynamic();
+      if (orgId) {
+        query = query.where(eq(insightSnapshots.orgId, orgId));
+      }
       if (scope) {
         query = query.where(eq(insightSnapshots.scope, scope as string));
       }
@@ -115,7 +123,13 @@ export function registerInsightsRoutes(app: Express) {
 
   app.get('/api/insights/:id', async (req, res) => {
     try {
+      const orgId = req.headers["x-org-id"] as string | undefined;
       const { id } = req.params;
+
+      const conditions = [eq(actionableInsights.id, id)];
+      if (orgId) {
+        conditions.push(eq(actionableInsights.orgId, orgId));
+      }
 
       const [result] = await db
         .select({
@@ -129,7 +143,7 @@ export function registerInsightsRoutes(app: Express) {
         })
         .from(actionableInsights)
         .leftJoin(equipment, eq(actionableInsights.equipmentId, equipment.id))
-        .where(eq(actionableInsights.id, id))
+        .where(and(...conditions))
         .limit(1);
 
       if (!result) {
@@ -158,7 +172,10 @@ export function registerInsightsRoutes(app: Express) {
     try {
       const { equipmentId } = req.params;
       const { vesselId } = req.body;
-      const orgId = req.body.orgId || (req.headers["x-org-id"] as string) || "default-org";
+      const orgId = req.body.orgId || (req.headers["x-org-id"] as string);
+      if (!orgId) {
+        return res.status(400).json({ error: "Organization ID (x-org-id header) is required" });
+      }
 
       // Verify equipment exists
       const [equipmentRecord] = await db

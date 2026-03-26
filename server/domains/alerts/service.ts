@@ -103,8 +103,8 @@ export class AlertsService {
   /**
    * List all alert notifications
    */
-  async listNotifications(acknowledged?: boolean): Promise<AlertNotification[]> {
-    return alertsRepository.findAllNotifications(acknowledged);
+  async listNotifications(acknowledged?: boolean, orgId?: string): Promise<AlertNotification[]> {
+    return alertsRepository.findAllNotifications(acknowledged, orgId);
   }
 
   /**
@@ -215,8 +215,8 @@ export class AlertsService {
   /**
    * Get all active suppressions
    */
-  async listSuppressions(): Promise<AlertSuppression[]> {
-    return alertsRepository.findAllSuppressions();
+  async listSuppressions(orgId?: string): Promise<AlertSuppression[]> {
+    return alertsRepository.findAllSuppressions(orgId);
   }
 
   /**
