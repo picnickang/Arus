@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "gYZXfTISF4u_dwb1OUEtT"
+uri = "file://tauri-migration-review.md"
+type = "text"
+title = "Tauri v2 Migration — Complete Code Review Package"
