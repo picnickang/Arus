@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,21 @@ export function HoursOfRestGrid() {
 
   const cell = 18, hourW = 24, hdrH = 26;
   const hours = Array.from({ length: 24 }, (_, i) => i);
+
+  useEffect(() => {
+    if (saveStatus !== "unsaved") return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [saveStatus]);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 768px)");
+    if (mq.matches && viewMode !== "mobile") setViewMode("mobile");
+    const onChange = (e: MediaQueryListEvent) => { if (e.matches) setViewMode("mobile"); };
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -168,8 +184,8 @@ export function HoursOfRestGrid() {
                 <Button variant={viewMode === "mobile" ? "default" : "ghost"} size="sm" onClick={() => setViewMode("mobile")} data-testid="button-view-mobile"><Smartphone className="w-4 h-4 mr-1" />Mobile</Button>
               </div>
               <div className="flex items-center gap-1">
-                <Button variant="outline" size="sm" onClick={undo} disabled={historyIndex <= 0} title="Undo last change (Ctrl+Z)" data-testid="button-undo"><Undo className="w-4 h-4" /></Button>
-                <Button variant="outline" size="sm" onClick={redo} disabled={historyIndex >= history.length - 1} title="Redo last undone change (Ctrl+Y)" data-testid="button-redo"><Redo className="w-4 h-4" /></Button>
+                <Button variant="outline" size="sm" onClick={undo} disabled={historyIndex <= 0} title={historyIndex > 0 ? `Undo (${historyIndex} step${historyIndex !== 1 ? "s" : ""} available) — Ctrl+Z` : "Nothing to undo"} data-testid="button-undo"><Undo className="w-4 h-4" /></Button>
+                <Button variant="outline" size="sm" onClick={redo} disabled={historyIndex >= history.length - 1} title={historyIndex < history.length - 1 ? `Redo (${history.length - 1 - historyIndex} step${history.length - 1 - historyIndex !== 1 ? "s" : ""} available) — Ctrl+Y` : "Nothing to redo"} data-testid="button-redo"><Redo className="w-4 h-4" /></Button>
               </div>
             </div>
           </div>
