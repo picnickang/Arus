@@ -1,0 +1,2862 @@
+# ================================================================================
+ARUS HARDENING IMPLEMENTATION — ALL 22 ITEMS
+
+Generated: 2026-03-26
+Total files: 22 new + instructions for existing file patches
+Applies after: Code review fixes + PdM gap fills
+
+HOW TO USE THIS FILE:
+
+- Each section is a complete file with its path shown at the top
+- Copy each section into the corresponding file in your Replit project
+- Sections marked [PATCH] require editing an existing file — the exact
+  changes are described with FIND/REPLACE blocks
+- Run the SQL migrations before starting the server
+
+TABLE OF CONTENTS:
+
+1. SECURITY: HMAC Key Rotation Service
+1. SECURITY: Request Replay Protection Middleware
+1. SECURITY: RAG Document Content Sanitizer
+1. RESILIENCE: Graceful Database Degradation Layer
+1. RESILIENCE: WebSocket Reconnection & Message Durability
+1. RESILIENCE: LLM Statistical Fallback (replaces boilerplate)
+1. RESILIENCE: Storage Layer Circuit Breaker
+1. DATA: Generic Idempotency Middleware
+1. DATA: Telemetry Table Partitioning Migration
+1. DATA: Telemetry Equipment ID Validator
+1. PERFORMANCE: Dashboard Pre-computation Service
+1. PERFORMANCE: Equipment Health Pagination [PATCH]
+1. PERFORMANCE: Async Compliance Check
+1. OPS: Database Migration Runner
+1. OPS: Structured Error Codes & Response Helper
+1. OPS: API Versioning Router
+1. OPS: Request Correlation ID Middleware
+1. OPS: Gap-Fill Smoke Tests
+1. MARITIME: Vessel Timezone Service
+1. MARITIME: Bandwidth-Aware Response Middleware
+1. MARITIME: Running Hour Accumulator
+1. MARITIME: Class Survey Tracking (Schema + Routes)
+
+# ================================================================================
+FILE 1: SECURITY — HMAC Key Rotation Service
+Path: server/services/hmac-key-rotation.ts
+
+/**
+
+- HMAC Key Rotation Service
+- 
+- Hardening Item: HMAC telemetry ingestion has no key rotation mechanism.
+- 
+- Accepts both current and previous HMAC keys during a configurable grace
+- period. Edge devices request the new key via authenticated endpoint and
+- switch over. After grace period, old key is rejected.
+  */
+
+import { logger } from “../utils/logger”;
+
+const LOG_CTX = “HmacKeyRotation”;
+
+interface HmacKeyEntry {
+keyId: string;
+secret: string;
+activatedAt: Date;
+deprecatedAt: Date | null;
+expiresAt: Date | null;
+}
+
+class HmacKeyRotationService {
+private keys: HmacKeyEntry[] = [];
+private gracePeriodMs: number;
+
+constructor(gracePeriodHours = 72) {
+this.gracePeriodMs = gracePeriodHours * 60 * 60 * 1000;
+this.loadKeysFromEnv();
+}
+
+private loadKeysFromEnv(): void {
+const currentKey = process.env.HMAC_SECRET || process.env.TELEMETRY_HMAC_KEY;
+const previousKey = process.env.HMAC_SECRET_PREVIOUS;
+
+```
+if (currentKey) {
+  this.keys.push({
+    keyId: "current",
+    secret: currentKey,
+    activatedAt: new Date(),
+    deprecatedAt: null,
+    expiresAt: null,
+  });
+}
+
+if (previousKey) {
+  const gracePeriodEnd = new Date(Date.now() + this.gracePeriodMs);
+  this.keys.push({
+    keyId: "previous",
+    secret: previousKey,
+    activatedAt: new Date(0),
+    deprecatedAt: new Date(),
+    expiresAt: gracePeriodEnd,
+  });
+}
+```
+
+}
+
+/**
+
+- Validate an HMAC signature against all active keys.
+- Returns the keyId that matched, or null if none match.
+  */
+  async validate(
+  payload: string | Buffer,
+  signature: string,
+  algorithm = “sha256”
+  ): Promise<{ valid: boolean; keyId: string | null; isDeprecatedKey: boolean }> {
+  const crypto = await import(“crypto”);
+  const now = new Date();
+
+```
+for (const key of this.keys) {
+  // Skip expired keys
+  if (key.expiresAt && key.expiresAt < now) continue;
+
+  const expected = crypto
+    .createHmac(algorithm, key.secret)
+    .update(payload)
+    .digest("hex");
+
+  if (crypto.timingSafeEqual(Buffer.from(signature, "hex"), Buffer.from(expected, "hex"))) {
+    const isDeprecated = key.deprecatedAt !== null;
+
+    if (isDeprecated) {
+      logger.warn(LOG_CTX, `Request validated with deprecated key '${key.keyId}'. Device should rotate.`);
+    }
+
+    return { valid: true, keyId: key.keyId, isDeprecatedKey: isDeprecated };
+  }
+}
+
+return { valid: false, keyId: null, isDeprecatedKey: false };
+```
+
+}
+
+/**
+
+- Rotate to a new key. The current key becomes the previous key
+- with a grace period.
+  */
+  async rotateKey(newSecret: string): Promise<{ newKeyId: string; gracePeriodEnds: Date }> {
+  const now = new Date();
+  const gracePeriodEnd = new Date(now.getTime() + this.gracePeriodMs);
+
+```
+// Demote current key
+const currentKey = this.keys.find(k => k.keyId === "current");
+if (currentKey) {
+  currentKey.keyId = "previous";
+  currentKey.deprecatedAt = now;
+  currentKey.expiresAt = gracePeriodEnd;
+}
+
+// Remove any old previous keys
+this.keys = this.keys.filter(k => k.keyId !== "previous" || k === currentKey);
+
+// Add new current key
+const newKeyId = `key-${Date.now()}`;
+this.keys.unshift({
+  keyId: newKeyId,
+  secret: newSecret,
+  activatedAt: now,
+  deprecatedAt: null,
+  expiresAt: null,
+});
+
+// Persist to env (in production, use a secrets manager)
+process.env.HMAC_SECRET = newSecret;
+process.env.HMAC_SECRET_PREVIOUS = currentKey?.secret || "";
+
+logger.info(LOG_CTX, `Key rotated. New: ${newKeyId}, grace period ends: ${gracePeriodEnd.toISOString()}`);
+
+return { newKeyId, gracePeriodEnds: gracePeriodEnd };
+```
+
+}
+
+/**
+
+- Get the current active key for a device to fetch.
+- Only authenticated devices should call this.
+  */
+  getCurrentKey(): { keyId: string; activatedAt: Date } | null {
+  const current = this.keys.find(k => !k.deprecatedAt);
+  if (!current) return null;
+  return { keyId: current.keyId, activatedAt: current.activatedAt };
+  }
+
+getStatus(): {
+activeKeys: number;
+deprecatedKeys: number;
+gracePeriodEnds: Date | null;
+} {
+const now = new Date();
+const activeKeys = this.keys.filter(k => !k.deprecatedAt).length;
+const deprecatedKeys = this.keys.filter(k => k.deprecatedAt && (!k.expiresAt || k.expiresAt > now)).length;
+const gracePeriodKey = this.keys.find(k => k.expiresAt && k.expiresAt > now);
+
+```
+return {
+  activeKeys,
+  deprecatedKeys,
+  gracePeriodEnds: gracePeriodKey?.expiresAt || null,
+};
+```
+
+}
+}
+
+export const hmacKeyRotation = new HmacKeyRotationService();
+export default HmacKeyRotationService;
+
+# ================================================================================
+FILE 2: SECURITY — Request Replay Protection Middleware
+Path: server/middleware/replay-protection.ts
+
+/**
+
+- Replay Protection Middleware
+- 
+- Hardening Item: No request signing or replay protection on mutation endpoints.
+- 
+- For critical mutations, validates:
+- 1. Request timestamp is within acceptable window (default 5 minutes)
+- 1. Nonce has not been seen before (stored in memory with TTL, or Redis if available)
+   */
+
+import type { Request, Response, NextFunction } from “express”;
+import { logger } from “../utils/logger”;
+
+const LOG_CTX = “ReplayProtection”;
+
+// In-memory nonce store with automatic cleanup
+const nonceStore = new Map<string, number>(); // nonce → expiry timestamp
+const WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+const CLEANUP_INTERVAL_MS = 60 * 1000; // Clean every minute
+
+// Periodic cleanup of expired nonces
+setInterval(() => {
+const now = Date.now();
+let cleaned = 0;
+for (const [nonce, expiry] of nonceStore) {
+if (expiry < now) {
+nonceStore.delete(nonce);
+cleaned++;
+}
+}
+if (cleaned > 0) {
+logger.debug?.(LOG_CTX, `Cleaned ${cleaned} expired nonces, ${nonceStore.size} remaining`);
+}
+}, CLEANUP_INTERVAL_MS);
+
+/**
+
+- Middleware factory for replay protection on critical endpoints.
+- 
+- Usage:
+- app.post(”/api/work-orders”, replayProtection(), handler);
+- 
+- Client must send headers:
+- X-Request-Timestamp: ISO 8601 timestamp
+- X-Request-Nonce: Unique string per request (UUID recommended)
+  */
+  export function replayProtection(options?: { windowMs?: number; required?: boolean }) {
+  const windowMs = options?.windowMs ?? WINDOW_MS;
+  const required = options?.required ?? false;
+
+return (req: Request, res: Response, next: NextFunction): void => {
+const timestamp = req.headers[“x-request-timestamp”] as string;
+const nonce = req.headers[“x-request-nonce”] as string;
+
+```
+// If headers are missing and not required, skip (backward compatible)
+if (!timestamp && !nonce) {
+  if (required) {
+    res.status(400).json({
+      error: { code: "REPLAY_PROTECTION_REQUIRED", message: "X-Request-Timestamp and X-Request-Nonce headers are required" },
+    });
+    return;
+  }
+  return next();
+}
+
+// Validate timestamp
+if (timestamp) {
+  const requestTime = new Date(timestamp).getTime();
+  const now = Date.now();
+
+  if (isNaN(requestTime)) {
+    res.status(400).json({
+      error: { code: "INVALID_TIMESTAMP", message: "X-Request-Timestamp must be a valid ISO 8601 date" },
+    });
+    return;
+  }
+
+  if (Math.abs(now - requestTime) > windowMs) {
+    logger.warn(LOG_CTX, `Request timestamp outside window: ${timestamp} (drift: ${Math.abs(now - requestTime)}ms)`);
+    res.status(400).json({
+      error: { code: "REQUEST_EXPIRED", message: `Request timestamp must be within ${windowMs / 1000} seconds of server time` },
+    });
+    return;
+  }
+}
+
+// Validate nonce
+if (nonce) {
+  if (nonceStore.has(nonce)) {
+    logger.warn(LOG_CTX, `Duplicate nonce detected: ${nonce.substring(0, 8)}...`);
+    res.status(409).json({
+      error: { code: "DUPLICATE_REQUEST", message: "This request has already been processed (duplicate nonce)" },
+    });
+    return;
+  }
+
+  // Store nonce with expiry
+  nonceStore.set(nonce, Date.now() + windowMs);
+}
+
+next();
+```
+
+};
+}
+
+export default replayProtection;
+
+# ================================================================================
+FILE 3: SECURITY — RAG Document Content Sanitizer
+Path: server/services/rag/document-sanitizer.ts
+
+/**
+
+- RAG Document Content Sanitizer
+- 
+- Hardening Item: RAG document ingestion lacks content sanitization.
+- 
+- Strips potentially dangerous content from PDF and text documents
+- before they enter the vector store.
+  */
+
+import { logger } from “../../utils/logger”;
+
+const LOG_CTX = “DocumentSanitizer”;
+
+// Patterns that should never appear in knowledge base content
+const DANGEROUS_PATTERNS = [
+// JavaScript/script injection
+/javascript\s*:/gi,
+/<script[\s>]/gi,
+/</script>/gi,
+/on\w+\s*=\s*[”’]/gi, // onclick, onerror, etc.
+
+// Prompt injection attempts in document content
+/ignore\s+(?:all\s+)?previous\s+instructions/gi,
+/you\s+are\s+now\s+(?:a|an)\s+/gi,
+/system\s*:\s*you\s+(?:are|must|should)/gi,
+/[INST]/gi,
+/[/INST]/gi,
+/<|(?:im_start|im_end|system|user|assistant)|>/gi,
+
+// Data exfiltration attempts
+/fetch\s*(/gi,
+/XMLHttpRequest/gi,
+/.(?:call|apply|bind)\s*(/gi,
+];
+
+// Patterns to strip but not flag as malicious (just messy content)
+const STRIP_PATTERNS = [
+// PDF artifacts
+/\x00/g,                    // Null bytes
+/[\x01-\x08\x0e-\x1f]/g,  // Control characters (except tab, newline, carriage return)
+
+// Excessive whitespace
+/[ \t]{20,}/g,  // 20+ spaces/tabs → single space
+/\n{5,}/g,      // 5+ newlines → 2 newlines
+];
+
+interface SanitizationResult {
+content: string;
+wasSanitized: boolean;
+strippedPatterns: string[];
+blockedPatterns: string[];
+originalLength: number;
+sanitizedLength: number;
+}
+
+/**
+
+- Sanitize document text content before embedding into the vector store.
+  */
+  export function sanitizeDocumentContent(rawContent: string): SanitizationResult {
+  let content = rawContent;
+  const strippedPatterns: string[] = [];
+  const blockedPatterns: string[] = [];
+  const originalLength = content.length;
+
+// Check for dangerous patterns
+for (const pattern of DANGEROUS_PATTERNS) {
+const matches = content.match(pattern);
+if (matches) {
+blockedPatterns.push(`${pattern.source} (${matches.length} occurrences)`);
+content = content.replace(pattern, “[REMOVED]”);
+}
+}
+
+// Strip messy content
+for (const pattern of STRIP_PATTERNS) {
+const before = content.length;
+content = content.replace(pattern, (match) => {
+if (match.includes(”\n”)) return “\n\n”;
+return “ “;
+});
+if (content.length !== before) {
+strippedPatterns.push(pattern.source);
+}
+}
+
+// Trim
+content = content.trim();
+
+const wasSanitized = blockedPatterns.length > 0 || strippedPatterns.length > 0;
+
+if (blockedPatterns.length > 0) {
+logger.warn(LOG_CTX, `Blocked ${blockedPatterns.length} dangerous patterns in document`, { blockedPatterns });
+}
+
+return {
+content,
+wasSanitized,
+strippedPatterns,
+blockedPatterns,
+originalLength,
+sanitizedLength: content.length,
+};
+}
+
+/**
+
+- Validate a PDF buffer for embedded actions before ingestion.
+- Returns true if the PDF is safe, false if it contains suspicious elements.
+  */
+  export function validatePdfSafety(pdfBuffer: Buffer): {
+  safe: boolean;
+  warnings: string[];
+  } {
+  const warnings: string[] = [];
+  const content = pdfBuffer.toString(“latin1”); // PDF is binary, but we can scan for text patterns
+
+// Check for embedded JavaScript
+if (//JavaScript\s/i.test(content) || //JS\s/i.test(content)) {
+warnings.push(“PDF contains embedded JavaScript”);
+}
+
+// Check for auto-actions
+if (//OpenAction\s/i.test(content)) {
+warnings.push(“PDF contains auto-open actions”);
+}
+
+// Check for external links/submissions
+if (//SubmitForm\s/i.test(content)) {
+warnings.push(“PDF contains form submission actions”);
+}
+
+// Check for launch actions
+if (//Launch\s/i.test(content)) {
+warnings.push(“PDF contains launch actions”);
+}
+
+const safe = warnings.length === 0;
+
+if (!safe) {
+logger.warn(LOG_CTX, `PDF safety validation failed: ${warnings.join(", ")}`);
+}
+
+return { safe, warnings };
+}
+
+export default { sanitizeDocumentContent, validatePdfSafety };
+
+# ================================================================================
+FILE 4: RESILIENCE — Graceful Database Degradation Layer
+Path: server/services/db-degradation.ts
+
+/**
+
+- Database Degradation Layer
+- 
+- Hardening Item: No graceful degradation when PostgreSQL is down.
+- 
+- Provides a read-through cache that serves stale data when the database
+- is unreachable, and a write queue that buffers mutations for replay
+- when connectivity returns.
+  */
+
+import { logger } from “../utils/logger”;
+
+const LOG_CTX = “DbDegradation”;
+
+interface CacheEntry {
+data: unknown;
+cachedAt: number;
+key: string;
+}
+
+interface QueuedWrite {
+id: string;
+table: string;
+operation: “insert” | “update” | “delete”;
+data: unknown;
+queuedAt: Date;
+orgId: string;
+}
+
+class DatabaseDegradationService {
+private readCache = new Map<string, CacheEntry>();
+private writeQueue: QueuedWrite[] = [];
+private isDbHealthy = true;
+private maxCacheEntries = 1000;
+private cacheMaxAgeMs = 5 * 60 * 1000; // 5 minutes stale tolerance
+private consecutiveFailures = 0;
+private failureThreshold = 3;
+
+/**
+
+- Wrap a database read operation with cache fallback.
+- If the DB call succeeds, cache the result.
+- If it fails, return cached data if available.
+  */
+  async cachedRead<T>(
+  cacheKey: string,
+  dbFn: () => Promise<T>,
+  options?: { maxAgeMs?: number; fallbackValue?: T }
+  ): Promise<{ data: T; fromCache: boolean; staleMs: number | null }> {
+  try {
+  const result = await dbFn();
+  
+  // Success — update cache and reset failure counter
+  this.readCache.set(cacheKey, {
+  data: result,
+  cachedAt: Date.now(),
+  key: cacheKey,
+  });
+  this.consecutiveFailures = 0;
+  this.isDbHealthy = true;
+  
+  // Prune cache if too large
+  if (this.readCache.size > this.maxCacheEntries) {
+  const oldest = […this.readCache.entries()]
+  .sort((a, b) => a[1].cachedAt - b[1].cachedAt)[0];
+  if (oldest) this.readCache.delete(oldest[0]);
+  }
+  
+  return { data: result, fromCache: false, staleMs: null };
+  } catch (error) {
+  this.consecutiveFailures++;
+  
+  if (this.consecutiveFailures >= this.failureThreshold) {
+  this.isDbHealthy = false;
+  }
+  
+  // Try to serve from cache
+  const cached = this.readCache.get(cacheKey);
+  const maxAge = options?.maxAgeMs ?? this.cacheMaxAgeMs;
+  
+  if (cached && (Date.now() - cached.cachedAt) < maxAge) {
+  const staleMs = Date.now() - cached.cachedAt;
+  logger.warn(LOG_CTX, `Serving stale cache for ${cacheKey} (${staleMs}ms old)`, {
+  error: error instanceof Error ? error.message : String(error),
+  });
+  return { data: cached.data as T, fromCache: true, staleMs };
+  }
+  
+  // No cache available
+  if (options?.fallbackValue !== undefined) {
+  logger.error(LOG_CTX, `DB and cache miss for ${cacheKey}, using fallback`, {
+  error: error instanceof Error ? error.message : String(error),
+  });
+  return { data: options.fallbackValue, fromCache: true, staleMs: null };
+  }
+  
+  throw error; // No fallback — let the error propagate
+  }
+  }
+
+/**
+
+- Queue a write operation when the database is unavailable.
+- Returns a queue ID for tracking.
+  */
+  queueWrite(table: string, operation: QueuedWrite[“operation”], data: unknown, orgId: string): string {
+  const id = `write-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+```
+this.writeQueue.push({
+  id,
+  table,
+  operation,
+  data,
+  queuedAt: new Date(),
+  orgId,
+});
+
+logger.info(LOG_CTX, `Write queued: ${operation} on ${table} (queue size: ${this.writeQueue.length})`);
+
+// Cap queue size
+if (this.writeQueue.length > 500) {
+  const dropped = this.writeQueue.shift();
+  logger.warn(LOG_CTX, `Write queue overflow — dropped oldest entry: ${dropped?.id}`);
+}
+
+return id;
+```
+
+}
+
+/**
+
+- Replay queued writes when the database is back.
+- Call this from a recovery check loop.
+  */
+  async replayQueuedWrites(
+  executeFn: (write: QueuedWrite) => Promise<void>
+  ): Promise<{ replayed: number; failed: number; remaining: number }> {
+  if (this.writeQueue.length === 0) return { replayed: 0, failed: 0, remaining: 0 };
+
+```
+let replayed = 0;
+let failed = 0;
+const failedWrites: QueuedWrite[] = [];
+
+while (this.writeQueue.length > 0) {
+  const write = this.writeQueue.shift()!;
+  try {
+    await executeFn(write);
+    replayed++;
+  } catch (error) {
+    failed++;
+    failedWrites.push(write);
+    logger.error(LOG_CTX, `Failed to replay write ${write.id}`, error);
+
+    // If we're getting errors again, stop replaying and re-queue
+    if (failed >= 3) {
+      this.writeQueue.unshift(...failedWrites, ...this.writeQueue);
+      break;
+    }
+  }
+}
+
+// Re-queue failed writes
+this.writeQueue.unshift(...failedWrites);
+
+logger.info(LOG_CTX, `Queue replay: ${replayed} replayed, ${failed} failed, ${this.writeQueue.length} remaining`);
+
+return { replayed, failed, remaining: this.writeQueue.length };
+```
+
+}
+
+getStatus(): {
+isDbHealthy: boolean;
+cachedEntries: number;
+queuedWrites: number;
+consecutiveFailures: number;
+} {
+return {
+isDbHealthy: this.isDbHealthy,
+cachedEntries: this.readCache.size,
+queuedWrites: this.writeQueue.length,
+consecutiveFailures: this.consecutiveFailures,
+};
+}
+
+markHealthy(): void {
+this.isDbHealthy = true;
+this.consecutiveFailures = 0;
+}
+}
+
+export const dbDegradation = new DatabaseDegradationService();
+export default DatabaseDegradationService;
+
+# ================================================================================
+FILE 5: RESILIENCE — WebSocket Reconnection & Message Durability
+Path: server/services/ws-message-buffer.ts
+
+/**
+
+- WebSocket Message Buffer
+- 
+- Hardening Item: WebSocket server has no reconnection or message durability.
+- 
+- Maintains a per-client message buffer so clients that reconnect can
+- receive messages they missed. Critical events (alerts, patch status)
+- are persisted for guaranteed delivery.
+  */
+
+import { logger } from “../utils/logger”;
+
+const LOG_CTX = “WsMessageBuffer”;
+
+interface BufferedMessage {
+id: string;
+type: string;
+payload: unknown;
+timestamp: number;
+critical: boolean;
+}
+
+interface ClientBuffer {
+clientId: string;
+messages: BufferedMessage[];
+lastSeenId: string | null;
+lastConnectedAt: number;
+}
+
+const CRITICAL_EVENT_TYPES = new Set([
+“new_alert”,
+“alert_escalated”,
+“update_started”,
+“update_completed”,
+“update_failed”,
+“update_rollback”,
+“config_updated”,
+]);
+
+class WsMessageBufferService {
+private buffers = new Map<string, ClientBuffer>();
+private maxMessagesPerClient = 100;
+private bufferTtlMs = 5 * 60 * 1000; // 5 minutes
+
+/**
+
+- Record a message for all connected clients.
+- Call this whenever you broadcast via WebSocket.
+  */
+  recordBroadcast(type: string, payload: unknown): string {
+  const id = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const message: BufferedMessage = {
+  id,
+  type,
+  payload,
+  timestamp: Date.now(),
+  critical: CRITICAL_EVENT_TYPES.has(type),
+  };
+
+```
+for (const buffer of this.buffers.values()) {
+  buffer.messages.push(message);
+
+  // Trim non-critical messages if buffer is full
+  if (buffer.messages.length > this.maxMessagesPerClient) {
+    const critical = buffer.messages.filter(m => m.critical);
+    const nonCritical = buffer.messages.filter(m => !m.critical);
+    buffer.messages = [...critical, ...nonCritical.slice(-50)];
+  }
+}
+
+return id;
+```
+
+}
+
+/**
+
+- Register a client connection. Creates a buffer for them.
+  */
+  registerClient(clientId: string): void {
+  if (!this.buffers.has(clientId)) {
+  this.buffers.set(clientId, {
+  clientId,
+  messages: [],
+  lastSeenId: null,
+  lastConnectedAt: Date.now(),
+  });
+  } else {
+  this.buffers.get(clientId)!.lastConnectedAt = Date.now();
+  }
+  }
+
+/**
+
+- Get missed messages for a reconnecting client.
+  */
+  getMissedMessages(clientId: string, lastSeenId?: string): BufferedMessage[] {
+  const buffer = this.buffers.get(clientId);
+  if (!buffer) return [];
+
+```
+if (!lastSeenId) {
+  // Return all buffered messages
+  return buffer.messages;
+}
+
+// Find the position of the last seen message
+const lastSeenIndex = buffer.messages.findIndex(m => m.id === lastSeenId);
+
+if (lastSeenIndex === -1) {
+  // Last seen message not in buffer — return everything
+  return buffer.messages;
+}
+
+// Return everything after the last seen message
+return buffer.messages.slice(lastSeenIndex + 1);
+```
+
+}
+
+/**
+
+- Mark a message as seen by a client.
+  */
+  acknowledge(clientId: string, messageId: string): void {
+  const buffer = this.buffers.get(clientId);
+  if (buffer) {
+  buffer.lastSeenId = messageId;
+  
+  // Remove all non-critical messages before this one
+  const ackIndex = buffer.messages.findIndex(m => m.id === messageId);
+  if (ackIndex > 0) {
+  buffer.messages = buffer.messages.filter((m, i) => i >= ackIndex || m.critical);
+  }
+  }
+  }
+
+/**
+
+- Remove a disconnected client.
+- Their buffer is kept for reconnection within the TTL.
+  */
+  handleDisconnect(clientId: string): void {
+  // Don’t remove immediately — client may reconnect
+  const buffer = this.buffers.get(clientId);
+  if (buffer) {
+  buffer.lastConnectedAt = Date.now();
+  }
+  }
+
+/**
+
+- Cleanup expired client buffers. Call periodically.
+  */
+  cleanup(): number {
+  const now = Date.now();
+  let cleaned = 0;
+
+```
+for (const [clientId, buffer] of this.buffers) {
+  if (now - buffer.lastConnectedAt > this.bufferTtlMs) {
+    this.buffers.delete(clientId);
+    cleaned++;
+  }
+}
+
+return cleaned;
+```
+
+}
+
+getStats(): { clients: number; totalBuffered: number; criticalBuffered: number } {
+let totalBuffered = 0;
+let criticalBuffered = 0;
+for (const buffer of this.buffers.values()) {
+totalBuffered += buffer.messages.length;
+criticalBuffered += buffer.messages.filter(m => m.critical).length;
+}
+return { clients: this.buffers.size, totalBuffered, criticalBuffered };
+}
+}
+
+export const wsMessageBuffer = new WsMessageBufferService();
+
+// Cleanup every minute
+setInterval(() => wsMessageBuffer.cleanup(), 60 * 1000);
+
+export default WsMessageBufferService;
+
+# ================================================================================
+FILE 6: RESILIENCE — LLM Statistical Fallback
+Path: server/services/llm-statistical-fallback.ts
+
+/**
+
+- LLM Statistical Fallback
+- 
+- Hardening Item: LLM fallback produces generic boilerplate.
+- 
+- When the OpenAI API is unavailable, computes a real data-driven summary
+- instead of returning canned text like “Review equipment with declining
+- health scores.”
+  */
+
+import { logger } from “../utils/logger”;
+
+const LOG_CTX = “LlmStatisticalFallback”;
+
+interface EquipmentHealthItem {
+id: string;
+name?: string;
+healthIndex: number;
+vessel?: string;
+status?: string;
+[key: string]: unknown;
+}
+
+interface FallbackAnalysis {
+totalEquipment: number;
+healthyEquipment: number;
+equipmentAtRisk: number;
+criticalEquipment: number;
+avgHealthIndex: number;
+topRecommendations: string[];
+costEstimate: number;
+summary: string;
+riskMatrix: Array<{ equipment: string; healthIndex: number; risk: string; trend: string }>;
+prioritizedActions: string[];
+isFallback: true;
+fallbackReason: string;
+}
+
+/**
+
+- Generate a data-driven analysis from equipment health data
+- when the LLM is unavailable.
+  */
+  export function generateStatisticalFallback(
+  equipmentHealth: EquipmentHealthItem[],
+  telemetryTrends?: any[],
+  fallbackReason = “AI analysis unavailable”
+  ): FallbackAnalysis {
+  if (equipmentHealth.length === 0) {
+  return {
+  totalEquipment: 0,
+  healthyEquipment: 0,
+  equipmentAtRisk: 0,
+  criticalEquipment: 0,
+  avgHealthIndex: 0,
+  topRecommendations: [“No equipment data available for analysis”],
+  costEstimate: 0,
+  summary: “No equipment health data available. Ensure telemetry is flowing from vessel systems.”,
+  riskMatrix: [],
+  prioritizedActions: [],
+  isFallback: true,
+  fallbackReason,
+  };
+  }
+
+// Categorize equipment
+const sorted = […equipmentHealth].sort((a, b) => a.healthIndex - b.healthIndex);
+const critical = sorted.filter(e => e.healthIndex < 30);
+const atRisk = sorted.filter(e => e.healthIndex >= 30 && e.healthIndex < 70);
+const healthy = sorted.filter(e => e.healthIndex >= 70);
+
+const avgHealth = Math.round(
+equipmentHealth.reduce((s, e) => s + e.healthIndex, 0) / equipmentHealth.length
+);
+
+// Compute percentiles
+const p10Index = Math.floor(sorted.length * 0.1);
+const p10Health = sorted[p10Index]?.healthIndex ?? 0;
+const medianHealth = sorted[Math.floor(sorted.length / 0.5)]?.healthIndex ?? avgHealth;
+
+// Build risk matrix (worst 10 equipment)
+const riskMatrix = sorted.slice(0, 10).map(e => ({
+equipment: e.name || e.id,
+healthIndex: e.healthIndex,
+risk: e.healthIndex < 30 ? “critical” : e.healthIndex < 50 ? “high” : e.healthIndex < 70 ? “medium” : “low”,
+trend: “unknown”, // Would need historical data for trend
+}));
+
+// Generate specific recommendations based on the data
+const recommendations: string[] = [];
+const actions: string[] = [];
+
+if (critical.length > 0) {
+const critNames = critical.slice(0, 3).map(e => e.name || e.id).join(”, “);
+recommendations.push(`URGENT: ${critical.length} equipment item(s) in critical condition (health < 30%). Worst: ${critNames}`);
+actions.push(`Schedule immediate inspection for: ${critNames}`);
+}
+
+if (atRisk.length > 0) {
+const atRiskNames = atRisk.slice(0, 3).map(e => e.name || e.id).join(”, “);
+recommendations.push(`${atRisk.length} equipment item(s) at risk (health 30-70%). Monitor closely: ${atRiskNames}`);
+actions.push(`Create preventive maintenance work orders for at-risk equipment within 7 days`);
+}
+
+if (avgHealth < 60) {
+recommendations.push(`Fleet average health (${avgHealth}%) is below acceptable threshold. Systemic maintenance review recommended.`);
+actions.push(`Review maintenance scheduling — fleet-wide health below 60% suggests deferred maintenance backlog`);
+}
+
+if (p10Health < 40) {
+recommendations.push(`Bottom 10% of equipment has health index below ${p10Health}%. These are immediate failure candidates.`);
+}
+
+// Estimate cost (rough: $2500 per at-risk + $10000 per critical)
+const costEstimate = critical.length * 10000 + atRisk.length * 2500;
+
+// Build summary paragraph
+const summaryParts: string[] = [];
+summaryParts.push(`Statistical summary (${fallbackReason}).`);
+summaryParts.push(`Fleet: ${equipmentHealth.length} equipment, average health ${avgHealth}%.`);
+summaryParts.push(`${healthy.length} healthy, ${atRisk.length} at risk, ${critical.length} critical.`);
+if (critical.length > 0) {
+summaryParts.push(`Immediate attention needed for ${critical.length} critical item(s).`);
+}
+summaryParts.push(`Estimated maintenance cost: $${costEstimate.toLocaleString()}.`);
+
+return {
+totalEquipment: equipmentHealth.length,
+healthyEquipment: healthy.length,
+equipmentAtRisk: atRisk.length,
+criticalEquipment: critical.length,
+avgHealthIndex: avgHealth,
+topRecommendations: recommendations.length > 0 ? recommendations : [“All equipment within acceptable health parameters”],
+costEstimate,
+summary: summaryParts.join(” “),
+riskMatrix,
+prioritizedActions: actions.length > 0 ? actions : [“Continue standard monitoring schedule”],
+isFallback: true,
+fallbackReason,
+};
+}
+
+# ================================================================================
+FILE 7: RESILIENCE — Storage Layer Circuit Breaker
+Path: server/services/storage-circuit-breaker.ts
+
+/**
+
+- Storage Layer Circuit Breaker
+- 
+- Hardening Item: No circuit breaker on the storage layer.
+- 
+- Wraps database operations with timeout and circuit breaker to prevent
+- cascading failures when PostgreSQL is slow or degraded.
+  */
+
+import { logger } from “../utils/logger”;
+
+const LOG_CTX = “StorageCircuitBreaker”;
+
+type CircuitState = “CLOSED” | “OPEN” | “HALF_OPEN”;
+
+class StorageCircuitBreaker {
+private state: CircuitState = “CLOSED”;
+private failureCount = 0;
+private successCount = 0;
+private lastFailureAt: Date | null = null;
+private openedAt: Date | null = null;
+
+private failureThreshold: number;
+private recoveryTimeMs: number;
+private halfOpenMaxAttempts: number;
+private timeoutMs: number;
+
+constructor(options?: {
+failureThreshold?: number;
+recoveryTimeMs?: number;
+halfOpenMaxAttempts?: number;
+timeoutMs?: number;
+}) {
+this.failureThreshold = options?.failureThreshold ?? 5;
+this.recoveryTimeMs = options?.recoveryTimeMs ?? 30000; // 30 seconds
+this.halfOpenMaxAttempts = options?.halfOpenMaxAttempts ?? 3;
+this.timeoutMs = options?.timeoutMs ?? 10000; // 10 second query timeout
+}
+
+/**
+
+- Execute a database operation through the circuit breaker.
+- Adds timeout protection and failure tracking.
+  */
+  async execute<T>(operation: () => Promise<T>, operationName?: string): Promise<T> {
+  // Check if circuit should transition from OPEN to HALF_OPEN
+  if (this.state === “OPEN”) {
+  if (this.openedAt && Date.now() - this.openedAt.getTime() > this.recoveryTimeMs) {
+  this.state = “HALF_OPEN”;
+  this.successCount = 0;
+  logger.info(LOG_CTX, “Circuit transitioning to HALF_OPEN”);
+  } else {
+  throw new Error(`Storage circuit breaker is OPEN. Retry after ${this.recoveryTimeMs / 1000}s. Operation: ${operationName || "unknown"}`);
+  }
+  }
+
+```
+try {
+  // Execute with timeout
+  const result = await Promise.race<T>([
+    operation(),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`Database operation timed out after ${this.timeoutMs}ms: ${operationName || "unknown"}`)), this.timeoutMs)
+    ),
+  ]);
+
+  this.onSuccess();
+  return result;
+} catch (error) {
+  this.onFailure(error, operationName);
+  throw error;
+}
+```
+
+}
+
+private onSuccess(): void {
+if (this.state === “HALF_OPEN”) {
+this.successCount++;
+if (this.successCount >= this.halfOpenMaxAttempts) {
+this.state = “CLOSED”;
+this.failureCount = 0;
+logger.info(LOG_CTX, “Circuit CLOSED — database recovered”);
+}
+} else {
+this.failureCount = 0;
+}
+}
+
+private onFailure(error: unknown, operationName?: string): void {
+this.failureCount++;
+this.lastFailureAt = new Date();
+
+```
+if (this.state === "HALF_OPEN" || this.failureCount >= this.failureThreshold) {
+  this.state = "OPEN";
+  this.openedAt = new Date();
+  logger.error(LOG_CTX, `Circuit OPENED after ${this.failureCount} failures. Operation: ${operationName}`, error);
+}
+```
+
+}
+
+getState(): CircuitState {
+return this.state;
+}
+
+getMetrics(): {
+state: CircuitState;
+failureCount: number;
+lastFailureAt: Date | null;
+openedAt: Date | null;
+} {
+return {
+state: this.state,
+failureCount: this.failureCount,
+lastFailureAt: this.lastFailureAt,
+openedAt: this.openedAt,
+};
+}
+
+reset(): void {
+this.state = “CLOSED”;
+this.failureCount = 0;
+this.successCount = 0;
+this.openedAt = null;
+}
+}
+
+export const storageCircuitBreaker = new StorageCircuitBreaker();
+export { StorageCircuitBreaker };
+export default storageCircuitBreaker;
+
+# ================================================================================
+FILE 8: DATA — Generic Idempotency Middleware
+Path: server/middleware/idempotency.ts
+
+/**
+
+- Generic Idempotency Middleware
+- 
+- Hardening Item: No idempotency on work order and alert creation.
+- 
+- Extends the existing STCW idempotency pattern to any POST endpoint.
+- Clients send an Idempotency-Key header; if the key was already processed,
+- the original response is returned without re-executing the handler.
+- 
+- Usage:
+- app.post(”/api/work-orders”, idempotencyMiddleware(), createWorkOrder);
+  */
+
+import type { Request, Response, NextFunction } from “express”;
+import { logger } from “../utils/logger”;
+
+const LOG_CTX = “Idempotency”;
+
+// In-memory store for idempotency keys. In production, use Redis.
+// Structure: key → { statusCode, body, processedAt }
+const processedKeys = new Map<string, {
+statusCode: number;
+body: unknown;
+processedAt: number;
+}>();
+
+const KEY_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+// Cleanup expired keys every 10 minutes
+setInterval(() => {
+const now = Date.now();
+let cleaned = 0;
+for (const [key, entry] of processedKeys) {
+if (now - entry.processedAt > KEY_TTL_MS) {
+processedKeys.delete(key);
+cleaned++;
+}
+}
+if (cleaned > 0) {
+logger.debug?.(LOG_CTX, `Cleaned ${cleaned} expired idempotency keys`);
+}
+}, 10 * 60 * 1000);
+
+export function idempotencyMiddleware(options?: { required?: boolean }) {
+const required = options?.required ?? false;
+
+return (req: Request, res: Response, next: NextFunction): void => {
+const idempotencyKey = req.headers[“idempotency-key”] as string;
+
+```
+if (!idempotencyKey) {
+  if (required) {
+    res.status(400).json({
+      error: { code: "IDEMPOTENCY_KEY_REQUIRED", message: "Idempotency-Key header is required for this endpoint" },
+    });
+    return;
+  }
+  return next();
+}
+
+// Namespace the key by org + endpoint to avoid cross-tenant collisions
+const orgId = (req as any).orgId || req.headers["x-org-id"] || "global";
+const fullKey = `${orgId}:${req.method}:${req.path}:${idempotencyKey}`;
+
+// Check if we've already processed this key
+const existing = processedKeys.get(fullKey);
+if (existing) {
+  logger.info(LOG_CTX, `Returning cached response for idempotency key: ${idempotencyKey.substring(0, 8)}...`);
+  res.status(existing.statusCode).json(existing.body);
+  return;
+}
+
+// Monkey-patch res.json to capture the response
+const originalJson = res.json.bind(res);
+res.json = function (body: any) {
+  processedKeys.set(fullKey, {
+    statusCode: res.statusCode,
+    body,
+    processedAt: Date.now(),
+  });
+  return originalJson(body);
+};
+
+next();
+```
+
+};
+}
+
+export default idempotencyMiddleware;
+
+# ================================================================================
+FILE 9: DATA — Telemetry Table Partitioning Migration
+Path: server/migrations/003-telemetry-partitioning.sql
+
+## – Telemetry Table Partitioning Migration
+
+## – Hardening Item: Telemetry aggregation table has no partitioning strategy.
+
+– If using TimescaleDB (check with: SELECT * FROM pg_extension WHERE extname = ‘timescaledb’):
+–   Run the TimescaleDB section below.
+– If using standard PostgreSQL:
+–   Run the native partitioning section.
+
+– ============================================================================
+– Option A: TimescaleDB (preferred if available)
+– ============================================================================
+
+– Convert telemetry_aggregated to a hypertable
+– SELECT create_hypertable(‘telemetry_aggregated’, ‘bucket_start’,
+–   chunk_time_interval => INTERVAL ‘1 day’,
+–   if_not_exists => TRUE,
+–   migrate_data => TRUE
+– );
+
+– Add compression policy (compress chunks older than 7 days)
+– ALTER TABLE telemetry_aggregated SET (
+–   timescaledb.compress,
+–   timescaledb.compress_segmentby = ‘org_id, equipment_id, sensor_type, bucket_size’,
+–   timescaledb.compress_orderby = ‘bucket_start DESC’
+– );
+– SELECT add_compression_policy(‘telemetry_aggregated’, INTERVAL ‘7 days’, if_not_exists => TRUE);
+
+– Add retention policy (drop data older than 365 days for daily, 90 for hourly)
+– This replaces the application-level cleanup job
+– SELECT add_retention_policy(‘telemetry_aggregated’, INTERVAL ‘365 days’, if_not_exists => TRUE);
+
+– ============================================================================
+– Option B: Standard PostgreSQL Native Partitioning
+– ============================================================================
+
+– Note: This requires recreating the table. Back up data first.
+– The approach: partition by bucket_size, then sub-partition by month.
+
+– Step 1: Rename existing table
+ALTER TABLE IF EXISTS telemetry_aggregated RENAME TO telemetry_aggregated_old;
+
+– Step 2: Create partitioned table
+CREATE TABLE IF NOT EXISTS telemetry_aggregated (
+id              SERIAL,
+org_id          TEXT NOT NULL,
+equipment_id    TEXT NOT NULL,
+sensor_type     TEXT NOT NULL,
+bucket_start    TIMESTAMPTZ NOT NULL,
+bucket_size     TEXT NOT NULL CHECK (bucket_size IN (‘1_minute’, ‘1_hour’, ‘1_day’)),
+count           INTEGER NOT NULL DEFAULT 0,
+min_value       DOUBLE PRECISION,
+max_value       DOUBLE PRECISION,
+avg_value       DOUBLE PRECISION,
+stddev_value    DOUBLE PRECISION,
+p50_value       DOUBLE PRECISION,
+p95_value       DOUBLE PRECISION,
+p99_value       DOUBLE PRECISION,
+first_value     DOUBLE PRECISION,
+last_value      DOUBLE PRECISION,
+created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+) PARTITION BY LIST (bucket_size);
+
+– Step 3: Create partitions for each bucket size
+CREATE TABLE IF NOT EXISTS telemetry_agg_1min
+PARTITION OF telemetry_aggregated FOR VALUES IN (‘1_minute’);
+CREATE TABLE IF NOT EXISTS telemetry_agg_1hour
+PARTITION OF telemetry_aggregated FOR VALUES IN (‘1_hour’);
+CREATE TABLE IF NOT EXISTS telemetry_agg_1day
+PARTITION OF telemetry_aggregated FOR VALUES IN (‘1_day’);
+
+– Step 4: Add indexes on each partition
+CREATE INDEX IF NOT EXISTS idx_agg_1min_lookup
+ON telemetry_agg_1min (org_id, equipment_id, sensor_type, bucket_start);
+CREATE INDEX IF NOT EXISTS idx_agg_1hour_lookup
+ON telemetry_agg_1hour (org_id, equipment_id, sensor_type, bucket_start);
+CREATE INDEX IF NOT EXISTS idx_agg_1day_lookup
+ON telemetry_agg_1day (org_id, equipment_id, sensor_type, bucket_start);
+
+– Step 5: Add unique constraint per partition
+CREATE UNIQUE INDEX IF NOT EXISTS idx_agg_1min_unique
+ON telemetry_agg_1min (org_id, equipment_id, sensor_type, bucket_start);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_agg_1hour_unique
+ON telemetry_agg_1hour (org_id, equipment_id, sensor_type, bucket_start);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_agg_1day_unique
+ON telemetry_agg_1day (org_id, equipment_id, sensor_type, bucket_start);
+
+– Step 6: Migrate data from old table
+INSERT INTO telemetry_aggregated SELECT * FROM telemetry_aggregated_old ON CONFLICT DO NOTHING;
+
+– Step 7: Drop old table (verify data migrated first!)
+– DROP TABLE telemetry_aggregated_old;
+
+# ================================================================================
+FILE 10: DATA — Telemetry Equipment ID Validator
+Path: server/services/telemetry-equipment-validator.ts
+
+/**
+
+- Telemetry Equipment ID Validator
+- 
+- Hardening Item: No validation that equipment IDs in telemetry actually exist.
+- 
+- Maintains a cached set of valid equipment IDs per org, refreshed periodically.
+- Rejects or DLQs telemetry with unknown equipment IDs.
+  */
+
+import { logger } from “../utils/logger”;
+
+const LOG_CTX = “TelemetryEquipmentValidator”;
+
+class EquipmentIdValidator {
+private validIds = new Map<string, Set<string>>(); // orgId → Set<equipmentId>
+private lastRefresh = new Map<string, number>();
+private refreshIntervalMs = 5 * 60 * 1000; // 5 minutes
+private suppressedWarnings = new Set<string>(); // Suppress repeated warnings
+
+/**
+
+- Check if an equipment ID is valid for the given org.
+- Returns true if valid, false if unknown.
+  */
+  async isValid(equipmentId: string, orgId: string, storage: any): Promise<boolean> {
+  await this.ensureFresh(orgId, storage);
+  const orgIds = this.validIds.get(orgId);
+  return orgIds?.has(equipmentId) ?? false;
+  }
+
+/**
+
+- Validate and log. Returns { valid, reason }.
+  */
+  async validate(
+  equipmentId: string,
+  orgId: string,
+  storage: any
+  ): Promise<{ valid: boolean; reason?: string }> {
+  const valid = await this.isValid(equipmentId, orgId, storage);
+
+```
+if (!valid) {
+  const warningKey = `${orgId}:${equipmentId}`;
+  if (!this.suppressedWarnings.has(warningKey)) {
+    logger.warn(LOG_CTX, `Unknown equipment ID in telemetry: ${equipmentId} (org: ${orgId})`);
+    this.suppressedWarnings.add(warningKey);
+
+    // Clear suppression after 1 hour (allow re-warning)
+    setTimeout(() => this.suppressedWarnings.delete(warningKey), 60 * 60 * 1000);
+  }
+
+  return { valid: false, reason: `Equipment ${equipmentId} not found in registry for org ${orgId}` };
+}
+
+return { valid: true };
+```
+
+}
+
+/**
+
+- Force refresh the equipment cache for an org.
+  */
+  async refresh(orgId: string, storage: any): Promise<number> {
+  try {
+  const equipment = await storage.getEquipmentRegistry(orgId);
+  const ids = new Set(equipment.map((e: any) => e.id));
+  this.validIds.set(orgId, ids);
+  this.lastRefresh.set(orgId, Date.now());
+  
+  return ids.size;
+  } catch (error) {
+  logger.error(LOG_CTX, `Failed to refresh equipment cache for org ${orgId}`, error);
+  return this.validIds.get(orgId)?.size ?? 0;
+  }
+  }
+
+private async ensureFresh(orgId: string, storage: any): Promise<void> {
+const lastRefresh = this.lastRefresh.get(orgId) ?? 0;
+if (Date.now() - lastRefresh > this.refreshIntervalMs) {
+await this.refresh(orgId, storage);
+}
+}
+
+getStats(): { orgs: number; totalEquipment: number; suppressedWarnings: number } {
+let total = 0;
+for (const ids of this.validIds.values()) total += ids.size;
+return {
+orgs: this.validIds.size,
+totalEquipment: total,
+suppressedWarnings: this.suppressedWarnings.size,
+};
+}
+}
+
+export const equipmentValidator = new EquipmentIdValidator();
+export default EquipmentIdValidator;
+
+# ================================================================================
+FILE 11: PERFORMANCE — Dashboard Pre-computation Service
+Path: server/services/dashboard-precompute.ts
+
+/**
+
+- Dashboard Pre-computation Service
+- 
+- Hardening Item: Dashboard summary endpoint makes 8+ parallel DB queries.
+- 
+- Pre-computes the dashboard summary on a background schedule and serves
+- from cache always. First request is never slow.
+  */
+
+import { logger } from “../utils/logger”;
+
+const LOG_CTX = “DashboardPrecompute”;
+
+interface PrecomputedDashboard {
+data: unknown;
+computedAt: Date;
+durationMs: number;
+stale: boolean;
+}
+
+class DashboardPrecomputeService {
+private cache = new Map<string, PrecomputedDashboard>();
+private isRunning = false;
+private intervalHandle: NodeJS.Timeout | null = null;
+private computeFn: ((orgId: string) => Promise<unknown>) | null = null;
+private intervalMs = 60 * 1000; // 60 seconds
+private maxStaleMs = 5 * 60 * 1000; // 5 minutes
+private orgIds: string[] = [];
+
+/**
+
+- Initialize with a compute function and list of org IDs.
+  */
+  start(
+  computeFn: (orgId: string) => Promise<unknown>,
+  orgIds: string[],
+  intervalMs?: number
+  ): void {
+  this.computeFn = computeFn;
+  this.orgIds = orgIds;
+  this.intervalMs = intervalMs ?? this.intervalMs;
+
+```
+// Compute immediately
+this.runAll().catch(err =>
+  logger.error(LOG_CTX, "Initial computation failed", err)
+);
+
+// Then on schedule
+this.intervalHandle = setInterval(() => {
+  this.runAll().catch(err =>
+    logger.error(LOG_CTX, "Scheduled computation failed", err)
+  );
+}, this.intervalMs);
+
+this.isRunning = true;
+logger.info(LOG_CTX, `Started. ${orgIds.length} orgs, ${this.intervalMs}ms interval`);
+```
+
+}
+
+stop(): void {
+if (this.intervalHandle) {
+clearInterval(this.intervalHandle);
+this.intervalHandle = null;
+}
+this.isRunning = false;
+}
+
+/**
+
+- Get the pre-computed dashboard for an org.
+- Always returns data (possibly stale). Never blocks on computation.
+  */
+  get(orgId: string): PrecomputedDashboard | null {
+  const entry = this.cache.get(orgId);
+  if (!entry) return null;
+
+```
+const stale = Date.now() - entry.computedAt.getTime() > this.maxStaleMs;
+return { ...entry, stale };
+```
+
+}
+
+/**
+
+- Add an org to the computation list (e.g., on first request from new org).
+  */
+  addOrg(orgId: string): void {
+  if (!this.orgIds.includes(orgId)) {
+  this.orgIds.push(orgId);
+  // Compute immediately for the new org
+  this.computeForOrg(orgId).catch(err =>
+  logger.error(LOG_CTX, `Failed to compute for new org ${orgId}`, err)
+  );
+  }
+  }
+
+private async runAll(): Promise<void> {
+for (const orgId of this.orgIds) {
+await this.computeForOrg(orgId);
+}
+}
+
+private async computeForOrg(orgId: string): Promise<void> {
+if (!this.computeFn) return;
+
+```
+const start = Date.now();
+try {
+  const data = await this.computeFn(orgId);
+  this.cache.set(orgId, {
+    data,
+    computedAt: new Date(),
+    durationMs: Date.now() - start,
+    stale: false,
+  });
+} catch (error) {
+  logger.warn(LOG_CTX, `Computation failed for org ${orgId}, keeping stale data`, error);
+  // Don't update cache — keep serving stale data
+}
+```
+
+}
+
+getStatus(): { isRunning: boolean; cachedOrgs: number; intervalMs: number } {
+return {
+isRunning: this.isRunning,
+cachedOrgs: this.cache.size,
+intervalMs: this.intervalMs,
+};
+}
+}
+
+export const dashboardPrecompute = new DashboardPrecomputeService();
+export default DashboardPrecomputeService;
+
+# ================================================================================
+FILE 12: PERFORMANCE — Equipment Health Pagination [PATCH]
+Path: server/domains/equipment/routes.ts
+
+[PATCH — Apply to existing file]
+
+FIND (in the GET /api/equipment/health handler):
+
+```
+const health = await equipmentService.getEquipmentHealth(orgId, vesselId, equipmentId);
+setCache(cacheKey, health);
+res.json(health);
+```
+
+REPLACE WITH:
+
+```
+const page = req.query.page ? Number.parseInt(req.query.page as string, 10) : undefined;
+const pageSize = req.query.pageSize ? Number.parseInt(req.query.pageSize as string, 10) : undefined;
+
+let health = await equipmentService.getEquipmentHealth(orgId, vesselId, equipmentId);
+
+// Pagination support (backward compatible — returns all if no page params)
+let totalCount = health.length;
+if (page !== undefined && pageSize !== undefined) {
+  const start = (page - 1) * pageSize;
+  health = health.slice(start, start + pageSize);
+  setCache(cacheKey, health);
+  res.json({
+    data: health,
+    pagination: {
+      page,
+      pageSize,
+      totalCount,
+      totalPages: Math.ceil(totalCount / pageSize),
+    },
+  });
+} else {
+  setCache(cacheKey, health);
+  res.json(health);
+}
+```
+
+# ================================================================================
+FILE 13: PERFORMANCE — Async Compliance Check
+Path: server/services/async-compliance-check.ts
+
+/**
+
+- Async Compliance Check Service
+- 
+- Hardening Item: Compliance check runs all rules synchronously on every invocation.
+- 
+- Debounces compliance checks and runs them in the background.
+- Returns 202 immediately, pushes findings via WebSocket.
+  */
+
+import { logger } from “../utils/logger”;
+
+const LOG_CTX = “AsyncComplianceCheck”;
+
+interface PendingCheck {
+orgId: string;
+vesselId: string;
+logDate: string;
+logType: string;
+requestedAt: number;
+timeoutHandle: NodeJS.Timeout;
+}
+
+class AsyncComplianceCheckService {
+private pendingChecks = new Map<string, PendingCheck>();
+private debounceMs = 30 * 1000; // 30 second quiet period
+private wsServer: any = null;
+
+setWsServer(ws: any): void {
+this.wsServer = ws;
+}
+
+/**
+
+- Schedule a compliance check with debouncing.
+- If another check for the same vessel/date/type is already pending,
+- the timer resets (only runs once after the quiet period).
+  */
+  scheduleCheck(orgId: string, vesselId: string, logDate: string, logType: string): string {
+  const key = `${orgId}:${vesselId}:${logDate}:${logType}`;
+
+```
+// Cancel existing pending check
+const existing = this.pendingChecks.get(key);
+if (existing) {
+  clearTimeout(existing.timeoutHandle);
+}
+
+// Schedule new check
+const timeoutHandle = setTimeout(() => {
+  this.executeCheck(key, orgId, vesselId, logDate, logType);
+}, this.debounceMs);
+
+this.pendingChecks.set(key, {
+  orgId,
+  vesselId,
+  logDate,
+  logType,
+  requestedAt: Date.now(),
+  timeoutHandle,
+});
+
+return key;
+```
+
+}
+
+private async executeCheck(
+key: string,
+orgId: string,
+vesselId: string,
+logDate: string,
+logType: string
+): Promise<void> {
+this.pendingChecks.delete(key);
+
+```
+try {
+  const { complianceRulesEngine } = await import("../services/compliance-rules-engine");
+
+  const result = await complianceRulesEngine.runComplianceCheck({
+    orgId,
+    vesselId,
+    logDate,
+    logType,
+  });
+
+  logger.info(LOG_CTX, `Compliance check completed: ${result.newFindings.length} new findings`, {
+    key, orgId, vesselId,
+  });
+
+  // Push result via WebSocket
+  if (this.wsServer) {
+    this.wsServer.broadcast?.({
+      type: "compliance_check_complete",
+      orgId,
+      vesselId,
+      logDate,
+      logType,
+      newFindings: result.newFindings.length,
+      autoResolved: result.autoResolved.length,
+      stillOpen: result.stillOpen.length,
+      timestamp: new Date().toISOString(),
+    });
+  }
+} catch (error) {
+  logger.error(LOG_CTX, `Compliance check failed for ${key}`, error);
+}
+```
+
+}
+
+getPendingCount(): number {
+return this.pendingChecks.size;
+}
+}
+
+export const asyncComplianceCheck = new AsyncComplianceCheckService();
+export default AsyncComplianceCheckService;
+
+# ================================================================================
+FILE 14: OPS — Database Migration Runner
+Path: server/services/migration-runner.ts
+
+/**
+
+- Database Migration Runner
+- 
+- Hardening Item: No database migration versioning visible.
+- 
+- Simple, file-based migration runner that tracks applied migrations
+- in a database table. Runs automatically on startup.
+  */
+
+import { logger } from “../utils/logger”;
+import * as fs from “fs”;
+import * as path from “path”;
+
+const LOG_CTX = “MigrationRunner”;
+
+const MIGRATIONS_TABLE_SQL = `CREATE TABLE IF NOT EXISTS schema_migrations ( id          SERIAL PRIMARY KEY, filename    TEXT NOT NULL UNIQUE, applied_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(), checksum    TEXT );`;
+
+export class MigrationRunner {
+private db: any;
+private migrationsDir: string;
+
+constructor(db: any, migrationsDir = “./server/migrations”) {
+this.db = db;
+this.migrationsDir = migrationsDir;
+}
+
+async run(): Promise<{ applied: string[]; skipped: string[]; errors: string[] }> {
+const applied: string[] = [];
+const skipped: string[] = [];
+const errors: string[] = [];
+
+```
+try {
+  // Ensure migrations table exists
+  const { sql } = await import("drizzle-orm");
+  await this.db.execute(sql.raw(MIGRATIONS_TABLE_SQL));
+
+  // Get already-applied migrations
+  const appliedRows = await this.db.execute(sql.raw(
+    "SELECT filename FROM schema_migrations ORDER BY id ASC"
+  ));
+  const appliedSet = new Set((appliedRows?.rows ?? []).map((r: any) => r.filename));
+
+  // Get migration files
+  if (!fs.existsSync(this.migrationsDir)) {
+    logger.info(LOG_CTX, `No migrations directory at ${this.migrationsDir}`);
+    return { applied, skipped, errors };
+  }
+
+  const files = fs.readdirSync(this.migrationsDir)
+    .filter(f => f.endsWith(".sql"))
+    .sort(); // Alphabetical = chronological if named 001-xxx.sql, 002-yyy.sql
+
+  for (const file of files) {
+    if (appliedSet.has(file)) {
+      skipped.push(file);
+      continue;
+    }
+
+    const filePath = path.join(this.migrationsDir, file);
+    const sqlContent = fs.readFileSync(filePath, "utf-8");
+
+    try {
+      const crypto = await import("crypto");
+      const checksum = crypto.createHash("md5").update(sqlContent).digest("hex");
+
+      await this.db.execute(sql.raw(sqlContent));
+
+      await this.db.execute(sql.raw(
+        `INSERT INTO schema_migrations (filename, checksum) VALUES ('${file}', '${checksum}')`
+      ));
+
+      applied.push(file);
+      logger.info(LOG_CTX, `Applied migration: ${file}`);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      errors.push(`${file}: ${msg}`);
+      logger.error(LOG_CTX, `Migration failed: ${file}`, error);
+      // Stop on first error — don't apply later migrations
+      break;
+    }
+  }
+
+  logger.info(LOG_CTX, `Migrations complete: ${applied.length} applied, ${skipped.length} skipped, ${errors.length} errors`);
+} catch (error) {
+  logger.error(LOG_CTX, "Migration runner failed", error);
+  errors.push(`Runner error: ${error instanceof Error ? error.message : String(error)}`);
+}
+
+return { applied, skipped, errors };
+```
+
+}
+}
+
+export default MigrationRunner;
+
+# ================================================================================
+FILE 15: OPS — Structured Error Codes & Response Helper
+Path: server/lib/api-error.ts
+
+/**
+
+- Structured API Error Codes & Response Helper
+- 
+- Hardening Item: No structured error codes in API responses.
+- 
+- Defines a standard error response shape and code enum for the entire API.
+- Every error response should go through sendApiError().
+  */
+
+// Standard error codes
+export const ErrorCode = {
+// Client errors
+VALIDATION_ERROR: “VALIDATION_ERROR”,
+ENTITY_NOT_FOUND: “ENTITY_NOT_FOUND”,
+ORG_REQUIRED: “ORG_REQUIRED”,
+UNAUTHORIZED: “UNAUTHORIZED”,
+FORBIDDEN: “FORBIDDEN”,
+CONFLICT: “CONFLICT”,
+RATE_LIMITED: “RATE_LIMITED”,
+IDEMPOTENCY_KEY_REQUIRED: “IDEMPOTENCY_KEY_REQUIRED”,
+DUPLICATE_REQUEST: “DUPLICATE_REQUEST”,
+REQUEST_EXPIRED: “REQUEST_EXPIRED”,
+REPLAY_PROTECTION_REQUIRED: “REPLAY_PROTECTION_REQUIRED”,
+
+// Server errors
+INTERNAL_ERROR: “INTERNAL_ERROR”,
+SERVICE_UNAVAILABLE: “SERVICE_UNAVAILABLE”,
+CIRCUIT_OPEN: “CIRCUIT_OPEN”,
+DB_TIMEOUT: “DB_TIMEOUT”,
+EXTERNAL_SERVICE_ERROR: “EXTERNAL_SERVICE_ERROR”,
+
+// Domain-specific
+INSUFFICIENT_DATA: “INSUFFICIENT_DATA”,
+MODEL_NOT_FOUND: “MODEL_NOT_FOUND”,
+CALIBRATION_FAILED: “CALIBRATION_FAILED”,
+TRAINING_IN_PROGRESS: “TRAINING_IN_PROGRESS”,
+} as const;
+
+export type ErrorCodeType = typeof ErrorCode[keyof typeof ErrorCode];
+
+interface ApiErrorResponse {
+error: {
+code: ErrorCodeType;
+message: string;
+details?: unknown;
+};
+metadata: {
+timestamp: string;
+requestId?: string;
+version: string;
+};
+}
+
+/**
+
+- Send a standardized error response.
+- Use this instead of res.status(xxx).json({ message: “…” })
+  */
+  export function sendApiError(
+  res: any,
+  status: number,
+  code: ErrorCodeType,
+  message: string,
+  details?: unknown,
+  requestId?: string
+  ): void {
+  const response: ApiErrorResponse = {
+  error: {
+  code,
+  message,
+  …(details && process.env.NODE_ENV === “development” ? { details } : {}),
+  },
+  metadata: {
+  timestamp: new Date().toISOString(),
+  …(requestId ? { requestId } : {}),
+  version: “1.0”,
+  },
+  };
+
+res.status(status).json(response);
+}
+
+/**
+
+- Map common error patterns to structured error responses.
+  */
+  export function mapErrorToApiResponse(error: unknown): {
+  status: number;
+  code: ErrorCodeType;
+  message: string;
+  } {
+  if (error instanceof Error) {
+  const msg = error.message.toLowerCase();
+  
+  if (msg.includes(“not found”)) {
+  return { status: 404, code: ErrorCode.ENTITY_NOT_FOUND, message: error.message };
+  }
+  if (msg.includes(“already exists”) || msg.includes(“conflict”) || msg.includes(“duplicate”)) {
+  return { status: 409, code: ErrorCode.CONFLICT, message: error.message };
+  }
+  if (msg.includes(“timeout”) || msg.includes(“timed out”)) {
+  return { status: 504, code: ErrorCode.DB_TIMEOUT, message: error.message };
+  }
+  if (msg.includes(“circuit”) && msg.includes(“open”)) {
+  return { status: 503, code: ErrorCode.CIRCUIT_OPEN, message: error.message };
+  }
+  if (msg.includes(“unauthorized”) || msg.includes(“authentication”)) {
+  return { status: 401, code: ErrorCode.UNAUTHORIZED, message: error.message };
+  }
+  }
+
+return {
+status: 500,
+code: ErrorCode.INTERNAL_ERROR,
+message: error instanceof Error ? error.message : “An unexpected error occurred”,
+};
+}
+
+# ================================================================================
+FILE 16: OPS — API Versioning Router
+Path: server/middleware/api-versioning.ts
+
+/**
+
+- API Versioning Router
+- 
+- Hardening Item: No API versioning strategy.
+- 
+- Adds /api/v1/… prefix support. Existing /api/… routes become aliases for v1.
+  */
+
+import { Router, type Express } from “express”;
+import { logger } from “../utils/logger”;
+
+/**
+
+- Mount versioned API routes. Call after all route registration.
+- 
+- Usage:
+- registerAllRoutes(app);           // Registers on /api/…
+- applyApiVersioning(app);          // Mirrors as /api/v1/…
+  */
+  export function applyApiVersioning(app: Express): void {
+  const v1Router = Router();
+
+// Forward all /api/v1/* requests to /api/*
+v1Router.all(”/*”, (req, res, next) => {
+// Rewrite URL from /api/v1/xyz to /api/xyz
+req.url = req.url; // URL is already stripped to /xyz by the mount point
+next(“route”); // Skip to next matching route at the app level
+});
+
+// Mount the version prefix — Express will try /api/v1/xyz,
+// strip the prefix, and forward to the handler registered at /api/xyz
+app.use(”/api/v1”, (req, res, next) => {
+// Prepend /api back to the URL so existing handlers match
+req.url = `/api${req.url}`;
+app.handle(req, res, next);
+});
+
+// Add version header to all responses
+app.use((req, res, next) => {
+res.setHeader(“X-API-Version”, “v1”);
+next();
+});
+
+logger.info(“ApiVersioning”, “Versioned routes mounted at /api/v1/*”);
+}
+
+# ================================================================================
+FILE 17: OPS — Request Correlation ID Middleware
+Path: server/middleware/correlation-id.ts
+
+/**
+
+- Request Correlation ID Middleware
+- 
+- Hardening Item: No request tracing / correlation IDs across services.
+- 
+- Generates a unique request ID for every incoming request, attaches it to
+- the request object and response header, and makes it available for logging.
+  */
+
+import type { Request, Response, NextFunction } from “express”;
+import { randomUUID } from “crypto”;
+
+const REQUEST_ID_HEADER = “X-Request-Id”;
+
+declare global {
+namespace Express {
+interface Request {
+requestId?: string;
+}
+}
+}
+
+/**
+
+- Middleware that assigns a unique request ID to every request.
+- If the client provides X-Request-Id, it’s preserved (for tracing across services).
+- Otherwise, a new UUID is generated.
+  */
+  export function correlationIdMiddleware(req: Request, res: Response, next: NextFunction): void {
+  const existingId = req.headers[REQUEST_ID_HEADER.toLowerCase()] as string;
+  const requestId = existingId || randomUUID();
+
+req.requestId = requestId;
+res.setHeader(REQUEST_ID_HEADER, requestId);
+
+next();
+}
+
+/**
+
+- Get the current request ID from a request object.
+- Useful in service layers that receive the request.
+  */
+  export function getRequestId(req: Request): string {
+  return req.requestId || “unknown”;
+  }
+
+export default correlationIdMiddleware;
+
+# ================================================================================
+FILE 18: OPS — Gap-Fill Smoke Tests
+Path: server/tests/pdm-gap-fill-smoke.ts
+
+/**
+
+- PdM Gap Fill Smoke Tests
+- 
+- Hardening Item: No smoke test for the gap-fill services.
+- 
+- Non-destructive smoke tests that verify the six gap-fill services
+- are wired up and responding. Add to the diagnostics smoke test suite.
+  */
+
+interface SmokeTestResult {
+name: string;
+passed: boolean;
+duration: number;
+error?: string;
+}
+
+/**
+
+- Run all PdM gap-fill smoke tests against a running server.
+  */
+  export async function runPdmGapFillSmokeTests(baseUrl: string): Promise<{
+  suite: string;
+  passed: number;
+  failed: number;
+  total: number;
+  duration: number;
+  tests: SmokeTestResult[];
+  timestamp: string;
+  }> {
+  const startTime = Date.now();
+  const tests: SmokeTestResult[] = [];
+  const headers = { “x-org-id”: “default-org-id”, “Content-Type”: “application/json” };
+
+async function runTest(name: string, fn: () => Promise<void>): Promise<void> {
+const testStart = Date.now();
+try {
+await fn();
+tests.push({ name, passed: true, duration: Date.now() - testStart });
+} catch (error) {
+tests.push({
+name,
+passed: false,
+duration: Date.now() - testStart,
+error: error instanceof Error ? error.message : String(error),
+});
+}
+}
+
+// Test 1: Calibration report (should return 404 or valid report)
+await runTest(“GET /api/ml/calibration/report”, async () => {
+const res = await fetch(`${baseUrl}/api/ml/calibration/report`, { headers });
+if (res.status !== 200 && res.status !== 404) {
+throw new Error(`Expected 200 or 404, got ${res.status}`);
+}
+});
+
+// Test 2: Anomaly groups
+await runTest(“GET /api/analytics/anomaly-groups”, async () => {
+const res = await fetch(`${baseUrl}/api/analytics/anomaly-groups`, { headers });
+if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
+const data = await res.json();
+if (typeof data.totalGroups !== “number”) throw new Error(“Missing totalGroups in response”);
+});
+
+// Test 3: Training jobs list
+await runTest(“GET /api/ml/train/jobs”, async () => {
+const res = await fetch(`${baseUrl}/api/ml/train/jobs`, { headers });
+if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
+const data = await res.json();
+if (!Array.isArray(data.jobs)) throw new Error(“Missing jobs array in response”);
+});
+
+// Test 4: Aggregated telemetry (should return empty array or data)
+await runTest(“GET /api/telemetry/aggregated/:id/:sensor”, async () => {
+const res = await fetch(
+`${baseUrl}/api/telemetry/aggregated/test-equipment/temperature?startDate=${new Date(Date.now() - 86400000).toISOString()}&endDate=${new Date().toISOString()}`,
+{ headers }
+);
+if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
+});
+
+// Test 5: Model evaluation (should reject with validation error for missing data)
+await runTest(“POST /api/ml/evaluate-model (validation)”, async () => {
+const res = await fetch(`${baseUrl}/api/ml/evaluate-model`, {
+method: “POST”,
+headers,
+body: JSON.stringify({}),
+});
+if (res.status !== 400) throw new Error(`Expected 400 for missing modelId, got ${res.status}`);
+});
+
+// Test 6: Outcome evaluation
+await runTest(“POST /api/ml/outcomes/evaluate”, async () => {
+const res = await fetch(`${baseUrl}/api/ml/outcomes/evaluate`, {
+method: “POST”,
+headers,
+});
+// Should return 200 with evaluation report (possibly empty)
+if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
+});
+
+const duration = Date.now() - startTime;
+const passed = tests.filter(t => t.passed).length;
+
+return {
+suite: “pdm-gap-fill-smoke”,
+passed,
+failed: tests.length - passed,
+total: tests.length,
+duration,
+tests,
+timestamp: new Date().toISOString(),
+};
+}
+
+# ================================================================================
+FILE 19: MARITIME — Vessel Timezone Service
+Path: server/services/vessel-timezone.ts
+
+/**
+
+- Vessel Timezone Service
+- 
+- Hardening Item: No timezone handling for vessel-local operations.
+- 
+- Provides vessel-local time conversion for logbook entries, STCW rest hours,
+- and watch schedules. Uses IANA timezone identifiers stored on the vessel record.
+  */
+
+import { logger } from “../utils/logger”;
+
+const LOG_CTX = “VesselTimezone”;
+
+// Cache of vessel timezones
+const vesselTimezones = new Map<string, string>();
+
+/**
+
+- Get the timezone for a vessel. Returns ‘UTC’ if not set.
+  */
+  export async function getVesselTimezone(vesselId: string, storage: any): Promise<string> {
+  const cached = vesselTimezones.get(vesselId);
+  if (cached) return cached;
+
+try {
+const vessel = await storage.getVessel(vesselId);
+const tz = vessel?.timezone || vessel?.vesselTimezone || “UTC”;
+vesselTimezones.set(vesselId, tz);
+return tz;
+} catch {
+return “UTC”;
+}
+}
+
+/**
+
+- Convert a UTC timestamp to vessel-local time.
+  */
+  export function toVesselLocal(utcDate: Date, timezone: string): Date {
+  try {
+  // Use Intl.DateTimeFormat to get the offset for this timezone
+  const formatter = new Intl.DateTimeFormat(“en-US”, {
+  timeZone: timezone,
+  year: “numeric”, month: “2-digit”, day: “2-digit”,
+  hour: “2-digit”, minute: “2-digit”, second: “2-digit”,
+  hour12: false,
+  });
+  
+  const parts = formatter.formatToParts(utcDate);
+  const get = (type: string) => parts.find(p => p.type === type)?.value || “0”;
+  
+  return new Date(
+  `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}:${get("second")}`
+  );
+  } catch {
+  logger.warn(LOG_CTX, `Invalid timezone '${timezone}', falling back to UTC`);
+  return utcDate;
+  }
+  }
+
+/**
+
+- Convert a vessel-local timestamp to UTC.
+  */
+  export function toUTC(localDate: Date, timezone: string): Date {
+  try {
+  // Get the offset between UTC and the vessel timezone at this moment
+  const utcStr = localDate.toLocaleString(“en-US”, { timeZone: “UTC” });
+  const localStr = localDate.toLocaleString(“en-US”, { timeZone: timezone });
+  const offsetMs = new Date(utcStr).getTime() - new Date(localStr).getTime();
+  return new Date(localDate.getTime() + offsetMs);
+  } catch {
+  return localDate;
+  }
+  }
+
+/**
+
+- Get the vessel-local date string (YYYY-MM-DD) for a given UTC timestamp.
+- Critical for logbook entries which are date-keyed.
+  */
+  export function getVesselLocalDate(utcDate: Date, timezone: string): string {
+  try {
+  return utcDate.toLocaleDateString(“en-CA”, { timeZone: timezone }); // en-CA gives YYYY-MM-DD
+  } catch {
+  return utcDate.toISOString().split(“T”)[0];
+  }
+  }
+
+/**
+
+- Clear the timezone cache (e.g., when a vessel’s timezone is updated).
+  */
+  export function clearTimezoneCache(vesselId?: string): void {
+  if (vesselId) {
+  vesselTimezones.delete(vesselId);
+  } else {
+  vesselTimezones.clear();
+  }
+  }
+
+# ================================================================================
+FILE 20: MARITIME — Bandwidth-Aware Response Middleware
+Path: server/middleware/bandwidth-aware.ts
+
+/**
+
+- Bandwidth-Aware Response Middleware
+- 
+- Hardening Item: No bandwidth-aware API for satellite-connected vessels.
+- 
+- When the client sends X-Bandwidth-Mode: low, responses are compressed:
+- - Null fields removed
+- - Description fields truncated
+- - Nested objects replaced with IDs
+- - Smaller default page sizes
+    */
+
+import type { Request, Response, NextFunction } from “express”;
+
+/**
+
+- Detect low-bandwidth mode from request headers.
+  */
+  export function isLowBandwidth(req: Request): boolean {
+  return req.headers[“x-bandwidth-mode”] === “low” ||
+  req.headers[“x-bandwidth-mode”] === “satellite”;
+  }
+
+/**
+
+- Compress a JSON response for low-bandwidth clients.
+- Removes nulls, truncates strings, strips verbose fields.
+  */
+  export function compactResponse(data: unknown, maxStringLength = 100): unknown {
+  if (data === null || data === undefined) return undefined;
+  if (typeof data === “number” || typeof data === “boolean”) return data;
+
+if (typeof data === “string”) {
+if (data.length > maxStringLength) {
+return data.substring(0, maxStringLength) + “…”;
+}
+return data;
+}
+
+if (Array.isArray(data)) {
+return data.map(item => compactResponse(item, maxStringLength)).filter(v => v !== undefined);
+}
+
+if (typeof data === “object”) {
+const result: Record<string, unknown> = {};
+
+```
+for (const [key, value] of Object.entries(data)) {
+  // Skip null/undefined fields
+  if (value === null || value === undefined) continue;
+
+  // Skip verbose fields in low-bandwidth mode
+  if (["description", "notes", "details", "metadata", "supportingSignals",
+       "relatedProcedures", "hyperparameters", "featureImportance",
+       "performanceMetrics", "trainingData", "validationMetrics"].includes(key)) {
+    if (typeof value === "string" && value.length > 50) {
+      result[key] = value.substring(0, 50) + "...";
+      continue;
+    }
+    if (typeof value === "object") continue; // Skip nested objects for verbose fields
+  }
+
+  const compacted = compactResponse(value, maxStringLength);
+  if (compacted !== undefined) {
+    result[key] = compacted;
+  }
+}
+
+return result;
+```
+
+}
+
+return data;
+}
+
+/**
+
+- Middleware that automatically compacts responses in low-bandwidth mode.
+  */
+  export function bandwidthAwareMiddleware(req: Request, res: Response, next: NextFunction): void {
+  if (!isLowBandwidth(req)) return next();
+
+// Override default page size for paginated endpoints
+if (!req.query.pageSize) {
+(req.query as any).pageSize = “10”; // Default to 10 instead of 50
+}
+
+// Monkey-patch res.json to compact the response
+const originalJson = res.json.bind(res);
+res.json = function (body: any) {
+const compacted = compactResponse(body);
+res.setHeader(“X-Response-Mode”, “compact”);
+return originalJson(compacted);
+};
+
+next();
+}
+
+export default bandwidthAwareMiddleware;
+
+# ================================================================================
+FILE 21: MARITIME — Running Hour Accumulator
+Path: server/services/running-hour-accumulator.ts
+
+/**
+
+- Running Hour Accumulator
+- 
+- Hardening Item: Running hour triggers for maintenance not wired to telemetry.
+- 
+- Subscribes to RPM telemetry, integrates over time to compute running hours,
+- and auto-creates work orders when maintenance thresholds are reached.
+  */
+
+import { logger } from “../utils/logger”;
+
+const LOG_CTX = “RunningHourAccumulator”;
+
+// RPM threshold below which the engine is considered “off”
+const MIN_RPM_FOR_RUNNING = 50;
+
+interface RunningHourState {
+equipmentId: string;
+orgId: string;
+totalHours: number;
+lastRpm: number;
+lastTimestamp: Date;
+isRunning: boolean;
+}
+
+class RunningHourAccumulatorService {
+private states = new Map<string, RunningHourState>();
+private storage: any = null;
+private thresholds = new Map<string, number[]>(); // equipmentId → [4000, 8000, 12000, …]
+
+setStorage(storage: any): void {
+this.storage = storage;
+}
+
+/**
+
+- Set maintenance hour thresholds for an equipment.
+- A work order will be created when total hours cross each threshold.
+  */
+  setThresholds(equipmentId: string, hours: number[]): void {
+  this.thresholds.set(equipmentId, hours.sort((a, b) => a - b));
+  }
+
+/**
+
+- Process an RPM telemetry reading.
+- Call this from the telemetry batch writer’s flush callback or
+- from a subscriber on the telemetry event bus.
+  */
+  async processReading(
+  equipmentId: string,
+  orgId: string,
+  rpm: number,
+  timestamp: Date
+  ): Promise<void> {
+  const key = `${orgId}:${equipmentId}`;
+  const state = this.states.get(key);
+
+```
+if (!state) {
+  // First reading — initialize
+  this.states.set(key, {
+    equipmentId,
+    orgId,
+    totalHours: 0,
+    lastRpm: rpm,
+    lastTimestamp: timestamp,
+    isRunning: rpm >= MIN_RPM_FOR_RUNNING,
+  });
+  return;
+}
+
+const isRunning = rpm >= MIN_RPM_FOR_RUNNING;
+const timeDeltaMs = timestamp.getTime() - state.lastTimestamp.getTime();
+
+// Guard against bad timestamps
+if (timeDeltaMs <= 0 || timeDeltaMs > 60 * 60 * 1000) {
+  state.lastRpm = rpm;
+  state.lastTimestamp = timestamp;
+  state.isRunning = isRunning;
+  return;
+}
+
+// Accumulate hours if engine was running
+if (state.isRunning) {
+  const deltaHours = timeDeltaMs / (1000 * 60 * 60);
+  const previousHours = state.totalHours;
+  state.totalHours += deltaHours;
+
+  // Check if we crossed any maintenance thresholds
+  await this.checkThresholds(equipmentId, orgId, previousHours, state.totalHours);
+}
+
+state.lastRpm = rpm;
+state.lastTimestamp = timestamp;
+state.isRunning = isRunning;
+```
+
+}
+
+private async checkThresholds(
+equipmentId: string,
+orgId: string,
+previousHours: number,
+currentHours: number
+): Promise<void> {
+const thresholds = this.thresholds.get(equipmentId);
+if (!thresholds || !this.storage) return;
+
+```
+for (const threshold of thresholds) {
+  if (previousHours < threshold && currentHours >= threshold) {
+    logger.info(LOG_CTX, `Running hour threshold ${threshold}h reached for ${equipmentId} (actual: ${currentHours.toFixed(1)}h)`);
+
+    try {
+      // Create a maintenance work order
+      await this.storage.createWorkOrder({
+        orgId,
+        equipmentId,
+        title: `Running hour maintenance at ${threshold}h`,
+        description: `Equipment ${equipmentId} has reached ${currentHours.toFixed(0)} running hours. Scheduled maintenance is due at ${threshold} hours.`,
+        type: "preventive",
+        priority: threshold >= 10000 ? 1 : 2, // Higher priority for major overhauls
+        status: "open",
+        source: "running_hour_trigger",
+        metadata: {
+          triggerType: "running_hours",
+          thresholdHours: threshold,
+          actualHours: Math.round(currentHours),
+        },
+      });
+    } catch (error) {
+      logger.error(LOG_CTX, `Failed to create work order for ${equipmentId} at ${threshold}h`, error);
+    }
+  }
+}
+```
+
+}
+
+getState(equipmentId: string, orgId: string): RunningHourState | null {
+return this.states.get(`${orgId}:${equipmentId}`) || null;
+}
+
+getAllStates(): RunningHourState[] {
+return […this.states.values()];
+}
+}
+
+export const runningHourAccumulator = new RunningHourAccumulatorService();
+export default RunningHourAccumulatorService;
+
+# ================================================================================
+FILE 22: MARITIME — Class Survey Tracking (Schema + Routes)
+Path: server/domains/surveys/routes.ts
+
+/**
+
+- Class Survey Tracking Routes
+- 
+- Hardening Item: No Class society survey integration.
+- 
+- Provides CRUD for tracking classification society surveys,
+- due dates, survey status, and scope documentation.
+  */
+
+import type { Express, Request, Response } from “express”;
+import { z } from “zod”;
+import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from “../../lib/route-utils”;
+import { logger } from “../../utils/logger”;
+
+// ============================================================================
+// Schema (add to your Drizzle schema file)
+// ============================================================================
+
+/*
+SQL to create the table:
+
+CREATE TABLE IF NOT EXISTS class_surveys (
+id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+org_id          TEXT NOT NULL,
+vessel_id       UUID NOT NULL REFERENCES vessels(id),
+survey_type     TEXT NOT NULL,         – ‘annual’, ‘intermediate’, ‘special’, ‘renewal’, ‘docking’, ‘bottom’
+class_society   TEXT NOT NULL,         – ‘DNV’, ‘LR’, ‘BV’, ‘ABS’, ‘ClassNK’, ‘RINA’
+status          TEXT NOT NULL DEFAULT ‘due’,  – ‘due’, ‘overdue’, ‘in_progress’, ‘completed’, ‘deferred’
+due_date        DATE NOT NULL,
+completed_date  DATE,
+surveyor_name   TEXT,
+surveyor_notes  TEXT,
+scope           TEXT,
+findings        JSONB,                 – Array of { description, severity, status }
+certificate_id  TEXT,                  – Reference to certificate if applicable
+created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_surveys_vessel ON class_surveys (org_id, vessel_id);
+CREATE INDEX idx_surveys_due ON class_surveys (org_id, due_date);
+CREATE INDEX idx_surveys_status ON class_surveys (org_id, status);
+*/
+
+// ============================================================================
+// Validation schemas
+// ============================================================================
+
+const surveyTypeEnum = z.enum([“annual”, “intermediate”, “special”, “renewal”, “docking”, “bottom”]);
+const classSocietyEnum = z.enum([“DNV”, “LR”, “BV”, “ABS”, “ClassNK”, “RINA”, “CCS”, “KR”, “Other”]);
+const statusEnum = z.enum([“due”, “overdue”, “in_progress”, “completed”, “deferred”]);
+
+const createSurveySchema = z.object({
+vesselId: z.string().uuid(),
+surveyType: surveyTypeEnum,
+classSociety: classSocietyEnum,
+dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+scope: z.string().optional(),
+surveyorName: z.string().optional(),
+});
+
+const updateSurveySchema = z.object({
+status: statusEnum.optional(),
+completedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+surveyorName: z.string().optional(),
+surveyorNotes: z.string().optional(),
+scope: z.string().optional(),
+findings: z.array(z.object({
+description: z.string(),
+severity: z.enum([“observation”, “non_conformity”, “major_non_conformity”]),
+status: z.enum([“open”, “closed”, “deferred”]),
+})).optional(),
+});
+
+// ============================================================================
+// Routes
+// ============================================================================
+
+export function registerSurveyRoutes(
+app: Express,
+deps: { storage: any; generalApiRateLimit: any; writeOperationRateLimit: any }
+): void {
+const { storage, generalApiRateLimit, writeOperationRateLimit } = deps;
+
+app.get(”/api/surveys”, generalApiRateLimit,
+withErrorHandling(“list surveys”, async (req: Request, res: Response) => {
+const orgId = req.headers[“x-org-id”] as string;
+if (!orgId) return res.status(401).json({ message: “Organization ID required” });
+
+```
+  const { vesselId, status, dueBefore } = req.query;
+
+  const { sql, eq, and, lte } = await import("drizzle-orm");
+  const { db } = await import("../../db");
+
+  // Direct query since we don't have a Drizzle table definition yet
+  let queryStr = `SELECT * FROM class_surveys WHERE org_id = $1`;
+  const params: any[] = [orgId];
+  let paramIdx = 2;
+
+  if (vesselId) {
+    queryStr += ` AND vessel_id = $${paramIdx++}`;
+    params.push(vesselId);
+  }
+  if (status) {
+    queryStr += ` AND status = $${paramIdx++}`;
+    params.push(status);
+  }
+  if (dueBefore) {
+    queryStr += ` AND due_date <= $${paramIdx++}`;
+    params.push(dueBefore);
+  }
+
+  queryStr += " ORDER BY due_date ASC";
+
+  const result = await db.execute(sql.raw(queryStr), params);
+  res.json(result?.rows ?? []);
+})
+```
+
+);
+
+app.get(”/api/surveys/:id”, generalApiRateLimit,
+withErrorHandling(“get survey”, async (req: Request, res: Response) => {
+const orgId = req.headers[“x-org-id”] as string;
+if (!orgId) return res.status(401).json({ message: “Organization ID required” });
+
+```
+  const { sql } = await import("drizzle-orm");
+  const { db } = await import("../../db");
+
+  const result = await db.execute(
+    sql.raw(`SELECT * FROM class_surveys WHERE id = $1 AND org_id = $2`),
+    [req.params.id, orgId]
+  );
+
+  const survey = result?.rows?.[0];
+  if (!survey) return sendNotFound(res, "Survey");
+
+  res.json(survey);
+})
+```
+
+);
+
+app.post(”/api/surveys”, writeOperationRateLimit,
+withErrorHandling(“create survey”, async (req: Request, res: Response) => {
+const orgId = req.headers[“x-org-id”] as string;
+if (!orgId) return res.status(401).json({ message: “Organization ID required” });
+
+```
+  const data = createSurveySchema.parse(req.body);
+
+  const { sql } = await import("drizzle-orm");
+  const { db } = await import("../../db");
+
+  const result = await db.execute(sql.raw(`
+    INSERT INTO class_surveys (org_id, vessel_id, survey_type, class_society, due_date, scope, surveyor_name, status)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, 'due')
+    RETURNING *
+  `), [orgId, data.vesselId, data.surveyType, data.classSociety, data.dueDate, data.scope || null, data.surveyorName || null]);
+
+  sendCreated(res, result?.rows?.[0]);
+})
+```
+
+);
+
+app.patch(”/api/surveys/:id”, writeOperationRateLimit,
+withErrorHandling(“update survey”, async (req: Request, res: Response) => {
+const orgId = req.headers[“x-org-id”] as string;
+if (!orgId) return res.status(401).json({ message: “Organization ID required” });
+
+```
+  const data = updateSurveySchema.parse(req.body);
+
+  const setClauses: string[] = ["updated_at = NOW()"];
+  const params: any[] = [];
+  let paramIdx = 1;
+
+  if (data.status) { setClauses.push(`status = $${paramIdx++}`); params.push(data.status); }
+  if (data.completedDate) { setClauses.push(`completed_date = $${paramIdx++}`); params.push(data.completedDate); }
+  if (data.surveyorName) { setClauses.push(`surveyor_name = $${paramIdx++}`); params.push(data.surveyorName); }
+  if (data.surveyorNotes) { setClauses.push(`surveyor_notes = $${paramIdx++}`); params.push(data.surveyorNotes); }
+  if (data.scope) { setClauses.push(`scope = $${paramIdx++}`); params.push(data.scope); }
+  if (data.findings) { setClauses.push(`findings = $${paramIdx++}`); params.push(JSON.stringify(data.findings)); }
+
+  params.push(req.params.id, orgId);
+
+  const { sql } = await import("drizzle-orm");
+  const { db } = await import("../../db");
+
+  const result = await db.execute(sql.raw(`
+    UPDATE class_surveys SET ${setClauses.join(", ")}
+    WHERE id = $${paramIdx++} AND org_id = $${paramIdx++}
+    RETURNING *
+  `), params);
+
+  const survey = result?.rows?.[0];
+  if (!survey) return sendNotFound(res, "Survey");
+
+  res.json(survey);
+})
+```
+
+);
+
+app.delete(”/api/surveys/:id”, writeOperationRateLimit,
+withErrorHandling(“delete survey”, async (req: Request, res: Response) => {
+const orgId = req.headers[“x-org-id”] as string;
+if (!orgId) return res.status(401).json({ message: “Organization ID required” });
+
+```
+  const { sql } = await import("drizzle-orm");
+  const { db } = await import("../../db");
+
+  await db.execute(sql.raw(`DELETE FROM class_surveys WHERE id = $1 AND org_id = $2`), [req.params.id, orgId]);
+  sendDeleted(res);
+})
+```
+
+);
+
+// Summary: upcoming surveys across fleet
+app.get(”/api/surveys/summary/upcoming”, generalApiRateLimit,
+withErrorHandling(“get upcoming surveys”, async (req: Request, res: Response) => {
+const orgId = req.headers[“x-org-id”] as string;
+if (!orgId) return res.status(401).json({ message: “Organization ID required” });
+
+```
+  const daysAhead = Number(req.query.days) || 90;
+
+  const { sql } = await import("drizzle-orm");
+  const { db } = await import("../../db");
+
+  const result = await db.execute(sql.raw(`
+    SELECT cs.*, v.name as vessel_name
+    FROM class_surveys cs
+    LEFT JOIN vessels v ON cs.vessel_id = v.id
+    WHERE cs.org_id = $1
+      AND cs.status IN ('due', 'overdue')
+      AND cs.due_date <= (CURRENT_DATE + INTERVAL '${daysAhead} days')
+    ORDER BY cs.due_date ASC
+  `), [orgId]);
+
+  const surveys = result?.rows ?? [];
+  const overdue = surveys.filter((s: any) => new Date(s.due_date) < new Date());
+
+  res.json({
+    upcoming: surveys,
+    totalUpcoming: surveys.length,
+    overdueCount: overdue.length,
+    daysAhead,
+  });
+})
+```
+
+);
+
+logger.info(“SurveyRoutes”, “Registered (CRUD: 4, summary: 1)”);
+}

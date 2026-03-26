@@ -122,16 +122,36 @@ export function registerEquipmentRoutes(
         equipmentId = undefined;
       }
 
-      // Use cache for equipment health
-      const cacheKey = `equipment:health:${orgId}:${vesselId || 'all'}:${equipmentId || 'all'}`;
+      const page = req.query.page ? Number.parseInt(req.query.page as string, 10) : undefined;
+      const pageSize = req.query.pageSize ? Number.parseInt(req.query.pageSize as string, 10) : undefined;
+
+      const cacheKey = `equipment:health:${orgId}:${vesselId || 'all'}:${equipmentId || 'all'}:p${page ?? 'all'}:s${pageSize ?? 'all'}`;
       const cached = getCached(cacheKey);
       if (cached) {
         return res.json(cached);
       }
 
-      const health = await equipmentService.getEquipmentHealth(orgId, vesselId, equipmentId);
-      setCache(cacheKey, health);
-      res.json(health);
+      let health = await equipmentService.getEquipmentHealth(orgId, vesselId, equipmentId);
+
+      const totalCount = health.length;
+      if (page !== undefined && pageSize !== undefined) {
+        const start = (page - 1) * pageSize;
+        health = health.slice(start, start + pageSize);
+        const response = {
+          data: health,
+          pagination: {
+            page,
+            pageSize,
+            totalCount,
+            totalPages: Math.ceil(totalCount / pageSize),
+          },
+        };
+        setCache(cacheKey, response);
+        res.json(response);
+      } else {
+        setCache(cacheKey, health);
+        res.json(health);
+      }
     })
   );
 

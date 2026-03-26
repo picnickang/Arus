@@ -214,6 +214,10 @@ const domainRouters: DomainRouterConfig[] = [
   // Permissions
   { name: "Permissions", importPath: "../domains/permissions/routes.js", functionName: "registerPermissionRoutes",
     getDeps: () => ({}) },
+
+  // Class Survey Tracking
+  { name: "Surveys", importPath: "../domains/surveys/routes.js", functionName: "registerSurveyRoutes",
+    getDeps: () => ({ storage, generalApiRateLimit, writeOperationRateLimit }) },
 ];
 
 /**

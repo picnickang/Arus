@@ -42,6 +42,7 @@ Developed with Express.js and TypeScript, offering RESTful APIs with Zod validat
 -   **Telemetry Resilience Modules**: Includes a circuit breaker for PostgreSQL write protection, graceful shutdown, in-memory dead-letter queue, raw payload archival, equipment heartbeat tracking, batch acknowledgment, and schema versioning.
 -   **Scheduling System Overhaul**: A production-ready crew scheduling system.
 -   **PdM Gap-Fill Services**: Six production-ready services closing the gap between demo and fleet-operator trust: Prediction Calibration (Platt scaling), Prediction Outcome Tracker, Anomaly Correlator (spatial/temporal grouping), Telemetry Aggregator (multi-resolution bucketing into `telemetry_aggregated`), Model Evaluation Gate, and ML Training Job Queue (async via pg-boss). Routes in `server/routes/pdm-gap-fill-routes.ts` (10 endpoints).
+-   **Hardening (22 Items)**: Security (HMAC key rotation, replay protection, RAG document sanitizer), Resilience (DB degradation layer, WS message buffer, LLM statistical fallback, storage circuit breaker), Data (idempotency middleware, telemetry partitioning migration, equipment ID validator), Performance (dashboard pre-computation, equipment health pagination, async compliance check), Ops (migration runner, structured error codes, API versioning `/api/v1/*`, correlation ID middleware, gap-fill smoke tests), Maritime (vessel timezone service, bandwidth-aware responses, running hour accumulator, class survey tracking).
 
 ### Hexagonal Architecture (DDD Modular Monolith)
 
