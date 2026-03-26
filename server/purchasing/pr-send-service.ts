@@ -117,7 +117,7 @@ export async function sendPR(prId: string, orgId: string, userId?: string): Prom
           totalAmount,
           currency:             "USD",
           createdBy:            userId || pr.requestedBy,
-          expectedDeliveryDate: pr.requiredByDate,
+          expectedDate:         pr.requiredByDate,
           notes:                `Generated from PR ${pr.requestNumber}`,
         })
         .returning();
