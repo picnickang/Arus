@@ -265,7 +265,7 @@ export class DatabaseStorage implements IStorage {
   async addAlertComment(commentData: InsertAlertComment): Promise<AlertComment> { return dbAlertStorage.addAlertComment(commentData); }
   async getAlertComments(alertId: string): Promise<AlertComment[]> { return dbAlertStorage.getAlertComments(alertId); }
   async createAlertSuppression(suppressionData: InsertAlertSuppression): Promise<AlertSuppression> { return dbAlertStorage.createAlertSuppression(suppressionData); }
-  async getActiveSuppressions(): Promise<AlertSuppression[]> { return dbAlertStorage.getActiveSuppressions(); }
+  async getActiveSuppressions(orgId?: string): Promise<AlertSuppression[]> { return dbAlertStorage.getActiveSuppressions(orgId); }
   async removeAlertSuppression(id: string): Promise<void> { return dbAlertStorage.removeAlertSuppression(id); }
   async isAlertSuppressed(equipmentId: string, sensorType: string, alertType: string): Promise<boolean> { return dbAlertStorage.isAlertSuppressed(equipmentId, sensorType, alertType); }
 

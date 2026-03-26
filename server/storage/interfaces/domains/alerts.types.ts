@@ -42,7 +42,7 @@ export interface IAlertsStorage {
 
   // Alert Suppressions
   createAlertSuppression(suppressionData: InsertAlertSuppression): Promise<AlertSuppression>;
-  getActiveSuppressions(): Promise<AlertSuppression[]>;
+  getActiveSuppressions(orgId?: string): Promise<AlertSuppression[]>;
   removeAlertSuppression(id: string): Promise<void>;
   isAlertSuppressed(equipmentId: string, sensorType: string, alertType: string): Promise<boolean>;
 
