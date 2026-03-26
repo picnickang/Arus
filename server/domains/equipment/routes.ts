@@ -1,4 +1,5 @@
 import type { Express, Request, Response } from "express";
+import { LRUCache } from "lru-cache";
 import { equipmentService } from "./service";
 import { insertEquipmentSchema, insertDecommissionEventSchema } from "@shared/schema-runtime";
 import { db } from "../../db";
@@ -15,28 +16,15 @@ import {
 } from "./lifecycle";
 import { requirePermission } from "../permissions/middleware";
 
-// Simple in-memory cache for equipment queries (30 second TTL)
-const equipmentCache = new Map<string, { data: unknown; timestamp: number }>();
-const CACHE_TTL_MS = 30000;
+const equipmentCache = new LRUCache<string, unknown>({ max: 200, ttl: 30_000 });
 
 function getCached<T>(key: string): T | null {
-  const entry = equipmentCache.get(key);
-  if (entry && Date.now() - entry.timestamp < CACHE_TTL_MS) {
-    return entry.data as T;
-  }
-  if (entry) equipmentCache.delete(key);
-  return null;
+  const val = equipmentCache.get(key);
+  return val !== undefined ? (val as T) : null;
 }
 
 function setCache(key: string, data: unknown): void {
-  equipmentCache.set(key, { data, timestamp: Date.now() });
-  // Prune old entries periodically
-  if (equipmentCache.size > 100) {
-    const now = Date.now();
-    for (const [k, v] of equipmentCache) {
-      if (now - v.timestamp > CACHE_TTL_MS) equipmentCache.delete(k);
-    }
-  }
+  equipmentCache.set(key, data);
 }
 
 function invalidateCache(pattern: string): void {

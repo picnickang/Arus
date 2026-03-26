@@ -7,6 +7,7 @@
  */
 
 import { Express, RequestHandler } from "express";
+import { LRUCache } from "lru-cache";
 import { IStorage } from "../../storage";
 import { withErrorHandling } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
@@ -24,9 +25,8 @@ export function registerIntegrationsRoutes(
 ): void {
   const { storage, generalApiRateLimit, getFMCCService, updateFleetHealthScore } = config;
 
-  // Dashboard metrics with TTL caching and ETag support
-  const dashboardCache = new Map<string, { data: any; etag: string; timestamp: number }>();
   const DASHBOARD_TTL_MS = Number.parseInt(process.env.DASHBOARD_TTL_MS || "60000", 10);
+  const dashboardCache = new LRUCache<string, { data: any; etag: string }>({ max: 100, ttl: DASHBOARD_TTL_MS });
 
   app.get("/api/dashboard",
     withErrorHandling("fetch dashboard metrics", async (req, res) => {
@@ -35,7 +35,7 @@ export function registerIntegrationsRoutes(
       const now = Date.now();
 
       const cached = dashboardCache.get(cacheKey);
-      if (cached && now - cached.timestamp < DASHBOARD_TTL_MS) {
+      if (cached) {
         const clientEtag = req.headers["if-none-match"];
         if (clientEtag === cached.etag) {
           return res.status(304).end();
@@ -53,18 +53,7 @@ export function registerIntegrationsRoutes(
 
       const etag = `"${Buffer.from(JSON.stringify(metrics)).toString("base64").slice(0, 16)}"`;
 
-      dashboardCache.set(cacheKey, {
-        data: metrics,
-        etag,
-        timestamp: now,
-      });
-
-      if (dashboardCache.size > 100) {
-        const oldestKey = Array.from(dashboardCache.entries()).sort(
-          (a, b) => a[1].timestamp - b[1].timestamp
-        )[0][0];
-        dashboardCache.delete(oldestKey);
-      }
+      dashboardCache.set(cacheKey, { data: metrics, etag });
 
       res.setHeader("ETag", etag);
       res.setHeader("Cache-Control", "private, max-age=30");
@@ -72,9 +61,8 @@ export function registerIntegrationsRoutes(
     })
   );
 
-  // Consolidated dashboard summary - combines multiple queries into single response
-  const summaryCache = new Map<string, { data: any; timestamp: number }>();
-  const SUMMARY_TTL_MS = 60000; // 60 seconds cache
+  const SUMMARY_TTL_MS = 60_000;
+  const summaryCache = new LRUCache<string, any>({ max: 100, ttl: SUMMARY_TTL_MS });
 
   app.get("/api/dashboard/summary",
     withErrorHandling("fetch dashboard summary", async (req, res) => {
@@ -83,9 +71,9 @@ export function registerIntegrationsRoutes(
       const now = Date.now();
 
       const cached = summaryCache.get(cacheKey);
-      if (cached && now - cached.timestamp < SUMMARY_TTL_MS) {
+      if (cached) {
         res.setHeader("Cache-Control", "private, max-age=60");
-        return res.json(cached.data);
+        return res.json(cached);
       }
 
       // Fetch all dashboard data in parallel - extended to reduce frontend API calls
@@ -138,14 +126,7 @@ export function registerIntegrationsRoutes(
         timestamp: new Date().toISOString(),
       };
 
-      summaryCache.set(cacheKey, { data: summary, timestamp: now });
-
-      if (summaryCache.size > 50) {
-        const oldestKey = Array.from(summaryCache.entries()).sort(
-          (a, b) => a[1].timestamp - b[1].timestamp
-        )[0][0];
-        summaryCache.delete(oldestKey);
-      }
+      summaryCache.set(cacheKey, summary);
 
       res.setHeader("Cache-Control", "private, max-age=60");
       res.json(summary);

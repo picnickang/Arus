@@ -364,23 +364,6 @@ export function registerPermissionRoutes(app: Express) {
     })
   );
 
-  app.get("/api/permissions/me", requireOrgId,
-    withErrorHandling("get my permissions", async (req: Request, res: Response) => {
-      const authReq = req as AuthenticatedRequest;
-      const userId = authReq.user?.id;
-      const orgId = authReq.orgId;
-
-      if (!userId) {
-        return res.status(401).json({ message: "Authentication required" });
-      }
-
-      const permissions = await permissionService.getAllUserPermissions(userId, orgId);
-      const roles = await permissionService.getUserRoles(userId, orgId);
-
-      res.json({ userId, orgId, roles, permissions });
-    })
-  );
-
   app.get("/api/permissions/audit", requireOrgId,
     withErrorHandling("get permission audit log", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;

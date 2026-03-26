@@ -132,6 +132,7 @@ export function mountHealthMetricsRoutes(router: Router) {
   router.get("/equipment-health", async (req: Request, res: Response) => {
     try {
       const orgId = getOrgId(req, res);
+      if (!orgId) return;
       const { equipmentId } = req.query;
       const cacheKey = analyticsCacheKeys.equipmentHealth(orgId, equipmentId as string | undefined);
       const response = await cachedAnalytics<EquipmentHealthResponse>(cacheKey, async () => {
@@ -157,6 +158,7 @@ export function mountHealthMetricsRoutes(router: Router) {
   router.get("/rul-predictions", async (req: Request, res: Response) => {
     try {
       const orgId = getOrgId(req, res);
+      if (!orgId) return;
       const { equipmentId } = req.query;
       const cacheKey = analyticsCacheKeys.rulPredictions(orgId, equipmentId as string | undefined);
       const response = await cachedAnalytics<RulBatchResponse>(cacheKey, async () => {

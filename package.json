@@ -143,6 +143,7 @@
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
     "knip": "^5.79.0",
+    "lru-cache": "^11.2.7",
     "lucide-react": "^0.453.0",
     "mqtt": "^5.14.1",
     "multer": "^2.0.2",

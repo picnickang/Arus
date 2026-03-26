@@ -327,14 +327,14 @@ export function registerRagRoutes(
           }
           orgId = tokenPayload.orgId;
           userId = tokenPayload.userId;
-        } else if (config.auth.allowHeaderOrgId) {
-          // Fallback for dev mode
+        } else if (config.auth.allowHeaderOrgId && process.env.NODE_ENV === 'development') {
           orgId = (req.query.orgId as string) || 
                         (req.headers['x-org-id'] as string) || 
                         'default-org-id';
           userId = (req.query.userId as string) ||
                          (req.headers['x-user-id'] as string) || 
                          undefined;
+          logger.warn('[RAG Stream] Using dev-mode auth fallback — NOT for production');
         } else {
           res.status(401).json({ error: 'Streaming token required. Use POST /api/rag/security/streaming-token to obtain one.' });
           return;

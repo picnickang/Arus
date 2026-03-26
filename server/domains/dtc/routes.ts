@@ -4,6 +4,15 @@ import { insertDtcFaultSchema } from "../../../shared/schema.js";
 import { withErrorHandling, sendNotFound, sendCreated } from "../../lib/route-utils.js";
 import { logger } from "../../utils/logger.js";
 
+let _dtcIntegrationService: any = null;
+async function getDtcService() {
+  if (!_dtcIntegrationService) {
+    const mod = await import("../../dtc-integration-service.js");
+    _dtcIntegrationService = mod.getDtcIntegrationService();
+  }
+  return _dtcIntegrationService;
+}
+
 interface DtcRoutesConfig {
   storage: any;
   writeOperationRateLimit: any;
@@ -125,14 +134,36 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
         ? await storage.getEquipmentByVessel(vesselId, orgId)
         : await storage.getEquipmentRegistry(orgId);
 
-      const allActiveDtcs = await Promise.all(
-        equipmentList.map(async (eq: any) => {
-          const dtcs = await storage.getActiveDtcs(eq.id, orgId);
-          return dtcs.map((dtc: any) => ({ ...dtc, equipment: eq }));
-        })
-      );
+      const equipmentIds = equipmentList.map((eq: any) => eq.id);
+      const equipmentMap = new Map(equipmentList.map((eq: any) => [eq.id, eq]));
 
-      let flatDtcs = allActiveDtcs.flat();
+      let flatDtcs: any[];
+
+      if (typeof storage.getActiveDtcsBatch === "function" && equipmentIds.length > 0) {
+        const batchResults = await storage.getActiveDtcsBatch(equipmentIds, orgId);
+        flatDtcs = batchResults.map((dtc: any) => ({
+          ...dtc,
+          equipment: equipmentMap.get(dtc.equipmentId),
+        }));
+      } else {
+        const CHUNK_SIZE = 50;
+        const chunks: any[][] = [];
+        for (let i = 0; i < equipmentList.length; i += CHUNK_SIZE) {
+          chunks.push(equipmentList.slice(i, i + CHUNK_SIZE));
+        }
+
+        const allActiveDtcs = [];
+        for (const chunk of chunks) {
+          const chunkResults = await Promise.all(
+            chunk.map(async (eq: any) => {
+              const dtcs = await storage.getActiveDtcs(eq.id, orgId);
+              return dtcs.map((dtc: any) => ({ ...dtc, equipment: eq }));
+            })
+          );
+          allActiveDtcs.push(...chunkResults.flat());
+        }
+        flatDtcs = allActiveDtcs;
+      }
       if (severity) {
         flatDtcs = flatDtcs.filter((dtc: any) => dtc.definition?.severity === severity);
       }
@@ -175,8 +206,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
         return res.status(400).json({ message: "Organization ID (x-org-id header) is required" });
       }
 
-      const { getDtcIntegrationService } = await import("../../dtc-integration-service.js");
-      const dtcService = getDtcIntegrationService();
+      const dtcService = await getDtcService();
       const stats = await dtcService.getDtcDashboardStats(orgId);
 
       res.json(stats);
@@ -199,8 +229,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
         return sendNotFound(res, "DTC not found or not active");
       }
 
-      const { getDtcIntegrationService } = await import("../../dtc-integration-service.js");
-      const dtcService = getDtcIntegrationService();
+      const dtcService = await getDtcService();
       const workOrder = await dtcService.createWorkOrderFromDtc(dtc, orgId);
 
       if (!workOrder) {
@@ -229,8 +258,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
         return sendNotFound(res, "DTC not found or not active");
       }
 
-      const { getDtcIntegrationService } = await import("../../dtc-integration-service.js");
-      const dtcService = getDtcIntegrationService();
+      const dtcService = await getDtcService();
       const alert = await dtcService.createDtcAlert(dtc, orgId);
 
       if (!alert) {
@@ -261,8 +289,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
       }
 
       const activeDtcs = await storage.getActiveDtcs(id, orgId);
-      const { getDtcIntegrationService } = await import("../../dtc-integration-service.js");
-      const dtcService = getDtcIntegrationService();
+      const dtcService = await getDtcService();
       const healthPenalty = dtcService.calculateDtcHealthImpact(activeDtcs);
 
       res.json({
@@ -283,8 +310,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
         return res.status(400).json({ message: "Organization ID (x-org-id header) is required" });
       }
 
-      const { getDtcIntegrationService } = await import("../../dtc-integration-service.js");
-      const dtcService = getDtcIntegrationService();
+      const dtcService = await getDtcService();
       const impact = await dtcService.calculateDtcFinancialImpact(vesselId, orgId);
 
       res.json(impact);
@@ -300,8 +326,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
         return res.status(400).json({ message: "Organization ID (x-org-id header) is required" });
       }
 
-      const { getDtcIntegrationService } = await import("../../dtc-integration-service.js");
-      const dtcService = getDtcIntegrationService();
+      const dtcService = await getDtcService();
       const summary = await dtcService.getDtcSummaryForReports(id, orgId);
 
       res.json(summary);
@@ -325,8 +350,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
         return sendNotFound(res, "DTC not found or not active");
       }
 
-      const { getDtcIntegrationService } = await import("../../dtc-integration-service.js");
-      const dtcService = getDtcIntegrationService();
+      const dtcService = await getDtcService();
       const telemetry = await dtcService.correlateDtcWithTelemetry(dtc, orgId, timeWindow);
 
       res.json({

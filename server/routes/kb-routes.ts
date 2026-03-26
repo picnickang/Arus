@@ -291,7 +291,7 @@ export async function registerKnowledgeBaseRoutes(app: Express, rateLimits: {
           results,
           count: results.length,
         });
-      } catch (_error) {
+      } catch (error) {
         if (error instanceof z.ZodError) {
           return res.status(400).json({ error: 'Invalid query parameters', details: error.errors });
         }
@@ -351,7 +351,7 @@ export async function registerKnowledgeBaseRoutes(app: Express, rateLimits: {
         await deleteDocument(id, orgId);
 
         res.status(204).send();
-      } catch (_error) {
+      } catch (error) {
         console.error('[KB Delete] Failed:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         
