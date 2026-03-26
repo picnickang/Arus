@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import {
   Grid, Upload, Download, FileCheck, Palette, Undo, Redo, Save, Clock, Calendar,
-  ChevronLeft, ChevronRight, Copy, AlertTriangle, TrendingUp, ListChecks, ChevronDown, ChevronUp, Smartphone, CheckCircle,
+  ChevronLeft, ChevronRight, Copy, AlertTriangle, TrendingUp, ListChecks, ChevronDown, ChevronUp, Smartphone, CheckCircle2,
 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -116,7 +116,7 @@ export function HoursOfRestGrid() {
               <div className="p-3 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 rounded-lg">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-emerald-600" />
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                     <span>Ready to edit hours of rest for <strong>{crew.find((c) => c.id === meta.crew_id)?.name}</strong> ({meta.month} {meta.year})</span>
                   </p>
                   <div className="flex items-center gap-2">
@@ -372,7 +372,7 @@ export function HoursOfRestGrid() {
                       <h4 className="font-semibold text-lg">{new Date(r.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</h4>
                       <p className="text-xs text-muted-foreground">{r.date}</p>
                     </div>
-                    <Badge variant={c.dayOK ? "default" : "destructive"} className="ml-2">{c.dayOK ? <><CheckCircle className="h-3 w-3 mr-1" />Compliant</> : "Violation"}</Badge>
+                    <Badge variant={c.dayOK ? "default" : "destructive"} className="ml-2">{c.dayOK ? <><CheckCircle2 className="h-3 w-3 mr-1" />Compliant</> : "Violation"}</Badge>
                   </div>
                   <div className="relative h-12 bg-slate-100 dark:bg-slate-800 rounded-lg mb-3 overflow-hidden">
                     {restChunks.map(([start, end], idx) => {
