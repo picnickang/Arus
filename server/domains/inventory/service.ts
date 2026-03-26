@@ -6,6 +6,7 @@ import type {
 } from "@shared/schema-runtime";
 import { inventoryRepository } from "./repository";
 import { recordAndPublish } from "../../sync-events";
+import { storage } from "../../storage";
 
 /**
  * Inventory (Parts) Service
@@ -227,6 +228,14 @@ export class InventoryService {
    */
   async getLowStockParts(orgId?: string): Promise<PartsInventory[]> {
     return inventoryRepository.findLowStockParts(orgId);
+  }
+
+  async listPartsInventoryPaginated(orgId: string, options: {
+    limit?: number; offset?: number; search?: string; category?: string;
+    criticality?: string; stockStatus?: string; supplier?: string;
+    sortBy?: string; sortOrder?: "asc" | "desc";
+  }): Promise<{ items: any[]; total: number }> {
+    return storage.getPartsInventoryPaginated(orgId, options);
   }
 }
 

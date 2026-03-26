@@ -137,6 +137,13 @@ export { app };
     } catch (e: any) {
       console.warn("⚠️ Background services partially initialized:", e.message);
     }
+
+    try {
+      const { startEmailWorker } = await import("./purchasing/email-worker");
+      startEmailWorker();
+    } catch (e: any) {
+      console.warn("⚠️ Email worker initialization skipped:", e.message);
+    }
     
     await configureFinalErrorHandlers(app);
 

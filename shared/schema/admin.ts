@@ -351,6 +351,7 @@ export const emailQueue = pgTable(
     lastAttemptAt: timestamp("last_attempt_at", { mode: "date" }),
     sentAt: timestamp("sent_at", { mode: "date" }),
     errorMessage: text("error_message"),
+    nextRetryAt: timestamp("next_retry_at", { mode: "date" }),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   },
   (table) => ({

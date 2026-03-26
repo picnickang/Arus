@@ -31,7 +31,10 @@ export function usePart(id: string | undefined) {
 export function useInventoryParts(vesselId?: string) {
   return useQuery<InventoryPart[]>({
     queryKey: inventoryKeys.stock(vesselId ?? "all"),
-    queryFn: () => apiRequest("GET", `/api/parts-inventory${vesselId ? `?vesselId=${vesselId}` : ""}`),
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/parts-inventory${vesselId ? `?vesselId=${vesselId}` : ""}`);
+      return Array.isArray(response) ? response : response?.items ?? [];
+    },
   });
 }
 
