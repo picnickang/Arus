@@ -107,11 +107,14 @@ export function registerInsightsRoutes(app: Express) {
 
   app.get('/api/insights/snapshots/latest', async (req, res) => {
     try {
+      const orgId = req.headers["x-org-id"] as string;
+      if (!orgId) {
+        return res.status(400).json({ error: "Organization ID (x-org-id header) is required" });
+      }
       const { scope = 'fleet' } = req.query;
-      // Query database directly
       const { insightSnapshots } = await import('@shared/schema-runtime');
       const [snapshot] = await db.select().from(insightSnapshots)
-        .where(eq(insightSnapshots.scope, scope as string))
+        .where(and(eq(insightSnapshots.orgId, orgId), eq(insightSnapshots.scope, scope as string)))
         .orderBy(sql`${insightSnapshots.createdAt} DESC`)
         .limit(1);
       // Return null if no snapshot found - frontend handles empty state
@@ -209,6 +212,10 @@ export function registerInsightsRoutes(app: Express) {
 
   app.patch('/api/insights/:id/acknowledge', async (req, res) => {
     try {
+      const orgId = req.headers["x-org-id"] as string;
+      if (!orgId) {
+        return res.status(400).json({ error: "Organization ID (x-org-id header) is required" });
+      }
       const { id } = req.params;
       const body = acknowledgeInsightSchema.parse(req.body);
 
@@ -219,7 +226,7 @@ export function registerInsightsRoutes(app: Express) {
           acknowledgedAt: new Date(),
           acknowledgedBy: body.acknowledgedBy,
         })
-        .where(eq(actionableInsights.id, id))
+        .where(and(eq(actionableInsights.id, id), eq(actionableInsights.orgId, orgId)))
         .returning();
 
       if (!updated) {
@@ -235,6 +242,10 @@ export function registerInsightsRoutes(app: Express) {
 
   app.patch('/api/insights/:id/resolve', async (req, res) => {
     try {
+      const orgId = req.headers["x-org-id"] as string;
+      if (!orgId) {
+        return res.status(400).json({ error: "Organization ID (x-org-id header) is required" });
+      }
       const { id } = req.params;
       const body = resolveInsightSchema.parse(req.body);
 
@@ -247,7 +258,7 @@ export function registerInsightsRoutes(app: Express) {
           resolutionNotes: body.resolutionNotes || null,
           workOrderId: body.workOrderId || null,
         })
-        .where(eq(actionableInsights.id, id))
+        .where(and(eq(actionableInsights.id, id), eq(actionableInsights.orgId, orgId)))
         .returning();
 
       if (!updated) {
@@ -263,6 +274,10 @@ export function registerInsightsRoutes(app: Express) {
 
   app.get('/api/insights/stats/summary', async (req, res) => {
     try {
+      const orgId = req.headers["x-org-id"] as string;
+      if (!orgId) {
+        return res.status(400).json({ error: "Organization ID (x-org-id header) is required" });
+      }
       const { vesselId } = req.query;
 
       let baseQuery = db
@@ -272,7 +287,8 @@ export function registerInsightsRoutes(app: Express) {
           count: sql<number>`count(*)`.as('count'),
         })
         .from(actionableInsights)
-        .$dynamic();
+        .$dynamic()
+        .where(eq(actionableInsights.orgId, orgId));
 
       if (vesselId) {
         baseQuery = baseQuery.where(eq(actionableInsights.vesselId, vesselId as string));
