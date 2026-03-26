@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { Anchor, X, GripHorizontal, Plus, Check, Pin } from "lucide-react";
-import { Link } from "wouter";
+import { Anchor, X, GripHorizontal, Plus, Check, Pin, Clock } from "lucide-react";
+import { Link, useLocation } from "wouter";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DevModeToggle } from "@/components/DevModeToggle";
 import { navigationCategories, getAllNavigationItems, migrateRoute, type NavigationItem, type NavigationCategory } from "@/config/navigationConfig";
@@ -15,7 +15,41 @@ import {
 
 const DOCK_STORAGE_KEY = "arus-dock-items";
 const DOCK_TOOLTIP_DISMISSED_KEY = "arus-dock-tooltip-dismissed";
+const RECENT_PAGES_KEY = "arus-recent-pages";
 const MAX_DOCK_ITEMS = 6;
+const MAX_RECENT_ITEMS = 3;
+
+function getRecentPages(): NavigationItem[] {
+  try {
+    const saved = localStorage.getItem(RECENT_PAGES_KEY);
+    if (!saved) return [];
+    const hrefs = JSON.parse(saved) as string[];
+    const allItems = getAllNavigationItems();
+    const hubItems = navigationCategories.map(cat => ({
+      name: cat.name,
+      href: cat.hubRoute,
+      icon: cat.icon,
+      description: cat.description,
+    }));
+    const combined = [...allItems, ...hubItems];
+    return hrefs
+      .map(href => combined.find(item => item.href === href))
+      .filter((item): item is NavigationItem => item !== undefined)
+      .slice(0, MAX_RECENT_ITEMS);
+  } catch {
+    return [];
+  }
+}
+
+export function trackPageVisit(href: string) {
+  try {
+    const saved = localStorage.getItem(RECENT_PAGES_KEY);
+    const hrefs: string[] = saved ? JSON.parse(saved) : [];
+    const filtered = hrefs.filter(h => h !== href);
+    filtered.unshift(href);
+    localStorage.setItem(RECENT_PAGES_KEY, JSON.stringify(filtered.slice(0, 10)));
+  } catch {}
+}
 
 interface CategoryCardProps {
   category: NavigationCategory;
@@ -58,7 +92,7 @@ function CategoryCard({ category, onAddToDock, dockItems }: CategoryCardProps) {
             {!isInDock && (
               <button
                 type="button"
-                className="absolute -top-1.5 -right-1.5 z-10 w-6 h-6 rounded-full bg-background border shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity hover:bg-muted"
+                className="absolute -top-1.5 -right-1.5 z-10 w-6 h-6 rounded-full bg-background border shadow-sm flex items-center justify-center sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 transition-opacity hover:bg-muted"
                 onClick={(e) => { e.stopPropagation(); onAddToDock(hubItem); }}
                 aria-label={`Pin ${category.name} to Dock`}
                 data-testid={`button-pin-${category.id}`}
@@ -162,8 +196,14 @@ function Dock({ items, onRemoveItem }: { items: NavigationItem[]; onRemoveItem: 
 
 export default function HomePage() {
   const [dockItems, setDockItems] = useState<NavigationItem[]>([]);
+  const [recentItems, setRecentItems] = useState<NavigationItem[]>([]);
   const [tooltipDismissed, setTooltipDismissed] = useState(() => localStorage.getItem(DOCK_TOOLTIP_DISMISSED_KEY) === "true");
   const { toast } = useToast();
+  const [location] = useLocation();
+
+  useEffect(() => {
+    setRecentItems(getRecentPages());
+  }, [location]);
   
   const dismissTooltip = useCallback(() => {
     setTooltipDismissed(true);
@@ -256,6 +296,26 @@ export default function HomePage() {
       </header>
 
       <main className="container mx-auto px-4 py-8 sm:py-12 max-w-4xl">
+        {recentItems.length > 0 && (
+          <div className="mb-8" data-testid="recent-items-section">
+            <h2 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+              <Clock className="h-3.5 w-3.5" />
+              Recent
+            </h2>
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {recentItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link key={item.href} href={item.href} className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-card hover:bg-accent transition-colors text-sm whitespace-nowrap flex-shrink-0" data-testid={`recent-item-${item.href.replace(/\//g, "-")}`}>
+                    <Icon className="h-4 w-4 text-primary" />
+                    <span>{item.name}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 sm:gap-8 justify-items-center">
           {navigationCategories.map((category) => (
             <CategoryCard 
@@ -271,7 +331,7 @@ export default function HomePage() {
       <Dock items={dockItems} onRemoveItem={removeFromDock} />
       
       {dockItems.length === 0 && !tooltipDismissed && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50" data-testid="dock-onboarding-tooltip">
+        <div className="fixed bottom-16 md:bottom-4 left-1/2 -translate-x-1/2 z-50" data-testid="dock-onboarding-tooltip">
           <div className="flex items-center gap-2 px-4 py-2 bg-muted/80 backdrop-blur-sm rounded-full text-xs text-muted-foreground">
             <Pin className="h-4 w-4" />
             <span>Hover over a category and tap the pin icon to add to dock</span>

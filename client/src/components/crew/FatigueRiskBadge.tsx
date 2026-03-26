@@ -154,7 +154,7 @@ export function FatigueRiskBadge({
     <Popover>
       <PopoverTrigger asChild>{badge}</PopoverTrigger>
       <PopoverContent className="w-80" align="start">
-        <FatigueDetailsContent data={fatigueData} crewName={crewName} />
+        <FatigueDetailsContent data={fatigueData} crewName={crewName} lookbackDays={lookbackDays} />
       </PopoverContent>
     </Popover>
   );
@@ -163,9 +163,10 @@ export function FatigueRiskBadge({
 interface FatigueDetailsContentProps {
   data: FatigueRiskResult;
   crewName?: string;
+  lookbackDays?: number;
 }
 
-function FatigueDetailsContent({ data, crewName }: FatigueDetailsContentProps) {
+function FatigueDetailsContent({ data, crewName, lookbackDays = 14 }: FatigueDetailsContentProps) {
   const config = getLevelConfig(data.level);
   const Icon = config.icon;
 
@@ -271,7 +272,7 @@ function FatigueDetailsContent({ data, crewName }: FatigueDetailsContentProps) {
       </div>
 
       <div className="pt-2 border-t text-xs text-muted-foreground">
-        Fatigue scores are calculated using STCW-compliant algorithms based on rest hours, night shifts, and work patterns over the lookback period. Scores above 70 indicate significant fatigue risk.
+        Fatigue scores are calculated using STCW-compliant algorithms based on rest hours, night shifts, and work patterns over the past {lookbackDays} days. Scores above 70 indicate significant fatigue risk.
       </div>
     </div>
   );

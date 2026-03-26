@@ -111,10 +111,19 @@ function Redirect({ to }: { to: string }) {
   return null;
 }
 
+function useTrackPageVisit() {
+  const [loc] = useLocation();
+  useEffect(() => {
+    if (loc !== "/") {
+      import("@/pages/home").then(m => m.trackPageVisit(loc));
+    }
+  }, [loc]);
+}
+
 function Router() {
   const { currentOrgId, isLoading } = useOrganization();
+  useTrackPageVisit();
 
-  // Wait for organization to be initialized before rendering routes
   if (isLoading || !currentOrgId) {
     return <PageLoader />;
   }

@@ -17,3 +17,6 @@ electron/bin/
 # Desktop app logs
 .arus/.scannerwork/
 data-exports/
+
+# Tauri build artifacts
+src-tauri/target/
