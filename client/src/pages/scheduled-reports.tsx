@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,9 +11,11 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Calendar, Mail, FileText, Clock, Play, Trash2 } from 'lucide-react';
+import { Plus, Calendar, Mail, FileText, Clock, Play, Trash2, Eye, Loader2 } from 'lucide-react';
 import type { ReportSchedule } from '@shared/schema/scheduled-reports';
 
 const REPORT_TYPES = [
@@ -47,9 +49,74 @@ const createScheduleFormSchema = z.object({
 
 type CreateScheduleForm = z.infer<typeof createScheduleFormSchema>;
 
+function PreviewModal({ scheduleId, reportType }: { scheduleId: string; reportType: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const { toast } = useToast();
+
+  const previewMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('POST', `/api/scheduled-reports/schedules/${scheduleId}/preview`);
+    },
+    onError: () => {
+      toast({ title: 'Preview unavailable', description: 'Failed to generate report preview.', variant: 'destructive' });
+    },
+  });
+
+  const handleOpen = () => {
+    setIsOpen(true);
+    previewMutation.mutate();
+  };
+
+  const getReportTypeName = (id: string) => REPORT_TYPES.find((t) => t.id === id)?.name || id;
+
+  return (
+    <>
+      <Button size="sm" variant="outline" onClick={handleOpen} data-testid={`button-preview-${scheduleId}`}>
+        <Eye className="w-3 h-3 mr-1" />
+        Preview
+      </Button>
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Report Preview</DialogTitle>
+            <DialogDescription>{getReportTypeName(reportType)}</DialogDescription>
+          </DialogHeader>
+          {previewMutation.isPending ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <span className="ml-3 text-muted-foreground">Generating preview...</span>
+            </div>
+          ) : previewMutation.isError ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Preview could not be generated.</p>
+              <Button variant="outline" size="sm" className="mt-4" onClick={() => previewMutation.mutate()} data-testid="button-retry-preview">
+                Retry
+              </Button>
+            </div>
+          ) : previewMutation.isSuccess ? (
+            <ScrollArea className="max-h-[60vh]">
+              <div className="space-y-4 p-1" data-testid="preview-content">
+                <pre className="text-sm bg-muted p-4 rounded-lg overflow-x-auto whitespace-pre-wrap">{JSON.stringify(previewMutation.data, null, 2)}</pre>
+              </div>
+            </ScrollArea>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 export default function ScheduledReports() {
   const { toast } = useToast();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const pollingTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+
+  useEffect(() => {
+    return () => {
+      pollingTimersRef.current.forEach((timer) => clearInterval(timer));
+      pollingTimersRef.current.clear();
+    };
+  }, []);
 
   const form = useForm<CreateScheduleForm>({
     resolver: zodResolver(createScheduleFormSchema),
@@ -104,14 +171,52 @@ export default function ScheduledReports() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/scheduled-reports/schedules'] });
     },
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/scheduled-reports/schedules'] });
+      toast({ title: 'Toggle failed', description: 'Could not update schedule status. Please try again.', variant: 'destructive' });
+    },
   });
 
+  const pollForCompletion = useCallback((scheduleId: string, initialLastRunAt: string | null) => {
+    const existingTimer = pollingTimersRef.current.get(scheduleId);
+    if (existingTimer) clearInterval(existingTimer);
+
+    let elapsed = 0;
+    const interval = 5000;
+    const maxWait = 120000;
+
+    const timer = setInterval(async () => {
+      elapsed += interval;
+      if (elapsed >= maxWait) {
+        clearInterval(timer);
+        pollingTimersRef.current.delete(scheduleId);
+        return;
+      }
+      try {
+        await queryClient.invalidateQueries({ queryKey: ['/api/scheduled-reports/schedules'] });
+        const fresh = queryClient.getQueryData<{ data: ReportSchedule[] }>(['/api/scheduled-reports/schedules']);
+        const updated = fresh?.data?.find((s) => s.id === scheduleId);
+        if (updated?.lastRunAt && updated.lastRunAt !== initialLastRunAt) {
+          clearInterval(timer);
+          pollingTimersRef.current.delete(scheduleId);
+          toast({ title: 'Report ready', description: `"${updated.name}" has finished generating.` });
+        }
+      } catch {
+        // polling error, will retry
+      }
+    }, interval);
+
+    pollingTimersRef.current.set(scheduleId, timer);
+  }, [toast]);
+
   const runNowMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return apiRequest('POST', `/api/scheduled-reports/schedules/${id}/run`);
+    mutationFn: async (schedule: { id: string; lastRunAt: string | null }) => {
+      await apiRequest('POST', `/api/scheduled-reports/schedules/${schedule.id}/run`);
+      return schedule;
     },
-    onSuccess: () => {
+    onSuccess: (schedule) => {
       toast({ title: 'Report generating', description: 'Your report is being generated.' });
+      pollForCompletion(schedule.id, schedule.lastRunAt);
     },
     onError: () => {
       toast({ title: 'Error', description: 'Failed to run report.', variant: 'destructive' });
@@ -125,6 +230,9 @@ export default function ScheduledReports() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/scheduled-reports/schedules'] });
       toast({ title: 'Schedule deleted', description: 'Your report schedule has been deleted.' });
+    },
+    onError: () => {
+      toast({ title: 'Error', description: 'Failed to delete schedule.', variant: 'destructive' });
     },
   });
 
@@ -353,25 +461,47 @@ export default function ScheduledReports() {
                   <p>Last run: {formatDate(schedule.lastRunAt)}</p>
                   <p>Next run: {formatDate(schedule.nextRunAt)}</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => runNowMutation.mutate(schedule.id)}
+                    onClick={() => runNowMutation.mutate({ id: schedule.id, lastRunAt: schedule.lastRunAt })}
                     disabled={runNowMutation.isPending}
                     data-testid={`button-run-${schedule.id}`}
                   >
-                    <Play className="w-3 h-3 mr-1" />
+                    {runNowMutation.isPending ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Play className="w-3 h-3 mr-1" />}
                     Run Now
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => deleteMutation.mutate(schedule.id)}
-                    data-testid={`button-delete-${schedule.id}`}
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
+                  <PreviewModal scheduleId={schedule.id} reportType={schedule.reportType} />
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        data-testid={`button-delete-${schedule.id}`}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete schedule?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently remove "{schedule.name}" and stop all future report deliveries. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => deleteMutation.mutate(schedule.id)}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          data-testid={`button-confirm-delete-${schedule.id}`}
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </CardContent>
             </Card>
