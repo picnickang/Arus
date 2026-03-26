@@ -174,7 +174,7 @@ export class DatabaseStorage implements IStorage {
     return closedOrder;
   }
 
-  async deleteWorkOrder(id: string): Promise<void> { await this.releasePartsFromWorkOrder(id); await db.delete(workOrderParts).where(eq(workOrderParts.workOrderId, id)); await db.delete(workOrderChecklists).where(eq(workOrderChecklists.workOrderId, id)); await db.delete(workOrderWorklogs).where(eq(workOrderWorklogs.workOrderId, id)); await db.delete(maintenanceCosts).where(eq(maintenanceCosts.workOrderId, id)); const r = await db.delete(workOrders).where(eq(workOrders.id, id)).returning(); if (r.length === 0) {throw new Error(`Work order ${id} not found`);} const ws = getWebSocketServer(); if (r[0]) {ws?.broadcastWorkOrderChange("delete", { id: r[0].id });} }
+  async deleteWorkOrder(id: string): Promise<void> { const [wo] = await db.select({ orgId: workOrders.orgId }).from(workOrders).where(eq(workOrders.id, id)).limit(1); if (wo?.orgId) { await this.releasePartsFromWorkOrder(id, wo.orgId); } await db.delete(workOrderParts).where(eq(workOrderParts.workOrderId, id)); await db.delete(workOrderChecklists).where(eq(workOrderChecklists.workOrderId, id)); await db.delete(workOrderWorklogs).where(eq(workOrderWorklogs.workOrderId, id)); await db.delete(maintenanceCosts).where(eq(maintenanceCosts.workOrderId, id)); const r = await db.delete(workOrders).where(eq(workOrders.id, id)).returning(); if (r.length === 0) {throw new Error(`Work order ${id} not found`);} const ws = getWebSocketServer(); if (r[0]) {ws?.broadcastWorkOrderChange("delete", { id: r[0].id });} }
 
   async cloneWorkOrder(id: string, orgId: string, options?: { plannedStartDate?: Date; plannedEndDate?: Date; includeTasks?: boolean; includeParts?: boolean }): Promise<WorkOrder> {
     return db.transaction(async (tx) => {
@@ -318,7 +318,7 @@ export class DatabaseStorage implements IStorage {
   async reservePart(partId: string, quantity: number): Promise<PartsInventory> { return dbInventoryStorage.reservePart(partId, quantity); }
   async checkPartAvailabilityForWorkOrder(partId: string, quantity: number, orgId?: string): Promise<{ available: boolean; onHand: number; reserved: number }> { return dbInventoryStorage.checkPartAvailabilityForWorkOrder(partId, quantity, orgId); }
   async reservePartsForWorkOrder(workOrderId: string): Promise<void> { return dbInventoryStorage.reservePartsForWorkOrder(workOrderId); }
-  async releasePartsFromWorkOrder(workOrderId: string): Promise<void> { return dbInventoryStorage.releasePartsFromWorkOrder(workOrderId); }
+  async releasePartsFromWorkOrder(workOrderId: string, orgId: string): Promise<void> { return dbInventoryStorage.releasePartsFromWorkOrder(workOrderId, orgId); }
   async getPartsCatalogue(orgId?: string, search?: string, category?: string, sortBy?: string, sortOrder?: string): Promise<Part[]> { return dbInventoryStorage.getParts(orgId, category ? { category } : undefined); }
   async getPartCatalogueByNumber(partNo: string, orgId?: string): Promise<Part | undefined> { return orgId ? dbInventoryStorage.getPartByPartNumber(partNo, orgId) : undefined; }
   async getPartCatalogueById(id: string, orgId?: string): Promise<Part | undefined> { return dbInventoryStorage.getPart(id, orgId); }

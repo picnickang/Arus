@@ -5,19 +5,18 @@ import { ServiceOrder, InsertServiceOrder, ServiceOrderWithDetails, ServiceOrder
 
 export async function generateSoNumber(orgId: string): Promise<string> {
   const result = await db
-    .select({ soNumber: serviceOrders.soNumber })
+    .select({
+      nextSeq: sql<number>`COALESCE(MAX(CAST(SUBSTRING(${serviceOrders.soNumber} FROM 'SO-(\\d+)') AS INTEGER)), 0) + 1`,
+    })
     .from(serviceOrders)
-    .where(eq(serviceOrders.orgId, orgId))
-    .orderBy(sql`${serviceOrders.createdAt} DESC`)
-    .limit(1);
+    .where(
+      and(
+        eq(serviceOrders.orgId, orgId),
+        sql`${serviceOrders.soNumber} ~ '^SO-\\d+$'`
+      )
+    );
 
-  if (result.length === 0) {
-    return "SO-001";
-  }
-
-  const lastNumber = result[0].soNumber;
-  const match = lastNumber.match(/SO-(\d+)/);
-  const nextNum = match ? Number.parseInt(match[1], 10) + 1 : 1;
+  const nextNum = result[0]?.nextSeq ?? 1;
   return `SO-${String(nextNum).padStart(3, "0")}`;
 }
 
@@ -51,7 +50,7 @@ export async function getServiceOrderById(id: string, orgId: string): Promise<Se
     .where(and(eq(serviceOrders.id, id), eq(serviceOrders.orgId, orgId)))
     .limit(1);
 
-  if (result.length === 0) {return null;}
+  if (result.length === 0) { return null; }
   const row = result[0];
   return {
     ...row.so,
@@ -70,11 +69,11 @@ export async function listServiceOrders(
 ): Promise<ServiceOrderWithDetails[]> {
   const conditions = [eq(serviceOrders.orgId, orgId)];
 
-  if (filters.status) {conditions.push(eq(serviceOrders.status, filters.status));}
-  if (filters.serviceProviderId) {conditions.push(eq(serviceOrders.serviceProviderId, filters.serviceProviderId));}
-  if (filters.workOrderId) {conditions.push(eq(serviceOrders.workOrderId, filters.workOrderId));}
-  if (filters.dateFrom) {conditions.push(gte(serviceOrders.scheduledStartDate, filters.dateFrom));}
-  if (filters.dateTo) {conditions.push(lte(serviceOrders.scheduledEndDate, filters.dateTo));}
+  if (filters.status) { conditions.push(eq(serviceOrders.status, filters.status)); }
+  if (filters.serviceProviderId) { conditions.push(eq(serviceOrders.serviceProviderId, filters.serviceProviderId)); }
+  if (filters.workOrderId) { conditions.push(eq(serviceOrders.workOrderId, filters.workOrderId)); }
+  if (filters.dateFrom) { conditions.push(gte(serviceOrders.scheduledStartDate, filters.dateFrom)); }
+  if (filters.dateTo) { conditions.push(lte(serviceOrders.scheduledEndDate, filters.dateTo)); }
 
   const rows = await db
     .select({
@@ -128,15 +127,15 @@ export async function updateServiceOrderStatus(
   const now = new Date();
   const updates: Partial<ServiceOrder> = { status, updatedAt: now };
 
-  if (status === "sent") {updates.sentAt = now;}
-  else if (status === "confirmed") {updates.confirmedAt = now;}
-  else if (status === "in_progress") {updates.actualStartDate = now;}
+  if (status === "sent") { updates.sentAt = now; }
+  else if (status === "confirmed") { updates.confirmedAt = now; }
+  else if (status === "in_progress") { updates.actualStartDate = now; }
   else if (status === "completed") {
     updates.completedAt = now;
     updates.actualEndDate = now;
   } else if (status === "cancelled") {
     updates.cancelledAt = now;
-    if (details?.reason) {updates.cancellationReason = details.reason as string;}
+    if (details?.reason) { updates.cancellationReason = details.reason as string; }
   }
 
   const [updated] = await db
@@ -148,11 +147,7 @@ export async function updateServiceOrderStatus(
   if (updated) {
     const eventType = status === "in_progress" ? "started" : status;
     await db.insert(serviceOrderEvents).values({
-      orgId,
-      soId: id,
-      eventType,
-      userId,
-      details: details ?? { status },
+      orgId, soId: id, eventType, userId, details: details ?? { status },
     });
   }
 
@@ -172,22 +167,19 @@ export async function deleteServiceOrder(
   orgId: string
 ): Promise<{ success: boolean; error?: string }> {
   const existing = await getServiceOrderById(id, orgId);
-  if (!existing) {
-    return { success: false, error: "Service order not found" };
-  }
+  if (!existing) { return { success: false, error: "Service order not found" }; }
 
   const status = existing.status;
   if (status !== "draft" && status !== "cancelled") {
     return { success: false, error: "Only draft or cancelled service orders can be deleted" };
   }
 
-  await db
-    .delete(serviceOrderEvents)
-    .where(and(eq(serviceOrderEvents.soId, id), eq(serviceOrderEvents.orgId, orgId)));
-
-  await db
-    .delete(serviceOrders)
-    .where(and(eq(serviceOrders.id, id), eq(serviceOrders.orgId, orgId)));
+  await db.delete(serviceOrderEvents).where(
+    and(eq(serviceOrderEvents.soId, id), eq(serviceOrderEvents.orgId, orgId))
+  );
+  await db.delete(serviceOrders).where(
+    and(eq(serviceOrders.id, id), eq(serviceOrders.orgId, orgId))
+  );
 
   return { success: true };
 }
@@ -207,9 +199,7 @@ export async function deleteAllServiceOrdersByWorkOrder(
       deletedCount++;
     } else {
       skippedCount++;
-      if (result.error) {
-        errors.push(`${order.soNumber}: ${result.error}`);
-      }
+      if (result.error) { errors.push(`${order.soNumber}: ${result.error}`); }
     }
   }
 

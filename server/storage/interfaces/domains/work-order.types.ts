@@ -88,7 +88,7 @@ export interface IWorkOrderStorage {
   getPartsCostForWorkOrder(workOrderId: string): Promise<{ totalPartsCost: number; partsCount: number }>;
   checkPartAvailabilityForWorkOrder(partId: string, quantity: number, orgId?: string): Promise<{ available: boolean; onHand: number; reserved: number }>;
   reservePartsForWorkOrder(workOrderId: string): Promise<void>;
-  releasePartsFromWorkOrder(workOrderId: string): Promise<void>;
+  releasePartsFromWorkOrder(workOrderId: string, orgId: string): Promise<void>;
   addBulkPartsToWorkOrder(workOrderId: string, partsToAdd: Array<{ partId: string; quantity: number; usedBy: string; notes?: string }>, orgId: string): Promise<{ added: WorkOrderParts[]; updated: WorkOrderParts[]; errors: string[] }>;
   addBulkPartsAndReserveInventory(workOrderId: string, partsToAdd: Array<{ partId: string; quantity: number; usedBy: string; notes?: string }>, orgId: string): Promise<{ added: WorkOrderParts[]; updated: WorkOrderParts[]; errors: string[] }>;
   getWorkOrderPartsByEquipment(orgId: string, equipmentId: string): Promise<WorkOrderParts[]>;

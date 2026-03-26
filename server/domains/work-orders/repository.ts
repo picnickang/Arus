@@ -68,8 +68,8 @@ export class WorkOrderRepository {
     return storage.getWorkOrderCompletions(filters);
   }
 
-  async releasePartsFromWorkOrder(workOrderId: string): Promise<void> {
-    return storage.releasePartsFromWorkOrder(workOrderId);
+  async releasePartsFromWorkOrder(workOrderId: string, orgId: string): Promise<void> {
+    return storage.releasePartsFromWorkOrder(workOrderId, orgId);
   }
 
   async getEquipmentWithSensorIssues(orgId: string) {

@@ -43,7 +43,7 @@ export async function getPurchaseRequestWithItems(
   orgId: string
 ): Promise<PRWithItems | null> {
   const pr = await getPurchaseRequestById(id, orgId);
-  if (!pr) {return null;}
+  if (!pr) { return null; }
 
   const items = await db
     .select({
@@ -72,29 +72,12 @@ export async function getPurchaseRequestWithItems(
 export async function listPurchaseRequests(filters: PRListFilters) {
   const conditions = [eq(purchaseRequests.orgId, filters.orgId)];
 
-  if (filters.status) {
-    conditions.push(eq(purchaseRequests.status, filters.status));
-  }
-
-  if (filters.vesselId) {
-    conditions.push(eq(purchaseRequests.vesselId, filters.vesselId));
-  }
-
-  if (filters.requestedBy) {
-    conditions.push(eq(purchaseRequests.requestedBy, filters.requestedBy));
-  }
-
-  if (filters.workOrderId) {
-    conditions.push(eq(purchaseRequests.workOrderId, filters.workOrderId));
-  }
-
-  if (filters.fromDate) {
-    conditions.push(gte(purchaseRequests.createdAt, filters.fromDate));
-  }
-
-  if (filters.toDate) {
-    conditions.push(lte(purchaseRequests.createdAt, filters.toDate));
-  }
+  if (filters.status) { conditions.push(eq(purchaseRequests.status, filters.status)); }
+  if (filters.vesselId) { conditions.push(eq(purchaseRequests.vesselId, filters.vesselId)); }
+  if (filters.requestedBy) { conditions.push(eq(purchaseRequests.requestedBy, filters.requestedBy)); }
+  if (filters.workOrderId) { conditions.push(eq(purchaseRequests.workOrderId, filters.workOrderId)); }
+  if (filters.fromDate) { conditions.push(gte(purchaseRequests.createdAt, filters.fromDate)); }
+  if (filters.toDate) { conditions.push(lte(purchaseRequests.createdAt, filters.toDate)); }
 
   return db
     .select()
@@ -119,18 +102,11 @@ export async function updatePurchaseRequest(
 }
 
 export async function addPurchaseRequestItem(data: InsertPurchaseRequestItem) {
-  const [result] = await db
-    .insert(purchaseRequestItems)
-    .values(data)
-    .returning();
+  const [result] = await db.insert(purchaseRequestItems).values(data).returning();
   return result;
 }
 
-export async function removePurchaseRequestItem(
-  id: string,
-  prId: string,
-  orgId: string
-) {
+export async function removePurchaseRequestItem(id: string, prId: string, orgId: string) {
   const [result] = await db
     .delete(purchaseRequestItems)
     .where(
@@ -184,11 +160,7 @@ export async function linkItemSupplier(data: InsertItemSupplier) {
   return result;
 }
 
-export async function unlinkItemSupplier(
-  partId: string,
-  supplierId: string,
-  orgId: string
-) {
+export async function unlinkItemSupplier(partId: string, supplierId: string, orgId: string) {
   const [result] = await db
     .delete(itemSuppliers)
     .where(
@@ -244,29 +216,16 @@ export async function getPendingEmails(limit = 10) {
     .limit(limit);
 }
 
-export async function updateEmailStatus(
-  id: string,
-  status: "sent" | "failed",
-  errorMessage?: string
-) {
+export async function updateEmailStatus(id: string, status: "sent" | "failed", errorMessage?: string) {
   const updateData: Record<string, unknown> = {
     status,
     attempts: sql`${emailQueue.attempts} + 1`,
     lastAttemptAt: new Date(),
   };
-  if (status === "sent") {
-    updateData.sentAt = new Date();
-  }
+  if (status === "sent") { updateData.sentAt = new Date(); }
+  if (errorMessage) { updateData.errorMessage = errorMessage; }
 
-  if (errorMessage) {
-    updateData.errorMessage = errorMessage;
-  }
-
-  const [result] = await db
-    .update(emailQueue)
-    .set(updateData)
-    .where(eq(emailQueue.id, id))
-    .returning();
+  const [result] = await db.update(emailQueue).set(updateData).where(eq(emailQueue.id, id)).returning();
   return result;
 }
 
@@ -276,16 +235,16 @@ export async function generateRequestNumber(orgId: string): Promise<string> {
 
   const result = await db
     .select({
-      maxSeq: sql<number>`COALESCE(MAX(CAST(SUBSTRING(${purchaseRequests.requestNumber} FROM 'PR-\\d{4}-(\\d+)') AS INTEGER)), 0)`,
+      nextSeq: sql<number>`COALESCE(MAX(CAST(SUBSTRING(${purchaseRequests.requestNumber} FROM 'PR-\\d{4}-(\\d+)') AS INTEGER)), 0) + 1`,
     })
     .from(purchaseRequests)
     .where(
       and(
         eq(purchaseRequests.orgId, orgId),
-        sql`${purchaseRequests.requestNumber} LIKE ${`${prefix  }%`}`
+        sql`${purchaseRequests.requestNumber} LIKE ${`${prefix}%`}`
       )
     );
 
-  const nextNum = (result[0]?.maxSeq ?? 0) + 1;
+  const nextNum = result[0]?.nextSeq ?? 1;
   return `${prefix}${String(nextNum).padStart(4, "0")}`;
 }
