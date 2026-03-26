@@ -90,3 +90,9 @@ id = "-syQ3r1rn5LJJaG_zUivs"
 uri = "file://logistics-backend-code.txt"
 type = "text"
 title = "Logistics Backend Code (46 files, 5,966 lines)"
+
+[[outputs]]
+id = "ZhdVzzUb9FvnaOsXh0OK2"
+uri = "file://tauri-desktop-review.md"
+type = "text"
+title = "ARUS Tauri v2 Desktop Files — Complete Code"
