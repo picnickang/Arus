@@ -22,7 +22,7 @@ export function PRDetailPage() {
   const [isSendDialogOpen, setIsSendDialogOpen] = useState(false);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
 
-  const { data: pr, isLoading, error: _error } = usePurchaseRequest(id);
+  const { data: pr, isLoading, error } = usePurchaseRequest(id);
   const addItemMutation = useAddPRItem();
   const removeItemMutation = useRemovePRItem();
   const sendMutation = useSendPR();
