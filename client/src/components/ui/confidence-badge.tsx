@@ -18,8 +18,9 @@ export function ConfidenceBadge({
   showPercentage = true,
   className,
 }: ConfidenceBadgeProps) {
-  const { label, variant, description } = getConfidenceLabel(confidence);
-  const pct = Math.round(confidence * 100);
+  const clamped = Math.max(0, Math.min(1, confidence));
+  const { label, variant, description } = getConfidenceLabel(clamped);
+  const pct = Math.round(clamped * 100);
 
   return (
     <TooltipProvider>

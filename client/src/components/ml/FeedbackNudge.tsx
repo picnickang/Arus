@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 interface FeedbackNudgeProps {
-  predictionId: number;
+  predictionId: number | string;
   equipmentName?: string;
   workOrderId?: number;
   onDismiss?: () => void;
@@ -33,7 +33,7 @@ export function FeedbackNudge({
 
   const feedbackMutation = useMutation({
     mutationFn: (data: {
-      predictionId: number;
+      predictionId: number | string;
       vote: Vote;
       comment?: string;
       workOrderId?: number;
