@@ -78,3 +78,15 @@ id = "eoawEHGWekFdfbVWdHyrL"
 uri = "file://frontend-9-system.md"
 type = "text"
 title = "Part 9: System (Admin, Settings, Permissions) — 2.9K lines"
+
+[[outputs]]
+id = "LO5z7kukRHFTFpSTTFpGp"
+uri = "file://logistics-frontend-code.txt"
+type = "text"
+title = "Logistics Frontend Code (3 files, 313 lines)"
+
+[[outputs]]
+id = "-syQ3r1rn5LJJaG_zUivs"
+uri = "file://logistics-backend-code.txt"
+type = "text"
+title = "Logistics Backend Code (46 files, 5,966 lines)"
