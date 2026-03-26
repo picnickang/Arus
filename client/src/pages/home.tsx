@@ -199,7 +199,7 @@ function Dock({ items, onRemoveItem }: { items: NavigationItem[]; onRemoveItem: 
   if (items.length === 0) return null;
   
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
+    <div className="fixed bottom-16 md:bottom-4 left-1/2 -translate-x-1/2 z-50">
       <div className={cn(
         "flex items-center gap-2 sm:gap-4 px-4 sm:px-6 py-3 sm:py-4",
         "bg-background/80 backdrop-blur-xl border rounded-2xl shadow-xl",
