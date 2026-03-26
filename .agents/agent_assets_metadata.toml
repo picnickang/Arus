@@ -24,3 +24,57 @@ id = "QmyHKjHbaK5rm7ivGcSUZ"
 uri = "file://frontend-all-code.md"
 type = "text"
 title = "Complete Frontend Code — All Categories (Operations, Fleet, Maintenance, Crew, Logistics, Records, Analytics, System)"
+
+[[outputs]]
+id = "yd1oUFdRFws16aUsL1ehv"
+uri = "file://frontend-1-core.md"
+type = "text"
+title = "Part 1: Core (App, Routing, Lib, Hooks, Utils) — 3K lines"
+
+[[outputs]]
+id = "4DbopHxaG0SuGxGP-MgjD"
+uri = "file://frontend-2-hubs-operations.md"
+type = "text"
+title = "Part 2: Hub Pages & Operations — 2.4K lines"
+
+[[outputs]]
+id = "YJiwnmt6Wg7fBirvcnQy1"
+uri = "file://frontend-3-fleet.md"
+type = "text"
+title = "Part 3: Fleet (Vessels, Equipment) — 4.8K lines"
+
+[[outputs]]
+id = "UaERiWELDgPUFApomb78V"
+uri = "file://frontend-4-maintenance.md"
+type = "text"
+title = "Part 4: Maintenance (Schedules, Work Orders, PdM) — 6.8K lines"
+
+[[outputs]]
+id = "EHHJFM1kscZwFAW-32BKE"
+uri = "file://frontend-5-crew.md"
+type = "text"
+title = "Part 5: Crew (Members, Scheduling, STCW) — 2.3K lines"
+
+[[outputs]]
+id = "9KTWy_ONeHLk29qB_vRqW"
+uri = "file://frontend-6-logistics.md"
+type = "text"
+title = "Part 6: Logistics (Inventory, Suppliers, Purchasing) — 1.7K lines"
+
+[[outputs]]
+id = "23eF_qUoxTo7IWlchm0yo"
+uri = "file://frontend-7-records.md"
+type = "text"
+title = "Part 7: Records (Logbooks, Compliance) — 193 lines"
+
+[[outputs]]
+id = "qme7Hu3X52CcGI3QGBuv4"
+uri = "file://frontend-8-analytics.md"
+type = "text"
+title = "Part 8: Analytics (Dashboard, Charts, AI, KB, RAG) — 5.2K lines"
+
+[[outputs]]
+id = "eoawEHGWekFdfbVWdHyrL"
+uri = "file://frontend-9-system.md"
+type = "text"
+title = "Part 9: System (Admin, Settings, Permissions) — 2.9K lines"
