@@ -6,7 +6,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, AlertCircle, Info, ChevronDown, ChevronUp, Check, Clock, FileWarning, Award } from "lucide-react";
+import { AlertTriangle, AlertCircle, Info, ChevronDown, ChevronUp, Check, Clock, FileWarning, Award, RefreshCw } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { useCertificationExpiryData, type ExpiringCertification } from "@/features/crew/hooks/useCertificationExpiryData";
 
@@ -26,10 +26,10 @@ function getUrgencyBadge(level: string) {
   }
 }
 
-function CertRow({ cert, onAcknowledge }: { cert: ExpiringCertification; onAcknowledge: (cert: ExpiringCertification) => void }) {
+function CertRow({ cert, onAcknowledge, onMarkRenewed }: { cert: ExpiringCertification; onAcknowledge: (cert: ExpiringCertification) => void; onMarkRenewed: (cert: ExpiringCertification) => void }) {
   return (
     <div
-      className={`flex items-center justify-between p-3 rounded-lg border ${
+      className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg border ${
         cert.alertAcknowledged ? "bg-muted/50 border-muted" :
         cert.urgencyLevel === "critical" ? "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800" :
         cert.urgencyLevel === "warning" ? "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800" :
@@ -37,23 +37,23 @@ function CertRow({ cert, onAcknowledge }: { cert: ExpiringCertification; onAckno
       }`}
       data-testid={`cert-alert-${cert.id}`}
     >
-      <div className="flex items-center gap-3">
-        {getUrgencyIcon(cert.urgencyLevel)}
-        <div>
-          <div className="flex items-center gap-2">
+      <div className="flex items-start gap-3 min-w-0">
+        <div className="mt-0.5 shrink-0">{getUrgencyIcon(cert.urgencyLevel)}</div>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="font-medium text-sm" data-testid={`text-crew-name-${cert.id}`}>{cert.crewMemberName}</span>
             <span className="text-xs text-muted-foreground">({cert.crewMemberRank})</span>
             {getUrgencyBadge(cert.urgencyLevel)}
           </div>
-          <div className="text-xs text-muted-foreground mt-0.5">
+          <div className="text-xs text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <span className="font-medium">{cert.cert}</span>
-            {cert.certNumber && <span className="ml-2">#{cert.certNumber}</span>}
-            <span className="mx-2">•</span>
-            <span className="flex items-center gap-1 inline-flex">
+            {cert.certNumber && <span>#{cert.certNumber}</span>}
+            <span>•</span>
+            <span className="inline-flex items-center gap-1">
               <Clock className="h-3 w-3" />
               {cert.daysUntilExpiry <= 0 ? "Expired" : cert.daysUntilExpiry === 1 ? "Expires tomorrow" : `Expires in ${cert.daysUntilExpiry} days`}
             </span>
-            <span className="ml-2 text-muted-foreground">({format(new Date(cert.expiresAt), "MMM d, yyyy")})</span>
+            <span className="text-muted-foreground">({format(new Date(cert.expiresAt), "MMM d, yyyy")})</span>
           </div>
           {cert.alertAcknowledged && cert.alertAcknowledgedAt && (
             <div className="text-xs text-green-600 dark:text-green-400 mt-1 flex items-center gap-1">
@@ -65,9 +65,14 @@ function CertRow({ cert, onAcknowledge }: { cert: ExpiringCertification; onAckno
         </div>
       </div>
       {!cert.alertAcknowledged && (
-        <Button variant="outline" size="sm" onClick={() => onAcknowledge(cert)} className="ml-4" data-testid={`button-acknowledge-${cert.id}`}>
-          <Check className="h-3 w-3 mr-1" />Acknowledge
-        </Button>
+        <div className="flex gap-2 shrink-0 self-end sm:self-center">
+          <Button variant="outline" size="sm" onClick={() => onAcknowledge(cert)} data-testid={`button-acknowledge-${cert.id}`}>
+            <Check className="h-3 w-3 mr-1" />Acknowledge
+          </Button>
+          <Button variant="default" size="sm" onClick={() => onMarkRenewed(cert)} data-testid={`button-renew-${cert.id}`}>
+            <RefreshCw className="h-3 w-3 mr-1" />Mark as Renewed
+          </Button>
+        </div>
       )}
     </div>
   );
@@ -126,7 +131,7 @@ export function CertificationExpiryAlertBanner() {
             </CardHeader>
             <CardContent className="py-2">
               <div className="space-y-2">
-                {certifications.map((cert) => <CertRow key={cert.id} cert={cert} onAcknowledge={handleAcknowledge} />)}
+                {certifications.map((cert) => <CertRow key={cert.id} cert={cert} onAcknowledge={handleAcknowledge} onMarkRenewed={(c) => { setAcknowledgeNotes("Certification renewed"); handleAcknowledge(c); }} />)}
               </div>
             </CardContent>
           </Card>

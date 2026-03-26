@@ -1,6 +1,6 @@
 import { useState, useEffect, type ReactNode } from "react";
-import { useLocation, useSearch } from "wouter";
-import { ChevronLeft, Home, type LucideIcon } from "lucide-react";
+import { useLocation, useSearch, Link } from "wouter";
+import { ChevronLeft, ChevronRight, Home, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -142,29 +142,41 @@ export function IconGridLayout({
         )}
       >
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9"
-              onClick={handleHome}
-              data-testid="button-home"
-            >
-              <Home className="h-5 w-5" />
-              <span className="sr-only">Home</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9"
-              onClick={handleBack}
-              data-testid="button-back"
-            >
-              <ChevronLeft className="h-5 w-5" />
-              <span className="sr-only">Back</span>
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9"
+            onClick={handleBack}
+            data-testid="button-back"
+          >
+            <ChevronLeft className="h-5 w-5" />
+            <span className="sr-only">Back</span>
+          </Button>
           <div className="flex-1">
+            <nav aria-label="Breadcrumb" data-testid="breadcrumb-nav">
+              <ol className="flex items-center gap-1 text-sm text-muted-foreground">
+                <li>
+                  <Link href="/" className="hover:text-foreground transition-colors inline-flex items-center gap-1" aria-label="Home" data-testid="breadcrumb-home">
+                    <Home className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Home</span>
+                  </Link>
+                </li>
+                <li aria-hidden="true"><ChevronRight className="h-3.5 w-3.5" /></li>
+                {selectedItem ? (
+                  <>
+                    <li>
+                      <span className="text-foreground">{title}</span>
+                    </li>
+                    <li aria-hidden="true"><ChevronRight className="h-3.5 w-3.5" /></li>
+                    <li><span className="font-medium text-foreground" aria-current="page">{selectedItem.label}</span></li>
+                  </>
+                ) : (
+                  <li>
+                    <span className="font-medium text-foreground" aria-current="page">{title}</span>
+                  </li>
+                )}
+              </ol>
+            </nav>
             <h1
               className={cn("font-semibold", isMobile ? "text-lg" : "text-xl")}
               data-testid="grid-page-title"

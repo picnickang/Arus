@@ -165,12 +165,10 @@ export function CrewNotificationSettingsTab({
             />
           </div>
 
-          {localSettings?.emailAlertsEnabled && (
-            <>
-              <Separator />
+          <Separator />
               
-              <div className="space-y-4">
-                <h4 className="text-sm font-medium text-muted-foreground">Alert Types</h4>
+          <div className={`space-y-4 ${!localSettings?.emailAlertsEnabled ? "opacity-50" : ""}`}>
+            <h4 className="text-sm font-medium text-muted-foreground">Alert Types</h4>
                 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -185,6 +183,7 @@ export function CrewNotificationSettingsTab({
                   <Switch
                     checked={localSettings?.certExpiryEmailEnabled ?? true}
                     onCheckedChange={(checked) => handleToggle('certExpiryEmailEnabled', checked)}
+                    disabled={!localSettings?.emailAlertsEnabled}
                     data-testid="switch-cert-expiry-enabled"
                   />
                 </div>
@@ -202,29 +201,29 @@ export function CrewNotificationSettingsTab({
                   <Switch
                     checked={localSettings?.documentExpiryEmailEnabled ?? true}
                     onCheckedChange={(checked) => handleToggle('documentExpiryEmailEnabled', checked)}
+                    disabled={!localSettings?.emailAlertsEnabled}
                     data-testid="switch-document-expiry-enabled"
                   />
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-orange-500" />
-                    <div>
-                      <Label className="text-sm">Compliance Alerts</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Alerts for STCW/MLC compliance issues
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={localSettings?.complianceEmailEnabled ?? true}
-                    onCheckedChange={(checked) => handleToggle('complianceEmailEnabled', checked)}
-                    data-testid="switch-compliance-enabled"
-                  />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-orange-500" />
+                <div>
+                  <Label className="text-sm">Compliance Alerts</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Alerts for STCW/MLC compliance issues
+                  </p>
                 </div>
               </div>
-            </>
-          )}
+              <Switch
+                checked={localSettings?.complianceEmailEnabled ?? true}
+                onCheckedChange={(checked) => handleToggle('complianceEmailEnabled', checked)}
+                disabled={!localSettings?.emailAlertsEnabled}
+                data-testid="switch-compliance-enabled"
+              />
+            </div>
+          </div>
         </CardContent>
       </Card>
 

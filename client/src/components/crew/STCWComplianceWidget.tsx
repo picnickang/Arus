@@ -55,7 +55,7 @@ function VesselRow({ vessel, expanded, onToggle }: { vessel: VesselSummary; expa
   );
 }
 
-function ComplianceTrendChart({ data }: { data: TrendData; formattedData: Array<{ date: string; complianceRate: number; highFatigueRate: number }> }) {
+function ComplianceTrendChart({ data }: { data: TrendData }) {
   const chartData = data.trends.map((t) => ({ ...t, date: new Date(t.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) }));
   return (
     <div className="h-48">
@@ -130,14 +130,15 @@ export const STCWComplianceWidget = memo(function STCWComplianceWidget({ lookbac
                 <div className="flex items-center gap-1"><TrendIcon trend={trends.summary.fatigueRiskTrend} /><span>Fatigue</span></div>
               </div>
             </div>
-            <ComplianceTrendChart data={trends} formattedData={formattedChartData} />
+            <ComplianceTrendChart data={trends} />
           </div>
         )}
 
         {sortedVessels.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-medium">Vessel Breakdown</h4>
-            <ScrollArea className="h-64">
+            <ScrollArea className="h-64" onTouchStart={() => {}}>
+              <p className="text-xs text-muted-foreground mb-2 md:hidden">Swipe to scroll through vessels</p>
               <div className="space-y-1">
                 {sortedVessels.map((vessel) => (
                   <VesselRow key={vessel.vesselId} vessel={vessel} expanded={expandedVessel === vessel.vesselId} onToggle={() => toggleVesselExpansion(vessel.vesselId)} />

@@ -6,7 +6,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, AlertCircle, Info, ChevronDown, ChevronUp, Check, Clock, FileText, FileWarning } from "lucide-react";
+import { AlertTriangle, AlertCircle, Info, ChevronDown, ChevronUp, Check, Clock, FileText, FileWarning, RefreshCw } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { useDocumentExpiryData, type ExpiringDocument } from "@/features/crew/hooks/useDocumentExpiryData";
 
@@ -26,10 +26,10 @@ function getUrgencyBadge(level: string) {
   }
 }
 
-function DocumentRow({ doc, onAcknowledge, getDocumentTypeLabel }: { doc: ExpiringDocument; onAcknowledge: (doc: ExpiringDocument) => void; getDocumentTypeLabel: (type: string) => string }) {
+function DocumentRow({ doc, onAcknowledge, onMarkRenewed, getDocumentTypeLabel }: { doc: ExpiringDocument; onAcknowledge: (doc: ExpiringDocument) => void; onMarkRenewed: (doc: ExpiringDocument) => void; getDocumentTypeLabel: (type: string) => string }) {
   return (
     <div
-      className={`flex items-center justify-between p-3 rounded-lg border ${
+      className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg border ${
         doc.alertAcknowledged ? "bg-muted/50 border-muted" :
         doc.urgencyLevel === "critical" ? "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800" :
         doc.urgencyLevel === "warning" ? "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800" :
@@ -37,24 +37,24 @@ function DocumentRow({ doc, onAcknowledge, getDocumentTypeLabel }: { doc: Expiri
       }`}
       data-testid={`doc-alert-${doc.id}`}
     >
-      <div className="flex items-center gap-3">
-        {getUrgencyIcon(doc.urgencyLevel)}
-        <div>
-          <div className="flex items-center gap-2">
+      <div className="flex items-start gap-3 min-w-0">
+        <div className="mt-0.5 shrink-0">{getUrgencyIcon(doc.urgencyLevel)}</div>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="font-medium text-sm" data-testid={`text-doc-crew-name-${doc.id}`}>{doc.crewMemberName}</span>
             <span className="text-xs text-muted-foreground">({doc.crewMemberRank})</span>
             {getUrgencyBadge(doc.urgencyLevel)}
           </div>
-          <div className="text-xs text-muted-foreground mt-0.5">
+          <div className="text-xs text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <span className="font-medium">{getDocumentTypeLabel(doc.documentType)}</span>
-            {doc.documentNumber && <span className="ml-2">#{doc.documentNumber}</span>}
-            {doc.issuingCountry && <span className="ml-2">({doc.issuingCountry})</span>}
-            <span className="mx-2">•</span>
-            <span className="flex items-center gap-1 inline-flex">
+            {doc.documentNumber && <span>#{doc.documentNumber}</span>}
+            {doc.issuingCountry && <span>({doc.issuingCountry})</span>}
+            <span>•</span>
+            <span className="inline-flex items-center gap-1">
               <Clock className="h-3 w-3" />
               {doc.daysUntilExpiry <= 0 ? "Expired" : doc.daysUntilExpiry === 1 ? "Expires tomorrow" : `Expires in ${doc.daysUntilExpiry} days`}
             </span>
-            <span className="ml-2 text-muted-foreground">({format(new Date(doc.expiresAt), "MMM d, yyyy")})</span>
+            <span className="text-muted-foreground">({format(new Date(doc.expiresAt), "MMM d, yyyy")})</span>
           </div>
           {doc.alertAcknowledged && doc.alertAcknowledgedAt && (
             <div className="text-xs text-green-600 dark:text-green-400 mt-1 flex items-center gap-1">
@@ -66,9 +66,14 @@ function DocumentRow({ doc, onAcknowledge, getDocumentTypeLabel }: { doc: Expiri
         </div>
       </div>
       {!doc.alertAcknowledged && (
-        <Button variant="outline" size="sm" onClick={() => onAcknowledge(doc)} className="ml-4" data-testid={`button-acknowledge-doc-${doc.id}`}>
-          <Check className="h-3 w-3 mr-1" />Acknowledge
-        </Button>
+        <div className="flex gap-2 shrink-0 self-end sm:self-center">
+          <Button variant="outline" size="sm" onClick={() => onAcknowledge(doc)} data-testid={`button-acknowledge-doc-${doc.id}`}>
+            <Check className="h-3 w-3 mr-1" />Acknowledge
+          </Button>
+          <Button variant="default" size="sm" onClick={() => onMarkRenewed(doc)} data-testid={`button-renew-doc-${doc.id}`}>
+            <RefreshCw className="h-3 w-3 mr-1" />Mark as Renewed
+          </Button>
+        </div>
       )}
     </div>
   );
@@ -127,7 +132,7 @@ export function DocumentExpiryAlertBanner() {
             </CardHeader>
             <CardContent className="py-2">
               <div className="space-y-2">
-                {documents.map((doc) => <DocumentRow key={doc.id} doc={doc} onAcknowledge={handleAcknowledge} getDocumentTypeLabel={getDocumentTypeLabel} />)}
+                {documents.map((doc) => <DocumentRow key={doc.id} doc={doc} onAcknowledge={handleAcknowledge} onMarkRenewed={(d) => { setAcknowledgeNotes("Document renewed"); handleAcknowledge(d); }} getDocumentTypeLabel={getDocumentTypeLabel} />)}
               </div>
             </CardContent>
           </Card>

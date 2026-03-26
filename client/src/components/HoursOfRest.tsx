@@ -122,18 +122,18 @@ export function HoursOfRest() {
             <CardTitle className="flex items-center">
               <Calendar className="w-5 h-5 mr-2" />Rest Hours Calendar - {selectedMonthLabel} {selectedYear}
             </CardTitle>
-            <CardDescription>Daily rest hours visualization (green = compliant ≥10h, red = violation &lt;10h)</CardDescription>
+            <CardDescription>Daily rest hours visualization (green = compliant ≥10h, red = violation &lt;10h). STCW requires minimum 77 hours rest in any 7-day period.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-7 gap-1" data-testid="calendar-rest-grid">
+            <div className="grid grid-cols-7 gap-1" data-testid="calendar-rest-grid" role="grid" aria-label="Rest hours calendar grid">
               {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
                 <div key={day} className="p-2 text-center font-semibold text-sm">{day}</div>
               ))}
               {calendarGrid.map((dayData) => (
-                <div key={dayData.day} className={`p-2 text-center text-xs border rounded ${dayData.compliant ? "bg-green-100 border-green-300 text-green-800" : "bg-red-100 border-red-300 text-red-800"}`} title={`${dayData.date}: ${dayData.restHours}h rest`} data-testid={`calendar-day-${dayData.day}`}>
+                <button key={dayData.day} className={`p-2 text-center text-xs border rounded cursor-pointer transition-colors hover:opacity-80 ${dayData.compliant ? "bg-green-100 border-green-300 text-green-800 dark:bg-green-900/30 dark:border-green-700 dark:text-green-300" : "bg-red-100 border-red-300 text-red-800 dark:bg-red-900/30 dark:border-red-700 dark:text-red-300"}`} title={`${dayData.date}: ${dayData.restHours}h rest`} data-testid={`calendar-day-${dayData.day}`} aria-label={`${dayData.date}: ${dayData.restHours} hours rest, ${dayData.compliant ? "compliant" : "violation"}`} onClick={() => { setSelectedMonth(dayData.date.slice(5, 7)); }}>
                   <div className="font-semibold">{dayData.day}</div>
                   <div>{dayData.restHours}h</div>
-                </div>
+                </button>
               ))}
             </div>
           </CardContent>

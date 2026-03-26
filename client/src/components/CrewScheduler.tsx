@@ -1,5 +1,5 @@
 import { useShiftPlanning } from "@/features/crew";
-import { useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,13 +22,8 @@ interface Crew { id: string; name: string; rank: string; vesselId?: string; maxH
 export function CrewScheduler() {
   const { toast } = useToast();
   const p = useShiftPlanning();
+  const [showAllCrew, setShowAllCrew] = useState(false);
 
-  useEffect(() => {
-    console.warn(
-      "[DEPRECATED] CrewScheduler component is deprecated. Please use the new SchedulePlanner component instead. " +
-      "Enable the 'newSchedulerEnabled' feature flag to use the SmartPAL-style scheduling system."
-    );
-  }, []);
 
   if (p.isLoadingCrew) {return <div className="p-6">Loading crew data...</div>;}
 
@@ -51,7 +46,7 @@ export function CrewScheduler() {
             </div>
             <div className="space-y-2">
               <Label className="text-base font-medium">Available Resources</Label>
-              <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                 <div className="border rounded p-3"><div className="text-2xl font-bold text-blue-600">{p.crew.length}</div><div className="text-sm text-muted-foreground">Total Crew</div></div>
                 <div className="border rounded p-3"><div className="text-2xl font-bold text-green-600">{p.crew.filter((c: Crew) => c.skills?.includes("watchkeeping")).length}</div><div className="text-sm text-muted-foreground">Watch Qualified</div></div>
                 <div className="border rounded p-3"><div className="text-2xl font-bold text-orange-600">{p.shiftTemplates.length}</div><div className="text-sm text-muted-foreground">Shift Templates</div></div>
@@ -182,7 +177,7 @@ export function CrewScheduler() {
                 </div>
               </TabsContent>
               <TabsContent value="crew" className="space-y-3 mt-4">
-                {p.crew.slice(0, 6).map((member: Crew) => (
+                {p.crew.slice(0, showAllCrew ? p.crew.length : 6).map((member: Crew) => (
                   <div key={member.id} role="button" tabIndex={0} className="border rounded p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors" data-testid={`crew-member-${member.id}`} onClick={() => toast({ title: "Crew Member", description: `${member.name} (${member.rank}) - Available for scheduling with ${member.skills?.length ?? 0} skills` })} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toast({ title: "Crew Member", description: `${member.name} (${member.rank}) - Available for scheduling with ${member.skills?.length ?? 0} skills` }); } }}>
                     <div className="flex justify-between items-center">
                       <div><div className="font-medium">{member.name}</div><div className="text-sm text-muted-foreground">{member.rank} • {member.maxHours7d}h/week max</div></div>
@@ -190,7 +185,7 @@ export function CrewScheduler() {
                     </div>
                   </div>
                 ))}
-                {p.crew.length > 6 && <div className="text-center text-sm text-muted-foreground py-2">and {p.crew.length - 6} more crew members...</div>}
+                {p.crew.length > 6 && <Button variant="ghost" size="sm" className="w-full" onClick={() => setShowAllCrew(!showAllCrew)} data-testid="button-toggle-crew-list">{showAllCrew ? "Show fewer" : `Show all ${p.crew.length} crew members`}</Button>}
               </TabsContent>
             </Tabs>
           </CardContent>
@@ -213,11 +208,13 @@ export function CrewScheduler() {
                 <h3 className="text-lg font-medium mb-3">STCW Compliance Summary</h3>
                 <div className="mb-3"><span className="text-sm">Overall: </span><Badge variant={p.enhancedScheduleResult.compliance.overall_ok ? "default" : "destructive"}>{p.enhancedScheduleResult.compliance.overall_ok ? "COMPLIANT" : "VIOLATIONS DETECTED"}</Badge></div>
                 <div className="overflow-x-auto">
+                  <p className="text-xs text-muted-foreground mb-2 sm:hidden">Scroll horizontally to see all columns</p>
                   <table className="w-full text-sm border-collapse border border-gray-300 dark:border-gray-600">
-                    <thead><tr className="bg-gray-100 dark:bg-gray-700"><th className="border border-gray-300 dark:border-gray-600 px-2 py-1 text-left">Crew</th><th className="border border-gray-300 dark:border-gray-600 px-2 py-1 text-center">Status</th><th className="border border-gray-300 dark:border-gray-600 px-2 py-1 text-center">MinRest24h</th><th className="border border-gray-300 dark:border-gray-600 px-2 py-1 text-center">Rest7d</th><th className="border border-gray-300 dark:border-gray-600 px-2 py-1 text-center">Nights/Week</th><th className="border border-gray-300 dark:border-gray-600 px-2 py-1 text-center">Violations</th></tr></thead>
+                    <thead><tr className="bg-gray-100 dark:bg-gray-700"><th scope="col" className="border border-gray-300 dark:border-gray-600 px-2 py-1 text-left">Crew</th><th scope="col" className="border border-gray-300 dark:border-gray-600 px-2 py-1 text-center">Status</th><th scope="col" className="border border-gray-300 dark:border-gray-600 px-2 py-1 text-center">MinRest24h</th><th scope="col" className="border border-gray-300 dark:border-gray-600 px-2 py-1 text-center">Rest7d</th><th scope="col" className="border border-gray-300 dark:border-gray-600 px-2 py-1 text-center">Nights/Week</th><th scope="col" className="border border-gray-300 dark:border-gray-600 px-2 py-1 text-center">Violations</th></tr></thead>
                     <tbody>{p.enhancedScheduleResult.compliance.per_crew.map((crewComp, idx) => (<tr key={`crew-${crewComp.name}-${idx}`} className={crewComp.ok ? "" : "bg-red-50 dark:bg-red-900/20"}><td className="border border-gray-300 dark:border-gray-600 px-2 py-1">{crewComp.name}</td><td className="border border-gray-300 dark:border-gray-600 px-2 py-1 text-center"><Badge variant={crewComp.ok ? "default" : "destructive"}>{crewComp.ok ? "OK" : "BREACH"}</Badge></td><td className="border border-gray-300 dark:border-gray-600 px-2 py-1 text-center">{crewComp.min_rest_24?.toFixed(1) || "N/A"}h</td><td className="border border-gray-300 dark:border-gray-600 px-2 py-1 text-center">{crewComp.rest_7d?.toFixed(1) || "N/A"}h</td><td className="border border-gray-300 dark:border-gray-600 px-2 py-1 text-center">{crewComp.nights_this_week || 0}</td><td className="border border-gray-300 dark:border-gray-600 px-2 py-1 text-center">{crewComp.violations || 0}</td></tr>))}</tbody>
                   </table>
                 </div>
+                <p className="text-xs text-muted-foreground mt-3" data-testid="text-stcw-disclaimer">STCW compliance checks are advisory. Always verify with your designated person ashore (DPA) and flag state requirements.</p>
               </div>
             )}
             <div className="flex flex-wrap gap-3 mb-4 p-4 bg-muted/50 rounded-lg">
@@ -248,7 +245,7 @@ export function CrewScheduler() {
           <CardHeader><CardTitle className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-green-600" />Schedule Results<Badge variant={p.scheduleResult.unfilled.length > 0 ? "destructive" : "default"}>{p.scheduleResult.scheduled} Scheduled</Badge></CardTitle><CardDescription>{p.scheduleResult.message}</CardDescription></CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="text-center p-4 border rounded"><div className="text-2xl font-bold text-green-600">{p.scheduleResult.scheduled}</div><div className="text-sm text-muted-foreground">Shifts Scheduled</div></div>
                 <div className="text-center p-4 border rounded"><div className="text-2xl font-bold text-red-600">{p.scheduleResult.unfilled.reduce((sum, u) => sum + u.need, 0)}</div><div className="text-sm text-muted-foreground">Unfilled Positions</div></div>
                 <div className="text-center p-4 border rounded"><div className="text-2xl font-bold text-blue-600">{(() => { const totalUnfilled = p.scheduleResult.unfilled.reduce((sum, u) => sum + u.need, 0); const total = p.scheduleResult.scheduled + totalUnfilled; return total > 0 ? Math.round((p.scheduleResult.scheduled / total) * 100) : 0; })()}%</div><div className="text-sm text-muted-foreground">Coverage Rate</div></div>

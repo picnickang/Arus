@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Anchor, X, GripHorizontal, Plus, Check } from "lucide-react";
+import { Anchor, X, GripHorizontal, Plus, Check, Pin } from "lucide-react";
 import { Link } from "wouter";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DevModeToggle } from "@/components/DevModeToggle";
@@ -35,31 +35,51 @@ function CategoryCard({ category, onAddToDock, dockItems }: CategoryCardProps) {
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
-        <Link href={category.hubRoute}>
-          <div
-            className={cn(
-              "group flex flex-col items-center justify-center cursor-pointer",
-              "transition-all duration-200 ease-out",
-              "hover:scale-105 active:scale-95"
+        <div
+          className={cn(
+            "group relative flex flex-col items-center justify-center",
+            "transition-all duration-200 ease-out",
+            "hover:scale-105 active:scale-95"
+          )}
+          data-testid={`category-card-${category.id}`}
+        >
+          <div className="relative">
+            <Link href={category.hubRoute} className="block">
+              <div className={cn(
+                "w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center cursor-pointer",
+                "bg-primary shadow-lg",
+                "group-hover:shadow-xl group-hover:bg-primary/90",
+                "transition-all duration-200"
+              )}>
+                <Icon className="h-8 w-8 sm:h-10 sm:w-10 text-primary-foreground" strokeWidth={2} />
+              </div>
+            </Link>
+            {!isInDock && (
+              <button
+                type="button"
+                className="absolute -top-1.5 -right-1.5 z-10 w-6 h-6 rounded-full bg-background border shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity hover:bg-muted"
+                onClick={(e) => { e.stopPropagation(); onAddToDock(hubItem); }}
+                aria-label={`Pin ${category.name} to Dock`}
+                data-testid={`button-pin-${category.id}`}
+              >
+                <Pin className="h-3 w-3 text-muted-foreground" />
+              </button>
             )}
-            data-testid={`category-card-${category.id}`}
-          >
-            <div className={cn(
-              "w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center",
-              "bg-primary shadow-lg",
-              "group-hover:shadow-xl group-hover:bg-primary/90",
-              "transition-all duration-200"
-            )}>
-              <Icon className="h-8 w-8 sm:h-10 sm:w-10 text-primary-foreground" strokeWidth={2} />
-            </div>
-            <span className="mt-2 text-xs sm:text-sm font-medium text-center text-foreground line-clamp-1 max-w-[80px] sm:max-w-[100px]">
+            {isInDock && (
+              <div className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-green-100 dark:bg-green-900 border border-green-300 dark:border-green-700 flex items-center justify-center" aria-label="Pinned to Dock">
+                <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
+              </div>
+            )}
+          </div>
+          <Link href={category.hubRoute}>
+            <span className="mt-2 text-xs sm:text-sm font-medium text-center text-foreground line-clamp-1 max-w-[80px] sm:max-w-[100px] block cursor-pointer">
               {category.name}
             </span>
             <span className="text-[10px] text-muted-foreground text-center line-clamp-1 max-w-[80px] sm:max-w-[100px] hidden sm:block">
               {category.description}
             </span>
-          </div>
-        </Link>
+          </Link>
+        </div>
       </ContextMenuTrigger>
       <ContextMenuContent>
         <ContextMenuItem 

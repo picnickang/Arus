@@ -6,8 +6,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import {
   Grid, Upload, Download, FileCheck, Palette, Undo, Redo, Save, Clock, Calendar,
-  ChevronLeft, ChevronRight, Copy, AlertTriangle, TrendingUp, ListChecks, ChevronDown, ChevronUp, Smartphone,
+  ChevronLeft, ChevronRight, Copy, AlertTriangle, TrendingUp, ListChecks, ChevronDown, ChevronUp, Smartphone, CheckCircle,
 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { FatigueRiskBadge } from "@/components/crew/FatigueRiskBadge";
@@ -95,7 +100,7 @@ export function HoursOfRestGrid() {
               <div className="p-3 bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 rounded-lg">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
-                    <span className="text-lg">✓</span>
+                    <CheckCircle className="w-5 h-5 text-emerald-600" />
                     <span>Ready to edit hours of rest for <strong>{crew.find((c) => c.id === meta.crew_id)?.name}</strong> ({meta.month} {meta.year})</span>
                   </p>
                   <div className="flex items-center gap-2">
@@ -163,8 +168,8 @@ export function HoursOfRestGrid() {
                 <Button variant={viewMode === "mobile" ? "default" : "ghost"} size="sm" onClick={() => setViewMode("mobile")} data-testid="button-view-mobile"><Smartphone className="w-4 h-4 mr-1" />Mobile</Button>
               </div>
               <div className="flex items-center gap-1">
-                <Button variant="outline" size="sm" onClick={undo} disabled={historyIndex <= 0} title="Undo (Ctrl+Z)" data-testid="button-undo"><Undo className="w-4 h-4" /></Button>
-                <Button variant="outline" size="sm" onClick={redo} disabled={historyIndex >= history.length - 1} title="Redo (Ctrl+Y)" data-testid="button-redo"><Redo className="w-4 h-4" /></Button>
+                <Button variant="outline" size="sm" onClick={undo} disabled={historyIndex <= 0} title="Undo last change (Ctrl+Z)" data-testid="button-undo"><Undo className="w-4 h-4" /></Button>
+                <Button variant="outline" size="sm" onClick={redo} disabled={historyIndex >= history.length - 1} title="Redo last undone change (Ctrl+Y)" data-testid="button-redo"><Redo className="w-4 h-4" /></Button>
               </div>
             </div>
           </div>
@@ -297,7 +302,21 @@ export function HoursOfRestGrid() {
                   <Button onClick={exportPdf} variant="outline" size="sm" className="border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-400 dark:text-purple-400 dark:border-purple-600 dark:hover:bg-purple-950 transition-all duration-200" data-testid="button-export-pdf-grid" title="Generate PDF report"><Download className="w-4 h-4 mr-2" />Export PDF</Button>
                   <Button onClick={exportCSV} variant="outline" size="sm" className="border-cyan-300 text-cyan-700 hover:bg-cyan-50 hover:border-cyan-400 dark:text-cyan-400 dark:border-cyan-600 dark:hover:bg-cyan-950 transition-all duration-200" data-testid="button-export-csv" title="Export to CSV file">Export CSV</Button>
                   <Button onClick={importCSV} variant="outline" size="sm" className="border-teal-300 text-teal-700 hover:bg-teal-50 hover:border-teal-400 dark:text-teal-400 dark:border-teal-600 dark:hover:bg-teal-950 transition-all duration-200" data-testid="button-import-csv" title="Import from CSV file">Import CSV</Button>
-                  <Button onClick={clearAll} variant="outline" size="sm" className="border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400 dark:text-slate-400 dark:border-slate-600 dark:hover:bg-slate-800 transition-all duration-200" data-testid="button-clear-all" title="Clear all hours in the grid">Clear All</Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400 dark:text-slate-400 dark:border-slate-600 dark:hover:bg-slate-800 transition-all duration-200" data-testid="button-clear-all" title="Clear all hours in the grid">Clear All</Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Clear all rest data?</AlertDialogTitle>
+                        <AlertDialogDescription>This will reset all hours in the grid for the current month. This action cannot be undone.</AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel data-testid="button-cancel-clear">Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={clearAll} data-testid="button-confirm-clear">Clear All</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
             </div>
@@ -337,7 +356,7 @@ export function HoursOfRestGrid() {
                       <h4 className="font-semibold text-lg">{new Date(r.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</h4>
                       <p className="text-xs text-muted-foreground">{r.date}</p>
                     </div>
-                    <Badge variant={c.dayOK ? "default" : "destructive"} className="ml-2">{c.dayOK ? "✓ Compliant" : "✗ Violation"}</Badge>
+                    <Badge variant={c.dayOK ? "default" : "destructive"} className="ml-2">{c.dayOK ? <><CheckCircle className="h-3 w-3 mr-1" />Compliant</> : "Violation"}</Badge>
                   </div>
                   <div className="relative h-12 bg-slate-100 dark:bg-slate-800 rounded-lg mb-3 overflow-hidden">
                     {restChunks.map(([start, end], idx) => {

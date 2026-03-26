@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, AlertTriangle, AlertCircle, Info, CheckCircle, Activity, Moon, Clock } from "lucide-react";
+import { Loader2, AlertTriangle, AlertCircle, Info, CheckCircle, Activity, Moon, Clock, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type FatigueLevel = "critical" | "high" | "medium" | "low";
@@ -128,8 +128,9 @@ export function FatigueRiskBadge({
   const badge = (
     <Badge
       variant="outline"
+      tabIndex={0}
       className={cn(
-        "gap-1.5 cursor-pointer transition-colors",
+        "gap-1.5 cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
         config.bgColor,
         config.color,
         config.borderColor,
@@ -145,6 +146,7 @@ export function FatigueRiskBadge({
           {showScore ? `${config.label} (${fatigueData.score})` : config.label}
         </span>
       )}
+      <ChevronDown className="h-3 w-3 opacity-50" />
     </Badge>
   );
 
@@ -266,6 +268,10 @@ function FatigueDetailsContent({ data, crewName }: FatigueDetailsContentProps) {
 
       <div className="pt-2 text-xs text-muted-foreground text-right">
         Updated: {new Date(data.calculatedAt).toLocaleTimeString()}
+      </div>
+
+      <div className="pt-2 border-t text-xs text-muted-foreground">
+        Fatigue scores are calculated using STCW-compliant algorithms based on rest hours, night shifts, and work patterns over the lookback period. Scores above 70 indicate significant fatigue risk.
       </div>
     </div>
   );

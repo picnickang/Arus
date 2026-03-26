@@ -16,6 +16,7 @@ import { useEffect, lazy, Suspense, useState, useCallback } from "react";
 import { Loader2 } from "lucide-react";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { isDesktop } from "@/lib/desktop";
+import { BottomNav } from "@/components/BottomNav";
 import { isDesktopSetupComplete, bootstrapDesktopBackend, markSetupComplete } from "@/lib/desktopFetch";
 
 // Lazy load: All pages for better initial bundle size
@@ -130,7 +131,7 @@ function Router() {
 
       <main
         id="main-content"
-        className="min-h-screen"
+        className="min-h-screen pb-14 md:pb-0"
         role="main"
         aria-label="Main content"
       >
@@ -326,6 +327,7 @@ function Router() {
         {/* PWA Install Prompt */}
         <PWAInstallPrompt />
       </main>
+      <BottomNav />
     </div>
   );
 }
