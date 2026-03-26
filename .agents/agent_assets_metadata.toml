@@ -96,3 +96,9 @@ id = "ZhdVzzUb9FvnaOsXh0OK2"
 uri = "file://tauri-desktop-review.md"
 type = "text"
 title = "ARUS Tauri v2 Desktop Files — Complete Code"
+
+[[outputs]]
+id = "ibpXM7hDa5re4ysBIrTN9"
+uri = "file://tauri-installation-files-review.md"
+type = "text"
+title = "ARUS Tauri v2 Installation & Build Files — Complete Code"
