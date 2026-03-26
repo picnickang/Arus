@@ -18,3 +18,9 @@ id = "IhG8c1tWoEzRlsLfznJRt"
 uri = "file://backend-all-routes.md"
 type = "text"
 title = "Complete Backend Routes — All Categories (Operations, Fleet, Maintenance, Crew, Logistics, Records, Analytics, System)"
+
+[[outputs]]
+id = "QmyHKjHbaK5rm7ivGcSUZ"
+uri = "file://frontend-all-code.md"
+type = "text"
+title = "Complete Frontend Code — All Categories (Operations, Fleet, Maintenance, Crew, Logistics, Records, Analytics, System)"
