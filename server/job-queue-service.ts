@@ -141,6 +141,10 @@ class JobQueueService {
     }
   }
 
+  getBoss(): PgBoss | null {
+    return this.boss;
+  }
+
   async stop(): Promise<void> {
     if (this.boss) {
       await this.boss.stop();

@@ -41,6 +41,7 @@ Developed with Express.js and TypeScript, offering RESTful APIs with Zod validat
 -   **RAG Conversation System**: A modular RAG architecture supporting multi-turn conversations with an OpenAI-powered answer generator.
 -   **Telemetry Resilience Modules**: Includes a circuit breaker for PostgreSQL write protection, graceful shutdown, in-memory dead-letter queue, raw payload archival, equipment heartbeat tracking, batch acknowledgment, and schema versioning.
 -   **Scheduling System Overhaul**: A production-ready crew scheduling system.
+-   **PdM Gap-Fill Services**: Six production-ready services closing the gap between demo and fleet-operator trust: Prediction Calibration (Platt scaling), Prediction Outcome Tracker, Anomaly Correlator (spatial/temporal grouping), Telemetry Aggregator (multi-resolution bucketing into `telemetry_aggregated`), Model Evaluation Gate, and ML Training Job Queue (async via pg-boss). Routes in `server/routes/pdm-gap-fill-routes.ts` (10 endpoints).
 
 ### Hexagonal Architecture (DDD Modular Monolith)
 

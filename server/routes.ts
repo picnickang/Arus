@@ -37,6 +37,7 @@ import { registerRagRoutes } from "./routes/rag-routes";
 import { registerRagSecurityRoutes } from "./routes/rag-security-routes";
 import { registerInsightsRoutes } from "./routes/insights-routes";
 import { registerEquipmentContextRoutes } from "./routes/equipment-context-routes";
+import { registerPdmGapFillRoutes } from "./routes/pdm-gap-fill-routes";
 import { beastModeRouter } from "./beast/index.js";
 import governanceRouter from "./governance/routes.js";
 import complianceRouter from "./compliance/routes";
@@ -199,6 +200,17 @@ export async function registerRoutes(
   // Prediction Governance routes
   app.use("/api/pdm/governance", requireOrgId, generalApiRateLimit, predictionGovernanceRouter);
   console.log("[Prediction Governance] Registered (list, review, approve, suppress, expire)");
+
+  // PdM Gap Fill routes (calibration, outcomes, anomaly-groups, aggregation, evaluation, training-queue)
+  const { db: gapFillDb, getWebSocketServer: getGapFillWs } = await import("./routes/route-dependencies");
+  registerPdmGapFillRoutes(app, {
+    storage,
+    db: gapFillDb,
+    generalApiRateLimit,
+    writeOperationRateLimit,
+    wsServer: getGapFillWs(),
+  });
+  console.log("[PdM Gap Fill] Registered (calibration, outcomes, anomaly-groups, aggregation, evaluation, training-queue)");
 
   // Scheduled Reports domain
   const { createScheduledReportsDomain } = await import("./domains/scheduled-reports/index.js");
