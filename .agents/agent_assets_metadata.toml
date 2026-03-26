@@ -12,3 +12,9 @@ id = "HTKdGR9aJbeR0ClZN1zT4"
 uri = "file://backend-system-admin-routes.md"
 type = "text"
 title = "Backend Code — All System Admin Tabs"
+
+[[outputs]]
+id = "IhG8c1tWoEzRlsLfznJRt"
+uri = "file://backend-all-routes.md"
+type = "text"
+title = "Complete Backend Routes — All Categories (Operations, Fleet, Maintenance, Crew, Logistics, Records, Analytics, System)"
