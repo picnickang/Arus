@@ -69,7 +69,7 @@ export function OperationsMode() {
             <div className="space-y-2">
               <div className="flex justify-between items-center" data-testid="metric-avg-confidence">
                 <span className="text-sm text-muted-foreground">Avg Confidence</span>
-                <ConfidenceBadge confidence={avgPredictionConfidence} data-testid="badge-avg-confidence" />
+                <ConfidenceBadge confidence={avgPredictionConfidence} />
               </div>
               <div className="flex justify-between items-center" data-testid="metric-high-confidence">
                 <span className="text-sm text-muted-foreground">High Confidence</span>
