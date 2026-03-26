@@ -1,11 +1,49 @@
-/**
- * System Admin Routes - Authentication
- * Admin login verification and password management
- */
-
 import { Express, Request, Response, SystemAdminDependencies } from "./types.js";
 import { withErrorHandling } from "../../../lib/route-utils.js";
 import { logger } from "../../../utils/logger.js";
+import bcrypt from "bcrypt";
+import crypto from "crypto";
+
+const BCRYPT_COST = 12;
+const MAX_PASSWORD_LENGTH = 128;
+
+function isLocalhostOrTauri(req: Request): boolean {
+  const ip = req.ip || "";
+  const isLocalIp =
+    ip === "127.0.0.1" ||
+    ip === "::1" ||
+    ip === "::ffff:127.0.0.1" ||
+    ip === "localhost";
+  const origin = req.headers.origin || "";
+  const isTauriOrigin =
+    origin === "tauri://localhost" || origin === "https://tauri.localhost";
+  return isLocalIp || isTauriOrigin;
+}
+
+function hashSessionToken(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+async function atomicWriteEnv(envPath: string, content: string): Promise<void> {
+  const fs = await import("fs/promises");
+  const path = await import("path");
+  const tmpPath = path.join(path.dirname(envPath), `.env.tmp.${Date.now()}`);
+  await fs.writeFile(tmpPath, content, "utf-8");
+  await fs.rename(tmpPath, envPath);
+}
+
+async function readEnvContent(envPath: string): Promise<string> {
+  const fs = await import("fs/promises");
+  try {
+    return await fs.readFile(envPath, "utf-8");
+  } catch {
+    return "";
+  }
+}
+
+function quoteEnvValue(value: string): string {
+  return `"${value.replace(/"/g, '\\"')}"`;
+}
 
 export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies): void {
   const {
@@ -25,9 +63,10 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
     withErrorHandling("verify admin authentication", async (req: Request, res: Response) => {
       const { password } = adminPasswordVerifySchema.parse(req.body);
 
-      const validAdminToken = process.env.ADMIN_TOKEN;
+      const storedHash = process.env.ADMIN_TOKEN_HASH;
+      const legacyPlaintext = process.env.ADMIN_TOKEN;
 
-      if (!validAdminToken) {
+      if (!storedHash && !legacyPlaintext) {
         res.status(503).json({
           error: "Admin authentication is not configured",
           code: "ADMIN_SERVICE_DISABLED",
@@ -35,7 +74,34 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
         return;
       }
 
-      if (password !== validAdminToken) {
+      let isValid = false;
+
+      if (storedHash) {
+        isValid = await bcrypt.compare(password, storedHash);
+      } else if (legacyPlaintext) {
+        isValid = password === legacyPlaintext;
+        if (isValid) {
+          const path = await import("path");
+          const envPath = path.join(process.cwd(), ".env");
+          try {
+            const hash = await bcrypt.hash(password, BCRYPT_COST);
+            let envContent = await readEnvContent(envPath);
+            envContent = envContent.replace(/^ADMIN_TOKEN=.*/m, "");
+            envContent = envContent.replace(/\n{2,}/g, "\n").trim();
+            const finalContent = envContent
+              ? `${envContent}\nADMIN_TOKEN_HASH=${quoteEnvValue(hash)}\n`
+              : `ADMIN_TOKEN_HASH=${quoteEnvValue(hash)}\n`;
+            await atomicWriteEnv(envPath, finalContent);
+            process.env.ADMIN_TOKEN_HASH = hash;
+            delete process.env.ADMIN_TOKEN;
+            logger.info("AdminAuth", "Migrated legacy ADMIN_TOKEN to ADMIN_TOKEN_HASH");
+          } catch (migrationError) {
+            logger.warn("AdminAuth", "Failed to migrate legacy ADMIN_TOKEN to hash", migrationError);
+          }
+        }
+      }
+
+      if (!isValid) {
         logger.warn("AdminAuth", `Failed admin password verification from ${req.ip}`);
         res.status(401).json({
           error: "Invalid password",
@@ -44,8 +110,8 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
         return;
       }
 
-      const crypto = await import("crypto");
       const sessionToken = crypto.randomBytes(32).toString("hex");
+      const sessionTokenHash = hashSessionToken(sessionToken);
 
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + 2);
@@ -65,7 +131,7 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
 
       await storage.createAdminSession({
         orgId: mockOrgId,
-        sessionToken,
+        sessionToken: sessionTokenHash,
         userId: adminUser.id,
         adminEmail: "admin@example.com",
         ipAddress: req.ip,
@@ -88,8 +154,12 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
   app.get(
     "/api/admin/auth/status",
     generalApiRateLimit,
-    withErrorHandling("check admin auth status", async (_req: Request, res: Response) => {
-      const configured = !!process.env.ADMIN_TOKEN;
+    withErrorHandling("check admin auth status", async (req: Request, res: Response) => {
+      if (!isLocalhostOrTauri(req)) {
+        res.json({ configured: true });
+        return;
+      }
+      const configured = !!(process.env.ADMIN_TOKEN_HASH || process.env.ADMIN_TOKEN);
       res.json({ configured });
     })
   );
@@ -98,7 +168,15 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
     "/api/admin/auth/setup",
     criticalOperationRateLimit,
     withErrorHandling("initial admin password setup", async (req: Request, res: Response) => {
-      if (process.env.ADMIN_TOKEN) {
+      if (!isLocalhostOrTauri(req)) {
+        res.status(403).json({
+          error: "Setup is only available from localhost or Tauri",
+          code: "SETUP_LOCALHOST_ONLY",
+        });
+        return;
+      }
+
+      if (process.env.ADMIN_TOKEN_HASH || process.env.ADMIN_TOKEN) {
         res.status(409).json({
           error: "Admin password is already configured",
           code: "ALREADY_CONFIGURED",
@@ -116,6 +194,14 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
         return;
       }
 
+      if (password.length > MAX_PASSWORD_LENGTH) {
+        res.status(400).json({
+          error: `Password must be at most ${MAX_PASSWORD_LENGTH} characters`,
+          code: "PASSWORD_TOO_LONG",
+        });
+        return;
+      }
+
       if (/[\r\n\0]/.test(password)) {
         res.status(400).json({
           error: "Password contains invalid characters",
@@ -124,27 +210,22 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
         return;
       }
 
-      const fs = await import("fs/promises");
       const path = await import("path");
       const envPath = path.join(process.cwd(), ".env");
 
       try {
-        let envContent = "";
-        try {
-          envContent = await fs.readFile(envPath, "utf-8");
-        } catch {
-          envContent = "";
-        }
+        const hash = await bcrypt.hash(password, BCRYPT_COST);
+        let envContent = await readEnvContent(envPath);
 
         const finalContent = envContent
-          ? `${envContent.trimEnd()}\nADMIN_TOKEN=${password}\n`
-          : `ADMIN_TOKEN=${password}\n`;
+          ? `${envContent.trimEnd()}\nADMIN_TOKEN_HASH=${quoteEnvValue(hash)}\n`
+          : `ADMIN_TOKEN_HASH=${quoteEnvValue(hash)}\n`;
 
-        await fs.writeFile(envPath, finalContent, "utf-8");
-        process.env.ADMIN_TOKEN = password;
+        await atomicWriteEnv(envPath, finalContent);
+        process.env.ADMIN_TOKEN_HASH = hash;
 
-        const crypto = await import("crypto");
         const sessionToken = crypto.randomBytes(32).toString("hex");
+        const sessionTokenHash = hashSessionToken(sessionToken);
 
         const expiresAt = new Date();
         expiresAt.setHours(expiresAt.getHours() + 2);
@@ -164,7 +245,7 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
 
         await storage.createAdminSession({
           orgId: mockOrgId,
-          sessionToken,
+          sessionToken: sessionTokenHash,
           userId: adminUser.id,
           adminEmail: "admin@example.com",
           ipAddress: req.ip,
@@ -200,9 +281,10 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
     withErrorHandling("change admin password", async (req: Request, res: Response) => {
       const { currentPassword, newPassword } = adminPasswordChangeSchema.parse(req.body);
 
-      const validAdminToken = process.env.ADMIN_TOKEN;
+      const storedHash = process.env.ADMIN_TOKEN_HASH;
+      const legacyPlaintext = process.env.ADMIN_TOKEN;
 
-      if (!validAdminToken) {
+      if (!storedHash && !legacyPlaintext) {
         res.status(503).json({
           error: "Admin authentication is not configured",
           code: "ADMIN_SERVICE_DISABLED",
@@ -210,7 +292,22 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
         return;
       }
 
-      if (currentPassword !== validAdminToken) {
+      if (newPassword.length > MAX_PASSWORD_LENGTH) {
+        res.status(400).json({
+          error: `Password must be at most ${MAX_PASSWORD_LENGTH} characters`,
+          code: "PASSWORD_TOO_LONG",
+        });
+        return;
+      }
+
+      let isValid = false;
+      if (storedHash) {
+        isValid = await bcrypt.compare(currentPassword, storedHash);
+      } else if (legacyPlaintext) {
+        isValid = currentPassword === legacyPlaintext;
+      }
+
+      if (!isValid) {
         logger.warn("AdminAuth", `Failed admin password change attempt from ${req.ip}`);
         res.status(401).json({
           error: "Current password is incorrect",
@@ -219,25 +316,24 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
         return;
       }
 
-      const fs = await import("fs/promises");
       const path = await import("path");
       const envPath = path.join(process.cwd(), ".env");
 
       try {
-        const envContent = await fs.readFile(envPath, "utf-8");
+        const newHash = await bcrypt.hash(newPassword, BCRYPT_COST);
+        let envContent = await readEnvContent(envPath);
 
-        const updatedContent = envContent.replace(
-          /^ADMIN_TOKEN=.*/m,
-          `ADMIN_TOKEN=${newPassword}`
-        );
+        envContent = envContent.replace(/^ADMIN_TOKEN_HASH=.*/m, "");
+        envContent = envContent.replace(/^ADMIN_TOKEN=.*/m, "");
+        envContent = envContent.replace(/\n{2,}/g, "\n").trim();
 
-        const finalContent = updatedContent.includes("ADMIN_TOKEN=")
-          ? updatedContent
-          : `${updatedContent}\nADMIN_TOKEN=${newPassword}\n`;
+        const finalContent = envContent
+          ? `${envContent}\nADMIN_TOKEN_HASH=${quoteEnvValue(newHash)}\n`
+          : `ADMIN_TOKEN_HASH=${quoteEnvValue(newHash)}\n`;
 
-        await fs.writeFile(envPath, finalContent, "utf-8");
-
-        process.env.ADMIN_TOKEN = newPassword;
+        await atomicWriteEnv(envPath, finalContent);
+        process.env.ADMIN_TOKEN_HASH = newHash;
+        delete process.env.ADMIN_TOKEN;
 
         await storage.invalidateAllAdminSessions();
 
@@ -252,7 +348,7 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
         logger.error("AdminAuth", "Failed to update .env file", fileError);
         res.status(500).json({
           error:
-            "Failed to persist password change. Please update ADMIN_TOKEN in your environment secrets manually.",
+            "Failed to persist password change. Please update ADMIN_TOKEN_HASH in your environment secrets manually.",
           code: "FILE_UPDATE_FAILED",
         });
       }

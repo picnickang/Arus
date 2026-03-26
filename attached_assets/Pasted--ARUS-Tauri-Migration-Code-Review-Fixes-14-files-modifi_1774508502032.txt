@@ -1,0 +1,303 @@
+# ARUS Tauri Migration — Code Review Fixes
+
+**14 files modified/created** across 5 severity tiers.
+
+-----
+
+## CRITICAL (fix before any deployment)
+
+### 1. Admin password hashed with bcrypt
+
+**File:** `server/domains/system-admin/routes/auth-routes.ts`
+
+- Passwords now hashed with bcrypt (cost 12) before writing to `.env` as `ADMIN_TOKEN_HASH`
+- Verification uses `bcrypt.compare()` instead of `===` string comparison
+- Legacy plaintext `ADMIN_TOKEN` auto-migrated to hash on first successful verify
+- Password max-length enforced (128 chars) to prevent bcrypt DoS
+- `.env` values quoted to handle bcrypt `$2b$` prefix and special characters
+
+### 2. Session tokens hashed before database storage
+
+**File:** `server/domains/system-admin/routes/auth-routes.ts`
+
+- Session tokens SHA-256 hashed before storage in `admin_sessions` table
+- Plaintext token returned only to the client; DB never holds raw tokens
+- Prevents session hijacking if database is compromised
+
+### 3. Atomic `.env` file writes
+
+**File:** `server/domains/system-admin/routes/auth-routes.ts`
+
+- Write-to-temp-then-rename pattern prevents file corruption on power loss
+- Critical for vessel hardware with possible power interruptions
+
+### 4. Setup endpoint restricted to localhost / Tauri origins
+
+**File:** `server/domains/system-admin/routes/auth-routes.ts`
+
+- `POST /api/admin/auth/setup` now rejects requests from non-localhost, non-Tauri origins
+- Prevents race condition where an attacker on the vessel LAN sets the admin password
+  before the legitimate operator
+
+### 5. Auth status endpoint no longer leaks configuration state
+
+**File:** `server/domains/system-admin/routes/auth-routes.ts`
+
+- `GET /api/admin/auth/status` returns `{ configured: true }` for non-localhost requests
+- Only localhost requests see the real configured/unconfigured state
+- Prevents attackers from probing whether the setup endpoint is available
+
+### 6. CSP connect-src includes private network ranges
+
+**File:** `src-tauri/tauri.conf.json`
+
+- Added `http://192.168.*:*`, `https://192.168.*:*`, `http://10.*:*`, `https://10.*:*`
+- Vessel LAN connections to backends at `192.168.x.x:5000` no longer blocked by CSP
+
+### 7. SQLite admin_sessions table includes user_id and admin_email columns
+
+**File:** `scripts/init-sqlite-schema.js`
+
+- Added `user_id TEXT` and `admin_email TEXT` columns
+- Matches what `auth-routes.ts` → `storage.createAdminSession()` writes
+- Without these, inserts would fail or silently drop fields in vessel mode
+
+-----
+
+## HIGH (fix before production release)
+
+### 8. Updater endpoint fixed for GitHub Releases
+
+**File:** `src-tauri/tauri.conf.json`
+
+- Changed from `https://releases.arus.io/{{target}}/{{arch}}/{{current_version}}`
+  to `https://github.com/INSERT_OWNER/INSERT_REPO/releases/latest/download/latest.json`
+- Standard Tauri + GitHub Releases pattern that actually works with tauri-action
+
+### 9. `unsafe-eval` added to CSP script-src
+
+**File:** `src-tauri/tauri.conf.json`
+
+- Required by the `new Function('m', 'return import(m)')` dynamic import pattern
+- Without this, desktop builds may silently fail to load Tauri plugins
+
+### 10. macOS minimum version bumped to 11.0
+
+**File:** `src-tauri/tauri.conf.json`
+
+- Tauri v2 requires macOS 11+ (Big Sur) for WebKit compatibility
+- Was 10.15 (Catalina) which could cause runtime failures
+
+### 11. `getBackendUrl()` fallback returns empty string
+
+**File:** `client/src/lib/desktop.ts`
+
+- Was returning `window.location.origin` which is `tauri://localhost` in desktop mode
+- Would cause API calls to `tauri://localhost/api/...` which always fail
+
+### 12. Mid-flow setup persistence fixed
+
+**Files:** `client/src/pages/desktop-setup.tsx`, `client/src/lib/desktopFetch.ts`
+
+- Backend URL saved to localStorage only at wizard completion, not at Step 1
+- New `markSetupComplete()` / `isDesktopSetupComplete()` uses dedicated
+  `arus-setup-complete` flag instead of checking for backend URL existence
+- Prevents wizard skip if app closes between Step 1 and Step 3
+
+### 13. URL validation shared and applied to BackendStep
+
+**Files:** `client/src/lib/urlValidation.ts` (NEW), `client/src/pages/desktop-setup.tsx`,
+`client/src/components/admin/DesktopConnectionPanel.tsx`
+
+- Extracted `validateBackendUrl()` to shared utility
+- Applied to setup wizard BackendStep (was unvalidated — `ftp://invalid` would crash)
+- Applied to `testBackendConnection()` as a guard against malformed URLs
+
+-----
+
+## MEDIUM
+
+### 14. Error logging in all catch blocks
+
+**File:** `client/src/lib/desktop.ts`
+
+- All `catch` blocks now `console.warn` with descriptive prefixes
+- Critical for diagnosing IPC failures on vessel hardware
+
+### 15. AbortController cleanup on useEffect fetches
+
+**File:** `client/src/pages/desktop-setup.tsx`
+
+- VesselStep and AdminStep `useEffect` fetches now use `AbortController`
+- Prevents state updates on unmounted components when user navigates quickly
+
+### 16. HTTP insecurity warning
+
+**Files:** `client/src/pages/desktop-setup.tsx`, `client/src/components/admin/DesktopConnectionPanel.tsx`
+
+- Amber warning shown when backend URL uses HTTP on a non-localhost host
+- Alerts operators that passwords will be sent in plaintext over the network
+
+### 17. Trust proxy conditional on deployment mode
+
+**File:** `server/bootstrap/middleware.ts`
+
+- Cloud mode: `trust proxy: true` (behind reverse proxy)
+- Vessel mode: `trust proxy: 'loopback'` (directly exposed)
+- Prevents IP spoofing via `X-Forwarded-For` on vessel LANs
+
+### 18. Default body size limit reduced
+
+**File:** `server/bootstrap/middleware.ts`
+
+- Reduced from 50MB to 5MB globally
+- Endpoints needing larger payloads should apply per-route overrides
+
+### 19. Response logging truncated
+
+**File:** `server/bootstrap/middleware.ts`
+
+- Response bodies truncated to 500 characters in logs
+- Prevents enormous log entries for endpoints returning large datasets
+
+### 20. `resolveUrl` handles missing leading slash
+
+**File:** `client/src/lib/queryClient.ts`
+
+- Adds `/` separator if URL doesn’t start with one
+- Prevents `http://hostapi/foo` concatenation bug
+
+### 21. Query cache cleared on setup completion
+
+**File:** `client/src/App.tsx`
+
+- `queryClient.clear()` called in `handleSetupComplete`
+- Flushes any stale/failed queries from the setup phase
+
+### 22. Query cache cleared on backend URL change
+
+**File:** `client/src/components/admin/DesktopConnectionPanel.tsx`
+
+- `queryClient.clear()` called on Save instead of telling user to reload
+- Better UX: data refreshes automatically from new backend
+
+### 23. macOS x64 build uses Intel runner
+
+**File:** `.github/workflows/tauri-build.yml`
+
+- Changed from `macos-latest` (ARM) to `macos-13` (Intel) for x64 target
+- Avoids cross-compilation issues
+
+### 24. DesktopUpdatePanel eliminates render flash
+
+**File:** `client/src/components/admin/DesktopUpdatePanel.tsx`
+
+- `useState(() => isDesktop())` instead of `useEffect` + `setIsDesktopEnv`
+- No more brief flash of web fallback card in desktop mode
+
+### 25. `bootstrapDesktopBackend` logs errors
+
+**File:** `client/src/lib/desktopFetch.ts`
+
+- Empty catch block replaced with `console.warn`
+- Operators can now diagnose why auto-bootstrap failed
+
+### 26. IStorage interface properly typed
+
+**File:** `server/domains/system-admin/routes/types.ts`
+
+- Replaced 30+ `any` types with proper interfaces
+- Added AdminUser, AdminSession, AdminAuditEvent, AdminSystemSetting types
+
+-----
+
+## LOW
+
+### 27. Dead lazy imports removed from App.tsx
+
+**File:** `client/src/App.tsx`
+
+- Removed `_EquipmentRegistry` and `_MLTrainingPage` (never used, create unnecessary chunks)
+
+### 28. Toaster added to setup state
+
+**File:** `client/src/App.tsx`
+
+- Toast notifications now visible during the setup wizard
+
+### 29. `err: any` replaced with `err: unknown`
+
+**File:** `client/src/components/admin/DesktopUpdatePanel.tsx`
+
+- Type-safe error handling with proper narrowing
+
+### 30. Legacy queryKey format deprecated with warning
+
+**File:** `client/src/lib/queryClient.ts`
+
+- `console.warn` in development when legacy `queryKey.join("/")` path is used
+
+### 31. Dead imports removed from init-sqlite-schema.js
+
+**File:** `scripts/init-sqlite-schema.js`
+
+- Removed unused `existsSync`, `unlinkSync` imports
+
+### 32. Data directory created before SQLite init
+
+**File:** `scripts/init-sqlite-schema.js`
+
+- `mkdirSync(dbDir, { recursive: true })` prevents crash when `data/` doesn’t exist
+
+### 33. Artifact upload fails on missing files
+
+**File:** `.github/workflows/tauri-build.yml`
+
+- Changed `if-no-files-found` from `warn` to `error`
+- CI fails rather than silently passing when bundle paths are wrong
+
+### 34. Duplicate frontend build eliminated
+
+**File:** `.github/workflows/tauri-build.yml`
+
+- Removed separate `npm run build` step (tauri-action runs `beforeBuildCommand`)
+
+### 35. Accessibility improvements
+
+**File:** `client/src/pages/desktop-setup.tsx`
+
+- `aria-live="polite"` on status messages
+- `aria-label` on step indicators
+- `autocomplete` attributes on password inputs
+- `role="listbox"` / `role="option"` on vessel selection
+
+### 36. Windows runner pinned
+
+**File:** `.github/workflows/tauri-build.yml`
+
+- `windows-2022` instead of `windows-latest` for reproducibility
+
+-----
+
+## New file
+
+### `client/src/lib/urlValidation.ts`
+
+- Shared backend URL validation utility
+- Used by `desktop-setup.tsx`, `DesktopConnectionPanel.tsx`, and `desktopFetch.ts`
+- Returns `{ valid, normalized, error?, isInsecure? }`
+
+-----
+
+## Still requires native toolchains (cannot fix in this review)
+
+1. **Updater signing keypair** — `pubkey` is still empty; needs `npx @tauri-apps/cli signer generate`
+1. **`.icns` / `.ico` icon generation** — needs `iconutil` (macOS) or ImageMagick
+1. **Platform build testing** — needs macOS/Windows/Linux machines
+1. **Code signing** — needs Apple Developer account + Windows certificate
+1. **`bcrypt` dependency** — `auth-routes.ts` now imports `bcrypt`; add to `package.json`:
+   
+   ```
+   npm install bcrypt
+   npm install -D @types/bcrypt
+   ```

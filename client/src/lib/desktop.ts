@@ -52,7 +52,8 @@ export function getDesktopAPI(): DesktopAPI | undefined {
       try {
         const info = await tauriInvoke<{ version: string; name: string; identifier: string }>('get_app_version');
         return info.version;
-      } catch {
+      } catch (err) {
+        console.warn('[Desktop] getAppVersion failed:', err);
         return 'unknown';
       }
     },
@@ -61,7 +62,8 @@ export function getDesktopAPI(): DesktopAPI | undefined {
       try {
         const state = await tauriInvoke<{ packaged: boolean }>('get_runtime_state');
         return state.packaged;
-      } catch {
+      } catch (err) {
+        console.warn('[Desktop] isPackaged failed:', err);
         return false;
       }
     },
@@ -77,7 +79,8 @@ export function getDesktopAPI(): DesktopAPI | undefined {
           date: update.date ?? undefined,
           body: update.body ?? undefined,
         };
-      } catch {
+      } catch (err) {
+        console.warn('[Desktop] checkForUpdates failed:', err);
         return null;
       }
     },
@@ -94,15 +97,16 @@ export function getDesktopAPI(): DesktopAPI | undefined {
             await processModule.relaunch();
           }
         }
-      } catch {
-        // silently degrade in web mode
+      } catch (err) {
+        console.warn('[Desktop] installUpdate failed:', err);
       }
     },
 
     async getAppDataDir(): Promise<string> {
       try {
         return await tauriInvoke<string>('get_app_data_dir');
-      } catch {
+      } catch (err) {
+        console.warn('[Desktop] getAppDataDir failed:', err);
         return '';
       }
     },
@@ -111,7 +115,8 @@ export function getDesktopAPI(): DesktopAPI | undefined {
       try {
         const state = await tauriInvoke<{ packaged: boolean }>('get_runtime_state');
         return state.packaged ? 'packaged' : 'dev';
-      } catch {
+      } catch (err) {
+        console.warn('[Desktop] getRuntimeMode failed:', err);
         return 'dev';
       }
     },
@@ -120,8 +125,9 @@ export function getDesktopAPI(): DesktopAPI | undefined {
       try {
         const config = await tauriInvoke<{ url: string; mode: string }>('get_backend_config');
         return config.url;
-      } catch {
-        return window.location.origin;
+      } catch (err) {
+        console.warn('[Desktop] getBackendUrl failed:', err);
+        return '';
       }
     },
   };

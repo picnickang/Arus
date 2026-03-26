@@ -3,8 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, CheckCircle2, XCircle, Anchor, Server, ArrowRight, ArrowLeft, Ship, Lock, Eye, EyeOff } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Anchor, Server, ArrowRight, ArrowLeft, Ship, Lock, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 import { testBackendConnection, setBackendUrl, getBackendUrlSync, setVesselId, setVesselName } from '@/lib/desktopFetch';
+import { validateBackendUrl } from '@/lib/urlValidation';
 
 interface DesktopSetupProps {
   onComplete: () => void;
@@ -27,7 +28,7 @@ interface AdminStatus {
 
 function StepIndicator({ current, steps }: { current: number; steps: string[] }) {
   return (
-    <div className="flex items-center justify-center gap-2 mb-6" data-testid="step-indicator">
+    <div className="flex items-center justify-center gap-2 mb-6" data-testid="step-indicator" aria-label="Setup progress">
       {steps.map((label, i) => (
         <div key={label} className="flex items-center gap-2">
           <div className="flex items-center gap-1.5">
@@ -40,6 +41,7 @@ function StepIndicator({ current, steps }: { current: number; steps: string[] })
                   : 'bg-muted text-muted-foreground'
               }`}
               data-testid={`step-dot-${i}`}
+              aria-label={`Step ${i + 1}: ${label}${i < current ? ' (completed)' : i === current ? ' (current)' : ''}`}
             >
               {i < current ? <CheckCircle2 className="h-4 w-4" /> : i + 1}
             </div>
@@ -66,16 +68,28 @@ function BackendStep({
   const [status, setStatus] = useState<ConnectionStatus>(existing ? 'success' : 'idle');
   const [statusMessage, setStatusMessage] = useState(existing ? 'Using saved connection' : '');
   const [testedUrl, setTestedUrl] = useState(existing || '');
+  const [isInsecure, setIsInsecure] = useState(false);
 
   async function handleTest() {
     if (!url.trim()) return;
+
+    const validation = validateBackendUrl(url.trim());
+    if (!validation.valid) {
+      setStatus('error');
+      setStatusMessage(validation.error || 'Invalid URL');
+      setTestedUrl('');
+      setIsInsecure(false);
+      return;
+    }
+
+    setIsInsecure(!!validation.isInsecure);
     setStatus('testing');
     setStatusMessage('Testing connection...');
-    const result = await testBackendConnection(url.trim());
+    const result = await testBackendConnection(validation.normalized);
     if (result.ok) {
       setStatus('success');
       setStatusMessage(result.message);
-      setTestedUrl(url.trim());
+      setTestedUrl(validation.normalized);
     } else {
       setStatus('error');
       setStatusMessage(result.message);
@@ -108,6 +122,7 @@ function BackendStep({
                 if (status !== 'idle') {
                   setStatus('idle');
                   setTestedUrl('');
+                  setIsInsecure(false);
                 }
               }}
               onKeyDown={(e) => e.key === 'Enter' && handleTest()}
@@ -131,6 +146,7 @@ function BackendStep({
                 : 'bg-destructive/10 text-destructive'
             }`}
             data-testid="text-connection-status"
+            aria-live="polite"
           >
             {status === 'success' ? (
               <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
@@ -138,6 +154,13 @@ function BackendStep({
               <XCircle className="h-4 w-4 flex-shrink-0" />
             )}
             {statusMessage}
+          </div>
+        )}
+
+        {isInsecure && status === 'success' && (
+          <div className="flex items-center gap-2 text-sm p-3 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400" aria-live="polite">
+            <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+            This connection uses HTTP. Passwords will be sent in plaintext over the network. Use HTTPS for non-localhost connections.
           </div>
         )}
 
@@ -180,23 +203,31 @@ function VesselStep({
   const [selectedName, setSelectedName] = useState('');
 
   useEffect(() => {
+    const controller = new AbortController();
     async function fetchVessels() {
       try {
         const res = await fetch(`${backendUrl}/api/vessels`, {
           headers: { 'x-org-id': 'default-org-id' },
+          signal: controller.signal,
         });
         if (!res.ok) throw new Error(`Status ${res.status}`);
         const data = await res.json();
         const vesselList = Array.isArray(data) ? data : data.vessels || [];
-        setVessels(vesselList.filter((v: Vessel) => v.active !== false));
+        if (!controller.signal.aborted) {
+          setVessels(vesselList.filter((v: Vessel) => v.active !== false));
+        }
       } catch (e: unknown) {
+        if (controller.signal.aborted) return;
         const msg = e instanceof Error ? e.message : 'Unknown error';
         setError(`Could not load vessels: ${msg}`);
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     }
     fetchVessels();
+    return () => controller.abort();
   }, [backendUrl]);
 
   function handleSelect(v: Vessel) {
@@ -238,11 +269,13 @@ function VesselStep({
         )}
 
         {!loading && vessels.length > 0 && (
-          <div className="grid gap-2 max-h-60 overflow-y-auto" data-testid="vessel-list">
+          <div className="grid gap-2 max-h-60 overflow-y-auto" data-testid="vessel-list" role="listbox" aria-label="Available vessels">
             {vessels.map((v) => (
               <button
                 key={v.id}
                 onClick={() => handleSelect(v)}
+                role="option"
+                aria-selected={selectedId === v.id}
                 className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-colors ${
                   selectedId === v.id
                     ? 'border-primary bg-primary/5 ring-1 ring-primary'
@@ -303,24 +336,35 @@ function AdminStep({
   const [statusMessage, setStatusMessage] = useState('');
 
   useEffect(() => {
+    const controller = new AbortController();
     async function checkStatus() {
       try {
         const res = await fetch(`${backendUrl}/api/admin/auth/status`, {
           headers: { 'x-org-id': 'default-org-id' },
+          signal: controller.signal,
         });
         if (res.ok) {
           const data = await res.json();
-          setAdminStatus(data);
+          if (!controller.signal.aborted) {
+            setAdminStatus(data);
+          }
         } else {
-          setAdminStatus({ configured: true });
+          if (!controller.signal.aborted) {
+            setAdminStatus({ configured: true });
+          }
         }
       } catch {
-        setAdminStatus({ configured: true });
+        if (!controller.signal.aborted) {
+          setAdminStatus({ configured: true });
+        }
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     }
     checkStatus();
+    return () => controller.abort();
   }, [backendUrl]);
 
   async function handleSetup() {
@@ -425,6 +469,7 @@ function AdminStep({
                   id="admin-password"
                   data-testid="input-admin-password"
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete={isNewSetup ? 'new-password' : 'current-password'}
                   placeholder={isNewSetup ? 'Minimum 8 characters' : 'Enter admin password'}
                   value={password}
                   onChange={(e) => {
@@ -451,6 +496,7 @@ function AdminStep({
                   id="admin-confirm-password"
                   data-testid="input-admin-confirm-password"
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
                   placeholder="Confirm password"
                   value={confirmPassword}
                   onChange={(e) => {
@@ -470,6 +516,7 @@ function AdminStep({
                     : 'bg-destructive/10 text-destructive'
                 }`}
                 data-testid="text-admin-status"
+                aria-live="polite"
               >
                 {status === 'success' ? (
                   <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
@@ -529,7 +576,6 @@ export default function DesktopSetup({ onComplete }: DesktopSetupProps) {
   const stepLabels = ['Connection', 'Vessel', 'Admin'];
 
   function handleBackendNext(url: string) {
-    setBackendUrl(url);
     setConnectedUrl(url);
     setStep('vessel');
   }
@@ -546,6 +592,7 @@ export default function DesktopSetup({ onComplete }: DesktopSetupProps) {
   }
 
   function handleFinish() {
+    setBackendUrl(backendUrl);
     onComplete();
   }
 

@@ -1,9 +1,10 @@
-/**
- * Authentication Middleware - User authentication
- */
-
 import { Request, Response, NextFunction } from "express";
 import { storage } from "../storage";
+import crypto from "crypto";
+
+function hashSessionToken(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
 
 export async function requireAuthentication(req: Request, res: Response, next: NextFunction) {
   try {
@@ -51,56 +52,58 @@ export async function requireAuthentication(req: Request, res: Response, next: N
       });
     }
 
-    const validAdminToken = process.env.ADMIN_TOKEN;
+    const tokenHash = hashSessionToken(token);
+    const session = await storage.getAdminSessionByToken(tokenHash);
 
-    if (!validAdminToken) {
-      console.error(
-        "ADMIN_TOKEN environment variable is not configured. Admin endpoints disabled for security."
-      );
-      return res.status(503).json({
-        error: "Admin service unavailable",
-        code: "ADMIN_SERVICE_DISABLED",
-        message: "Admin authentication is not configured. Contact system administrator.",
-      });
+    if (session) {
+      if (new Date(session.expiresAt) < new Date()) {
+        return res.status(401).json({
+          error: "Session expired",
+          code: "SESSION_EXPIRED",
+          message: "Your session has expired. Please log in again.",
+        });
+      }
+
+      await storage.updateAdminSessionActivity(session.id);
+
+      const mockOrgId = "default-org-id";
+      let user = session.userId
+        ? await storage.getUser(session.userId)
+        : await storage.getUserByEmail(session.adminEmail || "admin@example.com", mockOrgId);
+
+      if (!user) {
+        user = await storage.createUser({
+          orgId: mockOrgId,
+          email: session.adminEmail || "admin@example.com",
+          name: "System Administrator",
+          role: "admin",
+          isActive: true,
+          timezone: "UTC",
+        });
+      }
+
+      if (!user.isActive) {
+        return res.status(401).json({
+          error: "User account is disabled",
+          code: "ACCOUNT_DISABLED",
+        });
+      }
+
+      req.user = {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        isActive: user.isActive,
+      };
+
+      return next();
     }
 
-    if (token !== validAdminToken) {
-      return res.status(401).json({
-        error: "Invalid token",
-        code: "INVALID_TOKEN",
-        message: "Provided token is invalid or expired",
-      });
-    }
-
-    const mockOrgId = "default-org-id";
-    let user = await storage.getUserByEmail("admin@example.com", mockOrgId);
-
-    if (!user) {
-      user = await storage.createUser({
-        orgId: mockOrgId,
-        email: "admin@example.com",
-        name: "System Administrator",
-        role: "admin",
-        isActive: true,
-        timezone: "UTC",
-      });
-    }
-
-    if (!user.isActive) {
-      return res.status(401).json({
-        error: "User account is disabled",
-        code: "ACCOUNT_DISABLED",
-      });
-    }
-
-    req.user = {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      isActive: user.isActive,
-    };
-
-    next();
+    return res.status(401).json({
+      error: "Invalid or expired token",
+      code: "INVALID_TOKEN",
+      message: "Provided token is invalid or expired. Please log in again.",
+    });
   } catch (error) {
     console.error("Authentication error:", error);
     res.status(500).json({ error: "Authentication service unavailable", code: "AUTH_ERROR" });

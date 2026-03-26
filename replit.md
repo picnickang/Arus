@@ -51,8 +51,8 @@ The backend uses a hexagonal architecture for separation of concerns, featuring 
 -   **Database**: Dual-mode deployment with cloud PostgreSQL (TimescaleDB) and local SQLite (Turso sync).
 -   **Schema**: Normalized schema with UUID primary keys, timestamp tracking, PostgreSQL data types, and SQLite compatibility, modularized into domain-specific files.
 -   **Single-Tenant Architecture**: Centralized tenant configuration for simplified architecture.
--   **Authentication**: HMAC for edge devices and password-protected admin mode with server-side session verification.
--   **Security**: Admin Audit Logging, automated IP tracking, tenant isolation violation alerts, and secure fleet status reporting.
+-   **Authentication**: HMAC for edge devices; bcrypt (cost=12) password hashing with `ADMIN_TOKEN_HASH` env var; SHA-256 hashed session tokens stored in DB; session-based admin auth via Bearer token lookup; legacy `ADMIN_TOKEN` auto-migrates on first login. Admin setup restricted to localhost/Tauri origins.
+-   **Security**: Admin Audit Logging, automated IP tracking, tenant isolation violation alerts, secure fleet status reporting, 128-char password cap, shared URL validation (`urlValidation.ts`), conditional `trust proxy` (loopback for vessel/desktop, true for cloud), 5MB body limit, response log truncation at 500 chars, public health endpoints (`/healthz`, `/readyz`) exempt from auth.
 -   **Telemetry Ingestion Architecture**: Enforces a single ingestion path with SQLite WAL-mode, cursor-based batch processing, exponential backoff, and source guard validation.
 -   **ML/AI Backend**: Production ML models stored in the `ml_models` table with org-scoped isolation and lifecycle tracking.
 -   **Deployment Modes**: Supports Cloud, Desktop (Tauri v2), and Mobile (Capacitor iOS/iPadOS).

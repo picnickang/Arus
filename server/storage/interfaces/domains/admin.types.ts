@@ -40,6 +40,9 @@ export interface IAdminStorage {
   createAdminSession(session: InsertAdminSession): Promise<AdminSession>;
   updateAdminSession(id: string, session: Partial<InsertAdminSession>): Promise<AdminSession>;
   endAdminSession(id: string, logoutType?: string): Promise<AdminSession>;
+  getAdminSessionByToken(tokenHash: string): Promise<AdminSession | undefined>;
+  updateAdminSessionActivity(sessionId: string): Promise<void>;
+  invalidateAllAdminSessions(): Promise<void>;
   cleanupExpiredSessions(): Promise<number>;
 
   // Admin System Settings

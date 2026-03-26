@@ -624,6 +624,9 @@ export class DatabaseStorage implements IStorage {
   async createAdminSession(session: InsertAdminSession): Promise<AdminSession> { return dbSystemAdminStorage.createAdminSession(session); }
   async updateAdminSession(id: string, updates: Partial<InsertAdminSession>): Promise<AdminSession> { return dbSystemAdminStorage.updateAdminSession(id, updates); }
   async deleteAdminSession(id: string): Promise<void> { return dbSystemAdminStorage.deleteAdminSession(id); }
+  async getAdminSessionByToken(tokenHash: string): Promise<AdminSession | undefined> { return dbSystemAdminStorage.getAdminSessionByToken(tokenHash); }
+  async updateAdminSessionActivity(sessionId: string): Promise<void> { return dbSystemAdminStorage.updateAdminSessionActivity(sessionId); }
+  async invalidateAllAdminSessions(): Promise<void> { return dbSystemAdminStorage.invalidateAllAdminSessions(); }
   async getAdminAuditEvents(orgId?: string, filters?: { action?: string; entityType?: string; startDate?: Date; endDate?: Date }): Promise<AdminAuditEvent[]> { return dbSystemAdminStorage.getAdminAuditEvents(orgId, filters); }
   async createAdminAuditEvent(event: InsertAdminAuditEvent): Promise<AdminAuditEvent> { return dbSystemAdminStorage.createAdminAuditEvent(event); }
   async updateAdminAuditEvent(id: string, updates: Partial<Pick<AdminAuditEvent, "outcome" | "severity" | "details">>): Promise<AdminAuditEvent> { return dbSystemAdminStorage.updateAdminAuditEvent(id, updates); }

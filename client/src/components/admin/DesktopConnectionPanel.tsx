@@ -5,30 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Server, CheckCircle2, XCircle, Loader2, Info } from "lucide-react";
+import { Server, CheckCircle2, XCircle, Loader2, Info, AlertTriangle } from "lucide-react";
 import { isDesktop } from "@/lib/desktop";
 import { getBackendUrlSync, setBackendUrl, testBackendConnection } from "@/lib/desktopFetch";
+import { validateBackendUrl } from "@/lib/urlValidation";
+import { queryClient } from "@/lib/queryClient";
 
 type TestStatus = "idle" | "testing" | "success" | "error";
-
-function isValidBackendUrl(raw: string): { valid: boolean; normalized: string; error?: string } {
-  const trimmed = raw.trim();
-  if (!trimmed) return { valid: false, normalized: "", error: "URL is required" };
-
-  try {
-    const parsed = new URL(trimmed);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      return { valid: false, normalized: trimmed, error: "Only http:// and https:// URLs are supported" };
-    }
-    if (!parsed.hostname) {
-      return { valid: false, normalized: trimmed, error: "Invalid hostname" };
-    }
-    const normalized = parsed.origin;
-    return { valid: true, normalized };
-  } catch {
-    return { valid: false, normalized: trimmed, error: "Invalid URL format. Example: http://localhost:5000" };
-  }
-}
 
 export function DesktopConnectionPanel() {
   const isDesktopEnv = isDesktop();
@@ -39,20 +22,23 @@ export function DesktopConnectionPanel() {
   const [validationError, setValidationError] = useState("");
   const [saved, setSaved] = useState(false);
   const [lastTestedUrl, setLastTestedUrl] = useState("");
+  const [isInsecure, setIsInsecure] = useState(false);
 
   if (!isDesktopEnv) {
     return null;
   }
 
   async function handleTest() {
-    const check = isValidBackendUrl(url);
+    const check = validateBackendUrl(url);
     if (!check.valid) {
       setValidationError(check.error || "Invalid URL");
       setStatus("error");
       setStatusMessage(check.error || "Invalid URL");
+      setIsInsecure(false);
       return;
     }
     setValidationError("");
+    setIsInsecure(!!check.isInsecure);
     setStatus("testing");
     setSaved(false);
     const result = await testBackendConnection(check.normalized);
@@ -69,6 +55,7 @@ export function DesktopConnectionPanel() {
     setBackendUrl(lastTestedUrl);
     setActiveUrl(lastTestedUrl);
     setSaved(true);
+    queryClient.clear();
   }
 
   return (
@@ -104,6 +91,7 @@ export function DesktopConnectionPanel() {
                 setValidationError("");
                 setSaved(false);
                 setLastTestedUrl("");
+                setIsInsecure(false);
               }}
               onKeyDown={(e) => e.key === "Enter" && handleTest()}
             />
@@ -135,6 +123,13 @@ export function DesktopConnectionPanel() {
           </div>
         )}
 
+        {isInsecure && status === "success" && (
+          <div className="flex items-center gap-2 text-sm p-3 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400">
+            <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+            This connection uses HTTP. Passwords will be sent in plaintext over the network. Use HTTPS for non-localhost connections.
+          </div>
+        )}
+
         {status === "success" && !saved && lastTestedUrl !== activeUrl && (
           <Button onClick={handleSave} data-testid="button-save-backend-url">
             Save & Apply
@@ -146,7 +141,7 @@ export function DesktopConnectionPanel() {
             <Info className="h-4 w-4" />
             <AlertTitle>Connection Updated</AlertTitle>
             <AlertDescription>
-              Backend URL updated. Reload the application for changes to take full effect.
+              Backend URL updated. Data has been refreshed from the new server.
             </AlertDescription>
           </Alert>
         )}

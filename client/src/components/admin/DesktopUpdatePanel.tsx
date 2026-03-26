@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,18 +38,11 @@ interface UpdateState {
 }
 
 export function DesktopUpdatePanel() {
-  const [state, setState] = useState<UpdateState>({
-    status: "idle",
-    currentVersion: "unknown",
-  });
+  const [isDesktopEnv] = useState(() => isDesktop());
 
-  const [isDesktopEnv, setIsDesktopEnv] = useState(false);
-
-  useEffect(() => {
-    const desktopDetected = isDesktop();
-    setIsDesktopEnv(desktopDetected);
-
-    if (desktopDetected) {
+  const [state, setState] = useState<UpdateState>(() => {
+    const initialState: UpdateState = { status: "idle", currentVersion: "unknown" };
+    if (isDesktop()) {
       const api = getDesktopAPI();
       if (api) {
         api.getAppVersion().then((version) => {
@@ -57,7 +50,8 @@ export function DesktopUpdatePanel() {
         });
       }
     }
-  }, []);
+    return initialState;
+  });
 
   const handleCheckForUpdates = useCallback(async () => {
     const api = getDesktopAPI();
@@ -80,11 +74,12 @@ export function DesktopUpdatePanel() {
           status: "not-available",
         }));
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to check for updates";
       setState((prev) => ({
         ...prev,
         status: "error",
-        error: err?.message || "Failed to check for updates",
+        error: message,
       }));
     }
   }, []);
@@ -98,11 +93,12 @@ export function DesktopUpdatePanel() {
     try {
       await api.installUpdate();
       setState((prev) => ({ ...prev, status: "downloaded" }));
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to install update";
       setState((prev) => ({
         ...prev,
         status: "error",
-        error: err?.message || "Failed to install update",
+        error: message,
       }));
     }
   }, []);

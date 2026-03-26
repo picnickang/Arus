@@ -15,6 +15,8 @@ export class DbAuditStorage {
 
   async createAdminSession(session: InsertAdminSession): Promise<AdminSession> { const [n] = await db.insert(adminSessions).values(session).returning(); return n; }
   async getAdminSession(sessionToken: string): Promise<AdminSession | undefined> { const [result] = await db.select().from(adminSessions).where(eq(adminSessions.sessionToken, sessionToken)); return result; }
+  async getAdminSessionByToken(tokenHash: string): Promise<AdminSession | undefined> { const [result] = await db.select().from(adminSessions).where(eq(adminSessions.sessionToken, tokenHash)); return result; }
+  async updateAdminSessionActivity(sessionId: string): Promise<void> { await db.update(adminSessions).set({ lastActivityAt: new Date() }).where(eq(adminSessions.id, sessionId)); }
   async invalidateAllAdminSessions(): Promise<void> { await db.delete(adminSessions); }
   async cleanupExpiredSessions(): Promise<number> { const result = await db.delete(adminSessions).where(lt(adminSessions.expiresAt, new Date())).returning(); return result.length; }
 }

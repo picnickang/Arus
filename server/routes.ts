@@ -101,7 +101,11 @@ export async function registerRoutes(
       "This creates a CRITICAL VULNERABILITY and should NEVER be used in production!"
     );
   } else {
-    app.use("/api", requireOrgId);
+    const publicPaths = new Set(["/healthz", "/readyz", "/health", "/metrics"]);
+    app.use("/api", (req, res, next) => {
+      if (publicPaths.has(req.path)) return next();
+      return requireOrgId(req, res, next);
+    });
     console.log("[Security] Global tenant isolation middleware registered (before all /api routes)");
   }
 

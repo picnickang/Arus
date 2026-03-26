@@ -20,7 +20,8 @@ import { performanceMiddleware } from "../middleware/performance";
 export function configureMiddleware(app: Express): void {
   const isDevelopment = process.env.NODE_ENV === "development";
 
-  app.set("trust proxy", true);
+  const isVesselMode = process.env.DEPLOYMENT_MODE === "vessel" || process.env.DEPLOYMENT_MODE === "desktop";
+  app.set("trust proxy", isVesselMode ? "loopback" : true);
 
   app.use(
     helmet({
@@ -112,7 +113,7 @@ export function configureMiddleware(app: Express): void {
 
   app.use(
     express.json({
-      limit: "50mb",
+      limit: "5mb",
       verify: (req, _res, buf) => {
         (req as any).rawBody = buf;
       },
@@ -121,7 +122,7 @@ export function configureMiddleware(app: Express): void {
   app.use(
     express.urlencoded({
       extended: false,
-      limit: "50mb",
+      limit: "5mb",
     })
   );
 
@@ -150,7 +151,8 @@ export function configureMiddleware(app: Express): void {
         const shortId = correlationId !== "no-context" ? `[${correlationId.slice(0, 8)}] ` : "";
         let line = `${shortId}${req.method} ${path} ${res.statusCode} in ${duration}ms`;
         if (capturedJsonResponse) {
-          line += ` :: ${safeStringify(capturedJsonResponse)}`;
+          const jsonStr = safeStringify(capturedJsonResponse);
+          line += ` :: ${jsonStr.length > 500 ? jsonStr.slice(0, 500) + '...' : jsonStr}`;
         }
         console.log(line);
       }
@@ -167,9 +169,16 @@ export async function configureAuthMiddleware(app: Express): Promise<void> {
   const { validateOrgIdHeader } = await import("../orgIdValidation");
   const { apiReadyGate } = await import("../middleware/api-ready-gate");
 
+  const publicPaths = new Set(["/healthz", "/readyz", "/health", "/metrics"]);
+
+  const skipPublicPaths = (middleware: any) => (req: any, res: any, next: any) => {
+    if (publicPaths.has(req.path)) return next();
+    return middleware(req, res, next);
+  };
+
   app.use("/api", apiReadyGate);
-  app.use("/api", requireAuthentication);
-  app.use("/api", requireOrgId);
-  app.use("/api", validateOrgIdHeader);
-  app.use("/api", withDatabaseContext);
+  app.use("/api", skipPublicPaths(requireAuthentication));
+  app.use("/api", skipPublicPaths(requireOrgId));
+  app.use("/api", skipPublicPaths(validateOrgIdHeader));
+  app.use("/api", skipPublicPaths(withDatabaseContext));
 }

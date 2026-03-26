@@ -24,7 +24,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:* https://localhost:* http://127.0.0.1:* https://127.0.0.1:* https://*.arus.io; img-src 'self' data: blob:; font-src 'self' data:"
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:* https://localhost:* http://127.0.0.1:* https://127.0.0.1:* http: https: https://*.arus.io; img-src 'self' data: blob:; font-src 'self' data:"
     }
   },
   "bundle": {
@@ -40,7 +40,7 @@
     "shortDescription": "ARUS Marine Predictive Maintenance System",
     "longDescription": "ARUS is a comprehensive marine predictive maintenance and vessel management system for fleet operators.",
     "macOS": {
-      "minimumSystemVersion": "10.15"
+      "minimumSystemVersion": "11.0"
     },
     "windows": {
       "wix": {
@@ -52,7 +52,7 @@
     "updater": {
       "pubkey": "",
       "endpoints": [
-        "https://releases.arus.io/{{target}}/{{arch}}/{{current_version}}"
+        "https://github.com/INSERT_OWNER/INSERT_REPO/releases/latest/download/latest.json"
       ],
       "windows": {
         "installMode": "passive"

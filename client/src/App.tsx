@@ -16,7 +16,7 @@ import { useEffect, lazy, Suspense, useState, useCallback } from "react";
 import { Loader2 } from "lucide-react";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { isDesktop } from "@/lib/desktop";
-import { isDesktopSetupComplete, bootstrapDesktopBackend } from "@/lib/desktopFetch";
+import { isDesktopSetupComplete, bootstrapDesktopBackend, markSetupComplete } from "@/lib/desktopFetch";
 
 // Lazy load: All pages for better initial bundle size
 const HomePage = lazy(() => import("@/pages/home"));
@@ -54,7 +54,7 @@ const LogsComplianceHub = lazy(() => import("@/pages/logs-compliance-hub"));
 const FuelEmissionsLog = lazy(() => import("@/pages/fuel-emissions-log"));
 const VesselTrackLog = lazy(() => import("@/pages/vessel-track-log"));
 const ConditionMonitoringLog = lazy(() => import("@/pages/condition-monitoring-log"));
-const _EquipmentRegistry = lazy(() => import("@/pages/equipment-registry")); // Reserved for future use
+const EquipmentRegistry = lazy(() => import("@/pages/equipment-registry"));
 const SensorTemplatesPage = lazy(() => import("@/pages/sensor-templates"));
 const KnowledgeBasePage = lazy(() => import("@/pages/knowledge-base"));
 const KnowledgeBaseChatPage = lazy(() => import("@/pages/kb-chat"));
@@ -69,7 +69,7 @@ const DigitalTwin = lazy(() => import("@/pages/digital-twin"));
 const Diagnostics = lazy(() => import("@/pages/DiagnosticsDashboard"));
 const Equipment = lazy(() => import("@/pages/equipment"));
 const MaintenanceTemplatesPage = lazy(() => import("@/pages/MaintenanceTemplatesPage"));
-const _MLTrainingPage = lazy(() => import("@/pages/ml-training")); // Reserved for future use
+const MLTrainingPage = lazy(() => import("@/pages/ml-training"));
 const AISensorAudits = lazy(() => import("@/pages/ai-sensor-audits"));
 const AIStudioPage = lazy(() => import("@/pages/AIStudioPage"));
 const GovernanceDashboard = lazy(() => import("@/pages/governance-dashboard"));
@@ -348,6 +348,8 @@ function App() {
   }, [setupState]);
 
   const handleSetupComplete = useCallback(() => {
+    markSetupComplete();
+    queryClient.clear();
     setSetupState('ready');
   }, []);
 
@@ -363,6 +365,7 @@ function App() {
     return (
       <QueryClientProvider client={queryClient}>
         <ThemeProvider defaultTheme="dark" storageKey="arus-ui-theme">
+          <Toaster />
           <Suspense fallback={<PageLoader />}>
             <DesktopSetup onComplete={handleSetupComplete} />
           </Suspense>

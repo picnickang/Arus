@@ -6,7 +6,9 @@ import { getBackendUrlSync } from "@/lib/desktopFetch";
 function resolveUrl(url: string): string {
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
   const base = getBackendUrlSync();
-  return base ? `${base}${url}` : url;
+  if (!base) return url;
+  const separator = url.startsWith('/') ? '' : '/';
+  return `${base}${separator}${url}`;
 }
 
 async function throwIfResNotOk(res: Response) {
@@ -14,16 +16,13 @@ async function throwIfResNotOk(res: Response) {
     const text = (await res.text()) || res.statusText;
     const statusPrefix = `${res.status}`;
 
-    // Try to parse JSON error response for better error messages
     let errorData;
     try {
       errorData = JSON.parse(text);
     } catch {
-      // Not JSON - use text with status code for diagnostics
       throw new Error(`${statusPrefix}: ${text || res.statusText}`);
     }
 
-    // Handle Zod validation errors with specific field messages
     if (errorData.errors && Array.isArray(errorData.errors)) {
       const fieldErrors = errorData.errors
         .map((err: { path?: string[]; message: string }) => `${err.path?.join(".") || "Field"}: ${err.message}`)
@@ -31,26 +30,21 @@ async function throwIfResNotOk(res: Response) {
       throw new Error(`${statusPrefix}: ${fieldErrors || errorData.message || text}`);
     }
 
-    // Extract message from JSON error response with status prefix
     const message = errorData.message || errorData.error || text || res.statusText;
     throw new Error(`${statusPrefix}: ${message}`);
   }
 }
 
-// Helper function to create headers with device ID and organization ID
 function createHeaders(includeContentType: boolean = false): Record<string, string> {
   const headers: Record<string, string> = {};
 
-  // Add Content-Type if needed
   if (includeContentType) {
     headers["Content-Type"] = "application/json";
   }
 
-  // SINGLE-TENANT MODE: Always include org-id header (defaults to default-org-id)
   const orgId = getCurrentOrgId() || "default-org-id";
   headers["x-org-id"] = orgId;
 
-  // Add X-Device-Id header if available (Hub & Sync functionality)
   const deviceId = getCurrentDeviceId();
   if (deviceId) {
     headers["X-Device-Id"] = deviceId;
@@ -79,16 +73,13 @@ export async function apiRequest(
 
   await throwIfResNotOk(res);
 
-  // Handle 204 No Content responses (e.g., successful DELETE operations)
   if (res.status === 204) {
     return null;
   }
 
-  // Only parse JSON if there's a response body
   const text = await res.text();
   const result = text ? JSON.parse(text) : null;
   
-  // Handle standardized API response format (unwrap { success, data } envelope)
   if (result && typeof result === 'object' && 'success' in result && 'data' in result) {
     return result.data;
   }
@@ -100,19 +91,15 @@ type UnauthorizedBehavior = "returnNull" | "throw";
 export const getQueryFn: <T>(options: { on401: UnauthorizedBehavior }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    // Build URL with proper query parameter handling
     let url: string;
 
     if (queryKey.length === 1) {
-      // Simple query key - just use as URL
       url = queryKey[0] as string;
     } else if (queryKey.length === 2 && typeof queryKey[1] === "object" && queryKey[1] !== null) {
-      // Query key with parameters object - convert to query string
       const baseUrl = queryKey[0] as string;
       const params = queryKey[1] as Record<string, string | number | boolean | null | undefined>;
       const searchParams = new URLSearchParams();
 
-      // Add non-null/undefined parameters to query string
       Object.entries(params).forEach(([key, value]) => {
         if (value !== null && value !== undefined) {
           searchParams.append(key, String(value));
@@ -122,8 +109,10 @@ export const getQueryFn: <T>(options: { on401: UnauthorizedBehavior }) => QueryF
       const queryString = searchParams.toString();
       url = queryString ? `${baseUrl}?${queryString}` : baseUrl;
     } else {
-      // Legacy format - join with slashes (for backward compatibility)
       url = queryKey.join("/");
+      if (process.env.NODE_ENV === "development") {
+        console.warn(`[QueryClient] Legacy queryKey format detected: ${url}. Use array segments for proper cache invalidation.`);
+      }
     }
 
     const res = await fetch(resolveUrl(url), {
@@ -138,7 +127,6 @@ export const getQueryFn: <T>(options: { on401: UnauthorizedBehavior }) => QueryF
     await throwIfResNotOk(res);
     const result = await res.json();
     
-    // Handle standardized API response format (unwrap { success, data } envelope)
     if (result && typeof result === 'object' && 'success' in result && 'data' in result) {
       return result.data;
     }
@@ -146,40 +134,28 @@ export const getQueryFn: <T>(options: { on401: UnauthorizedBehavior }) => QueryF
     return result;
   };
 
-// Cache time constants for different data types (OPTIMIZED Oct 2025)
 export const CACHE_TIMES = {
-  REALTIME: 30000, // 30s - telemetry, truly real-time data
-  MODERATE: 300000, // 5min - devices, work orders, fleet status
-  STABLE: 3600000, // 60min - vessels, equipment catalog, users (was 30min)
-  EXPENSIVE: 86400000, // 24hr - AI insights, reports, heavy computations (was 1hr)
+  REALTIME: 30000,
+  MODERATE: 300000,
+  STABLE: 3600000,
+  EXPENSIVE: 86400000,
 } as const;
 
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
-      refetchInterval: false, // Disable global polling - set per query based on data type
+      refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: CACHE_TIMES.MODERATE, // 5min default - reasonable for most data
-      retry: 1, // Single retry for network issues
+      staleTime: CACHE_TIMES.MODERATE,
+      retry: 1,
     },
     mutations: {
-      retry: 1, // Single retry for mutations
+      retry: 1,
     },
   },
 });
 
-/**
- * Helper for optimistic mutations with automatic rollback on error
- *
- * @example
- * const mutation = useMutation({
- *   mutationFn: (data) => apiRequest('POST', '/api/work-orders', data),
- *   onMutate: optimisticUpdate('/api/work-orders', (old, newData) => [...(old ?? []), newData]),
- *   onError: rollbackUpdate('/api/work-orders'),
- *   onSettled: () => queryClient.invalidateQueries({ queryKey: ['/api/work-orders'] }),
- * });
- */
 export function optimisticUpdate<TData, TVariables>(
   queryKey: string | string[],
   updater: (oldData: TData | undefined, variables: TVariables) => TData
@@ -187,23 +163,16 @@ export function optimisticUpdate<TData, TVariables>(
   return async (variables: TVariables) => {
     const key = Array.isArray(queryKey) ? queryKey : [queryKey];
 
-    // Cancel any outgoing refetches
     await queryClient.cancelQueries({ queryKey: key });
 
-    // Snapshot the previous value
     const previousData = queryClient.getQueryData<TData>(key);
 
-    // Optimistically update to the new value
     queryClient.setQueryData<TData>(key, (old) => updater(old, variables));
 
-    // Return a context with the previous value
     return { previousData, queryKey: key };
   };
 }
 
-/**
- * Helper to rollback optimistic updates on error
- */
 export function rollbackUpdate<TData>(_queryKey: string | string[]) {
   return (
     _error: Error,

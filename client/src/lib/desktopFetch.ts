@@ -1,4 +1,5 @@
 import { isDesktop, getDesktopAPI } from './desktop';
+import { validateBackendUrl } from './urlValidation';
 
 let cachedBackendUrl: string | null = null;
 
@@ -42,18 +43,24 @@ export function clearBackendUrl(): void {
   localStorage.removeItem('arus-backend-url');
 }
 
+export function markSetupComplete(): void {
+  localStorage.setItem('arus-setup-complete', 'true');
+}
+
 export function isDesktopSetupComplete(): boolean {
   if (!isDesktop()) return true;
-  return !!localStorage.getItem('arus-backend-url');
+  return localStorage.getItem('arus-setup-complete') === 'true';
 }
 
 export async function bootstrapDesktopBackend(): Promise<boolean> {
   if (!isDesktop()) return true;
 
-  const stored = localStorage.getItem('arus-backend-url');
-  if (stored) {
-    cachedBackendUrl = stored;
-    return true;
+  if (localStorage.getItem('arus-setup-complete') === 'true') {
+    const stored = localStorage.getItem('arus-backend-url');
+    if (stored) {
+      cachedBackendUrl = stored;
+      return true;
+    }
   }
 
   const api = getDesktopAPI();
@@ -64,10 +71,12 @@ export async function bootstrapDesktopBackend(): Promise<boolean> {
         const result = await testBackendConnection(url);
         if (result.ok) {
           setBackendUrl(url);
+          markSetupComplete();
           return true;
         }
       }
-    } catch {
+    } catch (err) {
+      console.warn('[Desktop] bootstrapDesktopBackend failed:', err);
     }
   }
 
@@ -91,12 +100,16 @@ export function setVesselName(name: string): void {
 }
 
 export async function testBackendConnection(url: string): Promise<{ ok: boolean; message: string }> {
+  const validation = validateBackendUrl(url);
+  if (!validation.valid) {
+    return { ok: false, message: validation.error || 'Invalid URL' };
+  }
+
   try {
-    const normalized = url.replace(/\/+$/, '');
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
 
-    const res = await fetch(`${normalized}/api/healthz`, {
+    const res = await fetch(`${validation.normalized}/api/healthz`, {
       signal: controller.signal,
       headers: { 'x-org-id': 'default-org-id' },
     });

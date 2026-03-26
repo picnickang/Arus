@@ -1,25 +1,21 @@
 #!/usr/bin/env node
-/**
- * Initialize SQLite Database Schema
- * Creates a minimal seed database using Node.js (no sqlite3 CLI required)
- */
-
 import { createClient } from '@libsql/client';
-import { existsSync, unlinkSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 
 const DB_PATH = process.env.DATABASE_PATH || 'data/vessel-local.db';
 
 console.log(`  Initializing database at: ${DB_PATH}`);
 
+const dbDir = dirname(DB_PATH);
+mkdirSync(dbDir, { recursive: true });
+
 try {
-  // Create the database file
   const client = createClient({
     url: `file:${DB_PATH}`
   });
 
-  // Initialize with minimal schema
   await client.execute(`
-    -- Enable foreign keys and WAL mode for better performance
     PRAGMA foreign_keys = ON;
   `);
 
@@ -31,7 +27,6 @@ try {
     PRAGMA synchronous = NORMAL;
   `);
 
-  // Create a version marker
   await client.execute(`
     CREATE TABLE IF NOT EXISTS _schema_version (
       version TEXT PRIMARY KEY,
@@ -45,7 +40,6 @@ try {
 
   console.log('  Creating critical system tables for embedded mode...');
 
-  // Create organizations table (required for multi-tenancy)
   await client.execute(`
     CREATE TABLE IF NOT EXISTS organizations (
       id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
@@ -55,12 +49,10 @@ try {
     );
   `);
 
-  // Insert default organization for embedded mode
   await client.execute(`
     INSERT OR IGNORE INTO organizations (id, name) VALUES ('default-org-id', 'Default Organization');
   `);
 
-  // Create update_settings table (required for update scheduler)
   await client.execute(`
     CREATE TABLE IF NOT EXISTS update_settings (
       id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
@@ -80,18 +72,18 @@ try {
     );
   `);
 
-  // Insert default update settings for default organization
   await client.execute(`
     INSERT OR IGNORE INTO update_settings (org_id, auto_update_enabled) 
     VALUES ('default-org-id', 0);
   `);
 
-  // Create admin_sessions table (required for admin mode)
   await client.execute(`
     CREATE TABLE IF NOT EXISTS admin_sessions (
       id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
       org_id TEXT NOT NULL REFERENCES organizations(id),
       session_token TEXT NOT NULL UNIQUE,
+      user_id TEXT,
+      admin_email TEXT,
       ip_address TEXT,
       user_agent TEXT,
       created_at INTEGER DEFAULT (strftime('%s', 'now')),
@@ -100,7 +92,6 @@ try {
     );
   `);
 
-  // Create admin_audit_events table (required for admin audit logging)
   await client.execute(`
     CREATE TABLE IF NOT EXISTS admin_audit_events (
       id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
@@ -118,7 +109,6 @@ try {
     );
   `);
 
-  // Create admin_system_settings table (required for admin settings management)
   await client.execute(`
     CREATE TABLE IF NOT EXISTS admin_system_settings (
       id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
@@ -136,14 +126,12 @@ try {
     );
   `);
 
-  // Create indexes for performance
   await client.execute(`CREATE INDEX IF NOT EXISTS idx_update_settings_org ON update_settings(org_id);`);
   await client.execute(`CREATE INDEX IF NOT EXISTS idx_admin_sessions_org ON admin_sessions(org_id);`);
   await client.execute(`CREATE INDEX IF NOT EXISTS idx_admin_sessions_token ON admin_sessions(session_token);`);
   await client.execute(`CREATE INDEX IF NOT EXISTS idx_admin_audit_org ON admin_audit_events(org_id);`);
   await client.execute(`CREATE INDEX IF NOT EXISTS idx_admin_settings_org_cat ON admin_system_settings(org_id, category);`);
 
-  // Close the connection
   client.close();
 
   console.log('  ✓ Core schema created with critical tables');
