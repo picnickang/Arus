@@ -158,22 +158,21 @@ export function registerInsightsRoutes(app: Express) {
 
   app.post('/api/insights/evaluate/:equipmentId', async (req, res) => {
     try {
-      const { equipmentId } = req.params;
-      const { vesselId } = req.body;
-      const orgId = req.body.orgId || (req.headers["x-org-id"] as string);
+      const orgId = req.headers["x-org-id"] as string;
       if (!orgId) {
         return res.status(400).json({ error: "Organization ID (x-org-id header) is required" });
       }
+      const { equipmentId } = req.params;
+      const { vesselId } = req.body;
 
-      // Verify equipment exists
       const [equipmentRecord] = await db
         .select()
         .from(equipment)
-        .where(eq(equipment.id, equipmentId))
+        .where(and(eq(equipment.id, equipmentId), eq(equipment.orgId, orgId)))
         .limit(1);
 
       if (!equipmentRecord) {
-        return res.status(404).json({ error: 'Equipment not found' });
+        return res.status(403).json({ error: 'Equipment not found or access denied' });
       }
 
       const insightIds = await InsightEngine.evaluateAndStoreInsights(
