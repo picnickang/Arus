@@ -12,6 +12,7 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
     storage,
     generalApiRateLimit,
     writeOperationRateLimit,
+    criticalOperationRateLimit,
     requireAdminAuth,
     auditAdminAction,
     adminPasswordVerifySchema,
