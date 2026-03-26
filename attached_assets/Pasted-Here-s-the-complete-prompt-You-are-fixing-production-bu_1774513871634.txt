@@ -1,0 +1,385 @@
+Here’s the complete prompt:
+
+You are fixing production bugs and code quality issues in the ARUS maritime crew management frontend. Apply every fix below exactly as specified. Do not change anything not listed.
+
+MUST FIX — Data Integrity & Correctness
+1. CrewManagement.tsx — merge rank sources, fix silent empty roleId
+Remove maritimeRanks string array from the select. Replace with options derived from availableRanks only. Use r.id as the SelectItem value and r.displayName as the label. Update handleRankChange to receive an ID, not a display name, eliminating the availableRanks.find lookup entirely:
+
+// Before
+<SelectContent>
+  {maritimeRanks.map((rank) => <SelectItem key={rank} value={rank}>{rank}</SelectItem>)}
+</SelectContent>
+const handleRankChange = (displayName: string) => {
+  const selectedRank = availableRanks.find(r => r.displayName === displayName);
+  setCrewForm({ ...crewForm, rank: displayName, roleId: selectedRank?.id || "" });
+};
+
+// After
+<SelectContent>
+  {availableRanks.map((rank) => <SelectItem key={rank.id} value={rank.id}>{rank.displayName}</SelectItem>)}
+</SelectContent>
+const handleRankChange = (id: string) => {
+  const selectedRank = availableRanks.find(r => r.id === id);
+  setCrewForm({ ...crewForm, rank: selectedRank?.displayName ?? "", roleId: id });
+};
+
+
+2. CrewManagement.tsx — skill assignment must use ID not name
+In the Assign Skills tab SelectContent, change value={skill.name} to value={skill.id}. Ensure the mutation payload sends skill.id. Display name is for rendering only:
+
+// Before
+<SelectItem key={skill.id} value={skill.name}>{skill.name}</SelectItem>
+// After
+<SelectItem key={skill.id} value={skill.id}>{skill.name}</SelectItem>
+
+
+3. CrewManagement.tsx and CrewScheduler.tsx — fix replace("_", " ") → replaceAll
+Every instance of .replace("_", " ") across both files only replaces the first underscore. Change all of them to .replaceAll("_", " ").
+4. FatigueRiskBadge.tsx — fix nightWorkRatio display
+Add a comment confirming the API contract and multiply by 100 if the value is a ratio:
+
+// Before
+<p className="font-medium">{Math.round(data.factors.nightWorkRatio)}%</p>
+// After — API returns 0–1 ratio, multiply to display as percentage
+<p className="font-medium">{Math.round(data.factors.nightWorkRatio * 100)}%</p>
+
+
+5. FatigueRiskBadge.tsx — fix query key structure
+Change the query key from a URL string with embedded params to a structured array so React Query invalidation works correctly:
+
+// Before
+queryKey: [`/api/hor/fatigue/${crewId}?days=${lookbackDays}`],
+// After
+queryKey: ["/api/hor/fatigue", crewId, { days: lookbackDays }],
+
+
+6. CrewNotificationSettingsTab.tsx — do not overwrite unsaved local edits on background refetch
+
+// Before
+useEffect(() => {
+  if (settings) {
+    setLocalSettings(settings);
+    setHasChanges(false);
+  }
+}, [settings]);
+
+// After
+useEffect(() => {
+  if (settings && !hasChanges) {
+    setLocalSettings(settings);
+  }
+}, [settings]); // intentionally exclude hasChanges from deps
+
+
+7. CrewNotificationSettingsTab.tsx — validate override email before mutation
+Add validation at the top of handleSave:
+
+const handleSave = () => {
+  if (!localSettings) return;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (localSettings.overrideEmail && !emailRegex.test(localSettings.overrideEmail)) {
+    toast({ title: "Invalid email address", description: "Please enter a valid email or leave the field blank.", variant: "destructive" });
+    return;
+  }
+  updateMutation.mutate({ ... });
+};
+
+
+MUST FIX — Maritime Compliance Correctness
+8. CrewScheduler.tsx — STCW validation must default to on
+Change the initial state for validateSTCW from false to true. Change the raw <input type="checkbox"> to use the shadcn Checkbox component. Add a warning tooltip:
+
+// Replace raw input with:
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+<div className="flex items-center gap-2">
+  <Checkbox
+    id="validate-stcw"
+    checked={p.validateSTCW}
+    onCheckedChange={(checked) => p.setValidateSTCW(!!checked)}
+    data-testid="checkbox-validate-stcw"
+  />
+  <TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Label htmlFor="validate-stcw" className="cursor-pointer">Validate STCW Compliance</Label>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs">
+        STCW rest-hour rules are enforced during schedule generation. Disabling this may produce non-compliant schedules in violation of maritime law.
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+</div>
+
+
+9. CrewScheduler.tsx — add disclaimer to projected STCW compliance results
+Immediately above the STCW compliance summary table, add:
+
+<div className="mb-3 p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg text-sm text-amber-800 dark:text-amber-200">
+  ⚠ Compliance check is based on the proposed schedule only. Actual compliance must be verified against logged hours of rest. Pre-existing hours are not included in this projection.
+</div>
+
+
+10. HoursOfRest.tsx — fix calendar grid missing day-of-week offset
+Before rendering calendarGrid.map(...), prepend empty cells for the correct weekday offset:
+
+// Add this before the calendarGrid.map
+const firstDay = calendarGrid.length > 0 ? new Date(calendarGrid[0].date).getUTCDay() : 0;
+const paddingCells = Array.from({ length: firstDay }, (_, i) => (
+  <div key={`pad-${i}`} className="p-2" />
+));
+
+// Then in JSX:
+{paddingCells}
+{calendarGrid.map((dayData) => ( ... ))}
+
+
+11. HoursOfRest.tsx — add disclaimer that calendar only reflects 24h rule
+Add below the CardDescription:
+
+<p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+  Note: This calendar reflects the STCW minimum 10h/24h rest rule only. The 77h/7-day and rest-block-split rules require the full Hours of Rest grid.
+</p>
+
+
+12. HoursOfRestGrid.tsx — fix week view out-of-bounds crash
+Fix the Next Week button’s upper bound and add a guard on row rendering:
+
+// Before
+onClick={() => setWeekOffset(Math.min(Math.floor(rows.length / 7), weekOffset + 1))}
+// After
+onClick={() => setWeekOffset(Math.min(Math.ceil(rows.length / 7) - 1, weekOffset + 1))}
+
+// Also guard displayRows:
+{displayRows.filter(Boolean).map((r, ri) => { ... })}
+
+
+13. CrewScheduler.tsx — fix watchkeeping count to be case-insensitive
+
+// Before
+p.crew.filter((c: Crew) => c.skills?.includes("watchkeeping")).length
+// After
+p.crew.filter((c: Crew) => c.skills?.some(s => s.toLowerCase() === "watchkeeping")).length
+
+
+MUST FIX — Deprecated Component
+14. CrewScheduler.tsx — remove internal deprecation warning, gate at call site
+Remove the useEffect with console.warn from inside CrewScheduler. In whatever hub or page renders CrewScheduler, wrap it in a feature flag check. If no feature flag system exists yet, add a ENABLE_NEW_SCHEDULER constant in a config file:
+
+// In config/featureFlags.ts (create if not exists):
+export const ENABLE_NEW_SCHEDULER = false; // flip to true to use new SchedulePlanner
+
+// In the hub/page that renders the scheduler:
+import { ENABLE_NEW_SCHEDULER } from "@/config/featureFlags";
+import { CrewScheduler } from "@/components/CrewScheduler";
+import { SchedulePlanner } from "@/components/scheduling/SchedulePlanner";
+
+// Replace direct <CrewScheduler /> with:
+{ENABLE_NEW_SCHEDULER ? <SchedulePlanner /> : <CrewScheduler />}
+
+
+Add a comment above CrewScheduler’s export:
+
+/**
+ * @deprecated Use SchedulePlanner instead.
+ * Controlled by ENABLE_NEW_SCHEDULER feature flag.
+ * Scheduled for removal after SchedulePlanner reaches feature parity.
+ */
+
+
+SHOULD FIX — Shared Utilities & Deduplication
+15. Create client/src/components/crew/alertUtils.tsx
+Extract the duplicated functions from CertificationExpiryAlerts.tsx and DocumentExpiryAlerts.tsx into this shared file:
+
+import { AlertTriangle, AlertCircle, Info } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+
+export function getUrgencyIcon(level: string) {
+  switch (level) {
+    case "critical": return <AlertTriangle className="h-4 w-4 text-red-500" />;
+    case "warning": return <AlertCircle className="h-4 w-4 text-amber-500" />;
+    default: return <Info className="h-4 w-4 text-blue-500" />;
+  }
+}
+
+export function getUrgencyBadge(level: string) {
+  switch (level) {
+    case "critical": return <Badge variant="destructive" className="text-xs">Critical</Badge>;
+    case "warning": return <Badge variant="outline" className="text-xs border-amber-500 text-amber-600 dark:text-amber-400">Warning</Badge>;
+    default: return <Badge variant="secondary" className="text-xs">Notice</Badge>;
+  }
+}
+
+
+Then in both alert files, delete the local definitions and import from ./alertUtils.
+16. STCWComplianceWidget.tsx — remove unused formattedData prop
+Remove formattedData from ComplianceTrendChart’s props interface and from the call site. The component builds its own chartData already:
+
+// Before
+function ComplianceTrendChart({ data, formattedData }: { data: TrendData; formattedData: Array<...> }) {
+// After
+function ComplianceTrendChart({ data }: { data: TrendData }) {
+
+
+Remove the formattedData={formattedChartData} prop from where ComplianceTrendChart is called.
+17. FatigueRiskBadge.tsx — fix N+1 queries in FatigueSummaryCard
+FatigueSummaryCard renders FatigueRiskBadge per crew member, triggering individual queries. Pass prefetched data instead:
+
+// In FatigueSummaryCard, change:
+{summary.highestRiskCrew.slice(0, 3).map((crew) => (
+  <div key={crew.crewId} className="flex items-center justify-between text-sm">
+    <span>{crew.crewName || crew.crewId}</span>
+    <FatigueRiskBadge crewId={crew.crewId} crewName={crew.crewName} compact showScore />
+  </div>
+))}
+
+// To render a static badge using data already fetched by the parent:
+{summary.highestRiskCrew.slice(0, 3).map((crew) => (
+  <div key={crew.crewId} className="flex items-center justify-between text-sm">
+    <span>{crew.crewName || crew.crewId}</span>
+    <Badge
+      variant="outline"
+      className={cn("gap-1.5", getLevelConfig(crew.level).bgColor, getLevelConfig(crew.level).color, getLevelConfig(crew.level).borderColor)}
+    >
+      {crew.score}
+    </Badge>
+  </div>
+))}
+
+
+SHOULD FIX — Bugs and Code Quality
+18. HoursOfRestGrid.tsx — fix timezone-safe date parsing
+Replace all new Date(r.date) and new Date(someIsoString) calls used for display with date-fns parseISO + format:
+
+// Add import at top:
+import { parseISO, format } from "date-fns";
+
+// Replace:
+new Date(r.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
+// With:
+format(parseISO(r.date), "EEE, MMM d")
+
+
+Apply this pattern everywhere dates are displayed as strings in this file.
+19. HoursOfRestGrid.tsx — extract grid template string as constant
+
+// Add at module level, outside the component:
+const GRID_TEMPLATE_COLUMNS = `110px repeat(24, 24px) 75px 75px` as const;
+
+// Replace all occurrences of:
+style={{ display: "grid", gridTemplateColumns: `110px repeat(24, ${hourW}px) 75px 75px` }}
+// With:
+style={{ display: "grid", gridTemplateColumns: GRID_TEMPLATE_COLUMNS }}
+
+
+20. HoursOfRestGrid.tsx — memoize crew name lookup
+
+// Add inside the component, after hook destructuring:
+const selectedCrewMember = useMemo(
+  () => crew.find((c) => c.id === meta.crew_id),
+  [crew, meta.crew_id]
+);
+
+// Replace all inline crew.find calls with selectedCrewMember
+
+
+21. HoursOfRestGrid.tsx — replace raw <textarea> with design system component
+
+// Before
+<textarea className="w-full h-40 p-2 border rounded-md font-mono text-sm" ... />
+// After
+import { Textarea } from "@/components/ui/textarea";
+<Textarea className="h-40 font-mono text-sm" ... />
+
+
+22. CrewScheduler.tsx — fix index keys in assignments and unfilled lists
+
+// Assignments list — before:
+.map((a, i) => <div key={i} ...>
+// After:
+.map((a) => <div key={`${a.crewId}-${a.date}-${a.start}`} ...>
+
+// Unfilled list — before:
+p.enhancedScheduleResult.unfilled.map((u, i) => <div key={i} ...>
+// After:
+.map((u) => <div key={`${u.day}-${u.shiftId}`} ...>
+
+
+23. CrewScheduler.tsx — extract coverage rate calculation out of JSX
+Replace both inline IIFE coverage calculations with a memoized value:
+
+const enhancedCoverageRate = useMemo(() => {
+  if (!p.enhancedScheduleResult) return "0";
+  const unfilled = p.enhancedScheduleResult.unfilled.reduce((sum, u) => sum + u.need, 0);
+  const total = p.enhancedScheduleResult.summary.scheduledAssignments + unfilled;
+  return total > 0 ? ((p.enhancedScheduleResult.summary.scheduledAssignments / total) * 100).toFixed(1) : "0";
+}, [p.enhancedScheduleResult]);
+
+const basicCoverageRate = useMemo(() => {
+  if (!p.scheduleResult) return 0;
+  const unfilled = p.scheduleResult.unfilled.reduce((sum, u) => sum + u.need, 0);
+  const total = p.scheduleResult.scheduled + unfilled;
+  return total > 0 ? Math.round((p.scheduleResult.scheduled / total) * 100) : 0;
+}, [p.scheduleResult]);
+
+
+Replace both JSX IIFEs with {enhancedCoverageRate} and {basicCoverageRate}.
+24. CertificationExpiryAlerts.tsx — fix redundant flex classes
+
+// Before
+<span className="flex items-center gap-1 inline-flex">
+// After
+<span className="inline-flex items-center gap-1">
+
+
+25. HoursOfRestGrid.tsx — replace checkmark emoji with icon
+
+// Before
+<span className="text-lg">✓</span>
+// After
+import { CheckCircle2 } from "lucide-react";
+<CheckCircle2 className="h-4 w-4 text-emerald-600" />
+
+
+26. STCWComplianceWidget.tsx — add scope="col" to all table headers
+In the raw compliance table inside CrewScheduler.tsx, add scope="col" to every <th>:
+
+<th scope="col" className="border ... px-2 py-1 text-left">Crew</th>
+// repeat for all th elements
+
+
+27. hours-of-rest/utils.ts — add deprecation notice
+
+/**
+ * @deprecated Import directly from `@shared/lib/rest-grid-utils` instead.
+ * This barrel file exists for backward compatibility only and will be removed.
+ * TODO: Remove after all imports have been migrated to the shared path.
+ */
+export { ... } from "@shared/lib/rest-grid-utils";
+
+
+28. CrewScheduler.tsx — add bounds to crewRequired inputs
+Add min={1} max={500} to both port call and drydock crew required inputs. Add validation before the add handlers:
+
+// In handleAddPortCall and handleAddDrydock, add at the top:
+if (p.newPortCall.crewRequired < 1 || p.newPortCall.crewRequired > 500) {
+  toast({ title: "Invalid crew count", description: "Crew required must be between 1 and 500.", variant: "destructive" });
+  return;
+}
+
+
+FORMAT — Run Prettier on these files
+Run npx prettier --write on:
+	∙	client/src/components/CrewManagement.tsx
+	∙	client/src/components/CrewScheduler.tsx
+	∙	client/src/pages/hours-of-rest.tsx
+These files have unformatted dense single-line JSX. Do not change logic, only formatting.
+
+DO NOT change
+	∙	Any file not listed above
+	∙	Any API endpoint URLs
+	∙	Any schema types in @shared
+	∙	Any routing configuration
+	∙	Test files​​​​​​​​​​​​​​​​
