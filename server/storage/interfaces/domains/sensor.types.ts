@@ -58,6 +58,7 @@ export interface ISensorStorage {
 
   // DTC Faults
   getActiveDtcs(equipmentId: string, orgId?: string): Promise<(DtcFault & { definition?: DtcDefinition })[]>;
+  getActiveDtcsBatch(equipmentIds: string[], orgId?: string): Promise<(DtcFault & { definition?: DtcDefinition })[]>;
   getDtcHistory(equipmentId: string, orgId?: string, filters?: { spn?: number; fmi?: number; severity?: number; from?: Date; to?: Date; limit?: number }): Promise<(DtcFault & { definition?: DtcDefinition })[]>;
   upsertDtcFault(fault: InsertDtcFault): Promise<DtcFault>;
   clearInactiveDtcs(deviceId: string, activeSPNs: Array<{ spn: number; fmi: number }>): Promise<number>;

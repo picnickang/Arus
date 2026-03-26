@@ -728,6 +728,10 @@ export class DatabaseStorage implements IStorage {
     return dbDtcStorage.getActiveDtcs(equipmentId, orgId);
   }
 
+  async getActiveDtcsBatch(equipmentIds: string[], orgId?: string): Promise<any[]> {
+    return dbDtcStorage.getActiveDtcsBatch(equipmentIds, orgId);
+  }
+
   // Transport Settings - stub implementations (no database table yet)
   async getTransportSettings(): Promise<any | undefined> {
     return undefined;

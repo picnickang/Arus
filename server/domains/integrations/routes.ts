@@ -25,8 +25,8 @@ export function registerIntegrationsRoutes(
 ): void {
   const { storage, generalApiRateLimit, getFMCCService, updateFleetHealthScore } = config;
 
-  const DASHBOARD_TTL_MS = Number.parseInt(process.env.DASHBOARD_TTL_MS || "60000", 10);
-  const dashboardCache = new LRUCache<string, { data: any; etag: string }>({ max: 100, ttl: DASHBOARD_TTL_MS });
+  const DASHBOARD_TTL_MS = Number.parseInt(process.env.DASHBOARD_TTL_MS || "30000", 10);
+  const dashboardCache = new LRUCache<string, { data: any; etag: string }>({ max: 200, ttl: DASHBOARD_TTL_MS });
 
   app.get("/api/dashboard",
     withErrorHandling("fetch dashboard metrics", async (req, res) => {
@@ -61,8 +61,8 @@ export function registerIntegrationsRoutes(
     })
   );
 
-  const SUMMARY_TTL_MS = 60_000;
-  const summaryCache = new LRUCache<string, any>({ max: 100, ttl: SUMMARY_TTL_MS });
+  const SUMMARY_TTL_MS = 30_000;
+  const summaryCache = new LRUCache<string, any>({ max: 200, ttl: SUMMARY_TTL_MS });
 
   app.get("/api/dashboard/summary",
     withErrorHandling("fetch dashboard summary", async (req, res) => {
