@@ -1,43 +1,44 @@
-use tauri::{Manager, AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_shell::ShellExt;
 use tauri_plugin_shell::process::CommandEvent;
 use serde::Serialize;
 use std::env;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 use std::time::Duration;
+use tokio::time::sleep;
 
-struct SidecarState(Mutex<Option<tauri_plugin_shell::process::CommandChild>>);
+pub struct SidecarState(pub Mutex<Option<tauri_plugin_shell::process::CommandChild>>);
 
-#[derive(Serialize)]
-struct AppInfo {
+#[derive(Serialize, Clone)]
+pub struct AppInfo {
     version: String,
     name: String,
     identifier: String,
 }
 
-#[derive(Serialize)]
-struct RuntimeState {
+#[derive(Serialize, Clone)]
+pub struct RuntimeState {
     packaged: bool,
     debug: bool,
     platform: String,
     arch: String,
 }
 
-#[derive(Serialize)]
-struct BackendConfig {
+#[derive(Serialize, Clone)]
+pub struct BackendConfig {
     url: String,
     mode: String,
 }
 
 #[derive(Serialize, Clone)]
-struct BackendStatus {
+pub struct BackendStatus {
     running: bool,
     mode: String,
     url: String,
 }
 
 #[tauri::command]
-fn get_app_version(app: AppHandle) -> AppInfo {
+pub fn get_app_version(app: AppHandle) -> AppInfo {
     let config = app.config();
     AppInfo {
         version: config.version.clone().unwrap_or_else(|| "1.0.0".into()),
@@ -47,7 +48,7 @@ fn get_app_version(app: AppHandle) -> AppInfo {
 }
 
 #[tauri::command]
-fn get_runtime_state(app: AppHandle) -> RuntimeState {
+pub fn get_runtime_state(app: AppHandle) -> RuntimeState {
     let packaged = app.is_packaged();
     let debug = cfg!(debug_assertions);
 
@@ -73,7 +74,7 @@ fn get_runtime_state(app: AppHandle) -> RuntimeState {
 }
 
 #[tauri::command]
-fn get_app_data_dir(app: AppHandle) -> Result<String, String> {
+pub fn get_app_data_dir(app: AppHandle) -> Result<String, String> {
     app.path()
         .app_data_dir()
         .map(|p| p.to_string_lossy().into_owned())
@@ -81,7 +82,7 @@ fn get_app_data_dir(app: AppHandle) -> Result<String, String> {
 }
 
 #[tauri::command]
-fn get_backend_config() -> BackendConfig {
+pub fn get_backend_config() -> BackendConfig {
     let url = env::var("ARUS_BACKEND_URL")
         .unwrap_or_else(|_| "http://localhost:5000".into());
     let mode = env::var("ARUS_MODE").unwrap_or_else(|_| {
@@ -91,68 +92,57 @@ fn get_backend_config() -> BackendConfig {
 }
 
 #[tauri::command]
-async fn get_backend_status(app: AppHandle) -> BackendStatus {
+pub async fn get_backend_status(app: AppHandle) -> BackendStatus {
     let url = env::var("ARUS_BACKEND_URL")
         .unwrap_or_else(|_| "http://localhost:5000".into());
 
     #[cfg(target_os = "windows")]
+    if service_is_running("ARUSBackend") {
+        return BackendStatus { running: true, mode: "service".into(), url };
+    }
+
     {
-        if is_windows_service_running("ARUSBackend") {
-            return BackendStatus { running: true, mode: "service".into(), url };
+        let state = app.state::<SidecarState>();
+        if state.0.lock().unwrap().is_some() {
+            return BackendStatus { running: true, mode: "sidecar".into(), url };
         }
     }
 
-    let state = app.state::<SidecarState>();
-    let sidecar_alive = state.0.lock().unwrap().is_some();
-    if sidecar_alive {
-        return BackendStatus { running: true, mode: "sidecar".into(), url };
+    if ping_backend(&url).await {
+        return BackendStatus { running: true, mode: "remote".into(), url };
     }
 
-    let running = ping_backend(&url).await;
-    let mode = if running { "remote".into() } else { "offline".into() };
-    BackendStatus { running, mode, url }
+    BackendStatus { running: false, mode: "offline".into(), url }
 }
 
 #[tauri::command]
-async fn start_backend_sidecar(app: AppHandle) -> Result<(), String> {
+pub async fn start_backend_sidecar(app: AppHandle) -> Result<(), String> {
     launch_sidecar(&app).await
+}
+
+#[cfg(target_os = "windows")]
+fn service_is_running(name: &str) -> bool {
+    use std::process::Command;
+    match Command::new("sc").args(["query", name]).output() {
+        Ok(out) => {
+            let text = String::from_utf8_lossy(&out.stdout);
+            text.contains("RUNNING")
+        }
+        Err(_) => false,
+    }
 }
 
 async fn ping_backend(base_url: &str) -> bool {
     let url = format!("{}/api/healthz", base_url);
-    #[cfg(target_os = "windows")]
-    {
-        let output = std::process::Command::new("powershell")
-            .args(["-Command",
-                &format!("try {{ (Invoke-WebRequest -Uri '{}' -TimeoutSec 3).StatusCode }} catch {{ 0 }}", url)])
-            .output();
-        if let Ok(o) = output {
-            let s = String::from_utf8_lossy(&o.stdout);
-            return s.trim() == "200";
-        }
-    }
-    #[cfg(not(target_os = "windows"))]
-    {
-        let output = std::process::Command::new("curl")
-            .args(["-sf", "--max-time", "3", "-o", "/dev/null", "-w", "%{http_code}", &url])
-            .output();
-        if let Ok(o) = output {
-            return String::from_utf8_lossy(&o.stdout).trim() == "200";
-        }
-    }
-    false
-}
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(4))
+        .danger_accept_invalid_certs(false)
+        .build();
 
-#[cfg(target_os = "windows")]
-fn is_windows_service_running(service_name: &str) -> bool {
-    let output = std::process::Command::new("sc")
-        .args(["query", service_name])
-        .output();
-    if let Ok(o) = output {
-        let s = String::from_utf8_lossy(&o.stdout);
-        return s.contains("RUNNING");
+    match client {
+        Ok(c) => c.get(&url).send().await.map(|r| r.status().is_success()).unwrap_or(false),
+        Err(_) => false,
     }
-    false
 }
 
 async fn launch_sidecar(app: &AppHandle) -> Result<(), String> {
@@ -164,21 +154,30 @@ async fn launch_sidecar(app: &AppHandle) -> Result<(), String> {
     }
 
     #[cfg(target_os = "windows")]
-    if app.is_packaged() && is_windows_service_running("ARUSBackend") {
+    if app.is_packaged() && service_is_running("ARUSBackend") {
         return Ok(());
     }
+
+    let app_data = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Cannot resolve app data dir: {}", e))?;
+
+    std::fs::create_dir_all(&app_data)
+        .map_err(|e| format!("Cannot create app data dir: {}", e))?;
+
+    let db_path = app_data.join("vessel-local.db");
+    let log_dir = app_data.join("logs");
+    std::fs::create_dir_all(&log_dir)
+        .map_err(|e| format!("Cannot create log dir: {}", e))?;
 
     let backend_url = env::var("ARUS_BACKEND_URL")
         .unwrap_or_else(|_| "http://localhost:5000".into());
 
-    let app_data = app.path().app_data_dir()
-        .map_err(|e| format!("Cannot resolve app data dir: {}", e))?;
-
-    let db_path = app_data.join("vessel-local.db");
-
-    let sidecar_cmd = app.shell()
+    let cmd = app
+        .shell()
         .sidecar("arus-server")
-        .map_err(|e| format!("Sidecar not found: {}", e))?
+        .map_err(|e| format!("Sidecar binary not found: {}", e))?
         .env("NODE_ENV", if cfg!(debug_assertions) { "development" } else { "production" })
         .env("PORT", "5000")
         .env("ARUS_BACKEND_URL", &backend_url)
@@ -186,7 +185,8 @@ async fn launch_sidecar(app: &AppHandle) -> Result<(), String> {
         .env("DEPLOYMENT_MODE", "VESSEL")
         .env("LOCAL_MODE", "true");
 
-    let (mut rx, child) = sidecar_cmd.spawn()
+    let (mut rx, child) = cmd
+        .spawn()
         .map_err(|e| format!("Failed to spawn sidecar: {}", e))?;
 
     {
@@ -198,20 +198,26 @@ async fn launch_sidecar(app: &AppHandle) -> Result<(), String> {
     tauri::async_runtime::spawn(async move {
         while let Some(event) = rx.recv().await {
             match event {
-                CommandEvent::Stdout(line) => {
-                    let _ = app_clone.emit("backend-log",
-                        String::from_utf8_lossy(&line).to_string());
+                CommandEvent::Stdout(bytes) => {
+                    let _ = app_clone.emit(
+                        "backend-log",
+                        String::from_utf8_lossy(&bytes).trim().to_string(),
+                    );
                 }
-                CommandEvent::Stderr(line) => {
-                    let _ = app_clone.emit("backend-error",
-                        String::from_utf8_lossy(&line).to_string());
+                CommandEvent::Stderr(bytes) => {
+                    let _ = app_clone.emit(
+                        "backend-error",
+                        String::from_utf8_lossy(&bytes).trim().to_string(),
+                    );
                 }
-                CommandEvent::Error(e) => {
-                    let _ = app_clone.emit("backend-error", e);
+                CommandEvent::Error(msg) => {
+                    let _ = app_clone.emit("backend-error", msg);
                 }
                 CommandEvent::Terminated(status) => {
-                    let _ = app_clone.emit("backend-terminated",
-                        format!("exit code: {:?}", status.code));
+                    let _ = app_clone.emit(
+                        "backend-terminated",
+                        format!("exit {:?}", status.code),
+                    );
                     let state = app_clone.state::<SidecarState>();
                     *state.0.lock().unwrap() = None;
                     break;
@@ -221,16 +227,17 @@ async fn launch_sidecar(app: &AppHandle) -> Result<(), String> {
         }
     });
 
-    let url = env::var("ARUS_BACKEND_URL")
-        .unwrap_or_else(|_| "http://localhost:5000".into());
-    for _ in 0..20 {
-        std::thread::sleep(Duration::from_millis(500));
-        if ping_backend(&url).await {
+    for attempt in 0..30 {
+        sleep(Duration::from_millis(500)).await;
+        if ping_backend(&backend_url).await {
             return Ok(());
+        }
+        if attempt == 10 {
+            let _ = app.emit("backend-log", "Still starting — please wait…".to_string());
         }
     }
 
-    Err("Backend sidecar started but did not become healthy within 10 seconds".into())
+    Err("Backend sidecar did not become healthy within 15 seconds".into())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -252,26 +259,29 @@ pub fn run() {
         .setup(|app| {
             #[cfg(debug_assertions)]
             {
-                let window = app.get_webview_window("main")
+                let window = app
+                    .get_webview_window("main")
                     .expect("main window not found");
                 window.open_devtools();
             }
 
-            let app_handle = app.handle().clone();
+            let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                let should_launch = if app_handle.is_packaged() {
+                let should_launch = {
                     #[cfg(target_os = "windows")]
-                    { !is_windows_service_running("ARUSBackend") }
+                    {
+                        !(handle.is_packaged() && service_is_running("ARUSBackend"))
+                    }
                     #[cfg(not(target_os = "windows"))]
-                    { true }
-                } else {
-                    true
+                    {
+                        true
+                    }
                 };
 
                 if should_launch {
-                    if let Err(e) = launch_sidecar(&app_handle).await {
+                    if let Err(e) = launch_sidecar(&handle).await {
                         eprintln!("[ARUS] Sidecar launch failed: {}", e);
-                        let _ = app_handle.emit("backend-launch-failed", e);
+                        let _ = handle.emit("backend-launch-failed", e);
                     }
                 }
             });
@@ -280,8 +290,7 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::Destroyed = event {
-                let app = window.app_handle();
-                let state = app.state::<SidecarState>();
+                let state = window.app_handle().state::<SidecarState>();
                 if let Some(child) = state.0.lock().unwrap().take() {
                     let _ = child.kill();
                 }

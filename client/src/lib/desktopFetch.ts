@@ -6,10 +6,13 @@ let cachedBackendUrl: string | null = null;
 export async function resolveBackendUrl(): Promise<string> {
   if (cachedBackendUrl !== null) return cachedBackendUrl;
 
-  const stored = localStorage.getItem('arus-backend-url');
-  if (stored) {
-    cachedBackendUrl = stored;
-    return stored;
+  try {
+    const stored = localStorage.getItem('arus-backend-url');
+    if (stored) {
+      cachedBackendUrl = stored;
+      return stored;
+    }
+  } catch {
   }
 
   if (isDesktop()) {
@@ -97,6 +100,19 @@ export function getVesselName(): string {
 
 export function setVesselName(name: string): void {
   localStorage.setItem('arus-vessel-name', name);
+}
+
+export async function desktopFetch(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<Response> {
+  if (typeof input === 'string' && input.startsWith('/api')) {
+    const base = await resolveBackendUrl();
+    if (base) {
+      return fetch(`${base}${input}`, init);
+    }
+  }
+  return fetch(input, init);
 }
 
 export async function testBackendConnection(url: string): Promise<{ ok: boolean; message: string }> {

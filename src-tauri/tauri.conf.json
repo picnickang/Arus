@@ -49,17 +49,18 @@
       "nsis": {
         "installMode": "perMachine",
         "installerIcon": "icons/icon.ico",
-        "installWebview2Mode": "downloadBootstrapper"
+        "installWebview2Mode": "offlineInstaller"
       },
       "wix": {
         "language": "en-US",
+        "fragmentPaths": ["windows/wix/service-component.wxs"],
         "componentRefs": ["ARUSBackendBinaries", "ARUSBackendService"]
       }
     }
   },
   "plugins": {
     "updater": {
-      "pubkey": "REPLACE_WITH_OUTPUT_OF: npx @tauri-apps/cli signer generate -w ~/.tauri/arus-marine.key",
+      "pubkey": "REPLACE_WITH: npx @tauri-apps/cli signer generate -w ~/.tauri/arus.key",
       "endpoints": [
         "https://github.com/arusmarine/arus/releases/latest/download/latest.json"
       ],

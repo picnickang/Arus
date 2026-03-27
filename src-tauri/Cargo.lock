@@ -60,6 +60,7 @@ dependencies = [
 name = "arus"
 version = "1.0.0"
 dependencies = [
+ "reqwest",
  "serde",
  "serde_json",
  "tauri",
@@ -68,6 +69,7 @@ dependencies = [
  "tauri-plugin-process",
  "tauri-plugin-shell",
  "tauri-plugin-updater",
+ "tokio",
 ]
 
 [[package]]

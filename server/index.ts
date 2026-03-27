@@ -36,13 +36,14 @@ setupErrorHandlers();
 const isInitDbMode = process.argv.includes('--init-db');
 
 if (isInitDbMode) {
-  import('../scripts/init-sqlite-schema.js')
+  import('./init-db-entry.js')
+    .then((m: any) => m.initDb())
     .then(() => {
-      console.log('[ARUS] DB initialisation complete.');
+      console.log('[ARUS] --init-db complete');
       process.exit(0);
     })
     .catch((err: unknown) => {
-      console.error('[ARUS] DB initialisation failed:', err);
+      console.error('[ARUS] --init-db failed:', err);
       process.exit(1);
     });
 }
