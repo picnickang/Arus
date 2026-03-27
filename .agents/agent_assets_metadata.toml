@@ -102,3 +102,9 @@ id = "ibpXM7hDa5re4ysBIrTN9"
 uri = "file://tauri-installation-files-review.md"
 type = "text"
 title = "ARUS Tauri v2 Installation & Build Files — Complete Code"
+
+[[outputs]]
+id = "IhzSgDQf5kdyrxgyQrleK"
+uri = "file://arus-ui-files-for-review.md"
+type = "text"
+title = "ARUS Marine PdM - Main UI Files for Review"
