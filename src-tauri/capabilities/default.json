@@ -4,21 +4,29 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
-    "shell:allow-open",
+    {
+      "identifier": "shell:allow-open",
+      "allow": [{ "url": "^https?://" }]
+    },
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "arus-server",
+          "sidecar": true
+        }
+      ]
+    },
     "process:allow-relaunch",
     "process:allow-exit",
     "updater:default",
     {
       "identifier": "fs:allow-app-read",
-      "allow": [
-        { "path": "$APPDATA/**" }
-      ]
+      "allow": [{ "path": "$APPDATA/**" }]
     },
     {
       "identifier": "fs:allow-app-write",
-      "allow": [
-        { "path": "$APPDATA/**" }
-      ]
+      "allow": [{ "path": "$APPDATA/**" }]
     }
   ]
 }

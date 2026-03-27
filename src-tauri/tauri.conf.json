@@ -24,7 +24,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:* https://localhost:* http://127.0.0.1:* https://*.arus.io; img-src 'self' data: blob:; font-src 'self' data:"
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:5000 https://localhost:5000 http://127.0.0.1:5000 https://127.0.0.1:5000 https://*.arus.io; img-src 'self' data: blob:; font-src 'self' data:"
     }
   },
   "bundle": {
@@ -39,24 +39,36 @@
     "category": "Utility",
     "shortDescription": "ARUS Marine Predictive Maintenance System",
     "longDescription": "ARUS is a comprehensive marine predictive maintenance and vessel management system for fleet operators.",
+    "externalBin": [
+      "binaries/arus-server"
+    ],
     "macOS": {
-      "minimumSystemVersion": "11.0"
+      "minimumSystemVersion": "12.0"
     },
     "windows": {
+      "nsis": {
+        "installMode": "perMachine",
+        "installerIcon": "icons/icon.ico",
+        "installWebview2Mode": "downloadBootstrapper"
+      },
       "wix": {
-        "language": "en-US"
+        "language": "en-US",
+        "componentRefs": ["ARUSBackendBinaries", "ARUSBackendService"]
       }
     }
   },
   "plugins": {
     "updater": {
-      "pubkey": "GENERATE_WITH: npx @tauri-apps/cli signer generate -w ~/.tauri/arus-marine.key",
+      "pubkey": "REPLACE_WITH_OUTPUT_OF: npx @tauri-apps/cli signer generate -w ~/.tauri/arus-marine.key",
       "endpoints": [
         "https://github.com/arusmarine/arus/releases/latest/download/latest.json"
       ],
       "windows": {
         "installMode": "passive"
       }
+    },
+    "shell": {
+      "open": "^https?://"
     }
   }
 }

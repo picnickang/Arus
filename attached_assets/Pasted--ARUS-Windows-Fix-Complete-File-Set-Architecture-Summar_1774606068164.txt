@@ -1,0 +1,1513 @@
+# ARUS Windows Fix — Complete File Set
+
+## Architecture Summary
+
+```
+Production installer (WiX):
+  ├── Installs ARUS.exe (Tauri shell)
+  ├── Installs arus-server.exe (pkg-compiled Express backend)
+  ├── Installs node_modules / assets
+  ├── Runs init-sqlite-schema.js (vessel mode post-install)
+  └── Registers "ARUSBackend" as a Windows Service (NSSM)
+
+Dev mode (tauri dev):
+  ├── Tauri sidecar spawns arus-server binary directly
+  ├── Sidecar manager detects if service is already running first
+  └── Kills sidecar cleanly on app exit
+
+First-run wizard (desktop-setup.tsx):
+  ├── Step 1: Deployment mode — Vessel (SQLite) or Cloud (Postgres)
+  ├── Step 2: Backend URL — auto-filled for vessel, manual for cloud
+  ├── Step 3: Vessel ID (vessel mode only)
+  └── Step 4: Admin password
+```
+
+-----
+
+## 1. `src-tauri/src/lib.rs`
+
+```rust
+use tauri::{Manager, AppHandle, Emitter};
+use tauri_plugin_shell::ShellExt;
+use tauri_plugin_shell::process::CommandEvent;
+use serde::Serialize;
+use std::env;
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
+
+// ── Shared state ─────────────────────────────────────────────────────────────
+
+/// Holds the sidecar child process handle so we can kill it on exit.
+struct SidecarState(Mutex<Option<tauri_plugin_shell::process::CommandChild>>);
+
+// ── Serialisable return types ─────────────────────────────────────────────────
+
+#[derive(Serialize)]
+struct AppInfo {
+    version: String,
+    name: String,
+    identifier: String,
+}
+
+#[derive(Serialize)]
+struct RuntimeState {
+    packaged: bool,
+    debug: bool,
+    platform: String,
+    arch: String,
+}
+
+#[derive(Serialize)]
+struct BackendConfig {
+    url: String,
+    mode: String,
+}
+
+#[derive(Serialize, Clone)]
+struct BackendStatus {
+    running: bool,
+    mode: String,   // "service" | "sidecar" | "remote"
+    url: String,
+}
+
+// ── IPC commands ──────────────────────────────────────────────────────────────
+
+#[tauri::command]
+fn get_app_version(app: AppHandle) -> AppInfo {
+    let config = app.config();
+    AppInfo {
+        version: config.version.clone().unwrap_or_else(|| "1.0.0".into()),
+        name: config.product_name.clone().unwrap_or_else(|| "ARUS".into()),
+        identifier: config.identifier.clone(),
+    }
+}
+
+#[tauri::command]
+fn get_runtime_state(app: AppHandle) -> RuntimeState {
+    // Use is_packaged() for real runtime detection rather than compile-time cfg!()
+    let packaged = app.is_packaged();
+    let debug = cfg!(debug_assertions);
+
+    let platform = if cfg!(target_os = "macos") {
+        "macos"
+    } else if cfg!(target_os = "windows") {
+        "windows"
+    } else if cfg!(target_os = "linux") {
+        "linux"
+    } else {
+        "unknown"
+    };
+
+    let arch = if cfg!(target_arch = "x86_64") {
+        "x86_64"
+    } else if cfg!(target_arch = "aarch64") {
+        "aarch64"
+    } else {
+        "unknown"
+    };
+
+    RuntimeState { packaged, debug, platform: platform.into(), arch: arch.into() }
+}
+
+#[tauri::command]
+fn get_app_data_dir(app: AppHandle) -> Result<String, String> {
+    app.path()
+        .app_data_dir()
+        .map(|p| p.to_string_lossy().into_owned())
+        .map_err(|e| format!("Failed to resolve app data directory: {}", e))
+}
+
+#[tauri::command]
+fn get_backend_config() -> BackendConfig {
+    let url = env::var("ARUS_BACKEND_URL")
+        .unwrap_or_else(|_| "http://localhost:5000".into());
+    let mode = env::var("ARUS_MODE").unwrap_or_else(|_| {
+        if cfg!(debug_assertions) { "development".into() } else { "production".into() }
+    });
+    BackendConfig { url, mode }
+}
+
+/// Called by the frontend to learn whether the backend is up, and how it's
+/// running (Windows Service, sidecar, or remote).
+#[tauri::command]
+async fn get_backend_status(app: AppHandle) -> BackendStatus {
+    let url = env::var("ARUS_BACKEND_URL")
+        .unwrap_or_else(|_| "http://localhost:5000".into());
+
+    // Check if the Windows service is installed and running.
+    #[cfg(target_os = "windows")]
+    {
+        if is_windows_service_running("ARUSBackend") {
+            return BackendStatus { running: true, mode: "service".into(), url };
+        }
+    }
+
+    // Check if a sidecar is alive in our state.
+    let state = app.state::<SidecarState>();
+    let sidecar_alive = state.0.lock().unwrap().is_some();
+    if sidecar_alive {
+        return BackendStatus { running: true, mode: "sidecar".into(), url };
+    }
+
+    // Fall back: just try to reach the health endpoint.
+    let running = ping_backend(&url).await;
+    let mode = if running { "remote".into() } else { "offline".into() };
+    BackendStatus { running, mode, url }
+}
+
+/// Manually trigger sidecar start from the frontend (e.g. after first-run wizard).
+#[tauri::command]
+async fn start_backend_sidecar(app: AppHandle) -> Result<(), String> {
+    launch_sidecar(&app).await
+}
+
+// ── Backend helpers ───────────────────────────────────────────────────────────
+
+/// Probe the Express /api/healthz endpoint with a short timeout.
+async fn ping_backend(base_url: &str) -> bool {
+    let url = format!("{}/api/healthz", base_url);
+    // We use std::process::Command to avoid pulling in reqwest for a one-liner.
+    // In a full app you'd use reqwest or surf; this keeps dependencies minimal.
+    #[cfg(target_os = "windows")]
+    {
+        let output = std::process::Command::new("powershell")
+            .args(["-Command",
+                &format!("try {{ (Invoke-WebRequest -Uri '{}' -TimeoutSec 3).StatusCode }} catch {{ 0 }}", url)])
+            .output();
+        if let Ok(o) = output {
+            let s = String::from_utf8_lossy(&o.stdout);
+            return s.trim() == "200";
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let output = std::process::Command::new("curl")
+            .args(["-sf", "--max-time", "3", "-o", "/dev/null", "-w", "%{http_code}", &url])
+            .output();
+        if let Ok(o) = output {
+            return String::from_utf8_lossy(&o.stdout).trim() == "200";
+        }
+    }
+    false
+}
+
+/// Check whether a named Windows Service is in the RUNNING state.
+#[cfg(target_os = "windows")]
+fn is_windows_service_running(service_name: &str) -> bool {
+    let output = std::process::Command::new("sc")
+        .args(["query", service_name])
+        .output();
+    if let Ok(o) = output {
+        let s = String::from_utf8_lossy(&o.stdout);
+        return s.contains("RUNNING");
+    }
+    false
+}
+
+/// Spawn the bundled arus-server sidecar and wire up stdout/stderr forwarding
+/// to the Tauri window so the frontend can show a startup log if needed.
+async fn launch_sidecar(app: &AppHandle) -> Result<(), String> {
+    // Don't double-launch.
+    {
+        let state = app.state::<SidecarState>();
+        if state.0.lock().unwrap().is_some() {
+            return Ok(());
+        }
+    }
+
+    // In production, if the Windows Service is already running, skip the sidecar.
+    #[cfg(target_os = "windows")]
+    if app.is_packaged() && is_windows_service_running("ARUSBackend") {
+        return Ok(());
+    }
+
+    let backend_url = env::var("ARUS_BACKEND_URL")
+        .unwrap_or_else(|_| "http://localhost:5000".into());
+
+    let app_data = app.path().app_data_dir()
+        .map_err(|e| format!("Cannot resolve app data dir: {}", e))?;
+
+    let db_path = app_data.join("vessel-local.db");
+
+    let sidecar_cmd = app.shell()
+        .sidecar("arus-server")
+        .map_err(|e| format!("Sidecar not found: {}", e))?
+        .env("NODE_ENV", if cfg!(debug_assertions) { "development" } else { "production" })
+        .env("PORT", "5000")
+        .env("ARUS_BACKEND_URL", &backend_url)
+        .env("DATABASE_PATH", db_path.to_string_lossy().as_ref())
+        // Signal vessel mode so the server uses SQLite.
+        .env("DEPLOYMENT_MODE", "VESSEL")
+        .env("LOCAL_MODE", "true");
+
+    let (mut rx, child) = sidecar_cmd.spawn()
+        .map_err(|e| format!("Failed to spawn sidecar: {}", e))?;
+
+    // Store child handle so we can kill on exit.
+    {
+        let state = app.state::<SidecarState>();
+        *state.0.lock().unwrap() = Some(child);
+    }
+
+    // Forward stdout/stderr to the frontend via events.
+    let app_clone = app.clone();
+    tauri::async_runtime::spawn(async move {
+        while let Some(event) = rx.recv().await {
+            match event {
+                CommandEvent::Stdout(line) => {
+                    let _ = app_clone.emit("backend-log",
+                        String::from_utf8_lossy(&line).to_string());
+                }
+                CommandEvent::Stderr(line) => {
+                    let _ = app_clone.emit("backend-error",
+                        String::from_utf8_lossy(&line).to_string());
+                }
+                CommandEvent::Error(e) => {
+                    let _ = app_clone.emit("backend-error", e);
+                }
+                CommandEvent::Terminated(status) => {
+                    let _ = app_clone.emit("backend-terminated",
+                        format!("exit code: {:?}", status.code));
+                    // Clear state so the frontend knows it stopped.
+                    let state = app_clone.state::<SidecarState>();
+                    *state.0.lock().unwrap() = None;
+                    break;
+                }
+                _ => {}
+            }
+        }
+    });
+
+    // Wait up to 10 s for the backend to become healthy before returning.
+    let url = env::var("ARUS_BACKEND_URL")
+        .unwrap_or_else(|_| "http://localhost:5000".into());
+    for _ in 0..20 {
+        std::thread::sleep(Duration::from_millis(500));
+        if ping_backend(&url).await {
+            return Ok(());
+        }
+    }
+
+    Err("Backend sidecar started but did not become healthy within 10 seconds".into())
+}
+
+// ── App entry point ───────────────────────────────────────────────────────────
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
+    tauri::Builder::default()
+        .manage(SidecarState(Mutex::new(None)))
+        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .invoke_handler(tauri::generate_handler![
+            get_app_version,
+            get_runtime_state,
+            get_app_data_dir,
+            get_backend_config,
+            get_backend_status,
+            start_backend_sidecar,
+        ])
+        .setup(|app| {
+            #[cfg(debug_assertions)]
+            {
+                let window = app.get_webview_window("main")
+                    .expect("main window not found");
+                window.open_devtools();
+            }
+
+            // In dev mode, always try to start the sidecar.
+            // In production, only start it if the Windows Service isn't running.
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let should_launch = if app_handle.is_packaged() {
+                    #[cfg(target_os = "windows")]
+                    { !is_windows_service_running("ARUSBackend") }
+                    #[cfg(not(target_os = "windows"))]
+                    { true }
+                } else {
+                    true
+                };
+
+                if should_launch {
+                    if let Err(e) = launch_sidecar(&app_handle).await {
+                        eprintln!("[ARUS] Sidecar launch failed: {}", e);
+                        // Emit so the frontend can show an error state.
+                        let _ = app_handle.emit("backend-launch-failed", e);
+                    }
+                }
+            });
+
+            Ok(())
+        })
+        .on_window_event(|window, event| {
+            // Kill the sidecar when the last window closes.
+            if let tauri::WindowEvent::Destroyed = event {
+                let app = window.app_handle();
+                let state = app.state::<SidecarState>();
+                if let Some(child) = state.0.lock().unwrap().take() {
+                    let _ = child.kill();
+                }
+            }
+        })
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+}
+```
+
+-----
+
+## 2. `src-tauri/Cargo.toml`
+
+```toml
+[package]
+name = "arus"
+version = "1.0.0"
+description = "ARUS Marine Predictive Maintenance System"
+authors = ["ARUS Team"]
+edition = "2021"
+
+[lib]
+name = "arus_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
+tauri-plugin-fs = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true
+```
+
+-----
+
+## 3. `src-tauri/tauri.conf.json`
+
+Key changes from original:
+
+- Sidecar `externalBin` entry added
+- CSP `connect-src` tightened (no more `http:` wildcard)
+- Updater placeholder commented clearly
+- `macOS` minimum version documented
+- Windows WiX config expanded with NSSM service component reference
+
+```json
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "ARUS",
+  "version": "1.0.0",
+  "identifier": "com.arus.marine",
+  "build": {
+    "beforeDevCommand": "",
+    "devUrl": "http://localhost:5000",
+    "beforeBuildCommand": "npm run build:renderer",
+    "frontendDist": "../dist/public"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "ARUS - Marine PdM System",
+        "width": 1400,
+        "height": 900,
+        "minWidth": 1024,
+        "minHeight": 680,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:5000 https://localhost:5000 http://127.0.0.1:5000 https://127.0.0.1:5000 https://*.arus.io; img-src 'self' data: blob:; font-src 'self' data:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.png"
+    ],
+    "category": "Utility",
+    "shortDescription": "ARUS Marine Predictive Maintenance System",
+    "longDescription": "ARUS is a comprehensive marine predictive maintenance and vessel management system for fleet operators.",
+    "externalBin": [
+      "binaries/arus-server"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "12.0"
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "perMachine",
+        "installerIcon": "icons/icon.ico",
+        "installWebview2Mode": "downloadBootstrapper"
+      },
+      "wix": {
+        "language": "en-US",
+        "componentRefs": ["ARUSBackendService"]
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "REPLACE_WITH_OUTPUT_OF: npx @tauri-apps/cli signer generate",
+      "endpoints": [
+        "https://github.com/YOUR_ORG/arus-marine/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    },
+    "shell": {
+      "open": "^https?://"
+    }
+  }
+}
+```
+
+-----
+
+## 4. `src-tauri/capabilities/default.json`
+
+Changes: `shell:allow-open` scoped to `https:` scheme only; added `shell:allow-execute` scoped to the sidecar binary only.
+
+```json
+{
+  "identifier": "default",
+  "description": "Default capabilities for the main ARUS window",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    {
+      "identifier": "shell:allow-open",
+      "allow": [{ "url": "^https?://" }]
+    },
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "arus-server",
+          "sidecar": true
+        }
+      ]
+    },
+    "process:allow-relaunch",
+    "process:allow-exit",
+    "updater:default",
+    {
+      "identifier": "fs:allow-app-read",
+      "allow": [{ "path": "$APPDATA/**" }]
+    },
+    {
+      "identifier": "fs:allow-app-write",
+      "allow": [{ "path": "$APPDATA/**" }]
+    }
+  ]
+}
+```
+
+-----
+
+## 5. `src-tauri/windows/wix/service-component.wxs`
+
+This WiX fragment is merged by Tauri’s WiX bundler. It installs NSSM and
+registers the Express backend as a Windows Service named `ARUSBackend`.
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+
+  <Fragment>
+
+    <!-- ── Directory layout ─────────────────────────────────────────── -->
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="APPLICATIONROOTDIRECTORY" Name="ARUS Marine">
+          <Directory Id="BINDIR" Name="bin" />
+        </Directory>
+      </Directory>
+    </Directory>
+
+    <!-- ── NSSM + backend binary component ──────────────────────────── -->
+    <DirectoryRef Id="BINDIR">
+      <Component Id="ARUSBackendBinaries" Guid="A1B2C3D4-E5F6-7890-ABCD-EF1234567890">
+
+        <!-- nssm.exe — the service wrapper -->
+        <File Id="NSSMExe"
+              Source="$(var.SourceDir)\bin\nssm.exe"
+              KeyPath="yes" />
+
+        <!-- The pkg-compiled Express server -->
+        <File Id="ARUSServerExe"
+              Source="$(var.SourceDir)\bin\arus-server.exe" />
+
+      </Component>
+    </DirectoryRef>
+
+    <!-- ── Service registration component ───────────────────────────── -->
+    <DirectoryRef Id="APPLICATIONROOTDIRECTORY">
+      <Component Id="ARUSBackendService"
+                 Guid="B2C3D4E5-F6A7-8901-BCDE-F12345678901">
+
+        <!-- Service install via NSSM custom action -->
+        <CreateFolder />
+
+        <!--
+          ServiceInstall / ServiceControl are used here for the WiX service
+          model. We use NSSM because it handles Node stdout/stderr logging,
+          restart policies, and env-var injection better than raw SC.
+          The actual SC-level entry is registered by the CustomAction below.
+        -->
+
+        <util:ServiceConfig
+          ServiceName="ARUSBackend"
+          FirstFailureActionType="restart"
+          SecondFailureActionType="restart"
+          ThirdFailureActionType="restart"
+          RestartServiceDelayInSeconds="10"
+          ResetPeriodInDays="1" />
+
+      </Component>
+    </DirectoryRef>
+
+    <!-- ── Custom actions ────────────────────────────────────────────── -->
+    <CustomAction Id="InstallARUSService"
+                  Directory="BINDIR"
+                  ExeCommand='"[BINDIR]nssm.exe" install ARUSBackend "[BINDIR]arus-server.exe"'
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+
+    <CustomAction Id="SetServiceEnv_Port"
+                  Directory="BINDIR"
+                  ExeCommand='"[BINDIR]nssm.exe" set ARUSBackend AppEnvironmentExtra "PORT=5000" "NODE_ENV=production" "DEPLOYMENT_MODE=VESSEL" "LOCAL_MODE=true" "DATABASE_PATH=[CommonAppDataFolder]ARUS Marine\vessel-local.db"'
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+
+    <CustomAction Id="SetServiceStdout"
+                  Directory="BINDIR"
+                  ExeCommand='"[BINDIR]nssm.exe" set ARUSBackend AppStdout "[CommonAppDataFolder]ARUS Marine\logs\backend-stdout.log"'
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+
+    <CustomAction Id="SetServiceStderr"
+                  Directory="BINDIR"
+                  ExeCommand='"[BINDIR]nssm.exe" set ARUSBackend AppStderr "[CommonAppDataFolder]ARUS Marine\logs\backend-stderr.log"'
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+
+    <CustomAction Id="InitSQLiteDB"
+                  Directory="BINDIR"
+                  ExeCommand='"[BINDIR]arus-server.exe" --init-db'
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+
+    <CustomAction Id="StartARUSService"
+                  Directory="BINDIR"
+                  ExeCommand='"[BINDIR]nssm.exe" start ARUSBackend'
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <!-- Uninstall: stop + remove service -->
+    <CustomAction Id="StopARUSService"
+                  Directory="BINDIR"
+                  ExeCommand='"[BINDIR]nssm.exe" stop ARUSBackend confirm'
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <CustomAction Id="RemoveARUSService"
+                  Directory="BINDIR"
+                  ExeCommand='"[BINDIR]nssm.exe" remove ARUSBackend confirm'
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <!-- ── Install sequence ──────────────────────────────────────────── -->
+    <InstallExecuteSequence>
+      <!-- Install path -->
+      <Custom Action="InstallARUSService"
+              After="InstallFiles">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="SetServiceEnv_Port"
+              After="InstallARUSService">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="SetServiceStdout"
+              After="SetServiceEnv_Port">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="SetServiceStderr"
+              After="SetServiceStdout">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="InitSQLiteDB"
+              After="SetServiceStderr">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="StartARUSService"
+              After="InitSQLiteDB">NOT Installed AND NOT REMOVE</Custom>
+
+      <!-- Uninstall path -->
+      <Custom Action="StopARUSService"
+              Before="RemoveFiles">REMOVE="ALL"</Custom>
+      <Custom Action="RemoveARUSService"
+              After="StopARUSService">REMOVE="ALL"</Custom>
+    </InstallExecuteSequence>
+
+    <!-- ── Feature reference ─────────────────────────────────────────── -->
+    <Feature Id="ARUSBackendFeature"
+             Title="ARUS Backend Service"
+             Level="1">
+      <ComponentRef Id="ARUSBackendBinaries" />
+      <ComponentRef Id="ARUSBackendService" />
+    </Feature>
+
+  </Fragment>
+
+</Wix>
+```
+
+-----
+
+## 6. `scripts/build-sidecar.mjs`
+
+Compiles the Express server to a standalone binary using `pkg`, then copies it
+into `src-tauri/binaries/` with the Tauri triple-suffixed filename format.
+
+```javascript
+#!/usr/bin/env node
+/**
+ * Build the Express backend into a standalone binary for Tauri sidecar use.
+ *
+ * Usage:
+ *   node scripts/build-sidecar.mjs              # current platform
+ *   node scripts/build-sidecar.mjs --all        # all targets
+ *
+ * Output: src-tauri/binaries/arus-server-{triple}{.exe}
+ *
+ * Requirements:
+ *   npm install -D @yao-pkg/pkg esbuild
+ */
+
+import { execSync } from 'node:child_process';
+import { mkdirSync, copyFileSync, existsSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { platform, arch } from 'node:process';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const root = join(__dirname, '..');
+const binariesDir = join(root, 'src-tauri', 'binaries');
+const serverEntry = join(root, 'server', 'index.ts');
+const bundledServer = join(root, 'dist', 'server-bundle.cjs');
+
+// Tauri target triple → pkg target string
+const TARGETS = {
+  'x86_64-pc-windows-msvc':    { pkg: 'node20-win-x64',   ext: '.exe' },
+  'aarch64-apple-darwin':      { pkg: 'node20-macos-arm64', ext: '' },
+  'x86_64-apple-darwin':       { pkg: 'node20-macos-x64',  ext: '' },
+  'x86_64-unknown-linux-gnu':  { pkg: 'node20-linux-x64',  ext: '' },
+};
+
+function currentTriple() {
+  if (platform === 'win32') return 'x86_64-pc-windows-msvc';
+  if (platform === 'darwin') return arch === 'arm64'
+    ? 'aarch64-apple-darwin'
+    : 'x86_64-apple-darwin';
+  return 'x86_64-unknown-linux-gnu';
+}
+
+async function bundleServer() {
+  console.log('📦 Bundling Express server with esbuild...');
+  execSync(
+    `npx esbuild ${serverEntry} ` +
+    `--platform=node --target=node20 --bundle --format=cjs ` +
+    `--outfile=${bundledServer} --allow-overwrite ` +
+    `--external:@libsql/client ` +   // keep native addons external
+    `--external:better-sqlite3 ` +
+    `--external:bcrypt ` +
+    `--external:sharp`,
+    { stdio: 'inherit', cwd: root }
+  );
+}
+
+async function buildTarget(triple) {
+  const target = TARGETS[triple];
+  if (!target) {
+    console.error(`Unknown triple: ${triple}`);
+    process.exit(1);
+  }
+
+  const outFile = join(binariesDir, `arus-server-${triple}${target.ext}`);
+  console.log(`\n🔨 Building ${triple}...`);
+
+  mkdirSync(binariesDir, { recursive: true });
+
+  execSync(
+    `npx pkg ${bundledServer} ` +
+    `--target ${target.pkg} ` +
+    `--output ${outFile} ` +
+    `--compress GZip`,
+    { stdio: 'inherit', cwd: root }
+  );
+
+  console.log(`  ✅ ${outFile}`);
+  return outFile;
+}
+
+async function main() {
+  const buildAll = process.argv.includes('--all');
+
+  await bundleServer();
+
+  mkdirSync(binariesDir, { recursive: true });
+
+  if (buildAll) {
+    for (const triple of Object.keys(TARGETS)) {
+      await buildTarget(triple);
+    }
+  } else {
+    const triple = currentTriple();
+    const out = await buildTarget(triple);
+
+    // Also write an un-suffixed copy for Tauri dev mode
+    const devCopy = join(binariesDir,
+      `arus-server${triple.includes('windows') ? '.exe' : ''}`);
+    copyFileSync(out, devCopy);
+    console.log(`  ✅ Dev copy: ${devCopy}`);
+  }
+
+  console.log('\n✅ Sidecar build complete.');
+  console.log('   Run `npm run tauri:build` to package the app.\n');
+}
+
+main().catch(e => { console.error(e); process.exit(1); });
+```
+
+-----
+
+## 7. `server/index.ts` — add `--init-db` flag (patch only)
+
+Add this block near the top of `server/index.ts`, before the Express app
+starts, so WiX can call `arus-server.exe --init-db` as a post-install action:
+
+```typescript
+// ── Standalone DB initialisation mode ────────────────────────────────────────
+// Called by the WiX installer: arus-server.exe --init-db
+// Initialises the SQLite schema and exits. Does not start the HTTP server.
+if (process.argv.includes('--init-db')) {
+  import('./scripts/init-sqlite-schema.js')
+    .then(() => {
+      console.log('[ARUS] DB initialisation complete.');
+      process.exit(0);
+    })
+    .catch((err) => {
+      console.error('[ARUS] DB initialisation failed:', err);
+      process.exit(1);
+    });
+} else {
+  // Normal server startup continues below ...
+  startServer();
+}
+```
+
+-----
+
+## 8. `client/src/lib/desktopFetch.ts`
+
+```typescript
+/**
+ * desktopFetch.ts
+ *
+ * Resolves the backend URL for desktop builds.
+ * Priority order:
+ *   1. Tauri IPC (get_backend_config) — env var ARUS_BACKEND_URL
+ *   2. localStorage (set by the first-run wizard)
+ *   3. Default localhost:5000
+ */
+
+import { isDesktop } from './desktop';
+
+const STORAGE_KEY = 'arus_backend_url';
+const DEFAULT_URL  = 'http://localhost:5000';
+
+let _cachedUrl: string | null = null;
+
+// ── URL resolution ────────────────────────────────────────────────────────────
+
+export async function resolveBackendUrl(): Promise<string> {
+  if (_cachedUrl) return _cachedUrl;
+
+  // 1. Try Tauri IPC
+  if (isDesktop()) {
+    try {
+      const { invoke } = await new Function('m', 'return import(m)')('@tauri-apps/api/core');
+      const config = await invoke<{ url: string; mode: string }>('get_backend_config');
+      if (config?.url) {
+        _cachedUrl = config.url;
+        return _cachedUrl;
+      }
+    } catch {
+      // fall through
+    }
+  }
+
+  // 2. localStorage
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) {
+    _cachedUrl = stored;
+    return _cachedUrl;
+  }
+
+  // 3. Default
+  _cachedUrl = DEFAULT_URL;
+  return _cachedUrl;
+}
+
+export function getBackendUrlSync(): string {
+  return _cachedUrl ?? localStorage.getItem(STORAGE_KEY) ?? DEFAULT_URL;
+}
+
+export function setBackendUrl(url: string): void {
+  _cachedUrl = url;
+  localStorage.setItem(STORAGE_KEY, url);
+}
+
+export function clearBackendUrl(): void {
+  _cachedUrl = null;
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+// ── Health check ──────────────────────────────────────────────────────────────
+
+export async function testBackendConnection(url: string): Promise<boolean> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  try {
+    const res = await fetch(`${url}/api/healthz`, { signal: controller.signal });
+    return res.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+// ── Setup state ───────────────────────────────────────────────────────────────
+
+/**
+ * Returns true when the app is ready to make API calls.
+ * In web mode: always true.
+ * In desktop mode: true once a backend URL has been configured and is reachable.
+ */
+export async function isDesktopSetupComplete(): Promise<boolean> {
+  if (!isDesktop()) return true;
+  const url = await resolveBackendUrl();
+  return testBackendConnection(url);
+}
+
+// ── Patched fetch ─────────────────────────────────────────────────────────────
+
+/**
+ * Drop-in replacement for fetch() that prepends the resolved backend URL
+ * when the path starts with /api.
+ */
+export async function desktopFetch(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<Response> {
+  const url = typeof input === 'string' && input.startsWith('/api')
+    ? `${await resolveBackendUrl()}${input}`
+    : input;
+  return fetch(url, init);
+}
+```
+
+-----
+
+## 9. `client/src/pages/desktop-setup.tsx`
+
+Full first-run wizard — 4 steps:
+
+1. Deployment mode (Vessel / Cloud)
+1. Backend URL (auto-filled for vessel, manual entry for cloud)
+1. Vessel ID (vessel mode only)
+1. Admin password
+
+```tsx
+import { useState, useEffect } from 'react';
+import { useLocation } from 'wouter';
+import {
+  setBackendUrl,
+  testBackendConnection,
+  isDesktopSetupComplete,
+} from '@/lib/desktopFetch';
+import { isDesktop } from '@/lib/desktop';
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+type DeploymentMode = 'vessel' | 'cloud';
+type Step = 'mode' | 'backend' | 'vessel' | 'password' | 'starting' | 'done';
+
+interface SetupState {
+  mode: DeploymentMode;
+  backendUrl: string;
+  vesselId: string;
+  adminPassword: string;
+  confirmPassword: string;
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
+export default function DesktopSetup() {
+  const [, navigate] = useLocation();
+  const [step, setStep] = useState<Step>('mode');
+  const [error, setError] = useState<string | null>(null);
+  const [testing, setTesting] = useState(false);
+  const [backendLog, setBackendLog] = useState<string[]>([]);
+  const [state, setState] = useState<SetupState>({
+    mode: 'vessel',
+    backendUrl: 'http://localhost:5000',
+    vesselId: '',
+    adminPassword: '',
+    confirmPassword: '',
+  });
+
+  // If already set up, skip the wizard.
+  useEffect(() => {
+    if (!isDesktop()) { navigate('/'); return; }
+    isDesktopSetupComplete().then(done => { if (done) navigate('/'); });
+  }, []);
+
+  // Listen for sidecar log events from Tauri.
+  useEffect(() => {
+    if (step !== 'starting') return;
+    let unlisten: (() => void) | undefined;
+    (async () => {
+      try {
+        const { listen } = await new Function('m', 'return import(m)')('@tauri-apps/api/event');
+        const ul = await listen<string>('backend-log', e => {
+          setBackendLog(prev => [...prev.slice(-49), e.payload]);
+        });
+        unlisten = ul;
+
+        const ulErr = await listen<string>('backend-launch-failed', e => {
+          setError(`Backend failed to start: ${e.payload}`);
+          setStep('backend');
+        });
+        return () => { ul(); ulErr(); };
+      } catch { /* not in Tauri */ }
+    })();
+    return () => unlisten?.();
+  }, [step]);
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  function update<K extends keyof SetupState>(key: K, value: SetupState[K]) {
+    setState(prev => ({ ...prev, [key]: value }));
+  }
+
+  async function testAndAdvance() {
+    setError(null);
+    setTesting(true);
+    const ok = await testBackendConnection(state.backendUrl);
+    setTesting(false);
+    if (ok) {
+      setBackendUrl(state.backendUrl);
+      setStep(state.mode === 'vessel' ? 'vessel' : 'password');
+    } else {
+      setError(`Cannot reach backend at ${state.backendUrl}. Is it running?`);
+    }
+  }
+
+  async function triggerSidecarAndWait() {
+    setStep('starting');
+    try {
+      const { invoke } = await new Function('m', 'return import(m)')('@tauri-apps/api/core');
+      await invoke('start_backend_sidecar');
+      setBackendUrl(state.backendUrl);
+      setStep(state.mode === 'vessel' ? 'vessel' : 'password');
+    } catch (e: any) {
+      setError(`Could not start backend: ${e?.message ?? e}`);
+      setStep('backend');
+    }
+  }
+
+  async function finishSetup() {
+    if (state.adminPassword !== state.confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+    if (state.adminPassword.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
+    setError(null);
+
+    try {
+      const res = await fetch(`${state.backendUrl}/api/setup/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: state.mode,
+          vesselId: state.vesselId || undefined,
+          adminPassword: state.adminPassword,
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setStep('done');
+      setTimeout(() => navigate('/'), 1500);
+    } catch (e: any) {
+      setError(`Setup failed: ${e?.message ?? e}`);
+    }
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+
+  return (
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
+      <div className="w-full max-w-md bg-slate-900 rounded-2xl shadow-2xl p-8 space-y-6">
+
+        {/* Header */}
+        <div className="text-center">
+          <div className="text-3xl font-bold text-white tracking-tight">ARUS</div>
+          <p className="text-slate-400 text-sm mt-1">Marine Predictive Maintenance</p>
+          <StepIndicator step={step} mode={state.mode} />
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="bg-red-950 border border-red-700 text-red-300 text-sm rounded-lg px-4 py-3">
+            {error}
+          </div>
+        )}
+
+        {/* ── Step: Mode ── */}
+        {step === 'mode' && (
+          <div className="space-y-4">
+            <h2 className="text-white font-semibold text-lg">Deployment Mode</h2>
+            <p className="text-slate-400 text-sm">How will ARUS be used on this machine?</p>
+            <div className="grid grid-cols-2 gap-3">
+              {(['vessel', 'cloud'] as DeploymentMode[]).map(m => (
+                <button
+                  key={m}
+                  onClick={() => update('mode', m)}
+                  className={`rounded-xl p-4 text-left border transition-all ${
+                    state.mode === m
+                      ? 'border-blue-500 bg-blue-950 text-white'
+                      : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-500'
+                  }`}
+                >
+                  <div className="font-semibold capitalize">{m}</div>
+                  <div className="text-xs mt-1 opacity-70">
+                    {m === 'vessel'
+                      ? 'Offline-first, SQLite database on this machine'
+                      : 'Connects to a remote PostgreSQL server'}
+                  </div>
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => {
+                if (state.mode === 'vessel') {
+                  update('backendUrl', 'http://localhost:5000');
+                }
+                setStep('backend');
+              }}
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl py-3 transition-colors"
+            >
+              Continue
+            </button>
+          </div>
+        )}
+
+        {/* ── Step: Backend ── */}
+        {step === 'backend' && (
+          <div className="space-y-4">
+            <h2 className="text-white font-semibold text-lg">Backend Connection</h2>
+            {state.mode === 'vessel' ? (
+              <p className="text-slate-400 text-sm">
+                The ARUS backend service should be running on this machine.
+                Click <strong className="text-white">Start Backend</strong> if it isn't yet.
+              </p>
+            ) : (
+              <p className="text-slate-400 text-sm">
+                Enter the URL of your ARUS cloud server.
+              </p>
+            )}
+
+            <div>
+              <label className="block text-slate-300 text-sm mb-1">Backend URL</label>
+              <input
+                type="url"
+                value={state.backendUrl}
+                onChange={e => update('backendUrl', e.target.value)}
+                placeholder="http://localhost:5000"
+                className="w-full bg-slate-800 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                readOnly={state.mode === 'vessel'}
+              />
+            </div>
+
+            <div className="flex gap-3">
+              {state.mode === 'vessel' && (
+                <button
+                  onClick={triggerSidecarAndWait}
+                  disabled={testing}
+                  className="flex-1 bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white font-medium rounded-xl py-3 text-sm transition-colors"
+                >
+                  Start Backend
+                </button>
+              )}
+              <button
+                onClick={testAndAdvance}
+                disabled={testing}
+                className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium rounded-xl py-3 text-sm transition-colors"
+              >
+                {testing ? 'Testing…' : 'Test & Continue'}
+              </button>
+            </div>
+
+            <button
+              onClick={() => setStep('mode')}
+              className="w-full text-slate-400 hover:text-white text-sm py-1 transition-colors"
+            >
+              ← Back
+            </button>
+          </div>
+        )}
+
+        {/* ── Step: Starting (sidecar boot log) ── */}
+        {step === 'starting' && (
+          <div className="space-y-4">
+            <h2 className="text-white font-semibold text-lg">Starting Backend…</h2>
+            <div className="bg-slate-950 rounded-lg p-3 h-40 overflow-y-auto font-mono text-xs text-emerald-400 space-y-0.5">
+              {backendLog.length === 0
+                ? <span className="text-slate-500">Waiting for backend output…</span>
+                : backendLog.map((line, i) => <div key={i}>{line}</div>)
+              }
+            </div>
+            <p className="text-slate-400 text-sm text-center">
+              This may take a few seconds on first launch.
+            </p>
+          </div>
+        )}
+
+        {/* ── Step: Vessel ID ── */}
+        {step === 'vessel' && (
+          <div className="space-y-4">
+            <h2 className="text-white font-semibold text-lg">Vessel Configuration</h2>
+            <p className="text-slate-400 text-sm">
+              Enter the vessel identifier for this installation.
+              This is used to identify the vessel in fleet reports.
+            </p>
+            <div>
+              <label className="block text-slate-300 text-sm mb-1">Vessel ID</label>
+              <input
+                type="text"
+                value={state.vesselId}
+                onChange={e => update('vesselId', e.target.value)}
+                placeholder="e.g. MV-AURORA-01"
+                className="w-full bg-slate-800 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              />
+              <p className="text-slate-500 text-xs mt-1">
+                Can be left blank and configured later in Settings.
+              </p>
+            </div>
+            <button
+              onClick={() => setStep('password')}
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl py-3 transition-colors"
+            >
+              Continue
+            </button>
+            <button onClick={() => setStep('backend')} className="w-full text-slate-400 hover:text-white text-sm py-1 transition-colors">
+              ← Back
+            </button>
+          </div>
+        )}
+
+        {/* ── Step: Admin Password ── */}
+        {step === 'password' && (
+          <div className="space-y-4">
+            <h2 className="text-white font-semibold text-lg">Admin Password</h2>
+            <p className="text-slate-400 text-sm">
+              Set the local admin password for this installation.
+            </p>
+            {(['adminPassword', 'confirmPassword'] as const).map((field) => (
+              <div key={field}>
+                <label className="block text-slate-300 text-sm mb-1">
+                  {field === 'adminPassword' ? 'Password' : 'Confirm Password'}
+                </label>
+                <input
+                  type="password"
+                  value={state[field]}
+                  onChange={e => update(field, e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            ))}
+            <button
+              onClick={finishSetup}
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl py-3 transition-colors"
+            >
+              Finish Setup
+            </button>
+            <button
+              onClick={() => setStep(state.mode === 'vessel' ? 'vessel' : 'backend')}
+              className="w-full text-slate-400 hover:text-white text-sm py-1 transition-colors"
+            >
+              ← Back
+            </button>
+          </div>
+        )}
+
+        {/* ── Step: Done ── */}
+        {step === 'done' && (
+          <div className="text-center space-y-3 py-4">
+            <div className="text-5xl">✅</div>
+            <h2 className="text-white font-semibold text-xl">Setup Complete</h2>
+            <p className="text-slate-400 text-sm">Loading ARUS…</p>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+// ── Step indicator ────────────────────────────────────────────────────────────
+
+function StepIndicator({ step, mode }: { step: Step; mode: DeploymentMode }) {
+  const steps: Step[] = mode === 'vessel'
+    ? ['mode', 'backend', 'vessel', 'password']
+    : ['mode', 'backend', 'password'];
+  const idx = steps.indexOf(step);
+  if (idx < 0) return null;
+  return (
+    <div className="flex justify-center gap-2 mt-4">
+      {steps.map((s, i) => (
+        <div
+          key={s}
+          className={`h-1.5 w-8 rounded-full transition-colors ${
+            i <= idx ? 'bg-blue-500' : 'bg-slate-700'
+          }`}
+        />
+      ))}
+    </div>
+  );
+}
+```
+
+-----
+
+## 10. `client/src/lib/desktop.ts` — patch: fix `isDesktop()` and cache update object
+
+Replace the `isDesktop()` function and add update caching to fix the double-`check()` race:
+
+```typescript
+// REPLACE the existing isDesktop() with this more robust version:
+export function isDesktop(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.__TAURI_INTERNALS__ !== 'undefined' &&
+    typeof (window.__TAURI_INTERNALS__ as any)?.invoke === 'function'
+  );
+}
+
+// ADD this cache above getDesktopAPI():
+let _cachedUpdate: { version: string; date?: string; body?: string; _raw: any } | null = null;
+
+// REPLACE installUpdate() inside getDesktopAPI() with this version
+// that reuses the cached update object instead of calling check() twice:
+async installUpdate(): Promise<void> {
+  try {
+    const updaterModule = await dynamicImport(TAURI_UPDATER);
+    if (!updaterModule) return;
+    // Reuse cached update if available, otherwise fetch once.
+    const raw = _cachedUpdate?._raw ?? await updaterModule.check();
+    if (raw) {
+      await raw.downloadAndInstall();
+      const processModule = await dynamicImport(TAURI_PROCESS);
+      if (processModule) await processModule.relaunch();
+    }
+    _cachedUpdate = null;
+  } catch (err) {
+    console.warn('[Desktop] installUpdate failed:', err);
+  }
+},
+
+// REPLACE checkForUpdates() to populate the cache:
+async checkForUpdates(): Promise<UpdateInfo | null> {
+  try {
+    const updaterModule = await dynamicImport(TAURI_UPDATER);
+    if (!updaterModule) return null;
+    const update = await updaterModule.check();
+    if (!update) { _cachedUpdate = null; return null; }
+    _cachedUpdate = {
+      version: update.version,
+      date: update.date ?? undefined,
+      body: update.body ?? undefined,
+      _raw: update,
+    };
+    return { version: _cachedUpdate.version, date: _cachedUpdate.date, body: _cachedUpdate.body };
+  } catch (err) {
+    console.warn('[Desktop] checkForUpdates failed:', err);
+    return null;
+  }
+},
+```
+
+-----
+
+## 11. `package.json` — new scripts and dependencies
+
+```json
+{
+  "scripts": {
+    "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
+    "build:renderer": "vite build",
+    "build:server": "esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/server-bundle.cjs --allow-overwrite",
+    "build:sidecar": "node scripts/build-sidecar.mjs",
+    "build:sidecar:all": "node scripts/build-sidecar.mjs --all",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "npm run build:sidecar && tauri build",
+    "generate-icons": "node scripts/generate-icons.mjs",
+    "init-db": "node scripts/init-sqlite-schema.js"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.9.1",
+    "@tauri-apps/plugin-updater": "^2.0.0",
+    "@tauri-apps/plugin-process": "^2.0.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.9.6",
+    "@yao-pkg/pkg": "^5.11.5",
+    "sharp": "^0.33.0"
+  }
+}
+```
+
+-----
+
+## 12. `.github/workflows/tauri-build.yml` — updated to build sidecar first
+
+```yaml
+name: Build & Release
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Express sidecar binary
+        run: node scripts/build-sidecar.mjs
+        # Produces src-tauri/binaries/arus-server-{triple}[.exe]
+
+      - name: Download NSSM (Windows only)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://nssm.cc/release/nssm-2.24.zip" -OutFile nssm.zip
+          Expand-Archive nssm.zip -DestinationPath nssm-extracted
+          New-Item -ItemType Directory -Force -Path "src-tauri/windows/bin"
+          Copy-Item "nssm-extracted/nssm-2.24/win64/nssm.exe" "src-tauri/windows/bin/nssm.exe"
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'ARUS Marine ${{ github.ref_name }}'
+          releaseBody: 'See CHANGELOG.md for details.'
+          releaseDraft: true
+          prerelease: false
+          args: --target ${{ matrix.target }}
+```
+
+-----
+
+## Implementation Checklist
+
+```
+Pre-build (one-time):
+  [ ] npx @tauri-apps/cli signer generate -w ~/.tauri/arus-marine.key
+      → paste public key into tauri.conf.json plugins.updater.pubkey
+      → store private key + password in GitHub Actions secrets
+
+  [ ] Replace INSERT_OWNER/INSERT_REPO in tauri.conf.json updater endpoints
+  [ ] Download nssm.exe and commit to src-tauri/windows/bin/nssm.exe
+      → https://nssm.cc/release/nssm-2.24.zip (win64 binary)
+
+Dev workflow:
+  [ ] npm install                  — installs new plugin-updater, plugin-process, pkg
+  [ ] npm run build:sidecar        — compiles Express → arus-server binary
+  [ ] npm run tauri:dev            — starts Tauri + auto-launches sidecar
+
+Production build:
+  [ ] npm run tauri:build          — builds sidecar then packages Tauri installer
+      Output: src-tauri/target/release/bundle/
+        Windows: ARUS_1.0.0_x64-setup.exe (NSIS) + ARUS_1.0.0_x64_en-US.msi (WiX)
+        macOS:   ARUS_1.0.0_aarch64.dmg / _x64.dmg
+        Linux:   arus_1.0.0_amd64.AppImage / .deb
+
+Post-install (automated by WiX):
+  [ ] ARUSBackend Windows Service registered via NSSM
+  [ ] SQLite schema initialised via arus-server.exe --init-db
+  [ ] Service started automatically
+
+First run (desktop-setup.tsx):
+  [ ] User selects Vessel or Cloud mode
+  [ ] Backend URL confirmed / tested
+  [ ] Vessel ID entered (optional)
+  [ ] Admin password set
+  [ ] App loads dashboard
+```

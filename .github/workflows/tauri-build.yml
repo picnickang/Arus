@@ -76,6 +76,24 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
+      - name: Build Express sidecar binary
+        run: node scripts/build-sidecar.mjs
+
+      - name: Download NSSM (Windows only)
+        if: matrix.platform == 'windows-2022'
+        shell: pwsh
+        run: |
+          $expectedHash = "D580A80E6100F15CF0D0F45D5C74E3BA5B0B0424180F8B593B4EE251182C2B3D"
+          Invoke-WebRequest -Uri "https://nssm.cc/release/nssm-2.24.zip" -OutFile nssm.zip
+          $actualHash = (Get-FileHash nssm.zip -Algorithm SHA256).Hash
+          if ($actualHash -ne $expectedHash) {
+            Write-Error "NSSM hash mismatch! Expected: $expectedHash Got: $actualHash"
+            exit 1
+          }
+          Expand-Archive nssm.zip -DestinationPath nssm-extracted
+          New-Item -ItemType Directory -Force -Path "src-tauri/windows/bin"
+          Copy-Item "nssm-extracted/nssm-2.24/win64/nssm.exe" "src-tauri/windows/bin/nssm.exe"
+
       - name: Build Tauri app (with release)
         if: startsWith(github.ref, 'refs/tags/v') || inputs.create_release == true
         uses: tauri-apps/tauri-action@v0

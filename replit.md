@@ -57,7 +57,8 @@ The backend uses a hexagonal architecture for separation of concerns, featuring 
 -   **Security**: Admin Audit Logging, automated IP tracking, tenant isolation violation alerts, secure fleet status reporting, 128-char password cap, shared URL validation (`urlValidation.ts`), conditional `trust proxy` (loopback for vessel/desktop, true for cloud), 5MB body limit, response log truncation at 500 chars, public health endpoints (`/healthz`, `/readyz`) exempt from auth.
 -   **Telemetry Ingestion Architecture**: Enforces a single ingestion path with SQLite WAL-mode, cursor-based batch processing, exponential backoff, and source guard validation.
 -   **ML/AI Backend**: Production ML models stored in the `ml_models` table with org-scoped isolation and lifecycle tracking.
--   **Deployment Modes**: Supports Cloud, Desktop (Tauri v2), and Mobile (Capacitor iOS/iPadOS).
+-   **Deployment Modes**: Supports Cloud, Desktop (Tauri v2 with sidecar backend + Windows NSSM service), and Mobile (Capacitor iOS/iPadOS).
+-   **Tauri Desktop Architecture**: Sidecar management spawns a bundled Express server binary (`arus-server`) with lifecycle monitoring. On Windows, production installs use NSSM to run the backend as a Windows Service (`ARUSBackend`). Dev mode uses sidecar spawning with auto-detection of existing services. First-run setup wizard configures deployment mode, backend URL, vessel ID, and admin password. Build pipeline uses esbuild + pkg to compile server into standalone binaries (`scripts/build-sidecar.mjs`).
 -   **RBAC**: Comprehensive Role-Based Access Control system.
 -   **Performance Optimizations**: Includes Redis circuit breaker, index version tracking, Vite code splitting, dependency pre-bundling, API caching, lazy-loaded pages, memoized context providers, optimized TanStack Query defaults, and image lazy loading.
 -   **Database Indexing**: Migrations manage index creation.

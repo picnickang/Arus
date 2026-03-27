@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+
+  <Fragment>
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="APPLICATIONROOTDIRECTORY" Name="ARUS Marine">
+          <Directory Id="BINDIR" Name="bin" />
+        </Directory>
+      </Directory>
+    </Directory>
+
+    <DirectoryRef Id="BINDIR">
+      <Component Id="ARUSBackendBinaries" Guid="A1B2C3D4-E5F6-7890-ABCD-EF1234567890">
+
+        <File Id="NSSMExe"
+              Source="$(var.SourceDir)\bin\nssm.exe"
+              KeyPath="yes" />
+
+        <File Id="ARUSServerExe"
+              Source="$(var.SourceDir)\bin\arus-server.exe" />
+
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id="APPLICATIONROOTDIRECTORY">
+      <Component Id="ARUSBackendService"
+                 Guid="B2C3D4E5-F6A7-8901-BCDE-F12345678901">
+
+        <CreateFolder />
+
+        <util:ServiceConfig
+          ServiceName="ARUSBackend"
+          FirstFailureActionType="restart"
+          SecondFailureActionType="restart"
+          ThirdFailureActionType="restart"
+          RestartServiceDelayInSeconds="10"
+          ResetPeriodInDays="1" />
+
+      </Component>
+    </DirectoryRef>
+
+    <CustomAction Id="InstallARUSService"
+                  Directory="BINDIR"
+                  ExeCommand='"[BINDIR]nssm.exe" install ARUSBackend "[BINDIR]arus-server.exe"'
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+
+    <CustomAction Id="SetServiceEnv_Port"
+                  Directory="BINDIR"
+                  ExeCommand='"[BINDIR]nssm.exe" set ARUSBackend AppEnvironmentExtra "PORT=5000" "NODE_ENV=production" "DEPLOYMENT_MODE=VESSEL" "LOCAL_MODE=true" "DATABASE_PATH=[CommonAppDataFolder]ARUS Marine\vessel-local.db"'
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+
+    <CustomAction Id="SetServiceStdout"
+                  Directory="BINDIR"
+                  ExeCommand='"[BINDIR]nssm.exe" set ARUSBackend AppStdout "[CommonAppDataFolder]ARUS Marine\logs\backend-stdout.log"'
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+
+    <CustomAction Id="SetServiceStderr"
+                  Directory="BINDIR"
+                  ExeCommand='"[BINDIR]nssm.exe" set ARUSBackend AppStderr "[CommonAppDataFolder]ARUS Marine\logs\backend-stderr.log"'
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+
+    <CustomAction Id="InitSQLiteDB"
+                  Directory="BINDIR"
+                  ExeCommand='"[BINDIR]arus-server.exe" --init-db'
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+
+    <CustomAction Id="StartARUSService"
+                  Directory="BINDIR"
+                  ExeCommand='"[BINDIR]nssm.exe" start ARUSBackend'
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <CustomAction Id="StopARUSService"
+                  Directory="BINDIR"
+                  ExeCommand='"[BINDIR]nssm.exe" stop ARUSBackend confirm'
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <CustomAction Id="RemoveARUSService"
+                  Directory="BINDIR"
+                  ExeCommand='"[BINDIR]nssm.exe" remove ARUSBackend confirm'
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <InstallExecuteSequence>
+      <Custom Action="InstallARUSService"
+              After="InstallFiles">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="SetServiceEnv_Port"
+              After="InstallARUSService">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="SetServiceStdout"
+              After="SetServiceEnv_Port">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="SetServiceStderr"
+              After="SetServiceStdout">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="InitSQLiteDB"
+              After="SetServiceStderr">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="StartARUSService"
+              After="InitSQLiteDB">NOT Installed AND NOT REMOVE</Custom>
+
+      <Custom Action="StopARUSService"
+              Before="RemoveFiles">REMOVE="ALL"</Custom>
+      <Custom Action="RemoveARUSService"
+              After="StopARUSService">REMOVE="ALL"</Custom>
+    </InstallExecuteSequence>
+
+    <Feature Id="ARUSBackendFeature"
+             Title="ARUS Backend Service"
+             Level="1">
+      <ComponentRef Id="ARUSBackendBinaries" />
+      <ComponentRef Id="ARUSBackendService" />
+    </Feature>
+
+  </Fragment>
+
+</Wix>

@@ -33,6 +33,8 @@ const TAURI_CORE = '@tauri-apps/api/core';
 const TAURI_UPDATER = '@tauri-apps/plugin-updater';
 const TAURI_PROCESS = '@tauri-apps/plugin-process';
 
+let _cachedUpdateRaw: any = null;
+
 function dynamicImport(mod: string): Promise<any> {
   return new Function('m', 'return import(m)')(mod).catch(() => null);
 }
@@ -74,8 +76,8 @@ export function getDesktopAPI(): DesktopAPI | undefined {
         const updaterModule = await dynamicImport(TAURI_UPDATER);
         if (!updaterModule) return null;
         const update = await updaterModule.check();
-        if (!update) return null;
-        (this as any)._pendingUpdate = update;
+        if (!update) { _cachedUpdateRaw = null; return null; }
+        _cachedUpdateRaw = update;
         return {
           version: update.version,
           date: update.date ?? undefined,
@@ -91,10 +93,9 @@ export function getDesktopAPI(): DesktopAPI | undefined {
       try {
         const updaterModule = await dynamicImport(TAURI_UPDATER);
         if (!updaterModule) return;
-        const cached = (this as any)._pendingUpdate;
-        const update = cached || await updaterModule.check();
+        const update = _cachedUpdateRaw ?? await updaterModule.check();
         if (update) {
-          (this as any)._pendingUpdate = null;
+          _cachedUpdateRaw = null;
           await update.downloadAndInstall();
           const processModule = await dynamicImport(TAURI_PROCESS);
           if (processModule) {

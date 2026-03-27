@@ -33,6 +33,20 @@ import {
 
 setupErrorHandlers();
 
+const isInitDbMode = process.argv.includes('--init-db');
+
+if (isInitDbMode) {
+  import('../scripts/init-sqlite-schema.js')
+    .then(() => {
+      console.log('[ARUS] DB initialisation complete.');
+      process.exit(0);
+    })
+    .catch((err: unknown) => {
+      console.error('[ARUS] DB initialisation failed:', err);
+      process.exit(1);
+    });
+}
+
 console.log("→ Starting module imports...");
 
 import express from "express";
@@ -54,7 +68,7 @@ app.get("/readyz", (_req, res) => {
 
 export { app };
 
-(async () => {
+if (!isInitDbMode) (async () => {
   let server: ReturnType<typeof import("http").createServer> | null = null;
 
   try {
