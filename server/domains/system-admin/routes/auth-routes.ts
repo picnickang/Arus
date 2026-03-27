@@ -1,7 +1,7 @@
 import { Express, Request, Response, SystemAdminDependencies } from "./types.js";
 import { withErrorHandling } from "../../../lib/route-utils.js";
 import { logger } from "../../../utils/logger.js";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
 const BCRYPT_COST = 12;

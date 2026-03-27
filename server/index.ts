@@ -34,6 +34,7 @@ import {
 setupErrorHandlers();
 
 const isInitDbMode = process.argv.includes('--init-db');
+const isHealthCheckMode = process.argv.includes('--health-check');
 
 if (isInitDbMode) {
   import('./init-db-entry.js')
@@ -46,6 +47,32 @@ if (isInitDbMode) {
       console.error('[ARUS] --init-db failed:', err);
       process.exit(1);
     });
+}
+
+if (isHealthCheckMode) {
+  console.log('[ARUS] Health check: testing native module loading...');
+  (async () => {
+    try {
+      const { createClient } = await import('@libsql/client');
+      const client = createClient({ url: ':memory:' });
+      await client.execute('SELECT 1 AS ok');
+      client.close();
+      console.log('[ARUS] Health check: @libsql/client OK');
+
+      const bcrypt = await import('bcryptjs');
+      const hash = await (bcrypt as any).hash('test', 8);
+      const ok = await (bcrypt as any).compare('test', hash);
+      if (!ok) throw new Error('bcryptjs hash/compare mismatch');
+      console.log('[ARUS] Health check: bcryptjs OK');
+
+      console.log('[ARUS] Health check: PASSED');
+      process.exit(0);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('[ARUS] Health check: FAILED —', msg);
+      process.exit(1);
+    }
+  })();
 }
 
 console.log("→ Starting module imports...");
@@ -69,7 +96,7 @@ app.get("/readyz", (_req, res) => {
 
 export { app };
 
-if (!isInitDbMode) (async () => {
+if (!isInitDbMode && !isHealthCheckMode) (async () => {
   let server: ReturnType<typeof import("http").createServer> | null = null;
 
   try {

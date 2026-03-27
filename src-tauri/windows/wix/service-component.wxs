@@ -4,122 +4,223 @@
 
   <Fragment>
 
-    <Directory Id="TARGETDIR" Name="SourceDir">
-      <Directory Id="ProgramFilesFolder">
-        <Directory Id="APPLICATIONROOTDIRECTORY" Name="ARUS Marine">
-          <Directory Id="BINDIR" Name="bin" />
-        </Directory>
-      </Directory>
-    </Directory>
+    <DirectoryRef Id="APPLICATIONFOLDER">
+      <Directory Id="ARUSBINDIR" Name="bin" />
+    </DirectoryRef>
 
-    <DirectoryRef Id="BINDIR">
-      <Component Id="ARUSBackendBinaries" Guid="A1B2C3D4-E5F6-7890-ABCD-EF1234567890">
+    <DirectoryRef Id="ARUSBINDIR">
+      <Component Id="ARUSBackendBinaries"
+                 Guid="A1B2C3D4-E5F6-7890-ABCD-EF1234567890"
+                 Win64="yes">
 
         <File Id="NSSMExe"
-              Source="$(var.SourceDir)\bin\nssm.exe"
+              Name="nssm.exe"
+              Source="$(var.SourceDir)resources\nssm.exe"
               KeyPath="yes" />
 
         <File Id="ARUSServerExe"
-              Source="$(var.SourceDir)\bin\arus-server.exe" />
+              Name="arus-server.exe"
+              Source="$(var.SourceDir)resources\arus-server.exe" />
 
       </Component>
     </DirectoryRef>
 
-    <DirectoryRef Id="APPLICATIONROOTDIRECTORY">
+    <DirectoryRef Id="APPLICATIONFOLDER">
       <Component Id="ARUSBackendService"
-                 Guid="B2C3D4E5-F6A7-8901-BCDE-F12345678901">
+                 Guid="B2C3D4E5-F6A7-8901-BCDE-F12345678901"
+                 Win64="yes">
 
-        <CreateFolder />
+        <RegistryValue Root="HKLM"
+                       Key="SOFTWARE\ARUS Marine"
+                       Name="BackendServiceInstalled"
+                       Type="integer"
+                       Value="1"
+                       KeyPath="yes" />
 
         <util:ServiceConfig
           ServiceName="ARUSBackend"
           FirstFailureActionType="restart"
           SecondFailureActionType="restart"
           ThirdFailureActionType="restart"
-          RestartServiceDelayInSeconds="10"
+          RestartServiceDelayInSeconds="15"
           ResetPeriodInDays="1" />
 
       </Component>
     </DirectoryRef>
 
+    <CustomAction Id="CreateARUSDataDir"
+                  Directory="ARUSBINDIR"
+                  ExeCommand="cmd.exe /c mkdir &quot;[CommonAppDataFolder]ARUS Marine\logs&quot; 2&gt;nul"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <CustomAction Id="CreateARUSServiceAcct"
+                  Directory="ARUSBINDIR"
+                  ExeCommand="cmd.exe /c net user ARUS_svc /add /passwordreq:no /active:yes /comment:&quot;ARUS Marine service account&quot; 2&gt;nul"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <CustomAction Id="GrantARUSDataDirAccess"
+                  Directory="ARUSBINDIR"
+                  ExeCommand="cmd.exe /c icacls &quot;[CommonAppDataFolder]ARUS Marine&quot; /grant &quot;ARUS_svc:(OI)(CI)F&quot; /inheritance:e 2&gt;nul"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
     <CustomAction Id="InstallARUSService"
-                  Directory="BINDIR"
-                  ExeCommand='"[BINDIR]nssm.exe" install ARUSBackend "[BINDIR]arus-server.exe"'
+                  Directory="ARUSBINDIR"
+                  ExeCommand="&quot;[ARUSBINDIR]nssm.exe&quot; install ARUSBackend &quot;[ARUSBINDIR]arus-server.exe&quot;"
                   Execute="deferred"
                   Impersonate="no"
                   Return="check" />
 
-    <CustomAction Id="SetServiceEnv_Port"
-                  Directory="BINDIR"
-                  ExeCommand='"[BINDIR]nssm.exe" set ARUSBackend AppEnvironmentExtra "PORT=5000" "NODE_ENV=production" "DEPLOYMENT_MODE=VESSEL" "LOCAL_MODE=true" "DATABASE_PATH=[CommonAppDataFolder]ARUS Marine\vessel-local.db"'
+    <CustomAction Id="SetServiceAccount"
+                  Directory="ARUSBINDIR"
+                  ExeCommand="&quot;[ARUSBINDIR]nssm.exe&quot; set ARUSBackend ObjectName &quot;.\ARUS_svc&quot; &quot;&quot;"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+
+    <CustomAction Id="SetServiceEnv"
+                  Directory="ARUSBINDIR"
+                  ExeCommand="&quot;[ARUSBINDIR]nssm.exe&quot; set ARUSBackend AppEnvironmentExtra &quot;PORT=5000&quot; &quot;NODE_ENV=production&quot; &quot;DEPLOYMENT_MODE=VESSEL&quot; &quot;LOCAL_MODE=true&quot; &quot;DATABASE_PATH=[CommonAppDataFolder]ARUS Marine\vessel-local.db&quot;"
                   Execute="deferred"
                   Impersonate="no"
                   Return="check" />
 
     <CustomAction Id="SetServiceStdout"
-                  Directory="BINDIR"
-                  ExeCommand='"[BINDIR]nssm.exe" set ARUSBackend AppStdout "[CommonAppDataFolder]ARUS Marine\logs\backend-stdout.log"'
+                  Directory="ARUSBINDIR"
+                  ExeCommand="&quot;[ARUSBINDIR]nssm.exe&quot; set ARUSBackend AppStdout &quot;[CommonAppDataFolder]ARUS Marine\logs\backend.log&quot;"
                   Execute="deferred"
                   Impersonate="no"
                   Return="check" />
 
     <CustomAction Id="SetServiceStderr"
-                  Directory="BINDIR"
-                  ExeCommand='"[BINDIR]nssm.exe" set ARUSBackend AppStderr "[CommonAppDataFolder]ARUS Marine\logs\backend-stderr.log"'
+                  Directory="ARUSBINDIR"
+                  ExeCommand="&quot;[ARUSBINDIR]nssm.exe&quot; set ARUSBackend AppStderr &quot;[CommonAppDataFolder]ARUS Marine\logs\backend-error.log&quot;"
                   Execute="deferred"
                   Impersonate="no"
                   Return="check" />
 
-    <CustomAction Id="InitSQLiteDB"
-                  Directory="BINDIR"
-                  ExeCommand='"[BINDIR]arus-server.exe" --init-db'
+    <CustomAction Id="SetServiceStart"
+                  Directory="ARUSBINDIR"
+                  ExeCommand="&quot;[ARUSBINDIR]nssm.exe&quot; set ARUSBackend Start SERVICE_AUTO_START"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+
+    <CustomAction Id="SetServiceDisplayName"
+                  Directory="ARUSBINDIR"
+                  ExeCommand="&quot;[ARUSBINDIR]nssm.exe&quot; set ARUSBackend DisplayName &quot;ARUS Marine Backend&quot;"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+
+    <CustomAction Id="SetServiceDescription"
+                  Directory="ARUSBINDIR"
+                  ExeCommand="&quot;[ARUSBINDIR]nssm.exe&quot; set ARUSBackend Description &quot;ARUS Marine predictive maintenance backend service&quot;"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+
+    <CustomAction Id="InitARUSDatabase"
+                  Directory="ARUSBINDIR"
+                  ExeCommand="&quot;[ARUSBINDIR]arus-server.exe&quot; --init-db"
                   Execute="deferred"
                   Impersonate="no"
                   Return="check" />
 
     <CustomAction Id="StartARUSService"
-                  Directory="BINDIR"
-                  ExeCommand='"[BINDIR]nssm.exe" start ARUSBackend'
+                  Directory="ARUSBINDIR"
+                  ExeCommand="&quot;[ARUSBINDIR]nssm.exe&quot; start ARUSBackend"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <CustomAction Id="StopARUSServiceUpgrade"
+                  Directory="ARUSBINDIR"
+                  ExeCommand="&quot;[ARUSBINDIR]nssm.exe&quot; stop ARUSBackend"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <CustomAction Id="RestartARUSService"
+                  Directory="ARUSBINDIR"
+                  ExeCommand="&quot;[ARUSBINDIR]nssm.exe&quot; restart ARUSBackend"
                   Execute="deferred"
                   Impersonate="no"
                   Return="ignore" />
 
     <CustomAction Id="StopARUSService"
-                  Directory="BINDIR"
-                  ExeCommand='"[BINDIR]nssm.exe" stop ARUSBackend confirm'
+                  Directory="ARUSBINDIR"
+                  ExeCommand="&quot;[ARUSBINDIR]nssm.exe&quot; stop ARUSBackend confirm"
                   Execute="deferred"
                   Impersonate="no"
                   Return="ignore" />
 
     <CustomAction Id="RemoveARUSService"
-                  Directory="BINDIR"
-                  ExeCommand='"[BINDIR]nssm.exe" remove ARUSBackend confirm'
+                  Directory="ARUSBINDIR"
+                  ExeCommand="&quot;[ARUSBINDIR]nssm.exe&quot; remove ARUSBackend confirm"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <CustomAction Id="RemoveARUSServiceAcct"
+                  Directory="ARUSBINDIR"
+                  ExeCommand="cmd.exe /c net user ARUS_svc /delete 2&gt;nul"
                   Execute="deferred"
                   Impersonate="no"
                   Return="ignore" />
 
     <InstallExecuteSequence>
-      <Custom Action="InstallARUSService"
+
+      <Custom Action="StopARUSServiceUpgrade"
+              Before="InstallFiles">Installed AND NOT REMOVE</Custom>
+
+      <Custom Action="CreateARUSDataDir"
               After="InstallFiles">NOT Installed AND NOT REMOVE</Custom>
-      <Custom Action="SetServiceEnv_Port"
+      <Custom Action="CreateARUSServiceAcct"
+              After="CreateARUSDataDir">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="GrantARUSDataDirAccess"
+              After="CreateARUSServiceAcct">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="InstallARUSService"
+              After="GrantARUSDataDirAccess">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="SetServiceAccount"
               After="InstallARUSService">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="SetServiceEnv"
+              After="SetServiceAccount">NOT Installed AND NOT REMOVE</Custom>
       <Custom Action="SetServiceStdout"
-              After="SetServiceEnv_Port">NOT Installed AND NOT REMOVE</Custom>
+              After="SetServiceEnv">NOT Installed AND NOT REMOVE</Custom>
       <Custom Action="SetServiceStderr"
               After="SetServiceStdout">NOT Installed AND NOT REMOVE</Custom>
-      <Custom Action="InitSQLiteDB"
+      <Custom Action="SetServiceStart"
               After="SetServiceStderr">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="SetServiceDisplayName"
+              After="SetServiceStart">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="SetServiceDescription"
+              After="SetServiceDisplayName">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="InitARUSDatabase"
+              After="SetServiceDescription">NOT Installed AND NOT REMOVE</Custom>
       <Custom Action="StartARUSService"
-              After="InitSQLiteDB">NOT Installed AND NOT REMOVE</Custom>
+              After="InitARUSDatabase">NOT Installed AND NOT REMOVE</Custom>
+
+      <Custom Action="RestartARUSService"
+              After="InstallFinalize">Installed AND NOT REMOVE</Custom>
 
       <Custom Action="StopARUSService"
               Before="RemoveFiles">REMOVE="ALL"</Custom>
       <Custom Action="RemoveARUSService"
               After="StopARUSService">REMOVE="ALL"</Custom>
+      <Custom Action="RemoveARUSServiceAcct"
+              After="RemoveARUSService">REMOVE="ALL"</Custom>
+
     </InstallExecuteSequence>
 
     <Feature Id="ARUSBackendFeature"
              Title="ARUS Backend Service"
+             Description="Express.js backend service for ARUS Marine"
              Level="1">
       <ComponentRef Id="ARUSBackendBinaries" />
       <ComponentRef Id="ARUSBackendService" />

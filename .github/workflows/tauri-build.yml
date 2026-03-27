@@ -9,181 +9,261 @@ permissions:
   contents: write
 
 jobs:
-  build:
+
+  build-macos:
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: macos-latest
-            target: aarch64-apple-darwin
+          - target: aarch64-apple-darwin
             name: macOS Apple Silicon
-          - os: macos-latest
-            target: x86_64-apple-darwin
+          - target: x86_64-apple-darwin
             name: macOS Intel
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            name: Windows x64
-          - os: ubuntu-22.04
-            target: x86_64-unknown-linux-gnu
-            name: Linux x64
 
     name: ${{ matrix.name }}
-    runs-on: ${{ matrix.os }}
+    runs-on: macos-latest
 
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
+        with: { node-version: '20', cache: 'npm' }
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
-
+        with: { targets: '${{ matrix.target }}' }
       - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
+        with: { workspaces: src-tauri }
 
-      - name: Install Linux system dependencies
-        if: matrix.os == 'ubuntu-22.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libappindicator3-dev \
-            librsvg2-dev \
-            patchelf \
-            build-essential \
-            curl \
-            wget \
-            file \
-            libssl-dev \
-            libayatana-appindicator3-dev \
-            imagemagick
-
-      - name: Install ImageMagick (macOS)
-        if: startsWith(matrix.os, 'macos')
+      - name: Install brew dependencies
         run: brew install imagemagick
 
-      - name: Install ImageMagick (Windows)
-        if: matrix.os == 'windows-latest'
-        shell: pwsh
-        run: choco install imagemagick -y --no-progress
+      - run: npm ci
 
-      - name: Install npm dependencies
-        run: npm ci
-
-      - name: Validate updater pubkey is not placeholder
+      - name: Generate icons
         run: |
-          if grep -q "REPLACE_WITH" src-tauri/tauri.conf.json; then
-            echo "ERROR: Updater pubkey is still a placeholder. Run:"
-            echo "  npx @tauri-apps/cli signer generate -w ~/.tauri/arus.key"
-            echo "and paste the public key into src-tauri/tauri.conf.json"
-            exit 1
-          fi
-
-      - name: Generate PNG icons
-        run: node scripts/generate-icons.mjs
-
-      - name: Generate icon.icns (macOS)
-        if: startsWith(matrix.os, 'macos')
-        run: |
+          node scripts/generate-icons.mjs
           iconutil -c icns src-tauri/icons/icon.iconset \
                    -o src-tauri/icons/icon.icns
 
-      - name: Generate icon.ico (Windows)
-        if: matrix.os == 'windows-latest'
+      - name: Build sidecar
+        run: node scripts/build-sidecar.mjs
+
+      - name: Build Tauri (vessel config)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN:                       ${{ secrets.GITHUB_TOKEN }}
+          APPLE_SIGNING_IDENTITY:             ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID:                           ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD:                     ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID:                      ${{ secrets.APPLE_TEAM_ID }}
+          TAURI_SIGNING_PRIVATE_KEY:          ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName:      ${{ github.ref_name }}
+          releaseName:  'ARUS Marine ${{ github.ref_name }}'
+          releaseDraft: true
+          prerelease:   false
+          args:         --target ${{ matrix.target }} --config src-tauri/tauri.vessel.conf.json
+
+  build-linux:
+    name: Linux x64
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm' }
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: src-tauri }
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev \
+            patchelf build-essential curl wget file libssl-dev \
+            libayatana-appindicator3-dev imagemagick
+
+      - run: npm ci
+
+      - name: Generate icons
+        run: |
+          node scripts/generate-icons.mjs
+          convert src-tauri/icons/32x32.png \
+                  src-tauri/icons/128x128.png \
+                  src-tauri/icons/icon.png \
+                  src-tauri/icons/icon.ico || true
+
+      - name: Build sidecar
+        run: node scripts/build-sidecar.mjs
+
+      - name: Build Tauri
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN:                       ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY:          ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName:      ${{ github.ref_name }}
+          releaseName:  'ARUS Marine ${{ github.ref_name }}'
+          releaseDraft: true
+          prerelease:   false
+          args:         --target x86_64-unknown-linux-gnu --config src-tauri/tauri.vessel.conf.json
+
+  build-windows-vessel:
+    name: Windows x64 (Vessel)
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm' }
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: x86_64-pc-windows-msvc }
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: src-tauri }
+
+      - name: Install ImageMagick
+        shell: pwsh
+        run: choco install imagemagick -y --no-progress
+
+      - run: npm ci
+
+      - name: Generate icons
         shell: pwsh
         run: |
+          node scripts/generate-icons.mjs
           magick convert `
             src-tauri/icons/32x32.png `
             src-tauri/icons/128x128.png `
             src-tauri/icons/icon.png `
             src-tauri/icons/icon.ico
 
-      - name: Generate icon.ico (Linux)
-        if: matrix.os == 'ubuntu-22.04'
-        run: |
-          convert \
-            src-tauri/icons/32x32.png \
-            src-tauri/icons/128x128.png \
-            src-tauri/icons/icon.png \
-            src-tauri/icons/icon.ico || true
-
-      - name: Build Express sidecar
+      - name: Build sidecar (Windows)
         run: node scripts/build-sidecar.mjs
 
       - name: Download and verify NSSM
-        if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
           $nssmUrl = "https://nssm.cc/release/nssm-2.24.zip"
           $expectedHash = "6C382953E82F81C19D75D4F9BCD653F9C253EFE2C2E0C0C569999F15BBAE8F7F"
-          $zipPath = "$env:TEMP\nssm.zip"
-          Invoke-WebRequest -Uri $nssmUrl -OutFile $zipPath -UseBasicParsing
-          $actualHash = (Get-FileHash -Path $zipPath -Algorithm SHA256).Hash
+          $zip = "$env:TEMP\nssm.zip"
+          Invoke-WebRequest -Uri $nssmUrl -OutFile $zip -UseBasicParsing
+          $actualHash = (Get-FileHash -Path $zip -Algorithm SHA256).Hash
           if ($actualHash -ne $expectedHash) {
             Write-Error "NSSM SHA-256 mismatch! Expected: $expectedHash  Got: $actualHash"
             exit 1
           }
           Write-Host "NSSM SHA-256 verified: $actualHash"
-          Expand-Archive -Path $zipPath -DestinationPath "$env:TEMP\nssm-extracted" -Force
-          $binDir = "src-tauri\windows\bin"
-          New-Item -ItemType Directory -Force -Path $binDir | Out-Null
-          Copy-Item "$env:TEMP\nssm-extracted\nssm-2.24\win64\nssm.exe" "$binDir\nssm.exe"
-          Write-Host "NSSM staged at $binDir\nssm.exe"
+          Expand-Archive -Path $zip -DestinationPath "$env:TEMP\nssm" -Force
+          New-Item -ItemType Directory -Force -Path "src-tauri\windows\bin" | Out-Null
+          Copy-Item "$env:TEMP\nssm\nssm-2.24\win64\nssm.exe" `
+                    "src-tauri\windows\bin\nssm.exe"
 
       - name: Download WebView2 offline installer
-        if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
-          $url = "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
-          $out = "src-tauri\MicrosoftEdgeWebview2Setup.exe"
-          Invoke-WebRequest -Uri $url -OutFile $out -UseBasicParsing
-          Write-Host "WebView2 offline installer: $(Get-Item $out | Select-Object -Expand Length) bytes"
+          Invoke-WebRequest `
+            -Uri "https://go.microsoft.com/fwlink/p/?LinkId=2124703" `
+            -OutFile "src-tauri\MicrosoftEdgeWebview2Setup.exe" `
+            -UseBasicParsing
+          Write-Host "WebView2 size: $((Get-Item src-tauri\MicrosoftEdgeWebview2Setup.exe).Length) bytes"
 
-      - name: Build Tauri application (release)
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Stage WiX resources
+        shell: pwsh
+        run: |
+          $resourcesDir = "src-tauri\target\release\bundle\wix\resources"
+          New-Item -ItemType Directory -Force -Path $resourcesDir | Out-Null
+          Copy-Item "src-tauri\windows\bin\nssm.exe" `
+                    "$resourcesDir\nssm.exe" -Force
+          Copy-Item "src-tauri\binaries\arus-server-x86_64-pc-windows-msvc.exe" `
+                    "$resourcesDir\arus-server.exe" -Force
+          Write-Host "WiX resources staged:"
+          Get-ChildItem $resourcesDir
+
+      - name: Build Tauri (vessel installer)
         uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN:                     ${{ secrets.GITHUB_TOKEN }}
-          APPLE_SIGNING_IDENTITY:           ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID:                         ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD:                   ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID:                    ${{ secrets.APPLE_TEAM_ID }}
-          TAURI_SIGNING_PRIVATE_KEY:        ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          GITHUB_TOKEN:                       ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY:          ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName:        ${{ github.ref_name }}
-          releaseName:    'ARUS Marine ${{ github.ref_name }}'
-          releaseBody:    'See CHANGELOG.md for release notes.'
-          releaseDraft:   true
-          prerelease:     false
-          args:           --target ${{ matrix.target }}
+          tagName:      ${{ github.ref_name }}
+          releaseName:  'ARUS Marine ${{ github.ref_name }}'
+          releaseDraft: true
+          prerelease:   false
+          args:         --target x86_64-pc-windows-msvc --config src-tauri/tauri.vessel.conf.json
 
-      - name: Build Tauri application (CI only)
-        if: "!startsWith(github.ref, 'refs/tags/v')"
+  build-windows-cloud:
+    name: Windows x64 (Cloud)
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm' }
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: x86_64-pc-windows-msvc }
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: src-tauri }
+
+      - name: Install ImageMagick
+        shell: pwsh
+        run: choco install imagemagick -y --no-progress
+
+      - run: npm ci
+
+      - name: Generate icons
+        shell: pwsh
+        run: |
+          node scripts/generate-icons.mjs
+          magick convert `
+            src-tauri/icons/32x32.png `
+            src-tauri/icons/128x128.png `
+            src-tauri/icons/icon.png `
+            src-tauri/icons/icon.ico
+
+      - name: Build sidecar
+        run: node scripts/build-sidecar.mjs
+
+      - name: Download and verify NSSM
+        shell: pwsh
+        run: |
+          $nssmUrl = "https://nssm.cc/release/nssm-2.24.zip"
+          $expectedHash = "6C382953E82F81C19D75D4F9BCD653F9C253EFE2C2E0C0C569999F15BBAE8F7F"
+          $zip = "$env:TEMP\nssm.zip"
+          Invoke-WebRequest -Uri $nssmUrl -OutFile $zip -UseBasicParsing
+          $actualHash = (Get-FileHash -Path $zip -Algorithm SHA256).Hash
+          if ($actualHash -ne $expectedHash) {
+            Write-Error "NSSM SHA-256 mismatch! Expected: $expectedHash  Got: $actualHash"
+            exit 1
+          }
+          Write-Host "NSSM SHA-256 verified: $actualHash"
+          Expand-Archive -Path $zip -DestinationPath "$env:TEMP\nssm" -Force
+          New-Item -ItemType Directory -Force -Path "src-tauri\windows\bin" | Out-Null
+          Copy-Item "$env:TEMP\nssm\nssm-2.24\win64\nssm.exe" `
+                    "src-tauri\windows\bin\nssm.exe"
+
+      - name: Stage WiX resources
+        shell: pwsh
+        run: |
+          $resourcesDir = "src-tauri\target\release\bundle\wix\resources"
+          New-Item -ItemType Directory -Force -Path $resourcesDir | Out-Null
+          Copy-Item "src-tauri\windows\bin\nssm.exe" `
+                    "$resourcesDir\nssm.exe" -Force
+          Copy-Item "src-tauri\binaries\arus-server-x86_64-pc-windows-msvc.exe" `
+                    "$resourcesDir\arus-server.exe" -Force
+          Write-Host "WiX resources staged:"
+          Get-ChildItem $resourcesDir
+
+      - name: Build Tauri (cloud installer)
         uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN:                     ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY:        ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          GITHUB_TOKEN:                       ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY:          ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          args:           --target ${{ matrix.target }}
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: arus-desktop-${{ matrix.name }}
-          path: |
-            src-tauri/target/${{ matrix.target }}/release/bundle/**/*.dmg
-            src-tauri/target/${{ matrix.target }}/release/bundle/**/*.app.tar.gz
-            src-tauri/target/${{ matrix.target }}/release/bundle/**/*.msi
-            src-tauri/target/${{ matrix.target }}/release/bundle/**/*.exe
-            src-tauri/target/${{ matrix.target }}/release/bundle/**/*.deb
-            src-tauri/target/${{ matrix.target }}/release/bundle/**/*.AppImage
-            src-tauri/target/${{ matrix.target }}/release/bundle/**/*.sig
-          if-no-files-found: error
-          retention-days: 14
+          tagName:      ${{ github.ref_name }}
+          releaseName:  'ARUS Marine ${{ github.ref_name }}'
+          releaseDraft: true
+          prerelease:   false
+          args:         --target x86_64-pc-windows-msvc --config src-tauri/tauri.cloud.conf.json
