@@ -1,0 +1,201 @@
+ARUS Tauri v2 Installation Files — Code Review
+Here’s a thorough review of all installation-related files, organized by severity.
+
+🔴 Critical Issues
+1. Updater public key is empty (tauri.conf.json)
+
+"plugins": {
+  "updater": {
+    "pubkey": "",   // ← CRITICAL: updates will fail or be insecure
+
+
+Impact: Either the updater silently fails, or — worse — ships without signature verification, making the app vulnerable to supply-chain attacks. Must be generated before any production release:
+
+npx @tauri-apps/cli signer generate -w ~/.tauri/arus-marine.key
+
+
+Then paste the public key into tauri.conf.json and store the private key in CI secrets.
+
+2. GitHub release URL is a placeholder (tauri.conf.json)
+
+"endpoints": [
+  "https://github.com/INSERT_OWNER/INSERT_REPO/releases/latest/download/latest.json"
+]
+
+
+The updater will silently fail to check for updates in production because the endpoint URL was never filled in. This is easy to forget since the app will still compile and run fine.
+
+3. Missing JS plugin packages in package.json
+
+"dependencies": {
+  "@tauri-apps/api": "^2.9.1"
+  // @tauri-apps/plugin-updater  ← MISSING
+  // @tauri-apps/plugin-process  ← MISSING
+}
+
+
+desktop.ts dynamically imports both of these at runtime. The new Function() import trick bypasses Vite’s static analysis, but the packages still need to be installed for the Tauri build context. Without them, checkForUpdates() and installUpdate() silently return null/void in the packaged app — broken with no error.
+
+🟠 Significant Issues
+4. installUpdate() calls check() twice (desktop.ts)
+
+async installUpdate(): Promise<void> {
+  const update = await updaterModule.check();   // check #1
+  if (update) {
+    await update.downloadAndInstall();
+    const processModule = await dynamicImport(TAURI_PROCESS);
+    if (processModule) {
+      await processModule.relaunch();
+    }
+  }
+}
+
+
+checkForUpdates() also calls check() internally. The caller pattern in DesktopUpdatePanel is likely:
+
+const info = await checkForUpdates();    // check() call #1
+if (info) await installUpdate();         // check() call #2 — redundant network round-trip
+
+
+The update object from the first check should be cached and passed through, not re-fetched. This causes an unnecessary network round-trip and a race condition if a new release drops between the two checks.
+
+5. get_runtime_state uses compile-time flags, not runtime detection (lib.rs)
+
+fn get_runtime_state() -> RuntimeState {
+    let packaged = cfg!(not(debug_assertions));   // compile-time, not runtime
+    let debug = cfg!(debug_assertions);
+
+
+cfg!() macros are resolved at compile time, so a debug build will always report packaged: false and a release build always packaged: true, regardless of how the binary is actually being run. For ARUS this is probably fine in practice, but it means you can’t do a --release debug build and have isPackaged() return the right thing. Tauri v2 provides app.is_packaged() for true runtime detection.
+
+6. beforeBuildCommand only builds the frontend (tauri.conf.json)
+
+"beforeBuildCommand": "npm run build:renderer"
+
+
+build:renderer is just vite build. The backend (server/) is not built. For cloud/vessel deployments where the backend runs as a separate service this is fine by design, but it means the Tauri build gives no compile-time warning if server/ has TypeScript errors. If someone later tries to bundle the backend as a sidecar, this will silently produce a stale or missing server binary.
+
+7. CSP allows http: and https: with no domain restriction (tauri.conf.json)
+
+"connect-src": "'self' http://localhost:* https://localhost:* http://127.0.0.1:* https://127.0.0.1:* http: https: https://*.arus.io"
+
+
+http: and https: (without a hostname) are wildcard directives — they permit connections to any origin. The https://*.arus.io scoping is effectively useless alongside them. For a vessel-mode app that handles maintenance data on air-gapped hardware, this is a meaningful attack surface. Tighten to explicit origins:
+
+"connect-src": "'self' http://localhost:* https://localhost:* http://127.0.0.1:* https://*.arus.io"
+
+
+🟡 Minor Issues & Improvements
+8. generate-icons.mjs — density calculation is imprecise
+
+{ density: Math.round((size / 512) * 72 * 4) }
+
+
+For a 32px icon this produces a density of ~18 DPI — too low for accurate SVG rasterization at small sizes. Sharp’s recommended practice is to use a fixed high density (e.g. 300 or 600) and let resize() handle the downscaling:
+
+await sharp(svgBuffer, { density: 300 })
+  .resize(size, size)
+  .png()
+  .toFile(...)
+
+
+9. generate-icons.mjs — missing .icns and .ico generation
+The script prints manual instructions for Windows/macOS icon formats instead of generating them:
+
+console.log('  macOS: Use iconutil or https://cloudconvert.com/png-to-icns');
+
+
+This is a manual step that will be forgotten in CI. Since the script already has sharp available, it can produce the multi-resolution PNG set needed as input to iconutil (macOS) or png-to-ico (npm package for Windows).
+
+10. init-sqlite-schema.js — no idempotency check on schema version
+
+await client.execute(`
+  INSERT OR REPLACE INTO _schema_version (version) VALUES ('1.0.0-embedded');
+`);
+
+
+INSERT OR REPLACE silently overwrites the version on every run. If a future migration bumps the version to 1.1.0-embedded, re-running the bootstrap script on an existing database will silently downgrade it. Use INSERT OR IGNORE so re-runs on existing databases are true no-ops.
+
+11. dev-setup.sh — cargo check uses || true silently
+
+if check_command rustc; then
+  check_command cargo || true   # ← suppresses cargo absence
+
+
+If rustc is found but cargo is missing (an unusual but possible state), the script continues silently. Since cargo is required for tauri:dev and tauri:build, this should either set MISSING=1 or print a clear warning.
+
+12. lib.rs — unused variable warning in release builds
+
+.setup(|app| {
+    let window = app.get_webview_window("main").expect("main window not found");
+    #[cfg(debug_assertions)]
+    window.open_devtools();
+    let _ = window;   // ← suppresses warning, but awkward
+    Ok(())
+})
+
+
+The let _ = window; pattern works but is a code smell. Cleaner:
+
+.setup(|app| {
+    #[cfg(debug_assertions)]
+    {
+        let window = app.get_webview_window("main").expect("main window not found");
+        window.open_devtools();
+    }
+    Ok(())
+})
+
+
+13. tauri.conf.json — macOS minimum version is macOS 11
+
+"macOS": {
+  "minimumSystemVersion": "11.0"
+}
+
+
+This is a reasonable floor (Big Sur, 2020), but worth confirming against your actual WebKit requirement. Tauri v2’s WebKit bindings on macOS 11 are fine, but some WebGL/WebGPU features used by TensorFlow.js may require 12+. Worth documenting the rationale.
+
+14. desktop.ts — isDesktop() detection could produce false positives
+
+export function isDesktop(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    (window.__TAURI__ !== undefined || window.__TAURI_INTERNALS__ !== undefined)
+  );
+}
+
+
+Any script that sets window.__TAURI__ (e.g. a browser extension or a test harness) would cause the web build to attempt Tauri IPC calls that silently fail. A more robust check would also verify that window.__TAURI_INTERNALS__?.invoke is a function before trusting the environment.
+
+✅ What’s Done Well
+	∙	Dynamic import pattern using new Function() in desktop.ts is the correct approach to prevent Vite from trying to statically bundle Tauri modules in the web build.
+	∙	Graceful degradation throughout desktop.ts — all API functions return sensible defaults ('web', false, null) rather than throwing in non-Tauri environments.
+	∙	Release profile in Cargo.toml is well-configured (lto = true, strip = true, codegen-units = 1, opt-level = "s").
+	∙	Capabilities file correctly scopes filesystem permissions to $APPDATA/** rather than broad filesystem access.
+	∙	SQLite bootstrap correctly uses WAL mode and sets synchronous = NORMAL — a good balance of durability and performance for vessel hardware.
+	∙	dev-setup.sh clearly labels itself as not for customer installation and cleanly separates web vs. desktop dev paths.
+	∙	CI/CD workflow in BUILD_GUIDE.md uses the official tauri-apps/tauri-action and correctly handles matrix builds for all target triples.
+
+Summary
+
+
+
+|# |Severity     |File                   |Issue                                                                       |
+|--|-------------|-----------------------|----------------------------------------------------------------------------|
+|1 |🔴 Critical   |`tauri.conf.json`      |Empty updater pubkey                                                        |
+|2 |🔴 Critical   |`tauri.conf.json`      |Placeholder GitHub release URL                                              |
+|3 |🔴 Critical   |`package.json`         |Missing plugin-updater and plugin-process dependencies                      |
+|4 |🟠 Significant|`desktop.ts`           |`installUpdate()` calls `check()` twice — race condition + wasted round-trip|
+|5 |🟠 Significant|`lib.rs`               |`packaged`/`debug` use compile-time flags instead of runtime detection      |
+|6 |🟠 Significant|`tauri.conf.json`      |`beforeBuildCommand` skips backend build                                    |
+|7 |🟠 Significant|`tauri.conf.json`      |CSP `connect-src` allows all HTTP/HTTPS origins                             |
+|8 |🟡 Minor      |`generate-icons.mjs`   |SVG density calculation too low for small icons                             |
+|9 |🟡 Minor      |`generate-icons.mjs`   |`.icns`/`.ico` left as manual steps                                         |
+|10|🟡 Minor      |`init-sqlite-schema.js`|`INSERT OR REPLACE` on schema version can silently downgrade                |
+|11|🟡 Minor      |`dev-setup.sh`         |Missing `cargo` silently suppressed                                         |
+|12|🟡 Minor      |`lib.rs`               |Awkward `let _ = window` pattern                                            |
+|13|🟡 Minor      |`tauri.conf.json`      |macOS minimum version rationale undocumented                                |
+|14|🟡 Minor      |`desktop.ts`           |`isDesktop()` susceptible to false positives                                |
+
+The three critical issues (1, 2, 3) should be resolved before any production build is cut. Issues 4 and 7 are the most important of the significant ones — the double-check() race and the permissive CSP are both worth fixing before a vessel deployment.​​​​​​​​​​​​​​​​

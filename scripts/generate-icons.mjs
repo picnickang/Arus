@@ -32,7 +32,7 @@ async function generateIcons() {
     ];
 
     for (const { file, size } of targets) {
-      await sharp(svgBuffer, { density: Math.round((size / 512) * 72 * 4) })
+      await sharp(svgBuffer, { density: 300 })
         .resize(size, size)
         .png()
         .toFile(join(tauriIconDir, file));

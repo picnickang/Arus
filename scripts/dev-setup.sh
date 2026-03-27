@@ -28,7 +28,10 @@ check_command npm || MISSING=1
 echo ""
 echo "  Optional (for desktop/Tauri development):"
 if check_command rustc; then
-  check_command cargo || true
+  if ! check_command cargo; then
+    echo "  ⚠️  cargo is missing but rustc is present — Tauri builds will fail"
+    echo "     Reinstall Rust: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+  fi
 else
   echo "     Install Rust: https://rustup.rs"
   echo "     (Only needed for Tauri desktop builds)"

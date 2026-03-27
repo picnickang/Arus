@@ -35,7 +35,7 @@ try {
   `);
 
   await client.execute(`
-    INSERT OR REPLACE INTO _schema_version (version) VALUES ('1.0.0-embedded');
+    INSERT OR IGNORE INTO _schema_version (version) VALUES ('1.0.0-embedded');
   `);
 
   console.log('  Creating critical system tables for embedded mode...');

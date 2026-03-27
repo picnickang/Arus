@@ -103,10 +103,12 @@ pub fn run() {
             get_backend_config,
         ])
         .setup(|app| {
-            let window = app.get_webview_window("main").expect("main window not found");
             #[cfg(debug_assertions)]
-            window.open_devtools();
-            let _ = window;
+            {
+                let window = app.get_webview_window("main").expect("main window not found");
+                window.open_devtools();
+            }
+            let _ = app;
             Ok(())
         })
         .run(tauri::generate_context!())

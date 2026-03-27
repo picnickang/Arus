@@ -24,7 +24,8 @@ declare global {
 export function isDesktop(): boolean {
   return (
     typeof window !== 'undefined' &&
-    (window.__TAURI__ !== undefined || window.__TAURI_INTERNALS__ !== undefined)
+    (window.__TAURI_INTERNALS__ !== undefined &&
+     typeof (window.__TAURI_INTERNALS__ as any)?.invoke === 'function')
   );
 }
 
@@ -74,6 +75,7 @@ export function getDesktopAPI(): DesktopAPI | undefined {
         if (!updaterModule) return null;
         const update = await updaterModule.check();
         if (!update) return null;
+        (this as any)._pendingUpdate = update;
         return {
           version: update.version,
           date: update.date ?? undefined,
@@ -89,8 +91,10 @@ export function getDesktopAPI(): DesktopAPI | undefined {
       try {
         const updaterModule = await dynamicImport(TAURI_UPDATER);
         if (!updaterModule) return;
-        const update = await updaterModule.check();
+        const cached = (this as any)._pendingUpdate;
+        const update = cached || await updaterModule.check();
         if (update) {
+          (this as any)._pendingUpdate = null;
           await update.downloadAndInstall();
           const processModule = await dynamicImport(TAURI_PROCESS);
           if (processModule) {
