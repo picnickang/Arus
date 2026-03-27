@@ -39,17 +39,20 @@ class StorageCircuitBreaker {
       }
     }
 
+    let timer: NodeJS.Timeout;
     try {
       const result = await Promise.race<T>([
         operation(),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error(`Database operation timed out after ${this.timeoutMs}ms: ${operationName || "unknown"}`)), this.timeoutMs)
-        ),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error(`Database operation timed out after ${this.timeoutMs}ms: ${operationName || "unknown"}`)), this.timeoutMs);
+        }),
       ]);
 
+      clearTimeout(timer!);
       this.onSuccess();
       return result;
     } catch (error) {
+      clearTimeout(timer!);
       this.onFailure(error, operationName);
       throw error;
     }

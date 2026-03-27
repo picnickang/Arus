@@ -53,11 +53,13 @@ export function idempotencyMiddleware(options?: { required?: boolean }) {
 
     const originalJson = res.json.bind(res);
     res.json = function (body: any) {
-      processedKeys.set(fullKey, {
-        statusCode: res.statusCode,
-        body,
-        processedAt: Date.now(),
-      });
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        processedKeys.set(fullKey, {
+          statusCode: res.statusCode,
+          body,
+          processedAt: Date.now(),
+        });
+      }
       return originalJson(body);
     };
 

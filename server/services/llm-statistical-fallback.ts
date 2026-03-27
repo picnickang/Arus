@@ -59,7 +59,7 @@ export function generateStatisticalFallback(
 
   const p10Index = Math.floor(sorted.length * 0.1);
   const p10Health = sorted[p10Index]?.healthIndex ?? 0;
-  const medianHealth = sorted[Math.floor(sorted.length * 0.5)]?.healthIndex ?? avgHealth;
+  const medianHealth = sorted[Math.floor(sorted.length / 2)]?.healthIndex ?? avgHealth;
 
   const riskMatrix = sorted.slice(0, 10).map(e => ({
     equipment: e.name || e.id,
@@ -96,7 +96,7 @@ export function generateStatisticalFallback(
 
   const summaryParts: string[] = [];
   summaryParts.push(`Statistical summary (${fallbackReason}).`);
-  summaryParts.push(`Fleet: ${equipmentHealth.length} equipment, average health ${avgHealth}%.`);
+  summaryParts.push(`Fleet: ${equipmentHealth.length} equipment, average health ${avgHealth}%, median ${medianHealth}%.`);
   summaryParts.push(`${healthy.length} healthy, ${atRisk.length} at risk, ${critical.length} critical.`);
   if (critical.length > 0) {
     summaryParts.push(`Immediate attention needed for ${critical.length} critical item(s).`);

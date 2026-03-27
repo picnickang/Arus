@@ -41,10 +41,10 @@ export function toVesselLocal(utcDate: Date, timezone: string): Date {
 
 export function toUTC(localDate: Date, timezone: string): Date {
   try {
-    const utcStr = localDate.toLocaleString("en-US", { timeZone: "UTC" });
     const localStr = localDate.toLocaleString("en-US", { timeZone: timezone });
-    const offsetMs = new Date(utcStr).getTime() - new Date(localStr).getTime();
-    return new Date(localDate.getTime() + offsetMs);
+    const utcStr = localDate.toLocaleString("en-US", { timeZone: "UTC" });
+    const offsetMs = new Date(localStr).getTime() - new Date(utcStr).getTime();
+    return new Date(localDate.getTime() - offsetMs);
   } catch {
     return localDate;
   }

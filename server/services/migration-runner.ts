@@ -56,11 +56,15 @@ export class MigrationRunner {
           const crypto = await import("crypto");
           const checksum = crypto.createHash("md5").update(sqlContent).digest("hex");
 
-          await this.db.execute(sql.raw(sqlContent));
-
-          await this.db.execute(sql.raw(
-            `INSERT INTO schema_migrations (filename, checksum) VALUES ('${file}', '${checksum}')`
-          ));
+          if (typeof this.db.transaction === "function") {
+            await this.db.transaction(async (tx: any) => {
+              await tx.execute(sql.raw(sqlContent));
+              await tx.execute(sql`INSERT INTO schema_migrations (filename, checksum) VALUES (${file}, ${checksum})`);
+            });
+          } else {
+            await this.db.execute(sql.raw(sqlContent));
+            await this.db.execute(sql`INSERT INTO schema_migrations (filename, checksum) VALUES (${file}, ${checksum})`);
+          }
 
           applied.push(file);
           logger.info(LOG_CTX, `Applied migration: ${file}`);

@@ -43,9 +43,8 @@ class DatabaseDegradationService {
       this.isDbHealthy = true;
 
       if (this.readCache.size > this.maxCacheEntries) {
-        const oldest = [...this.readCache.entries()]
-          .sort((a, b) => a[1].cachedAt - b[1].cachedAt)[0];
-        if (oldest) this.readCache.delete(oldest[0]);
+        const firstKey = this.readCache.keys().next().value;
+        if (firstKey) this.readCache.delete(firstKey);
       }
 
       return { data: result, fromCache: false, staleMs: null };
@@ -120,13 +119,14 @@ class DatabaseDegradationService {
         logger.error(LOG_CTX, `Failed to replay write ${write.id}`, error);
 
         if (failed >= 3) {
-          this.writeQueue.unshift(...failedWrites, ...this.writeQueue);
           break;
         }
       }
     }
 
-    this.writeQueue.unshift(...failedWrites);
+    if (failedWrites.length > 0) {
+      this.writeQueue.unshift(...failedWrites);
+    }
 
     logger.info(LOG_CTX, `Queue replay: ${replayed} replayed, ${failed} failed, ${this.writeQueue.length} remaining`);
 

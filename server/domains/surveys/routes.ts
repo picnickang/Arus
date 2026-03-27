@@ -105,6 +105,40 @@ export function registerSurveyRoutes(
     })
   );
 
+  app.get("/api/surveys/summary/upcoming", generalApiRateLimit,
+    withErrorHandling("upcoming surveys summary", async (req: Request, res: Response) => {
+      const orgId = req.headers["x-org-id"] as string;
+      if (!orgId) return res.status(401).json({ message: "Organization ID required" });
+
+      const daysAhead = Math.min(Math.max(Number(req.query.days) || 90, 1), 365);
+
+      try {
+        const { db } = await import("../../db");
+        const { sql } = await import("drizzle-orm");
+
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() + daysAhead);
+        const cutoffStr = cutoffDate.toISOString().split("T")[0];
+
+        const result = await db.execute(sql`
+          SELECT
+            COUNT(*) FILTER (WHERE status = 'overdue') AS overdue_count,
+            COUNT(*) FILTER (WHERE status = 'due' AND due_date <= ${cutoffStr}) AS upcoming_count,
+            COUNT(*) FILTER (WHERE status = 'in_progress') AS in_progress_count,
+            COUNT(*) AS total_count
+          FROM class_surveys
+          WHERE org_id = ${orgId}
+        `);
+        res.json(result?.rows?.[0] ?? { overdue_count: 0, upcoming_count: 0, in_progress_count: 0, total_count: 0 });
+      } catch (error) {
+        if (error instanceof Error && error.message.includes("does not exist")) {
+          return res.json({ overdue_count: 0, upcoming_count: 0, in_progress_count: 0, total_count: 0 });
+        }
+        throw error;
+      }
+    })
+  );
+
   app.get("/api/surveys/:id", generalApiRateLimit,
     withErrorHandling("get survey", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;

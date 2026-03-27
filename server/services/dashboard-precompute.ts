@@ -66,9 +66,15 @@ class DashboardPrecomputeService {
     }
   }
 
+  private computing = false;
+
   private async runAll(): Promise<void> {
-    for (const orgId of this.orgIds) {
-      await this.computeForOrg(orgId);
+    if (this.computing) return;
+    this.computing = true;
+    try {
+      await Promise.allSettled(this.orgIds.map(id => this.computeForOrg(id)));
+    } finally {
+      this.computing = false;
     }
   }
 
