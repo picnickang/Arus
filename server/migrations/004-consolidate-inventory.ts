@@ -50,6 +50,7 @@ async function migrate() {
     let partsMerged = 0;
     let stockCreated = 0;
     let stockMerged = 0;
+    let dependentRemapped = 0;
 
     for (const row of piRows.rows) {
       try {
@@ -59,9 +60,9 @@ async function migrate() {
             min_stock_qty, max_stock_qty, standard_cost, lead_time_days,
             manufacturer, is_active, created_at, updated_at
           ) VALUES (
-            gen_random_uuid(), $1, $2, $3, $4, $5, 'ea',
-            $6, $7, $8, $9,
-            $10, $11, $12, $13
+            $1, $2, $3, $4, $5, $6, 'ea',
+            $7, $8, $9, $10,
+            $11, $12, $13, $14
           )
           ON CONFLICT (org_id, part_no) DO UPDATE SET
             min_stock_qty = GREATEST(parts.min_stock_qty, EXCLUDED.min_stock_qty),
@@ -70,6 +71,7 @@ async function migrate() {
             updated_at = NOW()
           RETURNING id, part_no, (xmax = 0) AS was_inserted
         `, [
+          row.id,
           row.org_id, row.part_number, row.part_name, row.description,
           row.category, row.min_stock_level || 0, row.max_stock_level || 0,
           row.unit_cost, row.lead_time_days || 7,
@@ -79,6 +81,19 @@ async function migrate() {
 
         const resultRow = insertResult.rows[0];
         if (resultRow.was_inserted) { partsCreated++; } else { partsMerged++; }
+
+        if (!resultRow.was_inserted && resultRow.id !== row.id) {
+          const remap = await client.query(`
+            UPDATE work_order_parts SET part_id = $1 WHERE part_id = $2 AND org_id = $3
+          `, [resultRow.id, row.id, row.org_id]);
+          const remapMov = await client.query(`
+            UPDATE inventory_movements SET part_id = $1 WHERE part_id = $2 AND org_id = $3
+          `, [resultRow.id, row.id, row.org_id]);
+          const remapSup = await client.query(`
+            UPDATE parts_inventory_suppliers SET inventory_item_id = $1 WHERE inventory_item_id = $2
+          `, [resultRow.id, row.id]);
+          dependentRemapped += (remap.rowCount || 0) + (remapMov.rowCount || 0) + (remapSup.rowCount || 0);
+        }
 
         const stockResult = await client.query(`
           INSERT INTO stock (
@@ -115,7 +130,7 @@ async function migrate() {
       }
     }
 
-    console.log(`  parts_inventory → parts: ${partsCreated} created, ${partsMerged} merged`);
+    console.log(`  parts_inventory → parts: ${partsCreated} created, ${partsMerged} merged, ${dependentRemapped} dependent refs remapped`);
     console.log(`  parts_inventory → stock: ${stockCreated} created, ${stockMerged} merged`);
 
     console.log("[Migration] Phase 2: Migrate inventory_parts → parts + stock");
@@ -132,6 +147,7 @@ async function migrate() {
     let ipPartsMerged = 0;
     let ipStockCreated = 0;
     let ipStockMerged = 0;
+    let ipDependentRemapped = 0;
 
     for (const row of ipRows.rows) {
       try {
@@ -141,9 +157,9 @@ async function migrate() {
             min_stock_qty, max_stock_qty, standard_cost, lead_time_days,
             risk_level, last_usage_30d, is_active, created_at, updated_at
           ) VALUES (
-            gen_random_uuid(), $1, $2, $3, $4, 'general', 'ea',
-            $5, $6, $7, $8,
-            $9, $10, true, $11, $12
+            $1, $2, $3, $4, $5, 'general', 'ea',
+            $6, $7, $8, $9,
+            $10, $11, true, $12, $13
           )
           ON CONFLICT (org_id, part_no) DO UPDATE SET
             min_stock_qty = GREATEST(parts.min_stock_qty, EXCLUDED.min_stock_qty),
@@ -153,6 +169,7 @@ async function migrate() {
             updated_at = NOW()
           RETURNING id, part_no, (xmax = 0) AS was_inserted
         `, [
+          row.id,
           row.org_id, row.part_number, row.description, row.description,
           row.min_stock_level, row.max_stock_level,
           row.unit_cost || 0, row.lead_time_days,
@@ -162,6 +179,16 @@ async function migrate() {
 
         const resultRow = insertResult.rows[0];
         if (resultRow.was_inserted) { ipPartsCreated++; } else { ipPartsMerged++; }
+
+        if (!resultRow.was_inserted && resultRow.id !== row.id) {
+          const remap = await client.query(`
+            UPDATE work_order_parts SET part_id = $1 WHERE part_id = $2 AND org_id = $3
+          `, [resultRow.id, row.id, row.org_id]);
+          const remapMov = await client.query(`
+            UPDATE inventory_movements SET part_id = $1 WHERE part_id = $2 AND org_id = $3
+          `, [resultRow.id, row.id, row.org_id]);
+          ipDependentRemapped += (remap.rowCount || 0) + (remapMov.rowCount || 0);
+        }
 
         const stockResult = await client.query(`
           INSERT INTO stock (
@@ -195,7 +222,7 @@ async function migrate() {
       }
     }
 
-    console.log(`  inventory_parts → parts: ${ipPartsCreated} created, ${ipPartsMerged} merged`);
+    console.log(`  inventory_parts → parts: ${ipPartsCreated} created, ${ipPartsMerged} merged, ${ipDependentRemapped} dependent refs remapped`);
     console.log(`  inventory_parts → stock: ${ipStockCreated} created, ${ipStockMerged} merged`);
 
     console.log("[Migration] Phase 3: Merge columns from parts_inventory into existing parts");
@@ -224,6 +251,30 @@ async function migrate() {
         AND ip.last_usage_30d > 0
     `);
     console.log(`  Merged usage data for ${usageMerge.rowCount} rows`);
+
+    console.log("[Migration] Phase 4: Migrate inventory_movements FK from parts_inventory → parts");
+
+    try {
+      await client.query(`
+        ALTER TABLE inventory_movements
+        DROP CONSTRAINT IF EXISTS inventory_movements_part_id_parts_inventory_id_fk
+      `);
+      await client.query(`
+        DO $$ BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint WHERE conname = 'inventory_movements_part_id_parts_id_fk'
+          ) THEN
+            ALTER TABLE inventory_movements
+            ADD CONSTRAINT inventory_movements_part_id_parts_id_fk
+            FOREIGN KEY (part_id) REFERENCES parts(id);
+          END IF;
+        END $$
+      `);
+      console.log("  FK constraint updated: inventory_movements.part_id → parts.id");
+    } catch (fkErr: unknown) {
+      const msg = fkErr instanceof Error ? fkErr.message : String(fkErr);
+      console.warn(`  FK migration skipped (non-fatal): ${msg}`);
+    }
 
     await client.query("COMMIT");
     console.log("[Migration] Consolidation complete.");
