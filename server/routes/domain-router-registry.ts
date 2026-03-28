@@ -83,7 +83,7 @@ const domainRouters: DomainRouterConfig[] = [
     getDeps: () => ({ writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit }) },
   { name: "Equipment", importPath: "../domains/equipment/index.js", functionName: "registerEquipmentRoutes",
     getDeps: () => ({ writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit }) },
-  { name: "Vessels", importPath: "../domains/vessels/index.js", functionName: "registerVesselsRoutes",
+  { name: "FleetRegistry", importPath: "../modules/fleet-registry/index.js", functionName: "registerFleetRegistryRoutes",
     getDeps: () => ({ writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit }) },
   { name: "Devices", importPath: "../domains/devices/index.js", functionName: "registerDeviceRoutes",
     getDeps: () => ({ writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit }) },

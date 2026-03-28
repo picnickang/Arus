@@ -50,7 +50,7 @@ Developed with Express.js and TypeScript, offering RESTful APIs with Zod validat
 
 ### Hexagonal Architecture (DDD Modular Monolith)
 
-The backend uses a hexagonal architecture for separation of concerns, featuring a Domain Layer, Application Layer, Infrastructure Layer, Interfaces Layer, Domain Event Registry, and Cloud-Safe Outbox Processor. Key domains like Maintenance, Crew-Extensions, Inventory, Crew, and Work-Orders follow this pattern, with `crew-extensions` also utilizing CQRS read models.
+The backend uses a hexagonal architecture for separation of concerns, featuring a Domain Layer, Application Layer, Infrastructure Layer, Interfaces Layer, Domain Event Registry, and Cloud-Safe Outbox Processor. Key domains like Maintenance, Crew-Extensions, Inventory, Crew, and Work-Orders follow this pattern, with `crew-extensions` also utilizing CQRS read models. The **Fleet Registry** bounded context (`server/modules/fleet-registry/`) is the first fully extracted hexagonal module, containing domain ports, infrastructure adapters, application services, and interface routes for vessels, port calls, and drydock windows. Old `server/domains/vessels/` re-exports from this module for backward compatibility.
 
 ## System Design Choices
 

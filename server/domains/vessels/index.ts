@@ -1,8 +1,3 @@
-/**
- * Vessels Domain
- * Exports all vessels domain functionality
- */
-
-export { registerVesselsRoutes } from "./routes";
-export { vesselsService } from "./service";
+export { registerFleetRegistryRoutes as registerVesselsRoutes } from "../../modules/fleet-registry/index";
+export { fleetRegistryService as vesselsService } from "../../modules/fleet-registry/index";
 export { vesselsRepository } from "./repository";
