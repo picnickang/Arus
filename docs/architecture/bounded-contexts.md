@@ -8,7 +8,7 @@
 
 ## 1. Executive Summary
 
-The ARUS monolith contains **22+ Drizzle schema files** declaring **~120 PostgreSQL tables**. This document maps every table to one of **8 bounded contexts**, catalogues all cross-boundary foreign-key references, identifies the single known schema duplication (Inventory), and proposes a phased extraction order for a future microservices migration.
+The ARUS monolith contains **22+ Drizzle schema files** declaring **~160 PostgreSQL tables**. This document maps tables to one of **8 bounded contexts** (derived from a manual schema audit), catalogues cross-boundary foreign-key references found via `.references()` declarations, identifies a notable schema duplication in Inventory, and proposes a phased extraction order for a future microservices migration.
 
 ---
 
@@ -279,7 +279,7 @@ server/modules/fleet-registry/
 
 **Extract to**: `server/modules/ml-twin/`
 
-**Tables**: All `mlModels*`, `modelVersions`, `anomalyDetections`, `failurePredictions`, `conditionDegradation`, `digitalTwins`, `twinSimulations`, training pipeline tables, feature store tables, optimizer tables.
+**Tables**: All `mlModels*`, `mlModelsLegacy`, `modelVersions`, `modelMetrics`, `anomalyDetections`, `failurePredictions`, `thresholdOptimizations`, `componentDegradation`, `failureHistory`, `digitalTwins`, `twinSimulations`, `visualizationAssets`, `arMaintenanceProcedures`, `modelRegistry`, all `ml-analytics-advanced.ts` tables, `trainingDatasets`, `modelArtifacts`, `trainingRuns`, `equipmentFeatures`, `fleetBaselines`, all `optimizer.ts` tables, all `insights.ts` tables, all `knowledge-base.ts` tables, all `rag.ts` tables.
 
 **Cross-boundary contract**: Consumes telemetry events and equipment state. Publishes predictions and anomaly alerts. The `costSavings.predictionId` FK from BC-2 should be replaced with an event-driven pattern.
 
