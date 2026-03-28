@@ -8,6 +8,10 @@ Preferred communication style: Simple, everyday language.
 
 # System Architecture
 
+## Bounded-Context Analysis & Migration Roadmap
+
+A comprehensive bounded-context analysis mapping all ~120 tables across 22+ schema files to 8 bounded contexts is documented in [`docs/architecture/bounded-contexts.md`](docs/architecture/bounded-contexts.md). It includes the cross-boundary FK matrix, schema duplication analysis (Inventory), and an 8-phase microservices extraction roadmap (Fleet Registry first, Alerts last).
+
 ## UI/UX Decisions
 
 The frontend is a mobile-first React 18 single-page application built with TypeScript, `shadcn/ui`, Wouter, and TanStack Query. It prioritizes intuitive navigation, high information density, clear visual hierarchy, and WCAG 2.1 AA accessibility.

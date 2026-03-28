@@ -26,7 +26,7 @@ The ARUS monolith contains **22+ Drizzle schema files** declaring **~120 Postgre
 
 **Internal FKs**: `vessels.orgId → organizations.id`, `users.orgId → organizations.id`, `weatherCache.vesselId → vessels.id`, `portCall.vesselId → vessels.id`, `drydockWindow.vesselId → vessels.id`, `stormgeoSettings.vesselId → vessels.id`, `stormgeoSnapshots.vesselId → vessels.id`
 
-**Outbound FKs**: None — this is the root context. Many other contexts reference `organizations.id` and `vessels.id`.
+**Outbound FKs**: None — this context has no foreign keys pointing to tables in other bounded contexts. It is the root dependency: many other contexts reference `organizations.id` and `vessels.id`.
 
 **Inbound FK consumers**: Every other bounded context references `organizations.id`; contexts BC-2 through BC-8 reference `vessels.id`.
 
@@ -61,7 +61,7 @@ The ARUS monolith contains **22+ Drizzle schema files** declaring **~120 Postgre
 |---|---|
 | `telemetry.ts` | `equipmentTelemetry`, `telemetryDeadLetter`, `rawTelemetry`, `telemetryRetentionPolicies`, `telemetryRollups`, `telemetryAggregates`, `j1939Configurations`, `dailyMetricRollups`, `engineerOverrides`, `rawTelemetryArchive`, `equipmentHeartbeat`, `telemetryBatchAck`, `telemetrySchemaRegistry` |
 | `sensors.ts` | `sensorTypes`, `sensorMapping`, `discoveredSignals`, `sensorConfigurations`, `sensorStates`, `sensorTemplates`, `sensorBundles`, `sensorThresholds` |
-| `iot-edge.ts` | IoT edge device tables (if present) |
+| `iot-edge.ts` | `mqttDevices`, `deviceRegistry`, `transportSettings`, `edgeDiagnosticLogs`, `transportFailovers`, `serialPortStates`, `calibrationCache`, `calibrationCurves`, `dataQualityMetrics` |
 
 **Cross-boundary FKs**:
 - → BC-1: `equipmentTelemetry.orgId`, `rawTelemetry.orgId`, `dailyMetricRollups.vesselId → vessels.id`, `j1939Configurations.orgId`
@@ -77,7 +77,7 @@ The ARUS monolith contains **22+ Drizzle schema files** declaring **~120 Postgre
 |---|---|
 | `crew.ts` | `crew`, `crewEmploymentHistory`, `crewNotificationSettings`, `skills`, `crewSkill`, `crewLeave`, `shiftTemplate`, `crewAssignment`, `crewCertification`, `crewDocuments`, `crewRestSheet`, `crewRestDay` |
 | `compliance.ts` | `complianceAuditLog`, `complianceBundles`, `immutableAuditTrail`, `complianceDocs`, `complianceFindings`, `complianceRules` |
-| `logbooks.ts` | Logbook tables (digital logbooks, entries) |
+| `logbooks.ts` | `deckLogDaily`, `deckLogHourly`, `deckLogWatch`, `deckLogEvents`, `engineLogDaily`, `engineLogHourly`, `engineLogGenerator`, `engineLogWatch`, `engineLogEvents`, `deckLogHourlyAutoFill`, `fuelEmissionsLog`, `vesselTrackLog`, `conditionLogSummary` |
 | `scheduling-settings.ts` | `schedulingSettings` |
 
 **Cross-boundary FKs**:
@@ -92,7 +92,7 @@ The ARUS monolith contains **22+ Drizzle schema files** declaring **~120 Postgre
 | Schema File | Tables |
 |---|---|
 | `inventory.ts` | `suppliers`, `parts`, `partsInventory`, `partsInventorySuppliers`, `stock`, `partSubstitutions`, `inventoryMovements`, `inventoryParts` |
-| `purchasing.ts` | Purchase request tables |
+| `purchasing.ts` | `reservations`, `purchaseOrders`, `purchaseOrderItems`, `purchaseOrderEvents`, `purchaseRequests`, `purchaseRequestItems`, `purchaseRequestEvents`, `itemSuppliers`, `serviceOrders`, `serviceOrderEvents` |
 
 **Cross-boundary FKs**:
 - → BC-1: `suppliers.orgId`, `parts.orgId`, `stock.orgId`
@@ -129,13 +129,14 @@ Task #8 targets consolidation of these three families.
 | Schema File | Tables |
 |---|---|
 | `ml-analytics-core.ts` | `mlModels`, `modelVersions`, `anomalyDetections`, `failurePredictions`, `conditionDegradation` |
-| `ml-analytics.ts` | Extended ML analytics tables |
-| `ml-analytics-advanced.ts` | Advanced ML tables |
+| `ml-analytics-advanced.ts` | `modelPerformanceValidations`, `predictionFeedback`, `vibrationFeatures`, `rulModels`, `rulFitHistory`, `vibrationAnalysis`, `weibullEstimates`, `pdmBaseline`, `pdmAlerts`, `realTimePredictions`, `featureImportances`, `sensorFusionSnapshots`, `acousticEvents`, `modelDeployments`, `llmBudgetConfigs`, `retrainingTriggers`, `mlModelAccuracyHistory`, `predictionDataQuality`, `inferenceRuns`, `predictionExplanations`, `modelDriftMetrics` |
 | `ml-training-pipeline.ts` | `trainingDatasets`, `modelArtifacts`, `trainingRuns` |
 | `pdm-feature-store.ts` | `equipmentFeatures`, `fleetBaselines` |
 | `digital-twin.ts` | `digitalTwins`, `twinSimulations`, `visualizationAssets`, `arMaintenanceProcedures`, `modelRegistry` |
-| `optimizer.ts` | Optimizer tables |
-| `insights.ts` | Insight tables |
+| `optimizer.ts` | `optimizerConfigurations`, `resourceConstraints`, `optimizationResults`, `scheduleOptimizations`, `schedulerRuns`, `scheduleAssignments`, `scheduleUnfilled` |
+| `insights.ts` | `insightSnapshots`, `insightReports`, `llmCostTracking` |
+| `knowledge-base.ts` | `knowledgeBaseItems`, `ragSearchQueries`, `contentSources` |
+| `rag.ts` | `kbDocs`, `kbChunks`, `kbDocVersions`, `kbEmbeddingCache`, `ragConversations`, `ragMessages`, `ragFeedback`, `ragSemanticCache` |
 
 **Cross-boundary FKs**:
 - → BC-1: `mlModels.orgId`, `digitalTwins.vesselId → vessels.id`, `fleetBaselines.orgId`
@@ -227,7 +228,7 @@ server/modules/fleet-registry/
 
 **API surface**: All routes currently under `/api/organizations/*`, `/api/vessels/*`, `/api/weather/*`, `/api/port-calls/*`, `/api/drydock/*`, `/api/stormgeo/*`
 
-**Why first**: Zero inbound FKs from other contexts. All other contexts depend on it, so establishing stable interfaces early de-risks subsequent extractions.
+**Why first**: BC-1 has no outbound FKs to other contexts — it only _receives_ references. Every other context depends on `organizations.id` and `vessels.id`, so extracting BC-1 first and establishing stable interfaces de-risks all subsequent extractions.
 
 ### Phase 2: Crew & Compliance
 
@@ -277,21 +278,21 @@ server/modules/fleet-registry/
 
 **Cross-boundary contract**: Consumes telemetry events and equipment state. Publishes predictions and anomaly alerts. The `costSavings.predictionId` FK from BC-2 should be replaced with an event-driven pattern.
 
-### Phase 7: Alerts & Notifications
-
-**Extract to**: `server/modules/alerts/`
-
-**Tables**: All `alert*` tables, `crewAlertSettings`, `actionableInsights`.
-
-**Why last**: Alerts is a pure consumer — it references equipment, vessels, work orders, and predictions from other contexts. Extract only after upstream contexts have stable event interfaces.
-
-### Phase 8: Platform & Admin
+### Phase 7: Platform & Admin
 
 **Extract to**: `server/modules/platform/`
 
 **Tables**: All `admin*` tables, `roles`, `permission*` tables, `sync*` tables, `emailQueue`, `notificationQueue`, `errorLogs`, `softwarePatches`, `userSessions`, `loginEvents`, `emailTemplates`, `reportSchedules`, `generatedReports`.
 
 **Note**: This is a cross-cutting concern. Many tables here (audit, RBAC, sync) serve as infrastructure for all other contexts. Consider keeping as a shared library rather than a standalone service, or split into Auth/RBAC service + Observability service.
+
+### Phase 8: Alerts & Notifications (Last)
+
+**Extract to**: `server/modules/alerts/`
+
+**Tables**: All `alert*` tables, `crewAlertSettings`, `actionableInsights`.
+
+**Why last**: Alerts is a pure consumer — it references equipment, vessels, work orders, and predictions from every other context. It must be extracted last, only after all upstream contexts have stable event interfaces and anti-corruption layers in place.
 
 ---
 
@@ -379,6 +380,15 @@ server/modules/fleet-registry/
 | `sensorTemplates` | BC-3 Telemetry & Sensing | `sensors.ts` |
 | `sensorBundles` | BC-3 Telemetry & Sensing | `sensors.ts` |
 | `sensorThresholds` | BC-3 Telemetry & Sensing | `sensors.ts` |
+| `mqttDevices` | BC-3 Telemetry & Sensing | `iot-edge.ts` |
+| `deviceRegistry` | BC-3 Telemetry & Sensing | `iot-edge.ts` |
+| `transportSettings` | BC-3 Telemetry & Sensing | `iot-edge.ts` |
+| `edgeDiagnosticLogs` | BC-3 Telemetry & Sensing | `iot-edge.ts` |
+| `transportFailovers` | BC-3 Telemetry & Sensing | `iot-edge.ts` |
+| `serialPortStates` | BC-3 Telemetry & Sensing | `iot-edge.ts` |
+| `calibrationCache` | BC-3 Telemetry & Sensing | `iot-edge.ts` |
+| `calibrationCurves` | BC-3 Telemetry & Sensing | `iot-edge.ts` |
+| `dataQualityMetrics` | BC-3 Telemetry & Sensing | `iot-edge.ts` |
 | `crew` | BC-4 Crew & Compliance | `crew.ts` |
 | `crewEmploymentHistory` | BC-4 Crew & Compliance | `crew.ts` |
 | `crewNotificationSettings` | BC-4 Crew & Compliance | `crew.ts` |
@@ -398,6 +408,19 @@ server/modules/fleet-registry/
 | `complianceFindings` | BC-4 Crew & Compliance | `compliance.ts` |
 | `complianceRules` | BC-4 Crew & Compliance | `compliance.ts` |
 | `schedulingSettings` | BC-4 Crew & Compliance | `scheduling-settings.ts` |
+| `deckLogDaily` | BC-4 Crew & Compliance | `logbooks.ts` |
+| `deckLogHourly` | BC-4 Crew & Compliance | `logbooks.ts` |
+| `deckLogWatch` | BC-4 Crew & Compliance | `logbooks.ts` |
+| `deckLogEvents` | BC-4 Crew & Compliance | `logbooks.ts` |
+| `engineLogDaily` | BC-4 Crew & Compliance | `logbooks.ts` |
+| `engineLogHourly` | BC-4 Crew & Compliance | `logbooks.ts` |
+| `engineLogGenerator` | BC-4 Crew & Compliance | `logbooks.ts` |
+| `engineLogWatch` | BC-4 Crew & Compliance | `logbooks.ts` |
+| `engineLogEvents` | BC-4 Crew & Compliance | `logbooks.ts` |
+| `deckLogHourlyAutoFill` | BC-4 Crew & Compliance | `logbooks.ts` |
+| `fuelEmissionsLog` | BC-4 Crew & Compliance | `logbooks.ts` |
+| `vesselTrackLog` | BC-4 Crew & Compliance | `logbooks.ts` |
+| `conditionLogSummary` | BC-4 Crew & Compliance | `logbooks.ts` |
 | `suppliers` | BC-5 Inventory & Procurement | `inventory.ts` |
 | `parts` | BC-5 Inventory & Procurement | `inventory.ts` |
 | `partsInventory` | BC-5 Inventory & Procurement | `inventory.ts` |
@@ -406,6 +429,16 @@ server/modules/fleet-registry/
 | `partSubstitutions` | BC-5 Inventory & Procurement | `inventory.ts` |
 | `inventoryMovements` | BC-5 Inventory & Procurement | `inventory.ts` |
 | `inventoryParts` | BC-5 Inventory & Procurement | `inventory.ts` |
+| `reservations` | BC-5 Inventory & Procurement | `purchasing.ts` |
+| `purchaseOrders` | BC-5 Inventory & Procurement | `purchasing.ts` |
+| `purchaseOrderItems` | BC-5 Inventory & Procurement | `purchasing.ts` |
+| `purchaseOrderEvents` | BC-5 Inventory & Procurement | `purchasing.ts` |
+| `purchaseRequests` | BC-5 Inventory & Procurement | `purchasing.ts` |
+| `purchaseRequestItems` | BC-5 Inventory & Procurement | `purchasing.ts` |
+| `purchaseRequestEvents` | BC-5 Inventory & Procurement | `purchasing.ts` |
+| `itemSuppliers` | BC-5 Inventory & Procurement | `purchasing.ts` |
+| `serviceOrders` | BC-5 Inventory & Procurement | `purchasing.ts` |
+| `serviceOrderEvents` | BC-5 Inventory & Procurement | `purchasing.ts` |
 | `alertConfigurations` | BC-6 Alerts & Notifications | `alerts.ts` |
 | `alertNotifications` | BC-6 Alerts & Notifications | `alerts.ts` |
 | `alertSuppressions` | BC-6 Alerts & Notifications | `alerts.ts` |
@@ -430,6 +463,50 @@ server/modules/fleet-registry/
 | `digitalTwins` | BC-7 ML & Digital Twin | `digital-twin.ts` |
 | `twinSimulations` | BC-7 ML & Digital Twin | `digital-twin.ts` |
 | `modelRegistry` | BC-7 ML & Digital Twin | `digital-twin.ts` |
+| `visualizationAssets` | BC-7 ML & Digital Twin | `digital-twin.ts` |
+| `arMaintenanceProcedures` | BC-7 ML & Digital Twin | `digital-twin.ts` |
+| `modelPerformanceValidations` | BC-7 ML & Digital Twin | `ml-analytics-advanced.ts` |
+| `predictionFeedback` | BC-7 ML & Digital Twin | `ml-analytics-advanced.ts` |
+| `vibrationFeatures` | BC-7 ML & Digital Twin | `ml-analytics-advanced.ts` |
+| `rulModels` | BC-7 ML & Digital Twin | `ml-analytics-advanced.ts` |
+| `rulFitHistory` | BC-7 ML & Digital Twin | `ml-analytics-advanced.ts` |
+| `vibrationAnalysis` | BC-7 ML & Digital Twin | `ml-analytics-advanced.ts` |
+| `weibullEstimates` | BC-7 ML & Digital Twin | `ml-analytics-advanced.ts` |
+| `pdmBaseline` | BC-7 ML & Digital Twin | `ml-analytics-advanced.ts` |
+| `pdmAlerts` | BC-7 ML & Digital Twin | `ml-analytics-advanced.ts` |
+| `realTimePredictions` | BC-7 ML & Digital Twin | `ml-analytics-advanced.ts` |
+| `featureImportances` | BC-7 ML & Digital Twin | `ml-analytics-advanced.ts` |
+| `sensorFusionSnapshots` | BC-7 ML & Digital Twin | `ml-analytics-advanced.ts` |
+| `acousticEvents` | BC-7 ML & Digital Twin | `ml-analytics-advanced.ts` |
+| `modelDeployments` | BC-7 ML & Digital Twin | `ml-analytics-advanced.ts` |
+| `llmBudgetConfigs` | BC-7 ML & Digital Twin | `ml-analytics-advanced.ts` |
+| `retrainingTriggers` | BC-7 ML & Digital Twin | `ml-analytics-advanced.ts` |
+| `mlModelAccuracyHistory` | BC-7 ML & Digital Twin | `ml-analytics-advanced.ts` |
+| `predictionDataQuality` | BC-7 ML & Digital Twin | `ml-analytics-advanced.ts` |
+| `inferenceRuns` | BC-7 ML & Digital Twin | `ml-analytics-advanced.ts` |
+| `predictionExplanations` | BC-7 ML & Digital Twin | `ml-analytics-advanced.ts` |
+| `modelDriftMetrics` | BC-7 ML & Digital Twin | `ml-analytics-advanced.ts` |
+| `optimizerConfigurations` | BC-7 ML & Digital Twin | `optimizer.ts` |
+| `resourceConstraints` | BC-7 ML & Digital Twin | `optimizer.ts` |
+| `optimizationResults` | BC-7 ML & Digital Twin | `optimizer.ts` |
+| `scheduleOptimizations` | BC-7 ML & Digital Twin | `optimizer.ts` |
+| `schedulerRuns` | BC-7 ML & Digital Twin | `optimizer.ts` |
+| `scheduleAssignments` | BC-7 ML & Digital Twin | `optimizer.ts` |
+| `scheduleUnfilled` | BC-7 ML & Digital Twin | `optimizer.ts` |
+| `insightSnapshots` | BC-7 ML & Digital Twin | `insights.ts` |
+| `insightReports` | BC-7 ML & Digital Twin | `insights.ts` |
+| `llmCostTracking` | BC-7 ML & Digital Twin | `insights.ts` |
+| `knowledgeBaseItems` | BC-7 ML & Digital Twin | `knowledge-base.ts` |
+| `ragSearchQueries` | BC-7 ML & Digital Twin | `knowledge-base.ts` |
+| `contentSources` | BC-7 ML & Digital Twin | `knowledge-base.ts` |
+| `kbDocs` | BC-7 ML & Digital Twin | `rag.ts` |
+| `kbChunks` | BC-7 ML & Digital Twin | `rag.ts` |
+| `kbDocVersions` | BC-7 ML & Digital Twin | `rag.ts` |
+| `kbEmbeddingCache` | BC-7 ML & Digital Twin | `rag.ts` |
+| `ragConversations` | BC-7 ML & Digital Twin | `rag.ts` |
+| `ragMessages` | BC-7 ML & Digital Twin | `rag.ts` |
+| `ragFeedback` | BC-7 ML & Digital Twin | `rag.ts` |
+| `ragSemanticCache` | BC-7 ML & Digital Twin | `rag.ts` |
 | `adminAuditEvents` | BC-8 Platform & Admin | `admin.ts` |
 | `adminSessions` | BC-8 Platform & Admin | `admin.ts` |
 | `adminSystemSettings` | BC-8 Platform & Admin | `admin.ts` |
