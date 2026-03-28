@@ -108,3 +108,9 @@ id = "IhzSgDQf5kdyrxgyQrleK"
 uri = "file://arus-ui-files-for-review.md"
 type = "text"
 title = "ARUS Marine PdM - Main UI Files for Review"
+
+[[outputs]]
+id = "ZkWfDK_YOygKkfaSqlkKL"
+uri = "file://exports/ui-review-bundle.txt"
+type = "text"
+title = "ARUS UI Review Bundle (all key files)"
