@@ -71,11 +71,16 @@ export async function updatePRItemFulfillment(
 }
 
 export async function getInventoryByPartId(partId: string, orgId: string) {
-  const [stockRow] = await db
+  const stockRows = await db
     .select()
     .from(stock)
     .where(and(eq(stock.partId, partId), eq(stock.orgId, orgId)));
-  return stockRow ?? null;
+  if (stockRows.length === 0) return null;
+  return {
+    ...stockRows[0],
+    quantityOnHand: stockRows.reduce((s, r) => s + (r.quantityOnHand ?? 0), 0),
+    quantityReserved: stockRows.reduce((s, r) => s + (r.quantityReserved ?? 0), 0),
+  };
 }
 
 export async function fulfillItem(request: FulfillItemRequest): Promise<FulfillmentResult> {
@@ -121,25 +126,34 @@ export async function fulfillItem(request: FulfillItemRequest): Promise<Fulfillm
       fulfillmentStatus = "partial";
     }
 
-    const [stockItem] = await tx
+    const stockItems = await tx
       .select()
       .from(stock)
       .where(and(eq(stock.partId, prItem.partId), eq(stock.orgId, orgId)))
+      .orderBy(sql`${stock.quantityOnHand} DESC`)
       .for("update");
 
-    if (stockItem) {
-      const currentStockQty = Math.round(stockItem.quantityOnHand ?? 0);
-      if (currentStockQty < quantityToFulfill) {
+    if (stockItems.length > 0) {
+      const totalOnHand = stockItems.reduce((s, r) => s + Math.round(r.quantityOnHand ?? 0), 0);
+      if (totalOnHand < quantityToFulfill) {
         throw new Error(
-          `Insufficient stock. Available: ${currentStockQty}, Requested: ${quantityToFulfill}`
+          `Insufficient stock. Available: ${totalOnHand}, Requested: ${quantityToFulfill}`
         );
       }
-      newStockLevel = currentStockQty - quantityToFulfill;
-
-      await tx
-        .update(stock)
-        .set({ quantityOnHand: newStockLevel, updatedAt: new Date() })
-        .where(eq(stock.id, stockItem.id));
+      let remaining = quantityToFulfill;
+      for (const row of stockItems) {
+        if (remaining <= 0) break;
+        const onHand = Math.round(row.quantityOnHand ?? 0);
+        const toDeduct = Math.min(remaining, onHand);
+        if (toDeduct > 0) {
+          await tx
+            .update(stock)
+            .set({ quantityOnHand: onHand - toDeduct, updatedAt: new Date() })
+            .where(eq(stock.id, row.id));
+          remaining -= toDeduct;
+        }
+      }
+      newStockLevel = totalOnHand - quantityToFulfill;
       inventoryUpdated = true;
     }
 

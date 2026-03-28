@@ -97,7 +97,7 @@ export async function addItemToPR(
     .where(and(eq(parts.id, data.partId), eq(parts.orgId, orgId)));
   if (!part) throw new Error("Part not found or does not belong to organization");
 
-  const [inventoryRecord] = await db
+  const inventoryRecords = await db
     .select({
       quantityOnHand:   stock.quantityOnHand,
       quantityReserved: stock.quantityReserved,
@@ -105,8 +105,8 @@ export async function addItemToPR(
     .from(stock)
     .where(and(eq(stock.partId, data.partId), eq(stock.orgId, orgId)));
 
-  const currentRob      = inventoryRecord?.quantityOnHand ?? 0;
-  const currentReserved = inventoryRecord?.quantityReserved ?? 0;
+  const currentRob      = inventoryRecords.reduce((s, r) => s + (r.quantityOnHand ?? 0), 0);
+  const currentReserved = inventoryRecords.reduce((s, r) => s + (r.quantityReserved ?? 0), 0);
   const availableQty    = Math.max(0, currentRob - currentReserved);
   const outOfStock      = availableQty === 0;
 
@@ -181,20 +181,21 @@ async function findSubstitutionSuggestions(
 
       if (!subPart) continue;
 
-      const [subInventory] = await db
+      const subInventoryRows = await db
         .select({ quantityOnHand: stock.quantityOnHand, quantityReserved: stock.quantityReserved })
         .from(stock)
         .where(and(eq(stock.partId, substituteId), eq(stock.orgId, orgId)));
 
-      const available =
-        (subInventory?.quantityOnHand ?? 0) - (subInventory?.quantityReserved ?? 0);
+      const subOnHand = subInventoryRows.reduce((s, r) => s + (r.quantityOnHand ?? 0), 0);
+      const subReserved = subInventoryRows.reduce((s, r) => s + (r.quantityReserved ?? 0), 0);
+      const available = subOnHand - subReserved;
 
       if (available > 0) {
         suggestions.push({
           partId:         subPart.id,
           partNumber:     subPart.partNumber,
           partName:       subPart.name,
-          quantityOnHand: subInventory?.quantityOnHand ?? 0,
+          quantityOnHand: subOnHand,
         });
       }
     }

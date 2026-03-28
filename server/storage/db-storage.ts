@@ -229,7 +229,7 @@ export class DatabaseStorage implements IStorage {
           if (remaining <= 0) break;
           const onHand = row.quantityOnHand ?? 0;
           const reserved = row.quantityReserved ?? 0;
-          const toConsume = Math.min(remaining, Math.max(onHand, reserved));
+          const toConsume = Math.min(remaining, onHand);
           if (toConsume > 0) {
             const newOnHand = Math.max(0, onHand - toConsume);
             const newReserved = Math.max(0, reserved - toConsume);

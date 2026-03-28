@@ -50,14 +50,13 @@ export class DbStockStorage {
 
     if (!partRow) { return null; }
 
-    const [stockRow] = await db
+    const stockRows = await db
       .select()
       .from(stock)
-      .where(and(eq(stock.partId, partId), eq(stock.orgId, orgId)))
-      .limit(1);
+      .where(and(eq(stock.partId, partId), eq(stock.orgId, orgId)));
 
-    const quantityOnHand = Math.round(stockRow?.quantityOnHand ?? 0);
-    const quantityReserved = Math.round(stockRow?.quantityReserved ?? 0);
+    const quantityOnHand = stockRows.reduce((s, r) => s + Math.round(r.quantityOnHand ?? 0), 0);
+    const quantityReserved = stockRows.reduce((s, r) => s + Math.round(r.quantityReserved ?? 0), 0);
     const availableQuantity = Math.max(0, quantityOnHand - quantityReserved);
 
     let preferredSupplier: { id: string; name: string; leadTimeDays: number | null } | undefined;
