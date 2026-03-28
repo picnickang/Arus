@@ -81,13 +81,16 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
     const limited = opts?.limit ? ordered.limit(opts.limit) : ordered;
     const offset = opts?.offset ? limited.offset(opts.offset) : limited;
     const rows = await offset;
-    const partMap = new Map<string, { part: Part; stock: Stock | null }>();
+    const partMap = new Map<string, { part: Part; stockRows: Stock[] }>();
     for (const r of rows) {
-      if (!partMap.has(r.parts.id)) {
-        partMap.set(r.parts.id, { part: r.parts, stock: r.stock });
+      const existing = partMap.get(r.parts.id);
+      if (existing) {
+        if (r.stock) existing.stockRows.push(r.stock);
+      } else {
+        partMap.set(r.parts.id, { part: r.parts, stockRows: r.stock ? [r.stock] : [] });
       }
     }
-    return Array.from(partMap.values()).map((v) => partAndStockToPartsInventory(v.part, v.stock));
+    return Array.from(partMap.values()).map((v) => partAndStockToPartsInventory(v.part, v.stockRows));
   }
 
   async getPartsInventoryPaginated(orgId: string, options: {
@@ -126,9 +129,10 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
     const { partAndStockToPartsInventory } = await import("./db-parts.js");
     const { parts: partsTable } = await import("@shared/schema-runtime");
     const conditions = orgId ? and(eq(partsTable.id, id), eq(partsTable.orgId, orgId)) : eq(partsTable.id, id);
-    const rows = await db.select().from(partsTable).leftJoin(stock, eq(partsTable.id, stock.partId)).where(conditions).limit(1);
+    const rows = await db.select().from(partsTable).leftJoin(stock, eq(partsTable.id, stock.partId)).where(conditions);
     if (rows.length === 0) return undefined;
-    return partAndStockToPartsInventory(rows[0].parts, rows[0].stock);
+    const stockRows = rows.map(r => r.stock).filter((s): s is Stock => s !== null);
+    return partAndStockToPartsInventory(rows[0].parts, stockRows);
   }
 
   async getLowStockParts(orgId?: string): Promise<PartsInventory[]> {
@@ -138,13 +142,20 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
 
   async reservePart(partId: string, quantity: number, orgId?: string): Promise<PartsInventory> {
     const conditions = orgId ? and(eq(stock.partId, partId), eq(stock.orgId, orgId)) : eq(stock.partId, partId);
-    const [inv] = await db.select().from(stock).where(conditions);
-    if (!inv) throw new Error(`Part ${partId} not found in stock`);
-    const available = (inv.quantityOnHand ?? 0) - (inv.quantityReserved ?? 0);
-    if (available < quantity) throw new Error(`Insufficient stock for part ${partId}`);
-    await db.update(stock).set({
-      quantityReserved: (inv.quantityReserved ?? 0) + quantity, updatedAt: new Date()
-    }).where(eq(stock.id, inv.id));
+    const allStock = await db.select().from(stock).where(conditions).orderBy(sql`(${stock.quantityOnHand} - ${stock.quantityReserved}) DESC`);
+    if (allStock.length === 0) throw new Error(`Part ${partId} not found in stock`);
+    const totalAvailable = allStock.reduce((sum, s) => sum + Math.max(0, (s.quantityOnHand ?? 0) - (s.quantityReserved ?? 0)), 0);
+    if (totalAvailable < quantity) throw new Error(`Insufficient stock for part ${partId}`);
+    let remaining = quantity;
+    for (const row of allStock) {
+      if (remaining <= 0) break;
+      const rowAvailable = Math.max(0, (row.quantityOnHand ?? 0) - (row.quantityReserved ?? 0));
+      const toReserve = Math.min(remaining, rowAvailable);
+      if (toReserve > 0) {
+        await db.update(stock).set({ quantityReserved: (row.quantityReserved ?? 0) + toReserve, updatedAt: new Date() }).where(eq(stock.id, row.id));
+        remaining -= toReserve;
+      }
+    }
     const result = await this.getPartById(partId, orgId);
     if (!result) throw new Error(`Part ${partId} not found`);
     return result;
@@ -152,10 +163,10 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
 
   async checkPartAvailabilityForWorkOrder(partId: string, quantity: number, orgId?: string): Promise<{ available: boolean; onHand: number; reserved: number }> {
     const conditions = orgId ? and(eq(stock.partId, partId), eq(stock.orgId, orgId)) : eq(stock.partId, partId);
-    const [inv] = await db.select().from(stock).where(conditions);
-    if (!inv) return { available: false, onHand: 0, reserved: 0 };
-    const onHand = inv.quantityOnHand ?? 0;
-    const reserved = inv.quantityReserved ?? 0;
+    const allStock = await db.select().from(stock).where(conditions);
+    if (allStock.length === 0) return { available: false, onHand: 0, reserved: 0 };
+    const onHand = allStock.reduce((sum, s) => sum + (s.quantityOnHand ?? 0), 0);
+    const reserved = allStock.reduce((sum, s) => sum + (s.quantityReserved ?? 0), 0);
     return { available: onHand - reserved >= quantity, onHand, reserved };
   }
 

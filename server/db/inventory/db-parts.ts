@@ -11,7 +11,17 @@ import { db } from "../../db-config";
 import { parts, stock, type Part, type Stock, type InsertPart, type PartsInventory, type InsertPartsInventory } from "@shared/schema-runtime";
 import type { PartFilters, AvailabilityResult } from "./types.js";
 
-export function partAndStockToPartsInventory(part: Part, stockRow: Stock | null): PartsInventory {
+export function partAndStockToPartsInventory(part: Part, stockRowOrRows: Stock | Stock[] | null): PartsInventory {
+  const rows = stockRowOrRows
+    ? Array.isArray(stockRowOrRows) ? stockRowOrRows : [stockRowOrRows]
+    : [];
+
+  const totalOnHand = rows.reduce((sum, r) => sum + Math.round(r.quantityOnHand ?? 0), 0);
+  const totalReserved = rows.reduce((sum, r) => sum + Math.round(r.quantityReserved ?? 0), 0);
+  const avgUnitCost = rows.length > 0
+    ? rows.reduce((sum, r) => sum + (r.unitCost ?? 0), 0) / rows.length
+    : (part.standardCost ?? 0);
+
   return {
     id: part.id,
     orgId: part.orgId,
@@ -20,12 +30,12 @@ export function partAndStockToPartsInventory(part: Part, stockRow: Stock | null)
     description: part.description,
     category: part.category || "general",
     manufacturer: part.manufacturer ?? null,
-    unitCost: stockRow?.unitCost ?? part.standardCost ?? 0,
-    quantityOnHand: Math.round(stockRow?.quantityOnHand ?? 0),
-    quantityReserved: Math.round(stockRow?.quantityReserved ?? 0),
+    unitCost: avgUnitCost,
+    quantityOnHand: totalOnHand,
+    quantityReserved: totalReserved,
     minStockLevel: Math.round(part.minStockQty ?? 0),
     maxStockLevel: Math.round(part.maxStockQty ?? 0),
-    location: stockRow?.location ?? "MAIN",
+    location: rows[0]?.location ?? "MAIN",
     supplierName: null,
     supplierPartNumber: null,
     leadTimeDays: part.leadTimeDays ?? 7,
@@ -65,9 +75,14 @@ export class DbPartsStorage {
         ? and(eq(stock.orgId, orgId), sql`${stock.partId} = ANY(${partIds})`)
         : sql`${stock.partId} = ANY(${partIds})`
     );
-    const stockByPartId = new Map(stockRows.map(s => [s.partId, s]));
+    const stockByPartId = new Map<string, Stock[]>();
+    for (const s of stockRows) {
+      const arr = stockByPartId.get(s.partId) || [];
+      arr.push(s);
+      stockByPartId.set(s.partId, arr);
+    }
 
-    return partsRows.map(p => partAndStockToPartsInventory(p, stockByPartId.get(p.id)));
+    return partsRows.map(p => partAndStockToPartsInventory(p, stockByPartId.get(p.id) || []));
   }
 
   async getPartsInventoryByPart(partId: string, orgId?: string): Promise<PartsInventory | undefined> {
@@ -75,13 +90,13 @@ export class DbPartsStorage {
     const [part] = await db.select().from(parts).where(conditions);
     if (!part) return undefined;
 
-    const [stockRow] = await db.select().from(stock).where(
+    const stockRows = await db.select().from(stock).where(
       orgId
         ? and(eq(stock.partId, partId), eq(stock.orgId, orgId))
         : eq(stock.partId, partId)
-    ).limit(1);
+    );
 
-    return partAndStockToPartsInventory(part, stockRow);
+    return partAndStockToPartsInventory(part, stockRows);
   }
 
   async createPartsInventory(inventory: InsertPartsInventory): Promise<PartsInventory> {
@@ -178,23 +193,36 @@ export class DbPartsStorage {
     const available = inventory.quantityOnHand - (inventory.quantityReserved || 0);
     if (available < quantity) { throw new Error(`Insufficient stock for part ${partId}. Available: ${available}, Requested: ${quantity}`); }
 
-    const [stockRow] = await db.select().from(stock).where(and(eq(stock.partId, partId), eq(stock.orgId, orgId))).limit(1);
-    if (stockRow) {
-      await db.update(stock).set({
-        quantityReserved: (stockRow.quantityReserved ?? 0) + quantity,
-        updatedAt: new Date(),
-      }).where(eq(stock.id, stockRow.id));
+    const stockRows = await db.select().from(stock).where(and(eq(stock.partId, partId), eq(stock.orgId, orgId))).orderBy(sql`(${stock.quantityOnHand} - ${stock.quantityReserved}) DESC`);
+    let remaining = quantity;
+    for (const row of stockRows) {
+      if (remaining <= 0) break;
+      const rowAvailable = Math.max(0, (row.quantityOnHand ?? 0) - (row.quantityReserved ?? 0));
+      const toReserve = Math.min(remaining, rowAvailable);
+      if (toReserve > 0) {
+        await db.update(stock).set({
+          quantityReserved: (row.quantityReserved ?? 0) + toReserve,
+          updatedAt: new Date(),
+        }).where(eq(stock.id, row.id));
+        remaining -= toReserve;
+      }
     }
   }
 
   async releaseParts(partId: string, quantity: number, orgId: string): Promise<void> {
     this.validateOrgId(orgId, "releaseParts");
-    const [stockRow] = await db.select().from(stock).where(and(eq(stock.partId, partId), eq(stock.orgId, orgId))).limit(1);
-    if (stockRow) {
+    const stockRows = await db.select().from(stock).where(and(eq(stock.partId, partId), eq(stock.orgId, orgId))).orderBy(sql`${stock.quantityReserved} DESC`);
+    let remaining = quantity;
+    for (const row of stockRows) {
+      if (remaining <= 0) break;
+      const reserved = row.quantityReserved ?? 0;
+      if (reserved <= 0) continue;
+      const toRelease = Math.min(remaining, reserved);
       await db.update(stock).set({
-        quantityReserved: Math.max(0, (stockRow.quantityReserved ?? 0) - quantity),
+        quantityReserved: reserved - toRelease,
         updatedAt: new Date(),
-      }).where(eq(stock.id, stockRow.id));
+      }).where(eq(stock.id, row.id));
+      remaining -= toRelease;
     }
   }
 
