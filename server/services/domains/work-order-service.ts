@@ -202,13 +202,20 @@ class WorkOrderService {
       const parts = await tx.select().from(workOrderParts).where(eq(workOrderParts.workOrderId, id));
       const inventoryLocks = await tx.select().from(stock).where(sql`${stock.partId} IN (SELECT part_id FROM work_order_parts WHERE work_order_id = ${id})`).orderBy(stock.id);
 
+      const [wo] = await tx.select().from(workOrders).where(eq(workOrders.id, id)).limit(1);
+      if (!wo) { throw new Error(`Work order ${id} not found`); }
+      const woOrgId = wo.orgId;
+
       for (const part of parts) {
-        if (part.usedQuantity !== undefined && part.usedQuantity > 0 && part.partId) {
-          const [stockRow] = await tx.select().from(stock).where(and(eq(stock.partId, part.partId), sql`${stock.quantityReserved} > 0`)).orderBy(sql`${stock.quantityReserved} DESC`).limit(1);
-          if (stockRow) {
+        if (part.quantityUsed !== undefined && part.quantityUsed > 0 && part.partId) {
+          const stockRows = await tx.select().from(stock).where(and(eq(stock.partId, part.partId), eq(stock.orgId, woOrgId), sql`${stock.quantityReserved} > 0`)).orderBy(sql`${stock.quantityReserved} DESC`);
+          let remaining = part.quantityUsed;
+          for (const stockRow of stockRows) {
+            if (remaining <= 0) break;
             const currentReserved = stockRow.quantityReserved ?? 0;
-            const released = Math.min(currentReserved, part.usedQuantity);
-            await tx.update(stock).set({ quantityReserved: currentReserved - released, updatedAt: new Date() }).where(eq(stock.id, stockRow.id));
+            const released = Math.min(currentReserved, remaining);
+            await tx.update(stock).set({ quantityReserved: currentReserved - released, updatedAt: new Date() }).where(and(eq(stock.id, stockRow.id), eq(stock.orgId, woOrgId)));
+            remaining -= released;
           }
         }
       }
