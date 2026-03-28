@@ -48,8 +48,10 @@ The ARUS monolith contains **22+ Drizzle schema files** declaring **~120 Postgre
 
 **Cross-boundary FKs**:
 - → BC-1: `equipment.orgId`, `equipment.vesselId`, `workOrders.orgId`, `maintenanceSchedules.vesselId`
-- → BC-5 (Inventory): `workOrderParts` references parts
 - → BC-7 (ML): `costSavings.predictionId → failurePredictions.id`
+
+**Logical dependencies** (no FK constraint):
+- → BC-5 (Inventory): `workOrderParts.partId` stores a part identifier but has no `.references()` FK constraint; `workOrderParts.supplierId` is also a plain `varchar`
 
 ---
 
@@ -95,8 +97,11 @@ The ARUS monolith contains **22+ Drizzle schema files** declaring **~120 Postgre
 | `purchasing.ts` | `reservations`, `purchaseOrders`, `purchaseOrderItems`, `purchaseOrderEvents`, `purchaseRequests`, `purchaseRequestItems`, `purchaseRequestEvents`, `itemSuppliers`, `serviceOrders`, `serviceOrderEvents` |
 
 **Cross-boundary FKs**:
-- → BC-1: `suppliers.orgId`, `parts.orgId`, `stock.orgId`
-- → BC-2: `inventoryMovements.workOrderId → workOrders.id`, `inventoryParts.workOrderId → workOrders.id`
+- → BC-1: `suppliers.orgId`, `parts.orgId`, `stock.orgId`, `inventoryParts.orgId`, `inventoryMovements.orgId`
+- → BC-2: `inventoryMovements.workOrderId → workOrders.id` (FK constraint on `workOrders.id`)
+
+**Logical dependencies** (no FK constraint, but data-coupled):
+- `stock.partId → parts.id` (internal), `inventoryMovements.partId → partsInventory.id` (internal)
 
 **Schema Duplication Issue** (see Section 4):
 Three overlapping part/stock table families exist:
@@ -171,7 +176,7 @@ This matrix shows which contexts hold foreign keys **to** other contexts (rows r
 | From ↓ \ To → | BC-1 Fleet | BC-2 Asset | BC-3 Telemetry | BC-4 Crew | BC-5 Inventory | BC-6 Alerts | BC-7 ML | BC-8 Platform |
 |---|---|---|---|---|---|---|---|---|
 | **BC-1 Fleet** | internal | — | — | — | — | — | — | — |
-| **BC-2 Asset** | `orgId`, `vesselId` | internal | — | — | parts | — | `predictionId` | — |
+| **BC-2 Asset** | `orgId`, `vesselId` | internal | — | — | — (logical only) | — | `predictionId` | — |
 | **BC-3 Telemetry** | `orgId`, `vesselId` | `equipmentId`, `deviceId` | internal | — | — | — | — | — |
 | **BC-4 Crew** | `orgId`, `vesselId` | — | — | internal | — | — | — | — |
 | **BC-5 Inventory** | `orgId` | `workOrderId` | — | — | internal | — | — | — |
@@ -199,10 +204,10 @@ Three overlapping table families exist within BC-5:
 
 ## 5. Migration Roadmap
 
-### Phase 0: Prerequisites (Current Sprint)
-- [Task #7] This document — **IN PROGRESS**
-- [Task #8] Inventory schema consolidation — **PENDING**
-- [Task #9] Fleet Registry hexagonal module extraction — **PENDING**
+### Phase 0: Prerequisites
+- [Task #7] This document
+- [Task #8] Inventory schema consolidation (merge 3 duplicate part table families)
+- [Task #9] Fleet Registry hexagonal module extraction
 
 ### Phase 1: Fleet Registry Module (Task #9)
 
