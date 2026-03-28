@@ -114,3 +114,9 @@ id = "ZkWfDK_YOygKkfaSqlkKL"
 uri = "file://exports/ui-review-bundle.txt"
 type = "text"
 title = "ARUS UI Review Bundle (all key files)"
+
+[[outputs]]
+id = "DdgJJ_3XSvwXu-uEzhhUY"
+uri = "file://exports/telemetry-ingestion-database-files.txt"
+type = "text"
+title = "Telemetry Ingestion & Database Files (46 files, 212KB)"
