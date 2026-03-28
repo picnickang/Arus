@@ -8,10 +8,10 @@
 import { randomUUID } from "node:crypto";
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "../../db-config";
-import { parts, stock, type Part, type InsertPart, type PartsInventory, type InsertPartsInventory } from "@shared/schema-runtime";
+import { parts, stock, type Part, type Stock, type InsertPart, type PartsInventory, type InsertPartsInventory } from "@shared/schema-runtime";
 import type { PartFilters, AvailabilityResult } from "./types.js";
 
-export function partAndStockToPartsInventory(part: Part, stockRow: any): PartsInventory {
+export function partAndStockToPartsInventory(part: Part, stockRow: Stock | null): PartsInventory {
   return {
     id: part.id,
     orgId: part.orgId,
@@ -39,7 +39,7 @@ export class DbPartsStorage {
   private validateOrgId(orgId: string | undefined, method: string): void { if (!orgId) { throw new Error(`[${method}] orgId is required`); } }
 
   async getParts(orgId?: string, filters?: PartFilters): Promise<Part[]> {
-    const conditions: any[] = [];
+    const conditions = [];
     if (orgId) { conditions.push(eq(parts.orgId, orgId)); }
     if (filters?.category) { conditions.push(eq(parts.category, filters.category)); }
     if (conditions.length > 0) { return db.select().from(parts).where(and(...conditions)).orderBy(parts.name); }
@@ -135,7 +135,7 @@ export class DbPartsStorage {
     }
 
     if (updates.quantityOnHand !== undefined || updates.quantityReserved !== undefined || updates.location !== undefined || updates.unitCost !== undefined) {
-      const stockUpdates: any = { updatedAt: new Date() };
+      const stockUpdates: Partial<{ quantityOnHand: number; quantityReserved: number; unitCost: number; updatedAt: Date }> = { updatedAt: new Date() };
       if (updates.quantityOnHand !== undefined) stockUpdates.quantityOnHand = updates.quantityOnHand;
       if (updates.quantityReserved !== undefined) stockUpdates.quantityReserved = updates.quantityReserved;
       if (updates.unitCost !== undefined) stockUpdates.unitCost = updates.unitCost;

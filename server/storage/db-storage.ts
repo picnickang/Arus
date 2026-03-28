@@ -149,7 +149,7 @@ export class DatabaseStorage implements IStorage {
       if (!workOrder) { throw new Error(`Work order ${id} not found`); }
       if (workOrder.status === "completed") { throw new Error(`Work order ${id} is already completed`); }
       const lockedParts = await tx.select().from(workOrderParts).where(eq(workOrderParts.workOrderId, id)).for("update");
-      for (const part of lockedParts) { await tx.update(stock).set({ quantityReserved: sql`GREATEST(0, ${stock.quantityReserved} - ${part.quantityUsed})`, updatedAt: new Date() }).where(eq(stock.partId, part.partId)); }
+      for (const part of lockedParts) { await tx.update(stock).set({ quantityReserved: sql`GREATEST(0, ${stock.quantityReserved} - ${part.quantityUsed})`, updatedAt: new Date() }).where(and(eq(stock.partId, part.partId), eq(stock.orgId, workOrder.orgId))); }
       const finalParts = await tx.select().from(workOrderParts).where(eq(workOrderParts.workOrderId, id));
       if (finalParts.length !== lockedParts.length) { throw new Error(`Concurrent modification detected: parts were added to work order ${id} during close operation.`); }
       const finalUpdates: Partial<InsertWorkOrder> = { status: "completed" as const, actualEndDate: new Date() };
@@ -205,7 +205,7 @@ export class DatabaseStorage implements IStorage {
       const [completion] = await tx.insert(workOrderCompletions).values(completionData).returning();
       const woParts = await tx.select().from(workOrderParts).where(eq(workOrderParts.workOrderId, workOrderId));
       for (const woPart of woParts) {
-        const [currentStock] = await tx.select().from(stock).where(eq(stock.partId, woPart.partId)).limit(1);
+        const [currentStock] = await tx.select().from(stock).where(and(eq(stock.partId, woPart.partId), eq(stock.orgId, completionData.orgId))).limit(1);
         if (currentStock) {
           const quantityBefore = Math.round(currentStock.quantityOnHand ?? 0), reservedBefore = Math.round(currentStock.quantityReserved ?? 0), quantityToConsume = woPart.quantityUsed;
           await tx.update(stock).set({ quantityOnHand: sql`GREATEST(0, ${stock.quantityOnHand} - ${quantityToConsume})`, quantityReserved: sql`GREATEST(0, ${stock.quantityReserved} - ${quantityToConsume})`, updatedAt: now }).where(eq(stock.id, currentStock.id));

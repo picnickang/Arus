@@ -173,7 +173,7 @@ async function findSubstitutionSuggestions(
       const [subPart] = await db
         .select({
           id:         parts.id,
-          partNumber: parts.partNumber,
+          partNumber: parts.partNo,
           name:       parts.name,
         })
         .from(parts)
