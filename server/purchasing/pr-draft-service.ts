@@ -15,7 +15,7 @@
 
 import { db } from "../db";
 import { eq, and } from "drizzle-orm";
-import { parts, suppliers, partsInventory, partSubstitutions } from "@shared/schema";
+import { parts, suppliers, stock, partSubstitutions } from "@shared/schema";
 import * as repo from "./repository";
 import type { InsertPurchaseRequest, InsertPurchaseRequestItem, PRListFilters } from "./types";
 
@@ -97,16 +97,13 @@ export async function addItemToPR(
     .where(and(eq(parts.id, data.partId), eq(parts.orgId, orgId)));
   if (!part) throw new Error("Part not found or does not belong to organization");
 
-  // Improvement #13: fetch ROB from partsInventory (stock table), not the parts catalog.
-  // The `parts` table is a catalog — it has no quantity column.
-  // partsInventory.quantityOnHand is the authoritative stock figure.
   const [inventoryRecord] = await db
     .select({
-      quantityOnHand:   partsInventory.quantityOnHand,
-      quantityReserved: partsInventory.quantityReserved,
+      quantityOnHand:   stock.quantityOnHand,
+      quantityReserved: stock.quantityReserved,
     })
-    .from(partsInventory)
-    .where(and(eq(partsInventory.partId, data.partId), eq(partsInventory.orgId, orgId)));
+    .from(stock)
+    .where(and(eq(stock.partId, data.partId), eq(stock.orgId, orgId)));
 
   const currentRob      = inventoryRecord?.quantityOnHand ?? 0;
   const currentReserved = inventoryRecord?.quantityReserved ?? 0;
@@ -185,9 +182,9 @@ async function findSubstitutionSuggestions(
       if (!subPart) continue;
 
       const [subInventory] = await db
-        .select({ quantityOnHand: partsInventory.quantityOnHand, quantityReserved: partsInventory.quantityReserved })
-        .from(partsInventory)
-        .where(and(eq(partsInventory.partId, substituteId), eq(partsInventory.orgId, orgId)));
+        .select({ quantityOnHand: stock.quantityOnHand, quantityReserved: stock.quantityReserved })
+        .from(stock)
+        .where(and(eq(stock.partId, substituteId), eq(stock.orgId, orgId)));
 
       const available =
         (subInventory?.quantityOnHand ?? 0) - (subInventory?.quantityReserved ?? 0);

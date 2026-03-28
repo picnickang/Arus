@@ -9,7 +9,8 @@ import {
   purchaseRequestItems,
   purchaseRequests,
   purchaseRequestEvents,
-  partsInventory,
+  parts,
+  stock,
 } from "@shared/schema";
 import type {
   FulfillItemRequest,
@@ -70,11 +71,11 @@ export async function updatePRItemFulfillment(
 }
 
 export async function getInventoryByPartId(partId: string, orgId: string) {
-  const [item] = await db
+  const [stockRow] = await db
     .select()
-    .from(partsInventory)
-    .where(and(eq(partsInventory.partId, partId), eq(partsInventory.orgId, orgId)));
-  return item;
+    .from(stock)
+    .where(and(eq(stock.partId, partId), eq(stock.orgId, orgId)));
+  return stockRow ?? null;
 }
 
 export async function fulfillItem(request: FulfillItemRequest): Promise<FulfillmentResult> {
@@ -120,25 +121,25 @@ export async function fulfillItem(request: FulfillItemRequest): Promise<Fulfillm
       fulfillmentStatus = "partial";
     }
 
-    const [inventoryItem] = await tx
+    const [stockItem] = await tx
       .select()
-      .from(partsInventory)
-      .where(and(eq(partsInventory.partId, prItem.partId), eq(partsInventory.orgId, orgId)))
+      .from(stock)
+      .where(and(eq(stock.partId, prItem.partId), eq(stock.orgId, orgId)))
       .for("update");
 
-    if (inventoryItem) {
-      const currentStock = inventoryItem.quantityOnHand ?? 0;
-      if (currentStock < quantityToFulfill) {
+    if (stockItem) {
+      const currentStockQty = Math.round(stockItem.quantityOnHand ?? 0);
+      if (currentStockQty < quantityToFulfill) {
         throw new Error(
-          `Insufficient stock. Available: ${currentStock}, Requested: ${quantityToFulfill}`
+          `Insufficient stock. Available: ${currentStockQty}, Requested: ${quantityToFulfill}`
         );
       }
-      newStockLevel = currentStock - quantityToFulfill;
+      newStockLevel = currentStockQty - quantityToFulfill;
 
       await tx
-        .update(partsInventory)
+        .update(stock)
         .set({ quantityOnHand: newStockLevel, updatedAt: new Date() })
-        .where(eq(partsInventory.id, inventoryItem.id));
+        .where(eq(stock.id, stockItem.id));
       inventoryUpdated = true;
     }
 

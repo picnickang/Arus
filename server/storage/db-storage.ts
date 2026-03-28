@@ -43,7 +43,7 @@ import {
   type WorkOrderHistory, type InsertWorkOrderHistory, type InventoryMovement,
   type WorkOrderChecklist, type InsertWorkOrderChecklist, type WorkOrderWorklog, type InsertWorkOrderWorklog,
   type WorkOrderParts, type InsertWorkOrderParts,
-  type MaintenanceTemplate, type InsertMaintenanceTemplate, workOrders, workOrderCompletions, equipment, maintenanceSchedules, maintenanceCosts, partsInventory, idempotencyLog, vessels,
+  type MaintenanceTemplate, type InsertMaintenanceTemplate, workOrders, workOrderCompletions, equipment, maintenanceSchedules, maintenanceCosts, stock, idempotencyLog, vessels,
   insightSnapshots, workOrderParts, workOrderChecklists, workOrderWorklogs, workOrderTasks, inventoryMovements, skills,
   errorLogs, type ErrorLog, type InsertErrorLog,
 } from "@shared/schema-runtime";
@@ -144,12 +144,12 @@ export class DatabaseStorage implements IStorage {
   async closeWorkOrder(id: string, closeData: { notes?: string; completedBy?: string }): Promise<WorkOrder> {
     const closedOrder = await db.transaction(async (tx) => {
       const txParts = await tx.select().from(workOrderParts).where(eq(workOrderParts.workOrderId, id));
-      await tx.select().from(partsInventory).where(sql`${partsInventory.id} = ANY(${txParts.map((p) => p.partId)})`).for("update");
+      await tx.select().from(stock).where(sql`${stock.partId} = ANY(${txParts.map((p) => p.partId)})`).for("update");
       const [workOrder] = await tx.select().from(workOrders).where(eq(workOrders.id, id)).limit(1).for("update");
       if (!workOrder) { throw new Error(`Work order ${id} not found`); }
       if (workOrder.status === "completed") { throw new Error(`Work order ${id} is already completed`); }
       const lockedParts = await tx.select().from(workOrderParts).where(eq(workOrderParts.workOrderId, id)).for("update");
-      for (const part of lockedParts) { await tx.update(partsInventory).set({ quantityReserved: sql`GREATEST(0, ${partsInventory.quantityReserved} - ${part.quantityUsed})`, updatedAt: new Date() }).where(eq(partsInventory.id, part.partId)); }
+      for (const part of lockedParts) { await tx.update(stock).set({ quantityReserved: sql`GREATEST(0, ${stock.quantityReserved} - ${part.quantityUsed})`, updatedAt: new Date() }).where(eq(stock.partId, part.partId)); }
       const finalParts = await tx.select().from(workOrderParts).where(eq(workOrderParts.workOrderId, id));
       if (finalParts.length !== lockedParts.length) { throw new Error(`Concurrent modification detected: parts were added to work order ${id} during close operation.`); }
       const finalUpdates: Partial<InsertWorkOrder> = { status: "completed" as const, actualEndDate: new Date() };
@@ -205,10 +205,10 @@ export class DatabaseStorage implements IStorage {
       const [completion] = await tx.insert(workOrderCompletions).values(completionData).returning();
       const woParts = await tx.select().from(workOrderParts).where(eq(workOrderParts.workOrderId, workOrderId));
       for (const woPart of woParts) {
-        const [currentInventory] = await tx.select().from(partsInventory).where(eq(partsInventory.id, woPart.partId)).limit(1);
-        if (currentInventory) {
-          const quantityBefore = currentInventory.quantityOnHand, reservedBefore = currentInventory.quantityReserved, quantityToConsume = woPart.quantityUsed;
-          await tx.update(partsInventory).set({ quantityOnHand: sql`GREATEST(0, ${partsInventory.quantityOnHand} - ${quantityToConsume})`, quantityReserved: sql`GREATEST(0, ${partsInventory.quantityReserved} - ${quantityToConsume})`, updatedAt: now }).where(eq(partsInventory.id, woPart.partId));
+        const [currentStock] = await tx.select().from(stock).where(eq(stock.partId, woPart.partId)).limit(1);
+        if (currentStock) {
+          const quantityBefore = Math.round(currentStock.quantityOnHand ?? 0), reservedBefore = Math.round(currentStock.quantityReserved ?? 0), quantityToConsume = woPart.quantityUsed;
+          await tx.update(stock).set({ quantityOnHand: sql`GREATEST(0, ${stock.quantityOnHand} - ${quantityToConsume})`, quantityReserved: sql`GREATEST(0, ${stock.quantityReserved} - ${quantityToConsume})`, updatedAt: now }).where(eq(stock.id, currentStock.id));
           await tx.insert(inventoryMovements).values({ orgId: completionData.orgId, partId: woPart.partId, workOrderId, movementType: "consume", quantity: -quantityToConsume, quantityBefore, quantityAfter: Math.max(0, quantityBefore - quantityToConsume), reservedBefore, reservedAfter: Math.max(0, reservedBefore - quantityToConsume), performedBy: completionData.completedBy || "system", notes: `Consumed during work order completion: ${updatedWorkOrder.woNumber || workOrderId}` });
         }
       }

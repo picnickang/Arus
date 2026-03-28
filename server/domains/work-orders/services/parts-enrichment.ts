@@ -6,8 +6,8 @@
  */
 
 import { db } from "../../../db/index.js";
-import { workOrderParts, parts, partsInventory, suppliers } from "@shared/schema.js";
-import { eq, and, inArray } from "drizzle-orm";
+import { workOrderParts, parts, stock, suppliers } from "@shared/schema.js";
+import { eq, and, inArray, sql } from "drizzle-orm";
 
 export interface EnrichedWorkOrderPart {
   id: string;
@@ -109,21 +109,26 @@ export async function getEnrichedWorkOrderParts(workOrderId: string, orgId: stri
   const catalogMap = new Map(catalogParts.map((p) => [p.id, p]));
   const partNumbers = catalogParts.map((p) => p.partNo);
 
-  const inventoryData = await db
+  const stockData = await db
     .select({
-      id: partsInventory.id,
-      partNumber: partsInventory.partNumber,
-      partName: partsInventory.partName,
-      quantityOnHand: partsInventory.quantityOnHand,
-      minStockLevel: partsInventory.minStockLevel,
-      unitCost: partsInventory.unitCost,
-      supplierName: partsInventory.supplierName,
-      leadTimeDays: partsInventory.leadTimeDays,
+      id: stock.id,
+      partId: stock.partId,
+      partNo: stock.partNo,
+      quantityOnHand: stock.quantityOnHand,
+      unitCost: stock.unitCost,
     })
-    .from(partsInventory)
-    .where(and(eq(partsInventory.orgId, orgId), inArray(partsInventory.partNumber, partNumbers)));
+    .from(stock)
+    .where(and(eq(stock.orgId, orgId), inArray(stock.partNo, partNumbers)));
 
-  const inventoryByPartNoMap = aggregateInventoryByPartNumber(inventoryData);
+  const stockByPartNoMap = new Map<string, { quantityOnHand: number; unitCost: number | null }>();
+  for (const s of stockData) {
+    const key = s.partNo;
+    const existing = stockByPartNoMap.get(key);
+    stockByPartNoMap.set(key, {
+      quantityOnHand: (existing?.quantityOnHand ?? 0) + (s.quantityOnHand ?? 0),
+      unitCost: s.unitCost ?? existing?.unitCost ?? null,
+    });
+  }
 
   const supplierIds = [...new Set(catalogParts.map((p) => p.primarySupplierId).filter(Boolean))] as string[];
   let suppliersMap = new Map<string, { name: string; leadTimeDays: number | null }>();
@@ -137,7 +142,7 @@ export async function getEnrichedWorkOrderParts(workOrderId: string, orgId: stri
 
   return woParts.map((wop) => {
     const catalogPart = catalogMap.get(wop.partId);
-    const invItem = catalogPart ? inventoryByPartNoMap.get(catalogPart.partNo) : null;
+    const invItem = catalogPart ? stockByPartNoMap.get(catalogPart.partNo) : null;
     const quantityOnHand = invItem?.quantityOnHand ?? 0;
     const supplierInfo = catalogPart?.primarySupplierId ? suppliersMap.get(catalogPart.primarySupplierId) : null;
 
@@ -146,17 +151,17 @@ export async function getEnrichedWorkOrderParts(workOrderId: string, orgId: stri
       workOrderId: wop.workOrderId,
       partId: wop.partId,
       partNo: catalogPart?.partNo || wop.partId,
-      partName: catalogPart?.name || invItem?.partName || "Unknown Part",
+      partName: catalogPart?.name || "Unknown Part",
       quantityUsed: wop.quantityUsed,
       quantityOnHand,
       unitCost: wop.unitCost || invItem?.unitCost || 0,
       totalCost: wop.totalCost || 0,
-      stockStatus: determineStockStatus(quantityOnHand, catalogPart?.minStockQty || invItem?.minStockLevel || null),
+      stockStatus: determineStockStatus(quantityOnHand, catalogPart?.minStockQty || null),
       estimatedDeliveryDate: wop.estimatedDeliveryDate,
       actualDeliveryDate: wop.actualDeliveryDate,
       deliveryStatus: wop.deliveryStatus,
-      supplierName: supplierInfo?.name || invItem?.supplierName || null,
-      supplierLeadTimeDays: supplierInfo?.leadTimeDays || invItem?.leadTimeDays || null,
+      supplierName: supplierInfo?.name || null,
+      supplierLeadTimeDays: supplierInfo?.leadTimeDays || null,
       notes: wop.notes,
       usedBy: wop.usedBy,
       usedAt: wop.usedAt,
@@ -207,21 +212,26 @@ export async function getEnrichedWorkOrderPartsWithInventoryFlag(workOrderId: st
   const catalogMap = new Map(catalogParts.map((p) => [p.id, p]));
   const partNumbers = catalogParts.map((p) => p.partNo);
 
-  const inventoryData = await db
+  const stockData = await db
     .select({
-      id: partsInventory.id,
-      partNumber: partsInventory.partNumber,
-      partName: partsInventory.partName,
-      quantityOnHand: partsInventory.quantityOnHand,
-      minStockLevel: partsInventory.minStockLevel,
-      unitCost: partsInventory.unitCost,
-      supplierName: partsInventory.supplierName,
-      leadTimeDays: partsInventory.leadTimeDays,
+      id: stock.id,
+      partId: stock.partId,
+      partNo: stock.partNo,
+      quantityOnHand: stock.quantityOnHand,
+      unitCost: stock.unitCost,
     })
-    .from(partsInventory)
-    .where(and(eq(partsInventory.orgId, orgId), inArray(partsInventory.partNumber, partNumbers)));
+    .from(stock)
+    .where(and(eq(stock.orgId, orgId), inArray(stock.partNo, partNumbers)));
 
-  const inventoryByPartNoMap = aggregateInventoryByPartNumber(inventoryData);
+  const stockByPartNoMap = new Map<string, { quantityOnHand: number; unitCost: number | null }>();
+  for (const s of stockData) {
+    const key = s.partNo;
+    const existing = stockByPartNoMap.get(key);
+    stockByPartNoMap.set(key, {
+      quantityOnHand: (existing?.quantityOnHand ?? 0) + (s.quantityOnHand ?? 0),
+      unitCost: s.unitCost ?? existing?.unitCost ?? null,
+    });
+  }
 
   const supplierIds = [...new Set(catalogParts.map((p) => p.primarySupplierId).filter(Boolean))] as string[];
   let suppliersMap = new Map<string, { name: string; leadTimeDays: number | null }>();
@@ -235,7 +245,7 @@ export async function getEnrichedWorkOrderPartsWithInventoryFlag(workOrderId: st
 
   return woParts.map((wop) => {
     const catalogPart = catalogMap.get(wop.partId);
-    const invItem = catalogPart ? inventoryByPartNoMap.get(catalogPart.partNo) : null;
+    const invItem = catalogPart ? stockByPartNoMap.get(catalogPart.partNo) : null;
     const quantityOnHand = invItem?.quantityOnHand ?? 0;
     const supplierInfo = catalogPart?.primarySupplierId ? suppliersMap.get(catalogPart.primarySupplierId) : null;
     const hasValidInventory = invItem !== null && invItem !== undefined;
@@ -247,17 +257,17 @@ export async function getEnrichedWorkOrderPartsWithInventoryFlag(workOrderId: st
       inventoryItemId: invItem?.id || null,
       hasValidInventory,
       partNo: catalogPart?.partNo || wop.partId,
-      partName: catalogPart?.name || invItem?.partName || "Unknown Part",
+      partName: catalogPart?.name || "Unknown Part",
       quantityUsed: wop.quantityUsed,
       quantityOnHand,
       unitCost: wop.unitCost || invItem?.unitCost || 0,
       totalCost: wop.totalCost || 0,
-      stockStatus: determineStockStatus(quantityOnHand, catalogPart?.minStockQty || invItem?.minStockLevel || null),
+      stockStatus: determineStockStatus(quantityOnHand, catalogPart?.minStockQty || null),
       estimatedDeliveryDate: wop.estimatedDeliveryDate,
       actualDeliveryDate: wop.actualDeliveryDate,
       deliveryStatus: wop.deliveryStatus,
-      supplierName: supplierInfo?.name || invItem?.supplierName || null,
-      supplierLeadTimeDays: supplierInfo?.leadTimeDays || invItem?.leadTimeDays || null,
+      supplierName: supplierInfo?.name || null,
+      supplierLeadTimeDays: supplierInfo?.leadTimeDays || null,
       notes: wop.notes,
       usedBy: wop.usedBy,
       usedAt: wop.usedAt,

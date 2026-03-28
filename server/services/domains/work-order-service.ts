@@ -11,7 +11,7 @@ import {
   equipment,
   vessels,
   workOrderParts,
-  partsInventory,
+  stock,
   type WorkOrder,
   type InsertWorkOrder,
   type WorkOrderPart,
@@ -200,15 +200,15 @@ class WorkOrderService {
   async closeWorkOrderWithInventoryRelease(id: string, closeData: { notes?: string; completedBy?: string }): Promise<WorkOrder> {
     const closedOrder = await db.transaction(async (tx) => {
       const parts = await tx.select().from(workOrderParts).where(eq(workOrderParts.workOrderId, id));
-      const inventoryLocks = await tx.select().from(partsInventory).where(sql`id IN (SELECT part_id FROM work_order_parts WHERE work_order_id = ${id})`).orderBy(partsInventory.id);
+      const inventoryLocks = await tx.select().from(stock).where(sql`${stock.partId} IN (SELECT part_id FROM work_order_parts WHERE work_order_id = ${id})`).orderBy(stock.id);
 
       for (const part of parts) {
         if (part.usedQuantity !== undefined && part.usedQuantity > 0 && part.partId) {
-          const [inventoryRow] = await tx.select().from(partsInventory).where(eq(partsInventory.id, part.partId)).limit(1);
-          if (inventoryRow) {
-            const currentReserved = inventoryRow.reservedQuantity ?? 0;
+          const [stockRow] = await tx.select().from(stock).where(eq(stock.partId, part.partId)).limit(1);
+          if (stockRow) {
+            const currentReserved = stockRow.quantityReserved ?? 0;
             const released = Math.min(currentReserved, part.usedQuantity);
-            await tx.update(partsInventory).set({ reservedQuantity: currentReserved - released, updatedAt: new Date() }).where(eq(partsInventory.id, part.partId));
+            await tx.update(stock).set({ quantityReserved: currentReserved - released, updatedAt: new Date() }).where(eq(stock.partId, part.partId));
           }
         }
       }

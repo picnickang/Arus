@@ -2,6 +2,11 @@
  * Schema Inventory - Parts, Suppliers, Stock, and Inventory Management
  * 
  * Inventory tracking, parts catalog, supplier management, and movements ledger.
+ *
+ * CONSOLIDATION NOTE (Task #8):
+ * The canonical model is `parts` (catalog) + `stock` (per-location quantities).
+ * `partsInventory` and `inventoryParts` are DEPRECATED — kept for rollback but
+ * all new code should use `parts` + `stock` instead.
  */
 
 import {
@@ -59,7 +64,7 @@ export const suppliers = pgTable(
   })
 );
 
-// Parts Catalog: Enhanced inventory management
+// Parts Catalog: Canonical parts table (consolidated from parts + partsInventory + inventoryParts)
 export const parts = pgTable(
   "parts",
   {
@@ -87,6 +92,9 @@ export const parts = pgTable(
     lastOrderDate: timestamp("last_order_date", { mode: "date" }),
     averageLeadTime: integer("average_lead_time"),
     demandVariability: real("demand_variability"),
+    manufacturer: text("manufacturer"),
+    isActive: boolean("is_active").notNull().default(true),
+    lastUsage30d: integer("last_usage_30d").default(0),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
     updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
   },
@@ -96,10 +104,15 @@ export const parts = pgTable(
     partNoIdx: sql`CREATE INDEX IF NOT EXISTS idx_parts_part_no ON parts (part_no)`,
     categoryIdx: sql`CREATE INDEX IF NOT EXISTS idx_parts_category ON parts (category, criticality)`,
     supplierIdx: sql`CREATE INDEX IF NOT EXISTS idx_parts_supplier ON parts (primary_supplier_id)`,
+    activeIdx: sql`CREATE INDEX IF NOT EXISTS idx_parts_active ON parts (is_active)`,
   })
 );
 
-// CMMS-lite: Parts Inventory Management
+/**
+ * @deprecated Use `parts` + `stock` instead. Kept for rollback window.
+ * CMMS-lite: Parts Inventory Management — DEPRECATED (Task #8)
+ * All queries should use `parts` (catalog) joined with `stock` (quantities).
+ */
 export const partsInventory = pgTable(
   "parts_inventory",
   {
@@ -242,7 +255,11 @@ export const inventoryMovements = pgTable("inventory_movements", {
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
 });
 
-// Simple inventory parts for optimizer
+/**
+ * @deprecated Use `parts` + `stock` instead. Kept for rollback window.
+ * Simple inventory parts for optimizer — DEPRECATED (Task #8)
+ * Optimizer should query `parts` joined with `stock` for the same data.
+ */
 export const inventoryParts = pgTable("inventory_parts", {
   id: varchar("id")
     .primaryKey()
@@ -277,6 +294,7 @@ export const insertPartSchema = createInsertSchema(parts).omit({
   updatedAt: true,
 });
 
+/** @deprecated Use insertPartSchema + insertStockSchema instead */
 export const insertPartsInventorySchema = createInsertSchema(partsInventory).omit({
   id: true,
   createdAt: true,
@@ -304,6 +322,7 @@ export const insertInventoryMovementSchema = createInsertSchema(inventoryMovemen
   createdAt: true,
 });
 
+/** @deprecated Use insertPartSchema instead */
 export const insertInventoryPartSchema = createInsertSchema(inventoryParts).omit({
   id: true,
   createdAt: true,
@@ -317,7 +336,9 @@ export type InsertSupplier = z.infer<typeof insertSupplierSchema>;
 export type Part = typeof parts.$inferSelect;
 export type InsertPart = z.infer<typeof insertPartSchema>;
 
+/** @deprecated Use Part type instead */
 export type PartsInventory = typeof partsInventory.$inferSelect;
+/** @deprecated Use InsertPart instead */
 export type InsertPartsInventory = z.infer<typeof insertPartsInventorySchema>;
 
 export type PartsInventorySupplier = typeof partsInventorySuppliers.$inferSelect;
@@ -332,5 +353,16 @@ export type InsertPartSubstitution = z.infer<typeof insertPartSubstitutionSchema
 export type InventoryMovement = typeof inventoryMovements.$inferSelect;
 export type InsertInventoryMovement = z.infer<typeof insertInventoryMovementSchema>;
 
+/** @deprecated Use Part type instead */
 export type InventoryPart = typeof inventoryParts.$inferSelect;
+/** @deprecated Use InsertPart instead */
 export type InsertInventoryPart = z.infer<typeof insertInventoryPartSchema>;
+
+/**
+ * Consolidated view type: Part with stock data joined.
+ * Used as the canonical return type for inventory queries that
+ * previously returned PartsInventory rows.
+ */
+export type PartWithStock = Part & {
+  stock: Stock | null;
+};

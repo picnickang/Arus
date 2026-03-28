@@ -60,18 +60,18 @@ export class PartsRepository extends TenantScopedRepository {
    * Get suggested parts based on equipment type and criticality
    */
   async getSuggestedParts(equipmentId: string) {
-    const { parts, partsInventory } = await import("@shared/schema");
+    const { parts, stock } = await import("@shared/schema");
 
     const suggestions = await db
       .select({
         part: parts,
-        currentStock: partsInventory.currentQty,
-        stockLocation: partsInventory.location,
+        currentStock: stock.quantityOnHand,
+        stockLocation: stock.location,
       })
       .from(parts)
       .leftJoin(
-        partsInventory,
-        and(eq(parts.id, partsInventory.partId), eq(partsInventory.orgId, this.orgId))
+        stock,
+        and(eq(parts.id, stock.partId), eq(stock.orgId, this.orgId))
       )
       .where(
         this.orgWhere(
@@ -79,8 +79,8 @@ export class PartsRepository extends TenantScopedRepository {
           and(
             sql`${equipmentId} = ANY(${parts.compatibleEquipment})`,
             or(
-              sql`${partsInventory.currentQty} < ${parts.minStockQty}`,
-              sql`${partsInventory.currentQty} IS NULL`
+              sql`${stock.quantityOnHand} < ${parts.minStockQty}`,
+              sql`${stock.quantityOnHand} IS NULL`
             )
           )
         )

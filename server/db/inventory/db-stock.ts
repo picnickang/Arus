@@ -10,7 +10,6 @@ import {
   stock,
   partSubstitutions,
   parts,
-  partsInventory,
   partsInventorySuppliers,
   type Supplier,
   type InsertSupplier,
@@ -43,16 +42,22 @@ export class DbStockStorage {
   } | null> {
     this.validateOrgId(orgId, "getPartStockWithSupplierLeadTime");
 
-    const [part] = await db
+    const [partRow] = await db
       .select()
-      .from(partsInventory)
-      .where(and(eq(partsInventory.id, partId), eq(partsInventory.orgId, orgId)))
+      .from(parts)
+      .where(and(eq(parts.id, partId), eq(parts.orgId, orgId)))
       .limit(1);
 
-    if (!part) { return null; }
+    if (!partRow) { return null; }
 
-    const quantityOnHand = part.quantityOnHand ?? 0;
-    const quantityReserved = part.quantityReserved ?? 0;
+    const [stockRow] = await db
+      .select()
+      .from(stock)
+      .where(and(eq(stock.partId, partId), eq(stock.orgId, orgId)))
+      .limit(1);
+
+    const quantityOnHand = Math.round(stockRow?.quantityOnHand ?? 0);
+    const quantityReserved = Math.round(stockRow?.quantityReserved ?? 0);
     const availableQuantity = Math.max(0, quantityOnHand - quantityReserved);
 
     let preferredSupplier: { id: string; name: string; leadTimeDays: number | null } | undefined;
@@ -91,9 +96,9 @@ export class DbStockStorage {
     }
 
     return {
-      partId: part.id,
-      partName: part.partName,
-      partNumber: part.partNumber,
+      partId: partRow.id,
+      partName: partRow.name,
+      partNumber: partRow.partNo,
       quantityOnHand,
       quantityReserved,
       availableQuantity,
@@ -202,7 +207,6 @@ export class DbStockStorage {
       .where(eq(parts.id, partId))
       .limit(1);
     if (!part) { throw new Error(`Part ${partId} not found`); }
-    await db.update(partsInventory).set({ unitCost: part.standardCost, updatedAt: new Date() }).where(and(eq(partsInventory.partNumber, part.partNo), eq(partsInventory.orgId, part.orgId)));
     await db.update(stock).set({ unitCost: part.standardCost, updatedAt: new Date() }).where(and(eq(stock.partNo, part.partNo), eq(stock.orgId, part.orgId)));
   }
 
