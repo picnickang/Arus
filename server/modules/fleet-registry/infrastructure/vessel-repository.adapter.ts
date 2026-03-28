@@ -3,6 +3,7 @@ import type {
   PortCallRepositoryPort,
   DrydockWindowRepositoryPort,
 } from "../domain/ports";
+import type { InsertVessel, InsertPortCall, InsertDrydockWindow } from "../domain/types";
 import { dbVesselStorage } from "../../../db/vessels";
 
 export class VesselRepositoryAdapter implements VesselRepositoryPort {
@@ -15,10 +16,10 @@ export class VesselRepositoryAdapter implements VesselRepositoryPort {
   findByName(name: string, orgId: string) {
     return dbVesselStorage.getVesselByName(name, orgId);
   }
-  create(data: any) {
+  create(data: InsertVessel) {
     return dbVesselStorage.createVessel(data);
   }
-  update(id: string, updates: any, orgId?: string) {
+  update(id: string, updates: Partial<InsertVessel>, orgId?: string) {
     return dbVesselStorage.updateVessel(id, updates, orgId);
   }
   delete(id: string, orgId?: string) {
@@ -33,10 +34,10 @@ export class PortCallRepositoryAdapter implements PortCallRepositoryPort {
   findByVessel(vesselId: string, orgId: string) {
     return dbVesselStorage.getPortCalls(vesselId, orgId);
   }
-  create(data: any) {
+  create(data: InsertPortCall) {
     return dbVesselStorage.createPortCall(data);
   }
-  update(id: string, updates: any, orgId: string) {
+  update(id: string, updates: Partial<InsertPortCall>, orgId: string) {
     return dbVesselStorage.updatePortCall(id, updates, orgId);
   }
   delete(id: string, orgId: string) {
@@ -48,10 +49,10 @@ export class DrydockWindowRepositoryAdapter implements DrydockWindowRepositoryPo
   findByVessel(vesselId: string, orgId: string) {
     return dbVesselStorage.getDrydockWindows(vesselId, orgId);
   }
-  create(data: any) {
+  create(data: InsertDrydockWindow) {
     return dbVesselStorage.createDrydockWindow(data);
   }
-  update(id: string, updates: any, orgId: string) {
+  update(id: string, updates: Partial<InsertDrydockWindow>, orgId: string) {
     return dbVesselStorage.updateDrydockWindow(id, updates, orgId);
   }
   delete(id: string, orgId: string) {

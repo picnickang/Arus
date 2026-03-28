@@ -5,7 +5,7 @@ export class VesselOperationsAdapter implements VesselOperationsPort {
   exportVessel(id: string, orgId: string) {
     return storage.exportVessel(id, orgId);
   }
-  importVessel(data: any, orgId: string) {
+  importVessel(data: Record<string, unknown>, orgId: string) {
     return storage.importVessel(data, orgId);
   }
   resetDowntime(vesselId: string, orgId: string) {

@@ -23,3 +23,26 @@ export interface FleetOverview {
   activeVessels: number;
   vesselsByStatus: Record<string, number>;
 }
+
+export interface VesselExportData {
+  vessel: Record<string, unknown>;
+  equipment: Record<string, unknown>[];
+  crew: Record<string, unknown>[];
+  exportedAt: string;
+}
+
+export interface VesselImportResult {
+  vesselId: string;
+  equipmentCount: number;
+  crewCount: number;
+  vessel?: { id: string } & Record<string, unknown>;
+}
+
+export interface WipeDataResult {
+  deletedRecords: number;
+}
+
+export interface EquipmentAssignment {
+  equipmentId: string;
+  vesselId: string;
+}

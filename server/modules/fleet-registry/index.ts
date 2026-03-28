@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import type { RateLimiters } from "./interfaces/vessel.routes";
 import { FleetRegistryService } from "./application/fleet-registry.service";
 import {
   VesselRepositoryAdapter,
@@ -25,17 +26,14 @@ export const fleetRegistryService = new FleetRegistryService(
 
 export function registerFleetRegistryRoutes(
   app: Express,
-  rateLimiters: {
-    writeOperationRateLimit: any;
-    criticalOperationRateLimit: any;
-    generalApiRateLimit: any;
-  }
+  rateLimiters: RateLimiters
 ) {
   registerFleetRegistryVesselRoutes(app, fleetRegistryService, rateLimiters);
   console.log("[FleetRegistry] Hexagonal module routes registered");
 }
 
 export { FleetRegistryService } from "./application/fleet-registry.service";
+export type { RateLimiters } from "./interfaces/vessel.routes";
 export type {
   VesselRepositoryPort,
   PortCallRepositoryPort,

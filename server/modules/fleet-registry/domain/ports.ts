@@ -1,11 +1,15 @@
 import type {
   Vessel,
   InsertVessel,
+  SelectVessel,
   PortCall,
   InsertPortCall,
   DrydockWindow,
   InsertDrydockWindow,
   FleetOverview,
+  VesselExportData,
+  VesselImportResult,
+  WipeDataResult,
 } from "./types";
 
 export interface VesselRepositoryPort {
@@ -33,17 +37,17 @@ export interface DrydockWindowRepositoryPort {
 }
 
 export interface VesselOperationsPort {
-  exportVessel(id: string, orgId: string): Promise<any>;
-  importVessel(data: any, orgId: string): Promise<any>;
-  resetDowntime(vesselId: string, orgId: string): Promise<any>;
-  resetOperation(vesselId: string, orgId: string): Promise<any>;
-  wipeData(vesselId: string, orgId: string): Promise<any>;
-  getVesselEquipment(vesselId: string, orgId: string): Promise<any>;
-  assignEquipment(vesselId: string, equipmentId: string, orgId: string): Promise<any>;
-  unassignEquipment(vesselId: string, equipmentId: string, orgId: string): Promise<any>;
+  exportVessel(id: string, orgId: string): Promise<VesselExportData>;
+  importVessel(data: Record<string, unknown>, orgId: string): Promise<VesselImportResult>;
+  resetDowntime(vesselId: string, orgId: string): Promise<SelectVessel>;
+  resetOperation(vesselId: string, orgId: string): Promise<SelectVessel>;
+  wipeData(vesselId: string, orgId: string): Promise<WipeDataResult>;
+  getVesselEquipment(vesselId: string, orgId: string): Promise<SelectVessel[]>;
+  assignEquipment(vesselId: string, equipmentId: string, orgId: string): Promise<SelectVessel>;
+  unassignEquipment(vesselId: string, equipmentId: string, orgId: string): Promise<SelectVessel>;
 }
 
 export interface EventPublisherPort {
-  publish(entity: string, entityId: string, action: string, data: any, userId?: string): Promise<void>;
-  publishVesselMqtt(action: string, vessel: any): void;
+  publish(entity: string, entityId: string, action: string, data: Record<string, unknown>, userId?: string): Promise<void>;
+  publishVesselMqtt(action: string, vessel: Vessel | { id: string }): void;
 }

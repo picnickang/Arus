@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, RequestHandler, Request } from "express";
 import type { FleetRegistryService } from "../application/fleet-registry.service";
 import { insertVesselSchema } from "@shared/schema-runtime";
 import { requireAdminAuth, auditAdminAction } from "../../../security";
@@ -16,18 +16,20 @@ import {
 import { requirePermission } from "../../../domains/permissions/middleware";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
-function getOrgIdFromRequest(req: any): string {
+function getOrgIdFromRequest(req: Request & { orgId?: string }): string {
   return req.orgId || DEFAULT_ORG_ID;
+}
+
+export interface RateLimiters {
+  writeOperationRateLimit: RequestHandler;
+  criticalOperationRateLimit: RequestHandler;
+  generalApiRateLimit: RequestHandler;
 }
 
 export function registerFleetRegistryVesselRoutes(
   app: Express,
   service: FleetRegistryService,
-  rateLimiters: {
-    writeOperationRateLimit: any;
-    criticalOperationRateLimit: any;
-    generalApiRateLimit: any;
-  }
+  rateLimiters: RateLimiters
 ) {
   const { writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit } = rateLimiters;
 
