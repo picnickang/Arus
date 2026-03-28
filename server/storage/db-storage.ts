@@ -149,10 +149,19 @@ export class DatabaseStorage implements IStorage {
       if (!workOrder) { throw new Error(`Work order ${id} not found`); }
       if (workOrder.status === "completed") { throw new Error(`Work order ${id} is already completed`); }
       const lockedParts = await tx.select().from(workOrderParts).where(eq(workOrderParts.workOrderId, id)).for("update");
+      const partQuantities = new Map<string, number>();
       for (const part of lockedParts) {
-        const [targetStock] = await tx.select().from(stock).where(and(eq(stock.partId, part.partId), eq(stock.orgId, workOrder.orgId), sql`${stock.quantityReserved} > 0`)).orderBy(sql`${stock.quantityReserved} DESC`).limit(1);
-        if (targetStock) {
-          await tx.update(stock).set({ quantityReserved: sql`GREATEST(0, ${stock.quantityReserved} - ${part.quantityUsed})`, updatedAt: new Date() }).where(eq(stock.id, targetStock.id));
+        partQuantities.set(part.partId, (partQuantities.get(part.partId) || 0) + part.quantityUsed);
+      }
+      for (const [partId, totalQty] of partQuantities.entries()) {
+        const stockRows = await tx.select().from(stock).where(and(eq(stock.partId, partId), eq(stock.orgId, workOrder.orgId), sql`${stock.quantityReserved} > 0`)).orderBy(sql`${stock.quantityReserved} DESC`);
+        let remaining = totalQty;
+        for (const row of stockRows) {
+          if (remaining <= 0) break;
+          const reserved = row.quantityReserved ?? 0;
+          const toRelease = Math.min(remaining, reserved);
+          await tx.update(stock).set({ quantityReserved: reserved - toRelease, updatedAt: new Date() }).where(eq(stock.id, row.id));
+          remaining -= toRelease;
         }
       }
       const finalParts = await tx.select().from(workOrderParts).where(eq(workOrderParts.workOrderId, id));
@@ -209,15 +218,25 @@ export class DatabaseStorage implements IStorage {
       if (!updatedWorkOrder) { throw new Error(`Work order ${workOrderId} not found`); }
       const [completion] = await tx.insert(workOrderCompletions).values(completionData).returning();
       const woParts = await tx.select().from(workOrderParts).where(eq(workOrderParts.workOrderId, workOrderId));
+      const consumeMap = new Map<string, number>();
       for (const woPart of woParts) {
-        let [currentStock] = await tx.select().from(stock).where(and(eq(stock.partId, woPart.partId), eq(stock.orgId, completionData.orgId), sql`${stock.quantityReserved} > 0`)).orderBy(sql`${stock.quantityReserved} DESC`).limit(1);
-        if (!currentStock) {
-          [currentStock] = await tx.select().from(stock).where(and(eq(stock.partId, woPart.partId), eq(stock.orgId, completionData.orgId))).limit(1);
-        }
-        if (currentStock) {
-          const quantityBefore = Math.round(currentStock.quantityOnHand ?? 0), reservedBefore = Math.round(currentStock.quantityReserved ?? 0), quantityToConsume = woPart.quantityUsed;
-          await tx.update(stock).set({ quantityOnHand: sql`GREATEST(0, ${stock.quantityOnHand} - ${quantityToConsume})`, quantityReserved: sql`GREATEST(0, ${stock.quantityReserved} - ${quantityToConsume})`, updatedAt: now }).where(eq(stock.id, currentStock.id));
-          await tx.insert(inventoryMovements).values({ orgId: completionData.orgId, partId: woPart.partId, workOrderId, movementType: "consume", quantity: -quantityToConsume, quantityBefore, quantityAfter: Math.max(0, quantityBefore - quantityToConsume), reservedBefore, reservedAfter: Math.max(0, reservedBefore - quantityToConsume), performedBy: completionData.completedBy || "system", notes: `Consumed during work order completion: ${updatedWorkOrder.woNumber || workOrderId}` });
+        consumeMap.set(woPart.partId, (consumeMap.get(woPart.partId) || 0) + woPart.quantityUsed);
+      }
+      for (const [partId, totalConsume] of consumeMap.entries()) {
+        const stockRows = await tx.select().from(stock).where(and(eq(stock.partId, partId), eq(stock.orgId, completionData.orgId))).orderBy(sql`${stock.quantityReserved} DESC`);
+        let remaining = totalConsume;
+        for (const row of stockRows) {
+          if (remaining <= 0) break;
+          const onHand = row.quantityOnHand ?? 0;
+          const reserved = row.quantityReserved ?? 0;
+          const toConsume = Math.min(remaining, Math.max(onHand, reserved));
+          if (toConsume > 0) {
+            const newOnHand = Math.max(0, onHand - toConsume);
+            const newReserved = Math.max(0, reserved - toConsume);
+            await tx.update(stock).set({ quantityOnHand: newOnHand, quantityReserved: newReserved, updatedAt: now }).where(eq(stock.id, row.id));
+            await tx.insert(inventoryMovements).values({ orgId: completionData.orgId, partId, workOrderId, movementType: "consume", quantity: -toConsume, quantityBefore: onHand, quantityAfter: newOnHand, reservedBefore: reserved, reservedAfter: newReserved, performedBy: completionData.completedBy || "system", notes: `Consumed during work order completion: ${updatedWorkOrder.woNumber || workOrderId} (stock ${row.id})` });
+            remaining -= toConsume;
+          }
         }
       }
       return completion;
