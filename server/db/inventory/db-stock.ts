@@ -63,7 +63,7 @@ export class DbStockStorage {
     let preferredSupplier: { id: string; name: string; leadTimeDays: number | null } | undefined;
     let estimatedLeadTimeDays = 14;
 
-    const linkedSuppliers = await db
+    let linkedSuppliers = await db
       .select({
         id: suppliers.id,
         name: suppliers.name,
@@ -84,6 +84,35 @@ export class DbStockStorage {
         sql`${suppliers.leadTimeDays} ASC NULLS LAST`
       )
       .limit(5);
+
+    if (linkedSuppliers.length === 0 && partRow.partNo) {
+      linkedSuppliers = await db
+        .select({
+          id: suppliers.id,
+          name: suppliers.name,
+          leadTimeDays: suppliers.leadTimeDays,
+          isPreferred: partsInventorySuppliers.isPreferred,
+        })
+        .from(partsInventorySuppliers)
+        .innerJoin(suppliers, eq(partsInventorySuppliers.supplierId, suppliers.id))
+        .innerJoin(
+          sql`parts_inventory pi`,
+          sql`pi.id = ${partsInventorySuppliers.inventoryItemId}`
+        )
+        .where(
+          and(
+            sql`pi.part_number = ${partRow.partNo}`,
+            sql`pi.org_id = ${orgId}`,
+            eq(suppliers.orgId, orgId),
+            eq(suppliers.isActive, true)
+          )
+        )
+        .orderBy(
+          sql`${partsInventorySuppliers.isPreferred} DESC`,
+          sql`${suppliers.leadTimeDays} ASC NULLS LAST`
+        )
+        .limit(5);
+    }
 
     if (linkedSuppliers.length > 0) {
       const chosen = linkedSuppliers.find((s) => s.isPreferred) ?? linkedSuppliers[0];

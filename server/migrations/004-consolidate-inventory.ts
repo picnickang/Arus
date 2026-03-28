@@ -54,6 +54,8 @@ async function migrate() {
 
     for (const row of piRows.rows) {
       try {
+        await client.query(`SAVEPOINT sp_pi_${row.id.replace(/[^a-zA-Z0-9]/g, '_')}`);
+
         const insertResult = await client.query(`
           INSERT INTO parts (
             id, org_id, part_no, name, description, category, unit_of_measure,
@@ -89,10 +91,7 @@ async function migrate() {
           const remapMov = await client.query(`
             UPDATE inventory_movements SET part_id = $1 WHERE part_id = $2 AND org_id = $3
           `, [resultRow.id, row.id, row.org_id]);
-          const remapSup = await client.query(`
-            UPDATE parts_inventory_suppliers SET inventory_item_id = $1 WHERE inventory_item_id = $2
-          `, [resultRow.id, row.id]);
-          dependentRemapped += (remap.rowCount || 0) + (remapMov.rowCount || 0) + (remapSup.rowCount || 0);
+          dependentRemapped += (remap.rowCount || 0) + (remapMov.rowCount || 0);
         }
 
         const stockResult = await client.query(`
@@ -124,7 +123,10 @@ async function migrate() {
           `INSERT INTO _migration_004_processed (source_table, source_id) VALUES ('parts_inventory', $1) ON CONFLICT DO NOTHING`,
           [row.id]
         );
+
+        await client.query(`RELEASE SAVEPOINT sp_pi_${row.id.replace(/[^a-zA-Z0-9]/g, '_')}`);
       } catch (err: unknown) {
+        await client.query(`ROLLBACK TO SAVEPOINT sp_pi_${row.id.replace(/[^a-zA-Z0-9]/g, '_')}`);
         const msg = err instanceof Error ? err.message : String(err);
         console.warn(`[Migration] Skipped parts_inventory row ${row.id}: ${msg}`);
       }
@@ -151,6 +153,8 @@ async function migrate() {
 
     for (const row of ipRows.rows) {
       try {
+        await client.query(`SAVEPOINT sp_ip_${row.id.toString().replace(/[^a-zA-Z0-9]/g, '_')}`);
+
         const insertResult = await client.query(`
           INSERT INTO parts (
             id, org_id, part_no, name, description, category, unit_of_measure,
@@ -216,7 +220,10 @@ async function migrate() {
           `INSERT INTO _migration_004_processed (source_table, source_id) VALUES ('inventory_parts', $1) ON CONFLICT DO NOTHING`,
           [row.id]
         );
+
+        await client.query(`RELEASE SAVEPOINT sp_ip_${row.id.toString().replace(/[^a-zA-Z0-9]/g, '_')}`);
       } catch (err: unknown) {
+        await client.query(`ROLLBACK TO SAVEPOINT sp_ip_${row.id.toString().replace(/[^a-zA-Z0-9]/g, '_')}`);
         const msg = err instanceof Error ? err.message : String(err);
         console.warn(`[Migration] Skipped inventory_parts row ${row.id}: ${msg}`);
       }

@@ -204,11 +204,11 @@ class WorkOrderService {
 
       for (const part of parts) {
         if (part.usedQuantity !== undefined && part.usedQuantity > 0 && part.partId) {
-          const [stockRow] = await tx.select().from(stock).where(eq(stock.partId, part.partId)).limit(1);
+          const [stockRow] = await tx.select().from(stock).where(and(eq(stock.partId, part.partId), sql`${stock.quantityReserved} > 0`)).orderBy(sql`${stock.quantityReserved} DESC`).limit(1);
           if (stockRow) {
             const currentReserved = stockRow.quantityReserved ?? 0;
             const released = Math.min(currentReserved, part.usedQuantity);
-            await tx.update(stock).set({ quantityReserved: currentReserved - released, updatedAt: new Date() }).where(eq(stock.partId, part.partId));
+            await tx.update(stock).set({ quantityReserved: currentReserved - released, updatedAt: new Date() }).where(eq(stock.id, stockRow.id));
           }
         }
       }

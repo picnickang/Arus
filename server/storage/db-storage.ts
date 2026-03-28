@@ -149,7 +149,12 @@ export class DatabaseStorage implements IStorage {
       if (!workOrder) { throw new Error(`Work order ${id} not found`); }
       if (workOrder.status === "completed") { throw new Error(`Work order ${id} is already completed`); }
       const lockedParts = await tx.select().from(workOrderParts).where(eq(workOrderParts.workOrderId, id)).for("update");
-      for (const part of lockedParts) { await tx.update(stock).set({ quantityReserved: sql`GREATEST(0, ${stock.quantityReserved} - ${part.quantityUsed})`, updatedAt: new Date() }).where(and(eq(stock.partId, part.partId), eq(stock.orgId, workOrder.orgId))); }
+      for (const part of lockedParts) {
+        const [targetStock] = await tx.select().from(stock).where(and(eq(stock.partId, part.partId), eq(stock.orgId, workOrder.orgId), sql`${stock.quantityReserved} > 0`)).orderBy(sql`${stock.quantityReserved} DESC`).limit(1);
+        if (targetStock) {
+          await tx.update(stock).set({ quantityReserved: sql`GREATEST(0, ${stock.quantityReserved} - ${part.quantityUsed})`, updatedAt: new Date() }).where(eq(stock.id, targetStock.id));
+        }
+      }
       const finalParts = await tx.select().from(workOrderParts).where(eq(workOrderParts.workOrderId, id));
       if (finalParts.length !== lockedParts.length) { throw new Error(`Concurrent modification detected: parts were added to work order ${id} during close operation.`); }
       const finalUpdates: Partial<InsertWorkOrder> = { status: "completed" as const, actualEndDate: new Date() };
