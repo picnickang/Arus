@@ -122,22 +122,26 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
     if (opts?.search) conditions.push(or(ilike(partsTable.name, `%${opts.search}%`), ilike(partsTable.partNo, `%${opts.search}%`)));
     const orderCol = opts?.sortBy === 'partName' ? partsTable.name : opts?.sortBy === 'category' ? partsTable.category : partsTable.name;
     const orderFn = opts?.sortOrder === 'desc' ? desc(orderCol) : asc(orderCol);
-    const baseQuery = db.select().from(partsTable).leftJoin(stock, eq(partsTable.id, stock.partId));
-    const filtered = conditions.length > 0 ? baseQuery.where(and(...conditions)) : baseQuery;
-    const ordered = filtered.orderBy(orderFn);
-    const limited = opts?.limit ? ordered.limit(opts.limit) : ordered;
-    const offset = opts?.offset ? limited.offset(opts.offset) : limited;
-    const rows = await offset;
-    const partMap = new Map<string, { part: Part; stockRows: Stock[] }>();
-    for (const r of rows) {
-      const existing = partMap.get(r.parts.id);
-      if (existing) {
-        if (r.stock) existing.stockRows.push(r.stock);
-      } else {
-        partMap.set(r.parts.id, { part: r.parts, stockRows: r.stock ? [r.stock] : [] });
-      }
+
+    let partsQuery = db.select().from(partsTable);
+    if (conditions.length > 0) partsQuery = partsQuery.where(and(...conditions)) as typeof partsQuery;
+    let orderedParts = partsQuery.orderBy(orderFn);
+    if (opts?.limit) orderedParts = orderedParts.limit(opts.limit) as typeof orderedParts;
+    if (opts?.offset) orderedParts = orderedParts.offset(opts.offset) as typeof orderedParts;
+    const partRows = await orderedParts;
+
+    if (partRows.length === 0) return [];
+
+    const partIds = partRows.map(p => p.id);
+    const stockRows = await db.select().from(stock).where(sql`${stock.partId} = ANY(${partIds})`);
+    const stockMap = new Map<string, Stock[]>();
+    for (const s of stockRows) {
+      const arr = stockMap.get(s.partId) || [];
+      arr.push(s);
+      stockMap.set(s.partId, arr);
     }
-    return Array.from(partMap.values()).map((v) => partAndStockToPartsInventory(v.part, v.stockRows));
+
+    return partRows.map(p => partAndStockToPartsInventory(p, stockMap.get(p.id) || []));
   }
 
   async getPartsInventoryPaginated(orgId: string, options: {
@@ -146,24 +150,29 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
     sortBy?: string; sortOrder?: "asc" | "desc";
   }): Promise<{ items: PartsInventory[]; total: number }> {
     const { limit = 25, offset = 0, search, category, stockStatus, sortBy, sortOrder } = options;
-    let items = await this.partAndStockAsPartsInventory(orgId, { category, search, sortBy, sortOrder, limit, offset });
+
+    const stockStatusFilter = (item: PartsInventory): boolean => {
+      if (!stockStatus || stockStatus === 'all') return true;
+      const onHand = item.quantityOnHand || 0;
+      const min = item.minStockLevel || 1;
+      const max = item.maxStockLevel || 100;
+      switch (stockStatus) {
+        case 'zero': return onHand === 0;
+        case 'critical': return onHand > 0 && onHand <= min;
+        case 'low': return onHand > min && onHand <= (min * 2);
+        case 'adequate': return onHand > (min * 2) && onHand <= max;
+        case 'excess': return onHand > max;
+        default: return true;
+      }
+    };
 
     if (stockStatus && stockStatus !== 'all') {
-      items = items.filter(item => {
-        const onHand = item.quantityOnHand || 0;
-        const min = item.minStockLevel || 1;
-        const max = item.maxStockLevel || 100;
-        switch (stockStatus) {
-          case 'zero': return onHand === 0;
-          case 'critical': return onHand > 0 && onHand <= min;
-          case 'low': return onHand > min && onHand <= (min * 2);
-          case 'adequate': return onHand > (min * 2) && onHand <= max;
-          case 'excess': return onHand > max;
-          default: return true;
-        }
-      });
+      const allItems = await this.partAndStockAsPartsInventory(orgId, { category, search, sortBy, sortOrder });
+      const filtered = allItems.filter(stockStatusFilter);
+      return { items: filtered.slice(offset, offset + limit), total: filtered.length };
     }
 
+    const items = await this.partAndStockAsPartsInventory(orgId, { category, search, sortBy, sortOrder, limit, offset });
     const { parts: partsTable } = await import("@shared/schema-runtime");
     const pConditions = [eq(partsTable.orgId, orgId)];
     if (category) pConditions.push(eq(partsTable.category, category));
