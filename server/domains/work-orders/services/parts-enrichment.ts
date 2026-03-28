@@ -254,7 +254,7 @@ export async function getEnrichedWorkOrderPartsWithInventoryFlag(workOrderId: st
       id: wop.id,
       workOrderId: wop.workOrderId,
       partId: wop.partId,
-      inventoryItemId: invItem?.id || null,
+      inventoryItemId: wop.partId || null,
       hasValidInventory,
       partNo: catalogPart?.partNo || wop.partId,
       partName: catalogPart?.name || "Unknown Part",

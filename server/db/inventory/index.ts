@@ -21,7 +21,13 @@ import {
   type InsertWorkOrderHistory,
   type InventoryMovement,
   type PartsInventory,
+  type Part,
   type Stock,
+  type InsertStock,
+  type Supplier,
+  type InsertSupplier,
+  type PartSubstitution,
+  type InsertPartSubstitution,
 } from "@shared/schema-runtime";
 import { DbPartsStorage } from "./db-parts.js";
 import { DbStockStorage } from "./db-stock.js";
@@ -36,15 +42,15 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
   async getPartStockWithSupplierLeadTime(partId: string, orgId: string) { return this.stockStorage.getPartStockWithSupplierLeadTime(partId, orgId); }
   async getSuppliers(orgId?: string) { return this.stockStorage.getSuppliers(orgId); }
   async getSupplier(id: string, orgId?: string) { return this.stockStorage.getSupplier(id, orgId); }
-  async createSupplier(data: any) { return this.stockStorage.createSupplier(data); }
-  async updateSupplier(id: string, updates: any, orgId?: string) { return this.stockStorage.updateSupplier(id, updates, orgId); }
+  async createSupplier(data: InsertSupplier) { return this.stockStorage.createSupplier(data); }
+  async updateSupplier(id: string, updates: Partial<InsertSupplier>, orgId?: string) { return this.stockStorage.updateSupplier(id, updates, orgId); }
   async deleteSupplier(id: string, orgId?: string) { return this.stockStorage.deleteSupplier(id, orgId); }
   async getStock(orgId?: string, search?: string, location?: string, sortBy?: string) { return this.stockStorage.getStock(orgId, search ? { search, location } : undefined); }
-  async createStock(data: any) { return this.stockStorage.createStock(data); }
-  async updateStock(id: string, updates: any, orgId?: string) { return this.stockStorage.updateStock(id, updates, orgId); }
+  async createStock(data: InsertStock) { return this.stockStorage.createStock(data); }
+  async updateStock(id: string, updates: Partial<InsertStock>, orgId?: string) { return this.stockStorage.updateStock(id, updates, orgId); }
   async deleteStock(id: string, orgId?: string) { return this.stockStorage.deleteStock(id, orgId); }
   async getPartSubstitutions(partId: string, orgId: string) { return this.stockStorage.getPartSubstitutions(partId, orgId); }
-  async createPartSubstitution(sub: any) { return this.stockStorage.createPartSubstitution(sub); }
+  async createPartSubstitution(sub: InsertPartSubstitution) { return this.stockStorage.createPartSubstitution(sub); }
   async suggestPartSubstitutions(partId: string, orgId: string) { return this.stockStorage.suggestPartSubstitutions(partId, orgId); }
   async getPartByPartNo(partNo: string, orgId?: string) { return this.stockStorage.getPartByPartNo(partNo, orgId); }
   async getPartsByNumbers(partNumbers: string[], orgId: string) { return this.stockStorage.getPartsByNumbers(partNumbers, orgId); }
@@ -63,25 +69,25 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
   private async partAndStockAsPartsInventory(orgId?: string, opts?: { category?: string; search?: string; sortBy?: string; sortOrder?: "asc" | "desc"; limit?: number; offset?: number }): Promise<PartsInventory[]> {
     const { partAndStockToPartsInventory } = await import("./db-parts.js");
     const { parts: partsTable } = await import("@shared/schema-runtime");
-    const conditions: any[] = [];
+    const conditions = [];
     if (orgId) conditions.push(eq(partsTable.orgId, orgId));
     if (opts?.category) conditions.push(eq(partsTable.category, opts.category));
     if (opts?.search) conditions.push(or(ilike(partsTable.name, `%${opts.search}%`), ilike(partsTable.partNo, `%${opts.search}%`)));
     const orderCol = opts?.sortBy === 'partName' ? partsTable.name : opts?.sortBy === 'category' ? partsTable.category : partsTable.name;
     const orderFn = opts?.sortOrder === 'desc' ? desc(orderCol) : asc(orderCol);
-    let query = db.select().from(partsTable).leftJoin(stock, eq(partsTable.id, stock.partId));
-    if (conditions.length > 0) query = query.where(and(...conditions)) as any;
-    query = query.orderBy(orderFn) as any;
-    if (opts?.limit) query = query.limit(opts.limit) as any;
-    if (opts?.offset) query = query.offset(opts.offset) as any;
-    const rows = await query;
-    const partMap = new Map<string, any>();
-    for (const r of rows as any[]) {
+    const baseQuery = db.select().from(partsTable).leftJoin(stock, eq(partsTable.id, stock.partId));
+    const filtered = conditions.length > 0 ? baseQuery.where(and(...conditions)) : baseQuery;
+    const ordered = filtered.orderBy(orderFn);
+    const limited = opts?.limit ? ordered.limit(opts.limit) : ordered;
+    const offset = opts?.offset ? limited.offset(opts.offset) : limited;
+    const rows = await offset;
+    const partMap = new Map<string, { part: Part; stock: Stock | null }>();
+    for (const r of rows) {
       if (!partMap.has(r.parts.id)) {
         partMap.set(r.parts.id, { part: r.parts, stock: r.stock });
       }
     }
-    return Array.from(partMap.values()).map((v: any) => partAndStockToPartsInventory(v.part, v.stock));
+    return Array.from(partMap.values()).map((v) => partAndStockToPartsInventory(v.part, v.stock));
   }
 
   async getPartsInventoryPaginated(orgId: string, options: {
@@ -109,7 +115,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
     }
 
     const { parts: partsTable } = await import("@shared/schema-runtime");
-    const pConditions: any[] = [eq(partsTable.orgId, orgId)];
+    const pConditions = [eq(partsTable.orgId, orgId)];
     if (category) pConditions.push(eq(partsTable.category, category));
     if (search) pConditions.push(or(ilike(partsTable.name, `%${search}%`), ilike(partsTable.partNo, `%${search}%`)));
     const [countResult] = await db.select({ count: sql<number>`count(*)` }).from(partsTable).where(and(...pConditions));
@@ -168,7 +174,7 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
   }
 
   async updateStockQuantities(stockId: string, onHand?: number, reserved?: number, orgId?: string): Promise<Stock> {
-    const updates: any = { updatedAt: new Date() };
+    const updates: Partial<{ quantityOnHand: number; quantityReserved: number; updatedAt: Date }> = { updatedAt: new Date() };
     if (onHand !== undefined) updates.quantityOnHand = onHand;
     if (reserved !== undefined) updates.quantityReserved = reserved;
     const conditions = orgId ? and(eq(stock.id, stockId), eq(stock.orgId, orgId)) : eq(stock.id, stockId);

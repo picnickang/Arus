@@ -242,7 +242,7 @@ export const inventoryMovements = pgTable("inventory_movements", {
     .references(() => organizations.id),
   partId: varchar("part_id")
     .notNull()
-    .references(() => partsInventory.id),
+    .references(() => parts.id),
   workOrderId: varchar("work_order_id").references(() => workOrders.id),
   movementType: text("movement_type").notNull(),
   quantity: integer("quantity").notNull(),
