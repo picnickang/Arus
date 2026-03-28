@@ -29,27 +29,8 @@ function currentTriple() {
   return 'x86_64-unknown-linux-gnu';
 }
 
-function findFiles(dir, matchFn, results = []) {
-  if (!existsSync(dir)) return results;
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    const full = join(dir, entry.name);
-    if (entry.isDirectory()) {
-      if (!['test', 'tests', '.bin'].includes(entry.name)) {
-        findFiles(full, matchFn, results);
-      }
-    } else if (entry.isFile() && matchFn(entry.name, full)) {
-      results.push(full);
-    }
-  }
-  return results;
-}
-
-function relToBundle(absPath) {
-  return relative(dirname(bundleOut), absPath).replace(/\\/g, '/');
-}
-
 function stage1_bundle() {
-  console.log('\nStage 1 — esbuild bundle...');
+  console.log('\n📦 Stage 1 — esbuild bundle…');
   mkdirSync(distDir, { recursive: true });
 
   const externals = [
@@ -71,11 +52,30 @@ function stage1_bundle() {
     externals,
     { stdio: 'inherit', cwd: root }
   );
-  console.log(`  Done: ${bundleOut}`);
+  console.log(`  ✅ ${bundleOut}`);
+}
+
+function findFiles(dir, matchFn, results = []) {
+  if (!existsSync(dir)) return results;
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (!['test', 'tests', '.bin'].includes(entry.name)) {
+        findFiles(full, matchFn, results);
+      }
+    } else if (entry.isFile() && matchFn(entry.name, full)) {
+      results.push(full);
+    }
+  }
+  return results;
+}
+
+function relToBundle(absPath) {
+  return relative(dirname(bundleOut), absPath).replace(/\\/g, '/');
 }
 
 function stage2_assetManifest() {
-  console.log('\nStage 2 — Building asset manifest...');
+  console.log('\n📎 Stage 2 — Building asset manifest…');
 
   const assets = {};
 
@@ -106,7 +106,7 @@ function stage2_assetManifest() {
 
   const manifest = { assets, pkg: { assets } };
   writeFileSync(assetsJson, JSON.stringify(manifest, null, 2));
-  console.log(`  Manifest: ${Object.keys(assets).length} asset(s)`);
+  console.log(`  ✅ Manifest: ${Object.keys(assets).length} asset(s)`);
 }
 
 function stage3_compile(triple) {
@@ -114,7 +114,7 @@ function stage3_compile(triple) {
   if (!t) { console.error(`Unknown triple: ${triple}`); process.exit(1); }
 
   const outFile = join(binDir, `arus-server-${triple}${t.ext}`);
-  console.log(`\nStage 3 — pkg compile: ${triple}...`);
+  console.log(`\n🔨 Stage 3 — pkg compile → ${triple}…`);
   mkdirSync(binDir, { recursive: true });
 
   execSync(
@@ -125,17 +125,17 @@ function stage3_compile(triple) {
     `--compress GZip`,
     { stdio: 'inherit', cwd: root }
   );
-  console.log(`  Done: ${outFile}`);
+  console.log(`  ✅ ${outFile}`);
   return outFile;
 }
 
 function stage4_smokeTest(binPath) {
   if (process.argv.includes('--skip-test')) {
-    console.log('\nSmoke test skipped (--skip-test)');
+    console.log('\n⏭  Smoke test skipped (--skip-test)');
     return;
   }
 
-  console.log('\nStage 4 — Smoke test...');
+  console.log('\n🧪 Stage 4 — Smoke test…');
   try {
     execSync(`"${binPath}" --health-check`, {
       stdio: 'inherit',
@@ -146,9 +146,9 @@ function stage4_smokeTest(binPath) {
         PORT: '0',
       },
     });
-    console.log('  Smoke test passed — native modules load correctly');
+    console.log('  ✅ Smoke test passed — native modules load correctly');
   } catch (e) {
-    console.error('\nSmoke test FAILED.');
+    console.error('\n❌ Smoke test FAILED.');
     console.error('   The binary could not load its native modules.');
     console.error('   Check that all external packages are in the asset manifest.');
     console.error('   Error:', e.message);
@@ -176,10 +176,10 @@ async function main() {
 
     const devCopy = join(binDir, `arus-server${TARGETS[triple].ext}`);
     copyFileSync(outFile, devCopy);
-    console.log(`  Dev copy: ${devCopy}`);
+    console.log(`  ✅ Dev copy → ${devCopy}`);
   }
 
-  console.log('\nSidecar build complete.\n');
+  console.log('\n✅ Sidecar build complete.\n');
 }
 
 main().catch(e => { console.error(e); process.exit(1); });

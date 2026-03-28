@@ -12,7 +12,7 @@ const icnsWorkDir = join(root, 'src-tauri', 'icons', 'icon.iconset');
 
 if (!existsSync(svgSource)) {
   console.error(`Source SVG not found: ${svgSource}`);
-  console.error('Place a 512x512 SVG at client/public/icon-512.svg and re-run.');
+  console.error('Place a 512×512 SVG at client/public/icon-512.svg and re-run.');
   process.exit(1);
 }
 
@@ -48,20 +48,20 @@ async function renderPng(size, outPath) {
     .toFile(outPath);
 }
 
-console.log('Generating Tauri PNG icons...\n');
+console.log('Generating Tauri PNG icons…\n');
 
 for (const { file, size } of PNG_TARGETS) {
   const out = join(iconDir, file);
   await renderPng(size, out);
-  console.log(`  Created ${file}  (${size}x${size})`);
+  console.log(`  ✅ ${file}  (${size}×${size})`);
 }
 
-console.log('\nGenerating macOS iconset for iconutil...\n');
+console.log('\nGenerating macOS iconset for iconutil…\n');
 
 for (const { file, size } of ICNS_TARGETS) {
   const out = join(icnsWorkDir, file);
   await renderPng(size, out);
-  console.log(`  Created iconset/${file}  (${size}x${size})`);
+  console.log(`  ✅ iconset/${file}  (${size}×${size})`);
 }
 
 console.log(`
@@ -75,4 +75,4 @@ console.log('    convert src-tauri/icons/32x32.png src-tauri/icons/128x128.png \
 console.log('            src-tauri/icons/icon.png  src-tauri/icons/icon.ico');
 console.log('  Or: https://cloudconvert.com/png-to-ico\n');
 
-console.log('Icon generation complete.\n');
+console.log('✅ Icon generation complete.\n');

@@ -1,67 +1,141 @@
 import { isDesktop, getDesktopAPI } from './desktop';
-import { validateBackendUrl } from './urlValidation';
 
-let cachedBackendUrl: string | null = null;
+const STORAGE_KEY = 'arus_backend_url';
+const LEGACY_KEY = 'arus-backend-url';
+const DEFAULT_URL = 'http://localhost:5000';
+
+let _cachedUrl: string | null = null;
+
+function tauriImport(mod: string): Promise<any> {
+  return new Function('m', 'return import(m)')(mod).catch(() => null);
+}
 
 export async function resolveBackendUrl(): Promise<string> {
-  if (cachedBackendUrl !== null) return cachedBackendUrl;
+  if (_cachedUrl) return _cachedUrl;
+
+  if (isDesktop()) {
+    try {
+      const core = await tauriImport('@tauri-apps/api/core');
+      if (core) {
+        const config = await core.invoke<{ url: string; mode: string }>('get_backend_config');
+        if (config?.url) {
+          _cachedUrl = config.url;
+          return _cachedUrl;
+        }
+      }
+    } catch {
+    }
+  }
 
   try {
-    const stored = localStorage.getItem('arus-backend-url');
+    const stored = localStorage.getItem(STORAGE_KEY)
+      ?? localStorage.getItem(LEGACY_KEY);
     if (stored) {
-      cachedBackendUrl = stored;
-      return stored;
+      _cachedUrl = stored;
+      return _cachedUrl;
     }
   } catch {
   }
 
-  if (isDesktop()) {
-    const api = getDesktopAPI();
-    if (api) {
-      const url = await api.getBackendUrl();
-      if (url && url !== window.location.origin) {
-        cachedBackendUrl = url;
-        return url;
-      }
-    }
-  }
-
-  cachedBackendUrl = '';
-  return '';
+  _cachedUrl = DEFAULT_URL;
+  return _cachedUrl;
 }
 
 export function getBackendUrlSync(): string {
-  if (cachedBackendUrl !== null) return cachedBackendUrl;
-  return localStorage.getItem('arus-backend-url') || '';
+  if (_cachedUrl) return _cachedUrl;
+  try {
+    return localStorage.getItem(STORAGE_KEY)
+      ?? localStorage.getItem(LEGACY_KEY)
+      ?? DEFAULT_URL;
+  } catch {
+    return DEFAULT_URL;
+  }
 }
 
 export function setBackendUrl(url: string): void {
   const normalized = url.replace(/\/+$/, '');
-  cachedBackendUrl = normalized;
-  localStorage.setItem('arus-backend-url', normalized);
+  _cachedUrl = normalized;
+  try {
+    localStorage.setItem(STORAGE_KEY, normalized);
+    localStorage.setItem(LEGACY_KEY, normalized);
+  } catch {
+  }
 }
 
 export function clearBackendUrl(): void {
-  cachedBackendUrl = null;
-  localStorage.removeItem('arus-backend-url');
+  _cachedUrl = null;
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(LEGACY_KEY);
+  } catch {
+  }
+}
+
+export async function testBackendConnection(url: string, timeoutMs = 5000): Promise<{ ok: boolean; message: string }> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${url}/api/healthz`, {
+      signal: controller.signal,
+      cache: 'no-store',
+      headers: { 'x-org-id': 'default-org-id' },
+    });
+    clearTimeout(timer);
+    if (res.ok) {
+      return { ok: true, message: 'Connected successfully' };
+    }
+    return { ok: false, message: `Server responded with status ${res.status}` };
+  } catch (e: unknown) {
+    clearTimeout(timer);
+    const msg = e instanceof Error ? e.message : 'Unknown error';
+    if (msg.includes('abort')) {
+      return { ok: false, message: 'Connection timed out' };
+    }
+    return { ok: false, message: `Could not connect: ${msg}` };
+  }
+}
+
+export async function isDesktopSetupComplete(): Promise<boolean> {
+  if (!isDesktop()) return true;
+
+  const url = await resolveBackendUrl();
+
+  const reachable = await testBackendConnection(url);
+  if (!reachable.ok) return false;
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(`${url}/api/setup/status`, {
+      signal: controller.signal,
+      cache: 'no-store',
+    });
+    clearTimeout(timer);
+    if (!res.ok) return false;
+    const body = await res.json() as { complete: boolean };
+    return body.complete === true;
+  } catch {
+    return true;
+  }
+}
+
+export function isDesktopSetupCompleteSync(): boolean {
+  if (!isDesktop()) return true;
+  return localStorage.getItem('arus-setup-complete') === 'true';
 }
 
 export function markSetupComplete(): void {
   localStorage.setItem('arus-setup-complete', 'true');
 }
 
-export function isDesktopSetupComplete(): boolean {
-  if (!isDesktop()) return true;
-  return localStorage.getItem('arus-setup-complete') === 'true';
-}
-
 export async function bootstrapDesktopBackend(): Promise<boolean> {
   if (!isDesktop()) return true;
 
   if (localStorage.getItem('arus-setup-complete') === 'true') {
-    const stored = localStorage.getItem('arus-backend-url');
+    const stored = localStorage.getItem(STORAGE_KEY)
+      ?? localStorage.getItem(LEGACY_KEY);
     if (stored) {
-      cachedBackendUrl = stored;
+      _cachedUrl = stored;
       return true;
     }
   }
@@ -113,33 +187,4 @@ export async function desktopFetch(
     }
   }
   return fetch(input, init);
-}
-
-export async function testBackendConnection(url: string): Promise<{ ok: boolean; message: string }> {
-  const validation = validateBackendUrl(url);
-  if (!validation.valid) {
-    return { ok: false, message: validation.error || 'Invalid URL' };
-  }
-
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-
-    const res = await fetch(`${validation.normalized}/api/healthz`, {
-      signal: controller.signal,
-      headers: { 'x-org-id': 'default-org-id' },
-    });
-    clearTimeout(timeout);
-
-    if (res.ok) {
-      return { ok: true, message: 'Connected successfully' };
-    }
-    return { ok: false, message: `Server responded with status ${res.status}` };
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : 'Unknown error';
-    if (msg.includes('abort')) {
-      return { ok: false, message: 'Connection timed out (5 seconds)' };
-    }
-    return { ok: false, message: `Could not connect: ${msg}` };
-  }
 }

@@ -70,7 +70,12 @@ pub fn get_runtime_state(app: AppHandle) -> RuntimeState {
         "unknown"
     };
 
-    RuntimeState { packaged, debug, platform: platform.into(), arch: arch.into() }
+    RuntimeState {
+        packaged,
+        debug,
+        platform: platform.into(),
+        arch: arch.into(),
+    }
 }
 
 #[tauri::command]
@@ -86,7 +91,11 @@ pub fn get_backend_config() -> BackendConfig {
     let url = env::var("ARUS_BACKEND_URL")
         .unwrap_or_else(|_| "http://localhost:5000".into());
     let mode = env::var("ARUS_MODE").unwrap_or_else(|_| {
-        if cfg!(debug_assertions) { "development".into() } else { "production".into() }
+        if cfg!(debug_assertions) {
+            "development".into()
+        } else {
+            "production".into()
+        }
     });
     BackendConfig { url, mode }
 }
@@ -98,21 +107,37 @@ pub async fn get_backend_status(app: AppHandle) -> BackendStatus {
 
     #[cfg(target_os = "windows")]
     if service_is_running("ARUSBackend") {
-        return BackendStatus { running: true, mode: "service".into(), url };
+        return BackendStatus {
+            running: true,
+            mode: "service".into(),
+            url,
+        };
     }
 
     {
         let state = app.state::<SidecarState>();
         if state.0.lock().unwrap().is_some() {
-            return BackendStatus { running: true, mode: "sidecar".into(), url };
+            return BackendStatus {
+                running: true,
+                mode: "sidecar".into(),
+                url,
+            };
         }
     }
 
     if ping_backend(&url).await {
-        return BackendStatus { running: true, mode: "remote".into(), url };
+        return BackendStatus {
+            running: true,
+            mode: "remote".into(),
+            url,
+        };
     }
 
-    BackendStatus { running: false, mode: "offline".into(), url }
+    BackendStatus {
+        running: false,
+        mode: "offline".into(),
+        url,
+    }
 }
 
 #[tauri::command]
@@ -178,12 +203,12 @@ async fn launch_sidecar(app: &AppHandle) -> Result<(), String> {
         .shell()
         .sidecar("arus-server")
         .map_err(|e| format!("Sidecar binary not found: {}", e))?
-        .env("NODE_ENV", if cfg!(debug_assertions) { "development" } else { "production" })
-        .env("PORT", "5000")
+        .env("NODE_ENV",        if cfg!(debug_assertions) { "development" } else { "production" })
+        .env("PORT",            "5000")
         .env("ARUS_BACKEND_URL", &backend_url)
-        .env("DATABASE_PATH", db_path.to_string_lossy().as_ref())
+        .env("DATABASE_PATH",   db_path.to_string_lossy().as_ref())
         .env("DEPLOYMENT_MODE", "VESSEL")
-        .env("LOCAL_MODE", "true");
+        .env("LOCAL_MODE",      "true");
 
     let (mut rx, child) = cmd
         .spawn()

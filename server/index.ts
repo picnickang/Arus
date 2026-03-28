@@ -80,11 +80,14 @@ console.log("→ Starting module imports...");
 import express from "express";
 import { registerRoutes } from "./routes";
 import { setApiReady } from "./middleware/api-ready-gate";
+import setupRouter from "./routes/setup.js";
 
 console.log("✓ All module imports completed successfully");
 
 const app = express();
 let isApplicationReady = false;
+
+app.use('/api/setup', setupRouter);
 
 app.get("/livez", (_req, res) => res.status(200).json({ status: "alive" }));
 

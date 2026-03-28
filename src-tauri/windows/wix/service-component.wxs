@@ -1,4 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ARUS Backend Windows Service — WiX fragment
+  Merged into the Tauri-generated installer via tauri.conf.json wix.fragmentPaths.
+
+  PATHS: $(var.SourceDir) in Tauri's WiX context resolves to the generated
+  WiX working directory inside target/release/bundle/wix/, NOT the project
+  root.  The CI workflow pre-stages nssm.exe and arus-server.exe into
+  that directory under a resources/ subdirectory before tauri build runs,
+  so Source= attributes use $(var.SourceDir)resources\ which is guaranteed
+  to exist.  See the "Stage WiX resources" step in tauri-build.yml.
+
+  UPGRADE: Custom actions now check the Installed property.  On upgrade
+  the service is stopped before files are replaced and restarted after.
+  Fresh installs register and start.  Uninstalls stop then remove.
+
+  SERVICE ACCOUNT: Service runs under a dedicated local account "ARUS_svc"
+  rather than SYSTEM.  The account is created with no login rights and
+  only write access to the ProgramData directory.
+
+  TWO INSTALLER VARIANTS: The WebView2 install mode is controlled in
+  tauri.conf.json — vessel builds use offlineInstaller (bundled, air-gap
+  safe), cloud builds use downloadBootstrapper.  Both use this same fragment.
+-->
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
      xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
 

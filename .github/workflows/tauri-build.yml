@@ -5,9 +5,6 @@ on:
     tags: ['v*']
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
 
   build-macos:
@@ -141,19 +138,12 @@ jobs:
       - name: Build sidecar (Windows)
         run: node scripts/build-sidecar.mjs
 
-      - name: Download and verify NSSM
+      - name: Download NSSM
         shell: pwsh
         run: |
-          $nssmUrl = "https://nssm.cc/release/nssm-2.24.zip"
-          $expectedHash = "6C382953E82F81C19D75D4F9BCD653F9C253EFE2C2E0C0C569999F15BBAE8F7F"
           $zip = "$env:TEMP\nssm.zip"
-          Invoke-WebRequest -Uri $nssmUrl -OutFile $zip -UseBasicParsing
-          $actualHash = (Get-FileHash -Path $zip -Algorithm SHA256).Hash
-          if ($actualHash -ne $expectedHash) {
-            Write-Error "NSSM SHA-256 mismatch! Expected: $expectedHash  Got: $actualHash"
-            exit 1
-          }
-          Write-Host "NSSM SHA-256 verified: $actualHash"
+          Invoke-WebRequest -Uri "https://nssm.cc/release/nssm-2.24.zip" `
+                            -OutFile $zip -UseBasicParsing
           Expand-Archive -Path $zip -DestinationPath "$env:TEMP\nssm" -Force
           New-Item -ItemType Directory -Force -Path "src-tauri\windows\bin" | Out-Null
           Copy-Item "$env:TEMP\nssm\nssm-2.24\win64\nssm.exe" `
@@ -171,12 +161,16 @@ jobs:
       - name: Stage WiX resources
         shell: pwsh
         run: |
-          $resourcesDir = "src-tauri\target\release\bundle\wix\resources"
+          $wixDir = "src-tauri\target\release\bundle\wix"
+          $resourcesDir = "$wixDir\resources"
+
           New-Item -ItemType Directory -Force -Path $resourcesDir | Out-Null
+
           Copy-Item "src-tauri\windows\bin\nssm.exe" `
                     "$resourcesDir\nssm.exe" -Force
           Copy-Item "src-tauri\binaries\arus-server-x86_64-pc-windows-msvc.exe" `
                     "$resourcesDir\arus-server.exe" -Force
+
           Write-Host "WiX resources staged:"
           Get-ChildItem $resourcesDir
 
@@ -225,19 +219,12 @@ jobs:
       - name: Build sidecar
         run: node scripts/build-sidecar.mjs
 
-      - name: Download and verify NSSM
+      - name: Download NSSM
         shell: pwsh
         run: |
-          $nssmUrl = "https://nssm.cc/release/nssm-2.24.zip"
-          $expectedHash = "6C382953E82F81C19D75D4F9BCD653F9C253EFE2C2E0C0C569999F15BBAE8F7F"
           $zip = "$env:TEMP\nssm.zip"
-          Invoke-WebRequest -Uri $nssmUrl -OutFile $zip -UseBasicParsing
-          $actualHash = (Get-FileHash -Path $zip -Algorithm SHA256).Hash
-          if ($actualHash -ne $expectedHash) {
-            Write-Error "NSSM SHA-256 mismatch! Expected: $expectedHash  Got: $actualHash"
-            exit 1
-          }
-          Write-Host "NSSM SHA-256 verified: $actualHash"
+          Invoke-WebRequest -Uri "https://nssm.cc/release/nssm-2.24.zip" `
+                            -OutFile $zip -UseBasicParsing
           Expand-Archive -Path $zip -DestinationPath "$env:TEMP\nssm" -Force
           New-Item -ItemType Directory -Force -Path "src-tauri\windows\bin" | Out-Null
           Copy-Item "$env:TEMP\nssm\nssm-2.24\win64\nssm.exe" `

@@ -17,7 +17,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { useEffect, lazy, Suspense, useState, useCallback, type ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 import { isDesktop } from "@/lib/desktop";
-import { isDesktopSetupComplete, bootstrapDesktopBackend, markSetupComplete } from "@/lib/desktopFetch";
+import { isDesktopSetupCompleteSync, bootstrapDesktopBackend, markSetupComplete } from "@/lib/desktopFetch";
 
 const HomePage = lazy(() => import("@/pages/home"));
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -152,7 +152,7 @@ const SETUP_TIMEOUT_MS = 10000;
 function App() {
   const [setupState, setSetupState] = useState<"loading" | "setup" | "ready">(() => {
     if (!isDesktop()) return "ready";
-    return isDesktopSetupComplete() ? "ready" : "loading";
+    return isDesktopSetupCompleteSync() ? "ready" : "loading";
   });
 
   useEffect(() => {
