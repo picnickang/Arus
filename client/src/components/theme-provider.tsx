@@ -1,6 +1,6 @@
 import * as React from "react";
 
-type Theme = "light" | "dark" | "system";
+type Theme = "light" | "dark" | "bridge" | "daylight" | "system";
 
 type ThemeProviderProps = {
   children: React.ReactNode;
@@ -11,7 +11,7 @@ type ThemeProviderProps = {
 type ThemeProviderState = {
   theme: Theme;
   setTheme: (theme: Theme) => void;
-  resolvedTheme: "light" | "dark";
+  resolvedTheme: "light" | "dark" | "bridge" | "daylight";
 };
 
 const initialState: ThemeProviderState = {
@@ -35,13 +35,13 @@ export function ThemeProvider({
     return defaultTheme;
   });
 
-  const [resolvedTheme, setResolvedTheme] = React.useState<"light" | "dark">("dark");
+  const [resolvedTheme, setResolvedTheme] = React.useState<"light" | "dark" | "bridge" | "daylight">("dark");
 
   React.useEffect(() => {
     const root = globalThis.document.documentElement;
-    root.classList.remove("light", "dark");
+    root.classList.remove("light", "dark", "bridge", "daylight");
 
-    let effectiveTheme: "light" | "dark" = "dark";
+    let effectiveTheme: "light" | "dark" | "bridge" | "daylight" = "dark";
 
     if (theme === "system") {
       const systemTheme = globalThis.matchMedia("(prefers-color-scheme: dark)").matches

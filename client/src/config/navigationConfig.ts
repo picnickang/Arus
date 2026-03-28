@@ -248,7 +248,7 @@ export function getCategoryById(id: string): NavigationCategory | undefined {
 }
 
 // Route migration map for legacy dock entries
-const routeMigrations: Record<string, string> = {
+export const routeMigrations: Record<string, string> = {
   "/governance": "/logs/compliance",
   "/governance-dashboard": "/logs/compliance",
   "/logs-compliance": "/logs/compliance",

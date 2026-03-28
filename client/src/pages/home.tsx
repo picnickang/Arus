@@ -1,369 +1,340 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { Anchor, X, GripHorizontal, Plus, Check, Pin, Clock } from "lucide-react";
-import { Link, useLocation } from "wouter";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { DevModeToggle } from "@/components/DevModeToggle";
-import { navigationCategories, getAllNavigationItems, migrateRoute, type NavigationItem, type NavigationCategory } from "@/config/navigationConfig";
+import { useState, useMemo } from "react";
+import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
+import { PageHeader } from "@/components/navigation/PageHeader";
+import { NavigationCard } from "@/components/navigation/NavigationCard";
+import { QuickActions } from "@/components/shared/QuickActions";
+import { AttentionBanner } from "@/components/shared/AttentionBanner";
+import { homePageGroups, type HomePageGroup } from "@/config/navigationConfig";
 import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
+  Wrench, AlertTriangle, Clock, Activity, Ship, Shield,
+  ClipboardCheck, Anchor, BookOpen, BarChart3, Settings,
+  ChevronRight, Gauge,
+} from "lucide-react";
 
-const DOCK_STORAGE_KEY = "arus-dock-items";
-const DOCK_TOOLTIP_DISMISSED_KEY = "arus-dock-tooltip-dismissed";
-const RECENT_PAGES_KEY = "arus-recent-pages";
-const MAX_DOCK_ITEMS = 6;
-const MAX_RECENT_ITEMS = 3;
-
-function getRecentPages(): NavigationItem[] {
-  try {
-    const saved = localStorage.getItem(RECENT_PAGES_KEY);
-    if (!saved) return [];
-    const hrefs = JSON.parse(saved) as string[];
-    const allItems = getAllNavigationItems();
-    const hubItems = navigationCategories.map(cat => ({
-      name: cat.name,
-      href: cat.hubRoute,
-      icon: cat.icon,
-      description: cat.description,
-    }));
-    const combined = [...allItems, ...hubItems];
-    return hrefs
-      .map(href => combined.find(item => item.href === href))
-      .filter((item): item is NavigationItem => item !== undefined)
-      .slice(0, MAX_RECENT_ITEMS);
-  } catch {
-    return [];
-  }
+export interface RoleConfig {
+  id: string;
+  label: string;
+  description: string;
+  icon: any;
+  quickActions: QuickActionDef[];
+  pinnedGroups: string[];
 }
 
-export function trackPageVisit(href: string) {
-  try {
-    const normalized = href.split("?")[0].split("#")[0];
-    if (!normalized || normalized === "/") return;
-    const saved = localStorage.getItem(RECENT_PAGES_KEY);
-    const hrefs: string[] = saved ? JSON.parse(saved) : [];
-    const filtered = hrefs.filter(h => h !== normalized);
-    filtered.unshift(normalized);
-    localStorage.setItem(RECENT_PAGES_KEY, JSON.stringify(filtered.slice(0, 10)));
-  } catch {}
+interface QuickActionDef {
+  label: string;
+  icon: any;
+  href: string;
+  variant?: "default" | "destructive" | "outline";
 }
 
-interface CategoryCardProps {
-  category: NavigationCategory;
-  onAddToDock: (item: NavigationItem) => void;
-  dockItems: NavigationItem[];
-}
+const ROLES: Record<string, RoleConfig> = {
+  chief_engineer: {
+    id: "chief_engineer",
+    label: "Chief Engineer",
+    description: "Work orders, equipment health, PdM alerts",
+    icon: Wrench,
+    quickActions: [
+      { label: "New Work Order", icon: ClipboardCheck, href: "/work-orders?action=create" },
+      { label: "Log Engine Entry", icon: BookOpen, href: "/engine-logbook?action=new" },
+      { label: "Report Defect", icon: AlertTriangle, href: "/work-orders?action=create&type=corrective" },
+      { label: "Check PdM Alerts", icon: Activity, href: "/pdm-dashboard" },
+    ],
+    pinnedGroups: ["maintenance", "operations", "fleet"],
+  },
+  deck_officer: {
+    id: "deck_officer",
+    label: "Deck Officer",
+    description: "Logbooks, STCW hours, vessel track, weather",
+    icon: Anchor,
+    quickActions: [
+      { label: "New Deck Entry", icon: BookOpen, href: "/deck-logbook?action=new" },
+      { label: "Record Rest Hours", icon: Clock, href: "/hours-of-rest?action=record" },
+      { label: "Vessel Position", icon: Ship, href: "/vessel-track-log" },
+      { label: "Compliance Check", icon: Shield, href: "/logs-compliance" },
+    ],
+    pinnedGroups: ["records", "crew", "operations"],
+  },
+  fleet_manager: {
+    id: "fleet_manager",
+    label: "Fleet Manager (Shore)",
+    description: "Fleet health, CII compliance, analytics, costs",
+    icon: BarChart3,
+    quickActions: [
+      { label: "Fleet Dashboard", icon: Gauge, href: "/dashboard" },
+      { label: "Analytics", icon: BarChart3, href: "/analytics" },
+      { label: "Scheduled Reports", icon: ClipboardCheck, href: "/scheduled-reports" },
+      { label: "Governance", icon: Shield, href: "/governance-dashboard" },
+    ],
+    pinnedGroups: ["operations", "analytics", "fleet"],
+  },
+  system_admin: {
+    id: "system_admin",
+    label: "System Admin",
+    description: "Diagnostics, configuration, sensors, users",
+    icon: Settings,
+    quickActions: [
+      { label: "Diagnostics", icon: Activity, href: "/diagnostics" },
+      { label: "Configuration", icon: Settings, href: "/configuration" },
+      { label: "Sensor Management", icon: Activity, href: "/sensors" },
+      { label: "System Admin", icon: Shield, href: "/system-administration" },
+    ],
+    pinnedGroups: ["system", "analytics", "operations"],
+  },
+};
 
-function CategoryCard({ category, onAddToDock, dockItems }: CategoryCardProps) {
-  const Icon = category.icon;
-  const hubItem: NavigationItem = {
-    name: category.name,
-    href: category.hubRoute,
-    icon: category.icon,
-    description: category.description,
-  };
-  const isInDock = dockItems.some(d => d.href === category.hubRoute);
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const longPressFired = useRef(false);
+const STORAGE_KEY = "arus-user-role";
 
-  const handleTouchStart = useCallback(() => {
-    longPressFired.current = false;
-    longPressTimer.current = setTimeout(() => {
-      longPressFired.current = true;
-      if (!isInDock) onAddToDock(hubItem);
-    }, 500);
-  }, [isInDock, onAddToDock, hubItem]);
-
-  const handleTouchEnd = useCallback(() => {
-    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
-  }, []);
-
-  const handleTouchMove = useCallback(() => {
-    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
-  }, []);
-
+function RoleSelector({ onSelect }: { onSelect: (roleId: string) => void }) {
   return (
-    <ContextMenu>
-      <ContextMenuTrigger asChild>
-        <div
-          className={cn(
-            "group relative flex flex-col items-center justify-center",
-            "transition-all duration-200 ease-out",
-            "hover:scale-105 active:scale-95"
-          )}
-          data-testid={`category-card-${category.id}`}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-          onTouchMove={handleTouchMove}
-        >
-          <div className="relative">
-            <Link href={category.hubRoute} className="block" onClick={(e) => { if (longPressFired.current) e.preventDefault(); }}>
-              <div className={cn(
-                "w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center cursor-pointer",
-                "bg-primary shadow-lg",
-                "group-hover:shadow-xl group-hover:bg-primary/90",
-                "transition-all duration-200"
-              )}>
-                <Icon className="h-8 w-8 sm:h-10 sm:w-10 text-primary-foreground" strokeWidth={2} />
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
+      <div className="max-w-lg w-full text-center mb-8">
+        <h1 className="text-2xl font-bold mb-2" data-testid="text-welcome-title">Welcome to ARUS</h1>
+        <p className="text-muted-foreground">
+          Choose your role to customize your home screen. You can change this anytime in Settings.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg w-full">
+        {Object.values(ROLES).map((role) => {
+          const Icon = role.icon;
+          return (
+            <button
+              key={role.id}
+              onClick={() => onSelect(role.id)}
+              data-testid={`button-role-${role.id}`}
+              className="flex flex-col items-center gap-3 p-6 rounded-xl border border-border
+                         bg-card hover:border-primary hover:bg-primary/5 transition-all
+                         text-left cursor-pointer touch-target"
+            >
+              <Icon className="h-8 w-8 text-primary" />
+              <div className="text-center">
+                <div className="font-semibold text-sm">{role.label}</div>
+                <div className="text-xs text-muted-foreground mt-1">{role.description}</div>
               </div>
-            </Link>
-            {!isInDock && (
-              <button
-                type="button"
-                className="absolute -top-1.5 -right-1.5 z-10 w-6 h-6 rounded-full bg-background border shadow-sm flex items-center justify-center sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 transition-opacity hover:bg-muted"
-                onClick={(e) => { e.stopPropagation(); onAddToDock(hubItem); }}
-                aria-label={`Pin ${category.name} to Dock`}
-                data-testid={`button-pin-${category.id}`}
-              >
-                <Pin className="h-3 w-3 text-muted-foreground" />
-              </button>
-            )}
-            {isInDock && (
-              <div className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-green-100 dark:bg-green-900 border border-green-300 dark:border-green-700 flex items-center justify-center" aria-label="Pinned to Dock">
-                <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
-              </div>
-            )}
-          </div>
-          <Link href={category.hubRoute}>
-            <span className="mt-2 text-xs sm:text-sm font-medium text-center text-foreground line-clamp-1 max-w-[80px] sm:max-w-[100px] block cursor-pointer">
-              {category.name}
-            </span>
-            <span className="text-[10px] text-muted-foreground text-center line-clamp-1 max-w-[80px] sm:max-w-[100px] hidden sm:block">
-              {category.description}
-            </span>
-          </Link>
-        </div>
-      </ContextMenuTrigger>
-      <ContextMenuContent>
-        <ContextMenuItem 
-          onClick={() => onAddToDock(hubItem)} 
-          disabled={isInDock}
-          data-testid={`menu-add-dock-${category.id}`}
-        >
-          {isInDock ? (
-            <>
-              <Check className="h-4 w-4 mr-2 text-green-500" />
-              Already in Dock
-            </>
-          ) : (
-            <>
-              <Plus className="h-4 w-4 mr-2" />
-              Add to Dock
-            </>
-          )}
-        </ContextMenuItem>
-      </ContextMenuContent>
-    </ContextMenu>
+            </button>
+          );
+        })}
+      </div>
+
+      <button
+        onClick={() => onSelect("default")}
+        data-testid="button-skip-role"
+        className="mt-6 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        Skip — show all categories
+      </button>
+    </div>
   );
 }
 
-function DockIcon({ item, onRemove }: { item: NavigationItem; onRemove: () => void }) {
-  const Icon = item.icon;
+function useAttentionItems() {
+  const { data: workOrderData } = useQuery({
+    queryKey: ["/api/work-orders/summary"],
+    refetchInterval: 60000,
+  });
+
+  const { data: alertData } = useQuery({
+    queryKey: ["/api/alerts?acknowledged=false"],
+    refetchInterval: 30000,
+  });
+
+  const { data: pdmData } = useQuery({
+    queryKey: ["/api/pdm-dashboard/risk-queue"],
+    refetchInterval: 120000,
+  });
+
+  return useMemo(() => {
+    const items: Array<{ label: string; count: number; severity: string; href: string }> = [];
+
+    const overdueWO = (workOrderData as any)?.overdue ?? (workOrderData as any)?.overdueCount ?? 0;
+    if (overdueWO > 0) {
+      items.push({ label: "Overdue work orders", count: overdueWO, severity: "critical", href: "/work-orders?status=overdue" });
+    }
+
+    const unackAlerts = Array.isArray(alertData) ? alertData.length : ((alertData as any)?.count ?? 0);
+    if (unackAlerts > 0) {
+      items.push({ label: "Unacknowledged alerts", count: unackAlerts, severity: "warning", href: "/dashboard" });
+    }
+
+    const highRiskEquipment = Array.isArray(pdmData) ? pdmData.filter((e: any) => e.riskLevel === "high" || e.riskLevel === "critical").length : 0;
+    if (highRiskEquipment > 0) {
+      items.push({ label: "High-risk equipment", count: highRiskEquipment, severity: "warning", href: "/pdm-dashboard" });
+    }
+
+    return items;
+  }, [workOrderData, alertData, pdmData]);
+}
+
+function MyTasks() {
+  const { data: myWorkOrders } = useQuery({
+    queryKey: ["/api/work-orders?assignedToMe=true&status=open"],
+    refetchInterval: 60000,
+  });
+
+  const [, setLocation] = useLocation();
+  const tasks = Array.isArray(myWorkOrders) ? myWorkOrders.slice(0, 5) : [];
+
+  if (tasks.length === 0) return null;
+
   return (
-    <ContextMenu>
-      <ContextMenuTrigger asChild>
-        <Link href={item.href}>
-          <div
-            className="group flex flex-col items-center cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95"
-            data-testid={`dock-item-${item.name.toLowerCase().replace(/\s+/g, "-")}`}
+    <div className="mb-6">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-semibold text-foreground">My Tasks</h2>
+        <button
+          onClick={() => setLocation("/work-orders?assignedToMe=true")}
+          data-testid="link-view-all-tasks"
+          className="text-xs text-primary hover:underline flex items-center gap-1"
+        >
+          View all <ChevronRight className="h-3 w-3" />
+        </button>
+      </div>
+      <div className="space-y-2">
+        {tasks.map((task: any) => (
+          <button
+            key={task.id}
+            onClick={() => setLocation(`/work-orders?id=${task.id}`)}
+            data-testid={`button-task-${task.id}`}
+            className="w-full flex items-center gap-3 p-3 rounded-lg border border-border
+                       bg-card hover:border-primary/50 transition-colors text-left touch-target"
           >
             <div className={cn(
-              "w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center",
-              "bg-primary shadow-md",
-              "group-hover:shadow-lg transition-shadow"
-            )}>
-              <Icon className="h-6 w-6 sm:h-7 sm:w-7 text-primary-foreground" strokeWidth={2} />
+              "w-2 h-2 rounded-full flex-shrink-0",
+              task.priority === 1 ? "bg-destructive" :
+              task.priority === 2 ? "bg-yellow-500" : "bg-muted-foreground"
+            )} />
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium truncate">{task.title}</div>
+              <div className="text-xs text-muted-foreground">
+                {task.equipmentName || task.equipment?.name || "Unassigned equipment"}
+              </div>
             </div>
-            <span className="mt-1 text-[10px] sm:text-xs font-medium text-center text-foreground/80 line-clamp-1 max-w-[60px]">
-              {item.name}
-            </span>
-          </div>
-        </Link>
-      </ContextMenuTrigger>
-      <ContextMenuContent>
-        <ContextMenuItem onClick={onRemove} className="text-destructive" data-testid={`menu-remove-dock-${item.name.toLowerCase().replace(/\s+/g, "-")}`}>
-          <X className="h-4 w-4 mr-2" />
-          Remove from Dock
-        </ContextMenuItem>
-      </ContextMenuContent>
-    </ContextMenu>
-  );
-}
-
-function Dock({ items, onRemoveItem }: { items: NavigationItem[]; onRemoveItem: (href: string) => void }) {
-  if (items.length === 0) return null;
-  
-  return (
-    <div className="fixed bottom-16 md:bottom-4 left-1/2 -translate-x-1/2 z-50">
-      <div className={cn(
-        "flex items-center gap-2 sm:gap-4 px-4 sm:px-6 py-3 sm:py-4",
-        "bg-background/80 backdrop-blur-xl border rounded-2xl shadow-xl",
-        "dark:bg-background/60"
-      )}>
-        {items.map((item) => (
-          <DockIcon
-            key={item.href}
-            item={item}
-            onRemove={() => onRemoveItem(item.href)}
-          />
+            <div className="text-xs text-muted-foreground flex-shrink-0">
+              {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "No due date"}
+            </div>
+          </button>
         ))}
       </div>
     </div>
   );
 }
 
+const RECENT_PAGES_KEY = "arus-recent-pages";
+const MAX_RECENT = 6;
+
+export function trackPageVisit(path: string) {
+  try {
+    const stored = localStorage.getItem(RECENT_PAGES_KEY);
+    const recent: string[] = stored ? JSON.parse(stored) : [];
+    const filtered = recent.filter((p) => p !== path);
+    filtered.unshift(path);
+    localStorage.setItem(RECENT_PAGES_KEY, JSON.stringify(filtered.slice(0, MAX_RECENT)));
+  } catch { /* ignore */ }
+}
+
 export default function HomePage() {
-  const [dockItems, setDockItems] = useState<NavigationItem[]>([]);
-  const [recentItems, setRecentItems] = useState<NavigationItem[]>([]);
-  const [tooltipDismissed, setTooltipDismissed] = useState(() => localStorage.getItem(DOCK_TOOLTIP_DISMISSED_KEY) === "true");
-  const { toast } = useToast();
-  const [location] = useLocation();
+  const [role, setRole] = useState<string | null>(() => {
+    try { return localStorage.getItem(STORAGE_KEY); } catch { return null; }
+  });
 
-  useEffect(() => {
-    setRecentItems(getRecentPages());
-  }, [location]);
-  
-  const dismissTooltip = useCallback(() => {
-    setTooltipDismissed(true);
-    localStorage.setItem(DOCK_TOOLTIP_DISMISSED_KEY, "true");
-  }, []);
+  const attentionItems = useAttentionItems();
+  const roleConfig = role ? ROLES[role] : null;
 
-  useEffect(() => {
-    const saved = localStorage.getItem(DOCK_STORAGE_KEY);
-    if (saved) {
-      try {
-        const savedHrefs = JSON.parse(saved) as string[];
-        const allItems = getAllNavigationItems();
-        const hubItems = navigationCategories.map(cat => ({
-          name: cat.name,
-          href: cat.hubRoute,
-          icon: cat.icon,
-          description: cat.description,
-        }));
-        const combinedItems = [...allItems, ...hubItems];
-        const items = savedHrefs
-          .map(href => {
-            const migratedHref = migrateRoute(href);
-            return combinedItems.find(item => item.href === migratedHref);
-          })
-          .filter((item): item is NavigationItem => item !== undefined);
-        setDockItems(items);
-        const migratedHrefs = items.map(i => i.href);
-        if (JSON.stringify(savedHrefs) !== JSON.stringify(migratedHrefs)) {
-          localStorage.setItem(DOCK_STORAGE_KEY, JSON.stringify(migratedHrefs));
-        }
-      } catch {
-        setDockItems([]);
-      }
-    }
-  }, []);
-  
-  const saveDock = (items: NavigationItem[]) => {
-    setDockItems(items);
-    localStorage.setItem(DOCK_STORAGE_KEY, JSON.stringify(items.map(i => i.href)));
+  const handleSelectRole = (roleId: string) => {
+    localStorage.setItem(STORAGE_KEY, roleId);
+    setRole(roleId);
   };
-  
-  const addToDock = (item: NavigationItem) => {
-    if (dockItems.length >= MAX_DOCK_ITEMS) {
-      toast({
-        title: "Dock is full",
-        description: `Maximum ${MAX_DOCK_ITEMS} items allowed. Remove an item first.`,
-        variant: "destructive"
-      });
-      return;
-    }
-    if (dockItems.some(d => d.href === item.href)) {
-      return;
-    }
-    saveDock([...dockItems, item]);
-    toast({
-      title: "Added to Dock",
-      description: `${item.name} added to your dock.`
-    });
-  };
-  
-  const removeFromDock = (href: string) => {
-    const item = dockItems.find(d => d.href === href);
-    saveDock(dockItems.filter(d => d.href !== href));
-    if (item) {
-      toast({
-        title: "Removed from Dock",
-        description: `${item.name} removed from your dock.`
-      });
-    }
-  };
+
+  if (!role) {
+    return <RoleSelector onSelect={handleSelectRole} />;
+  }
+
+  const pinnedGroupIds = roleConfig?.pinnedGroups ?? homePageGroups.map((g) => g.id);
+  const pinnedGroups = pinnedGroupIds
+    .map((id) => homePageGroups.find((g) => g.id === id))
+    .filter(Boolean) as HomePageGroup[];
+  const otherGroups = homePageGroups.filter((g) => !pinnedGroupIds.includes(g.id));
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 pb-28">
-      <header className="sticky top-0 z-40 w-full bg-background/80 backdrop-blur-xl border-b">
-        <div className="flex h-14 sm:h-16 items-center justify-between px-4 md:px-6">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-primary rounded-xl flex items-center justify-center shadow-md">
-              <Anchor className="text-primary-foreground h-4 w-4 sm:h-5 sm:w-5" />
-            </div>
-            <div>
-              <h1 className="text-lg sm:text-xl font-bold">ARUS</h1>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">Marine PdM System</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1">
-            <DevModeToggle />
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-background pb-20 md:pb-4">
+      <PageHeader
+        title="ARUS"
+        subtitle={roleConfig?.label}
+        showHome={false}
+        action={
+          <button
+            onClick={() => {
+              localStorage.removeItem(STORAGE_KEY);
+              setRole(null);
+            }}
+            data-testid="button-change-role"
+            className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded"
+          >
+            Change role
+          </button>
+        }
+      />
 
-      <main className="container mx-auto px-4 py-8 sm:py-12 max-w-4xl">
-        {recentItems.length > 0 && (
-          <div className="mb-8" data-testid="recent-items-section">
-            <h2 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-              <Clock className="h-3.5 w-3.5" />
-              Recent
-            </h2>
-            <div className="flex gap-3 overflow-x-auto pb-2">
-              {recentItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Link key={item.href} href={item.href} className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-card hover:bg-accent transition-colors text-sm whitespace-nowrap flex-shrink-0" data-testid={`recent-item-${item.href.replace(/\//g, "-")}`}>
-                    <Icon className="h-4 w-4 text-primary" />
-                    <span>{item.name}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
+      <div className="px-4 lg:px-6 pt-2">
+        {attentionItems.length > 0 && (
+          <AttentionBanner items={attentionItems} className="mb-4" />
         )}
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 sm:gap-8 justify-items-center">
-          {navigationCategories.map((category) => (
-            <CategoryCard 
-              key={category.id} 
-              category={category}
-              onAddToDock={addToDock}
-              dockItems={dockItems}
-            />
+        {roleConfig && (
+          <QuickActions actions={roleConfig.quickActions} className="mb-6" />
+        )}
+
+        <MyTasks />
+
+        <div className="space-y-6">
+          {pinnedGroups.map((group) => (
+            <div key={group.id}>
+              <h2 className="text-sm font-semibold text-foreground mb-3">{group.name}</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {group.items.map((item) => (
+                  <NavigationCard
+                    key={item.href}
+                    name={item.name}
+                    href={item.href}
+                    icon={item.icon}
+                    description={item.description}
+                  />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
-      </main>
 
-      <Dock items={dockItems} onRemoveItem={removeFromDock} />
-      
-      {dockItems.length === 0 && !tooltipDismissed && (
-        <div className="fixed bottom-16 md:bottom-4 left-1/2 -translate-x-1/2 z-50" data-testid="dock-onboarding-tooltip">
-          <div className="flex items-center gap-2 px-4 py-2 bg-muted/80 backdrop-blur-sm rounded-full text-xs text-muted-foreground">
-            <Pin className="h-4 w-4" />
-            <span>Hover over a category and tap the pin icon to add to dock</span>
-            <button type="button" onClick={dismissTooltip} className="ml-1 hover:text-foreground transition-colors" aria-label="Dismiss tooltip" data-testid="button-dismiss-tooltip">
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </div>
-      )}
+        {otherGroups.length > 0 && (
+          <details className="mt-8">
+            <summary
+              className="text-sm font-semibold text-muted-foreground cursor-pointer hover:text-foreground mb-3"
+              data-testid="button-more-categories"
+            >
+              More categories ({otherGroups.length})
+            </summary>
+            <div className="space-y-6 mt-3">
+              {otherGroups.map((group) => (
+                <div key={group.id}>
+                  <h2 className="text-sm font-semibold text-foreground mb-3">{group.name}</h2>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {group.items.map((item) => (
+                      <NavigationCard
+                        key={item.href}
+                        name={item.name}
+                        href={item.href}
+                        icon={item.icon}
+                        description={item.description}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
+      </div>
     </div>
   );
 }
