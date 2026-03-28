@@ -128,7 +128,7 @@ Task #8 targets consolidation of these three families.
 
 | Schema File | Tables |
 |---|---|
-| `ml-analytics-core.ts` | `mlModels`, `modelVersions`, `anomalyDetections`, `failurePredictions`, `conditionDegradation` |
+| `ml-analytics-core.ts` | `mlModelsLegacy`, `mlModels`, `modelVersions`, `modelMetrics`, `anomalyDetections`, `failurePredictions`, `thresholdOptimizations`, `componentDegradation`, `failureHistory` |
 | `ml-analytics-advanced.ts` | `modelPerformanceValidations`, `predictionFeedback`, `vibrationFeatures`, `rulModels`, `rulFitHistory`, `vibrationAnalysis`, `weibullEstimates`, `pdmBaseline`, `pdmAlerts`, `realTimePredictions`, `featureImportances`, `sensorFusionSnapshots`, `acousticEvents`, `modelDeployments`, `llmBudgetConfigs`, `retrainingTriggers`, `mlModelAccuracyHistory`, `predictionDataQuality`, `inferenceRuns`, `predictionExplanations`, `modelDriftMetrics` |
 | `ml-training-pipeline.ts` | `trainingDatasets`, `modelArtifacts`, `trainingRuns` |
 | `pdm-feature-store.ts` | `equipmentFeatures`, `fleetBaselines` |
@@ -139,8 +139,8 @@ Task #8 targets consolidation of these three families.
 | `rag.ts` | `kbDocs`, `kbChunks`, `kbDocVersions`, `kbEmbeddingCache`, `ragConversations`, `ragMessages`, `ragFeedback`, `ragSemanticCache` |
 
 **Cross-boundary FKs**:
-- → BC-1: `mlModels.orgId`, `digitalTwins.vesselId → vessels.id`, `fleetBaselines.orgId`
-- → BC-2: `failurePredictions.equipmentId → equipment.id`, `anomalyDetections.equipmentId → equipment.id`, `equipmentFeatures.equipmentId → equipment.id`, `arMaintenanceProcedures.equipmentId → equipment.id`
+- → BC-1: `mlModels.orgId`, `mlModelsLegacy.orgId`, `digitalTwins.vesselId → vessels.id`, `fleetBaselines.orgId`, `thresholdOptimizations.orgId`, `componentDegradation.orgId`, `failureHistory.orgId`
+- → BC-2: `failurePredictions.equipmentId → equipment.id`, `anomalyDetections.equipmentId → equipment.id`, `anomalyDetections.resolvedByWorkOrderId → workOrders.id`, `failurePredictions.resolvedByWorkOrderId → workOrders.id`, `failureHistory.equipmentId → equipment.id`, `failureHistory.workOrderId → workOrders.id`, `componentDegradation.equipmentId → equipment.id`, `equipmentFeatures.equipmentId → equipment.id`, `arMaintenanceProcedures.equipmentId → equipment.id`
 - → BC-2 (inbound): `costSavings.predictionId → failurePredictions.id`
 
 ---
@@ -159,7 +159,7 @@ Task #8 targets consolidation of these three families.
 
 **Cross-boundary FKs**:
 - → BC-1: `adminAuditEvents.orgId`, `adminAuditEvents.userId → users.id`, `adminSessions.userId → users.id`, `softwarePatches.appliedBy → users.id`, `contextEvents.vesselId → vessels.id`, `userSessions.userId → users.id`, `fleetUpdateStatus.vesselId → vessels.id`
-- → BC-2: `contextEvents.equipmentId → equipment.id`, `expenses.workOrderId → workOrders.id`, `fleetUpdateStatus.deviceId → devices.id`
+- → BC-2: `contextEvents.equipmentId → equipment.id`, `fleetUpdateStatus.deviceId → devices.id`
 - → BC-5: `emailQueue.supplierId → suppliers.id`, `emailQueue.prId → purchaseRequests.id`
 
 ---
@@ -176,8 +176,8 @@ This matrix shows which contexts hold foreign keys **to** other contexts (rows r
 | **BC-4 Crew** | `orgId`, `vesselId` | — | — | internal | — | — | — | — |
 | **BC-5 Inventory** | `orgId` | `workOrderId` | — | — | internal | — | — | — |
 | **BC-6 Alerts** | `orgId`, `vesselId` | `equipmentId`, `workOrderId` | — | — | — | internal | — | — |
-| **BC-7 ML** | `orgId`, `vesselId` | `equipmentId` | — | — | — | — | internal | — |
-| **BC-8 Platform** | `orgId`, `userId`, `vesselId` | `equipmentId`, `deviceId`, `workOrderId` | — | — | `supplierId`, `prId` | — | — | internal |
+| **BC-7 ML** | `orgId`, `vesselId` | `equipmentId`, `workOrderId` | — | — | — | — | internal | — |
+| **BC-8 Platform** | `orgId`, `userId`, `vesselId` | `equipmentId`, `deviceId` | — | — | `supplierId`, `prId` | — | — | internal |
 
 **Key observation**: BC-1 (Fleet Registry) is referenced by every other context. BC-2 (Asset & Maintenance) is the second most referenced. These must be extracted first.
 
@@ -450,11 +450,15 @@ server/modules/fleet-registry/
 | `alertEmailLog` | BC-6 Alerts & Notifications | `alerts.ts` |
 | `crewAlertSettings` | BC-6 Alerts & Notifications | `alerts.ts` |
 | `alertCooldown` | BC-6 Alerts & Notifications | `alerts.ts` |
+| `mlModelsLegacy` | BC-7 ML & Digital Twin | `ml-analytics-core.ts` |
 | `mlModels` | BC-7 ML & Digital Twin | `ml-analytics-core.ts` |
 | `modelVersions` | BC-7 ML & Digital Twin | `ml-analytics-core.ts` |
+| `modelMetrics` | BC-7 ML & Digital Twin | `ml-analytics-core.ts` |
 | `anomalyDetections` | BC-7 ML & Digital Twin | `ml-analytics-core.ts` |
 | `failurePredictions` | BC-7 ML & Digital Twin | `ml-analytics-core.ts` |
-| `conditionDegradation` | BC-7 ML & Digital Twin | `ml-analytics-core.ts` |
+| `thresholdOptimizations` | BC-7 ML & Digital Twin | `ml-analytics-core.ts` |
+| `componentDegradation` | BC-7 ML & Digital Twin | `ml-analytics-core.ts` |
+| `failureHistory` | BC-7 ML & Digital Twin | `ml-analytics-core.ts` |
 | `trainingDatasets` | BC-7 ML & Digital Twin | `ml-training-pipeline.ts` |
 | `modelArtifacts` | BC-7 ML & Digital Twin | `ml-training-pipeline.ts` |
 | `trainingRuns` | BC-7 ML & Digital Twin | `ml-training-pipeline.ts` |
