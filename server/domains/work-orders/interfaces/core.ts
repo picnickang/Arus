@@ -65,6 +65,27 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
     })
   );
 
+  app.get("/api/work-orders/summary", requireOrgId,
+    withErrorHandling("fetch work order summary", async (req: Request, res: Response) => {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const workOrders = await workOrderService.listWorkOrders(undefined, orgId);
+      const now = new Date();
+
+      const total = workOrders.length;
+      const open = workOrders.filter((wo: any) => wo.status === "open" || wo.status === "in_progress" || wo.status === "pending").length;
+      const completed = workOrders.filter((wo: any) => wo.status === "completed" || wo.status === "closed").length;
+      const overdue = workOrders.filter((wo: any) => {
+        if (wo.status === "completed" || wo.status === "closed" || wo.status === "cancelled") return false;
+        if (!wo.scheduledDate && !wo.plannedEndDate) return false;
+        const dueDate = new Date(wo.scheduledDate || wo.plannedEndDate);
+        return dueDate < now;
+      }).length;
+      const highPriority = workOrders.filter((wo: any) => wo.priority === 1 || wo.priority === "high" || wo.priority === "critical").length;
+
+      res.json({ total, open, completed, overdue, overdueCount: overdue, highPriority });
+    })
+  );
+
   app.get("/api/work-orders/:id", requireOrgId,
     withErrorHandling("fetch work order", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
