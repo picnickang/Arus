@@ -65,26 +65,32 @@ interface PermissionsResponse {
   orgId: string;
   roles: Array<{ id: string; name: string; displayName: string }>;
   permissions: PermissionMatrix;
+  isDevMode?: boolean;
 }
 
 export function PermissionsProvider({ children }: { children: React.ReactNode }) {
-  const devMode = useDevModeState();
+  const clientDevMode = useDevModeState();
   
   const { data, isLoading, error } = useQuery<PermissionsResponse>({
     queryKey: ["/api/permissions/me"],
-    staleTime: 60 * 60 * 1000,
-    retry: 1,
+    staleTime: 5 * 60 * 1000,
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
   });
+
+  const effectiveDevMode = clientDevMode || (data?.isDevMode === true);
 
   const permissions: UserPermissions = useMemo(() => {
     if (isLoading) {
-      return { ...defaultPermissions, isLoading: true, isDevMode: devMode };
+      return { ...defaultPermissions, isLoading: true, isDevMode: effectiveDevMode };
     }
-    if (error) {
-      return { ...defaultPermissions, isLoading: false, error: error as Error, isDevMode: devMode };
-    }
-    if (!data) {
-      return { ...defaultPermissions, isLoading: false, isDevMode: devMode };
+    if (error || !data) {
+      return {
+        ...defaultPermissions,
+        isLoading: false,
+        error: error ? (error as Error) : null,
+        isDevMode: effectiveDevMode,
+      };
     }
     return {
       userId: data.userId,
@@ -92,26 +98,26 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
       roleIds: data.roles.map((r) => r.id),
       roleNames: data.roles.map((r) => r.displayName),
       permissions: data.permissions,
-      isDevMode: devMode,
+      isDevMode: effectiveDevMode,
       isLoading: false,
       error: null,
     };
-  }, [data, isLoading, error, devMode]);
+  }, [data, isLoading, error, effectiveDevMode]);
 
   const hasPermission = (resource: string, action: string): boolean => {
-    if (devMode) return true;
+    if (permissions.isDevMode) return true;
     if (permissions.isLoading) return false;
     return permissions.permissions[resource]?.[action] === true;
   };
 
   const hasAnyPermission = (resource: string, actions: string[]): boolean => {
-    if (devMode) return true;
+    if (permissions.isDevMode) return true;
     if (permissions.isLoading) return false;
     return actions.some((action) => permissions.permissions[resource]?.[action] === true);
   };
 
   const hasAllPermissions = (checks: Array<{ resource: string; action: string }>): boolean => {
-    if (devMode) return true;
+    if (permissions.isDevMode) return true;
     if (permissions.isLoading) return false;
     return checks.every((check) => permissions.permissions[check.resource]?.[check.action] === true);
   };
