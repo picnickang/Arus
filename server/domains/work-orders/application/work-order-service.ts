@@ -1,8 +1,3 @@
-/**
- * Work Order Application Service
- * Orchestrates use cases with dependency injection
- */
-
 import type {
   IWorkOrderRepository,
   IWorkOrderEventPublisher,
@@ -10,6 +5,7 @@ import type {
   InsertWorkOrder,
   WorkOrderSearchCriteria,
 } from "../domain";
+import { workOrderRepository } from "../repository";
 
 export interface WorkOrderServiceDependencies {
   workOrderRepository: IWorkOrderRepository;
@@ -19,12 +15,22 @@ export interface WorkOrderServiceDependencies {
 export class WorkOrderApplicationService {
   constructor(private deps: WorkOrderServiceDependencies) {}
 
-  async listWorkOrders(orgId?: string, vesselId?: string): Promise<SelectWorkOrder[]> {
-    return this.deps.workOrderRepository.findAll(orgId, vesselId);
+  async listWorkOrders(equipmentId?: string, orgId?: string, filters?: any): Promise<SelectWorkOrder[]> {
+    return workOrderRepository.findAll(equipmentId, orgId, filters);
+  }
+
+  async listWorkOrdersPaginated(
+    equipmentId: string | undefined,
+    orgId: string | undefined,
+    limit: number,
+    offset: number,
+    filters?: any
+  ): Promise<{ items: SelectWorkOrder[]; total: number }> {
+    return workOrderRepository.findPaginated(equipmentId, orgId, limit, offset, filters);
   }
 
   async getWorkOrderById(id: string, orgId?: string): Promise<SelectWorkOrder | undefined> {
-    return this.deps.workOrderRepository.findById(id, orgId);
+    return workOrderRepository.findById(id, orgId as string);
   }
 
   async searchWorkOrders(criteria: WorkOrderSearchCriteria): Promise<SelectWorkOrder[]> {
@@ -32,7 +38,7 @@ export class WorkOrderApplicationService {
   }
 
   async createWorkOrder(data: InsertWorkOrder, userId?: string): Promise<SelectWorkOrder> {
-    const workOrder = await this.deps.workOrderRepository.create(data);
+    const workOrder = await workOrderRepository.create(data);
 
     await this.deps.eventPublisher.publish({
       type: "WORK_ORDER_CREATED",
@@ -47,9 +53,13 @@ export class WorkOrderApplicationService {
     return workOrder;
   }
 
-  async updateWorkOrder(id: string, data: Partial<InsertWorkOrder>, userId?: string): Promise<SelectWorkOrder> {
-    const previous = await this.deps.workOrderRepository.findById(id);
-    const workOrder = await this.deps.workOrderRepository.update(id, data);
+  async createWorkOrderWithSuggestions(data: InsertWorkOrder, orgId: string, userId?: string): Promise<SelectWorkOrder> {
+    return this.createWorkOrder(data, userId);
+  }
+
+  async updateWorkOrder(id: string, data: Partial<InsertWorkOrder>, orgId?: string, userId?: string): Promise<SelectWorkOrder> {
+    const previous = await workOrderRepository.findById(id, orgId as string);
+    const workOrder = await workOrderRepository.update(id, data);
 
     if (data.status && previous && data.status !== previous.status) {
       await this.deps.eventPublisher.publish({
@@ -72,28 +82,109 @@ export class WorkOrderApplicationService {
     return workOrder;
   }
 
-  async deleteWorkOrder(id: string): Promise<void> {
-    await this.deps.workOrderRepository.delete(id);
+  async deleteWorkOrder(id: string, orgId?: string, userId?: string): Promise<void> {
+    await workOrderRepository.delete(id);
   }
 
-  async completeWorkOrder(id: string, completedBy?: string, notes?: string): Promise<SelectWorkOrder> {
-    const workOrder = await this.deps.workOrderRepository.update(id, {
-      status: "completed",
-      completedAt: new Date().toISOString(),
-    });
+  async completeWorkOrder(
+    workOrderId: string,
+    completionData: any,
+    orgId?: string,
+    userId?: string
+  ): Promise<any> {
+    const completion = await workOrderRepository.complete(workOrderId, completionData);
 
     await this.deps.eventPublisher.publish({
       type: "WORK_ORDER_COMPLETED",
-      workOrderId: workOrder.id,
-      completedBy,
-      completionNotes: notes,
+      workOrderId,
+      completedBy: userId,
       timestamp: new Date(),
     });
 
-    return workOrder;
+    return completion;
   }
 
   async getOverdueWorkOrders(orgId?: string): Promise<SelectWorkOrder[]> {
     return this.deps.workOrderRepository.findOverdue(orgId);
+  }
+
+  async cloneWorkOrder(workOrderId: string, orgId: string, options: any): Promise<SelectWorkOrder> {
+    return workOrderRepository.cloneWorkOrder(workOrderId, orgId, options);
+  }
+
+  async getWorkOrderHistory(workOrderId: string, orgId: string): Promise<any[]> {
+    return workOrderRepository.getWorkOrderHistory(workOrderId, orgId);
+  }
+
+  async getInventoryMovementsByWorkOrder(workOrderId: string, orgId: string): Promise<any[]> {
+    return workOrderRepository.getInventoryMovementsByWorkOrder(workOrderId, orgId);
+  }
+
+  async createMaintenanceCost(data: any): Promise<any> {
+    return workOrderRepository.createMaintenanceCost(data);
+  }
+
+  async getMaintenanceCostsByWorkOrder(workOrderId: string): Promise<any[]> {
+    return workOrderRepository.getMaintenanceCostsByWorkOrder(workOrderId);
+  }
+
+  async getWorkOrderParts(workOrderId: string, orgId: string): Promise<any[]> {
+    return workOrderRepository.getWorkOrderParts(workOrderId, orgId);
+  }
+
+  async addPartToWorkOrder(data: any): Promise<any> {
+    return workOrderRepository.addPartToWorkOrder(data);
+  }
+
+  async addBulkPartsAndReserveInventory(
+    workOrderId: string,
+    parts: any[],
+    orgId: string
+  ): Promise<{ added: any[]; updated: any[]; errors: any[] }> {
+    return workOrderRepository.addBulkPartsAndReserveInventory(workOrderId, parts, orgId);
+  }
+
+  async updateWorkOrderPart(partId: string, data: any): Promise<any> {
+    return workOrderRepository.updateWorkOrderPart(partId, data);
+  }
+
+  async removePartAndRestoreInventory(workOrderPartId: string, orgId: string, performedBy: string): Promise<void> {
+    return workOrderRepository.removePartAndRestoreInventory(workOrderPartId, orgId, performedBy);
+  }
+
+  async getPartsCostForWorkOrder(workOrderId: string): Promise<any> {
+    return workOrderRepository.getPartsCostForWorkOrder(workOrderId);
+  }
+
+  async getWorkOrderTasks(workOrderId: string, orgId: string): Promise<any[]> {
+    return workOrderRepository.getWorkOrderTasks(workOrderId, orgId);
+  }
+
+  async createWorkOrderTask(data: any): Promise<any> {
+    return workOrderRepository.createWorkOrderTask(data);
+  }
+
+  async updateWorkOrderTask(id: string, data: any): Promise<any> {
+    return workOrderRepository.updateWorkOrderTask(id, data);
+  }
+
+  async deleteWorkOrderTask(id: string): Promise<void> {
+    return workOrderRepository.deleteWorkOrderTask(id);
+  }
+
+  async getCompletions(filters: any): Promise<any[]> {
+    return workOrderRepository.getWorkOrderCompletions(filters);
+  }
+
+  async getWorkOrderCompletionAnalytics(filters: any): Promise<any> {
+    return workOrderRepository.getWorkOrderCompletionAnalytics(filters);
+  }
+
+  async getWorkOrderCompletion(id: string): Promise<any> {
+    return workOrderRepository.getWorkOrderCompletion(id);
+  }
+
+  async getWorkOrderCompletionsByWorkOrder(workOrderId: string): Promise<any[]> {
+    return workOrderRepository.getWorkOrderCompletionsByWorkOrder(workOrderId);
   }
 }

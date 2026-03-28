@@ -196,7 +196,7 @@ export function useMultiPartSelectorData(
 
   const hasStockWarnings = useMemo(() => selectedParts.some((part) => getStockWarning(part)?.severity === "error"), [selectedParts, getStockWarning]);
 
-  const filteredParts = useMemo(() => (availableParts ?? []).filter((part) => part.partNumber.toLowerCase().includes(searchTerm.toLowerCase()) || part.partName.toLowerCase().includes(searchTerm.toLowerCase())), [availableParts, searchTerm]);
+  const filteredParts = useMemo(() => (Array.isArray(availableParts) ? availableParts : []).filter((part) => part.partNumber.toLowerCase().includes(searchTerm.toLowerCase()) || part.partName.toLowerCase().includes(searchTerm.toLowerCase())), [availableParts, searchTerm]);
 
   const clearSelection = useCallback(() => setSelectedParts([]), []);
 
