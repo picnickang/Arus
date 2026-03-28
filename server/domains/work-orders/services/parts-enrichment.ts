@@ -7,7 +7,7 @@
 
 import { db } from "../../../db/index.js";
 import { workOrderParts, parts, stock, suppliers } from "@shared/schema.js";
-import { eq, and, inArray, sql } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 
 export interface EnrichedWorkOrderPart {
   id: string;
@@ -47,29 +47,6 @@ function determineStockStatus(quantityOnHand: number, minStockLevel: number | nu
   return "in_stock";
 }
 
-interface InventoryItem {
-  id: string;
-  partNumber: string;
-  partName: string;
-  quantityOnHand: number;
-  minStockLevel: number | null;
-  unitCost: number;
-  supplierName: string | null;
-  leadTimeDays: number | null;
-}
-
-function aggregateInventoryByPartNumber(inventoryData: InventoryItem[]): Map<string, InventoryItem> {
-  const result = new Map<string, InventoryItem>();
-  for (const inv of inventoryData) {
-    const existing = result.get(inv.partNumber);
-    if (existing) {
-      existing.quantityOnHand += inv.quantityOnHand;
-    } else {
-      result.set(inv.partNumber, { ...inv });
-    }
-  }
-  return result;
-}
 
 export async function getEnrichedWorkOrderParts(workOrderId: string, orgId: string): Promise<EnrichedWorkOrderPart[]> {
   const woParts = await db
