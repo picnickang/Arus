@@ -1,17 +1,20 @@
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, useMemo, lazy, Suspense, type ReactNode, type ComponentType } from "react";
 import { useLocation, useSearch, Link } from "wouter";
 import { ChevronLeft, ChevronRight, Home, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { PageLoader } from "./PageLoader";
 
 export interface GridItem {
   id: string;
   label: string;
   icon: LucideIcon;
-  component: ReactNode;
   description?: string;
   legacyRoutes?: string[];
+  component?: ReactNode;
+  load?: () => Promise<{ default: ComponentType<any> }>;
+  loaderVariant?: "default" | "table" | "cards" | "form";
 }
 
 export interface IconGridLayoutProps {
@@ -45,6 +48,15 @@ function GridItemCard({
         "hover:scale-105 active:scale-95"
       )}
       data-testid={`grid-item-${item.id}`}
+      role="tab"
+      aria-selected={isSelected}
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
     >
       <div
         className={cn(
@@ -84,6 +96,25 @@ function GridItemCard({
   );
 }
 
+function useDeferredComponent(item: GridItem | undefined) {
+  return useMemo(() => {
+    if (!item) return null;
+
+    if (item.component) return item.component;
+
+    if (item.load) {
+      const LazyComponent = lazy(item.load);
+      return (
+        <Suspense fallback={<PageLoader variant={item.loaderVariant || "cards"} />}>
+          <LazyComponent />
+        </Suspense>
+      );
+    }
+
+    return null;
+  }, [item?.id]);
+}
+
 export function IconGridLayout({
   title,
   description,
@@ -117,6 +148,7 @@ export function IconGridLayout({
   }, [searchString, items]);
 
   const selectedItem = items.find((item) => item.id === selectedId);
+  const deferredContent = useDeferredComponent(selectedItem);
 
   const handleSelectItem = (itemId: string) => {
     setSelectedId(itemId);
@@ -127,10 +159,6 @@ export function IconGridLayout({
 
   const handleBack = () => {
     window.history.back();
-  };
-
-  const handleHome = () => {
-    navigate("/");
   };
 
   return (
@@ -196,7 +224,7 @@ export function IconGridLayout({
         </div>
       </div>
 
-      <div className="border-b bg-muted/30">
+      <div className="border-b bg-muted/30" role="tablist" aria-label={`${title} navigation`}>
         <div className="container mx-auto px-4 py-4 sm:py-6 max-w-4xl">
           <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
             {items.map((item) => (
@@ -213,9 +241,9 @@ export function IconGridLayout({
       </div>
 
       <div className="flex-1 overflow-auto">
-        {selectedItem ? (
+        {deferredContent ? (
           <div className="h-full" data-testid={`grid-content-${selectedId}`}>
-            {selectedItem.component}
+            {deferredContent}
           </div>
         ) : (
           <div className="flex items-center justify-center h-64 text-muted-foreground">
@@ -232,18 +260,13 @@ export function createIconGridLegacyRedirects(
   baseRoute: string
 ): Array<{ from: string; to: string }> {
   const redirects: Array<{ from: string; to: string }> = [];
-
   for (const item of items) {
     if (item.legacyRoutes) {
       for (const legacyRoute of item.legacyRoutes) {
-        redirects.push({
-          from: legacyRoute,
-          to: `${baseRoute}?tab=${item.id}`,
-        });
+        redirects.push({ from: legacyRoute, to: `${baseRoute}?tab=${item.id}` });
       }
     }
   }
-
   return redirects;
 }
 

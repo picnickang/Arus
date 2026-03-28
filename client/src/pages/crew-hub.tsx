@@ -1,12 +1,10 @@
 import { Suspense, lazy } from "react";
-import { IconGridLayout, PageLoader, type GridItem } from "@/components/layouts";
+import { IconGridLayout, type GridItem } from "@/components/layouts";
 import { Users, CalendarCheck, Clock, Shield } from "lucide-react";
 import { featureFlags } from "@/lib/feature-flags";
 
-const CrewManagement = lazy(() => import("./crew-management"));
 const CrewScheduler = lazy(() => import("./crew-scheduler"));
 const SchedulePlanner = lazy(() => import("./schedule-planner"));
-const HoursOfRest = lazy(() => import("./hours-of-rest"));
 
 function ComplianceOverview() {
   return (
@@ -28,12 +26,9 @@ const crewItems: GridItem[] = [
     id: "roster",
     label: "Crew Roster",
     icon: Users,
-    description: "Team members",
-    component: (
-      <Suspense fallback={<PageLoader variant="table" />}>
-        <CrewManagement />
-      </Suspense>
-    ),
+    description: "Manage crew",
+    load: () => import("./crew-management"),
+    loaderVariant: "table",
     legacyRoutes: ["/crew-management"],
   },
   {
@@ -42,7 +37,7 @@ const crewItems: GridItem[] = [
     icon: CalendarCheck,
     description: "SmartPAL scheduling",
     component: (
-      <Suspense fallback={<PageLoader variant="table" />}>
+      <Suspense fallback={<div className="p-6 text-muted-foreground">Loading scheduler...</div>}>
         {featureFlags.newSchedulerEnabled ? <SchedulePlanner /> : <CrewScheduler />}
       </Suspense>
     ),
@@ -53,11 +48,8 @@ const crewItems: GridItem[] = [
     label: "Hours of Rest",
     icon: Clock,
     description: "Rest compliance",
-    component: (
-      <Suspense fallback={<PageLoader variant="table" />}>
-        <HoursOfRest />
-      </Suspense>
-    ),
+    load: () => import("./hours-of-rest"),
+    loaderVariant: "table",
     legacyRoutes: ["/hours-of-rest"],
   },
   {

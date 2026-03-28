@@ -1,13 +1,5 @@
-import { Suspense, lazy } from "react";
-import { IconGridLayout, PageLoader, type GridItem } from "@/components/layouts";
+import { IconGridLayout, type GridItem } from "@/components/layouts";
 import { Wrench, Calendar, FileSpreadsheet, Target, Zap, TrendingUp } from "lucide-react";
-
-const WorkOrders = lazy(() => import("./work-orders"));
-const MaintenanceSchedules = lazy(() => import("./maintenance-schedules"));
-const MaintenanceTemplates = lazy(() => import("./MaintenanceTemplatesPage"));
-const OptimizationTools = lazy(() => import("./optimization-tools"));
-const PdmPack = lazy(() => import("./pdm-pack"));
-const PdmDashboard = lazy(() => import("./pdm-dashboard"));
 
 const maintenanceItems: GridItem[] = [
   {
@@ -15,11 +7,8 @@ const maintenanceItems: GridItem[] = [
     label: "Work Orders",
     icon: Wrench,
     description: "Active work orders",
-    component: (
-      <Suspense fallback={<PageLoader variant="table" />}>
-        <WorkOrders />
-      </Suspense>
-    ),
+    load: () => import("./work-orders"),
+    loaderVariant: "table",
     legacyRoutes: ["/work-orders"],
   },
   {
@@ -27,11 +16,8 @@ const maintenanceItems: GridItem[] = [
     label: "Schedules",
     icon: Calendar,
     description: "Maintenance schedule",
-    component: (
-      <Suspense fallback={<PageLoader variant="table" />}>
-        <MaintenanceSchedules />
-      </Suspense>
-    ),
+    load: () => import("./maintenance-schedules"),
+    loaderVariant: "table",
     legacyRoutes: ["/maintenance"],
   },
   {
@@ -39,11 +25,8 @@ const maintenanceItems: GridItem[] = [
     label: "Templates",
     icon: FileSpreadsheet,
     description: "Task templates",
-    component: (
-      <Suspense fallback={<PageLoader variant="table" />}>
-        <MaintenanceTemplates />
-      </Suspense>
-    ),
+    load: () => import("./MaintenanceTemplatesPage"),
+    loaderVariant: "table",
     legacyRoutes: ["/maintenance-templates"],
   },
   {
@@ -51,11 +34,8 @@ const maintenanceItems: GridItem[] = [
     label: "Optimization",
     icon: Target,
     description: "Optimize planning",
-    component: (
-      <Suspense fallback={<PageLoader variant="cards" />}>
-        <OptimizationTools />
-      </Suspense>
-    ),
+    load: () => import("./optimization-tools"),
+    loaderVariant: "cards",
     legacyRoutes: ["/optimization-tools"],
   },
   {
@@ -63,11 +43,8 @@ const maintenanceItems: GridItem[] = [
     label: "PdM Pack",
     icon: Zap,
     description: "Predictive maintenance tools",
-    component: (
-      <Suspense fallback={<PageLoader variant="cards" />}>
-        <PdmPack />
-      </Suspense>
-    ),
+    load: () => import("./pdm-pack"),
+    loaderVariant: "cards",
     legacyRoutes: ["/pdm-pack"],
   },
   {
@@ -75,11 +52,8 @@ const maintenanceItems: GridItem[] = [
     label: "PdM Dashboard",
     icon: TrendingUp,
     description: "Risk queue & fleet health",
-    component: (
-      <Suspense fallback={<PageLoader variant="cards" />}>
-        <PdmDashboard />
-      </Suspense>
-    ),
+    load: () => import("./pdm-dashboard"),
+    loaderVariant: "cards",
     legacyRoutes: ["/pdm-dashboard"],
   },
 ];

@@ -1,11 +1,5 @@
-/**
- * Page Tracking
- *
- * UX REFACTOR: Extracted from home.tsx so it can be statically imported
- * instead of dynamically importing the entire home module on every navigation.
- */
-
 const RECENT_PAGES_KEY = "arus-recent-pages";
+const LAST_VISIT_KEY = "arus-last-visit-time";
 const MAX_RECENT = 8;
 
 export function trackPageVisit(path: string): void {
@@ -16,7 +10,6 @@ export function trackPageVisit(path: string): void {
     filtered.unshift(path);
     localStorage.setItem(RECENT_PAGES_KEY, JSON.stringify(filtered.slice(0, MAX_RECENT)));
   } catch {
-    // localStorage unavailable — silently skip
   }
 }
 
@@ -29,10 +22,24 @@ export function getRecentPages(): string[] {
   }
 }
 
+export function getLastVisitTime(): string | null {
+  try {
+    return localStorage.getItem(LAST_VISIT_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function recordVisitTime(): void {
+  try {
+    localStorage.setItem(LAST_VISIT_KEY, new Date().toISOString());
+  } catch {
+  }
+}
+
 export function clearRecentPages(): void {
   try {
     localStorage.removeItem(RECENT_PAGES_KEY);
   } catch {
-    // ignore
   }
 }

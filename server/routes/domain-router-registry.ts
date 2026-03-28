@@ -218,6 +218,14 @@ const domainRouters: DomainRouterConfig[] = [
   // Class Survey Tracking
   { name: "Surveys", importPath: "../domains/surveys/routes.js", functionName: "registerSurveyRoutes",
     getDeps: () => ({ storage, generalApiRateLimit, writeOperationRateLimit }) },
+
+  // Home Attention Summary
+  { name: "Home", importPath: "../routes/home-routes.js", functionName: "registerHomeRoutes",
+    getDeps: () => ({ storage, generalApiRateLimit }) },
+
+  // KB Ask (unified search + analyze)
+  { name: "KbAsk", importPath: "../routes/kb-ask-route.js", functionName: "registerKbAskRoute",
+    getDeps: () => ({ generalApiRateLimit }) },
 ];
 
 /**

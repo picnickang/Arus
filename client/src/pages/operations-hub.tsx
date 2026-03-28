@@ -1,10 +1,5 @@
-import { Suspense, lazy } from "react";
-import { IconGridLayout, PageLoader, type GridItem } from "@/components/layouts";
+import { IconGridLayout, type GridItem } from "@/components/layouts";
 import { Gauge, Lightbulb, Activity } from "lucide-react";
-
-const Dashboard = lazy(() => import("./dashboard-improved"));
-const ActiveTelemetry = lazy(() => import("./active-telemetry"));
-const ActionableInsights = lazy(() => import("./actionable-insights"));
 
 const operationsItems: GridItem[] = [
   {
@@ -12,11 +7,8 @@ const operationsItems: GridItem[] = [
     label: "Dashboard",
     icon: Gauge,
     description: "Fleet overview and alerts",
-    component: (
-      <Suspense fallback={<PageLoader variant="cards" />}>
-        <Dashboard />
-      </Suspense>
-    ),
+    load: () => import("./dashboard-improved"),
+    loaderVariant: "cards",
     legacyRoutes: ["/dashboard", "/alerts"],
   },
   {
@@ -24,11 +16,8 @@ const operationsItems: GridItem[] = [
     label: "Active Telemetry",
     icon: Activity,
     description: "Live sensor streams",
-    component: (
-      <Suspense fallback={<PageLoader variant="cards" />}>
-        <ActiveTelemetry />
-      </Suspense>
-    ),
+    load: () => import("./active-telemetry"),
+    loaderVariant: "cards",
     legacyRoutes: ["/active-telemetry"],
   },
   {
@@ -36,11 +25,8 @@ const operationsItems: GridItem[] = [
     label: "Actionable Insights",
     icon: Lightbulb,
     description: "AI recommendations",
-    component: (
-      <Suspense fallback={<PageLoader variant="cards" />}>
-        <ActionableInsights />
-      </Suspense>
-    ),
+    load: () => import("./actionable-insights"),
+    loaderVariant: "cards",
     legacyRoutes: ["/actionable-insights"],
   },
 ];

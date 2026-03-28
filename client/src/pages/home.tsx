@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
@@ -7,11 +7,14 @@ import { NavigationCard } from "@/components/navigation/NavigationCard";
 import { QuickActions } from "@/components/shared/QuickActions";
 import { AttentionBanner } from "@/components/shared/AttentionBanner";
 import { homePageGroups, type HomePageGroup } from "@/config/navigationConfig";
+import { trackPageVisit, getLastVisitTime, recordVisitTime } from "@/lib/pageTracking";
 import {
   Wrench, AlertTriangle, Clock, Activity, Ship, Shield,
   ClipboardCheck, Anchor, BookOpen, BarChart3, Settings,
-  ChevronRight, Gauge,
+  ChevronRight, Gauge, History,
 } from "lucide-react";
+
+export { trackPageVisit };
 
 export interface RoleConfig {
   id: string;
@@ -130,41 +133,83 @@ function RoleSelector({ onSelect }: { onSelect: (roleId: string) => void }) {
 }
 
 function useAttentionItems() {
-  const { data: workOrderData } = useQuery({
-    queryKey: ["/api/work-orders/summary"],
+  const lastVisit = getLastVisitTime();
+
+  const { data: summary } = useQuery<{
+    overdueWorkOrders: number;
+    unacknowledgedAlerts: number;
+    highRiskEquipment: number;
+    newSinceLastVisit?: {
+      newAlerts: number;
+      newWorkOrders: number;
+      completedWorkOrders: number;
+    };
+  }>({
+    queryKey: ["/api/home/attention-summary"],
     refetchInterval: 60000,
+    queryFn: async () => {
+      const headers: Record<string, string> = {};
+      if (lastVisit) {
+        headers["x-last-visit"] = lastVisit;
+      }
+      const res = await fetch("/api/home/attention-summary", { headers });
+      if (!res.ok) throw new Error("Failed to fetch attention summary");
+      return res.json();
+    },
   });
 
-  const { data: alertData } = useQuery({
-    queryKey: ["/api/alerts?acknowledged=false"],
-    refetchInterval: 30000,
-  });
-
-  const { data: pdmData } = useQuery({
-    queryKey: ["/api/pdm-dashboard/risk-queue"],
-    refetchInterval: 120000,
-  });
-
-  return useMemo(() => {
+  const attentionItems = useMemo(() => {
+    if (!summary) return [];
     const items: Array<{ label: string; count: number; severity: string; href: string }> = [];
 
-    const overdueWO = (workOrderData as any)?.overdue ?? (workOrderData as any)?.overdueCount ?? 0;
-    if (overdueWO > 0) {
-      items.push({ label: "Overdue work orders", count: overdueWO, severity: "critical", href: "/work-orders?status=overdue" });
+    if (summary.overdueWorkOrders > 0) {
+      items.push({ label: "Overdue work orders", count: summary.overdueWorkOrders, severity: "critical", href: "/work-orders?status=overdue" });
     }
-
-    const unackAlerts = Array.isArray(alertData) ? alertData.length : ((alertData as any)?.count ?? 0);
-    if (unackAlerts > 0) {
-      items.push({ label: "Unacknowledged alerts", count: unackAlerts, severity: "warning", href: "/dashboard" });
+    if (summary.unacknowledgedAlerts > 0) {
+      items.push({ label: "Unacknowledged alerts", count: summary.unacknowledgedAlerts, severity: "warning", href: "/dashboard" });
     }
-
-    const highRiskEquipment = Array.isArray(pdmData) ? pdmData.filter((e: any) => e.riskLevel === "high" || e.riskLevel === "critical").length : 0;
-    if (highRiskEquipment > 0) {
-      items.push({ label: "High-risk equipment", count: highRiskEquipment, severity: "warning", href: "/pdm-dashboard" });
+    if (summary.highRiskEquipment > 0) {
+      items.push({ label: "High-risk equipment", count: summary.highRiskEquipment, severity: "warning", href: "/pdm-dashboard" });
     }
 
     return items;
-  }, [workOrderData, alertData, pdmData]);
+  }, [summary]);
+
+  return { attentionItems, sinceLastVisit: summary?.newSinceLastVisit };
+}
+
+function SinceLastVisit({ data }: { data: { newAlerts: number; newWorkOrders: number; completedWorkOrders: number } }) {
+  const total = data.newAlerts + data.newWorkOrders + data.completedWorkOrders;
+  if (total === 0) return null;
+
+  return (
+    <div className="mb-6 p-4 rounded-lg border bg-card" data-testid="section-since-last-visit">
+      <div className="flex items-center gap-2 mb-3">
+        <History className="h-4 w-4 text-muted-foreground" />
+        <h3 className="text-sm font-semibold text-foreground">Since Your Last Visit</h3>
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        {data.newAlerts > 0 && (
+          <div className="text-center p-2 rounded bg-yellow-500/10">
+            <div className="text-lg font-bold text-yellow-600" data-testid="text-new-alerts">{data.newAlerts}</div>
+            <div className="text-xs text-muted-foreground">New Alerts</div>
+          </div>
+        )}
+        {data.newWorkOrders > 0 && (
+          <div className="text-center p-2 rounded bg-blue-500/10">
+            <div className="text-lg font-bold text-blue-600" data-testid="text-new-work-orders">{data.newWorkOrders}</div>
+            <div className="text-xs text-muted-foreground">New Work Orders</div>
+          </div>
+        )}
+        {data.completedWorkOrders > 0 && (
+          <div className="text-center p-2 rounded bg-green-500/10">
+            <div className="text-lg font-bold text-green-600" data-testid="text-completed-work-orders">{data.completedWorkOrders}</div>
+            <div className="text-xs text-muted-foreground">Completed</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function MyTasks() {
@@ -220,26 +265,19 @@ function MyTasks() {
   );
 }
 
-const RECENT_PAGES_KEY = "arus-recent-pages";
-const MAX_RECENT = 6;
-
-export function trackPageVisit(path: string) {
-  try {
-    const stored = localStorage.getItem(RECENT_PAGES_KEY);
-    const recent: string[] = stored ? JSON.parse(stored) : [];
-    const filtered = recent.filter((p) => p !== path);
-    filtered.unshift(path);
-    localStorage.setItem(RECENT_PAGES_KEY, JSON.stringify(filtered.slice(0, MAX_RECENT)));
-  } catch { /* ignore */ }
-}
-
 export default function HomePage() {
   const [role, setRole] = useState<string | null>(() => {
     try { return localStorage.getItem(STORAGE_KEY); } catch { return null; }
   });
 
-  const attentionItems = useAttentionItems();
+  const { attentionItems, sinceLastVisit } = useAttentionItems();
   const roleConfig = role ? ROLES[role] : null;
+
+  useEffect(() => {
+    if (role) {
+      recordVisitTime();
+    }
+  }, [role]);
 
   const handleSelectRole = (roleId: string) => {
     localStorage.setItem(STORAGE_KEY, roleId);
@@ -284,6 +322,8 @@ export default function HomePage() {
         {roleConfig && (
           <QuickActions actions={roleConfig.quickActions} className="mb-6" />
         )}
+
+        {sinceLastVisit && <SinceLastVisit data={sinceLastVisit} />}
 
         <MyTasks />
 

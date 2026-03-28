@@ -1,19 +1,3 @@
-/**
- * Inline AI Assistant
- *
- * UX REFACTOR: Surface the RAG knowledge base where work happens,
- * not behind a separate menu item.
- *
- * Renders a floating chat button on equipment detail and work order pages.
- * Opens a compact chat panel that queries the existing /api/kb/search and
- * /api/llm/analyze endpoints with equipment context pre-filled.
- *
- * Usage:
- *   <InlineAIAssistant
- *     context={{ equipmentId: "eq-123", equipmentName: "Main Engine" }}
- *   />
- */
-
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Bot, X, Send, Loader2, Minimize2 } from "lucide-react";
@@ -48,19 +32,16 @@ export function InlineAIAssistant({ context, className }: InlineAIAssistantProps
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Focus input when opened
   useEffect(() => {
     if (isOpen && !isMinimized) {
       setTimeout(() => inputRef.current?.focus(), 200);
     }
   }, [isOpen, isMinimized]);
 
-  // Build context string for the AI
   const contextString = [
     context?.equipmentName && `Equipment: ${context.equipmentName}`,
     context?.vesselName && `Vessel: ${context.vesselName}`,
@@ -78,58 +59,67 @@ export function InlineAIAssistant({ context, className }: InlineAIAssistantProps
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    const query = input.trim();
     setInput("");
     setIsLoading(true);
 
     try {
-      // Try KB search first for factual queries
-      const searchRes = await fetch("/api/kb/search?" + new URLSearchParams({
-        q: input.trim(),
-        limit: "3",
-      }));
-
-      let kbResults: any[] = [];
-      if (searchRes.ok) {
-        const searchData = await searchRes.json();
-        kbResults = searchData.results || [];
-      }
-
-      // Then get AI analysis with context
-      const analysisRes = await fetch("/api/llm/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: input.trim(),
-          context: contextString,
-          equipmentId: context?.equipmentId,
-          vesselId: context?.vesselId,
-          kbContext: kbResults.map((r: any) => r.content || r.text).join("\n\n"),
-        }),
-      });
-
       let assistantContent = "";
       let sources: ChatMessage["sources"] = [];
 
-      if (analysisRes.ok) {
-        const analysisData = await analysisRes.json();
-        assistantContent = analysisData.analysis || analysisData.response || analysisData.text || "No analysis available.";
-        if (kbResults.length > 0) {
+      const unifiedRes = await fetch("/api/kb/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query,
+          context: contextString,
+          equipmentId: context?.equipmentId,
+          vesselId: context?.vesselId,
+        }),
+      });
+
+      if (unifiedRes.ok) {
+        const data = await unifiedRes.json();
+        assistantContent = data.answer || data.analysis || data.response || data.text || "";
+        sources = (data.sources || []).map((s: any) => ({
+          title: s.title || s.documentTitle || "Document",
+          relevance: s.relevance || s.score || 0,
+        }));
+      } else if (unifiedRes.status === 404) {
+        const searchRes = await fetch("/api/kb/search?" + new URLSearchParams({ q: query, limit: "3" }));
+
+        let kbResults: any[] = [];
+        if (searchRes.ok) {
+          const searchData = await searchRes.json();
+          kbResults = searchData.results || [];
           sources = kbResults.map((r: any) => ({
             title: r.title || r.documentTitle || "Document",
             relevance: r.relevance || r.score || 0,
           }));
         }
-      } else {
-        // Fallback to just KB results
-        if (kbResults.length > 0) {
+
+        const analysisRes = await fetch("/api/llm/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            query,
+            context: contextString,
+            equipmentId: context?.equipmentId,
+            vesselId: context?.vesselId,
+            kbContext: kbResults.map((r: any) => r.content || r.text).join("\n\n"),
+          }),
+        });
+
+        if (analysisRes.ok) {
+          const analysisData = await analysisRes.json();
+          assistantContent = analysisData.analysis || analysisData.response || analysisData.text || "";
+        } else if (kbResults.length > 0) {
           assistantContent = kbResults.map((r: any) => r.content || r.text).join("\n\n");
-          sources = kbResults.map((r: any) => ({
-            title: r.title || "Document",
-            relevance: r.relevance || 0,
-          }));
-        } else {
-          assistantContent = "I couldn't find relevant information. Try rephrasing your question, or check the Knowledge Base for uploaded documentation.";
         }
+      }
+
+      if (!assistantContent) {
+        assistantContent = "I couldn't find relevant information. Try rephrasing your question, or check the Knowledge Base for uploaded documentation.";
       }
 
       const assistantMessage: ChatMessage = {
@@ -154,7 +144,6 @@ export function InlineAIAssistant({ context, className }: InlineAIAssistantProps
     }
   };
 
-  // Suggested questions based on context
   const suggestions = [
     context?.equipmentName && `What's the maintenance procedure for ${context.equipmentName}?`,
     context?.equipmentName && `What are common failure modes for this equipment?`,
@@ -162,7 +151,6 @@ export function InlineAIAssistant({ context, className }: InlineAIAssistantProps
     "What spare parts are needed?",
   ].filter(Boolean) as string[];
 
-  // Floating button only
   if (!isOpen) {
     return (
       <button
@@ -182,7 +170,6 @@ export function InlineAIAssistant({ context, className }: InlineAIAssistantProps
     );
   }
 
-  // Minimized state
   if (isMinimized) {
     return (
       <button
@@ -207,7 +194,6 @@ export function InlineAIAssistant({ context, className }: InlineAIAssistantProps
     );
   }
 
-  // Full chat panel
   return (
     <div
       className={cn(
@@ -217,7 +203,6 @@ export function InlineAIAssistant({ context, className }: InlineAIAssistantProps
         className
       )}
     >
-      {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b bg-card">
         <div className="flex items-center gap-2">
           <Bot className="h-5 w-5 text-primary" />
@@ -250,7 +235,6 @@ export function InlineAIAssistant({ context, className }: InlineAIAssistantProps
         </div>
       </div>
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-[200px] max-h-[50vh]">
         {messages.length === 0 && (
           <div className="space-y-3">
@@ -311,7 +295,6 @@ export function InlineAIAssistant({ context, className }: InlineAIAssistantProps
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
       <div className="px-3 py-3 border-t bg-card">
         <div className="flex items-center gap-2">
           <input
@@ -324,7 +307,7 @@ export function InlineAIAssistant({ context, className }: InlineAIAssistantProps
             className="flex-1 h-10 px-3 text-sm rounded-lg border bg-background
                        focus:outline-none focus:ring-1 focus:ring-primary"
             disabled={isLoading}
-            data-testid="input-ai-question"
+            data-testid="input-ai-query"
           />
           <button
             onClick={handleSend}

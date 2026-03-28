@@ -3,11 +3,6 @@ import { IconGridLayout, PageLoader, type GridItem } from "@/components/layouts"
 import { Settings, Activity, Shield, Building, Bell, CloudSun } from "lucide-react";
 
 const ConfigurationHub = lazy(() => import("./configuration-hub"));
-const SensorsHub = lazy(() => import("./sensors-hub"));
-const SystemAdministration = lazy(() => import("./system-administration"));
-const OrganizationManagement = lazy(() => import("./organization-management"));
-const NotificationsHub = lazy(() => import("./notifications-hub"));
-const StormGeoSettings = lazy(() => import("./stormgeo-settings"));
 
 const systemItems: GridItem[] = [
   {
@@ -15,11 +10,8 @@ const systemItems: GridItem[] = [
     label: "Admin",
     icon: Shield,
     description: "System admin",
-    component: (
-      <Suspense fallback={<PageLoader variant="cards" />}>
-        <SystemAdministration />
-      </Suspense>
-    ),
+    load: () => import("./system-administration"),
+    loaderVariant: "cards",
     legacyRoutes: ["/system-administration"],
   },
   {
@@ -39,11 +31,8 @@ const systemItems: GridItem[] = [
     label: "Notifications",
     icon: Bell,
     description: "Alerts, preferences & templates",
-    component: (
-      <Suspense fallback={<PageLoader variant="form" />}>
-        <NotificationsHub />
-      </Suspense>
-    ),
+    load: () => import("./notifications-hub"),
+    loaderVariant: "form",
     legacyRoutes: ["/notifications", "/notification-settings", "/email-alerts-settings", "/email-templates"],
   },
   {
@@ -51,11 +40,8 @@ const systemItems: GridItem[] = [
     label: "Organizations",
     icon: Building,
     description: "Org management",
-    component: (
-      <Suspense fallback={<PageLoader variant="table" />}>
-        <OrganizationManagement />
-      </Suspense>
-    ),
+    load: () => import("./organization-management"),
+    loaderVariant: "table",
     legacyRoutes: ["/organization-management"],
   },
   {
@@ -63,11 +49,8 @@ const systemItems: GridItem[] = [
     label: "Sensors",
     icon: Activity,
     description: "Sensors & templates",
-    component: (
-      <Suspense fallback={<PageLoader variant="cards" />}>
-        <SensorsHub />
-      </Suspense>
-    ),
+    load: () => import("./sensors-hub"),
+    loaderVariant: "cards",
     legacyRoutes: ["/sensors", "/sensor-templates"],
   },
   {
@@ -75,11 +58,8 @@ const systemItems: GridItem[] = [
     label: "StormGeo",
     icon: CloudSun,
     description: "Weather integration",
-    component: (
-      <Suspense fallback={<PageLoader variant="form" />}>
-        <StormGeoSettings />
-      </Suspense>
-    ),
+    load: () => import("./stormgeo-settings"),
+    loaderVariant: "form",
     legacyRoutes: ["/stormgeo-settings"],
   },
 ];

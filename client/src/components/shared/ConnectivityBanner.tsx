@@ -1,36 +1,32 @@
-/**
- * Connectivity Banner
- *
- * UX REFACTOR: Persistent indicator showing connection status.
- * Maritime users need to know immediately when connectivity drops.
- *
- * States:
- *   - online: Hidden (no distraction)
- *   - degraded: Yellow bar ("Slow connection — data may be delayed")
- *   - offline: Red bar ("Offline — changes saved locally")
- *   - syncing: Blue bar ("Syncing X items...")
- */
-
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { Wifi, WifiOff, CloudOff, Loader2 } from "lucide-react";
+import { WifiOff, CloudOff, Loader2 } from "lucide-react";
 
 type ConnectionState = "online" | "degraded" | "offline" | "syncing";
 
 interface ConnectivityBannerProps {
-  /** Number of items queued for sync */
   pendingSyncCount?: number;
   className?: string;
 }
 
+const FAST_INTERVAL_MS = 30 * 1000;
+const SLOW_INTERVAL_MS = 120 * 1000;
+const STABLE_THRESHOLD = 3;
+
 export function ConnectivityBanner({ pendingSyncCount = 0, className }: ConnectivityBannerProps) {
   const [state, setState] = useState<ConnectionState>("online");
   const [dismissed, setDismissed] = useState(false);
+  const consecutiveSuccesses = useRef(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const stateRef = useRef<ConnectionState>(state);
+
+  stateRef.current = state;
 
   const checkConnection = useCallback(async () => {
     if (!navigator.onLine) {
       setState("offline");
       setDismissed(false);
+      consecutiveSuccesses.current = 0;
       return;
     }
 
@@ -39,7 +35,6 @@ export function ConnectivityBanner({ pendingSyncCount = 0, className }: Connecti
       return;
     }
 
-    // Ping the health endpoint to detect degraded connectivity
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
@@ -49,33 +44,58 @@ export function ConnectivityBanner({ pendingSyncCount = 0, className }: Connecti
       clearTimeout(timeout);
 
       const latency = Date.now() - start;
-      setState(latency > 3000 ? "degraded" : "online");
+      if (latency > 3000) {
+        setState("degraded");
+        consecutiveSuccesses.current = 0;
+      } else {
+        setState("online");
+        consecutiveSuccesses.current++;
+      }
     } catch {
       setState(navigator.onLine ? "degraded" : "offline");
       setDismissed(false);
+      consecutiveSuccesses.current = 0;
     }
   }, [pendingSyncCount]);
 
-  useEffect(() => {
-    checkConnection();
+  const schedulePolling = useCallback(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
 
-    const handleOnline = () => checkConnection();
-    const handleOffline = () => { setState("offline"); setDismissed(false); };
+    if (stateRef.current === "offline") return;
+
+    const interval = consecutiveSuccesses.current >= STABLE_THRESHOLD
+      ? SLOW_INTERVAL_MS
+      : FAST_INTERVAL_MS;
+
+    intervalRef.current = setInterval(() => {
+      checkConnection().then(() => schedulePolling());
+    }, interval);
+  }, [checkConnection]);
+
+  useEffect(() => {
+    checkConnection().then(() => schedulePolling());
+
+    const handleOnline = () => {
+      consecutiveSuccesses.current = 0;
+      checkConnection().then(() => schedulePolling());
+    };
+    const handleOffline = () => {
+      setState("offline");
+      setDismissed(false);
+      consecutiveSuccesses.current = 0;
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    // Periodic check every 30 seconds
-    const interval = setInterval(checkConnection, 30000);
-
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
-      clearInterval(interval);
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [checkConnection]);
+  }, [checkConnection, schedulePolling]);
 
-  // Don't show banner when online
   if (state === "online" || dismissed) return null;
 
   const config = {
@@ -109,11 +129,7 @@ export function ConnectivityBanner({ pendingSyncCount = 0, className }: Connecti
 
   return (
     <div
-      className={cn(
-        "flex items-center justify-between px-4 py-2 border-b text-sm",
-        config.bg,
-        className
-      )}
+      className={cn("flex items-center justify-between px-4 py-2 border-b text-sm", config.bg, className)}
       role="status"
       aria-live="polite"
     >
@@ -123,7 +139,6 @@ export function ConnectivityBanner({ pendingSyncCount = 0, className }: Connecti
           {config.text}
         </span>
       </div>
-
       {config.dismissable && (
         <button
           onClick={() => setDismissed(true)}
