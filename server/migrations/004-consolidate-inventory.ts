@@ -36,6 +36,19 @@ async function migrate() {
       )
     `);
 
+    console.log("[Migration] Phase 0: Additive schema ALTERs for consolidated parts columns");
+
+    const additiveCols = [
+      { col: "manufacturer", def: "ALTER TABLE parts ADD COLUMN IF NOT EXISTS manufacturer TEXT" },
+      { col: "is_active", def: "ALTER TABLE parts ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true" },
+      { col: "last_usage_30d", def: "ALTER TABLE parts ADD COLUMN IF NOT EXISTS last_usage_30d INTEGER DEFAULT 0" },
+      { col: "risk_level", def: "ALTER TABLE parts ADD COLUMN IF NOT EXISTS risk_level TEXT DEFAULT 'medium'" },
+    ];
+    for (const c of additiveCols) {
+      await client.query(c.def);
+    }
+    console.log(`  Added ${additiveCols.length} additive columns to parts (IF NOT EXISTS)`);
+
     console.log("[Migration] Phase 1: Migrate parts_inventory → parts + stock");
 
     const piRows = await client.query(`

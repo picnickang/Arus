@@ -210,7 +210,10 @@ export class DatabaseStorage implements IStorage {
       const [completion] = await tx.insert(workOrderCompletions).values(completionData).returning();
       const woParts = await tx.select().from(workOrderParts).where(eq(workOrderParts.workOrderId, workOrderId));
       for (const woPart of woParts) {
-        const [currentStock] = await tx.select().from(stock).where(and(eq(stock.partId, woPart.partId), eq(stock.orgId, completionData.orgId))).limit(1);
+        let [currentStock] = await tx.select().from(stock).where(and(eq(stock.partId, woPart.partId), eq(stock.orgId, completionData.orgId), sql`${stock.quantityReserved} > 0`)).orderBy(sql`${stock.quantityReserved} DESC`).limit(1);
+        if (!currentStock) {
+          [currentStock] = await tx.select().from(stock).where(and(eq(stock.partId, woPart.partId), eq(stock.orgId, completionData.orgId))).limit(1);
+        }
         if (currentStock) {
           const quantityBefore = Math.round(currentStock.quantityOnHand ?? 0), reservedBefore = Math.round(currentStock.quantityReserved ?? 0), quantityToConsume = woPart.quantityUsed;
           await tx.update(stock).set({ quantityOnHand: sql`GREATEST(0, ${stock.quantityOnHand} - ${quantityToConsume})`, quantityReserved: sql`GREATEST(0, ${stock.quantityReserved} - ${quantityToConsume})`, updatedAt: now }).where(eq(stock.id, currentStock.id));
