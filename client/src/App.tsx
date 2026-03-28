@@ -18,6 +18,7 @@ import { useEffect, lazy, Suspense, useState, useCallback, type ReactNode } from
 import { Loader2 } from "lucide-react";
 import { isDesktop } from "@/lib/desktop";
 import { isDesktopSetupCompleteSync, bootstrapDesktopBackend, markSetupComplete } from "@/lib/desktopFetch";
+import { trackPageVisit } from "@/lib/pageTracking";
 
 const HomePage = lazy(() => import("@/pages/home"));
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -76,7 +77,7 @@ function useTrackPageVisit() {
   const [loc] = useLocation();
   useEffect(() => {
     if (loc !== "/") {
-      import("@/lib/pageTracking").then((m) => m.trackPageVisit?.(loc)).catch(() => {});
+      trackPageVisit(loc);
     }
   }, [loc]);
 }

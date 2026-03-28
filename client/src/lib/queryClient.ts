@@ -42,8 +42,10 @@ function createHeaders(includeContentType: boolean = false): Record<string, stri
     headers["Content-Type"] = "application/json";
   }
 
-  const orgId = getCurrentOrgId() || "default-org-id";
-  headers["x-org-id"] = orgId;
+  const orgId = getCurrentOrgId();
+  if (orgId) {
+    headers["x-org-id"] = orgId;
+  }
 
   const deviceId = getCurrentDeviceId();
   if (deviceId) {

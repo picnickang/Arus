@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { 
   Activity, 
   AlertTriangle, 
@@ -1201,11 +1201,17 @@ export default function PdmDashboard() {
   const { data: financials, isLoading: financialsLoading } = useEquipmentFinancials();
   const { data: telemetryTrends, isLoading: telemetryLoading } = useTelemetryTrends(undefined, 24);
 
+  const searchTimeoutRef = useRef<NodeJS.Timeout>();
+
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
-    const timeoutId = setTimeout(() => setDebouncedSearch(value), 300);
-    return () => clearTimeout(timeoutId);
+    clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(() => setDebouncedSearch(value), 300);
   };
+
+  useEffect(() => {
+    return () => clearTimeout(searchTimeoutRef.current);
+  }, []);
 
   const handleExportCSV = () => {
     const params = new URLSearchParams();

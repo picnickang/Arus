@@ -145,17 +145,8 @@ function useAttentionItems() {
       completedWorkOrders: number;
     };
   }>({
-    queryKey: ["/api/home/attention-summary"],
+    queryKey: ["/api/home/attention-summary", lastVisit ? { since: lastVisit } : {}],
     refetchInterval: 60000,
-    queryFn: async () => {
-      const headers: Record<string, string> = {};
-      if (lastVisit) {
-        headers["x-last-visit"] = lastVisit;
-      }
-      const res = await fetch("/api/home/attention-summary", { headers });
-      if (!res.ok) throw new Error("Failed to fetch attention summary");
-      return res.json();
-    },
   });
 
   const attentionItems = useMemo(() => {

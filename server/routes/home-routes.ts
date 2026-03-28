@@ -22,8 +22,8 @@ export function registerHomeRoutes(app: Express, deps: { storage: any; generalAp
     withErrorHandling("get home attention summary", async (req: Request, res: Response) => {
       const orgId = (req as any).orgId || req.headers["x-org-id"] as string;
 
-      const lastVisitHeader = req.headers["x-last-visit"] as string;
-      const lastVisitTime = lastVisitHeader ? new Date(lastVisitHeader) : null;
+      const sinceParam = (req.query.since as string) || (req.headers["x-last-visit"] as string);
+      const lastVisitTime = sinceParam ? new Date(sinceParam) : null;
 
       const [workOrderSummary, alerts, pdmRiskQueue] = await Promise.allSettled([
         safeCall(storage.getWorkOrderSummary?.bind(storage), orgId),
