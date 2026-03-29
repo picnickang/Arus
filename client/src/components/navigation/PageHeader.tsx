@@ -9,14 +9,17 @@ interface PageHeaderProps {
   subtitle?: string;
   showBack?: boolean;
   showHome?: boolean;
+  onBack?: () => void;
   action?: ReactNode;
 }
 
-export function PageHeader({ title, subtitle, showBack = true, showHome = true, action }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, showBack = true, showHome = true, onBack, action }: PageHeaderProps) {
   const [, setLocation] = useLocation();
 
   const handleBack = () => {
-    if (window.history.length > 1) {
+    if (onBack) {
+      onBack();
+    } else if (window.history.length > 1) {
       window.history.back();
     } else {
       setLocation("/");

@@ -291,18 +291,11 @@ export default function HomePage() {
         title="ARUS"
         subtitle={roleConfig?.label}
         showHome={false}
-        action={
-          <button
-            onClick={() => {
-              localStorage.removeItem(STORAGE_KEY);
-              setRole(null);
-            }}
-            data-testid="button-change-role"
-            className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded"
-          >
-            Change role
-          </button>
-        }
+        showBack={true}
+        onBack={() => {
+          localStorage.removeItem(STORAGE_KEY);
+          setRole(null);
+        }}
       />
 
       <div className="px-4 lg:px-6 pt-2">
