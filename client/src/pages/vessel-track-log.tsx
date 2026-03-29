@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { Navigation, Ship, Calendar, RefreshCw, MapPin, Compass, Gauge, Download, Activity } from "lucide-react";
+import { PageHeader } from "@/components/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +17,9 @@ export default function VesselTrackLogPage() {
   const { vessels, tracks, tracksLoading, stats, statsLoading, lastPosition, selectedVessel, setSelectedVessel, dateRange, setDateRange, activeTab, setActiveTab, navStatusDistribution, processTelemetryMutation, handleProcessTelemetry, exportGpx } = useVesselTrackData();
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
+    <div className="container mx-auto max-w-7xl">
+      <PageHeader title="Vessel Track Log" />
+      <div className="p-6">
         <div className="flex flex-col md:flex-row md:items-center justify-end gap-4 mb-6">
         <div className="flex items-center gap-3 flex-wrap"><Select value={selectedVessel} onValueChange={setSelectedVessel}><SelectTrigger className="w-[200px]" data-testid="select-vessel"><Ship className="h-4 w-4 mr-2 text-muted-foreground" /><SelectValue placeholder="Select Vessel" /></SelectTrigger><SelectContent>{vessels.filter(v => v.id).map((vessel) => <SelectItem key={vessel.id} value={vessel.id}>{vessel.name}</SelectItem>)}</SelectContent></Select><Select value={dateRange} onValueChange={setDateRange}><SelectTrigger className="w-[150px]" data-testid="select-date-range"><Calendar className="h-4 w-4 mr-2 text-muted-foreground" /><SelectValue /></SelectTrigger><SelectContent><SelectItem value="1h">Last Hour</SelectItem><SelectItem value="6h">Last 6 Hours</SelectItem><SelectItem value="24h">Last 24 Hours</SelectItem><SelectItem value="7d">Last 7 Days</SelectItem></SelectContent></Select>{selectedVessel && <><Button variant="outline" onClick={() => handleProcessTelemetry(selectedVessel)} disabled={processTelemetryMutation.isPending} data-testid="button-process"><RefreshCw className={`h-4 w-4 mr-2 ${processTelemetryMutation.isPending ? "animate-spin" : ""}`} />Process GPS Data</Button><Button variant="outline" onClick={exportGpx} data-testid="button-export-gpx"><Download className="h-4 w-4 mr-2" />Export GPX</Button></>}</div>
       </div>
@@ -46,6 +49,7 @@ export default function VesselTrackLogPage() {
           </Tabs>
         </>
       )}
+      </div>
     </div>
   );
 }

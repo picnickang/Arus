@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { Book, Wrench, FileWarning, Bell, Ship, Calendar, CheckCircle2, AlertTriangle, XCircle, ArrowRight, ClipboardCheck, BarChart3, FileText, CloudSun } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,7 +16,9 @@ export default function LogsComplianceHub() {
   const { vessels, findingsLoading, selectedVessel, setSelectedVessel, activeTab, setActiveTab, todayStr, filteredFindings, severityCounts, recentFindings, getVesselName } = useLogsComplianceData();
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
+    <div className="container mx-auto max-w-7xl">
+      <PageHeader title="Logs & Compliance" />
+      <div className="px-6 pb-6">
       <div className="flex flex-col md:flex-row md:items-center justify-end gap-4 mb-6">
         <div className="flex items-center gap-3"><Select value={selectedVessel} onValueChange={setSelectedVessel}><SelectTrigger className="w-[200px]" data-testid="select-vessel-filter"><Ship className="h-4 w-4 mr-2 text-muted-foreground" /><SelectValue placeholder="All Vessels" /></SelectTrigger><SelectContent><SelectItem value="all">All Vessels</SelectItem>{vessels.filter(v => v.id).map((vessel) => <SelectItem key={vessel.id} value={vessel.id}>{vessel.name}</SelectItem>)}</SelectContent></Select></div>
       </div>
@@ -53,6 +56,7 @@ export default function LogsComplianceHub() {
           </div>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }

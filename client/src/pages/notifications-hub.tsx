@@ -2,6 +2,7 @@ import { lazy, Suspense, useState, useEffect, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Bell, AlertTriangle, Mail } from "lucide-react";
+import { PageHeader } from "@/components/navigation";
 
 const NotificationSettings = lazy(() => import("./notification-settings"));
 const EmailAlertsSettings = lazy(() => import("./email-alerts-settings"));
@@ -43,7 +44,9 @@ export default function NotificationsHub() {
   }, []);
 
   return (
-    <div className="flex flex-col h-full p-4">
+    <div className="flex flex-col h-full">
+      <PageHeader title="Notifications" />
+      <div className="p-4">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
           <TabsList className="grid w-full max-w-md grid-cols-3">
             <TabsTrigger value="preferences" className="flex items-center gap-2" data-testid="tab-preferences">
@@ -78,6 +81,7 @@ export default function NotificationsHub() {
             </Suspense>
           </TabsContent>
         </Tabs>
+      </div>
     </div>
   );
 }

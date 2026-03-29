@@ -18,8 +18,11 @@ import {
   Ship,
   Gauge,
   DollarSign,
-  BarChart3
+  BarChart3,
+  Home,
+  ChevronLeft
 } from 'lucide-react';
+import { Link, useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -1165,6 +1168,7 @@ function SensorTimeSeriesChart({ trends, isLoading }: { trends?: TelemetryTrend[
 type MainView = 'risk-queue' | 'schedule';
 
 export default function PdmDashboard() {
+  const [, setLocation] = useLocation();
   const [mainView, setMainView] = useState<MainView>('risk-queue');
   const [activeTab, setActiveTab] = useState<'active' | 'new' | 'resolved'>('active');
   const [selectedItem, setSelectedItem] = useState<RiskQueueItem | null>(null);
@@ -1251,6 +1255,16 @@ export default function PdmDashboard() {
         <div className="px-4 py-3">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1">
+                <Link href="/">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:text-white" data-testid="button-home">
+                    <Home className="h-4 w-4" />
+                  </Button>
+                </Link>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:text-white" onClick={() => { window.history.length > 1 ? window.history.back() : setLocation("/"); }} data-testid="button-back">
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              </div>
               <h1 className="text-lg font-semibold whitespace-nowrap">Predictive Maintenance</h1>
               
               <div className="hidden md:flex items-center gap-1 bg-slate-700/50 rounded-lg p-1">

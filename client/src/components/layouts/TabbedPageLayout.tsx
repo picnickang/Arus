@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/components/MobileTouchControls";
+import { ChevronLeft, Home } from "lucide-react";
 
 export interface TabDefinition {
   id: string;
@@ -73,7 +75,6 @@ export function TabbedPageLayout({
 
   return (
     <div className="h-full flex flex-col">
-      {/* Page Header */}
       <div
         className={cn(
           "border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
@@ -81,7 +82,25 @@ export function TabbedPageLayout({
         )}
       >
         <div className="flex items-start justify-between gap-4">
-          <div>
+          <div className="flex items-center gap-2">
+            <Link href="/">
+              <Button variant="ghost" size="icon" className="h-9 w-9" data-testid="button-home">
+                <Home className="h-5 w-5" />
+                <span className="sr-only">Home</span>
+              </Button>
+            </Link>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => { window.history.length > 1 ? window.history.back() : setLocation("/"); }}
+              data-testid="button-back"
+            >
+              <ChevronLeft className="h-5 w-5" />
+              <span className="sr-only">Back</span>
+            </Button>
+          </div>
+          <div className="flex-1 min-w-0">
             <h1
               className={cn("font-bold tracking-tight", isMobile ? "text-2xl" : "text-3xl")}
               data-testid="page-title"

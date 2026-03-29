@@ -16,6 +16,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Calendar, Mail, FileText, Clock, Play, Trash2, Eye, Loader2 } from 'lucide-react';
+import { PageHeader } from "@/components/navigation";
 import type { ReportSchedule } from '@shared/schema/scheduled-reports';
 
 const REPORT_TYPES = [
@@ -250,10 +251,11 @@ export default function ScheduledReports() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6" data-testid="page-scheduled-reports">
+    <div className="container mx-auto" data-testid="page-scheduled-reports">
+      <PageHeader title="Scheduled Reports" />
+      <div className="p-6 space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold" data-testid="text-page-title">Scheduled Reports</h1>
           <p className="text-muted-foreground">Automate report generation and delivery</p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
@@ -508,6 +510,7 @@ export default function ScheduledReports() {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

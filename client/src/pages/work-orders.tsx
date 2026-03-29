@@ -1,6 +1,7 @@
 import { Plus, Trash2, Package, FileText, Wrench } from "lucide-react";
 import { WorkOrderRequestsTab } from "@/components/work-orders/WorkOrderRequestsTab";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { WorkOrderFilterPanel, VirtualizedWorkOrderTable, WorkOrderDetailDrawer, WorkOrderFormDialog, WorkOrderCloneDialog } from "@/components/work-orders";
@@ -39,6 +40,7 @@ export default function WorkOrders() {
 
   return (
     <div className="min-h-screen">
+      <PageHeader title="Work Orders" />
       <div className="px-6 py-4 flex flex-wrap items-center justify-end gap-3">
         <PermissionGate resource="work_orders" action="delete">
           <Button variant="destructive" data-testid="button-clear-all-work-orders" onClick={handleClearAllOrders} disabled={clearAllMutation.isPending || !workOrders?.length}><Trash2 className="mr-2 h-4 w-4" />{clearAllMutation.isPending ? "Clearing..." : "Clear All"}</Button>

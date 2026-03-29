@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 import { ChevronLeft, ChevronRight, Calendar, Ship, Compass, Wind, Waves, Eye, Gauge, Thermometer, Save, FileText, Clock, Users, CheckCircle2, AlertCircle, Download, FileSpreadsheet, Activity, Fuel, Lock, Plus, MapPin, CloudSun, Loader2 } from "lucide-react";
+import { PageHeader } from "@/components/navigation";
 import { format } from "date-fns";
 import { useDeckLogbookData, WIND_DIRECTIONS, BEAUFORT_SCALE, SEA_STATES, VISIBILITY_CODES, WATCH_PERIODS, MANUAL_EVENT_TYPES, getEventTypeConfig, type DeckLogbookHookReturn } from "@/features/deck-logbook";
 import { PermissionGate, PagePermissionDenied } from "@/components/PermissionGate";
@@ -82,7 +83,9 @@ export default function DeckLogbookPage() {
   if (d.loadingVessels) {return <div className="p-6 space-y-4"><Skeleton className="h-10 w-64" /><Skeleton className="h-96 w-full" /></div>;}
 
   return (
-    <div className="p-6 space-y-6">
+    <div>
+      <PageHeader title="Deck Logbook" />
+      <div className="p-6 space-y-6">
         <div className="flex flex-wrap items-center justify-end gap-4">
           {d.isLocked && <Badge className="bg-red-600"><Lock className="h-3 w-3 mr-1" />Locked</Badge>}
           {d.isSigned && !d.isLocked && <Badge className="bg-green-600"><CheckCircle2 className="h-3 w-3 mr-1" />Signed</Badge>}
@@ -218,6 +221,7 @@ export default function DeckLogbookPage() {
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }

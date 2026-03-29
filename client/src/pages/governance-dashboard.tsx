@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Brain, Loader2, AlertCircle, Activity, Shield, GitBranch, Clock, Database, RefreshCw, FileCheck, Filter, Eye, Link, Hash, Cpu, Calendar, User, Layers } from "lucide-react";
+import { PageHeader } from "@/components/navigation";
 import { format, formatDistanceToNow, parseISO } from "date-fns";
 import { useGovernanceData, type LineageRecord, FAMILY_COLORS, STAGE_COLORS, EVENT_TYPE_CONFIG } from "@/features/settings";
 import { formatNumber } from "@/lib/formatters";
@@ -20,6 +21,7 @@ export default function GovernanceDashboard() {
 
   return (
     <div className="min-h-screen">
+      <PageHeader title="Governance Dashboard" />
       <div className="container mx-auto py-6 px-4 space-y-6">
         <div className="flex flex-wrap items-center justify-end gap-3">
           <Button variant="outline" onClick={handleRefresh} data-testid="button-refresh-governance"><RefreshCw className="h-4 w-4 mr-2" />Refresh</Button>

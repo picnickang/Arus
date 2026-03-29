@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 import { ChevronLeft, ChevronRight, Calendar, Ship, Gauge, Save, FileText, Clock, Users, CheckCircle2, AlertCircle, Download, FileSpreadsheet, Activity, Fuel, Bell, Lock, Plus, Settings, Zap, Droplets, CircleDot } from "lucide-react";
+import { PageHeader } from "@/components/navigation";
 import { format } from "date-fns";
 import { useEngineLogbookData, WATCH_PERIODS, GENERATOR_NUMBERS, checkAnomaly, getAnomalyClass, MANUAL_ENGINE_EVENT_TYPES, getEngineEventTypeConfig, type EngineLogEvent, type EngineLogbookHookReturn } from "@/features/engine-logbook";
 import { PermissionGate, PagePermissionDenied } from "@/components/PermissionGate";
@@ -93,7 +94,9 @@ export default function EngineLogbookPage() {
   if (e.loadingVessels) {return <div className="container mx-auto p-6"><Skeleton className="h-8 w-64 mb-6" /><div className="grid gap-4"><Skeleton className="h-32 w-full" /><Skeleton className="h-64 w-full" /></div></div>;}
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto">
+      <PageHeader title="Engine Logbook" />
+      <div className="p-6 space-y-6">
         <div className="flex flex-wrap items-center justify-end gap-2">
           <Button variant="default" size="sm" onClick={() => e.autoFillMutation.mutate()} disabled={!e.selectedVesselId || !e.selectedDate || e.isLocked || e.autoFillMutation.isPending} data-testid="button-autofill"><Zap className="h-4 w-4 mr-2" />{e.autoFillMutation.isPending ? "Filling..." : "Auto-Fill from Telemetry"}</Button>
           <Button variant="outline" size="sm" onClick={() => e.notifyUnsignedMutation.mutate()} disabled={e.notifyUnsignedMutation.isPending} data-testid="button-notify-unsigned"><Bell className="h-4 w-4 mr-2" />{e.notifyUnsignedMutation.isPending ? "Sending..." : "Notify Unsigned"}</Button>
@@ -266,6 +269,7 @@ export default function EngineLogbookPage() {
           </CardContent>
         </Card>
       )}
+      </div>
     </div>
   );
 }

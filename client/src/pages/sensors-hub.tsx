@@ -2,6 +2,7 @@ import { Brain, Activity, FileText } from "lucide-react";
 import { lazy, Suspense, useState, useEffect, useCallback } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageHeader } from "@/components/navigation";
 
 const SensorOptimization = lazy(() => import("./sensor-optimization"));
 const SensorManagement = lazy(() => import("./sensor-management"));
@@ -47,7 +48,9 @@ export default function SensorsHub() {
   }, []);
 
   return (
-    <div className="flex flex-col h-full p-4">
+    <div className="flex flex-col h-full">
+      <PageHeader title="Sensors" />
+      <div className="p-4">
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
         <TabsList className="grid w-full max-w-md grid-cols-3">
           <TabsTrigger value="optimization" className="flex items-center gap-2" data-testid="tab-optimization">
@@ -82,6 +85,7 @@ export default function SensorsHub() {
           </Suspense>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }
