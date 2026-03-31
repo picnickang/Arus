@@ -13,6 +13,7 @@ import {
   Shield, Package, Wrench, Users, ChevronRight,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { cn } from "@/lib/utils";
 import { AgentChatPanel } from "./AgentChatPanel";
 
@@ -57,12 +58,16 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
+const MAINTENANCE_ROLES = ["admin", "chief_engineer", "second_engineer", "captain", "chief_officer"];
+
 export function SuggestionBell() {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatMessage, setChatMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("pending");
   const queryClient = useQueryClient();
+  const { roles } = useUserPermissions();
+  const canMutate = roles.some(r => MAINTENANCE_ROLES.includes(r));
 
   const { data: suggestions = [] } = useQuery<Suggestion[]>({
     queryKey: ["/api/agent/suggestions"],
@@ -140,7 +145,7 @@ export function SuggestionBell() {
                       <SuggestionCard
                         key={suggestion.id}
                         suggestion={suggestion}
-                        onDismiss={() => dismissMutation.mutate(suggestion.id)}
+                        onDismiss={canMutate ? () => dismissMutation.mutate(suggestion.id) : undefined}
                         onOpenInAssistant={() => openInAssistant(suggestion)}
                       />
                     ))}
@@ -182,7 +187,7 @@ function SuggestionCard({
   onOpenInAssistant,
 }: {
   suggestion: Suggestion;
-  onDismiss: () => void;
+  onDismiss?: () => void;
   onOpenInAssistant: () => void;
 }) {
   const Icon = TRIGGER_ICONS[suggestion.triggerType] || Lightbulb;
@@ -203,15 +208,17 @@ function SuggestionCard({
             <span className="text-xs font-medium truncate" data-testid={`text-suggestion-title-${suggestion.id}`}>
               {suggestion.title}
             </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-5 w-5 shrink-0"
-              onClick={onDismiss}
-              data-testid={`button-dismiss-${suggestion.id}`}
-            >
-              <X className="h-3 w-3" />
-            </Button>
+            {onDismiss && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-5 w-5 shrink-0"
+                onClick={onDismiss}
+                data-testid={`button-dismiss-${suggestion.id}`}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            )}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2" data-testid={`text-suggestion-summary-${suggestion.id}`}>
             {suggestion.summary}

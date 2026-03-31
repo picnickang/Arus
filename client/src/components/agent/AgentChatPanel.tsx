@@ -255,6 +255,7 @@ export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolea
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const chatFormRef = useRef<HTMLFormElement>(null);
   const convIdRef = useRef<string | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -350,8 +351,7 @@ export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolea
       setStreamingMessages([]);
       setMessage(initialMessage);
       setTimeout(() => {
-        const form = document.querySelector('[data-testid="form-agent-chat"]') as HTMLFormElement | null;
-        if (form) form.requestSubmit();
+        if (chatFormRef.current) chatFormRef.current.requestSubmit();
       }, 100);
     }
     if (!open) {
@@ -745,6 +745,7 @@ export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolea
                 </div>
               )}
               <form
+                ref={chatFormRef}
                 onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
                 className="flex gap-2"
                 data-testid="form-agent-chat"

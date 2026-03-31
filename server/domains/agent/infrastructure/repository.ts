@@ -176,6 +176,12 @@ export function createAgentRepository(): AgentRepositoryPort {
           .orderBy(desc(agentSuggestions.createdAt))
           .limit(limit);
       },
+      async getById(id: string): Promise<AgentSuggestion | null> {
+        const [sug] = await db.select().from(agentSuggestions)
+          .where(eq(agentSuggestions.id, id))
+          .limit(1);
+        return sug || null;
+      },
       async update(id: string, data: Partial<AgentSuggestion>): Promise<AgentSuggestion> {
         const [sug] = await db.update(agentSuggestions)
           .set(data)

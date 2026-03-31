@@ -105,7 +105,13 @@ export class SuggestionEngine {
 
     if (newSuggestions.length > 0) {
       await this.aiSummarizeSuggestions(newSuggestions);
-      await this.queueNotifications(orgId, newSuggestions);
+      const updatedSuggestions = await Promise.all(
+        newSuggestions.map(async (s) => {
+          const fresh = await this.repo.suggestions.getById(s.id);
+          return fresh || s;
+        })
+      );
+      await this.queueNotifications(orgId, updatedSuggestions);
     }
 
     console.log(`[SuggestionEngine] Generated ${newSuggestions.length} suggestions for org ${orgId}`);
