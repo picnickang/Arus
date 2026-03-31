@@ -136,9 +136,10 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       const result = await orchestrator.runWithAttachments(orgId, userId, conversationId, message, attachments, userRole);
 
       const realConvId = result.conversationId;
-      for (const f of files) {
-        registerFile(orgId, realConvId, f);
-      }
+      const fileRefs = files.map(f => {
+        const record = registerFile(orgId, realConvId, f);
+        return { fileId: record.id, filename: record.filename, mimetype: record.mimetype, size: record.size };
+      });
 
       res.json({
         conversationId: result.conversationId,
@@ -146,6 +147,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         toolCalls: result.toolCalls,
         toolCallCount: result.toolCallCount,
         totalTokens: result.totalTokens,
+        files: fileRefs,
       });
     } catch (error: unknown) {
       console.error("[Agent] Multimodal chat error:", error);

@@ -16,6 +16,14 @@ import { getCurrentOrgId } from "@/contexts/OrganizationContext";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
+interface FileRef {
+  fileId: string;
+  filename: string;
+  mimetype: string;
+  size: number;
+  previewUrl?: string;
+}
+
 interface ChatMessage {
   id: string;
   role: "user" | "assistant" | "tool";
@@ -23,6 +31,7 @@ interface ChatMessage {
   toolCalls?: ToolCallTrace[];
   createdAt: string;
   inlineDraft?: DraftRecord;
+  attachments?: FileRef[];
 }
 
 interface Conversation {
@@ -472,13 +481,22 @@ export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolea
     setStreamText("");
     setRetryStatus(null);
 
-    const fileLabels = filesToSend.map(f => f.type.startsWith("image/") ? `[Image: ${f.name}]` : `[File: ${f.name}]`);
-    const displayContent = userMsg + (fileLabels.length > 0 ? "\n" + fileLabels.join(" ") : "");
+    const localAttachments: FileRef[] = filesToSend.map(f => {
+      const previewKey = `${f.name}-${f.size}`;
+      return {
+        fileId: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        filename: f.name,
+        mimetype: f.type,
+        size: f.size,
+        previewUrl: filePreviews.get(previewKey),
+      };
+    });
 
     setStreamingMessages(prev => [...prev, {
       id: `temp-user-${Date.now()}`,
       role: "user",
-      content: displayContent,
+      content: userMsg || (filesToSend.length > 0 ? "Attached file(s) for analysis" : ""),
+      attachments: localAttachments.length > 0 ? localAttachments : undefined,
       createdAt: new Date().toISOString(),
     }]);
 
@@ -492,7 +510,7 @@ export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolea
         filesToSend.forEach(f => formData.append("files", f));
 
         setUploadProgress(0);
-        const result = await new Promise<{ conversationId?: string; response?: string; toolCalls?: ToolCallTrace[] }>((resolve, reject) => {
+        const result = await new Promise<{ conversationId?: string; response?: string; toolCalls?: ToolCallTrace[]; files?: FileRef[] }>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
           xhr.open("POST", "/api/agent/chat-multimodal");
           xhr.setRequestHeader("x-org-id", getCurrentOrgId() || "default-org-id");
@@ -784,6 +802,22 @@ export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolea
                       )}
                       data-testid={`text-message-${msg.id}`}
                     >
+                      {msg.attachments && msg.attachments.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mb-1.5">
+                          {msg.attachments.map((att) => (
+                            <div key={att.fileId} className="flex items-center gap-1.5 rounded border px-2 py-1 text-xs bg-background/50" data-testid={`attachment-card-${att.fileId}`}>
+                              {att.previewUrl ? (
+                                <img src={att.previewUrl} alt={att.filename} className="w-8 h-8 rounded object-cover" />
+                              ) : att.mimetype.startsWith("image/") ? (
+                                <ImageIcon className="h-4 w-4 shrink-0 opacity-70" />
+                              ) : (
+                                <FileText className="h-4 w-4 shrink-0 opacity-70" />
+                              )}
+                              <span className="max-w-[80px] truncate">{att.filename}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       {msg.toolCalls && msg.toolCalls.length > 0 && (
                         <ToolCallTimeline traces={msg.toolCalls} />
                       )}

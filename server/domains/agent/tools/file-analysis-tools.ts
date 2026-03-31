@@ -53,11 +53,24 @@ registerTool({
       general: "You are a marine engineering specialist. Analyze this image in the context of marine vessel operations. Describe what you see, identify any equipment or components, assess their condition, and note anything relevant to maintenance or safety.",
     };
 
+    const structuredPrompt = `${prompts[analysisType] || prompts.general}
+
+IMPORTANT: Return your analysis as a JSON object with these fields:
+{
+  "conditionRating": "good" | "fair" | "poor" | "critical" | null,
+  "identifiedComponents": ["list of identified equipment/components"],
+  "visibleDamage": ["list of visible damage or wear observations"],
+  "recommendations": ["list of maintenance/repair recommendations"],
+  "urgencyLevel": "low" | "medium" | "high" | "critical" | null,
+  "summary": "Brief overall summary paragraph"
+}
+Only include fields relevant to the analysis type. Return valid JSON only.`;
+
     try {
       const response = await client.chat.completions.create({
         model: "gpt-4o",
         messages: [
-          { role: "system", content: prompts[analysisType] || prompts.general },
+          { role: "system", content: structuredPrompt },
           {
             role: "user",
             content: [
@@ -67,13 +80,27 @@ registerTool({
           },
         ],
         max_tokens: 1500,
+        response_format: { type: "json_object" },
       });
+
+      const rawContent = response.choices[0]?.message?.content || "{}";
+      let structured: Record<string, unknown>;
+      try {
+        structured = JSON.parse(rawContent);
+      } catch {
+        structured = { summary: rawContent };
+      }
 
       return {
         fileId,
         filename: record.filename,
         analysisType,
-        analysis: response.choices[0]?.message?.content || "No analysis available",
+        conditionRating: structured.conditionRating || null,
+        identifiedComponents: structured.identifiedComponents || [],
+        visibleDamage: structured.visibleDamage || [],
+        recommendations: structured.recommendations || [],
+        urgencyLevel: structured.urgencyLevel || null,
+        summary: structured.summary || "",
         tokensUsed: response.usage?.total_tokens || 0,
       };
     } catch (err) {
