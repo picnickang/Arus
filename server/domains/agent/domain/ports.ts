@@ -68,6 +68,7 @@ export interface SuggestionPreferences {
 
 export interface AgentSuggestionPort {
   create(data: InsertAgentSuggestion): Promise<AgentSuggestion>;
+  getById(id: string): Promise<AgentSuggestion | null>;
   list(orgId: string, status?: string, limit?: number): Promise<AgentSuggestion[]>;
   update(id: string, data: Partial<AgentSuggestion>): Promise<AgentSuggestion>;
   getPreferences(orgId: string, userId?: string): Promise<SuggestionPreferences | null>;

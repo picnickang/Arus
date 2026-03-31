@@ -46,7 +46,7 @@ export class SuggestionEngine {
     const id = setInterval(async () => {
       try {
         const storedPrefs = await this.repo.suggestions.getPreferences(orgId);
-        await this.generateProactiveSuggestions(orgId, storedPrefs);
+        await this.generateProactiveSuggestions(orgId, storedPrefs ?? undefined);
       } catch (err) {
         console.error(`[SuggestionEngine] Background evaluation error for org ${orgId}:`, err instanceof Error ? err.message : "unknown");
       }
