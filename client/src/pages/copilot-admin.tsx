@@ -26,7 +26,7 @@ interface AgentConfig {
   dailyTokenLimit: number;
   monthlyTokenLimit: number;
   customSystemPrompt?: string;
-  enabledTools?: string[];
+  enabledTools?: string[] | null;
 }
 
 interface UsageStats {
