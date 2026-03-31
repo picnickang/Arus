@@ -35,7 +35,11 @@ const upload = multer({
       "image/png", "image/jpeg",
       "application/pdf", "text/csv",
     ];
-    cb(null, allowed.includes(file.mimetype));
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Unsupported file type: ${file.mimetype}. Allowed: PNG, JPEG, PDF, CSV.`));
+    }
   },
 });
 
@@ -135,11 +139,10 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
 
       const result = await orchestrator.runWithAttachments(orgId, userId, conversationId, message, attachments, userRole);
 
-      const realConvId = result.conversationId;
-      const fileRefs = files.map(f => {
-        const record = registerFile(orgId, realConvId, f);
-        return { fileId: record.id, filename: record.filename, mimetype: record.mimetype, size: record.size };
-      });
+      const convFiles = listConversationFiles(result.conversationId, orgId);
+      const fileRefs = convFiles.map(f => ({
+        fileId: f.id, filename: f.filename, mimetype: f.mimetype, size: f.size,
+      }));
 
       res.json({
         conversationId: result.conversationId,

@@ -6,6 +6,7 @@ import type { AgentRunResult, FileAttachment, ToolCallTrace } from "../domain/ty
 import { getTool, getToolOpenAIDefinitions } from "../tools";
 import { SafetyService } from "./safety-service";
 import { auditAction } from "../../../utils/audit-helpers";
+import { registerFile, listConversationFiles } from "../infrastructure/file-registry";
 import type { AgentConversation, AgentMessage, AgentConfigType } from "@shared/schema";
 
 interface StoredToolCallRef {
@@ -333,6 +334,26 @@ export class AgentOrchestrator {
           fileDescriptions.push(`[File: ${att.filename} (could not read)]`);
         }
       }
+    }
+
+    for (const att of attachments) {
+      registerFile(orgId, conversation.id, {
+        originalname: att.filename,
+        mimetype: att.mimetype,
+        size: att.size,
+        path: att.path,
+      });
+    }
+
+    const convFiles = listConversationFiles(conversation.id, orgId);
+    if (convFiles.length > 0) {
+      const fileRefContext = convFiles.map(f =>
+        `- fileId: "${f.id}" | ${f.filename} (${f.mimetype}, ${f.size} bytes)`
+      ).join("\n");
+      contentParts.push({
+        type: "text",
+        text: `\n\n--- Available files for this conversation ---\n${fileRefContext}\nYou can use analyzeImage or analyzeSpreadsheet tools with these fileIds.\n--- End of file list ---`,
+      });
     }
 
     const displayContent = `${sanitizedMessage}${fileDescriptions.length > 0 ? "\n" + fileDescriptions.join(" ") : ""}`;
