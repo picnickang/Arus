@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Bot, Send, Plus, Loader2,
   Wrench, CheckCircle, XCircle, AlertTriangle,
-  Clock, ArrowLeft,
+  Clock, ArrowLeft, Paperclip, X, FileText, Image as ImageIcon,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { getCurrentOrgId } from "@/contexts/OrganizationContext";
@@ -38,6 +38,12 @@ interface StreamChunk {
   error?: string;
 }
 
+const ALLOWED_FILE_TYPES = [
+  "image/png", "image/jpeg", "image/gif", "image/webp",
+  "application/pdf", "text/plain", "text/csv",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+];
+
 export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [message, setMessage] = useState("");
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -45,8 +51,10 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
   const [streamingMessages, setStreamingMessages] = useState<ChatMessage[]>([]);
   const [pendingToolCalls, setPendingToolCalls] = useState<{ toolName: string; input: any }[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
   const { data: conversations = [] } = useQuery<Conversation[]>({
@@ -92,71 +100,109 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
     }
   }, [messages, streamingMessages, pendingToolCalls]);
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const valid = files.filter(f => ALLOWED_FILE_TYPES.includes(f.type) && f.size <= 10 * 1024 * 1024);
+    setAttachedFiles(prev => [...prev, ...valid].slice(0, 5));
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeFile = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   const sendMessage = useCallback(async () => {
-    if (!message.trim() || isStreaming) return;
+    if ((!message.trim() && attachedFiles.length === 0) || isStreaming) return;
     const userMsg = message.trim();
+    const filesToSend = [...attachedFiles];
     setMessage("");
+    setAttachedFiles([]);
     setIsStreaming(true);
     setPendingToolCalls([]);
+
+    const fileLabels = filesToSend.map(f => f.type.startsWith("image/") ? `[Image: ${f.name}]` : `[File: ${f.name}]`);
+    const displayContent = userMsg + (fileLabels.length > 0 ? "\n" + fileLabels.join(" ") : "");
 
     setStreamingMessages(prev => [...prev, {
       id: `temp-user-${Date.now()}`,
       role: "user",
-      content: userMsg,
+      content: displayContent,
       createdAt: new Date().toISOString(),
     }]);
 
     try {
-      const params = new URLSearchParams({ message: userMsg });
-      if (conversationId) params.set("conversationId", conversationId);
+      if (filesToSend.length > 0) {
+        const formData = new FormData();
+        formData.append("message", userMsg || "Please analyze the attached file(s).");
+        if (conversationId) formData.append("conversationId", conversationId);
+        filesToSend.forEach(f => formData.append("files", f));
 
-      const response = await fetch(`/api/agent/chat-stream?${params}`, {
-        headers: { "x-org-id": getCurrentOrgId() || "default-org-id" },
-      });
+        const response = await fetch("/api/agent/chat-multimodal", {
+          method: "POST",
+          headers: { "x-org-id": getCurrentOrgId() || "default-org-id" },
+          body: formData,
+        });
+        if (!response.ok) throw new Error("Failed to send message");
+        const result = await response.json();
+        if (result.conversationId) setConversationId(result.conversationId);
+        setStreamingMessages(prev => [...prev, {
+          id: `temp-assistant-${Date.now()}`,
+          role: "assistant",
+          content: result.response || "",
+          createdAt: new Date().toISOString(),
+        }]);
+      } else {
+        const params = new URLSearchParams({ message: userMsg });
+        if (conversationId) params.set("conversationId", conversationId);
 
-      if (!response.ok) throw new Error("Stream failed");
+        const response = await fetch(`/api/agent/chat-stream?${params}`, {
+          headers: { "x-org-id": getCurrentOrgId() || "default-org-id" },
+        });
 
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
+        if (!response.ok) throw new Error("Stream failed");
 
-      while (reader) {
-        const { done, value } = await reader.read();
-        if (done) break;
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n\n");
-        buffer = lines.pop() || "";
+        while (reader) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        for (const line of lines) {
-          const dataMatch = line.match(/^data: (.+)$/m);
-          if (!dataMatch) continue;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n\n");
+          buffer = lines.pop() || "";
 
-          try {
-            const chunk: StreamChunk = JSON.parse(dataMatch[1]);
+          for (const line of lines) {
+            const dataMatch = line.match(/^data: (.+)$/m);
+            if (!dataMatch) continue;
 
-            if (chunk.type === "tool_call") {
-              setPendingToolCalls(prev => [...prev, {
-                toolName: chunk.toolName!,
-                input: chunk.input,
-              }]);
-            } else if (chunk.type === "tool_result") {
-              setPendingToolCalls(prev =>
-                prev.filter(tc => tc.toolName !== chunk.toolName)
-              );
-            } else if (chunk.type === "text") {
-              setStreamingMessages(prev => [...prev, {
-                id: `temp-assistant-${Date.now()}`,
-                role: "assistant",
-                content: chunk.content || "",
-                createdAt: new Date().toISOString(),
-              }]);
-            } else if (chunk.type === "done") {
-              if (chunk.conversationId) {
-                setConversationId(chunk.conversationId);
+            try {
+              const chunk: StreamChunk = JSON.parse(dataMatch[1]);
+
+              if (chunk.type === "tool_call") {
+                setPendingToolCalls(prev => [...prev, {
+                  toolName: chunk.toolName!,
+                  input: chunk.input,
+                }]);
+              } else if (chunk.type === "tool_result") {
+                setPendingToolCalls(prev =>
+                  prev.filter(tc => tc.toolName !== chunk.toolName)
+                );
+              } else if (chunk.type === "text") {
+                setStreamingMessages(prev => [...prev, {
+                  id: `temp-assistant-${Date.now()}`,
+                  role: "assistant",
+                  content: chunk.content || "",
+                  createdAt: new Date().toISOString(),
+                }]);
+              } else if (chunk.type === "done") {
+                if (chunk.conversationId) {
+                  setConversationId(chunk.conversationId);
+                }
               }
-            }
-          } catch {}
+            } catch {}
+          }
         }
       }
     } catch (err: any) {
@@ -176,7 +222,7 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
       queryClient.invalidateQueries({ queryKey: ["/api/agent/drafts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/agent/conversations"] });
     }
-  }, [message, conversationId, isStreaming, queryClient]);
+  }, [message, conversationId, isStreaming, attachedFiles, queryClient]);
 
   const startNewConversation = () => {
     setConversationId(null);
@@ -357,15 +403,48 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
             </div>
 
             <div className="flex-shrink-0 border-t p-3">
+              {attachedFiles.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {attachedFiles.map((f, i) => (
+                    <div key={i} className="flex items-center gap-1 bg-muted rounded px-2 py-1 text-xs" data-testid={`attached-file-${i}`}>
+                      {f.type.startsWith("image/") ? <ImageIcon className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
+                      <span className="max-w-[100px] truncate">{f.name}</span>
+                      <button onClick={() => removeFile(i)} className="hover:text-destructive" data-testid={`button-remove-file-${i}`}>
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
               <form
                 onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
                 className="flex gap-2"
               >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.csv,.xlsx"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  data-testid="input-file-upload"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isStreaming || attachedFiles.length >= 5}
+                  className="flex-shrink-0"
+                  data-testid="button-attach-file"
+                >
+                  <Paperclip className="h-4 w-4" />
+                </Button>
                 <Input
                   ref={inputRef}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Ask about your fleet..."
+                  placeholder={attachedFiles.length > 0 ? "Describe what to do with the file(s)..." : "Ask about your fleet..."}
                   disabled={isStreaming}
                   className="flex-1"
                   data-testid="input-agent-message"
@@ -373,7 +452,7 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
                 <Button
                   type="submit"
                   size="icon"
-                  disabled={!message.trim() || isStreaming}
+                  disabled={(!message.trim() && attachedFiles.length === 0) || isStreaming}
                   data-testid="button-send-agent"
                 >
                   {isStreaming ? (

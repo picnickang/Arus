@@ -1,0 +1,115 @@
+import { db } from "../../../db";
+import { sql, gte, and, eq, count, sum } from "drizzle-orm";
+import { agentConversations, agentMessages, agentToolCalls } from "@shared/schema";
+import type { AgentRepositoryPort } from "../domain/ports";
+import type { SafetyCheckResult, UsageStats, DEFAULT_CONFIG } from "../domain/types";
+
+export class SafetyService {
+  constructor(private repo: AgentRepositoryPort) {}
+
+  async checkTokenBudget(
+    orgId: string,
+    conversationId: string,
+    config: { maxTokensPerConversation?: number | null; dailyTokenLimit?: number | null; monthlyTokenLimit?: number | null },
+  ): Promise<SafetyCheckResult> {
+    const conv = await this.repo.conversations.get(conversationId, orgId);
+    const convTokens = conv?.totalTokensUsed || 0;
+    const maxConvTokens = config.maxTokensPerConversation || 50000;
+
+    if (convTokens >= maxConvTokens) {
+      return { allowed: false, reason: "Conversation token limit reached. Start a new conversation.", remainingTokens: 0 };
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dailyResult = await db.execute(sql`
+      SELECT COALESCE(SUM(total_tokens_used), 0)::int as total
+      FROM agent_conversations
+      WHERE org_id = ${orgId} AND created_at >= ${today}
+    `);
+    const dailyTokens = Number((dailyResult as any).rows?.[0]?.total || 0);
+    const dailyLimit = config.dailyTokenLimit || 500000;
+
+    if (dailyTokens >= dailyLimit) {
+      return { allowed: false, reason: "Daily token limit reached. Try again tomorrow.", remainingTokens: 0 };
+    }
+
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const monthlyResult = await db.execute(sql`
+      SELECT COALESCE(SUM(total_tokens_used), 0)::int as total
+      FROM agent_conversations
+      WHERE org_id = ${orgId} AND created_at >= ${monthStart}
+    `);
+    const monthlyTokens = Number((monthlyResult as any).rows?.[0]?.total || 0);
+    const monthlyLimit = config.monthlyTokenLimit || 5000000;
+
+    if (monthlyTokens >= monthlyLimit) {
+      return { allowed: false, reason: "Monthly token limit reached.", remainingTokens: 0 };
+    }
+
+    return {
+      allowed: true,
+      remainingTokens: Math.min(maxConvTokens - convTokens, dailyLimit - dailyTokens),
+    };
+  }
+
+  async getUsageStats(orgId: string, days = 30): Promise<UsageStats> {
+    const since = new Date(Date.now() - days * 86400000);
+
+    const [convStats, toolStats, dailyStats] = await Promise.all([
+      db.execute(sql`
+        SELECT COUNT(*)::int as conv_count,
+               COALESCE(SUM(message_count), 0)::int as msg_count,
+               COALESCE(SUM(total_tokens_used), 0)::int as token_total
+        FROM agent_conversations
+        WHERE org_id = ${orgId} AND created_at >= ${since}
+      `),
+      db.execute(sql`
+        SELECT tool_name, COUNT(*)::int as call_count
+        FROM agent_tool_calls tc
+        JOIN agent_conversations c ON tc.conversation_id = c.id
+        WHERE c.org_id = ${orgId} AND tc.created_at >= ${since}
+        GROUP BY tool_name ORDER BY call_count DESC LIMIT 10
+      `),
+      db.execute(sql`
+        SELECT DATE(created_at) as day,
+               COALESCE(SUM(total_tokens_used), 0)::int as tokens,
+               COALESCE(SUM(message_count), 0)::int as messages
+        FROM agent_conversations
+        WHERE org_id = ${orgId} AND created_at >= ${since}
+        GROUP BY DATE(created_at) ORDER BY day DESC LIMIT ${days}
+      `),
+    ]);
+
+    const convRow = (convStats as any).rows?.[0] || {};
+    const toolRows = (toolStats as any).rows || [];
+    const dailyRows = (dailyStats as any).rows || [];
+
+    const convCount = Number(convRow.conv_count || 0);
+    const tokenTotal = Number(convRow.token_total || 0);
+
+    return {
+      conversationCount: convCount,
+      messageCount: Number(convRow.msg_count || 0),
+      totalTokens: tokenTotal,
+      toolCallCount: toolRows.reduce((sum: number, r: any) => sum + Number(r.call_count || 0), 0),
+      avgTokensPerConversation: convCount > 0 ? Math.round(tokenTotal / convCount) : 0,
+      topTools: toolRows.map((r: any) => ({ toolName: r.tool_name, count: Number(r.call_count) })),
+      dailyUsage: dailyRows.map((r: any) => ({
+        date: r.day, tokens: Number(r.tokens), messages: Number(r.messages),
+      })),
+    };
+  }
+
+  sanitizeInput(text: string): string {
+    return text
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "")
+      .slice(0, 10000);
+  }
+
+  validateToolAccess(toolName: string, enabledTools: any): boolean {
+    if (!enabledTools || !Array.isArray(enabledTools)) return true;
+    return enabledTools.includes(toolName);
+  }
+}

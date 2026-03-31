@@ -10,6 +10,7 @@ const OrganizationManagement = lazy(() => import("@/pages/organization-managemen
 const SystemAdministration = lazy(() => import("@/pages/system-administration"));
 const Diagnostics = lazy(() => import("@/pages/DiagnosticsDashboard"));
 const ManualTelemetryUpload = lazy(() => import("@/pages/manual-telemetry-upload"));
+const CopilotAdmin = lazy(() => import("@/pages/copilot-admin"));
 
 export const systemRoutes = [
   { path: "/system", component: SystemHub },
@@ -22,4 +23,5 @@ export const systemRoutes = [
   { path: "/system-administration", component: SystemAdministration },
   { path: "/diagnostics", component: Diagnostics },
   { path: "/telemetry-upload", component: ManualTelemetryUpload },
+  { path: "/copilot-admin", component: CopilotAdmin },
 ];

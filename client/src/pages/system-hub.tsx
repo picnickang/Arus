@@ -1,6 +1,6 @@
 import { Suspense, lazy } from "react";
 import { IconGridLayout, PageLoader, type GridItem } from "@/components/layouts";
-import { Settings, Activity, Shield, Building, Bell, CloudSun } from "lucide-react";
+import { Settings, Activity, Shield, Building, Bell, CloudSun, Bot } from "lucide-react";
 
 const ConfigurationHub = lazy(() => import("./configuration-hub"));
 
@@ -61,6 +61,15 @@ const systemItems: GridItem[] = [
     load: () => import("./stormgeo-settings"),
     loaderVariant: "form",
     legacyRoutes: ["/stormgeo-settings"],
+  },
+  {
+    id: "copilot",
+    label: "AI Copilot",
+    icon: Bot,
+    description: "Copilot config & usage",
+    load: () => import("./copilot-admin"),
+    loaderVariant: "cards",
+    legacyRoutes: ["/copilot-admin"],
   },
 ];
 
