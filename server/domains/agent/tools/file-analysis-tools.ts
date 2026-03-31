@@ -1,0 +1,174 @@
+import fs from "fs";
+import { z } from "zod";
+import { registerTool } from "./registry";
+import { createOpenAIClient } from "../../../openai/client";
+
+registerTool({
+  name: "analyzeImage",
+  description: "Analyze an uploaded image using AI vision. Useful for assessing equipment condition, reading gauges, identifying parts, or inspecting visible damage in marine equipment photos.",
+  parameters: {
+    type: "object",
+    properties: {
+      filePath: { type: "string", description: "Server-side path to the uploaded image file" },
+      filename: { type: "string", description: "Original filename of the image" },
+      analysisType: {
+        type: "string",
+        enum: ["condition_assessment", "gauge_reading", "part_identification", "damage_inspection", "general"],
+        description: "Type of analysis to perform on the image",
+      },
+    },
+    required: ["filePath", "filename"],
+  },
+  inputSchema: z.object({
+    filePath: z.string().min(1),
+    filename: z.string().min(1),
+    analysisType: z.enum(["condition_assessment", "gauge_reading", "part_identification", "damage_inspection", "general"]).optional().default("general"),
+  }),
+  requiresApproval: false,
+  async execute(input: Record<string, unknown>) {
+    const filePath = input.filePath as string;
+    const filename = input.filename as string;
+    const analysisType = (input.analysisType as string) || "general";
+
+    if (!fs.existsSync(filePath)) {
+      return { error: `Image file not found: ${filename}` };
+    }
+
+    const client = await createOpenAIClient();
+    if (!client) {
+      return { error: "OpenAI is not configured for image analysis" };
+    }
+
+    const base64 = fs.readFileSync(filePath, "base64");
+    const ext = filePath.split(".").pop()?.toLowerCase() || "jpeg";
+    const mimeMap: Record<string, string> = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", gif: "image/gif", webp: "image/webp" };
+    const mime = mimeMap[ext] || "image/jpeg";
+    const dataUrl = `data:${mime};base64,${base64}`;
+
+    const prompts: Record<string, string> = {
+      condition_assessment: "You are a marine equipment inspection specialist. Analyze this image and provide: 1) Overall condition rating (good/fair/poor/critical), 2) Visible wear or degradation, 3) Maintenance recommendations, 4) Urgency level.",
+      gauge_reading: "You are a marine instrumentation specialist. Read any gauges, meters, or displays visible in this image. Provide: 1) Identified instruments, 2) Current readings with units, 3) Whether readings are within normal range, 4) Any anomalies.",
+      part_identification: "You are a marine equipment specialist. Identify the equipment, components, or parts shown in this image. Provide: 1) Equipment/part identification, 2) Likely manufacturer or type, 3) Condition assessment, 4) Related marine systems.",
+      damage_inspection: "You are a marine damage assessment specialist. Analyze this image for damage. Provide: 1) Type of damage observed (corrosion, cracks, wear, leaks, etc.), 2) Severity (minor/moderate/severe/critical), 3) Affected components, 4) Recommended repair actions, 5) Safety concerns.",
+      general: "You are a marine engineering specialist. Analyze this image in the context of marine vessel operations. Describe what you see, identify any equipment or components, assess their condition, and note anything relevant to maintenance or safety.",
+    };
+
+    try {
+      const response = await client.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: prompts[analysisType] || prompts.general },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: `Analyze this image (${filename}):` },
+              { type: "image_url", image_url: { url: dataUrl, detail: "high" } },
+            ],
+          },
+        ],
+        max_tokens: 1500,
+      });
+
+      const analysis = response.choices[0]?.message?.content || "No analysis available";
+
+      return {
+        filename,
+        analysisType,
+        analysis,
+        tokensUsed: response.usage?.total_tokens || 0,
+      };
+    } catch (err) {
+      return { error: `Image analysis failed: ${err instanceof Error ? err.message : "unknown error"}` };
+    }
+  },
+});
+
+registerTool({
+  name: "analyzeSpreadsheet",
+  description: "Parse and analyze an uploaded CSV or spreadsheet file. Generates summary statistics for numeric columns and can answer questions about specific rows, columns, or data patterns.",
+  parameters: {
+    type: "object",
+    properties: {
+      filePath: { type: "string", description: "Server-side path to the uploaded CSV file" },
+      filename: { type: "string", description: "Original filename" },
+      question: { type: "string", description: "Optional specific question about the data" },
+    },
+    required: ["filePath", "filename"],
+  },
+  inputSchema: z.object({
+    filePath: z.string().min(1),
+    filename: z.string().min(1),
+    question: z.string().optional(),
+  }),
+  requiresApproval: false,
+  async execute(input: Record<string, unknown>) {
+    const filePath = input.filePath as string;
+    const filename = input.filename as string;
+    const question = input.question as string | undefined;
+
+    if (!fs.existsSync(filePath)) {
+      return { error: `File not found: ${filename}` };
+    }
+
+    try {
+      const csvText = fs.readFileSync(filePath, "utf-8");
+      const Papa = (await import("papaparse")).default;
+      const parsed = Papa.parse(csvText, { header: true, dynamicTyping: true, skipEmptyLines: true });
+      const rows = parsed.data as Record<string, unknown>[];
+      const headers = parsed.meta.fields || [];
+      const rowCount = rows.length;
+
+      const columnStats: Record<string, Record<string, unknown>> = {};
+      for (const col of headers) {
+        const vals = rows.map(r => r[col]);
+        const numericVals = vals.filter((v): v is number => typeof v === "number");
+        const stringVals = vals.filter((v): v is string => typeof v === "string");
+
+        if (numericVals.length > 0) {
+          const sorted = [...numericVals].sort((a, b) => a - b);
+          const sum = numericVals.reduce((a, b) => a + b, 0);
+          columnStats[col] = {
+            type: "numeric",
+            count: numericVals.length,
+            nullCount: vals.filter(v => v == null).length,
+            min: sorted[0],
+            max: sorted[sorted.length - 1],
+            mean: Number((sum / numericVals.length).toFixed(4)),
+            median: Number(sorted[Math.floor(sorted.length / 2)].toFixed(4)),
+            sum: Number(sum.toFixed(4)),
+          };
+        } else if (stringVals.length > 0) {
+          const uniqueVals = [...new Set(stringVals)];
+          columnStats[col] = {
+            type: "categorical",
+            count: stringVals.length,
+            nullCount: vals.filter(v => v == null).length,
+            uniqueValues: uniqueVals.length,
+            topValues: uniqueVals.slice(0, 10),
+          };
+        }
+      }
+
+      const sampleRows = rows.slice(0, 5);
+
+      const result: Record<string, unknown> = {
+        filename,
+        rowCount,
+        columnCount: headers.length,
+        columns: headers,
+        columnStats,
+        sampleRows,
+        parseErrors: parsed.errors.length,
+      };
+
+      if (question) {
+        result.question = question;
+        result.note = "Use the column statistics and sample rows above to answer the question. For detailed queries, the full dataset has been parsed.";
+      }
+
+      return result;
+    } catch (err) {
+      return { error: `Spreadsheet analysis failed: ${err instanceof Error ? err.message : "unknown error"}` };
+    }
+  },
+});

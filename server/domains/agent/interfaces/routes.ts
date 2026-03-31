@@ -16,12 +16,22 @@ import type { AuthenticatedRequest } from "../../../middleware/auth";
 import { auditAction } from "../../../utils/audit-helpers";
 import { z } from "zod";
 
-const UPLOAD_DIR = "/tmp/agent-uploads";
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+const UPLOAD_BASE_DIR = "/tmp/agent-uploads";
+if (!fs.existsSync(UPLOAD_BASE_DIR)) fs.mkdirSync(UPLOAD_BASE_DIR, { recursive: true });
+
+function getOrgUploadDir(orgId: string): string {
+  const safe = orgId.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const dir = path.join(UPLOAD_BASE_DIR, safe);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  return dir;
+}
 
 const upload = multer({
   storage: multer.diskStorage({
-    destination: UPLOAD_DIR,
+    destination: (req, _file, cb) => {
+      const orgId = (req as AuthenticatedRequest).orgId || "default-org-id";
+      cb(null, getOrgUploadDir(orgId));
+    },
     filename: (_req, file, cb) => {
       const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}${path.extname(file.originalname)}`;
       cb(null, uniqueName);
@@ -167,7 +177,6 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         filename: f.originalname,
         mimetype: f.mimetype,
         size: f.size,
-        path: f.path,
       }));
 
       res.json({ files: fileRefs });

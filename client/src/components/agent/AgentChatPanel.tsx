@@ -423,7 +423,12 @@ export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolea
   }, [addFiles]);
 
   const toggleVoiceInput = useCallback(() => {
-    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    type SpeechRecognitionConstructor = new () => SpeechRecognition;
+    const W = window as Window & {
+      SpeechRecognition?: SpeechRecognitionConstructor;
+      webkitSpeechRecognition?: SpeechRecognitionConstructor;
+    };
+    const SpeechRecognitionAPI = W.SpeechRecognition || W.webkitSpeechRecognition;
     if (!SpeechRecognitionAPI) {
       toast({ title: "Not supported", description: "Voice input is not supported in this browser.", variant: "destructive" });
       return;
