@@ -179,6 +179,13 @@ function InlineDraftApproval({
   );
 }
 
+class ClientError extends Error {
+  constructor(message: string, public status: number) {
+    super(message);
+    this.name = "ClientError";
+  }
+}
+
 async function fetchStreamWithRetry(
   url: string,
   headers: Record<string, string>,
@@ -190,19 +197,15 @@ async function fetchStreamWithRetry(
     try {
       const response = await fetch(url, { headers, credentials: "include" });
       if (response.ok) return response;
-      if (response.status >= 400 && response.status < 500) {
-        const errBody = await response.text().catch(() => "");
-        throw new Error(errBody || `HTTP ${response.status}`);
+      const status = response.status;
+      const errBody = await response.text().catch(() => "");
+      if (status >= 400 && status < 500) {
+        throw new ClientError(errBody || `HTTP ${status}`, status);
       }
-      lastError = new Error(`HTTP ${response.status}`);
+      lastError = new Error(errBody || `HTTP ${status}`);
     } catch (err) {
-      if (err instanceof TypeError && err.message.includes("fetch")) {
-        lastError = err;
-      } else if (err instanceof Error && err.message.startsWith("HTTP 4")) {
-        throw err;
-      } else {
-        lastError = err instanceof Error ? err : new Error(String(err));
-      }
+      if (err instanceof ClientError) throw err;
+      lastError = err instanceof Error ? err : new Error(String(err));
     }
     if (attempt < maxRetries) {
       const delay = RETRY_BASE_MS * Math.pow(2, attempt);
@@ -211,6 +214,32 @@ async function fetchStreamWithRetry(
     }
   }
   throw lastError || new Error("Stream connection failed");
+}
+
+async function readStreamWithRetry(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  onChunk: (text: string) => void,
+  onDisconnect: (attempt: number) => void,
+  maxRetries: number,
+): Promise<void> {
+  const decoder = new TextDecoder();
+  let disconnects = 0;
+
+  while (true) {
+    try {
+      const { done, value } = await reader.read();
+      if (done) break;
+      disconnects = 0;
+      onChunk(decoder.decode(value, { stream: true }));
+    } catch (err) {
+      disconnects++;
+      if (disconnects > maxRetries) {
+        throw err instanceof Error ? err : new Error("Stream read failed");
+      }
+      onDisconnect(disconnects);
+      await new Promise((r) => setTimeout(r, RETRY_BASE_MS * Math.pow(2, disconnects - 1)));
+    }
+  }
 }
 
 export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -257,17 +286,26 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
   );
   const pendingDraftCount = drafts.filter((d) => d.status === "pending").length;
 
-  const messagesWithDrafts: ChatMessage[] = serverMessages.map((msg) => {
-    if (msg.role !== "assistant") return msg;
-    const matchingDraft = currentConvDrafts.find(
-      (d) => new Date(d.createdAt).getTime() <= new Date(msg.createdAt).getTime() + 5000
-        && new Date(d.createdAt).getTime() >= new Date(msg.createdAt).getTime() - 60000
+  const messagesWithDrafts: ChatMessage[] = (() => {
+    const usedDraftIds = new Set<string>();
+    const sortedDrafts = [...currentConvDrafts].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
-    if (matchingDraft) {
-      return { ...msg, inlineDraft: matchingDraft };
-    }
-    return msg;
-  });
+    return serverMessages.map((msg) => {
+      if (msg.role !== "assistant") return msg;
+      const msgTime = new Date(msg.createdAt).getTime();
+      const matchingDraft = sortedDrafts.find(
+        (d) => !usedDraftIds.has(d.id)
+          && new Date(d.createdAt).getTime() >= msgTime - 5000
+          && new Date(d.createdAt).getTime() <= msgTime + 60000
+      );
+      if (matchingDraft) {
+        usedDraftIds.add(matchingDraft.id);
+        return { ...msg, inlineDraft: matchingDraft };
+      }
+      return msg;
+    });
+  })();
 
   const approveMutation = useMutation({
     mutationFn: (draftId: string) => apiRequest("POST", `/api/agent/drafts/${draftId}/approve`),
@@ -386,66 +424,69 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
         setRetryStatus(null);
 
         const reader = response.body?.getReader();
-        const decoder = new TextDecoder();
+        if (!reader) throw new Error("No response body");
+
         let buffer = "";
         let accumulated = "";
         let accToolCalls: ToolCallTrace[] = [];
         let toolCallCounter = 0;
         let inlineDraft: DraftRecord | undefined;
 
-        while (reader) {
-          const { done, value } = await reader.read();
-          if (done) break;
+        await readStreamWithRetry(
+          reader,
+          (rawText) => {
+            buffer += rawText;
+            const lines = buffer.split("\n\n");
+            buffer = lines.pop() || "";
 
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n\n");
-          buffer = lines.pop() || "";
+            for (const line of lines) {
+              const dataMatch = line.match(/^data: (.+)$/m);
+              if (!dataMatch) continue;
 
-          for (const line of lines) {
-            const dataMatch = line.match(/^data: (.+)$/m);
-            if (!dataMatch) continue;
+              try {
+                const chunk: StreamChunk = JSON.parse(dataMatch[1]);
 
-            try {
-              const chunk: StreamChunk = JSON.parse(dataMatch[1]);
-
-              if (chunk.type === "tool_call") {
-                const trace: ToolCallTrace = {
-                  toolName: chunk.toolName || "unknown",
-                  input: chunk.input || {},
-                  status: "running",
-                  _index: toolCallCounter++,
-                };
-                accToolCalls = [...accToolCalls, trace];
-                setPendingToolCalls([...accToolCalls]);
-              } else if (chunk.type === "tool_result") {
-                const runningIdx = accToolCalls.findIndex(
-                  (tc) => tc.toolName === chunk.toolName && tc.status === "running"
-                );
-                if (runningIdx >= 0) {
-                  accToolCalls = accToolCalls.map((tc, i) =>
-                    i === runningIdx ? { ...tc, result: chunk.result, status: "success" as const } : tc
+                if (chunk.type === "tool_call") {
+                  const trace: ToolCallTrace = {
+                    toolName: chunk.toolName || "unknown",
+                    input: chunk.input || {},
+                    status: "running",
+                    _index: toolCallCounter++,
+                  };
+                  accToolCalls = [...accToolCalls, trace];
+                  setPendingToolCalls([...accToolCalls]);
+                } else if (chunk.type === "tool_result") {
+                  const runningIdx = accToolCalls.findIndex(
+                    (tc) => tc.toolName === chunk.toolName && tc.status === "running"
                   );
+                  if (runningIdx >= 0) {
+                    accToolCalls = accToolCalls.map((tc, i) =>
+                      i === runningIdx ? { ...tc, result: chunk.result, status: "success" as const } : tc
+                    );
+                  }
+                  setPendingToolCalls([...accToolCalls]);
+                } else if (chunk.type === "text") {
+                  accumulated += chunk.content || "";
+                  setStreamText(accumulated);
+                } else if (chunk.type === "draft" && chunk.draft) {
+                  inlineDraft = chunk.draft;
+                } else if (chunk.type === "done") {
+                  if (chunk.conversationId) {
+                    resolvedConvId = chunk.conversationId;
+                    setConversationId(chunk.conversationId);
+                  }
+                } else if (chunk.type === "error") {
+                  throw new Error(chunk.error || "Stream error");
                 }
-                setPendingToolCalls([...accToolCalls]);
-              } else if (chunk.type === "text") {
-                accumulated += chunk.content || "";
-                setStreamText(accumulated);
-              } else if (chunk.type === "draft" && chunk.draft) {
-                inlineDraft = chunk.draft;
-              } else if (chunk.type === "done") {
-                if (chunk.conversationId) {
-                  resolvedConvId = chunk.conversationId;
-                  setConversationId(chunk.conversationId);
-                }
-              } else if (chunk.type === "error") {
-                throw new Error(chunk.error || "Stream error");
+              } catch (parseErr) {
+                if (parseErr instanceof SyntaxError) continue;
+                throw parseErr;
               }
-            } catch (parseErr) {
-              if (parseErr instanceof SyntaxError) continue;
-              throw parseErr;
             }
-          }
-        }
+          },
+          (attempt) => setRetryStatus(`Stream interrupted, reconnecting (${attempt}/${MAX_RETRIES})...`),
+          MAX_RETRIES,
+        );
 
         setStreamingMessages(prev => [...prev, {
           id: `temp-assistant-${Date.now()}`,
