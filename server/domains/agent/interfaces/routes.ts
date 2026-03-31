@@ -760,61 +760,49 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
   app.get("/api/agent/admin/export-jsonl", rateLimit.generalApiRateLimit, requireAdminRole, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const batchSize = 200;
       const config = await agentRepo.config.get(orgId);
       const systemContent = buildSystemPrompt(config?.customSystemPrompt);
 
+      const allConversations = await agentRepo.conversations.list(orgId, undefined, 10000);
+
       res.setHeader("Content-Type", "application/x-ndjson");
       res.setHeader("Content-Disposition", `attachment; filename="agent-conversations-${new Date().toISOString().slice(0, 10)}.jsonl"`);
+      res.setHeader("X-Total-Conversations", String(allConversations.length));
 
-      let exported = 0;
-      let batchOffset = 0;
-      let hasMore = true;
+      for (const conv of allConversations) {
+        const messages = await agentRepo.messages.list(conv.id, 500);
+        if (messages.length === 0) continue;
 
-      while (hasMore) {
-        const batch = await agentRepo.conversations.list(orgId, undefined, batchSize);
-        const sliced = batch.slice(batchOffset);
-        if (sliced.length === 0) { hasMore = false; break; }
-        batchOffset += sliced.length;
-        if (sliced.length < batchSize) hasMore = false;
+        const openaiMessages: Record<string, unknown>[] = [];
+        openaiMessages.push({ role: "system", content: systemContent });
 
-        for (const conv of sliced) {
-          const messages = await agentRepo.messages.list(conv.id, 500);
-          if (messages.length === 0) continue;
-
-          const openaiMessages: Record<string, unknown>[] = [];
-          openaiMessages.push({ role: "system", content: systemContent });
-
-          for (const msg of messages) {
-            if (msg.role === "user") {
-              openaiMessages.push({ role: "user", content: msg.content || "" });
-            } else if (msg.role === "assistant" && msg.toolCalls) {
-              const calls = msg.toolCalls as { id: string; type: string; function: { name: string; arguments: string } }[];
-              openaiMessages.push({
-                role: "assistant",
-                content: msg.content || null,
-                tool_calls: calls,
-              });
-            } else if (msg.role === "assistant") {
-              openaiMessages.push({ role: "assistant", content: msg.content || "" });
-            } else if (msg.role === "tool") {
-              const ref = msg.toolCalls as { toolCallId?: string } | null;
-              openaiMessages.push({
-                role: "tool",
-                content: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content),
-                tool_call_id: ref?.toolCallId || "unknown",
-              });
-            }
+        for (const msg of messages) {
+          if (msg.role === "user") {
+            openaiMessages.push({ role: "user", content: msg.content || "" });
+          } else if (msg.role === "assistant" && msg.toolCalls) {
+            const calls = msg.toolCalls as { id: string; type: string; function: { name: string; arguments: string } }[];
+            openaiMessages.push({
+              role: "assistant",
+              content: msg.content || null,
+              tool_calls: calls,
+            });
+          } else if (msg.role === "assistant") {
+            openaiMessages.push({ role: "assistant", content: msg.content || "" });
+          } else if (msg.role === "tool") {
+            const ref = msg.toolCalls as { toolCallId?: string } | null;
+            openaiMessages.push({
+              role: "tool",
+              content: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content),
+              tool_call_id: ref?.toolCallId || "unknown",
+            });
           }
+        }
 
-          if (openaiMessages.length > 1) {
-            res.write(JSON.stringify({ messages: openaiMessages }) + "\n");
-            exported++;
-          }
+        if (openaiMessages.length > 1) {
+          res.write(JSON.stringify({ messages: openaiMessages }) + "\n");
         }
       }
 
-      res.setHeader("X-Exported-Conversations", String(exported));
       res.end();
     } catch (error: unknown) {
       if (!res.headersSent) {
