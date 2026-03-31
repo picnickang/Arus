@@ -3,7 +3,7 @@ import { getCurrentDeviceId } from "@/hooks/useDeviceId";
 import { getCurrentOrgId } from "@/contexts/OrganizationContext";
 import { getBackendUrlSync } from "@/lib/desktopFetch";
 
-function resolveUrl(url: string): string {
+export function resolveUrl(url: string): string {
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
   const base = getBackendUrlSync();
   if (!base) return url;
@@ -35,7 +35,7 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-function createHeaders(includeContentType: boolean = false): Record<string, string> {
+export function createHeaders(includeContentType: boolean = false): Record<string, string> {
   const headers: Record<string, string> = {};
 
   if (includeContentType) {

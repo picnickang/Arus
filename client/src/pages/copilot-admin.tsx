@@ -16,7 +16,7 @@ import {
   MessageSquare, Wrench, TrendingUp, RotateCcw,
   Shield, Database, Pencil, Download,
 } from "lucide-react";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, resolveUrl, createHeaders } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface AgentConfig {
@@ -941,11 +941,27 @@ function DataTab() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
-              const a = document.createElement("a");
-              a.href = "/api/agent/admin/export-jsonl";
-              a.download = "";
-              a.click();
+            onClick={async () => {
+              try {
+                const res = await fetch(resolveUrl("/api/agent/admin/export-jsonl"), {
+                  headers: createHeaders(),
+                  credentials: "include",
+                });
+                if (!res.ok) {
+                  const errText = await res.text();
+                  throw new Error(errText || res.statusText);
+                }
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `agent-conversations-${new Date().toISOString().slice(0, 10)}.jsonl`;
+                a.click();
+                URL.revokeObjectURL(url);
+                toast({ title: "Export downloaded" });
+              } catch (err: any) {
+                toast({ title: "Export failed", description: err.message, variant: "destructive" });
+              }
             }}
             disabled={conversations.length === 0}
             data-testid="button-export-jsonl"
