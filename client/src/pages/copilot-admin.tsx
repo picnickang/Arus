@@ -691,7 +691,7 @@ function SchedulesTab() {
   };
 
   const destLabel = (dest: string) => {
-    const labels: Record<string, string> = { notification: "Notification", report: "Stored Report", both: "Notification + Report" };
+    const labels: Record<string, string> = { notification: "Notification", email: "Email", report: "Stored Report", both: "All Destinations" };
     return labels[dest] || dest;
   };
 
@@ -756,8 +756,9 @@ function SchedulesTab() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="notification">Notification</SelectItem>
+                    <SelectItem value="email">Email</SelectItem>
                     <SelectItem value="report">Stored Report</SelectItem>
-                    <SelectItem value="both">Both</SelectItem>
+                    <SelectItem value="both">All (Notification + Email + Report)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
