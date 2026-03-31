@@ -1,7 +1,6 @@
 import { Express, Request, Response, RequestHandler } from "express";
 import { insertSettingsSchema } from "@shared/schema-runtime";
 import { withErrorHandling, sendDeleted, sendCreated } from "../../lib/route-utils";
-import { getOpenAIApiKey, type SettingsAccessor } from "../../openai/client";
 
 interface SettingsConfig {
   storage: any;
@@ -32,24 +31,27 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
   app.get("/api/settings/validate-openai-key", requireOrgId, writeOperationRateLimit,
     withErrorHandling("validate OpenAI API key", async (_req: Request, res: Response) => {
       try {
-        // Use injected storage instance to avoid circular dependency and respect tenant isolation
-        const settingsAccessor: SettingsAccessor = async () => storage.getSettings();
-        const apiKey = await getOpenAIApiKey(settingsAccessor);
-        
-        if (!apiKey) {
+        const settings = await storage.getSettings();
+        const dbKey = settings?.openaiApiKey || null;
+        const envKey = process.env.OPENAI_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY || null;
+        const effectiveKey = dbKey || envKey;
+
+        const source = dbKey ? 'user_configured' : envKey ? 'environment' : null;
+
+        if (!effectiveKey) {
           res.json({
             valid: false,
             status: 'not_configured',
             message: 'No OpenAI API key configured',
             source: null,
+            hasDbKey: false,
+            hasEnvKey: false,
           });
           return;
         }
 
-        const keySource = apiKey.startsWith('sk-') ? 'user_configured' : 'ai_integrations';
-
         const OpenAI = (await import('openai')).default;
-        const client = new OpenAI({ apiKey, timeout: 10000 });
+        const client = new OpenAI({ apiKey: effectiveKey, timeout: 10000 });
         
         await client.models.list();
         
@@ -57,31 +59,43 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
           valid: true,
           status: 'active',
           message: 'API key is valid and working',
-          source: keySource,
+          source,
+          hasDbKey: !!dbKey,
+          hasEnvKey: !!envKey,
         });
       } catch (error: any) {
+        const settings = await storage.getSettings();
+        const dbKey = settings?.openaiApiKey || null;
+        const envKey = process.env.OPENAI_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY || null;
+        const source = dbKey ? 'user_configured' : envKey ? 'environment' : null;
         const errorMessage = error?.message?.toLowerCase() || '';
         
-        if (errorMessage.includes('invalid_api_key') || errorMessage.includes('authentication')) {
+        if (errorMessage.includes('invalid_api_key') || errorMessage.includes('authentication') || errorMessage.includes('401')) {
           res.json({
             valid: false,
             status: 'invalid',
             message: 'API key is invalid or expired',
-            source: 'unknown',
+            source,
+            hasDbKey: !!dbKey,
+            hasEnvKey: !!envKey,
           });
         } else if (errorMessage.includes('rate_limit')) {
           res.json({
             valid: true,
             status: 'rate_limited',
             message: 'API key is valid but rate limited',
-            source: 'unknown',
+            source,
+            hasDbKey: !!dbKey,
+            hasEnvKey: !!envKey,
           });
         } else {
           res.json({
             valid: false,
             status: 'error',
             message: `Validation failed: ${error.message}`,
-            source: 'unknown',
+            source,
+            hasDbKey: !!dbKey,
+            hasEnvKey: !!envKey,
           });
         }
       }

@@ -27,38 +27,80 @@ function OpenAIKeyCard() {
     queryKey: ["/api/settings"],
   });
 
-  const validateQuery = useQuery<{ valid: boolean; status: string; message: string; source: string | null }>({
+  const validateQuery = useQuery<{ valid: boolean; status: string; message: string; source: string | null; hasDbKey: boolean; hasEnvKey: boolean }>({
     queryKey: ["/api/settings", "validate-openai-key"],
-    queryFn: () => apiRequest("GET", "/api/settings/validate-openai-key"),
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/settings/validate-openai-key");
+      return res as { valid: boolean; status: string; message: string; source: string | null; hasDbKey: boolean; hasEnvKey: boolean };
+    },
     refetchOnWindowFocus: false,
     staleTime: 60000,
+    enabled: !!settingsQuery.data,
   });
 
   const saveMutation = useMutation({
-    mutationFn: (key: string) => apiRequest("PUT", "/api/settings", { openaiApiKey: key }),
+    mutationFn: async (key: string) => {
+      const res = await apiRequest("PUT", "/api/settings", { openaiApiKey: key });
+      return res as { openaiApiKey?: string | null };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
-      toast({ title: "API key saved", description: "Your OpenAI API key has been updated." });
+      toast({ title: "API key saved", description: "Your OpenAI API key has been saved. Validating with OpenAI..." });
       setApiKey("");
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to save API key.", variant: "destructive" });
+    onError: (error: Error) => {
+      toast({ title: "Failed to save", description: error.message || "Could not save API key. Please try again.", variant: "destructive" });
     },
   });
 
   const removeMutation = useMutation({
-    mutationFn: () => apiRequest("PUT", "/api/settings", { openaiApiKey: "" }),
+    mutationFn: async () => {
+      const res = await apiRequest("PUT", "/api/settings", { openaiApiKey: "" });
+      return res;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      setShowKey(false);
       toast({ title: "API key removed", description: "Your OpenAI API key has been cleared." });
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to remove API key.", variant: "destructive" });
+    onError: (error: Error) => {
+      toast({ title: "Failed to remove", description: error.message || "Could not remove API key. Please try again.", variant: "destructive" });
     },
   });
 
   const hasKey = !!settingsQuery.data?.openaiApiKey;
   const maskedKey = hasKey ? `sk-...${settingsQuery.data!.openaiApiKey!.slice(-4)}` : null;
+
+  const statusBadge = () => {
+    if (saveMutation.isPending || removeMutation.isPending) {
+      return <Badge variant="outline"><Loader2 className="h-3 w-3 mr-1 animate-spin" />Saving</Badge>;
+    }
+    if (validateQuery.isLoading || validateQuery.isFetching) {
+      return <Badge variant="outline"><Loader2 className="h-3 w-3 mr-1 animate-spin" />Validating</Badge>;
+    }
+    if (!hasKey && !validateQuery.data?.valid) {
+      return (
+        <Badge variant="secondary" data-testid="badge-openai-status">
+          Not Set
+        </Badge>
+      );
+    }
+    if (validateQuery.data?.valid) {
+      return (
+        <Badge variant="default" className="bg-green-600" data-testid="badge-openai-status">
+          <CheckCircle className="h-3 w-3 mr-1" />Active
+        </Badge>
+      );
+    }
+    if (hasKey && validateQuery.data && !validateQuery.data.valid) {
+      return (
+        <Badge variant="destructive" data-testid="badge-openai-status">
+          <XCircle className="h-3 w-3 mr-1" />Invalid Key
+        </Badge>
+      );
+    }
+    return null;
+  };
 
   return (
     <Card data-testid="card-openai-settings">
@@ -73,18 +115,7 @@ function OpenAIKeyCard() {
               Configure your OpenAI API key for AI Copilot, reports, and predictive analytics
             </CardDescription>
           </div>
-          {validateQuery.isLoading ? (
-            <Badge variant="outline"><Loader2 className="h-3 w-3 mr-1 animate-spin" />Checking</Badge>
-          ) : validateQuery.data?.valid ? (
-            <Badge variant="default" className="bg-green-600" data-testid="badge-openai-status">
-              <CheckCircle className="h-3 w-3 mr-1" />Active
-            </Badge>
-          ) : (
-            <Badge variant="destructive" data-testid="badge-openai-status">
-              <XCircle className="h-3 w-3 mr-1" />
-              {validateQuery.data?.status === "not_configured" ? "Not Set" : "Invalid"}
-            </Badge>
-          )}
+          {statusBadge()}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -108,7 +139,8 @@ function OpenAIKeyCard() {
               disabled={removeMutation.isPending}
               data-testid="button-remove-key"
             >
-              <Trash2 className="h-4 w-4 mr-1" />Remove
+              {removeMutation.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Trash2 className="h-4 w-4 mr-1" />}
+              Remove
             </Button>
           </div>
         )}
@@ -128,11 +160,21 @@ function OpenAIKeyCard() {
             {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
           </Button>
         </div>
-        {validateQuery.data?.source && (
+        {hasKey && validateQuery.data && !validateQuery.data.valid && validateQuery.data.status !== "not_configured" && (
+          <p className="text-xs text-destructive" data-testid="text-validation-error">
+            Key saved but validation failed: {validateQuery.data.message}. Please check your key is correct.
+          </p>
+        )}
+        {validateQuery.data?.valid && (
+          <p className="text-xs text-muted-foreground" data-testid="text-validation-source">
+            {validateQuery.data.source === "user_configured" ? "Using your configured key" : 
+             validateQuery.data.source === "environment" ? "Using environment variable key" : 
+             `Source: ${validateQuery.data.source || "auto-detected"}`}
+          </p>
+        )}
+        {!hasKey && validateQuery.data?.hasEnvKey && validateQuery.data?.valid && (
           <p className="text-xs text-muted-foreground">
-            Source: {validateQuery.data.source === "user_configured" ? "User-configured key" : 
-                    validateQuery.data.source === "ai_integrations" ? "Replit AI Integrations" : validateQuery.data.source}
-            {validateQuery.data.message && ` — ${validateQuery.data.message}`}
+            An environment key is active. You can optionally set a custom key above to override it.
           </p>
         )}
       </CardContent>
