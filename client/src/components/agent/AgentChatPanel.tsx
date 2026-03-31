@@ -4,6 +4,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SafeMarkdown } from "@/components/ui/safe-markdown";
 import {
   Bot, Send, Plus, Loader2,
   Wrench, CheckCircle, XCircle, AlertTriangle,
@@ -21,6 +22,7 @@ interface ChatMessage {
   content: string | null;
   toolCalls?: ToolCallTrace[];
   createdAt: string;
+  inlineDraft?: DraftRecord;
 }
 
 interface Conversation {
@@ -42,13 +44,14 @@ interface ToolCallTrace {
 }
 
 interface StreamChunk {
-  type: "text" | "tool_call" | "tool_result" | "done" | "error";
+  type: "text" | "tool_call" | "tool_result" | "done" | "error" | "draft";
   content?: string;
   toolName?: string;
   input?: Record<string, unknown>;
   result?: Record<string, unknown>;
   conversationId?: string;
   error?: string;
+  draft?: DraftRecord;
 }
 
 interface DraftRecord {
@@ -66,6 +69,9 @@ const ALLOWED_FILE_TYPES = [
   "application/pdf", "text/plain", "text/csv",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ];
+
+const MAX_RETRIES = 3;
+const RETRY_BASE_MS = 1000;
 
 function formatToolName(name: string): string {
   return name
@@ -114,6 +120,99 @@ function ToolCallTimeline({ traces }: { traces: ToolCallTrace[] }) {
   );
 }
 
+function InlineDraftApproval({
+  draft,
+  onApprove,
+  onReject,
+  isPending,
+}: {
+  draft: DraftRecord;
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
+  isPending: boolean;
+}) {
+  return (
+    <div className="mt-2 border border-amber-500/30 bg-amber-500/5 rounded-md p-2.5" data-testid={`card-draft-${draft.id}`}>
+      <div className="flex items-start gap-2">
+        <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium" data-testid={`text-draft-title-${draft.id}`}>{draft.title}</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5" data-testid={`text-draft-type-${draft.id}`}>
+            {draft.draftType === "work_order" ? "Work Order" : draft.draftType} — requires approval
+          </p>
+          {draft.status === "pending" ? (
+            <div className="flex gap-2 mt-2">
+              <Button
+                size="sm"
+                variant="default"
+                className="h-6 text-[11px] px-2"
+                onClick={() => onApprove(draft.id)}
+                disabled={isPending}
+                data-testid={`button-approve-draft-${draft.id}`}
+              >
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Approve
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-6 text-[11px] px-2"
+                onClick={() => onReject(draft.id)}
+                disabled={isPending}
+                data-testid={`button-reject-draft-${draft.id}`}
+              >
+                <XCircle className="h-3 w-3 mr-1" />
+                Reject
+              </Button>
+            </div>
+          ) : (
+            <span className={cn(
+              "inline-block mt-1.5 text-[11px] px-1.5 py-0.5 rounded",
+              draft.status === "approved" ? "bg-green-500/10 text-green-600" : "bg-muted text-muted-foreground"
+            )} data-testid={`badge-draft-status-${draft.id}`}>
+              {draft.status === "approved" ? "Approved" : "Rejected"}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+async function fetchStreamWithRetry(
+  url: string,
+  headers: Record<string, string>,
+  maxRetries: number,
+  onRetry: (attempt: number) => void,
+): Promise<Response> {
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, { headers, credentials: "include" });
+      if (response.ok) return response;
+      if (response.status >= 400 && response.status < 500) {
+        const errBody = await response.text().catch(() => "");
+        throw new Error(errBody || `HTTP ${response.status}`);
+      }
+      lastError = new Error(`HTTP ${response.status}`);
+    } catch (err) {
+      if (err instanceof TypeError && err.message.includes("fetch")) {
+        lastError = err;
+      } else if (err instanceof Error && err.message.startsWith("HTTP 4")) {
+        throw err;
+      } else {
+        lastError = err instanceof Error ? err : new Error(String(err));
+      }
+    }
+    if (attempt < maxRetries) {
+      const delay = RETRY_BASE_MS * Math.pow(2, attempt);
+      onRetry(attempt + 1);
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  throw lastError || new Error("Stream connection failed");
+}
+
 export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [message, setMessage] = useState("");
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -122,6 +221,7 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
   const [pendingToolCalls, setPendingToolCalls] = useState<ToolCallTrace[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamText, setStreamText] = useState("");
+  const [retryStatus, setRetryStatus] = useState<string | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -145,14 +245,29 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
     enabled: !!conversationId && open,
   });
 
-  const messages = chatData?.messages || [];
+  const serverMessages = chatData?.messages || [];
 
   const { data: drafts = [] } = useQuery<DraftRecord[]>({
     queryKey: ["/api/agent/drafts"],
     enabled: open,
   });
 
-  const pendingDrafts = drafts.filter((d) => d.status === "pending");
+  const currentConvDrafts = drafts.filter(
+    (d) => d.conversationId === conversationId
+  );
+  const pendingDraftCount = drafts.filter((d) => d.status === "pending").length;
+
+  const messagesWithDrafts: ChatMessage[] = serverMessages.map((msg) => {
+    if (msg.role !== "assistant") return msg;
+    const matchingDraft = currentConvDrafts.find(
+      (d) => new Date(d.createdAt).getTime() <= new Date(msg.createdAt).getTime() + 5000
+        && new Date(d.createdAt).getTime() >= new Date(msg.createdAt).getTime() - 60000
+    );
+    if (matchingDraft) {
+      return { ...msg, inlineDraft: matchingDraft };
+    }
+    return msg;
+  });
 
   const approveMutation = useMutation({
     mutationFn: (draftId: string) => apiRequest("POST", `/api/agent/drafts/${draftId}/approve`),
@@ -181,13 +296,13 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, streamingMessages, pendingToolCalls, streamText]);
+  }, [serverMessages, streamingMessages, pendingToolCalls, streamText]);
 
   useEffect(() => {
-    if (messages.length > 0 && streamingMessages.length > 0 && !isStreaming) {
+    if (serverMessages.length > 0 && streamingMessages.length > 0 && !isStreaming) {
       setStreamingMessages([]);
     }
-  }, [messages, streamingMessages.length, isStreaming]);
+  }, [serverMessages, streamingMessages.length, isStreaming]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -212,6 +327,7 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
     setIsStreaming(true);
     setPendingToolCalls([]);
     setStreamText("");
+    setRetryStatus(null);
 
     const fileLabels = filesToSend.map(f => f.type.startsWith("image/") ? `[Image: ${f.name}]` : `[File: ${f.name}]`);
     const displayContent = userMsg + (fileLabels.length > 0 ? "\n" + fileLabels.join(" ") : "");
@@ -257,14 +373,17 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
         const params = new URLSearchParams({ message: userMsg });
         if (conversationId) params.set("conversationId", conversationId);
 
-        const response = await fetch(`/api/agent/chat-stream?${params}`, {
-          headers: { "x-org-id": getCurrentOrgId() || "default-org-id" },
-        });
+        const headers: Record<string, string> = {
+          "x-org-id": getCurrentOrgId() || "default-org-id",
+        };
 
-        if (!response.ok) {
-          const errBody = await response.text().catch(() => "");
-          throw new Error(errBody || `Stream failed (${response.status})`);
-        }
+        const response = await fetchStreamWithRetry(
+          `/api/agent/chat-stream?${params}`,
+          headers,
+          MAX_RETRIES,
+          (attempt) => setRetryStatus(`Reconnecting (attempt ${attempt}/${MAX_RETRIES})...`),
+        );
+        setRetryStatus(null);
 
         const reader = response.body?.getReader();
         const decoder = new TextDecoder();
@@ -272,6 +391,7 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
         let accumulated = "";
         let accToolCalls: ToolCallTrace[] = [];
         let toolCallCounter = 0;
+        let inlineDraft: DraftRecord | undefined;
 
         while (reader) {
           const { done, value } = await reader.read();
@@ -310,6 +430,8 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
               } else if (chunk.type === "text") {
                 accumulated += chunk.content || "";
                 setStreamText(accumulated);
+              } else if (chunk.type === "draft" && chunk.draft) {
+                inlineDraft = chunk.draft;
               } else if (chunk.type === "done") {
                 if (chunk.conversationId) {
                   resolvedConvId = chunk.conversationId;
@@ -330,6 +452,7 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
           role: "assistant",
           content: accumulated || "(No response)",
           toolCalls: accToolCalls.length > 0 ? accToolCalls : undefined,
+          inlineDraft,
           createdAt: new Date().toISOString(),
         }]);
       }
@@ -346,6 +469,7 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
       setIsStreaming(false);
       setPendingToolCalls([]);
       setStreamText("");
+      setRetryStatus(null);
       if (resolvedConvId) {
         queryClient.invalidateQueries({ queryKey: ["/api/agent/conversations", resolvedConvId, "messages"] });
       }
@@ -367,9 +491,13 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
     setStreamingMessages([]);
   };
 
-  const allMessages = [...messages, ...streamingMessages].filter(
+  const allMessages = [...messagesWithDrafts, ...streamingMessages].filter(
     m => m.role !== "tool" && !(m.role === "assistant" && m.toolCalls && !m.content)
   );
+
+  const handleApprove = useCallback((draftId: string) => approveMutation.mutate(draftId), [approveMutation]);
+  const handleReject = useCallback((draftId: string) => rejectMutation.mutate(draftId), [rejectMutation]);
+  const approvalPending = approveMutation.isPending || rejectMutation.isPending;
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
@@ -387,9 +515,9 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
               <div className="flex items-center gap-2">
                 <Bot className="h-5 w-5 text-primary" />
                 <SheetTitle className="text-base">ARUS Copilot</SheetTitle>
-                {pendingDrafts.length > 0 && (
+                {pendingDraftCount > 0 && (
                   <span className="h-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center font-medium" data-testid="badge-pending-drafts">
-                    {pendingDrafts.length}
+                    {pendingDraftCount}
                   </span>
                 )}
               </div>
@@ -486,7 +614,19 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
                       {msg.toolCalls && msg.toolCalls.length > 0 && (
                         <ToolCallTimeline traces={msg.toolCalls} />
                       )}
-                      <p className="whitespace-pre-wrap">{msg.content}</p>
+                      {msg.role === "assistant" && msg.content ? (
+                        <SafeMarkdown content={msg.content} className="text-sm [&_p]:text-foreground [&_p]:leading-relaxed" />
+                      ) : (
+                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                      )}
+                      {msg.inlineDraft && (
+                        <InlineDraftApproval
+                          draft={msg.inlineDraft}
+                          onApprove={handleApprove}
+                          onReject={handleReject}
+                          isPending={approvalPending}
+                        />
+                      )}
                     </div>
                   </div>
                 ))}
@@ -512,56 +652,21 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
                           ))}
                         </div>
                       )}
+                      {retryStatus && (
+                        <div className="flex items-center gap-2 mb-1.5" data-testid="status-retry">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-500" />
+                          <span className="text-xs text-amber-600">{retryStatus}</span>
+                        </div>
+                      )}
                       {streamText ? (
-                        <p className="text-sm whitespace-pre-wrap" data-testid="text-streaming-response">{streamText}</p>
-                      ) : (
+                        <SafeMarkdown content={streamText} className="text-sm [&_p]:text-foreground [&_p]:leading-relaxed" />
+                      ) : !retryStatus ? (
                         <div className="flex items-center gap-2" data-testid="status-streaming">
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
                           <span className="text-sm text-muted-foreground">Thinking...</span>
                         </div>
-                      )}
+                      ) : null}
                     </div>
-                  </div>
-                )}
-
-                {pendingDrafts.length > 0 && (
-                  <div className="space-y-2 mt-4">
-                    <p className="text-xs font-medium text-muted-foreground">Pending Approvals</p>
-                    {pendingDrafts.map((draft) => (
-                      <div key={draft.id} className="border border-amber-500/30 bg-amber-500/5 rounded-lg p-3 space-y-2" data-testid={`card-draft-${draft.id}`}>
-                        <div className="flex items-center gap-2">
-                          <AlertTriangle className="h-4 w-4 text-amber-500" />
-                          <span className="text-sm font-medium" data-testid={`text-draft-title-${draft.id}`}>{draft.title}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground" data-testid={`text-draft-type-${draft.id}`}>
-                          {draft.draftType === "work_order" ? "Work Order Draft" : draft.draftType}
-                        </p>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="default"
-                            className="h-7 text-xs"
-                            onClick={() => approveMutation.mutate(draft.id)}
-                            disabled={approveMutation.isPending}
-                            data-testid={`button-approve-draft-${draft.id}`}
-                          >
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Approve
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 text-xs"
-                            onClick={() => rejectMutation.mutate(draft.id)}
-                            disabled={rejectMutation.isPending}
-                            data-testid={`button-reject-draft-${draft.id}`}
-                          >
-                            <XCircle className="h-3 w-3 mr-1" />
-                            Reject
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
                   </div>
                 )}
               </div>
