@@ -1,0 +1,16 @@
+Assertion: Unexpected `className` prop, remove it (see <https://github.com/remarkjs/react-markdown/blob/main/changelog.md#remove-classname> for more info)
+
+assert@https://a6e84579-35ef-4894-b9f8-0ecfe1cc169f-00-lpjedzlilvcp.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-QMZFXQPC.js:54:74
+unreachable@https://a6e84579-35ef-4894-b9f8-0ecfe1cc169f-00-lpjedzlilvcp.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-QMZFXQPC.js:50:9
+post@https://a6e84579-35ef-4894-b9f8-0ecfe1cc169f-00-lpjedzlilvcp.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-markdown.js:7167:18
+renderWithHooks@https://a6e84579-35ef-4894-b9f8-0ecfe1cc169f-00-lpjedzlilvcp.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-PJEEZAML.js:11548:35
+mountIndeterminateComponent@https://a6e84579-35ef-4894-b9f8-0ecfe1cc169f-00-lpjedzlilvcp.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-PJEEZAML.js:14926:36
+beginWork$1@https://a6e84579-35ef-4894-b9f8-0ecfe1cc169f-00-lpjedzlilvcp.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-PJEEZAML.js:19753:31
+performUnitOfWork@https://a6e84579-35ef-4894-b9f8-0ecfe1cc169f-00-lpjedzlilvcp.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-PJEEZAML.js:19198:31
+workLoopSync@https://a6e84579-35ef-4894-b9f8-0ecfe1cc169f-00-lpjedzlilvcp.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-PJEEZAML.js:19137:30
+renderRootSync@https://a6e84579-35ef-4894-b9f8-0ecfe1cc169f-00-lpjedzlilvcp.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-PJEEZAML.js:19116:27
+recoverFromConcurrentError@https://a6e84579-35ef-4894-b9f8-0ecfe1cc169f-00-lpjedzlilvcp.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-PJEEZAML.js:18736:42
+performConcurrentWorkOnRoot@https://a6e84579-35ef-4894-b9f8-0ecfe1cc169f-00-lpjedzlilvcp.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-PJEEZAML.js:18684:56
+workLoop@https://a6e84579-35ef-4894-b9f8-0ecfe1cc169f-00-lpjedzlilvcp.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-PJEEZAML.js:197:50
+flushWork@https://a6e84579-35ef-4894-b9f8-0ecfe1cc169f-00-lpjedzlilvcp.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-PJEEZAML.js:176:30
+performWorkUntilDeadline@https://a6e84579-35ef-4894-b9f8-0ecfe1cc169f-00-lpjedzlilvcp.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-PJEEZAML.js:384:50

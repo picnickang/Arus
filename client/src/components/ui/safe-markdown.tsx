@@ -28,7 +28,7 @@ interface SafeMarkdownProps {
 
 export function SafeMarkdown({ content, className }: SafeMarkdownProps) {
   return (
-    <ReactMarkdown
+    <div
       className={cn(
         "prose prose-sm dark:prose-invert max-w-none",
         "prose-headings:font-semibold prose-headings:text-foreground",
@@ -42,49 +42,52 @@ export function SafeMarkdown({ content, className }: SafeMarkdownProps) {
         "prose-blockquote:border-l-primary prose-blockquote:text-muted-foreground",
         className
       )}
-      remarkPlugins={[remarkGfm]}
-      components={{
-        a: ({ href, children, ...props }) => {
-          const safeHref = isSafeUrl(href);
-          if (!safeHref) {
-            return <span className="text-muted-foreground">{children}</span>;
-          }
-          return (
-            <a
-              href={safeHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              {...props}
-            >
-              {children}
-            </a>
-          );
-        },
-        img: ({ src, alt, ...props }) => {
-          if (!src?.startsWith('https://')) {
-            return <span className="text-muted-foreground italic">[Image: {alt || 'unavailable'}]</span>;
-          }
-          return (
-            <img
-              src={src}
-              alt={alt}
-              loading="lazy"
-              className="max-w-full h-auto rounded"
-              {...props}
-            />
-          );
-        },
-        script: () => null,
-        iframe: () => null,
-        object: () => null,
-        embed: () => null,
-        form: () => null,
-        input: () => null,
-        button: () => null,
-      }}
     >
-      {content}
-    </ReactMarkdown>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          a: ({ href, children, ...props }) => {
+            const safeHref = isSafeUrl(href);
+            if (!safeHref) {
+              return <span className="text-muted-foreground">{children}</span>;
+            }
+            return (
+              <a
+                href={safeHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                {...props}
+              >
+                {children}
+              </a>
+            );
+          },
+          img: ({ src, alt, ...props }) => {
+            if (!src?.startsWith('https://')) {
+              return <span className="text-muted-foreground italic">[Image: {alt || 'unavailable'}]</span>;
+            }
+            return (
+              <img
+                src={src}
+                alt={alt}
+                loading="lazy"
+                className="max-w-full h-auto rounded"
+                {...props}
+              />
+            );
+          },
+          script: () => null,
+          iframe: () => null,
+          object: () => null,
+          embed: () => null,
+          form: () => null,
+          input: () => null,
+          button: () => null,
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
   );
 }
 
