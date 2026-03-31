@@ -3,10 +3,28 @@ import type { AgentSchedule } from "@shared/schema";
 import { db } from "../../../db";
 import { notificationQueue } from "@shared/schema";
 import { getRegisteredToolNames } from "../tools";
+import { eq, and, inArray } from "drizzle-orm";
 import cron from "node-cron";
 
 const WRITE_TOOLS = ["draftWorkOrder"];
 const MAX_CONSECUTIVE_FAILURES = 3;
+
+async function resolveAdminEmails(orgId: string): Promise<string[]> {
+  try {
+    const { users } = await import("@shared/schema/core");
+    const adminRows = await db
+      .select({ email: users.email })
+      .from(users)
+      .where(and(
+        eq(users.orgId, orgId),
+        inArray(users.role, ["admin", "supervisor"]),
+        eq(users.isActive, true)
+      ));
+    return adminRows.map(r => r.email).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
 
 export class SchedulerService {
   private cronJobs: Map<string, cron.ScheduledTask> = new Map();
@@ -151,6 +169,7 @@ export class SchedulerService {
 
   private async deliverOutput(schedule: AgentSchedule, response: string, result: any): Promise<void> {
     const dest = schedule.outputDestination || "notification";
+    const adminEmails = await resolveAdminEmails(schedule.orgId);
 
     try {
       if (dest === "notification" || dest === "both") {
@@ -159,7 +178,7 @@ export class SchedulerService {
           notificationType: "agent_schedule",
           subject: `Scheduled Run: ${schedule.name}`,
           body: response.length > 500 ? response.slice(0, 497) + "..." : response,
-          recipients: [],
+          recipients: adminEmails,
           relatedEntityType: "agent_schedule",
           relatedEntityId: schedule.id,
           status: "pending",
@@ -172,7 +191,7 @@ export class SchedulerService {
           notificationType: "agent_schedule_email",
           subject: `AI Copilot Report: ${schedule.name}`,
           body: response,
-          recipients: [],
+          recipients: adminEmails,
           relatedEntityType: "agent_schedule",
           relatedEntityId: schedule.id,
           status: "pending",
@@ -201,7 +220,7 @@ export class SchedulerService {
             notificationType: "agent_schedule_report",
             subject: `Report: ${schedule.name} — ${new Date().toLocaleDateString()}`,
             body: response,
-            recipients: [],
+            recipients: adminEmails,
             relatedEntityType: "agent_schedule",
             relatedEntityId: schedule.id,
             status: "pending",
@@ -216,12 +235,13 @@ export class SchedulerService {
   private async alertAdminFailure(schedule: AgentSchedule, errorMsg: string, failCount: number): Promise<void> {
     try {
       const autoDisabled = failCount >= MAX_CONSECUTIVE_FAILURES;
+      const adminEmails = await resolveAdminEmails(schedule.orgId);
       await db.insert(notificationQueue).values({
         orgId: schedule.orgId,
         notificationType: "agent_schedule_failure",
         subject: `Agent Schedule Failed: ${schedule.name}${autoDisabled ? " (Auto-Disabled)" : ""}`,
         body: `Schedule "${schedule.name}" failed${autoDisabled ? ` and was auto-disabled after ${failCount} consecutive failures` : ` (${failCount}/${MAX_CONSECUTIVE_FAILURES} failures)`}. Error: ${errorMsg}`,
-        recipients: [],
+        recipients: adminEmails,
         relatedEntityType: "agent_schedule",
         relatedEntityId: schedule.id,
         status: "pending",
