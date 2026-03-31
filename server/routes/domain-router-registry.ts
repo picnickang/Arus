@@ -226,6 +226,10 @@ const domainRouters: DomainRouterConfig[] = [
   // KB Ask (unified search + analyze)
   { name: "KbAsk", importPath: "../routes/kb-ask-route.js", functionName: "registerKbAskRoute",
     getDeps: () => ({ generalApiRateLimit }) },
+
+  // AI Copilot Agent
+  { name: "Agent", importPath: "../domains/agent/index.js", functionName: "registerAgentRoutes",
+    getDeps: () => ({ generalApiRateLimit, writeOperationRateLimit }) },
 ];
 
 /**

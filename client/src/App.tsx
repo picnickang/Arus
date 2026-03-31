@@ -14,6 +14,7 @@ import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { DevPerformanceOverlay } from "@/components/DevPerformanceOverlay";
 import { ConnectivityBanner } from "@/components/shared/ConnectivityBanner";
 import { BottomNav } from "@/components/BottomNav";
+import { CopilotFab } from "@/components/agent/CopilotFab";
 import { useEffect, lazy, Suspense, useState, useCallback, type ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 import { isDesktop } from "@/lib/desktop";
@@ -131,6 +132,7 @@ function Router() {
       </main>
 
       <BottomNav />
+      <CopilotFab />
     </div>
   );
 }

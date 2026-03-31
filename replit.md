@@ -41,6 +41,7 @@ Developed with Express.js and TypeScript, offering RESTful APIs with Zod validat
 -   **Unified Vendors System**: Type-based vendor architecture for suppliers and service providers.
 -   **Analytics**: Interactive visualizations, multi-format export, and a Real-Time Notification System.
 -   **Simulation**: A Physics-Aware Vessel Telemetry Simulator for generating synthetic data.
+-   **AI Copilot Agent**: Natural language chat interface (OpenAI function-calling) for fleet operations queries. 9 tools (equipment lookup, vessel overview, maintenance history, alerts, failure predictions, risk ranking, crew info, inventory status, draft work orders). Human-in-the-loop approval for write operations. SSE streaming, conversation persistence, and draft management. Frontend: floating action button + slide-out chat panel. Schema: 8 tables in `shared/schema/agent.ts`. Domain module: `server/domains/agent/`.
 -   **Knowledge Base**: RAG enrichment for AI-powered report generation, featuring document ingestion, semantic chunking, and hybrid vector+BM25 search.
 -   **RAG Conversation System**: A modular RAG architecture supporting multi-turn conversations with an OpenAI-powered answer generator.
 -   **Telemetry Resilience Modules**: Includes a circuit breaker for PostgreSQL write protection, graceful shutdown, in-memory dead-letter queue, raw payload archival, equipment heartbeat tracking, batch acknowledgment, and schema versioning.

@@ -34,6 +34,7 @@ export * from './purchasing';
 export * from './stormgeo';
 export * from './pdm-feature-store';
 export * from './digital-twin';
+export * from './agent';
 
 import * as core from './core';
 import * as purchasing from './purchasing';
@@ -59,6 +60,7 @@ import * as insights from './insights';
 import * as optimizer from './optimizer';
 import * as permissions from './permissions';
 import * as telemetryMod from './telemetry';
+import * as agent from './agent';
 
 export const CoreSchema = { ...core };
 export const SyncSchema = { ...sync };
@@ -84,6 +86,7 @@ export const InsightsSchema = { ...insights };
 export const OptimizerSchema = { ...optimizer };
 export const PermissionsSchema = { ...permissions };
 export const PurchasingSchema = { ...purchasing };
+export const AgentSchema = { ...agent };
 
 export const MLSchema = {
   ...mlCore,
@@ -114,7 +117,7 @@ export type DomainName =
   | 'alerts' | 'maintenance' | 'telemetry' | 'sensors' | 'inventory'
   | 'crew' | 'compliance' | 'ml-analytics' | 'ml' | 'iot-edge' | 'knowledge-base'
   | 'rag' | 'insights' | 'optimizer' | 'permissions' | 'settings' | 'purchasing'
-  | 'digital-twin';
+  | 'digital-twin' | 'agent';
 
 export const SchemaDomains: Record<DomainName, object> = {
   'core': CoreSchema,
@@ -140,4 +143,5 @@ export const SchemaDomains: Record<DomainName, object> = {
   'settings': SettingsSchema,
   'purchasing': PurchasingSchema,
   'digital-twin': DigitalTwinSchema,
+  'agent': AgentSchema,
 };
