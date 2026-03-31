@@ -46,7 +46,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
   const orchestrator = new AgentOrchestrator(agentRepo);
   const safety = new SafetyService(agentRepo);
   const suggestionEngine = new SuggestionEngine(agentRepo);
-  suggestionEngine.startBackgroundEvaluation("default-org");
+  suggestionEngine.startBackgroundEvaluation("default-org-id");
 
   const requireAdminRole = (req: Request, res: Response, next: () => void) => {
     const user = (req as AuthenticatedRequest).user;

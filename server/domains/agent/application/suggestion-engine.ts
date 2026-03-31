@@ -41,11 +41,12 @@ export class SuggestionEngine {
     if (this.intervalId) return;
     if (intervalMs) this.evaluationIntervalMs = intervalMs;
 
-    console.log(`[SuggestionEngine] Starting background evaluation every ${this.evaluationIntervalMs / 60000} minutes`);
+    console.log(`[SuggestionEngine] Starting background evaluation every ${this.evaluationIntervalMs / 60000} minutes for org ${orgId}`);
 
     this.intervalId = setInterval(async () => {
       try {
-        await this.generateProactiveSuggestions(orgId);
+        const storedPrefs = await this.repo.suggestions.getPreferences(orgId);
+        await this.generateProactiveSuggestions(orgId, storedPrefs);
       } catch (err) {
         console.error("[SuggestionEngine] Background evaluation error:", err instanceof Error ? err.message : "unknown");
       }
@@ -114,7 +115,7 @@ export class SuggestionEngine {
       .limit(10);
 
     for (const pred of highRiskPredictions) {
-      if (pred.failureProbability >= 0.7) {
+      if (pred.failureProbability > 0.8) {
         const severity = pred.failureProbability >= 0.9 ? "critical" : "warning";
         if (!meetsMinSeverity(severity, minSeverity)) continue;
         const sug = await this.repo.suggestions.create({
@@ -225,6 +226,7 @@ export class SuggestionEngine {
           eq(alertNotifications.orgId, orgId),
           eq(alertNotifications.acknowledged, false),
           gte(alertNotifications.createdAt, new Date(Date.now() - 24 * 60 * 60 * 1000)),
+          sql`${alertNotifications.alertType} IN ('critical', 'high', 'danger', 'emergency')`,
         ))
         .orderBy(desc(alertNotifications.createdAt))
         .limit(10);
