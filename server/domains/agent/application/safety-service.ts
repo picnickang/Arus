@@ -42,9 +42,10 @@ export class SafetyService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const dailyResult = await db.execute(sql`
-      SELECT COALESCE(SUM(total_tokens_used), 0)::int as total
-      FROM agent_conversations
-      WHERE org_id = ${orgId} AND created_at >= ${today}
+      SELECT COALESCE(SUM(m.token_count), 0)::int as total
+      FROM agent_messages m
+      JOIN agent_conversations c ON m.conversation_id = c.id
+      WHERE c.org_id = ${orgId} AND m.created_at >= ${today}
     `) as unknown as DbQueryResult;
     const dailyTokens = Number(dailyResult.rows?.[0]?.total || 0);
     const dailyLimit = config.dailyTokenLimit || 500000;
@@ -55,9 +56,10 @@ export class SafetyService {
 
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
     const monthlyResult = await db.execute(sql`
-      SELECT COALESCE(SUM(total_tokens_used), 0)::int as total
-      FROM agent_conversations
-      WHERE org_id = ${orgId} AND created_at >= ${monthStart}
+      SELECT COALESCE(SUM(m.token_count), 0)::int as total
+      FROM agent_messages m
+      JOIN agent_conversations c ON m.conversation_id = c.id
+      WHERE c.org_id = ${orgId} AND m.created_at >= ${monthStart}
     `) as unknown as DbQueryResult;
     const monthlyTokens = Number(monthlyResult.rows?.[0]?.total || 0);
     const monthlyLimit = config.monthlyTokenLimit || 5000000;
@@ -77,11 +79,10 @@ export class SafetyService {
 
     const [convStats, toolStats, dailyStats] = await Promise.all([
       db.execute(sql`
-        SELECT COUNT(*)::int as conv_count,
-               COALESCE(SUM(message_count), 0)::int as msg_count,
-               COALESCE(SUM(total_tokens_used), 0)::int as token_total
-        FROM agent_conversations
-        WHERE org_id = ${orgId} AND created_at >= ${since}
+        SELECT
+          (SELECT COUNT(*)::int FROM agent_conversations WHERE org_id = ${orgId} AND created_at >= ${since}) as conv_count,
+          (SELECT COUNT(*)::int FROM agent_messages m JOIN agent_conversations c ON m.conversation_id = c.id WHERE c.org_id = ${orgId} AND m.created_at >= ${since}) as msg_count,
+          (SELECT COALESCE(SUM(m.token_count), 0)::int FROM agent_messages m JOIN agent_conversations c ON m.conversation_id = c.id WHERE c.org_id = ${orgId} AND m.created_at >= ${since}) as token_total
       `) as unknown as DbQueryResult,
       db.execute(sql`
         SELECT tool_name, COUNT(*)::int as call_count
@@ -91,12 +92,13 @@ export class SafetyService {
         GROUP BY tool_name ORDER BY call_count DESC LIMIT 10
       `) as unknown as DbQueryResult,
       db.execute(sql`
-        SELECT DATE(created_at) as day,
-               COALESCE(SUM(total_tokens_used), 0)::int as tokens,
-               COALESCE(SUM(message_count), 0)::int as messages
-        FROM agent_conversations
-        WHERE org_id = ${orgId} AND created_at >= ${since}
-        GROUP BY DATE(created_at) ORDER BY day DESC LIMIT ${days}
+        SELECT DATE(m.created_at) as day,
+               COALESCE(SUM(m.token_count), 0)::int as tokens,
+               COUNT(*)::int as messages
+        FROM agent_messages m
+        JOIN agent_conversations c ON m.conversation_id = c.id
+        WHERE c.org_id = ${orgId} AND m.created_at >= ${since}
+        GROUP BY DATE(m.created_at) ORDER BY day DESC LIMIT ${days}
       `) as unknown as DbQueryResult,
     ]);
 
