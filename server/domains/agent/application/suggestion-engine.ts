@@ -75,28 +75,31 @@ export class SuggestionEngine {
     const prefs = preferences || DEFAULT_PREFERENCES;
     const newSuggestions: AgentSuggestion[] = [];
 
+    const existingPending = await this.repo.suggestions.list(orgId, "pending", 500);
+    const pendingKeys = new Set(existingPending.map(s => `${s.triggerType}:${s.entityId || ""}`));
+
     if (prefs.predictions) {
-      const items = await this.evaluateHighRiskPredictions(orgId, prefs.minSeverity);
+      const items = await this.evaluateHighRiskPredictions(orgId, prefs.minSeverity, pendingKeys);
       newSuggestions.push(...items);
     }
 
     if (prefs.maintenance) {
-      const items = await this.evaluateOverdueMaintenance(orgId, prefs.minSeverity);
+      const items = await this.evaluateOverdueMaintenance(orgId, prefs.minSeverity, pendingKeys);
       newSuggestions.push(...items);
     }
 
     if (prefs.inventory) {
-      const items = await this.evaluateLowStock(orgId, prefs.minSeverity);
+      const items = await this.evaluateLowStock(orgId, prefs.minSeverity, pendingKeys);
       newSuggestions.push(...items);
     }
 
     if (prefs.alerts) {
-      const items = await this.evaluateCriticalAlerts(orgId, prefs.minSeverity);
+      const items = await this.evaluateCriticalAlerts(orgId, prefs.minSeverity, pendingKeys);
       newSuggestions.push(...items);
     }
 
     if (prefs.crew) {
-      const items = await this.evaluateExpiringCertifications(orgId, prefs.minSeverity);
+      const items = await this.evaluateExpiringCertifications(orgId, prefs.minSeverity, pendingKeys);
       newSuggestions.push(...items);
     }
 
@@ -109,7 +112,7 @@ export class SuggestionEngine {
     return newSuggestions;
   }
 
-  private async evaluateHighRiskPredictions(orgId: string, minSeverity: string): Promise<AgentSuggestion[]> {
+  private async evaluateHighRiskPredictions(orgId: string, minSeverity: string, pendingKeys: Set<string>): Promise<AgentSuggestion[]> {
     const results: AgentSuggestion[] = [];
     const highRiskPredictions = await db.select({
       equipmentId: failurePredictions.equipmentId,
@@ -127,6 +130,8 @@ export class SuggestionEngine {
 
     for (const pred of highRiskPredictions) {
       if (pred.failureProbability > 0.8) {
+        const dedupKey = `high_risk_prediction:${pred.equipmentId}`;
+        if (pendingKeys.has(dedupKey)) continue;
         const severity = pred.failureProbability >= 0.9 ? "critical" : "warning";
         if (!meetsMinSeverity(severity, minSeverity)) continue;
         const sug = await this.repo.suggestions.create({
@@ -146,7 +151,7 @@ export class SuggestionEngine {
     return results;
   }
 
-  private async evaluateOverdueMaintenance(orgId: string, minSeverity: string): Promise<AgentSuggestion[]> {
+  private async evaluateOverdueMaintenance(orgId: string, minSeverity: string, pendingKeys: Set<string>): Promise<AgentSuggestion[]> {
     const results: AgentSuggestion[] = [];
     if (!meetsMinSeverity("warning", minSeverity)) return results;
 
@@ -165,6 +170,8 @@ export class SuggestionEngine {
       .limit(10);
 
     for (const maint of overdueMaint) {
+      const dedupKey = `overdue_maintenance:${maint.id}`;
+      if (pendingKeys.has(dedupKey)) continue;
       const daysOverdue = Math.floor((Date.now() - new Date(maint.scheduledDate).getTime()) / (24 * 60 * 60 * 1000));
       const severity = daysOverdue > 7 ? "critical" : "warning";
       if (!meetsMinSeverity(severity, minSeverity)) continue;
@@ -184,7 +191,7 @@ export class SuggestionEngine {
     return results;
   }
 
-  private async evaluateLowStock(orgId: string, minSeverity: string): Promise<AgentSuggestion[]> {
+  private async evaluateLowStock(orgId: string, minSeverity: string, pendingKeys: Set<string>): Promise<AgentSuggestion[]> {
     const results: AgentSuggestion[] = [];
     if (!meetsMinSeverity("info", minSeverity)) return results;
 
@@ -198,6 +205,8 @@ export class SuggestionEngine {
       const lowStockRows = (lowStockResult as { rows?: Array<Record<string, unknown>> }).rows || [];
 
       for (const part of lowStockRows) {
+        const dedupKey = `low_stock:${part.id as string}`;
+        if (pendingKeys.has(dedupKey)) continue;
         const severity = Number(part.quantity_on_hand) === 0 ? "critical" : "info";
         if (!meetsMinSeverity(severity, minSeverity)) continue;
         const sug = await this.repo.suggestions.create({
@@ -219,7 +228,7 @@ export class SuggestionEngine {
     return results;
   }
 
-  private async evaluateCriticalAlerts(orgId: string, minSeverity: string): Promise<AgentSuggestion[]> {
+  private async evaluateCriticalAlerts(orgId: string, minSeverity: string, pendingKeys: Set<string>): Promise<AgentSuggestion[]> {
     const results: AgentSuggestion[] = [];
     if (!meetsMinSeverity("critical", minSeverity)) return results;
 
@@ -243,6 +252,8 @@ export class SuggestionEngine {
         .limit(10);
 
       for (const alert of recentAlerts) {
+        const dedupKey = `critical_alert:${alert.equipmentId}`;
+        if (pendingKeys.has(dedupKey)) continue;
         const sug = await this.repo.suggestions.create({
           orgId,
           triggerType: "critical_alert",
@@ -262,7 +273,7 @@ export class SuggestionEngine {
     return results;
   }
 
-  private async evaluateExpiringCertifications(orgId: string, minSeverity: string): Promise<AgentSuggestion[]> {
+  private async evaluateExpiringCertifications(orgId: string, minSeverity: string, pendingKeys: Set<string>): Promise<AgentSuggestion[]> {
     const results: AgentSuggestion[] = [];
     if (!meetsMinSeverity("warning", minSeverity)) return results;
 
@@ -284,6 +295,8 @@ export class SuggestionEngine {
         .limit(10);
 
       for (const cert of expiringCerts) {
+        const dedupKey = `expiring_certification:${cert.crewId}`;
+        if (pendingKeys.has(dedupKey)) continue;
         const daysUntilExpiry = Math.ceil((new Date(cert.expiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000));
         const severity = daysUntilExpiry <= 7 ? "critical" : "warning";
         if (!meetsMinSeverity(severity, minSeverity)) continue;

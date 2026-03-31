@@ -79,20 +79,12 @@ export function SuggestionBell() {
     },
   });
 
-  const actMutation = useMutation({
-    mutationFn: (id: string) => apiRequest("POST", `/api/agent/suggestions/${id}/act`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/agent/suggestions"] });
-    },
-  });
-
   const openInAssistant = useCallback((suggestion: Suggestion) => {
     const prompt = `I'd like help with this suggestion: "${suggestion.title}". ${suggestion.summary}. What actions should I take?`;
-    actMutation.mutate(suggestion.id);
     setChatMessage(prompt);
     setChatOpen(true);
     setPopoverOpen(false);
-  }, [actMutation]);
+  }, []);
 
   return (
     <>
