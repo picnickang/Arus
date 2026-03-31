@@ -339,9 +339,9 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
   app.put("/api/agent/suggestions/:id", rateLimit.writeOperationRateLimit, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const existing = await agentRepo.suggestions.list(orgId);
+      const existing = await agentRepo.suggestions.list(orgId, undefined, 1000);
       const match = existing.find(s => s.id === req.params.id);
-      if (!match) return res.status(404).json({ error: "Suggestion not found" });
+      if (!match) return res.status(404).json({ error: "Suggestion not found or does not belong to this organization" });
       const suggestion = await agentRepo.suggestions.update(req.params.id, req.body);
       res.json(suggestion);
     } catch (error: unknown) {
