@@ -1,6 +1,7 @@
 import { db } from "../../../db";
 import { eq, desc, and } from "drizzle-orm";
 import { maintenanceSchedules } from "@shared/schema";
+import { z } from "zod";
 import { registerTool } from "./registry";
 
 registerTool({
@@ -15,6 +16,7 @@ registerTool({
     },
     required: [],
   },
+  inputSchema: z.object({ equipmentId: z.string().optional(), status: z.string().optional(), limit: z.number().optional() }),
   requiresApproval: false,
   async execute(input: { equipmentId?: string; status?: string; limit?: number }, ctx) {
     const conditions = [eq(maintenanceSchedules.orgId, ctx.orgId)];

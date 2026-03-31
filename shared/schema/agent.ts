@@ -86,6 +86,22 @@ export const agentDrafts = pgTable("agent_drafts", {
   index("idx_agent_draft_type").on(table.draftType),
 ]);
 
+export const agentApprovals = pgTable("agent_approvals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orgId: varchar("org_id").notNull(),
+  draftId: varchar("draft_id").notNull(),
+  conversationId: varchar("conversation_id").notNull(),
+  action: text("action").notNull(),
+  reviewedById: varchar("reviewed_by_id"),
+  reviewNote: text("review_note"),
+  resultId: varchar("result_id"),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
+}, (table) => [
+  index("idx_agent_appr_org").on(table.orgId),
+  index("idx_agent_appr_draft").on(table.draftId),
+  index("idx_agent_appr_conv").on(table.conversationId),
+]);
+
 export const agentConfig = pgTable("agent_config", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   orgId: varchar("org_id").notNull(),
@@ -162,6 +178,9 @@ export const insertAgentMessageSchema = createInsertSchema(agentMessages)
 export const insertAgentDraftSchema = createInsertSchema(agentDrafts)
   .omit({ id: true, createdAt: true, updatedAt: true, reviewedById: true, reviewNote: true, resultId: true });
 
+export const insertAgentApprovalSchema = createInsertSchema(agentApprovals)
+  .omit({ id: true, createdAt: true });
+
 export const insertAgentConfigSchema = createInsertSchema(agentConfig)
   .omit({ id: true, createdAt: true, updatedAt: true });
 
@@ -178,6 +197,8 @@ export type InsertAgentMessage = z.infer<typeof insertAgentMessageSchema>;
 export type AgentToolCall = typeof agentToolCalls.$inferSelect;
 export type AgentDraft = typeof agentDrafts.$inferSelect;
 export type InsertAgentDraft = z.infer<typeof insertAgentDraftSchema>;
+export type AgentApproval = typeof agentApprovals.$inferSelect;
+export type InsertAgentApproval = z.infer<typeof insertAgentApprovalSchema>;
 export type AgentConfigType = typeof agentConfig.$inferSelect;
 export type InsertAgentConfig = z.infer<typeof insertAgentConfigSchema>;
 export type AgentSuggestion = typeof agentSuggestions.$inferSelect;

@@ -1,6 +1,7 @@
 import { db } from "../../../db";
 import { eq, and, desc, inArray } from "drizzle-orm";
 import { crew, scheduleAssignments } from "@shared/schema";
+import { z } from "zod";
 import { registerTool } from "./registry";
 
 registerTool({
@@ -14,6 +15,7 @@ registerTool({
     },
     required: [],
   },
+  inputSchema: z.object({ vesselId: z.string().optional(), limit: z.number().optional() }),
   requiresApproval: false,
   async execute(input: { vesselId?: string; limit?: number }, ctx) {
     const conditions = [eq(crew.orgId, ctx.orgId)];
@@ -46,6 +48,7 @@ registerTool({
     },
     required: [],
   },
+  inputSchema: z.object({ vesselId: z.string().optional(), crewMemberId: z.string().optional(), limit: z.number().optional() }),
   requiresApproval: false,
   async execute(input: { vesselId?: string; crewMemberId?: string; limit?: number }, ctx) {
     const crewConditions = [eq(crew.orgId, ctx.orgId)];

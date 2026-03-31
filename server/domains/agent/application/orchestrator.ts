@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import fs from "fs";
 import { createOpenAIClient } from "../../../openai/client";
 import type { AgentRepositoryPort } from "../domain/ports";
-import type { AgentRunResult, FileAttachment } from "../domain/types";
+import type { AgentRunResult, FileAttachment, ToolCallTrace } from "../domain/types";
 import { getTool, getToolOpenAIDefinitions } from "../tools";
 import { SafetyService } from "./safety-service";
 import type { AgentConversation, AgentMessage, AgentConfigType } from "@shared/schema";
@@ -88,6 +88,7 @@ export class AgentOrchestrator {
     let totalTokens = 0;
     let toolCallCount = 0;
     let finalResponse = "";
+    const toolCallTraces: ToolCallTrace[] = [];
 
     for (let iteration = 0; iteration < maxIterations; iteration++) {
       const response = await client.chat.completions.create({
@@ -119,16 +120,26 @@ export class AgentOrchestrator {
         });
 
         for (const tc of choice.message.tool_calls) {
+          const parsedInput = this.parseJson(tc.function.arguments);
           const { toolResult, toolStatus, toolError, durationMs } = await this.executeTool(
             tc, toolContext, orgId, userId, conversation.id, config,
           );
           toolCallCount++;
 
+          toolCallTraces.push({
+            toolName: tc.function.name,
+            input: parsedInput,
+            output: toolResult,
+            status: toolStatus,
+            durationMs,
+            error: toolError,
+          });
+
           await this.repo.toolCalls.create({
             conversationId: conversation.id,
             messageId: assistantMsg.id,
             toolName: tc.function.name,
-            input: this.parseJson(tc.function.arguments),
+            input: parsedInput,
             output: toolResult,
             status: toolStatus,
             durationMs,
@@ -168,7 +179,7 @@ export class AgentOrchestrator {
       await this.repo.conversations.update(conversation.id, { title });
     }
 
-    return { conversationId: conversation.id, messages: [], finalResponse, toolCallCount, totalTokens };
+    return { conversationId: conversation.id, toolCalls: toolCallTraces, finalResponse, toolCallCount, totalTokens };
   }
 
   async runWithAttachments(
@@ -251,6 +262,7 @@ export class AgentOrchestrator {
     let totalTokens = 0;
     let toolCallCount = 0;
     let finalResponse = "";
+    const toolCallTraces: ToolCallTrace[] = [];
 
     for (let iteration = 0; iteration < maxIterations; iteration++) {
       const response = await client.chat.completions.create({
@@ -282,16 +294,26 @@ export class AgentOrchestrator {
         });
 
         for (const tc of choice.message.tool_calls) {
+          const parsedInput = this.parseJson(tc.function.arguments);
           const { toolResult, toolStatus, toolError, durationMs } = await this.executeTool(
             tc, toolContext, orgId, userId, conversation.id, config,
           );
           toolCallCount++;
 
+          toolCallTraces.push({
+            toolName: tc.function.name,
+            input: parsedInput,
+            output: toolResult,
+            status: toolStatus,
+            durationMs,
+            error: toolError,
+          });
+
           await this.repo.toolCalls.create({
             conversationId: conversation.id,
             messageId: assistantMsg.id,
             toolName: tc.function.name,
-            input: this.parseJson(tc.function.arguments),
+            input: parsedInput,
             output: toolResult,
             status: toolStatus,
             durationMs,
@@ -331,7 +353,7 @@ export class AgentOrchestrator {
       await this.repo.conversations.update(conversation.id, { title });
     }
 
-    return { conversationId: conversation.id, messages: [], finalResponse, toolCallCount, totalTokens };
+    return { conversationId: conversation.id, toolCalls: toolCallTraces, finalResponse, toolCallCount, totalTokens };
   }
 
   async runStream(
@@ -381,6 +403,8 @@ export class AgentOrchestrator {
     let totalTokens = 0;
     let toolCallCount = 0;
     let finalResponse = "";
+    let finalResponseTokens = 0;
+    const toolCallTraces: ToolCallTrace[] = [];
 
     for (let iteration = 0; iteration < maxIterations; iteration++) {
       const isLastChance = iteration === maxIterations - 1;
@@ -390,7 +414,8 @@ export class AgentOrchestrator {
           model, messages: openaiMessages, temperature: 0.3, max_tokens: 4096,
         });
         finalResponse = response.choices[0].message.content || "";
-        totalTokens += response.usage?.total_tokens || 0;
+        finalResponseTokens = response.usage?.total_tokens || 0;
+        totalTokens += finalResponseTokens;
         onChunk(JSON.stringify({ type: "text", content: finalResponse }) + "\n");
         break;
       }
@@ -402,7 +427,8 @@ export class AgentOrchestrator {
       });
 
       const choice = response.choices[0];
-      totalTokens += response.usage?.total_tokens || 0;
+      const iterationTokens = response.usage?.total_tokens || 0;
+      totalTokens += iterationTokens;
 
       if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
         const assistantMsg = await this.repo.messages.create({
@@ -410,10 +436,10 @@ export class AgentOrchestrator {
           role: "assistant",
           content: choice.message.content,
           toolCalls: choice.message.tool_calls,
-          tokenCount: response.usage?.total_tokens,
+          tokenCount: iterationTokens,
           model,
         });
-        await this.repo.conversations.incrementMessageCount(conversation.id, response.usage?.total_tokens || 0);
+        await this.repo.conversations.incrementMessageCount(conversation.id, iterationTokens);
 
         openaiMessages.push({
           role: "assistant",
@@ -422,18 +448,28 @@ export class AgentOrchestrator {
         });
 
         for (const tc of choice.message.tool_calls) {
-          onChunk(JSON.stringify({ type: "tool_call", toolName: tc.function.name, input: this.parseJson(tc.function.arguments) }) + "\n");
+          const parsedInput = this.parseJson(tc.function.arguments);
+          onChunk(JSON.stringify({ type: "tool_call", toolName: tc.function.name, input: parsedInput }) + "\n");
 
           const { toolResult, toolStatus, toolError, durationMs } = await this.executeTool(
             tc, toolContext, orgId, userId, conversation.id, config,
           );
           toolCallCount++;
 
+          toolCallTraces.push({
+            toolName: tc.function.name,
+            input: parsedInput,
+            output: toolResult,
+            status: toolStatus,
+            durationMs,
+            error: toolError,
+          });
+
           await this.repo.toolCalls.create({
             conversationId: conversation.id,
             messageId: assistantMsg.id,
             toolName: tc.function.name,
-            input: this.parseJson(tc.function.arguments),
+            input: parsedInput,
             output: toolResult,
             status: toolStatus,
             durationMs,
@@ -457,6 +493,7 @@ export class AgentOrchestrator {
       }
 
       finalResponse = choice.message.content || "";
+      finalResponseTokens = iterationTokens;
       onChunk(JSON.stringify({ type: "text", content: finalResponse }) + "\n");
       break;
     }
@@ -465,10 +502,10 @@ export class AgentOrchestrator {
       conversationId: conversation.id,
       role: "assistant",
       content: finalResponse,
-      tokenCount: totalTokens,
+      tokenCount: finalResponseTokens,
       model,
     });
-    await this.repo.conversations.incrementMessageCount(conversation.id, totalTokens);
+    await this.repo.conversations.incrementMessageCount(conversation.id, finalResponseTokens);
 
     if (!conversation.title || conversation.title === sanitizedMessage.slice(0, 100)) {
       const title = sanitizedMessage.length > 60 ? sanitizedMessage.slice(0, 57) + "..." : sanitizedMessage;
@@ -477,7 +514,7 @@ export class AgentOrchestrator {
 
     onChunk(JSON.stringify({ type: "done", conversationId: conversation.id }) + "\n");
 
-    return { conversationId: conversation.id, messages: [], finalResponse, toolCallCount, totalTokens };
+    return { conversationId: conversation.id, toolCalls: toolCallTraces, finalResponse, toolCallCount, totalTokens };
   }
 
   private buildOpenAIMessages(
@@ -536,6 +573,14 @@ export class AgentOrchestrator {
     const tool = getTool(toolName);
     if (!tool) {
       return { toolResult: { error: `Unknown tool: ${toolName}` }, toolStatus: "error", toolError: `Unknown tool: ${toolName}`, durationMs: 0 };
+    }
+
+    if (tool.inputSchema) {
+      const validation = tool.inputSchema.safeParse(toolInput);
+      if (!validation.success) {
+        const errMsg = `Invalid input for ${toolName}: ${validation.error.issues.map(i => i.message).join(", ")}`;
+        return { toolResult: { error: errMsg }, toolStatus: "error", toolError: errMsg, durationMs: 0 };
+      }
     }
 
     try {

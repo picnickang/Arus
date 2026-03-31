@@ -5,6 +5,7 @@ import {
   agentMessages,
   agentToolCalls,
   agentDrafts,
+  agentApprovals,
   agentConfig,
   agentSuggestions,
   agentSchedules,
@@ -18,6 +19,8 @@ import type {
   AgentToolCall,
   AgentDraft,
   InsertAgentDraft,
+  AgentApproval,
+  InsertAgentApproval,
   AgentConfigType,
   InsertAgentConfig,
   AgentSuggestion,
@@ -121,6 +124,20 @@ export function createAgentRepository(): AgentRepositoryPort {
           .where(eq(agentDrafts.id, id))
           .returning();
         return draft;
+      },
+    },
+
+    approvals: {
+      async create(data: InsertAgentApproval): Promise<AgentApproval> {
+        const [approval] = await db.insert(agentApprovals).values(data).returning();
+        return approval;
+      },
+      async list(orgId: string, draftId?: string): Promise<AgentApproval[]> {
+        return db.select().from(agentApprovals)
+          .where(draftId
+            ? and(eq(agentApprovals.orgId, orgId), eq(agentApprovals.draftId, draftId))
+            : eq(agentApprovals.orgId, orgId))
+          .orderBy(desc(agentApprovals.createdAt));
       },
     },
 

@@ -1,5 +1,6 @@
 import { db } from "../../../db";
 import { sql } from "drizzle-orm";
+import { z } from "zod";
 import { registerTool } from "./registry";
 
 registerTool({
@@ -10,6 +11,7 @@ registerTool({
     properties: {},
     required: [],
   },
+  inputSchema: z.object({}),
   requiresApproval: false,
   async execute(_input: any, ctx) {
     try {

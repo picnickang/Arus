@@ -6,6 +6,8 @@ import type {
   AgentToolCall,
   AgentDraft,
   InsertAgentDraft,
+  AgentApproval,
+  InsertAgentApproval,
   AgentConfigType,
   InsertAgentConfig,
   AgentSuggestion,
@@ -72,11 +74,17 @@ export interface AgentSchedulePort {
   updateRun(id: string, data: Partial<AgentScheduleRun>): Promise<AgentScheduleRun>;
 }
 
+export interface AgentApprovalPort {
+  create(data: InsertAgentApproval): Promise<AgentApproval>;
+  list(orgId: string, draftId?: string): Promise<AgentApproval[]>;
+}
+
 export interface AgentRepositoryPort {
   conversations: AgentConversationPort;
   messages: AgentMessagePort;
   toolCalls: AgentToolCallPort;
   drafts: AgentDraftPort;
+  approvals: AgentApprovalPort;
   config: AgentConfigPort;
   suggestions: AgentSuggestionPort;
   schedules: AgentSchedulePort;

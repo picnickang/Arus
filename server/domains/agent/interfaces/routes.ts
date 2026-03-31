@@ -56,6 +56,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       res.json({
         conversationId: result.conversationId,
         response: result.finalResponse,
+        toolCalls: result.toolCalls,
         toolCallCount: result.toolCallCount,
         totalTokens: result.totalTokens,
       });
@@ -88,6 +89,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       res.json({
         conversationId: result.conversationId,
         response: result.finalResponse,
+        toolCalls: result.toolCalls,
         toolCallCount: result.toolCallCount,
         totalTokens: result.totalTokens,
       });

@@ -1,6 +1,7 @@
 import { db } from "../../../db";
 import { eq, desc, and } from "drizzle-orm";
 import { alertNotifications, failurePredictions, equipment } from "@shared/schema";
+import { z } from "zod";
 import { registerTool } from "./registry";
 
 registerTool({
@@ -14,6 +15,7 @@ registerTool({
     },
     required: [],
   },
+  inputSchema: z.object({ equipmentId: z.string().optional(), limit: z.number().optional() }),
   requiresApproval: false,
   async execute(input: { equipmentId?: string; limit?: number }, ctx) {
     const conditions = [eq(alertNotifications.orgId, ctx.orgId)];
@@ -47,6 +49,7 @@ registerTool({
     },
     required: ["alertId"],
   },
+  inputSchema: z.object({ alertId: z.string().min(1) }),
   requiresApproval: false,
   async execute(input: { alertId: string }, ctx) {
     const [alert] = await db.select().from(alertNotifications)

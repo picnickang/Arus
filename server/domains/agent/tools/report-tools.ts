@@ -4,6 +4,7 @@ import {
   equipment, vessels, maintenanceSchedules,
   alertNotifications, failurePredictions,
 } from "@shared/schema";
+import { z } from "zod";
 import { registerTool } from "./registry";
 
 registerTool({
@@ -17,6 +18,7 @@ registerTool({
     },
     required: [],
   },
+  inputSchema: z.object({ vesselId: z.string().optional(), period: z.enum(["24h", "7d", "30d"]).optional() }),
   requiresApproval: false,
   async execute(input: { vesselId?: string; period?: string }, ctx) {
     const periodMs: Record<string, number> = {

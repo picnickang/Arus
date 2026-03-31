@@ -1,6 +1,7 @@
 import { db } from "../../../db";
 import { eq, and } from "drizzle-orm";
 import { equipment, vessels } from "@shared/schema";
+import { z } from "zod";
 import { registerTool } from "./registry";
 
 registerTool({
@@ -13,6 +14,7 @@ registerTool({
     },
     required: ["equipmentId"],
   },
+  inputSchema: z.object({ equipmentId: z.string().min(1) }),
   requiresApproval: false,
   async execute(input: { equipmentId: string }, ctx) {
     const [item] = await db.select().from(equipment)
@@ -46,6 +48,7 @@ registerTool({
     },
     required: [],
   },
+  inputSchema: z.object({ vesselId: z.string().optional() }),
   requiresApproval: false,
   async execute(input: { vesselId?: string }, ctx) {
     if (input.vesselId) {
@@ -81,6 +84,7 @@ registerTool({
     },
     required: [],
   },
+  inputSchema: z.object({ limit: z.number().optional(), vesselId: z.string().optional() }),
   requiresApproval: false,
   async execute(input: { limit?: number; vesselId?: string }, ctx) {
     const conditions = [eq(equipment.orgId, ctx.orgId)];

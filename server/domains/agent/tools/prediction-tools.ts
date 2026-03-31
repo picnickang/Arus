@@ -1,6 +1,7 @@
 import { db } from "../../../db";
 import { eq, desc, and } from "drizzle-orm";
 import { failurePredictions } from "@shared/schema";
+import { z } from "zod";
 import { registerTool } from "./registry";
 
 registerTool({
@@ -14,6 +15,7 @@ registerTool({
     },
     required: ["equipmentId"],
   },
+  inputSchema: z.object({ equipmentId: z.string().min(1), limit: z.number().optional() }),
   requiresApproval: false,
   async execute(input: { equipmentId: string; limit?: number }, ctx) {
     const predictions = await db.select().from(failurePredictions)

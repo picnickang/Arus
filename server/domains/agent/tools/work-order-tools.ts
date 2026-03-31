@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { registerTool } from "./registry";
 
 registerTool({
@@ -15,6 +16,14 @@ registerTool({
     },
     required: ["equipmentId", "title", "description", "priority"],
   },
+  inputSchema: z.object({
+    equipmentId: z.string().min(1),
+    title: z.string().min(1),
+    description: z.string().min(1),
+    priority: z.enum(["low", "medium", "high", "critical"]),
+    estimatedHours: z.number().optional(),
+    type: z.string().optional(),
+  }),
   requiresApproval: true,
   async execute(input: any, ctx) {
     return {

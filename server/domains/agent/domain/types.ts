@@ -1,9 +1,10 @@
 export interface ToolDefinition {
   name: string;
   description: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
+  inputSchema?: import("zod").ZodType;
   requiresApproval: boolean;
-  execute: (input: any, context: ToolContext) => Promise<any>;
+  execute: (input: Record<string, unknown>, context: ToolContext) => Promise<Record<string, unknown>>;
 }
 
 export interface ToolContext {
@@ -12,9 +13,18 @@ export interface ToolContext {
   conversationId: string;
 }
 
+export interface ToolCallTrace {
+  toolName: string;
+  input: Record<string, unknown>;
+  output: Record<string, unknown>;
+  status: string;
+  durationMs: number;
+  error?: string;
+}
+
 export interface AgentRunResult {
   conversationId: string;
-  messages: any[];
+  toolCalls: ToolCallTrace[];
   finalResponse: string;
   toolCallCount: number;
   totalTokens: number;
