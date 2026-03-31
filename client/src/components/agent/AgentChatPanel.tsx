@@ -9,7 +9,7 @@ import {
   Bot, Send, Plus, Loader2,
   Wrench, CheckCircle, XCircle, AlertTriangle,
   Clock, ArrowLeft, Paperclip, X, FileText, Image as ImageIcon,
-  ChevronRight, ChevronDown,
+  ChevronRight, ChevronDown, Mic, MicOff, Upload,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { getCurrentOrgId } from "@/contexts/OrganizationContext";
@@ -252,11 +252,15 @@ export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolea
   const [streamText, setStreamText] = useState("");
   const [retryStatus, setRetryStatus] = useState<string | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [filePreviews, setFilePreviews] = useState<Map<string, string>>(new Map());
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatFormRef = useRef<HTMLFormElement>(null);
   const convIdRef = useRef<string | null>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -361,17 +365,95 @@ export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolea
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const valid = files.filter(f => ALLOWED_FILE_TYPES.includes(f.type) && f.size <= 10 * 1024 * 1024);
-    if (valid.length < files.length) {
-      toast({ title: "Some files skipped", description: "Only images, PDFs, text, CSV, and XLSX under 10MB are supported.", variant: "destructive" });
-    }
-    setAttachedFiles(prev => [...prev, ...valid].slice(0, 5));
+    addFiles(files);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const removeFile = (index: number) => {
-    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+    setAttachedFiles(prev => {
+      const removed = prev[index];
+      if (removed) {
+        const key = `${removed.name}-${removed.size}`;
+        setFilePreviews(p => { const n = new Map(p); n.delete(key); return n; });
+      }
+      return prev.filter((_, i) => i !== index);
+    });
   };
+
+  const generatePreview = useCallback((file: File) => {
+    if (file.type.startsWith("image/")) {
+      const key = `${file.name}-${file.size}`;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          setFilePreviews(prev => new Map(prev).set(key, e.target!.result as string));
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  }, []);
+
+  const addFiles = useCallback((files: File[]) => {
+    const valid = files.filter(f => ALLOWED_FILE_TYPES.includes(f.type) && f.size <= 10 * 1024 * 1024);
+    if (valid.length < files.length) {
+      toast({ title: "Some files skipped", description: "Only images, PDFs, text, CSV, and XLSX under 10MB are supported.", variant: "destructive" });
+    }
+    valid.forEach(generatePreview);
+    setAttachedFiles(prev => [...prev, ...valid].slice(0, 5));
+  }, [toast, generatePreview]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    if (droppedFiles.length > 0) addFiles(droppedFiles);
+  }, [addFiles]);
+
+  const toggleVoiceInput = useCallback(() => {
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognitionAPI) {
+      toast({ title: "Not supported", description: "Voice input is not supported in this browser.", variant: "destructive" });
+      return;
+    }
+
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognitionAPI();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = "en-US";
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      const transcript = event.results[0]?.[0]?.transcript;
+      if (transcript) {
+        setMessage(prev => prev ? `${prev} ${transcript}` : transcript);
+      }
+      setIsListening(false);
+    };
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsListening(true);
+  }, [isListening, toast]);
 
   const sendMessage = useCallback(async () => {
     if ((!message.trim() && attachedFiles.length === 0) || isStreaming) return;
@@ -379,6 +461,7 @@ export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolea
     const filesToSend = [...attachedFiles];
     setMessage("");
     setAttachedFiles([]);
+    setFilePreviews(new Map());
     setIsStreaming(true);
     setPendingToolCalls([]);
     setStreamText("");
@@ -621,7 +704,21 @@ export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolea
           </ScrollArea>
         ) : (
           <>
-            <div className="flex-1 overflow-y-auto" ref={scrollRef}>
+            <div
+              className={cn("flex-1 overflow-y-auto relative", isDragOver && "ring-2 ring-primary ring-inset")}
+              ref={scrollRef}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              {isDragOver && (
+                <div className="absolute inset-0 bg-primary/5 z-10 flex items-center justify-center pointer-events-none">
+                  <div className="flex flex-col items-center gap-2 text-primary">
+                    <Upload className="h-8 w-8" />
+                    <span className="text-sm font-medium">Drop files here</span>
+                  </div>
+                </div>
+              )}
               <div className="p-4 space-y-4">
                 {allMessages.length === 0 && !isStreaming && (
                   <div className="text-center py-12 space-y-3" data-testid="card-empty-state">
@@ -732,16 +829,33 @@ export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolea
 
             <div className="flex-shrink-0 border-t p-3">
               {attachedFiles.length > 0 && (
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {attachedFiles.map((f, i) => (
-                    <div key={i} className="flex items-center gap-1 bg-muted rounded px-2 py-1 text-xs" data-testid={`badge-attached-file-${i}`}>
-                      {f.type.startsWith("image/") ? <ImageIcon className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
-                      <span className="max-w-[100px] truncate">{f.name}</span>
-                      <button onClick={() => removeFile(i)} className="hover:text-destructive" aria-label={`Remove ${f.name}`} data-testid={`button-remove-file-${i}`}>
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {attachedFiles.map((f, i) => {
+                    const previewKey = `${f.name}-${f.size}`;
+                    const previewUrl = filePreviews.get(previewKey);
+                    return (
+                      <div key={i} className="relative group" data-testid={`badge-attached-file-${i}`}>
+                        {previewUrl ? (
+                          <div className="w-16 h-16 rounded border overflow-hidden bg-muted">
+                            <img src={previewUrl} alt={f.name} className="w-full h-full object-cover" />
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 bg-muted rounded px-2 py-1.5 text-xs">
+                            <FileText className="h-3.5 w-3.5 shrink-0" />
+                            <span className="max-w-[100px] truncate">{f.name}</span>
+                          </div>
+                        )}
+                        <button
+                          onClick={() => removeFile(i)}
+                          className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          aria-label={`Remove ${f.name}`}
+                          data-testid={`button-remove-file-${i}`}
+                        >
+                          <X className="h-2.5 w-2.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
               <form
@@ -781,6 +895,18 @@ export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolea
                   className="flex-1"
                   data-testid="input-agent-message"
                 />
+                <Button
+                  type="button"
+                  variant={isListening ? "destructive" : "ghost"}
+                  size="icon"
+                  onClick={toggleVoiceInput}
+                  disabled={isStreaming}
+                  className="flex-shrink-0"
+                  aria-label={isListening ? "Stop listening" : "Voice input"}
+                  data-testid="button-voice-input"
+                >
+                  {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                </Button>
                 <Button
                   type="submit"
                   size="icon"

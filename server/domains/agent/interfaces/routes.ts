@@ -151,6 +151,32 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
+  app.post("/api/agent/conversations/:id/files", rateLimit.writeOperationRateLimit, upload.array("files", 5), async (req: Request, res: Response) => {
+    const files = (req.files as Express.Multer.File[]) || [];
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const conversationId = req.params.id;
+
+      const existing = await agentRepo.conversations.get(conversationId, orgId);
+      if (!existing) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+
+      const fileRefs = files.map(f => ({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        filename: f.originalname,
+        mimetype: f.mimetype,
+        size: f.size,
+        path: f.path,
+      }));
+
+      res.json({ files: fileRefs });
+    } catch (error: unknown) {
+      console.error("[Agent] File upload error:", error);
+      res.status(500).json({ error: error instanceof Error ? error.message : "Upload failed" });
+    }
+  });
+
   app.get("/api/agent/chat-stream", rateLimit.generalApiRateLimit, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;

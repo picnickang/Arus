@@ -269,6 +269,57 @@ export class AgentOrchestrator {
           image_url: { url: dataUrl, detail: "auto" },
         });
         fileDescriptions.push(`[Image: ${att.filename}]`);
+      } else if (att.mimetype === "application/pdf") {
+        try {
+          const pdfBuffer = fs.readFileSync(att.path);
+          const pdfParse = (await import("pdf-parse")).default;
+          const pdfData = await pdfParse(pdfBuffer);
+          const text = pdfData.text.slice(0, 12000);
+          contentParts.push({
+            type: "text",
+            text: `\n\n--- PDF: ${att.filename} (${pdfData.numpages} pages) ---\n${text}\n--- End of PDF ---`,
+          });
+          fileDescriptions.push(`[PDF: ${att.filename}, ${pdfData.numpages} pages]`);
+        } catch (err) {
+          console.warn(`[Agent] Failed to parse PDF ${att.filename}:`, err instanceof Error ? err.message : "unknown");
+          fileDescriptions.push(`[PDF: ${att.filename} (could not extract text)]`);
+        }
+      } else if (att.mimetype === "text/csv" || att.filename.endsWith(".csv")) {
+        try {
+          const csvText = fs.readFileSync(att.path, "utf-8");
+          const Papa = (await import("papaparse")).default;
+          const parsed = Papa.parse(csvText, { header: true, dynamicTyping: true, skipEmptyLines: true });
+          const rows = parsed.data as Record<string, unknown>[];
+          const headers = parsed.meta.fields || [];
+          const rowCount = rows.length;
+
+          const numericCols = headers.filter(h => rows.some(r => typeof r[h] === "number"));
+          const stats: string[] = [`Rows: ${rowCount}`, `Columns: ${headers.join(", ")}`];
+          for (const col of numericCols.slice(0, 10)) {
+            const vals = rows.map(r => r[col]).filter((v): v is number => typeof v === "number");
+            if (vals.length > 0) {
+              const min = Math.min(...vals);
+              const max = Math.max(...vals);
+              const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+              stats.push(`  ${col}: min=${min}, max=${max}, avg=${avg.toFixed(2)}, count=${vals.length}`);
+            }
+          }
+
+          const preview = csvText.split("\n").slice(0, 21).join("\n");
+          contentParts.push({
+            type: "text",
+            text: `\n\n--- CSV: ${att.filename} ---\nSummary:\n${stats.join("\n")}\n\nFirst 20 rows:\n${preview}\n--- End of CSV ---`,
+          });
+          fileDescriptions.push(`[CSV: ${att.filename}, ${rowCount} rows]`);
+        } catch (err) {
+          console.warn(`[Agent] Failed to parse CSV ${att.filename}:`, err instanceof Error ? err.message : "unknown");
+          const fallback = fs.readFileSync(att.path, "utf-8").slice(0, 10000);
+          contentParts.push({
+            type: "text",
+            text: `\n\n--- Attached file: ${att.filename} ---\n${fallback}\n--- End of file ---`,
+          });
+          fileDescriptions.push(`[File: ${att.filename}]`);
+        }
       } else {
         try {
           const textContent = fs.readFileSync(att.path, "utf-8").slice(0, 10000);
