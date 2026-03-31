@@ -17,6 +17,7 @@ import { auditAction } from "../../../utils/audit-helpers";
 import { z } from "zod";
 
 import { getOrgUploadDir, registerFile, listConversationFiles } from "../infrastructure/file-registry";
+import { buildSystemPrompt } from "../domain/system-prompt";
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -759,80 +760,68 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
   app.get("/api/agent/admin/export-jsonl", rateLimit.generalApiRateLimit, requireAdminRole, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const limit = Math.min(parseInt(req.query.limit as string) || 1000, 5000);
-      const offset = parseInt(req.query.offset as string) || 0;
-      const conversations = await agentRepo.conversations.list(orgId, undefined, limit);
-      const sliced = conversations.slice(offset, offset + limit);
-
+      const batchSize = 200;
       const config = await agentRepo.config.get(orgId);
-      const customPrompt = config?.customSystemPrompt;
-      const basePrompt = `You are ARUS Copilot, an AI assistant for marine fleet operations and predictive maintenance.
-
-Your responsibilities:
-- Answer questions about vessels, equipment, maintenance history, and fleet operations
-- Explain predictive maintenance alerts and failure predictions
-- Help draft work orders when maintenance is needed
-- Generate fleet health reports with aggregated data
-- Provide risk assessments and prioritized recommendations
-- Summarize crew schedules and inventory status
-
-Important guidelines:
-1. Always use the provided tools to look up real data — never guess or make up equipment IDs, dates, or statistics
-2. When presenting predictions or risk scores, always mention the confidence level
-3. If a prediction has low confidence (below 0.6), explicitly warn the user
-4. When drafting work orders, always confirm the details with the user before proceeding
-5. Be concise and action-oriented — fleet operators are busy
-6. Use maritime terminology when appropriate
-7. If you cannot find information through the tools, say so clearly rather than guessing
-
-You have access to tools for looking up equipment, vessels, maintenance history, alerts, failure predictions, crew info, inventory, drafting work orders, and generating fleet reports.`;
-
-      const systemContent = customPrompt
-        ? `${basePrompt}\n\nAdditional instructions from your organization:\n${customPrompt}`
-        : basePrompt;
+      const systemContent = buildSystemPrompt(config?.customSystemPrompt);
 
       res.setHeader("Content-Type", "application/x-ndjson");
       res.setHeader("Content-Disposition", `attachment; filename="agent-conversations-${new Date().toISOString().slice(0, 10)}.jsonl"`);
-      res.setHeader("X-Total-Conversations", String(conversations.length));
 
-      const lines: string[] = [];
-      for (const conv of sliced) {
-        const messages = await agentRepo.messages.list(conv.id, 500);
-        if (messages.length === 0) continue;
+      let exported = 0;
+      let batchOffset = 0;
+      let hasMore = true;
 
-        const openaiMessages: Record<string, unknown>[] = [];
-        openaiMessages.push({ role: "system", content: systemContent });
+      while (hasMore) {
+        const batch = await agentRepo.conversations.list(orgId, undefined, batchSize);
+        const sliced = batch.slice(batchOffset);
+        if (sliced.length === 0) { hasMore = false; break; }
+        batchOffset += sliced.length;
+        if (sliced.length < batchSize) hasMore = false;
 
-        for (const msg of messages) {
-          if (msg.role === "user") {
-            openaiMessages.push({ role: "user", content: msg.content || "" });
-          } else if (msg.role === "assistant" && msg.toolCalls) {
-            const calls = msg.toolCalls as { id: string; type: string; function: { name: string; arguments: string } }[];
-            openaiMessages.push({
-              role: "assistant",
-              content: msg.content || null,
-              tool_calls: calls,
-            });
-          } else if (msg.role === "assistant") {
-            openaiMessages.push({ role: "assistant", content: msg.content || "" });
-          } else if (msg.role === "tool") {
-            const ref = msg.toolCalls as { toolCallId?: string } | null;
-            openaiMessages.push({
-              role: "tool",
-              content: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content),
-              tool_call_id: ref?.toolCallId || "unknown",
-            });
+        for (const conv of sliced) {
+          const messages = await agentRepo.messages.list(conv.id, 500);
+          if (messages.length === 0) continue;
+
+          const openaiMessages: Record<string, unknown>[] = [];
+          openaiMessages.push({ role: "system", content: systemContent });
+
+          for (const msg of messages) {
+            if (msg.role === "user") {
+              openaiMessages.push({ role: "user", content: msg.content || "" });
+            } else if (msg.role === "assistant" && msg.toolCalls) {
+              const calls = msg.toolCalls as { id: string; type: string; function: { name: string; arguments: string } }[];
+              openaiMessages.push({
+                role: "assistant",
+                content: msg.content || null,
+                tool_calls: calls,
+              });
+            } else if (msg.role === "assistant") {
+              openaiMessages.push({ role: "assistant", content: msg.content || "" });
+            } else if (msg.role === "tool") {
+              const ref = msg.toolCalls as { toolCallId?: string } | null;
+              openaiMessages.push({
+                role: "tool",
+                content: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content),
+                tool_call_id: ref?.toolCallId || "unknown",
+              });
+            }
           }
-        }
 
-        if (openaiMessages.length > 1) {
-          lines.push(JSON.stringify({ messages: openaiMessages }));
+          if (openaiMessages.length > 1) {
+            res.write(JSON.stringify({ messages: openaiMessages }) + "\n");
+            exported++;
+          }
         }
       }
 
-      res.send(lines.join("\n"));
+      res.setHeader("X-Exported-Conversations", String(exported));
+      res.end();
     } catch (error: unknown) {
-      res.status(500).json({ error: error instanceof Error ? error.message : "Export failed" });
+      if (!res.headersSent) {
+        res.status(500).json({ error: error instanceof Error ? error.message : "Export failed" });
+      } else {
+        res.end();
+      }
     }
   });
 
