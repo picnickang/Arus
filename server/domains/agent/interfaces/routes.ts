@@ -7,7 +7,8 @@ import { SafetyService } from "../application/safety-service";
 import { SuggestionEngine } from "../application/suggestion-engine";
 import { SchedulerService } from "../application/scheduler-service";
 import { agentRepo } from "../infrastructure/repository";
-import { getToolSummaries } from "../tools";
+import { getToolSummaries, getRegisteredToolNames } from "../tools";
+import { MAINTENANCE_ROLES } from "../domain/types";
 import { storage } from "../../../storage";
 import type { AuthenticatedRequest } from "../../../middleware/auth";
 import { auditAction } from "../../../utils/audit-helpers";
@@ -50,6 +51,15 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     const role = user?.role?.toLowerCase();
     if (!role || role !== "admin") {
       return res.status(403).json({ error: "Admin access required" });
+    }
+    next();
+  };
+
+  const requireMaintenanceRole = (req: Request, res: Response, next: () => void) => {
+    const user = (req as AuthenticatedRequest).user;
+    const role = user?.role?.toLowerCase();
+    if (!role || !MAINTENANCE_ROLES.includes(role as typeof MAINTENANCE_ROLES[number])) {
+      return res.status(403).json({ error: "Maintenance role required to approve or reject drafts" });
     }
     next();
   };
@@ -217,7 +227,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
-  app.post("/api/agent/drafts/:id/approve", rateLimit.writeOperationRateLimit, async (req: Request, res: Response) => {
+  app.post("/api/agent/drafts/:id/approve", rateLimit.writeOperationRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const userId = (req as AuthenticatedRequest).user?.id;
@@ -263,7 +273,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
-  app.post("/api/agent/drafts/:id/reject", rateLimit.writeOperationRateLimit, async (req: Request, res: Response) => {
+  app.post("/api/agent/drafts/:id/reject", rateLimit.writeOperationRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const userId = (req as AuthenticatedRequest).user?.id;
@@ -325,6 +335,15 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid configuration", details: parsed.error.flatten().fieldErrors });
       }
+
+      if (parsed.data.enabledTools && Array.isArray(parsed.data.enabledTools) && parsed.data.enabledTools.length > 0) {
+        const registeredNames = getRegisteredToolNames();
+        const invalid = parsed.data.enabledTools.filter(t => !registeredNames.includes(t));
+        if (invalid.length > 0) {
+          return res.status(400).json({ error: "Invalid tool names in enabledTools", invalidTools: invalid, validTools: registeredNames });
+        }
+      }
+
       const config = await agentRepo.config.upsert({ ...parsed.data, orgId });
 
       await auditAction("agent_config", config.id, "update", {

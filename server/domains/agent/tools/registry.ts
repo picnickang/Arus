@@ -22,6 +22,10 @@ export function getToolSummaries(): { name: string; description: string; require
   }));
 }
 
+export function getRegisteredToolNames(): string[] {
+  return Array.from(tools.keys());
+}
+
 export function getToolOpenAIDefinitions(enabledTools?: string[] | null) {
   let filtered = getAllTools();
   if (enabledTools !== null && enabledTools !== undefined) {

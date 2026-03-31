@@ -7,5 +7,5 @@ import "./inventory-tools";
 import "./work-order-tools";
 import "./report-tools";
 
-export { getTool, getAllTools, getToolOpenAIDefinitions, getToolSummaries } from "./registry";
+export { getTool, getAllTools, getToolOpenAIDefinitions, getToolSummaries, getRegisteredToolNames } from "./registry";
 export type { ToolDefinition, ToolContext } from "../domain/types";

@@ -297,88 +297,104 @@ export class AgentOrchestrator {
     let finalResponse = "";
     const toolCallTraces: ToolCallTrace[] = [];
 
-    for (let iteration = 0; iteration < maxIterations; iteration++) {
-      const response = await this.callOpenAI(client, model, openaiMessages, toolDefs);
+    const runStartTime = Date.now();
+    await this.auditRunLifecycle("run_start", conversation.id, orgId, userId, { model, maxIterations, mode: "attachments" });
 
-      const choice = response.choices[0];
-      totalTokens += response.usage?.total_tokens || 0;
+    try {
+      for (let iteration = 0; iteration < maxIterations; iteration++) {
+        const response = await this.callOpenAI(client, model, openaiMessages, toolDefs);
 
-      if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
-        const assistantMsg = await this.repo.messages.create({
+        const choice = response.choices[0];
+        totalTokens += response.usage?.total_tokens || 0;
+
+        if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
+          const assistantMsg = await this.repo.messages.create({
+            conversationId: conversation.id,
+            role: "assistant",
+            content: choice.message.content,
+            toolCalls: choice.message.tool_calls,
+            tokenCount: response.usage?.total_tokens,
+            model,
+          });
+          await this.repo.conversations.incrementMessageCount(conversation.id, response.usage?.total_tokens || 0);
+
+          openaiMessages.push({
+            role: "assistant",
+            content: choice.message.content,
+            tool_calls: choice.message.tool_calls,
+          });
+
+          for (const tc of choice.message.tool_calls) {
+            const parsedInput = this.parseJson(tc.function.arguments);
+            const { toolResult, toolStatus, toolError, durationMs } = await this.executeTool(
+              tc, toolContext, orgId, userId, conversation.id, config,
+            );
+            toolCallCount++;
+
+            toolCallTraces.push({
+              toolName: tc.function.name,
+              input: parsedInput,
+              output: toolResult,
+              status: toolStatus,
+              durationMs,
+              error: toolError,
+            });
+
+            await this.repo.toolCalls.create({
+              conversationId: conversation.id,
+              messageId: assistantMsg.id,
+              toolName: tc.function.name,
+              input: parsedInput,
+              output: toolResult,
+              status: toolStatus,
+              durationMs,
+              error: toolError,
+            });
+
+            const toolMsgContent = JSON.stringify(toolResult);
+            await this.repo.messages.create({
+              conversationId: conversation.id,
+              role: "tool",
+              content: toolMsgContent,
+              toolCalls: { toolCallId: tc.id },
+            });
+            await this.repo.conversations.incrementMessageCount(conversation.id, 0);
+
+            openaiMessages.push({
+              role: "tool", tool_call_id: tc.id, content: toolMsgContent,
+            });
+          }
+          continue;
+        }
+
+        finalResponse = choice.message.content || "";
+        await this.repo.messages.create({
           conversationId: conversation.id,
           role: "assistant",
-          content: choice.message.content,
-          toolCalls: choice.message.tool_calls,
+          content: finalResponse,
           tokenCount: response.usage?.total_tokens,
           model,
         });
         await this.repo.conversations.incrementMessageCount(conversation.id, response.usage?.total_tokens || 0);
-
-        openaiMessages.push({
-          role: "assistant",
-          content: choice.message.content,
-          tool_calls: choice.message.tool_calls,
-        });
-
-        for (const tc of choice.message.tool_calls) {
-          const parsedInput = this.parseJson(tc.function.arguments);
-          const { toolResult, toolStatus, toolError, durationMs } = await this.executeTool(
-            tc, toolContext, orgId, userId, conversation.id, config,
-          );
-          toolCallCount++;
-
-          toolCallTraces.push({
-            toolName: tc.function.name,
-            input: parsedInput,
-            output: toolResult,
-            status: toolStatus,
-            durationMs,
-            error: toolError,
-          });
-
-          await this.repo.toolCalls.create({
-            conversationId: conversation.id,
-            messageId: assistantMsg.id,
-            toolName: tc.function.name,
-            input: parsedInput,
-            output: toolResult,
-            status: toolStatus,
-            durationMs,
-            error: toolError,
-          });
-
-          const toolMsgContent = JSON.stringify(toolResult);
-          await this.repo.messages.create({
-            conversationId: conversation.id,
-            role: "tool",
-            content: toolMsgContent,
-            toolCalls: { toolCallId: tc.id },
-          });
-          await this.repo.conversations.incrementMessageCount(conversation.id, 0);
-
-          openaiMessages.push({
-            role: "tool", tool_call_id: tc.id, content: toolMsgContent,
-          });
-        }
-        continue;
+        break;
       }
-
-      finalResponse = choice.message.content || "";
-      await this.repo.messages.create({
-        conversationId: conversation.id,
-        role: "assistant",
-        content: finalResponse,
-        tokenCount: response.usage?.total_tokens,
-        model,
+    } catch (err) {
+      await this.auditRunLifecycle("run_error", conversation.id, orgId, userId, {
+        model, totalTokens, toolCallCount, durationMs: Date.now() - runStartTime, mode: "attachments",
+        error: err instanceof Error ? err.message : "Unknown error",
       });
-      await this.repo.conversations.incrementMessageCount(conversation.id, response.usage?.total_tokens || 0);
-      break;
+      throw err;
     }
 
     if (!conversation.title || conversation.title === sanitizedMessage.slice(0, 100)) {
       const title = sanitizedMessage.length > 60 ? sanitizedMessage.slice(0, 57) + "..." : sanitizedMessage;
       await this.repo.conversations.update(conversation.id, { title });
     }
+
+    await this.auditRunLifecycle("run_complete", conversation.id, orgId, userId, {
+      model, totalTokens, toolCallCount, durationMs: Date.now() - runStartTime, mode: "attachments",
+      toolsUsed: toolCallTraces.map(t => t.toolName),
+    });
 
     return { conversationId: conversation.id, toolCalls: toolCallTraces, finalResponse, toolCallCount, totalTokens };
   }
@@ -435,90 +451,101 @@ export class AgentOrchestrator {
     let finalResponseTokens = 0;
     const toolCallTraces: ToolCallTrace[] = [];
 
-    for (let iteration = 0; iteration < maxIterations; iteration++) {
-      const isLastChance = iteration === maxIterations - 1;
+    const runStartTime = Date.now();
+    await this.auditRunLifecycle("run_start", conversation.id, orgId, userId, { model, maxIterations, mode: "stream" });
 
-      if (isLastChance) {
-        const response = await this.callOpenAI(client, model, openaiMessages);
-        finalResponse = response.choices[0].message.content || "";
-        finalResponseTokens = response.usage?.total_tokens || 0;
-        totalTokens += finalResponseTokens;
+    try {
+      for (let iteration = 0; iteration < maxIterations; iteration++) {
+        const isLastChance = iteration === maxIterations - 1;
+
+        if (isLastChance) {
+          const response = await this.callOpenAI(client, model, openaiMessages);
+          finalResponse = response.choices[0].message.content || "";
+          finalResponseTokens = response.usage?.total_tokens || 0;
+          totalTokens += finalResponseTokens;
+          onChunk(JSON.stringify({ type: "text", content: finalResponse }) + "\n");
+          break;
+        }
+
+        const response = await this.callOpenAI(client, model, openaiMessages, toolDefs);
+
+        const choice = response.choices[0];
+        const iterationTokens = response.usage?.total_tokens || 0;
+        totalTokens += iterationTokens;
+
+        if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
+          const assistantMsg = await this.repo.messages.create({
+            conversationId: conversation.id,
+            role: "assistant",
+            content: choice.message.content,
+            toolCalls: choice.message.tool_calls,
+            tokenCount: iterationTokens,
+            model,
+          });
+          await this.repo.conversations.incrementMessageCount(conversation.id, iterationTokens);
+
+          openaiMessages.push({
+            role: "assistant",
+            content: choice.message.content,
+            tool_calls: choice.message.tool_calls,
+          });
+
+          for (const tc of choice.message.tool_calls) {
+            const parsedInput = this.parseJson(tc.function.arguments);
+            onChunk(JSON.stringify({ type: "tool_call", toolName: tc.function.name, input: parsedInput }) + "\n");
+
+            const { toolResult, toolStatus, toolError, durationMs } = await this.executeTool(
+              tc, toolContext, orgId, userId, conversation.id, config,
+            );
+            toolCallCount++;
+
+            toolCallTraces.push({
+              toolName: tc.function.name,
+              input: parsedInput,
+              output: toolResult,
+              status: toolStatus,
+              durationMs,
+              error: toolError,
+            });
+
+            await this.repo.toolCalls.create({
+              conversationId: conversation.id,
+              messageId: assistantMsg.id,
+              toolName: tc.function.name,
+              input: parsedInput,
+              output: toolResult,
+              status: toolStatus,
+              durationMs,
+              error: toolError,
+            });
+
+            onChunk(JSON.stringify({ type: "tool_result", toolName: tc.function.name, result: toolResult }) + "\n");
+
+            const toolMsgContent = JSON.stringify(toolResult);
+            await this.repo.messages.create({
+              conversationId: conversation.id,
+              role: "tool",
+              content: toolMsgContent,
+              toolCalls: { toolCallId: tc.id },
+            });
+            await this.repo.conversations.incrementMessageCount(conversation.id, 0);
+
+            openaiMessages.push({ role: "tool", tool_call_id: tc.id, content: toolMsgContent });
+          }
+          continue;
+        }
+
+        finalResponse = choice.message.content || "";
+        finalResponseTokens = iterationTokens;
         onChunk(JSON.stringify({ type: "text", content: finalResponse }) + "\n");
         break;
       }
-
-      const response = await this.callOpenAI(client, model, openaiMessages, toolDefs);
-
-      const choice = response.choices[0];
-      const iterationTokens = response.usage?.total_tokens || 0;
-      totalTokens += iterationTokens;
-
-      if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
-        const assistantMsg = await this.repo.messages.create({
-          conversationId: conversation.id,
-          role: "assistant",
-          content: choice.message.content,
-          toolCalls: choice.message.tool_calls,
-          tokenCount: iterationTokens,
-          model,
-        });
-        await this.repo.conversations.incrementMessageCount(conversation.id, iterationTokens);
-
-        openaiMessages.push({
-          role: "assistant",
-          content: choice.message.content,
-          tool_calls: choice.message.tool_calls,
-        });
-
-        for (const tc of choice.message.tool_calls) {
-          const parsedInput = this.parseJson(tc.function.arguments);
-          onChunk(JSON.stringify({ type: "tool_call", toolName: tc.function.name, input: parsedInput }) + "\n");
-
-          const { toolResult, toolStatus, toolError, durationMs } = await this.executeTool(
-            tc, toolContext, orgId, userId, conversation.id, config,
-          );
-          toolCallCount++;
-
-          toolCallTraces.push({
-            toolName: tc.function.name,
-            input: parsedInput,
-            output: toolResult,
-            status: toolStatus,
-            durationMs,
-            error: toolError,
-          });
-
-          await this.repo.toolCalls.create({
-            conversationId: conversation.id,
-            messageId: assistantMsg.id,
-            toolName: tc.function.name,
-            input: parsedInput,
-            output: toolResult,
-            status: toolStatus,
-            durationMs,
-            error: toolError,
-          });
-
-          onChunk(JSON.stringify({ type: "tool_result", toolName: tc.function.name, result: toolResult }) + "\n");
-
-          const toolMsgContent = JSON.stringify(toolResult);
-          await this.repo.messages.create({
-            conversationId: conversation.id,
-            role: "tool",
-            content: toolMsgContent,
-            toolCalls: { toolCallId: tc.id },
-          });
-          await this.repo.conversations.incrementMessageCount(conversation.id, 0);
-
-          openaiMessages.push({ role: "tool", tool_call_id: tc.id, content: toolMsgContent });
-        }
-        continue;
-      }
-
-      finalResponse = choice.message.content || "";
-      finalResponseTokens = iterationTokens;
-      onChunk(JSON.stringify({ type: "text", content: finalResponse }) + "\n");
-      break;
+    } catch (err) {
+      await this.auditRunLifecycle("run_error", conversation.id, orgId, userId, {
+        model, totalTokens, toolCallCount, durationMs: Date.now() - runStartTime, mode: "stream",
+        error: err instanceof Error ? err.message : "Unknown error",
+      });
+      throw err;
     }
 
     await this.repo.messages.create({
@@ -536,6 +563,11 @@ export class AgentOrchestrator {
     }
 
     onChunk(JSON.stringify({ type: "done", conversationId: conversation.id }) + "\n");
+
+    await this.auditRunLifecycle("run_complete", conversation.id, orgId, userId, {
+      model, totalTokens, toolCallCount, durationMs: Date.now() - runStartTime, mode: "stream",
+      toolsUsed: toolCallTraces.map(t => t.toolName),
+    });
 
     return { conversationId: conversation.id, toolCalls: toolCallTraces, finalResponse, toolCallCount, totalTokens };
   }
