@@ -374,7 +374,8 @@ registerTool({
           break;
         }
         case "fleet_summary": {
-          result = await enhancedLLM.generateFleetSummaryReport(isCostSummary ? "executive" : audience, options);
+          const costAudience = requestedAudience ? audience : "executive";
+          result = await enhancedLLM.generateFleetSummaryReport(isCostSummary ? costAudience : audience, options);
           break;
         }
         case "maintenance": {
