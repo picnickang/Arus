@@ -151,7 +151,7 @@ export class AgentOrchestrator {
           for (const tc of choice.message.tool_calls) {
             const parsedInput = this.parseJson(tc.function.arguments);
             const { toolResult, toolStatus, toolError, durationMs } = await this.executeTool(
-              tc, toolContext, orgId, userId, conversation.id, config,
+              tc, toolContext, orgId, userId, conversation.id, config, enabledTools,
             );
             toolCallCount++;
 
@@ -633,6 +633,7 @@ export class AgentOrchestrator {
     userId: string | undefined,
     conversationId: string,
     config: AgentConfigType | null | undefined,
+    runtimeAllowedTools?: string[] | null,
   ) {
     const toolName = tc.function.name;
     const toolInput = this.parseJson(tc.function.arguments);
@@ -640,6 +641,10 @@ export class AgentOrchestrator {
     let toolResult: Record<string, unknown> = {};
     let toolStatus = "success";
     let toolError: string | undefined;
+
+    if (runtimeAllowedTools && !runtimeAllowedTools.includes(toolName)) {
+      return { toolResult: { error: `Tool ${toolName} is not in the schedule allowlist` }, toolStatus: "error", toolError: "Schedule allowlist denied", durationMs: 0 };
+    }
 
     const enabledTools = config?.enabledTools as string[] | null | undefined;
     if (enabledTools && !this.safety.validateToolAccess(toolName, enabledTools)) {
