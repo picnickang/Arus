@@ -14,7 +14,7 @@ import {
   Save, RefreshCw, Loader2, Trash2, Play, Pause,
   AlertTriangle, CheckCircle, XCircle, Zap,
   MessageSquare, Wrench, TrendingUp, RotateCcw,
-  Shield, Database, Pencil,
+  Shield, Database, Pencil, Download,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -937,20 +937,37 @@ function DataTab() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium">Data Management</h3>
-        <Button
-          variant="destructive"
-          size="sm"
-          onClick={() => {
-            if (window.confirm("This will permanently delete all conversations, messages, tool calls, and drafts. Are you sure?")) {
-              purgeMutation.mutate();
-            }
-          }}
-          disabled={purgeMutation.isPending || conversations.length === 0}
-          data-testid="button-purge-conversations"
-        >
-          {purgeMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
-          Purge All
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const a = document.createElement("a");
+              a.href = "/api/agent/admin/export-jsonl";
+              a.download = "";
+              a.click();
+            }}
+            disabled={conversations.length === 0}
+            data-testid="button-export-jsonl"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export JSONL
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => {
+              if (window.confirm("This will permanently delete all conversations, messages, tool calls, and drafts. Are you sure?")) {
+                purgeMutation.mutate();
+              }
+            }}
+            disabled={purgeMutation.isPending || conversations.length === 0}
+            data-testid="button-purge-conversations"
+          >
+            {purgeMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
+            Purge All
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-4">

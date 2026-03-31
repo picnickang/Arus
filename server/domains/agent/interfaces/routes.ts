@@ -756,6 +756,51 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
+  app.get("/api/agent/admin/export-jsonl", rateLimit.generalApiRateLimit, requireAdminRole, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const conversations = await agentRepo.conversations.list(orgId, undefined, 1000);
+      const lines: string[] = [];
+
+      for (const conv of conversations) {
+        const messages = await agentRepo.messages.list(conv.id, 200);
+        if (messages.length === 0) continue;
+
+        const openaiMessages: { role: string; content: string; tool_calls?: any[]; tool_call_id?: string; name?: string }[] = [];
+
+        openaiMessages.push({
+          role: "system",
+          content: "You are a marine fleet operations AI copilot. You help with equipment monitoring, maintenance scheduling, crew management, inventory tracking, and fleet analytics.",
+        });
+
+        for (const msg of messages) {
+          if (msg.role === "user") {
+            openaiMessages.push({ role: "user", content: msg.content });
+          } else if (msg.role === "assistant") {
+            openaiMessages.push({ role: "assistant", content: msg.content });
+          } else if (msg.role === "tool") {
+            openaiMessages.push({
+              role: "tool",
+              content: msg.content,
+              tool_call_id: (msg.metadata as any)?.toolCallId || "unknown",
+              name: (msg.metadata as any)?.toolName || "unknown",
+            });
+          }
+        }
+
+        if (openaiMessages.length > 1) {
+          lines.push(JSON.stringify({ messages: openaiMessages }));
+        }
+      }
+
+      res.setHeader("Content-Type", "application/x-ndjson");
+      res.setHeader("Content-Disposition", `attachment; filename="agent-conversations-${new Date().toISOString().slice(0, 10)}.jsonl"`);
+      res.send(lines.join("\n"));
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Export failed" });
+    }
+  });
+
   app.delete("/api/agent/admin/conversations", rateLimit.writeOperationRateLimit, requireAdminRole, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
