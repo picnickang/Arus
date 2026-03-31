@@ -769,7 +769,11 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       res.setHeader("Content-Disposition", `attachment; filename="agent-conversations-${new Date().toISOString().slice(0, 10)}.jsonl"`);
       res.setHeader("X-Total-Conversations", String(allConversations.length));
 
+      const CONV_LIMIT = 10000;
       const MSG_LIMIT = 500;
+      if (allConversations.length >= CONV_LIMIT) {
+        res.setHeader("X-Truncated", "true");
+      }
       let truncatedConversations = 0;
       for (const conv of allConversations) {
         const messages = await agentRepo.messages.list(conv.id, MSG_LIMIT);
@@ -807,7 +811,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       }
 
       if (truncatedConversations > 0) {
-        res.write(JSON.stringify({ _meta: { truncatedConversations, messageLimitPerConversation: MSG_LIMIT } }) + "\n");
+        console.log(`[Agent Export] ${truncatedConversations} conversation(s) had messages truncated at ${MSG_LIMIT}`);
       }
       res.end();
     } catch (error: unknown) {
