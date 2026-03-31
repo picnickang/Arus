@@ -76,7 +76,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     const user = (req as AuthenticatedRequest).user;
     const role = user?.role?.toLowerCase();
     if (!role || !MAINTENANCE_ROLES.includes(role as typeof MAINTENANCE_ROLES[number])) {
-      return res.status(403).json({ error: "Maintenance role required to approve or reject drafts" });
+      return res.status(403).json({ error: "Maintenance role required" });
     }
     next();
   };
@@ -514,7 +514,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
-  app.put("/api/agent/suggestions/:id", rateLimit.writeOperationRateLimit, async (req: Request, res: Response) => {
+  app.put("/api/agent/suggestions/:id", rateLimit.writeOperationRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const existing = await agentRepo.suggestions.list(orgId, undefined, 1000);
@@ -530,7 +530,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
-  app.post("/api/agent/suggestions/:id/dismiss", rateLimit.writeOperationRateLimit, async (req: Request, res: Response) => {
+  app.post("/api/agent/suggestions/:id/dismiss", rateLimit.writeOperationRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const existing = await agentRepo.suggestions.list(orgId, undefined, 1000);
@@ -543,7 +543,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
-  app.post("/api/agent/suggestions/:id/act", rateLimit.writeOperationRateLimit, async (req: Request, res: Response) => {
+  app.post("/api/agent/suggestions/:id/act", rateLimit.writeOperationRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const existing = await agentRepo.suggestions.list(orgId, undefined, 1000);
@@ -570,7 +570,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
   app.get("/api/agent/suggestion-preferences", rateLimit.generalApiRateLimit, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const prefs = await agentRepo.suggestions.getPreferences(orgId);
+      const userId = (req as AuthenticatedRequest).user?.id;
+      const prefs = await agentRepo.suggestions.getPreferences(orgId, userId);
       res.json(prefs || {
         maintenance: true,
         predictions: true,
@@ -587,6 +588,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
   app.put("/api/agent/suggestion-preferences", rateLimit.writeOperationRateLimit, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
+      const userId = (req as AuthenticatedRequest).user?.id;
       const schema = z.object({
         maintenance: z.boolean().optional(),
         predictions: z.boolean().optional(),
@@ -596,7 +598,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         minSeverity: z.enum(["info", "warning", "critical"]).optional(),
       });
       const parsed = schema.parse(req.body);
-      const prefs = await agentRepo.suggestions.savePreferences(orgId, parsed);
+      const prefs = await agentRepo.suggestions.savePreferences(orgId, parsed, userId);
       res.json(prefs);
     } catch (error: unknown) {
       if (error instanceof z.ZodError) {

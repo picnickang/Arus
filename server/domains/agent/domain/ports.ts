@@ -70,8 +70,8 @@ export interface AgentSuggestionPort {
   create(data: InsertAgentSuggestion): Promise<AgentSuggestion>;
   list(orgId: string, status?: string, limit?: number): Promise<AgentSuggestion[]>;
   update(id: string, data: Partial<AgentSuggestion>): Promise<AgentSuggestion>;
-  getPreferences(orgId: string): Promise<SuggestionPreferences | null>;
-  savePreferences(orgId: string, prefs: Partial<SuggestionPreferences>): Promise<SuggestionPreferences>;
+  getPreferences(orgId: string, userId?: string): Promise<SuggestionPreferences | null>;
+  savePreferences(orgId: string, prefs: Partial<SuggestionPreferences>, userId?: string): Promise<SuggestionPreferences>;
 }
 
 export interface AgentSchedulePort {

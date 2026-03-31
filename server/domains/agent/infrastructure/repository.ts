@@ -183,35 +183,44 @@ export function createAgentRepository(): AgentRepositoryPort {
           .returning();
         return sug;
       },
-      async getPreferences(orgId: string): Promise<SuggestionPreferences | null> {
+      async getPreferences(orgId: string, userId?: string): Promise<SuggestionPreferences | null> {
         const config = await db.select().from(agentConfig)
           .where(eq(agentConfig.orgId, orgId))
           .limit(1);
         if (!config[0]) return null;
-        const prefs = config[0].suggestionPreferences;
-        if (prefs && typeof prefs === "object") {
-          return prefs as unknown as SuggestionPreferences;
+        const allPrefs = config[0].suggestionPreferences as Record<string, unknown> | null;
+        if (!allPrefs || typeof allPrefs !== "object") return null;
+        const key = userId || "__org_default";
+        const userPrefs = allPrefs[key];
+        if (userPrefs && typeof userPrefs === "object") {
+          return userPrefs as unknown as SuggestionPreferences;
+        }
+        if (userId && allPrefs["__org_default"] && typeof allPrefs["__org_default"] === "object") {
+          return allPrefs["__org_default"] as unknown as SuggestionPreferences;
         }
         return null;
       },
-      async savePreferences(orgId: string, prefs: Partial<SuggestionPreferences>): Promise<SuggestionPreferences> {
+      async savePreferences(orgId: string, prefs: Partial<SuggestionPreferences>, userId?: string): Promise<SuggestionPreferences> {
         const defaults: SuggestionPreferences = {
           maintenance: true, predictions: true, crew: true,
           inventory: true, alerts: true, minSeverity: "info",
         };
-        const existing = await this.getPreferences(orgId);
+        const existing = await this.getPreferences(orgId, userId);
         const merged = { ...defaults, ...existing, ...prefs };
+        const key = userId || "__org_default";
         const config = await db.select().from(agentConfig)
           .where(eq(agentConfig.orgId, orgId))
           .limit(1);
         if (config[0]) {
+          const currentAllPrefs = (config[0].suggestionPreferences || {}) as Record<string, unknown>;
+          const updated = { ...currentAllPrefs, [key]: merged };
           await db.update(agentConfig)
-            .set({ suggestionPreferences: merged as unknown as Record<string, unknown>, updatedAt: new Date() })
+            .set({ suggestionPreferences: updated as unknown as Record<string, unknown>, updatedAt: new Date() })
             .where(eq(agentConfig.id, config[0].id));
         } else {
           await db.insert(agentConfig).values({
             orgId,
-            suggestionPreferences: merged as unknown as Record<string, unknown>,
+            suggestionPreferences: { [key]: merged } as unknown as Record<string, unknown>,
           });
         }
         return merged;

@@ -2,7 +2,7 @@ import { db } from "../../../db";
 import { eq, desc, and, sql, gte, lte } from "drizzle-orm";
 import {
   alertNotifications, failurePredictions, maintenanceSchedules,
-  crewCertification, crew,
+  crewCertification, crew, notificationQueue,
 } from "@shared/schema";
 import type { AgentRepositoryPort } from "../domain/ports";
 import type { AgentSuggestion, InsertAgentSuggestion } from "@shared/schema/agent";
@@ -102,6 +102,7 @@ export class SuggestionEngine {
 
     if (newSuggestions.length > 0) {
       await this.aiSummarizeSuggestions(newSuggestions);
+      await this.queueNotifications(orgId, newSuggestions);
     }
 
     console.log(`[SuggestionEngine] Generated ${newSuggestions.length} suggestions for org ${orgId}`);
@@ -310,32 +311,42 @@ export class SuggestionEngine {
       const { default: OpenAI } = await import("openai");
       const openai = new OpenAI();
 
-      const triggerSummaries = suggestions.map(s =>
-        `[${s.severity?.toUpperCase()}] ${s.triggerType}: ${s.title} — ${s.summary}`
+      const triggerSummaries = suggestions.map((s, i) =>
+        `${i + 1}. [${s.severity?.toUpperCase()}] ${s.triggerType}: ${s.title} — ${s.summary}`
       ).join("\n");
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini",
-        max_tokens: 300,
+        max_tokens: 800,
         messages: [
           {
             role: "system",
-            content: "You are a marine operations assistant. Given a list of triggered alerts/suggestions, produce a brief executive summary (2-3 sentences) highlighting the most critical items and recommended priority actions. Be concise and actionable.",
+            content: "You are a marine operations assistant. Given a list of triggered alerts/suggestions, produce:\n1. A brief executive summary (2-3 sentences) of the overall situation.\n2. For each item, a one-sentence actionable recommendation.\nFormat: First the executive summary, then numbered items matching the input order.\nBe concise and actionable. Use marine operations terminology.",
           },
           {
             role: "user",
-            content: `The following ${suggestions.length} conditions were detected:\n${triggerSummaries}\n\nProvide a brief executive summary.`,
+            content: `The following ${suggestions.length} conditions were detected:\n${triggerSummaries}\n\nProvide the executive summary and per-item recommendations.`,
           },
         ],
       });
 
-      const aiSummary = response.choices[0]?.message?.content;
-      if (aiSummary && suggestions.length > 0) {
+      const aiContent = response.choices[0]?.message?.content;
+      if (aiContent && suggestions.length > 0) {
+        const lines = aiContent.split("\n").filter(l => l.trim());
+        for (let i = 0; i < suggestions.length; i++) {
+          const recLine = lines.find(l => l.trim().startsWith(`${i + 1}.`));
+          if (recLine) {
+            await this.repo.suggestions.update(suggestions[i].id, {
+              summary: `${suggestions[i].summary} AI recommendation: ${recLine.replace(/^\d+\.\s*/, "")}`,
+            } as Partial<AgentSuggestion>);
+          }
+        }
+
         await this.repo.suggestions.create({
           orgId: suggestions[0].orgId,
           triggerType: "ai_summary",
           title: `AI Summary: ${suggestions.length} new conditions detected`,
-          summary: aiSummary,
+          summary: aiContent,
           severity: suggestions.some(s => s.severity === "critical") ? "critical" : "warning",
           status: "pending",
           context: { suggestionIds: suggestions.map(s => s.id), count: suggestions.length },
@@ -343,6 +354,26 @@ export class SuggestionEngine {
       }
     } catch (err) {
       console.warn("[SuggestionEngine] AI summarization failed (non-blocking):", err instanceof Error ? err.message : "unknown");
+    }
+  }
+
+  private async queueNotifications(orgId: string, suggestions: AgentSuggestion[]): Promise<void> {
+    try {
+      for (const sug of suggestions) {
+        if (sug.triggerType === "ai_summary") continue;
+        await db.insert(notificationQueue).values({
+          orgId,
+          notificationType: "ai_suggestion",
+          subject: sug.title,
+          body: sug.summary,
+          recipients: [],
+          relatedEntityType: sug.entityType || sug.triggerType,
+          relatedEntityId: sug.entityId || sug.id,
+          status: "pending",
+        });
+      }
+    } catch (err) {
+      console.warn("[SuggestionEngine] Notification queue integration failed (non-blocking):", err instanceof Error ? err.message : "unknown");
     }
   }
 }
