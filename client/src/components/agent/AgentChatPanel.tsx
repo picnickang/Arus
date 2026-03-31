@@ -8,15 +8,18 @@ import {
   Bot, Send, Plus, Loader2,
   Wrench, CheckCircle, XCircle, AlertTriangle,
   Clock, ArrowLeft, Paperclip, X, FileText, Image as ImageIcon,
+  ChevronRight, ChevronDown,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { getCurrentOrgId } from "@/contexts/OrganizationContext";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface ChatMessage {
   id: string;
   role: "user" | "assistant" | "tool";
   content: string | null;
-  toolCalls?: any;
+  toolCalls?: ToolCallTrace[];
   createdAt: string;
 }
 
@@ -28,14 +31,34 @@ interface Conversation {
   status: string;
 }
 
+interface ToolCallTrace {
+  toolName: string;
+  input: Record<string, unknown>;
+  result?: Record<string, unknown>;
+  status: "running" | "success" | "error";
+  durationMs?: number;
+  error?: string;
+  _index?: number;
+}
+
 interface StreamChunk {
   type: "text" | "tool_call" | "tool_result" | "done" | "error";
   content?: string;
   toolName?: string;
-  input?: any;
-  result?: any;
+  input?: Record<string, unknown>;
+  result?: Record<string, unknown>;
   conversationId?: string;
   error?: string;
+}
+
+interface DraftRecord {
+  id: string;
+  draftType: string;
+  title: string;
+  data: Record<string, unknown>;
+  status: string;
+  conversationId: string;
+  createdAt: string;
 }
 
 const ALLOWED_FILE_TYPES = [
@@ -44,18 +67,70 @@ const ALLOWED_FILE_TYPES = [
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ];
 
+function formatToolName(name: string): string {
+  return name
+    .replace(/([A-Z])/g, " $1")
+    .replace(/^./, (s) => s.toUpperCase())
+    .trim();
+}
+
+function ToolCallTimeline({ traces }: { traces: ToolCallTrace[] }) {
+  const [expanded, setExpanded] = useState(false);
+  if (!traces || traces.length === 0) return null;
+
+  return (
+    <div className="mb-1.5">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        aria-label={`${expanded ? "Collapse" : "Expand"} tool call details`}
+        data-testid="button-toggle-tool-calls"
+      >
+        <Wrench className="h-3 w-3" />
+        <span>{traces.length} tool{traces.length !== 1 ? "s" : ""} used</span>
+        {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+      </button>
+      {expanded && (
+        <div className="mt-1 ml-2 border-l-2 border-border pl-3 space-y-1">
+          {traces.map((t, i) => (
+            <div key={i} className="flex items-start gap-2 text-xs" data-testid={`text-tool-trace-${i}`}>
+              {t.status === "running" ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground mt-0.5 shrink-0" />
+              ) : t.status === "success" ? (
+                <CheckCircle className="h-3.5 w-3.5 text-green-500 mt-0.5 shrink-0" />
+              ) : (
+                <XCircle className="h-3.5 w-3.5 text-red-500 mt-0.5 shrink-0" />
+              )}
+              <div>
+                <span className="font-medium">{formatToolName(t.toolName)}</span>
+                {t.durationMs != null && <span className="text-muted-foreground ml-1">({t.durationMs}ms)</span>}
+                {t.error && <p className="text-red-500 mt-0.5">{t.error}</p>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [message, setMessage] = useState("");
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [streamingMessages, setStreamingMessages] = useState<ChatMessage[]>([]);
-  const [pendingToolCalls, setPendingToolCalls] = useState<{ toolName: string; input: any }[]>([]);
+  const [pendingToolCalls, setPendingToolCalls] = useState<ToolCallTrace[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [streamText, setStreamText] = useState("");
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const convIdRef = useRef<string | null>(null);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  convIdRef.current = conversationId;
 
   const { data: conversations = [] } = useQuery<Conversation[]>({
     queryKey: ["/api/agent/conversations"],
@@ -64,7 +139,7 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
 
   const { data: chatData } = useQuery<{
     messages: ChatMessage[];
-    toolCalls: any[];
+    toolCalls: ToolCallTrace[];
   }>({
     queryKey: ["/api/agent/conversations", conversationId, "messages"],
     enabled: !!conversationId && open,
@@ -72,18 +147,22 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
 
   const messages = chatData?.messages || [];
 
-  const { data: drafts = [] } = useQuery<any[]>({
+  const { data: drafts = [] } = useQuery<DraftRecord[]>({
     queryKey: ["/api/agent/drafts"],
     enabled: open,
   });
 
-  const pendingDrafts = drafts.filter((d: any) => d.status === "pending");
+  const pendingDrafts = drafts.filter((d) => d.status === "pending");
 
   const approveMutation = useMutation({
     mutationFn: (draftId: string) => apiRequest("POST", `/api/agent/drafts/${draftId}/approve`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agent/drafts"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/agent/conversations", conversationId, "messages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/agent/conversations", convIdRef.current, "messages"] });
+      toast({ title: "Approved", description: "Draft has been approved and created." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to approve draft", variant: "destructive" });
     },
   });
 
@@ -91,6 +170,10 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
     mutationFn: (draftId: string) => apiRequest("POST", `/api/agent/drafts/${draftId}/reject`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agent/drafts"] });
+      toast({ title: "Rejected", description: "Draft has been rejected." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to reject draft", variant: "destructive" });
     },
   });
 
@@ -98,11 +181,20 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, streamingMessages, pendingToolCalls]);
+  }, [messages, streamingMessages, pendingToolCalls, streamText]);
+
+  useEffect(() => {
+    if (messages.length > 0 && streamingMessages.length > 0 && !isStreaming) {
+      setStreamingMessages([]);
+    }
+  }, [messages, streamingMessages.length, isStreaming]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const valid = files.filter(f => ALLOWED_FILE_TYPES.includes(f.type) && f.size <= 10 * 1024 * 1024);
+    if (valid.length < files.length) {
+      toast({ title: "Some files skipped", description: "Only images, PDFs, text, CSV, and XLSX under 10MB are supported.", variant: "destructive" });
+    }
     setAttachedFiles(prev => [...prev, ...valid].slice(0, 5));
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -119,6 +211,7 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
     setAttachedFiles([]);
     setIsStreaming(true);
     setPendingToolCalls([]);
+    setStreamText("");
 
     const fileLabels = filesToSend.map(f => f.type.startsWith("image/") ? `[Image: ${f.name}]` : `[File: ${f.name}]`);
     const displayContent = userMsg + (fileLabels.length > 0 ? "\n" + fileLabels.join(" ") : "");
@@ -129,6 +222,8 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
       content: displayContent,
       createdAt: new Date().toISOString(),
     }]);
+
+    let resolvedConvId = conversationId;
 
     try {
       if (filesToSend.length > 0) {
@@ -142,13 +237,20 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
           headers: { "x-org-id": getCurrentOrgId() || "default-org-id" },
           body: formData,
         });
-        if (!response.ok) throw new Error("Failed to send message");
-        const result = await response.json();
-        if (result.conversationId) setConversationId(result.conversationId);
+        if (!response.ok) {
+          const errBody = await response.text().catch(() => "");
+          throw new Error(errBody || `HTTP ${response.status}`);
+        }
+        const result = await response.json() as { conversationId?: string; response?: string; toolCalls?: ToolCallTrace[] };
+        if (result.conversationId) {
+          resolvedConvId = result.conversationId;
+          setConversationId(result.conversationId);
+        }
         setStreamingMessages(prev => [...prev, {
           id: `temp-assistant-${Date.now()}`,
           role: "assistant",
           content: result.response || "",
+          toolCalls: result.toolCalls,
           createdAt: new Date().toISOString(),
         }]);
       } else {
@@ -159,11 +261,17 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
           headers: { "x-org-id": getCurrentOrgId() || "default-org-id" },
         });
 
-        if (!response.ok) throw new Error("Stream failed");
+        if (!response.ok) {
+          const errBody = await response.text().catch(() => "");
+          throw new Error(errBody || `Stream failed (${response.status})`);
+        }
 
         const reader = response.body?.getReader();
         const decoder = new TextDecoder();
         let buffer = "";
+        let accumulated = "";
+        let accToolCalls: ToolCallTrace[] = [];
+        let toolCallCounter = 0;
 
         while (reader) {
           const { done, value } = await reader.read();
@@ -181,48 +289,70 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
               const chunk: StreamChunk = JSON.parse(dataMatch[1]);
 
               if (chunk.type === "tool_call") {
-                setPendingToolCalls(prev => [...prev, {
-                  toolName: chunk.toolName!,
-                  input: chunk.input,
-                }]);
+                const trace: ToolCallTrace = {
+                  toolName: chunk.toolName || "unknown",
+                  input: chunk.input || {},
+                  status: "running",
+                  _index: toolCallCounter++,
+                };
+                accToolCalls = [...accToolCalls, trace];
+                setPendingToolCalls([...accToolCalls]);
               } else if (chunk.type === "tool_result") {
-                setPendingToolCalls(prev =>
-                  prev.filter(tc => tc.toolName !== chunk.toolName)
+                const runningIdx = accToolCalls.findIndex(
+                  (tc) => tc.toolName === chunk.toolName && tc.status === "running"
                 );
+                if (runningIdx >= 0) {
+                  accToolCalls = accToolCalls.map((tc, i) =>
+                    i === runningIdx ? { ...tc, result: chunk.result, status: "success" as const } : tc
+                  );
+                }
+                setPendingToolCalls([...accToolCalls]);
               } else if (chunk.type === "text") {
-                setStreamingMessages(prev => [...prev, {
-                  id: `temp-assistant-${Date.now()}`,
-                  role: "assistant",
-                  content: chunk.content || "",
-                  createdAt: new Date().toISOString(),
-                }]);
+                accumulated += chunk.content || "";
+                setStreamText(accumulated);
               } else if (chunk.type === "done") {
                 if (chunk.conversationId) {
+                  resolvedConvId = chunk.conversationId;
                   setConversationId(chunk.conversationId);
                 }
+              } else if (chunk.type === "error") {
+                throw new Error(chunk.error || "Stream error");
               }
-            } catch {}
+            } catch (parseErr) {
+              if (parseErr instanceof SyntaxError) continue;
+              throw parseErr;
+            }
           }
         }
+
+        setStreamingMessages(prev => [...prev, {
+          id: `temp-assistant-${Date.now()}`,
+          role: "assistant",
+          content: accumulated || "(No response)",
+          toolCalls: accToolCalls.length > 0 ? accToolCalls : undefined,
+          createdAt: new Date().toISOString(),
+        }]);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : "Failed to get response";
+      toast({ title: "Error", description: errMsg, variant: "destructive" });
       setStreamingMessages(prev => [...prev, {
         id: `temp-error-${Date.now()}`,
         role: "assistant",
-        content: `Error: ${err.message || "Failed to get response"}`,
+        content: `Sorry, something went wrong: ${errMsg}`,
         createdAt: new Date().toISOString(),
       }]);
     } finally {
       setIsStreaming(false);
       setPendingToolCalls([]);
-      setStreamingMessages([]);
-      if (conversationId) {
-        queryClient.invalidateQueries({ queryKey: ["/api/agent/conversations", conversationId, "messages"] });
+      setStreamText("");
+      if (resolvedConvId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/agent/conversations", resolvedConvId, "messages"] });
       }
       queryClient.invalidateQueries({ queryKey: ["/api/agent/drafts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/agent/conversations"] });
     }
-  }, [message, conversationId, isStreaming, attachedFiles, queryClient]);
+  }, [message, conversationId, isStreaming, attachedFiles, queryClient, toast]);
 
   const startNewConversation = () => {
     setConversationId(null);
@@ -243,12 +373,12 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent side="right" className="w-full sm:w-[440px] p-0 flex flex-col" data-testid="agent-chat-panel">
+      <SheetContent side="right" className="w-full sm:w-[440px] p-0 flex flex-col" data-testid="card-agent-chat-panel">
         <SheetHeader className="px-4 py-3 border-b flex-shrink-0">
           <div className="flex items-center justify-between">
             {showHistory ? (
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" onClick={() => setShowHistory(false)} data-testid="button-back-chat">
+                <Button variant="ghost" size="icon" onClick={() => setShowHistory(false)} aria-label="Back to chat" data-testid="button-back-to-chat">
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <SheetTitle className="text-base">Conversations</SheetTitle>
@@ -257,15 +387,20 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
               <div className="flex items-center gap-2">
                 <Bot className="h-5 w-5 text-primary" />
                 <SheetTitle className="text-base">ARUS Copilot</SheetTitle>
+                {pendingDrafts.length > 0 && (
+                  <span className="h-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center font-medium" data-testid="badge-pending-drafts">
+                    {pendingDrafts.length}
+                  </span>
+                )}
               </div>
             )}
             <div className="flex gap-1">
               {!showHistory && (
                 <>
-                  <Button variant="ghost" size="icon" onClick={() => setShowHistory(true)} data-testid="button-history">
+                  <Button variant="ghost" size="icon" onClick={() => setShowHistory(true)} aria-label="Show conversation history" data-testid="button-show-history">
                     <Clock className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={startNewConversation} data-testid="button-new-chat">
+                  <Button variant="ghost" size="icon" onClick={startNewConversation} aria-label="Start new conversation" data-testid="button-new-conversation">
                     <Plus className="h-4 w-4" />
                   </Button>
                 </>
@@ -278,14 +413,17 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
           <ScrollArea className="flex-1">
             <div className="p-2 space-y-1">
               {conversations.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-8">No conversations yet</p>
+                <p className="text-sm text-muted-foreground text-center py-8" data-testid="text-no-conversations">No conversations yet</p>
               )}
               {conversations.map((conv) => (
                 <button
                   key={conv.id}
-                  className="w-full text-left p-3 rounded-md hover:bg-muted transition-colors"
+                  className={cn(
+                    "w-full text-left p-3 rounded-md hover:bg-muted transition-colors",
+                    conversationId === conv.id && "bg-accent"
+                  )}
                   onClick={() => selectConversation(conv.id)}
-                  data-testid={`conv-item-${conv.id}`}
+                  data-testid={`button-conversation-${conv.id}`}
                 >
                   <p className="text-sm font-medium truncate">{conv.title || "Untitled"}</p>
                   <p className="text-xs text-muted-foreground mt-1">
@@ -300,11 +438,11 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
             <div className="flex-1 overflow-y-auto" ref={scrollRef}>
               <div className="p-4 space-y-4">
                 {allMessages.length === 0 && !isStreaming && (
-                  <div className="text-center py-12 space-y-3">
+                  <div className="text-center py-12 space-y-3" data-testid="card-empty-state">
                     <Bot className="h-12 w-12 mx-auto text-muted-foreground/40" />
                     <div>
-                      <p className="font-medium text-sm">ARUS Copilot</p>
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="font-medium text-sm" data-testid="text-welcome">ARUS Copilot</p>
+                      <p className="text-xs text-muted-foreground mt-1" data-testid="text-welcome-description">
                         Ask about equipment, maintenance, alerts, or request work orders
                       </p>
                     </div>
@@ -320,7 +458,7 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
                           size="sm"
                           className="text-xs"
                           onClick={() => { setMessage(q); }}
-                          data-testid={`suggestion-${q.replace(/\s+/g, '-').toLowerCase()}`}
+                          data-testid={`button-suggestion-${q.replace(/\s+/g, '-').toLowerCase()}`}
                         >
                           {q}
                         </Button>
@@ -331,44 +469,71 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
 
                 {allMessages.map((msg) => (
                   <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                    {msg.role === "assistant" && (
+                      <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5 mr-2">
+                        <Bot className="h-3.5 w-3.5 text-primary" />
+                      </div>
+                    )}
                     <div
-                      className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
+                      className={cn(
+                        "max-w-[85%] rounded-lg px-3 py-2 text-sm",
                         msg.role === "user"
                           ? "bg-primary text-primary-foreground"
                           : "bg-muted"
-                      }`}
-                      data-testid={`msg-${msg.role}-${msg.id}`}
+                      )}
+                      data-testid={`text-message-${msg.id}`}
                     >
+                      {msg.toolCalls && msg.toolCalls.length > 0 && (
+                        <ToolCallTimeline traces={msg.toolCalls} />
+                      )}
                       <p className="whitespace-pre-wrap">{msg.content}</p>
                     </div>
                   </div>
                 ))}
 
-                {pendingToolCalls.map((tc, i) => (
-                  <div key={`pending-tc-${i}`} className="flex items-center gap-2 text-xs text-muted-foreground px-2">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    <Wrench className="h-3 w-3" />
-                    <span>Running {tc.toolName}...</span>
-                  </div>
-                ))}
-
-                {isStreaming && pendingToolCalls.length === 0 && (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground px-2">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    <span>Thinking...</span>
+                {isStreaming && (
+                  <div className="flex justify-start">
+                    <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5 mr-2">
+                      <Bot className="h-3.5 w-3.5 text-primary" />
+                    </div>
+                    <div className="bg-muted rounded-lg px-3 py-2 max-w-[85%]">
+                      {pendingToolCalls.length > 0 && (
+                        <div className="mb-1.5 space-y-1">
+                          {pendingToolCalls.map((tc) => (
+                            <div key={tc._index} className="flex items-center gap-2 text-xs text-muted-foreground">
+                              {tc.status === "running" ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <CheckCircle className="h-3 w-3 text-green-500" />
+                              )}
+                              <Wrench className="h-3 w-3" />
+                              <span>{tc.status === "running" ? "Running" : "Completed"} {formatToolName(tc.toolName)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {streamText ? (
+                        <p className="text-sm whitespace-pre-wrap" data-testid="text-streaming-response">{streamText}</p>
+                      ) : (
+                        <div className="flex items-center gap-2" data-testid="status-streaming">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          <span className="text-sm text-muted-foreground">Thinking...</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 
                 {pendingDrafts.length > 0 && (
                   <div className="space-y-2 mt-4">
                     <p className="text-xs font-medium text-muted-foreground">Pending Approvals</p>
-                    {pendingDrafts.map((draft: any) => (
-                      <div key={draft.id} className="border rounded-lg p-3 space-y-2" data-testid={`draft-${draft.id}`}>
+                    {pendingDrafts.map((draft) => (
+                      <div key={draft.id} className="border border-amber-500/30 bg-amber-500/5 rounded-lg p-3 space-y-2" data-testid={`card-draft-${draft.id}`}>
                         <div className="flex items-center gap-2">
                           <AlertTriangle className="h-4 w-4 text-amber-500" />
-                          <span className="text-sm font-medium">{draft.title}</span>
+                          <span className="text-sm font-medium" data-testid={`text-draft-title-${draft.id}`}>{draft.title}</span>
                         </div>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-muted-foreground" data-testid={`text-draft-type-${draft.id}`}>
                           {draft.draftType === "work_order" ? "Work Order Draft" : draft.draftType}
                         </p>
                         <div className="flex gap-2">
@@ -378,7 +543,7 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
                             className="h-7 text-xs"
                             onClick={() => approveMutation.mutate(draft.id)}
                             disabled={approveMutation.isPending}
-                            data-testid={`button-approve-${draft.id}`}
+                            data-testid={`button-approve-draft-${draft.id}`}
                           >
                             <CheckCircle className="h-3 w-3 mr-1" />
                             Approve
@@ -389,7 +554,7 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
                             className="h-7 text-xs"
                             onClick={() => rejectMutation.mutate(draft.id)}
                             disabled={rejectMutation.isPending}
-                            data-testid={`button-reject-${draft.id}`}
+                            data-testid={`button-reject-draft-${draft.id}`}
                           >
                             <XCircle className="h-3 w-3 mr-1" />
                             Reject
@@ -406,10 +571,10 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
               {attachedFiles.length > 0 && (
                 <div className="flex flex-wrap gap-1 mb-2">
                   {attachedFiles.map((f, i) => (
-                    <div key={i} className="flex items-center gap-1 bg-muted rounded px-2 py-1 text-xs" data-testid={`attached-file-${i}`}>
+                    <div key={i} className="flex items-center gap-1 bg-muted rounded px-2 py-1 text-xs" data-testid={`badge-attached-file-${i}`}>
                       {f.type.startsWith("image/") ? <ImageIcon className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
                       <span className="max-w-[100px] truncate">{f.name}</span>
-                      <button onClick={() => removeFile(i)} className="hover:text-destructive" data-testid={`button-remove-file-${i}`}>
+                      <button onClick={() => removeFile(i)} className="hover:text-destructive" aria-label={`Remove ${f.name}`} data-testid={`button-remove-file-${i}`}>
                         <X className="h-3 w-3" />
                       </button>
                     </div>
@@ -427,6 +592,7 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
                   accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.csv,.xlsx"
                   onChange={handleFileSelect}
                   className="hidden"
+                  aria-label="Upload files"
                   data-testid="input-file-upload"
                 />
                 <Button
@@ -436,6 +602,7 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isStreaming || attachedFiles.length >= 5}
                   className="flex-shrink-0"
+                  aria-label="Attach file"
                   data-testid="button-attach-file"
                 >
                   <Paperclip className="h-4 w-4" />
@@ -453,7 +620,8 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
                   type="submit"
                   size="icon"
                   disabled={(!message.trim() && attachedFiles.length === 0) || isStreaming}
-                  data-testid="button-send-agent"
+                  aria-label="Send message"
+                  data-testid="button-send-message"
                 >
                   {isStreaming ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
