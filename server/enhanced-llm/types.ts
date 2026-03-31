@@ -74,4 +74,5 @@ export interface ReportOptions {
   includeScenarios?: boolean;
   includeROI?: boolean;
   modelPreference?: string;
+  timeframeDays?: number;
 }

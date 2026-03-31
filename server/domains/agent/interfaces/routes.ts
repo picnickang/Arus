@@ -241,6 +241,12 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         const woData = draft.data as Record<string, unknown>;
         const wo = await storage.createWorkOrder({ ...woData, status: "open", orgId });
         resultId = wo.id;
+      } else if (draft.draftType === "report_share") {
+        const shareData = draft.data as Record<string, unknown>;
+        const recipients = shareData.recipients as string[];
+        const subject = shareData.subject as string;
+        console.log(`[Agent] Report share approved: ${shareData.reportId} → ${recipients.join(", ")} (subject: ${subject})`);
+        resultId = shareData.reportId as string;
       }
 
       const updated = await agentRepo.drafts.update(draft.id, {
@@ -535,5 +541,49 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
-  console.log("[Agent Domain] Routes registered (chat, conversations, drafts, config, usage, suggestions, schedules, tools, admin)");
+  app.get("/api/agent/reports/:reportId/download", async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      if (!orgId) return res.status(401).json({ error: "Authentication required" });
+
+      const { reportId } = req.params;
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(reportId)) {
+        return res.status(400).json({ error: "Invalid report ID format" });
+      }
+
+      const reportDir = path.join(process.cwd(), ".data", "report-artifacts");
+      if (!fs.existsSync(reportDir)) {
+        return res.status(404).json({ error: "No report artifacts found" });
+      }
+
+      const reportIdPrefix = reportId.slice(0, 8);
+      const files = fs.readdirSync(reportDir).filter(f => {
+        const match = f.match(/report-[\d\-T]+-([a-f0-9]{8})\.\w+$/);
+        return match && match[1] === reportIdPrefix;
+      });
+      if (files.length === 0) {
+        return res.status(404).json({ error: "Report artifact not found" });
+      }
+      const fileName = files[0];
+      const filePath = path.join(reportDir, fileName);
+      if (filePath.includes("..") || !filePath.startsWith(reportDir)) {
+        return res.status(400).json({ error: "Invalid file path" });
+      }
+      const ext = path.extname(fileName).toLowerCase();
+      const mimeMap: Record<string, string> = {
+        ".json": "application/json",
+        ".csv": "text/csv",
+        ".txt": "text/plain",
+      };
+      res.setHeader("Content-Type", mimeMap[ext] || "application/octet-stream");
+      res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Download failed" });
+    }
+  });
+
+  console.log("[Agent Domain] Routes registered (chat, conversations, drafts, config, usage, suggestions, schedules, tools, reports, admin)");
 }

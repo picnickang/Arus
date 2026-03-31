@@ -74,7 +74,7 @@ export class EnhancedLLMService {
       includePredictions: true,
       includeKnowledge: true,
       audience,
-      timeframeDays: 30,
+      timeframeDays: options.timeframeDays || 30,
     });
 
     const promptTemplate = getAudiencePromptTemplate(audience, "health");
@@ -119,7 +119,7 @@ export class EnhancedLLMService {
       includePredictions: true,
       includeKnowledge: true,
       audience,
-      timeframeDays: 30,
+      timeframeDays: options.timeframeDays || 30,
     });
 
     const promptTemplate = getAudiencePromptTemplate(audience, "fleet_summary");
@@ -163,7 +163,7 @@ export class EnhancedLLMService {
       includeIntelligence: true,
       includeKnowledge: true,
       audience,
-      timeframeDays: 90,
+      timeframeDays: options.timeframeDays || 90,
     });
 
     const promptTemplate = getAudiencePromptTemplate(audience, "maintenance");
@@ -204,7 +204,7 @@ export class EnhancedLLMService {
     const context = await reportContextBuilder.buildComplianceContext(vesselId, "default-org", {
       includeKnowledge: true,
       audience,
-      timeframeDays: 90,
+      timeframeDays: options.timeframeDays || 90,
     });
 
     const promptTemplate = getAudiencePromptTemplate(audience, "compliance");
