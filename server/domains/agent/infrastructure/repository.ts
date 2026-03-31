@@ -188,10 +188,9 @@ export function createAgentRepository(): AgentRepositoryPort {
           .where(eq(agentConfig.orgId, orgId))
           .limit(1);
         if (!config[0]) return null;
-        const raw = config[0] as Record<string, unknown>;
-        const extras = raw.enabledTools;
-        if (extras && typeof extras === "object" && (extras as Record<string, unknown>).__suggestionPrefs) {
-          return (extras as Record<string, unknown>).__suggestionPrefs as SuggestionPreferences;
+        const prefs = config[0].suggestionPreferences;
+        if (prefs && typeof prefs === "object") {
+          return prefs as unknown as SuggestionPreferences;
         }
         return null;
       },
@@ -206,15 +205,13 @@ export function createAgentRepository(): AgentRepositoryPort {
           .where(eq(agentConfig.orgId, orgId))
           .limit(1);
         if (config[0]) {
-          const currentTools = (config[0].enabledTools || null) as Record<string, unknown> | null;
-          const updatedTools = { ...(currentTools || {}), __suggestionPrefs: merged };
           await db.update(agentConfig)
-            .set({ enabledTools: updatedTools as unknown as string[], updatedAt: new Date() })
+            .set({ suggestionPreferences: merged as unknown as Record<string, unknown>, updatedAt: new Date() })
             .where(eq(agentConfig.id, config[0].id));
         } else {
           await db.insert(agentConfig).values({
             orgId,
-            enabledTools: { __suggestionPrefs: merged } as unknown as string[],
+            suggestionPreferences: merged as unknown as Record<string, unknown>,
           });
         }
         return merged;

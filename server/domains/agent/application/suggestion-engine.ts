@@ -32,32 +32,42 @@ function meetsMinSeverity(severity: string, min: string): boolean {
 }
 
 export class SuggestionEngine {
-  private intervalId: NodeJS.Timeout | null = null;
+  private intervalIds: Map<string, NodeJS.Timeout> = new Map();
   private evaluationIntervalMs = 4 * 60 * 60 * 1000;
 
   constructor(private repo: AgentRepositoryPort) {}
 
   startBackgroundEvaluation(orgId: string, intervalMs?: number): void {
-    if (this.intervalId) return;
+    if (this.intervalIds.has(orgId)) return;
     if (intervalMs) this.evaluationIntervalMs = intervalMs;
 
     console.log(`[SuggestionEngine] Starting background evaluation every ${this.evaluationIntervalMs / 60000} minutes for org ${orgId}`);
 
-    this.intervalId = setInterval(async () => {
+    const id = setInterval(async () => {
       try {
         const storedPrefs = await this.repo.suggestions.getPreferences(orgId);
         await this.generateProactiveSuggestions(orgId, storedPrefs);
       } catch (err) {
-        console.error("[SuggestionEngine] Background evaluation error:", err instanceof Error ? err.message : "unknown");
+        console.error(`[SuggestionEngine] Background evaluation error for org ${orgId}:`, err instanceof Error ? err.message : "unknown");
       }
     }, this.evaluationIntervalMs);
+    this.intervalIds.set(orgId, id);
   }
 
-  stopBackgroundEvaluation(): void {
-    if (this.intervalId) {
-      clearInterval(this.intervalId);
-      this.intervalId = null;
-      console.log("[SuggestionEngine] Background evaluation stopped");
+  stopBackgroundEvaluation(orgId?: string): void {
+    if (orgId) {
+      const id = this.intervalIds.get(orgId);
+      if (id) {
+        clearInterval(id);
+        this.intervalIds.delete(orgId);
+        console.log(`[SuggestionEngine] Background evaluation stopped for org ${orgId}`);
+      }
+    } else {
+      for (const [org, id] of this.intervalIds) {
+        clearInterval(id);
+        console.log(`[SuggestionEngine] Background evaluation stopped for org ${org}`);
+      }
+      this.intervalIds.clear();
     }
   }
 

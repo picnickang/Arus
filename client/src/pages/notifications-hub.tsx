@@ -1,27 +1,27 @@
-import { useState, useEffect, useCallback } from "react";
+import { lazy, Suspense, useState, useEffect, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Bell, AlertTriangle, Mail, Bot } from "lucide-react";
 import { PageHeader } from "@/components/navigation";
 import { SuggestionPreferences } from "@/components/agent/SuggestionPreferences";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-function getTabFromUrl(): string {
-  if (typeof window === "undefined") return "ai-suggestions";
-  const params = new URLSearchParams(window.location.search);
-  return params.get("tab") || "ai-suggestions";
+const NotificationSettings = lazy(() => import("./notification-settings"));
+const EmailAlertsSettings = lazy(() => import("./email-alerts-settings"));
+const EmailTemplatesPage = lazy(() => import("./email-templates"));
+
+function TabLoader() {
+  return (
+    <div className="space-y-4 p-4">
+      <Skeleton className="h-8 w-48" />
+      <Skeleton className="h-[300px] w-full" />
+    </div>
+  );
 }
 
-function PlaceholderTab({ title, description }: { title: string; description: string }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground">{description}</p>
-      </CardContent>
-    </Card>
-  );
+function getTabFromUrl(): string {
+  if (typeof window === "undefined") return "preferences";
+  const params = new URLSearchParams(window.location.search);
+  return params.get("tab") || "preferences";
 }
 
 export default function NotificationsHub() {
@@ -49,14 +49,14 @@ export default function NotificationsHub() {
       <PageHeader title="Notifications" />
       <div className="p-4">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
-          <TabsList className="grid w-full max-w-lg grid-cols-4">
-            <TabsTrigger value="ai-suggestions" className="flex items-center gap-2" data-testid="tab-ai-suggestions">
-              <Bot className="h-4 w-4" />
-              <span className="hidden sm:inline">AI Suggestions</span>
-            </TabsTrigger>
+          <TabsList className="grid w-full max-w-xl grid-cols-4">
             <TabsTrigger value="preferences" className="flex items-center gap-2" data-testid="tab-preferences">
               <Bell className="h-4 w-4" />
               <span className="hidden sm:inline">Preferences</span>
+            </TabsTrigger>
+            <TabsTrigger value="ai-suggestions" className="flex items-center gap-2" data-testid="tab-ai-suggestions">
+              <Bot className="h-4 w-4" />
+              <span className="hidden sm:inline">AI Suggestions</span>
             </TabsTrigger>
             <TabsTrigger value="alert-rules" className="flex items-center gap-2" data-testid="tab-alert-rules">
               <AlertTriangle className="h-4 w-4" />
@@ -68,29 +68,26 @@ export default function NotificationsHub() {
             </TabsTrigger>
           </TabsList>
 
+          <TabsContent value="preferences" className="mt-4">
+            <Suspense fallback={<TabLoader />}>
+              <NotificationSettings />
+            </Suspense>
+          </TabsContent>
+
           <TabsContent value="ai-suggestions" className="mt-4">
             <SuggestionPreferences />
           </TabsContent>
 
-          <TabsContent value="preferences" className="mt-4">
-            <PlaceholderTab
-              title="Notification Preferences"
-              description="Configure notification channels and delivery preferences. Settings for email, push, and in-app notifications."
-            />
-          </TabsContent>
-
           <TabsContent value="alert-rules" className="mt-4">
-            <PlaceholderTab
-              title="Alert Rules"
-              description="Manage alert rules and thresholds for equipment monitoring and compliance alerts."
-            />
+            <Suspense fallback={<TabLoader />}>
+              <EmailAlertsSettings />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="templates" className="mt-4">
-            <PlaceholderTab
-              title="Email Templates"
-              description="Customize email notification templates for different alert types and reports."
-            />
+            <Suspense fallback={<TabLoader />}>
+              <EmailTemplatesPage />
+            </Suspense>
           </TabsContent>
         </Tabs>
       </div>

@@ -14,6 +14,8 @@ import { storage } from "../../../storage";
 import type { AuthenticatedRequest } from "../../../middleware/auth";
 import { auditAction } from "../../../utils/audit-helpers";
 import { z } from "zod";
+import { db } from "../../../db";
+import { organizations } from "@shared/schema";
 
 const UPLOAD_DIR = "/tmp/agent-uploads";
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -46,7 +48,20 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
   const orchestrator = new AgentOrchestrator(agentRepo);
   const safety = new SafetyService(agentRepo);
   const suggestionEngine = new SuggestionEngine(agentRepo);
-  suggestionEngine.startBackgroundEvaluation("default-org-id");
+
+  (async () => {
+    try {
+      const orgs = await db.select({ id: organizations.id }).from(organizations);
+      for (const org of orgs) {
+        suggestionEngine.startBackgroundEvaluation(org.id);
+      }
+      if (orgs.length === 0) {
+        suggestionEngine.startBackgroundEvaluation("default-org-id");
+      }
+    } catch {
+      suggestionEngine.startBackgroundEvaluation("default-org-id");
+    }
+  })();
 
   const requireAdminRole = (req: Request, res: Response, next: () => void) => {
     const user = (req as AuthenticatedRequest).user;

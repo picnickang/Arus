@@ -112,6 +112,7 @@ export const agentConfig = pgTable("agent_config", {
   monthlyTokenLimit: integer("monthly_token_limit").default(5000000),
   customSystemPrompt: text("custom_system_prompt"),
   enabledTools: jsonb("enabled_tools"),
+  suggestionPreferences: jsonb("suggestion_preferences"),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
 }, (table) => [
