@@ -759,31 +759,68 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
   app.get("/api/agent/admin/export-jsonl", rateLimit.generalApiRateLimit, requireAdminRole, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const conversations = await agentRepo.conversations.list(orgId, undefined, 1000);
-      const lines: string[] = [];
+      const limit = Math.min(parseInt(req.query.limit as string) || 1000, 5000);
+      const offset = parseInt(req.query.offset as string) || 0;
+      const conversations = await agentRepo.conversations.list(orgId, undefined, limit);
+      const sliced = conversations.slice(offset, offset + limit);
 
-      for (const conv of conversations) {
-        const messages = await agentRepo.messages.list(conv.id, 200);
+      const config = await agentRepo.config.get(orgId);
+      const customPrompt = config?.customSystemPrompt;
+      const basePrompt = `You are ARUS Copilot, an AI assistant for marine fleet operations and predictive maintenance.
+
+Your responsibilities:
+- Answer questions about vessels, equipment, maintenance history, and fleet operations
+- Explain predictive maintenance alerts and failure predictions
+- Help draft work orders when maintenance is needed
+- Generate fleet health reports with aggregated data
+- Provide risk assessments and prioritized recommendations
+- Summarize crew schedules and inventory status
+
+Important guidelines:
+1. Always use the provided tools to look up real data — never guess or make up equipment IDs, dates, or statistics
+2. When presenting predictions or risk scores, always mention the confidence level
+3. If a prediction has low confidence (below 0.6), explicitly warn the user
+4. When drafting work orders, always confirm the details with the user before proceeding
+5. Be concise and action-oriented — fleet operators are busy
+6. Use maritime terminology when appropriate
+7. If you cannot find information through the tools, say so clearly rather than guessing
+
+You have access to tools for looking up equipment, vessels, maintenance history, alerts, failure predictions, crew info, inventory, drafting work orders, and generating fleet reports.`;
+
+      const systemContent = customPrompt
+        ? `${basePrompt}\n\nAdditional instructions from your organization:\n${customPrompt}`
+        : basePrompt;
+
+      res.setHeader("Content-Type", "application/x-ndjson");
+      res.setHeader("Content-Disposition", `attachment; filename="agent-conversations-${new Date().toISOString().slice(0, 10)}.jsonl"`);
+      res.setHeader("X-Total-Conversations", String(conversations.length));
+
+      const lines: string[] = [];
+      for (const conv of sliced) {
+        const messages = await agentRepo.messages.list(conv.id, 500);
         if (messages.length === 0) continue;
 
-        const openaiMessages: { role: string; content: string; tool_calls?: any[]; tool_call_id?: string; name?: string }[] = [];
-
-        openaiMessages.push({
-          role: "system",
-          content: "You are a marine fleet operations AI copilot. You help with equipment monitoring, maintenance scheduling, crew management, inventory tracking, and fleet analytics.",
-        });
+        const openaiMessages: Record<string, unknown>[] = [];
+        openaiMessages.push({ role: "system", content: systemContent });
 
         for (const msg of messages) {
           if (msg.role === "user") {
-            openaiMessages.push({ role: "user", content: msg.content });
+            openaiMessages.push({ role: "user", content: msg.content || "" });
+          } else if (msg.role === "assistant" && msg.toolCalls) {
+            const calls = msg.toolCalls as { id: string; type: string; function: { name: string; arguments: string } }[];
+            openaiMessages.push({
+              role: "assistant",
+              content: msg.content || null,
+              tool_calls: calls,
+            });
           } else if (msg.role === "assistant") {
-            openaiMessages.push({ role: "assistant", content: msg.content });
+            openaiMessages.push({ role: "assistant", content: msg.content || "" });
           } else if (msg.role === "tool") {
+            const ref = msg.toolCalls as { toolCallId?: string } | null;
             openaiMessages.push({
               role: "tool",
-              content: msg.content,
-              tool_call_id: (msg.metadata as any)?.toolCallId || "unknown",
-              name: (msg.metadata as any)?.toolName || "unknown",
+              content: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content),
+              tool_call_id: ref?.toolCallId || "unknown",
             });
           }
         }
@@ -793,8 +830,6 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         }
       }
 
-      res.setHeader("Content-Type", "application/x-ndjson");
-      res.setHeader("Content-Disposition", `attachment; filename="agent-conversations-${new Date().toISOString().slice(0, 10)}.jsonl"`);
       res.send(lines.join("\n"));
     } catch (error: unknown) {
       res.status(500).json({ error: error instanceof Error ? error.message : "Export failed" });
