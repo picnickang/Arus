@@ -1,12 +1,30 @@
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
-import { writeFile, mkdir } from "node:fs/promises";
+import { writeFile, mkdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
+import PDFDocument from "pdfkit";
 import { registerTool } from "./registry";
 import { enhancedLLM } from "../../../enhanced-llm/enhanced-llm";
 import type { Audience } from "../../../enhanced-llm/types";
 
 const REPORT_ARTIFACTS_DIR = join(process.cwd(), ".data", "report-artifacts");
+
+interface ReportArtifactMeta {
+  reportId: string;
+  orgId: string;
+  userId?: string;
+  fileName: string;
+  filePath: string;
+  format: string;
+  reportType: string;
+  createdAt: string;
+}
+
+const reportArtifactRegistry = new Map<string, ReportArtifactMeta>();
+
+export function getReportArtifact(reportId: string): ReportArtifactMeta | undefined {
+  return reportArtifactRegistry.get(reportId);
+}
 
 const AUDIENCE_MAP: Record<string, Audience> = {
   admin: "executive",
@@ -35,6 +53,7 @@ const REPORT_TYPE_LABELS: Record<string, string> = {
   fleet_summary: "Fleet Summary Report",
   maintenance: "Maintenance Report",
   compliance: "Compliance Report",
+  cost_summary: "Cost Summary Report",
 };
 
 function resolveAudience(userRole?: string, requestedAudience?: string): Audience {
@@ -67,7 +86,7 @@ function formatReportAsText(
   lines.push(`Generated: ${new Date().toISOString()}`);
   lines.push(`Audience: ${audience}`);
   if (vesselId) lines.push(`Vessel: ${vesselId}`);
-  lines.push(`Confidence: ${(result.confidence as number * 100).toFixed(0)}%`);
+  lines.push(`Confidence: ${((result.confidence as number) * 100).toFixed(0)}%`);
   lines.push(`${"=".repeat(60)}\n`);
   lines.push(analysis);
 
@@ -99,35 +118,72 @@ function formatReportAsText(
   return lines.join("\n");
 }
 
-async function storeReportArtifact(
-  reportId: string,
-  content: string,
-  jsonData: Record<string, unknown>,
-  format: string
-): Promise<{ filePath: string; fileName: string }> {
-  await mkdir(REPORT_ARTIFACTS_DIR, { recursive: true });
+async function generatePdfBuffer(
+  reportType: string,
+  audience: string,
+  analysis: string,
+  result: Record<string, unknown>,
+  vesselId?: string
+): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ margin: 50 });
+    const chunks: Buffer[] = [];
 
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    doc.on("data", (chunk: Buffer) => chunks.push(chunk));
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
+    doc.on("error", reject);
 
-  if (format === "json") {
-    const fileName = `report-${timestamp}-${reportId.slice(0, 8)}.json`;
-    const filePath = join(REPORT_ARTIFACTS_DIR, fileName);
-    await writeFile(filePath, JSON.stringify(jsonData, null, 2), "utf-8");
-    return { filePath, fileName };
-  }
+    const title = REPORT_TYPE_LABELS[reportType] || "Report";
 
-  if (format === "csv") {
-    const fileName = `report-${timestamp}-${reportId.slice(0, 8)}.csv`;
-    const filePath = join(REPORT_ARTIFACTS_DIR, fileName);
-    const csvContent = convertToCSV(jsonData);
-    await writeFile(filePath, csvContent, "utf-8");
-    return { filePath, fileName };
-  }
+    doc.fontSize(20).font("Helvetica-Bold").text(title, { align: "center" });
+    doc.moveDown(0.5);
+    doc.fontSize(10).font("Helvetica").fillColor("#666666");
+    doc.text(`Generated: ${new Date().toISOString()}`, { align: "center" });
+    doc.text(`Audience: ${audience}`, { align: "center" });
+    if (vesselId) doc.text(`Vessel: ${vesselId}`, { align: "center" });
+    doc.text(`Confidence: ${((result.confidence as number) * 100).toFixed(0)}%`, { align: "center" });
 
-  const fileName = `report-${timestamp}-${reportId.slice(0, 8)}.txt`;
-  const filePath = join(REPORT_ARTIFACTS_DIR, fileName);
-  await writeFile(filePath, content, "utf-8");
-  return { filePath, fileName };
+    doc.moveDown(1);
+    doc.moveTo(50, doc.y).lineTo(doc.page.width - 50, doc.y).stroke("#cccccc");
+    doc.moveDown(1);
+
+    doc.fontSize(11).font("Helvetica").fillColor("#000000");
+    const paragraphs = analysis.split("\n");
+    for (const p of paragraphs) {
+      if (p.trim()) {
+        doc.text(p.trim(), { align: "left", lineGap: 3 });
+        doc.moveDown(0.3);
+      }
+    }
+
+    if (result.scenarios && Array.isArray(result.scenarios) && result.scenarios.length > 0) {
+      doc.moveDown(1);
+      doc.fontSize(14).font("Helvetica-Bold").text("Scenario Analysis");
+      doc.moveDown(0.5);
+      for (const s of result.scenarios as Array<{ scenario: string; probability: number; impact: string; recommendations: string[] }>) {
+        doc.fontSize(11).font("Helvetica-Bold").text(`▸ ${s.scenario}`);
+        doc.fontSize(10).font("Helvetica").text(`  Probability: ${(s.probability * 100).toFixed(0)}% | Impact: ${s.impact}`);
+        if (s.recommendations?.length) {
+          for (const r of s.recommendations) doc.text(`    • ${r}`);
+        }
+        doc.moveDown(0.5);
+      }
+    }
+
+    if (result.roi) {
+      const roi = result.roi as { estimatedSavings: number; investmentRequired: number; paybackPeriod: number; riskReduction: number };
+      doc.moveDown(1);
+      doc.fontSize(14).font("Helvetica-Bold").text("ROI Analysis");
+      doc.moveDown(0.5);
+      doc.fontSize(11).font("Helvetica");
+      doc.text(`Estimated Savings: $${roi.estimatedSavings.toLocaleString()}`);
+      doc.text(`Investment Required: $${roi.investmentRequired.toLocaleString()}`);
+      doc.text(`Payback Period: ${roi.paybackPeriod} months`);
+      doc.text(`Risk Reduction: ${(roi.riskReduction * 100).toFixed(0)}%`);
+    }
+
+    doc.end();
+  });
 }
 
 function convertToCSV(data: Record<string, unknown>): string {
@@ -148,20 +204,70 @@ function convertToCSV(data: Record<string, unknown>): string {
   return rows.join("\n");
 }
 
+async function storeReportArtifact(
+  reportId: string,
+  orgId: string,
+  userId: string | undefined,
+  reportType: string,
+  content: string,
+  jsonData: Record<string, unknown>,
+  format: string,
+  pdfBuffer?: Buffer
+): Promise<{ filePath: string; fileName: string }> {
+  await mkdir(REPORT_ARTIFACTS_DIR, { recursive: true });
+
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  let fileName: string;
+  let filePath: string;
+
+  if (format === "pdf" && pdfBuffer) {
+    fileName = `report-${timestamp}-${reportId}.pdf`;
+    filePath = join(REPORT_ARTIFACTS_DIR, fileName);
+    await writeFile(filePath, pdfBuffer);
+  } else if (format === "json") {
+    fileName = `report-${timestamp}-${reportId}.json`;
+    filePath = join(REPORT_ARTIFACTS_DIR, fileName);
+    await writeFile(filePath, JSON.stringify(jsonData, null, 2), "utf-8");
+  } else if (format === "csv") {
+    fileName = `report-${timestamp}-${reportId}.csv`;
+    filePath = join(REPORT_ARTIFACTS_DIR, fileName);
+    const csvContent = convertToCSV(jsonData);
+    await writeFile(filePath, csvContent, "utf-8");
+  } else {
+    fileName = `report-${timestamp}-${reportId}.txt`;
+    filePath = join(REPORT_ARTIFACTS_DIR, fileName);
+    await writeFile(filePath, content, "utf-8");
+  }
+
+  const meta: ReportArtifactMeta = {
+    reportId,
+    orgId,
+    userId,
+    fileName,
+    filePath,
+    format,
+    reportType,
+    createdAt: new Date().toISOString(),
+  };
+  reportArtifactRegistry.set(reportId, meta);
+
+  return { filePath, fileName };
+}
+
 registerTool({
   name: "generateReport",
-  description: "Generate a comprehensive AI-powered report. Supports report types: health (vessel health), fleet_summary (fleet-wide overview), maintenance (maintenance analysis), compliance (regulatory compliance). Reports are audience-aware and include a download link. Use the shareReport tool if the user wants to email or share the report externally.",
+  description: "Generate a comprehensive AI-powered report. Supports report types: health (vessel health), fleet_summary (fleet-wide overview), maintenance (maintenance analysis), compliance (regulatory compliance), cost_summary (cost and ROI analysis). Reports are audience-aware and include a download link. Use the shareReport tool if the user wants to email or share the report externally.",
   parameters: {
     type: "object",
     properties: {
       reportType: {
         type: "string",
-        enum: ["health", "fleet_summary", "maintenance", "compliance"],
+        enum: ["health", "fleet_summary", "maintenance", "compliance", "cost_summary"],
         description: "Type of report to generate",
       },
       vesselId: {
         type: "string",
-        description: "Vessel ID to scope the report. Required for 'health' reports, optional for 'maintenance' and 'compliance', not used for 'fleet_summary'.",
+        description: "Vessel ID to scope the report. Required for 'health' reports, optional for 'maintenance' and 'compliance', not used for 'fleet_summary' or 'cost_summary'.",
       },
       timeRange: {
         type: "string",
@@ -175,8 +281,8 @@ registerTool({
       },
       outputFormat: {
         type: "string",
-        enum: ["inline", "json", "csv"],
-        description: "Output format. 'inline' shows the report in chat (default). 'json' and 'csv' generate downloadable files.",
+        enum: ["inline", "pdf", "json", "csv"],
+        description: "Output format. 'inline' shows the report in chat (default). 'pdf', 'json', and 'csv' generate downloadable files.",
       },
       includeScenarios: {
         type: "boolean",
@@ -184,17 +290,17 @@ registerTool({
       },
       includeROI: {
         type: "boolean",
-        description: "Include ROI/cost-benefit analysis (default false)",
+        description: "Include ROI/cost-benefit analysis (default false, always true for cost_summary)",
       },
     },
     required: ["reportType"],
   },
   inputSchema: z.object({
-    reportType: z.enum(["health", "fleet_summary", "maintenance", "compliance"]),
+    reportType: z.enum(["health", "fleet_summary", "maintenance", "compliance", "cost_summary"]),
     vesselId: z.string().optional(),
     timeRange: z.enum(["24h", "7d", "30d", "90d", "180d", "1y"]).optional(),
     audience: z.enum(["executive", "technical", "maintenance", "compliance"]).optional(),
-    outputFormat: z.enum(["inline", "json", "csv"]).optional(),
+    outputFormat: z.enum(["inline", "pdf", "json", "csv"]).optional(),
     includeScenarios: z.boolean().optional(),
     includeROI: z.boolean().optional(),
   }),
@@ -209,7 +315,7 @@ registerTool({
       includeScenarios,
       includeROI,
     } = input as {
-      reportType: "health" | "fleet_summary" | "maintenance" | "compliance";
+      reportType: "health" | "fleet_summary" | "maintenance" | "compliance" | "cost_summary";
       vesselId?: string;
       timeRange?: string;
       audience?: string;
@@ -220,16 +326,19 @@ registerTool({
 
     const audience = resolveAudience(ctx.userRole, requestedAudience);
     const timeframeDays = resolveTimeframeDays(timeRange);
+
+    const isCostSummary = reportType === "cost_summary";
     const options = {
       includeScenarios: includeScenarios || false,
-      includeROI: includeROI || false,
+      includeROI: isCostSummary ? true : (includeROI || false),
       timeframeDays,
     };
 
     try {
       let result;
+      const effectiveReportType = isCostSummary ? "fleet_summary" : reportType;
 
-      switch (reportType) {
+      switch (effectiveReportType) {
         case "health": {
           if (!vesselId) {
             return { error: "vesselId is required for health reports. Please specify which vessel to generate the report for." };
@@ -238,7 +347,7 @@ registerTool({
           break;
         }
         case "fleet_summary": {
-          result = await enhancedLLM.generateFleetSummaryReport(audience, options);
+          result = await enhancedLLM.generateFleetSummaryReport(isCostSummary ? "executive" : audience, options);
           break;
         }
         case "maintenance": {
@@ -286,7 +395,13 @@ registerTool({
       if (outputFormat !== "inline") {
         try {
           const textContent = formatReportAsText(reportType, audience, result.analysis, response, vesselId);
-          const artifact = await storeReportArtifact(reportId, textContent, response, outputFormat);
+          let pdfBuffer: Buffer | undefined;
+          if (outputFormat === "pdf") {
+            pdfBuffer = await generatePdfBuffer(reportType, audience, result.analysis, response, vesselId);
+          }
+          const artifact = await storeReportArtifact(
+            reportId, ctx.orgId, ctx.userId, reportType, textContent, response, outputFormat, pdfBuffer
+          );
           response.artifact = {
             fileName: artifact.fileName,
             format: outputFormat,
@@ -375,6 +490,11 @@ registerTool({
       message?: string;
     };
 
+    const artifact = reportArtifactRegistry.get(reportId);
+    if (artifact && artifact.orgId !== ctx.orgId) {
+      return { error: "Report not found or access denied." };
+    }
+
     return {
       draftType: "report_share",
       data: {
@@ -384,6 +504,8 @@ registerTool({
         message: message || "",
         orgId: ctx.orgId,
         requestedBy: ctx.userId,
+        artifactFileName: artifact?.fileName,
+        artifactFormat: artifact?.format,
       },
       requiresApproval: true,
       message: `Report share draft created. The report (${reportId}) will be sent to ${recipients.join(", ")} after approval.`,

@@ -8,6 +8,7 @@ import { SuggestionEngine } from "../application/suggestion-engine";
 import { SchedulerService } from "../application/scheduler-service";
 import { agentRepo } from "../infrastructure/repository";
 import { getToolSummaries, getRegisteredToolNames } from "../tools";
+import { getReportArtifact } from "../tools/enhanced-report-tools";
 import { MAINTENANCE_ROLES } from "../domain/types";
 import { storage } from "../../../storage";
 import type { AuthenticatedRequest } from "../../../middleware/auth";
@@ -245,7 +246,43 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         const shareData = draft.data as Record<string, unknown>;
         const recipients = shareData.recipients as string[];
         const subject = shareData.subject as string;
-        console.log(`[Agent] Report share approved: ${shareData.reportId} → ${recipients.join(", ")} (subject: ${subject})`);
+        const reportArtifact = getReportArtifact(shareData.reportId as string);
+
+        try {
+          const { emailSender } = await import("../../../services/email-notification/email-sender.js");
+          if (reportArtifact) {
+            const fileContent = await import("fs").then(f => f.readFileSync(reportArtifact.filePath));
+            const mimeMap: Record<string, string> = {
+              pdf: "application/pdf",
+              json: "application/json",
+              csv: "text/csv",
+              txt: "text/plain",
+            };
+            await emailSender.sendWithAttachment(
+              recipients[0],
+              subject,
+              shareData.message as string || "Please find the attached ARUS report.",
+              `<p>${shareData.message as string || "Please find the attached ARUS report."}</p>`,
+              {
+                filename: reportArtifact.fileName,
+                content: fileContent,
+                contentType: mimeMap[reportArtifact.format] || "application/octet-stream",
+              }
+            );
+            console.log(`[Agent] Report share sent: ${shareData.reportId} → ${recipients.join(", ")}`);
+          } else {
+            await emailSender.sendEmail({
+              to: recipients,
+              subject,
+              text: shareData.message as string || "An ARUS report has been shared with you.",
+              html: `<p>${shareData.message as string || "An ARUS report has been shared with you."}</p>`,
+            });
+            console.log(`[Agent] Report share sent (no attachment): ${shareData.reportId} → ${recipients.join(", ")}`);
+          }
+        } catch (emailErr) {
+          console.warn(`[Agent] Report share email failed (draft still approved):`, emailErr);
+        }
+
         resultId = shareData.reportId as string;
       }
 
@@ -552,33 +589,29 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         return res.status(400).json({ error: "Invalid report ID format" });
       }
 
-      const reportDir = path.join(process.cwd(), ".data", "report-artifacts");
-      if (!fs.existsSync(reportDir)) {
-        return res.status(404).json({ error: "No report artifacts found" });
-      }
-
-      const reportIdPrefix = reportId.slice(0, 8);
-      const files = fs.readdirSync(reportDir).filter(f => {
-        const match = f.match(/report-[\d\-T]+-([a-f0-9]{8})\.\w+$/);
-        return match && match[1] === reportIdPrefix;
-      });
-      if (files.length === 0) {
+      const artifact = getReportArtifact(reportId);
+      if (!artifact) {
         return res.status(404).json({ error: "Report artifact not found" });
       }
-      const fileName = files[0];
-      const filePath = path.join(reportDir, fileName);
-      if (filePath.includes("..") || !filePath.startsWith(reportDir)) {
-        return res.status(400).json({ error: "Invalid file path" });
+
+      if (artifact.orgId !== orgId) {
+        return res.status(403).json({ error: "Access denied" });
       }
-      const ext = path.extname(fileName).toLowerCase();
+
+      if (!fs.existsSync(artifact.filePath)) {
+        return res.status(404).json({ error: "Report file no longer available" });
+      }
+
+      const ext = path.extname(artifact.fileName).toLowerCase();
       const mimeMap: Record<string, string> = {
         ".json": "application/json",
         ".csv": "text/csv",
         ".txt": "text/plain",
+        ".pdf": "application/pdf",
       };
       res.setHeader("Content-Type", mimeMap[ext] || "application/octet-stream");
-      res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
-      const fileStream = fs.createReadStream(filePath);
+      res.setHeader("Content-Disposition", `attachment; filename="${artifact.fileName}"`);
+      const fileStream = fs.createReadStream(artifact.filePath);
       fileStream.pipe(res);
     } catch (error: unknown) {
       res.status(500).json({ error: error instanceof Error ? error.message : "Download failed" });
