@@ -11,11 +11,10 @@ import { getToolSummaries, getRegisteredToolNames } from "../tools";
 import { getReportArtifact } from "../tools/enhanced-report-tools";
 import { MAINTENANCE_ROLES } from "../domain/types";
 import { storage } from "../../../storage";
+import { db } from "../../../db";
 import type { AuthenticatedRequest } from "../../../middleware/auth";
 import { auditAction } from "../../../utils/audit-helpers";
 import { z } from "zod";
-import { db } from "../../../db";
-import { organizations } from "@shared/schema";
 
 const UPLOAD_DIR = "/tmp/agent-uploads";
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -608,6 +607,11 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
+  const globalScheduler = new SchedulerService(
+    agentRepo,
+    (org, user, conv, msg, role, opts) => orchestrator.run(org, user, conv, msg, role, opts),
+  );
+
   app.get("/api/agent/schedules", rateLimit.generalApiRateLimit, requireAdminRole, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
@@ -622,6 +626,9 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const schedule = await agentRepo.schedules.create({ ...req.body, orgId });
+      if (schedule.enabled) {
+        globalScheduler.scheduleJob(schedule);
+      }
       res.status(201).json(schedule);
     } catch (error: unknown) {
       res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
@@ -634,6 +641,11 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       const existing = await agentRepo.schedules.get(req.params.id, orgId);
       if (!existing) return res.status(404).json({ error: "Schedule not found" });
       const schedule = await agentRepo.schedules.update(req.params.id, req.body);
+      if (schedule.enabled) {
+        globalScheduler.scheduleJob(schedule);
+      } else {
+        globalScheduler.cancelJob(schedule.id);
+      }
       res.json(schedule);
     } catch (error: unknown) {
       res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
@@ -645,6 +657,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       const orgId = (req as AuthenticatedRequest).orgId;
       const existing = await agentRepo.schedules.get(req.params.id, orgId);
       if (!existing) return res.status(404).json({ error: "Schedule not found" });
+      globalScheduler.cancelJob(req.params.id);
       await agentRepo.schedules.delete(req.params.id);
       res.json({ success: true });
     } catch (error: unknown) {
@@ -670,11 +683,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       const schedule = await agentRepo.schedules.get(req.params.id, orgId);
       if (!schedule) return res.status(404).json({ error: "Schedule not found" });
 
-      const schedulerService = new SchedulerService(
-        agentRepo,
-        (org, user, conv, msg, role) => orchestrator.run(org, user, conv, msg, role),
-      );
-      await schedulerService.executeSchedule(schedule);
+      await globalScheduler.executeSchedule(schedule);
       res.json({ success: true, message: "Schedule run triggered" });
     } catch (error: unknown) {
       res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
@@ -760,6 +769,21 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       res.status(500).json({ error: error instanceof Error ? error.message : "Download failed" });
     }
   });
+
+  (async () => {
+    try {
+      const { organizations } = await import("@shared/schema/core");
+      const orgs = await db.select({ id: organizations.id }).from(organizations);
+      for (const org of orgs) {
+        await globalScheduler.initialize(org.id);
+      }
+      if (orgs.length === 0) {
+        await globalScheduler.initialize("default-org-id");
+      }
+    } catch {
+      await globalScheduler.initialize("default-org-id");
+    }
+  })();
 
   console.log("[Agent Domain] Routes registered (chat, conversations, drafts, config, usage, suggestions, schedules, tools, reports, admin)");
 }

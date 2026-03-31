@@ -69,6 +69,7 @@ export class AgentOrchestrator {
     conversationId: string | undefined,
     userMessage: string,
     userRole?: string,
+    options?: { toolAllowlist?: string[] | null; maxTokenBudget?: number },
   ): Promise<AgentRunResult> {
     const client = await createOpenAIClient();
     if (!client) throw new Error("OpenAI is not configured. Please set up your API key.");
@@ -104,7 +105,7 @@ export class AgentOrchestrator {
 
     const history = await this.repo.messages.list(conversation.id, 50);
     const openaiMessages = this.buildOpenAIMessages(history, customPrompt);
-    const enabledTools = config?.enabledTools as string[] | null;
+    const enabledTools = options?.toolAllowlist !== undefined ? options.toolAllowlist : (config?.enabledTools as string[] | null);
     const toolDefs = getToolOpenAIDefinitions(enabledTools);
     const toolContext = { orgId, userId, conversationId: conversation.id, userRole };
 
@@ -114,9 +115,15 @@ export class AgentOrchestrator {
     let toolCallCount = 0;
     let finalResponse = "";
     const toolCallTraces: ToolCallTrace[] = [];
+    const maxTokenBudget = options?.maxTokenBudget;
 
     try {
       for (let iteration = 0; iteration < maxIterations; iteration++) {
+        if (maxTokenBudget && totalTokens >= maxTokenBudget) {
+          finalResponse = `[Token budget exceeded: ${totalTokens}/${maxTokenBudget} tokens used. Stopping early.]`;
+          break;
+        }
+
         const response = await this.callOpenAI(client, model, openaiMessages, toolDefs);
 
         const choice = response.choices[0];

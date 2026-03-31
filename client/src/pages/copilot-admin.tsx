@@ -56,9 +56,24 @@ interface Schedule {
   name: string;
   prompt: string;
   cronExpression: string;
+  outputDestination: string;
+  allowWriteTools: boolean;
+  maxTokenBudget: number | null;
+  consecutiveFailures: number;
   enabled: boolean;
   lastRunAt?: string;
   createdAt: string;
+}
+
+interface ScheduleRun {
+  id: string;
+  scheduleId: string;
+  status: string;
+  output: any;
+  tokenUsage: number | null;
+  error: string | null;
+  startedAt: string;
+  completedAt: string | null;
 }
 
 interface ToolInfo {
@@ -93,8 +108,8 @@ function ConfigTab() {
   const [formData, setFormData] = useState<Partial<AgentConfig>>({});
 
   const merged = { ...config, ...formData };
-  const rawEnabledTools = merged.enabledTools as string[] | undefined | null;
-  const currentEnabledTools = rawEnabledTools === undefined ? null : rawEnabledTools;
+  const rawEnabledTools = merged.enabledTools;
+  const currentEnabledTools = Array.isArray(rawEnabledTools) ? rawEnabledTools : null;
 
   const saveMutation = useMutation({
     mutationFn: () => apiRequest("PUT", "/api/agent/config", merged),
@@ -563,11 +578,63 @@ function SuggestionsTab() {
   );
 }
 
+function ScheduleRunHistory({ scheduleId }: { scheduleId: string }) {
+  const { data: runs = [], isLoading } = useQuery<ScheduleRun[]>({
+    queryKey: ["/api/agent/schedules", scheduleId, "runs"],
+    queryFn: () => fetch(`/api/agent/schedules/${scheduleId}/runs`).then(r => r.json()),
+  });
+
+  const [expandedRun, setExpandedRun] = useState<string | null>(null);
+
+  if (isLoading) return <div className="py-2"><Loader2 className="h-4 w-4 animate-spin" /></div>;
+  if (runs.length === 0) return <p className="text-xs text-muted-foreground py-2">No runs yet</p>;
+
+  return (
+    <div className="space-y-1 mt-2 border-t pt-2">
+      <p className="text-xs font-medium mb-1">Run History</p>
+      {runs.slice(0, 10).map(run => (
+        <div key={run.id} className="text-xs" data-testid={`run-${run.id}`}>
+          <button
+            className="flex items-center gap-2 w-full text-left hover:bg-muted/50 rounded px-1 py-0.5"
+            onClick={() => setExpandedRun(expandedRun === run.id ? null : run.id)}
+            data-testid={`button-expand-run-${run.id}`}
+          >
+            <Badge variant={run.status === "completed" ? "default" : run.status === "running" ? "secondary" : "destructive"} className="text-[10px] px-1">
+              {run.status}
+            </Badge>
+            <span className="text-muted-foreground">
+              {run.startedAt ? new Date(run.startedAt).toLocaleString() : "—"}
+            </span>
+            {run.tokenUsage && <span className="text-muted-foreground">({run.tokenUsage} tokens)</span>}
+          </button>
+          {expandedRun === run.id && (
+            <div className="ml-4 mt-1 p-2 bg-muted/30 rounded text-xs space-y-1" data-testid={`run-output-${run.id}`}>
+              {run.error && <p className="text-destructive">Error: {run.error}</p>}
+              {run.output?.response && (
+                <div>
+                  <p className="font-medium mb-0.5">Output:</p>
+                  <p className="whitespace-pre-wrap text-muted-foreground">{typeof run.output.response === "string" ? run.output.response.slice(0, 1000) : JSON.stringify(run.output, null, 2).slice(0, 1000)}</p>
+                </div>
+              )}
+              {run.output?.toolCallCount !== undefined && <p>Tools used: {run.output.toolCallCount}</p>}
+              {run.completedAt && <p>Completed: {new Date(run.completedAt).toLocaleString()}</p>}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function SchedulesTab() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
-  const [newSchedule, setNewSchedule] = useState({ name: "", prompt: "", cronExpression: "0 8 * * 1" });
+  const [expandedSchedule, setExpandedSchedule] = useState<string | null>(null);
+  const [newSchedule, setNewSchedule] = useState({
+    name: "", prompt: "", cronExpression: "0 8 * * 1",
+    outputDestination: "notification", allowWriteTools: false, maxTokenBudget: 4000,
+  });
 
   const { data: schedules = [], isLoading } = useQuery<Schedule[]>({
     queryKey: ["/api/agent/schedules"],
@@ -578,14 +645,14 @@ function SchedulesTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agent/schedules"] });
       setShowForm(false);
-      setNewSchedule({ name: "", prompt: "", cronExpression: "0 8 * * 1" });
+      setNewSchedule({ name: "", prompt: "", cronExpression: "0 8 * * 1", outputDestination: "notification", allowWriteTools: false, maxTokenBudget: 4000 });
       toast({ title: "Schedule created" });
     },
   });
 
   const toggleMutation = useMutation({
     mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
-      apiRequest("PUT", `/api/agent/schedules/${id}`, { enabled }),
+      apiRequest("PUT", `/api/agent/schedules/${id}`, { enabled, consecutiveFailures: 0 }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agent/schedules"] });
     },
@@ -602,6 +669,7 @@ function SchedulesTab() {
   const runMutation = useMutation({
     mutationFn: (id: string) => apiRequest("POST", `/api/agent/schedules/${id}/run`),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/agent/schedules"] });
       toast({ title: "Schedule run triggered" });
     },
     onError: (err: any) => {
@@ -617,8 +685,14 @@ function SchedulesTab() {
       "0 8 * * *": "Daily (8am)",
       "0 */6 * * *": "Every 6 hours",
       "0 0 1 * *": "Monthly (1st)",
+      "0 8 1 * *": "Monthly (1st 8am)",
     };
     return presets[expr] || expr;
+  };
+
+  const destLabel = (dest: string) => {
+    const labels: Record<string, string> = { notification: "Notification", report: "Stored Report", both: "Notification + Report" };
+    return labels[dest] || dest;
   };
 
   return (
@@ -653,23 +727,68 @@ function SchedulesTab() {
                 data-testid="input-schedule-prompt"
               />
             </div>
-            <div className="space-y-2">
-              <Label>Schedule</Label>
-              <Select
-                value={newSchedule.cronExpression}
-                onValueChange={(v) => setNewSchedule(prev => ({ ...prev, cronExpression: v }))}
-              >
-                <SelectTrigger data-testid="select-schedule-cron">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0 */6 * * *">Every 6 hours</SelectItem>
-                  <SelectItem value="0 8 * * *">Daily (8am)</SelectItem>
-                  <SelectItem value="0 8 * * 1">Weekly (Monday 8am)</SelectItem>
-                  <SelectItem value="0 0 1 * *">Monthly (1st of month)</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Frequency</Label>
+                <Select
+                  value={newSchedule.cronExpression}
+                  onValueChange={(v) => setNewSchedule(prev => ({ ...prev, cronExpression: v }))}
+                >
+                  <SelectTrigger data-testid="select-schedule-cron">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0 */6 * * *">Every 6 hours</SelectItem>
+                    <SelectItem value="0 8 * * *">Daily (8am)</SelectItem>
+                    <SelectItem value="0 8 * * 1">Weekly (Monday 8am)</SelectItem>
+                    <SelectItem value="0 8 1 * *">Monthly (1st 8am)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Output Destination</Label>
+                <Select
+                  value={newSchedule.outputDestination}
+                  onValueChange={(v) => setNewSchedule(prev => ({ ...prev, outputDestination: v }))}
+                >
+                  <SelectTrigger data-testid="select-schedule-output">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="notification">Notification</SelectItem>
+                    <SelectItem value="report">Stored Report</SelectItem>
+                    <SelectItem value="both">Both</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Token Budget</Label>
+                <Input
+                  type="number"
+                  value={newSchedule.maxTokenBudget}
+                  onChange={(e) => setNewSchedule(prev => ({ ...prev, maxTokenBudget: parseInt(e.target.value) || 4000 }))}
+                  min={500}
+                  max={100000}
+                  data-testid="input-schedule-tokens"
+                />
+              </div>
+              <div className="flex items-center gap-2 pt-6">
+                <Switch
+                  checked={newSchedule.allowWriteTools}
+                  onCheckedChange={(v) => setNewSchedule(prev => ({ ...prev, allowWriteTools: v }))}
+                  data-testid="switch-allow-write-tools"
+                />
+                <Label className="text-sm">Allow write tools (e.g., draft work orders)</Label>
+              </div>
+            </div>
+            {newSchedule.allowWriteTools && (
+              <div className="flex items-center gap-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded text-xs text-yellow-800 dark:text-yellow-300">
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                Write tools allow the agent to create drafts autonomously. All drafts still require human approval.
+              </div>
+            )}
             <Button
               onClick={() => createMutation.mutate()}
               disabled={createMutation.isPending || !newSchedule.name || !newSchedule.prompt}
@@ -701,14 +820,32 @@ function SchedulesTab() {
                       <Badge variant={s.enabled ? "default" : "secondary"}>
                         {s.enabled ? "Active" : "Paused"}
                       </Badge>
+                      {s.consecutiveFailures > 0 && (
+                        <Badge variant="destructive" className="text-[10px]">
+                          {s.consecutiveFailures >= 3 ? "Auto-disabled" : `${s.consecutiveFailures} failure${s.consecutiveFailures > 1 ? "s" : ""}`}
+                        </Badge>
+                      )}
+                      {s.allowWriteTools && (
+                        <Badge variant="outline" className="text-[10px]">Write</Badge>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground truncate max-w-sm">{s.prompt}</p>
                     <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                       <span>{cronLabel(s.cronExpression)}</span>
-                      {s.lastRunAt && <span>Last run: {new Date(s.lastRunAt).toLocaleString()}</span>}
+                      <span>{destLabel(s.outputDestination)}</span>
+                      {s.maxTokenBudget && <span>{s.maxTokenBudget.toLocaleString()} token limit</span>}
+                      {s.lastRunAt && <span>Last: {new Date(s.lastRunAt).toLocaleString()}</span>}
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setExpandedSchedule(expandedSchedule === s.id ? null : s.id)}
+                      data-testid={`button-history-${s.id}`}
+                    >
+                      <BarChart3 className="h-4 w-4" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -736,6 +873,7 @@ function SchedulesTab() {
                     </Button>
                   </div>
                 </div>
+                {expandedSchedule === s.id && <ScheduleRunHistory scheduleId={s.id} />}
               </CardContent>
             </Card>
           ))}
