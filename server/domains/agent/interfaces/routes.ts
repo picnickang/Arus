@@ -252,41 +252,34 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         const { emailSender } = await import("../../../services/email-notification/email-sender.js");
         const sendErrors: string[] = [];
 
-        if (reportArtifact && fs.existsSync(reportArtifact.filePath)) {
-          const fileContent = fs.readFileSync(reportArtifact.filePath);
-          const mimeMap: Record<string, string> = {
-            pdf: "application/pdf",
-            json: "application/json",
-            csv: "text/csv",
-            txt: "text/plain",
-          };
-          for (const recipient of recipients) {
-            try {
-              await emailSender.sendWithAttachment(
-                recipient,
-                subject,
-                bodyText,
-                `<p>${bodyText}</p>`,
-                {
-                  filename: reportArtifact.fileName,
-                  content: fileContent,
-                  contentType: mimeMap[reportArtifact.format] || "application/octet-stream",
-                }
-              );
-            } catch (err) {
-              sendErrors.push(`${recipient}: ${err instanceof Error ? err.message : "send failed"}`);
-            }
-          }
-        } else {
+        if (!reportArtifact || !fs.existsSync(reportArtifact.filePath)) {
+          return res.status(404).json({
+            error: "Report artifact not found or file no longer available. Cannot share without the report file.",
+          });
+        }
+
+        const fileContent = fs.readFileSync(reportArtifact.filePath);
+        const mimeMap: Record<string, string> = {
+          pdf: "application/pdf",
+          json: "application/json",
+          csv: "text/csv",
+          txt: "text/plain",
+        };
+        for (const recipient of recipients) {
           try {
-            await emailSender.sendEmail({
-              to: recipients,
+            await emailSender.sendWithAttachment(
+              recipient,
               subject,
-              text: bodyText,
-              html: `<p>${bodyText}</p>`,
-            });
+              bodyText,
+              `<p>${bodyText}</p>`,
+              {
+                filename: reportArtifact.fileName,
+                content: fileContent,
+                contentType: mimeMap[reportArtifact.format] || "application/octet-stream",
+              }
+            );
           } catch (err) {
-            sendErrors.push(`all: ${err instanceof Error ? err.message : "send failed"}`);
+            sendErrors.push(`${recipient}: ${err instanceof Error ? err.message : "send failed"}`);
           }
         }
 

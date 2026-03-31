@@ -490,7 +490,10 @@ registerTool({
     };
 
     const artifact = reportArtifactRegistry.get(reportId);
-    if (artifact && artifact.orgId !== ctx.orgId) {
+    if (!artifact) {
+      return { error: "Report not found. Please generate a report first using the generateReport tool before sharing it." };
+    }
+    if (artifact.orgId !== ctx.orgId) {
       return { error: "Report not found or access denied." };
     }
 
