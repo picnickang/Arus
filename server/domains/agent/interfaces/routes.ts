@@ -46,6 +46,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
   const orchestrator = new AgentOrchestrator(agentRepo);
   const safety = new SafetyService(agentRepo);
   const suggestionEngine = new SuggestionEngine(agentRepo);
+  suggestionEngine.startBackgroundEvaluation("default-org");
 
   const requireAdminRole = (req: Request, res: Response, next: () => void) => {
     const user = (req as AuthenticatedRequest).user;
@@ -448,12 +449,26 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
-  app.get("/api/agent/suggestions", rateLimit.generalApiRateLimit, requireAdminRole, async (req: Request, res: Response) => {
+  app.get("/api/agent/suggestions", rateLimit.generalApiRateLimit, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const status = req.query.status as string | undefined;
-      const suggestions = await agentRepo.suggestions.list(orgId, status);
+      const triggerType = req.query.triggerType as string | undefined;
+      let suggestions = await agentRepo.suggestions.list(orgId, status);
+      if (triggerType) {
+        suggestions = suggestions.filter(s => s.triggerType === triggerType);
+      }
       res.json(suggestions);
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  app.get("/api/agent/suggestions/unread-count", rateLimit.generalApiRateLimit, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const pending = await agentRepo.suggestions.list(orgId, "pending");
+      res.json({ count: pending.length });
     } catch (error: unknown) {
       res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
@@ -462,22 +477,116 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
   app.post("/api/agent/suggestions/generate", rateLimit.writeOperationRateLimit, requireAdminRole, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const count = await suggestionEngine.generateProactiveSuggestions(orgId);
-      res.json({ generated: count });
+      const preferences = req.body.preferences || undefined;
+      const newSuggestions = await suggestionEngine.generateProactiveSuggestions(orgId, preferences);
+
+      try {
+        const { getWebSocketServer } = await import("../../../db/equipment/websocket");
+        const ws = getWebSocketServer();
+        if (ws && newSuggestions.length > 0) {
+          ws.broadcast("suggestions", {
+            type: "suggestions_new",
+            data: newSuggestions,
+            count: newSuggestions.length,
+            timestamp: new Date().toISOString(),
+          });
+        }
+      } catch {}
+
+      res.json({ generated: newSuggestions.length, suggestions: newSuggestions });
     } catch (error: unknown) {
       res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
-  app.put("/api/agent/suggestions/:id", rateLimit.writeOperationRateLimit, requireAdminRole, async (req: Request, res: Response) => {
+  app.put("/api/agent/suggestions/:id", rateLimit.writeOperationRateLimit, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const existing = await agentRepo.suggestions.list(orgId, undefined, 1000);
       const match = existing.find(s => s.id === req.params.id);
       if (!match) return res.status(404).json({ error: "Suggestion not found or does not belong to this organization" });
-      const suggestion = await agentRepo.suggestions.update(req.params.id, req.body);
+      const allowedUpdates: Record<string, unknown> = {};
+      if (req.body.status) allowedUpdates.status = req.body.status;
+      if (req.body.actedOn !== undefined) allowedUpdates.actedOn = req.body.actedOn;
+      const suggestion = await agentRepo.suggestions.update(req.params.id, allowedUpdates);
       res.json(suggestion);
     } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  app.post("/api/agent/suggestions/:id/dismiss", rateLimit.writeOperationRateLimit, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const existing = await agentRepo.suggestions.list(orgId, undefined, 1000);
+      const match = existing.find(s => s.id === req.params.id);
+      if (!match) return res.status(404).json({ error: "Suggestion not found" });
+      const suggestion = await agentRepo.suggestions.update(req.params.id, { status: "dismissed" });
+      res.json(suggestion);
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  app.post("/api/agent/suggestions/:id/act", rateLimit.writeOperationRateLimit, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const existing = await agentRepo.suggestions.list(orgId, undefined, 1000);
+      const match = existing.find(s => s.id === req.params.id);
+      if (!match) return res.status(404).json({ error: "Suggestion not found" });
+      const suggestion = await agentRepo.suggestions.update(req.params.id, { actedOn: true, status: "acted" });
+      res.json(suggestion);
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  app.get("/api/agent/suggestions/history", rateLimit.generalApiRateLimit, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const all = await agentRepo.suggestions.list(orgId, undefined, 200);
+      const history = all.filter(s => s.status !== "pending");
+      res.json(history);
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  app.get("/api/agent/suggestion-preferences", rateLimit.generalApiRateLimit, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const prefs = await agentRepo.suggestions.getPreferences(orgId);
+      res.json(prefs || {
+        maintenance: true,
+        predictions: true,
+        crew: true,
+        inventory: true,
+        alerts: true,
+        minSeverity: "info",
+      });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  app.put("/api/agent/suggestion-preferences", rateLimit.writeOperationRateLimit, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const schema = z.object({
+        maintenance: z.boolean().optional(),
+        predictions: z.boolean().optional(),
+        crew: z.boolean().optional(),
+        inventory: z.boolean().optional(),
+        alerts: z.boolean().optional(),
+        minSeverity: z.enum(["info", "warning", "critical"]).optional(),
+      });
+      const parsed = schema.parse(req.body);
+      const prefs = await agentRepo.suggestions.savePreferences(orgId, parsed);
+      res.json(prefs);
+    } catch (error: unknown) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid preferences", details: error.errors });
+      }
       res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
   });

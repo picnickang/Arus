@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Bot } from "lucide-react";
@@ -11,6 +11,7 @@ interface DraftSummary {
 
 export function CopilotFab() {
   const [open, setOpen] = useState(false);
+  const [initialMessage, setInitialMessage] = useState<string | null>(null);
 
   const { data: drafts } = useQuery<DraftSummary[]>({
     queryKey: ["/api/agent/drafts"],
@@ -18,6 +19,16 @@ export function CopilotFab() {
   });
 
   const pendingCount = (drafts || []).filter((d) => d.status === "pending").length;
+
+  const openWithMessage = useCallback((msg: string) => {
+    setInitialMessage(msg);
+    setOpen(true);
+  }, []);
+
+  const handleClose = useCallback(() => {
+    setOpen(false);
+    setInitialMessage(null);
+  }, []);
 
   return (
     <>
@@ -37,7 +48,21 @@ export function CopilotFab() {
           </span>
         )}
       </Button>
-      <AgentChatPanel open={open} onClose={() => setOpen(false)} />
+      <AgentChatPanel open={open} onClose={handleClose} initialMessage={initialMessage} />
     </>
   );
+}
+
+export function useCopilotOpen() {
+  const [state, setState] = useState<{ open: boolean; message: string | null }>({ open: false, message: null });
+
+  const openChat = useCallback((msg?: string) => {
+    setState({ open: true, message: msg || null });
+  }, []);
+
+  const closeChat = useCallback(() => {
+    setState({ open: false, message: null });
+  }, []);
+
+  return { ...state, openChat, closeChat };
 }

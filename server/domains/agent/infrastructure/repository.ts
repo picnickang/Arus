@@ -11,6 +11,7 @@ import {
   agentSchedules,
   agentScheduleRuns,
 } from "@shared/schema";
+import type { SuggestionPreferences } from "../domain/ports";
 import type {
   AgentConversation,
   InsertAgentConversation,
@@ -181,6 +182,42 @@ export function createAgentRepository(): AgentRepositoryPort {
           .where(eq(agentSuggestions.id, id))
           .returning();
         return sug;
+      },
+      async getPreferences(orgId: string): Promise<SuggestionPreferences | null> {
+        const config = await db.select().from(agentConfig)
+          .where(eq(agentConfig.orgId, orgId))
+          .limit(1);
+        if (!config[0]) return null;
+        const raw = config[0] as Record<string, unknown>;
+        const extras = raw.enabledTools;
+        if (extras && typeof extras === "object" && (extras as Record<string, unknown>).__suggestionPrefs) {
+          return (extras as Record<string, unknown>).__suggestionPrefs as SuggestionPreferences;
+        }
+        return null;
+      },
+      async savePreferences(orgId: string, prefs: Partial<SuggestionPreferences>): Promise<SuggestionPreferences> {
+        const defaults: SuggestionPreferences = {
+          maintenance: true, predictions: true, crew: true,
+          inventory: true, alerts: true, minSeverity: "info",
+        };
+        const existing = await this.getPreferences(orgId);
+        const merged = { ...defaults, ...existing, ...prefs };
+        const config = await db.select().from(agentConfig)
+          .where(eq(agentConfig.orgId, orgId))
+          .limit(1);
+        if (config[0]) {
+          const currentTools = (config[0].enabledTools || null) as Record<string, unknown> | null;
+          const updatedTools = { ...(currentTools || {}), __suggestionPrefs: merged };
+          await db.update(agentConfig)
+            .set({ enabledTools: updatedTools as unknown as string[], updatedAt: new Date() })
+            .where(eq(agentConfig.id, config[0].id));
+        } else {
+          await db.insert(agentConfig).values({
+            orgId,
+            enabledTools: { __suggestionPrefs: merged } as unknown as string[],
+          });
+        }
+        return merged;
       },
     },
 

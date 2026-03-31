@@ -57,10 +57,21 @@ export interface AgentConfigPort {
   upsert(data: InsertAgentConfig): Promise<AgentConfigType>;
 }
 
+export interface SuggestionPreferences {
+  maintenance: boolean;
+  predictions: boolean;
+  crew: boolean;
+  inventory: boolean;
+  alerts: boolean;
+  minSeverity: "info" | "warning" | "critical";
+}
+
 export interface AgentSuggestionPort {
   create(data: InsertAgentSuggestion): Promise<AgentSuggestion>;
   list(orgId: string, status?: string, limit?: number): Promise<AgentSuggestion[]>;
   update(id: string, data: Partial<AgentSuggestion>): Promise<AgentSuggestion>;
+  getPreferences(orgId: string): Promise<SuggestionPreferences | null>;
+  savePreferences(orgId: string, prefs: Partial<SuggestionPreferences>): Promise<SuggestionPreferences>;
 }
 
 export interface AgentSchedulePort {

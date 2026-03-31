@@ -242,7 +242,7 @@ async function readStreamWithRetry(
   }
 }
 
-export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolean; onClose: () => void; initialMessage?: string | null }) {
   const [message, setMessage] = useState("");
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
@@ -341,6 +341,23 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
       setStreamingMessages([]);
     }
   }, [serverMessages, streamingMessages.length, isStreaming]);
+
+  const initialMessageRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (open && initialMessage && initialMessage !== initialMessageRef.current && !isStreaming) {
+      initialMessageRef.current = initialMessage;
+      setConversationId(null);
+      setStreamingMessages([]);
+      setMessage(initialMessage);
+      setTimeout(() => {
+        const form = document.querySelector('[data-testid="form-agent-chat"]') as HTMLFormElement | null;
+        if (form) form.requestSubmit();
+      }, 100);
+    }
+    if (!open) {
+      initialMessageRef.current = null;
+    }
+  }, [open, initialMessage, isStreaming]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -730,6 +747,7 @@ export function AgentChatPanel({ open, onClose }: { open: boolean; onClose: () =
               <form
                 onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
                 className="flex gap-2"
+                data-testid="form-agent-chat"
               >
                 <input
                   ref={fileInputRef}

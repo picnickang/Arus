@@ -2,6 +2,7 @@ import { Link, useLocation } from "wouter";
 import { Home, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { SuggestionBell } from "@/components/agent/SuggestionCards";
 import type { ReactNode } from "react";
 
 interface PageHeaderProps {
@@ -71,6 +72,7 @@ export function PageHeader({ title, subtitle, showBack = true, showHome = true, 
 
         <div className="flex items-center gap-2">
           {action}
+          <SuggestionBell />
           <ThemeToggle />
         </div>
       </div>
