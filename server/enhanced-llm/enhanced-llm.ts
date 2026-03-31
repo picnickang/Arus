@@ -276,7 +276,7 @@ export class EnhancedLLMService {
       }
 
       return result;
-    } catch (_error) {
+    } catch (error) {
       const latencyMs = Date.now() - startTime;
 
       await logCostTracking({

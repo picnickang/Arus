@@ -11,6 +11,7 @@ export interface ToolContext {
   orgId: string;
   userId?: string;
   conversationId: string;
+  userRole?: string;
 }
 
 export interface ToolCallTrace {
