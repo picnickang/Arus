@@ -16,6 +16,7 @@ interface ToolContext {
   orgId: string;
   userId: string | undefined;
   conversationId: string;
+  userRole?: string;
 }
 
 const SYSTEM_PROMPT = `You are ARUS Copilot, an AI assistant for marine fleet operations and predictive maintenance.
@@ -51,6 +52,7 @@ export class AgentOrchestrator {
     userId: string | undefined,
     conversationId: string | undefined,
     userMessage: string,
+    userRole?: string,
   ): Promise<AgentRunResult> {
     const client = await createOpenAIClient();
     if (!client) throw new Error("OpenAI is not configured. Please set up your API key.");
@@ -83,8 +85,9 @@ export class AgentOrchestrator {
 
     const history = await this.repo.messages.list(conversation.id, 50);
     const openaiMessages = this.buildOpenAIMessages(history, customPrompt);
-    const toolDefs = getToolOpenAIDefinitions();
-    const toolContext = { orgId, userId, conversationId: conversation.id };
+    const enabledTools = config?.enabledTools as string[] | null;
+    const toolDefs = getToolOpenAIDefinitions(enabledTools);
+    const toolContext = { orgId, userId, conversationId: conversation.id, userRole };
 
     let totalTokens = 0;
     let toolCallCount = 0;
@@ -92,13 +95,7 @@ export class AgentOrchestrator {
     const toolCallTraces: ToolCallTrace[] = [];
 
     for (let iteration = 0; iteration < maxIterations; iteration++) {
-      const response = await client.chat.completions.create({
-        model,
-        messages: openaiMessages,
-        tools: toolDefs.length > 0 ? toolDefs : undefined,
-        temperature: 0.3,
-        max_tokens: 4096,
-      });
+      const response = await this.callOpenAI(client, model, openaiMessages, toolDefs);
 
       const choice = response.choices[0];
       totalTokens += response.usage?.total_tokens || 0;
@@ -189,6 +186,7 @@ export class AgentOrchestrator {
     conversationId: string | undefined,
     userMessage: string,
     attachments: FileAttachment[],
+    userRole?: string,
   ): Promise<AgentRunResult> {
     const client = await createOpenAIClient();
     if (!client) throw new Error("OpenAI is not configured. Please set up your API key.");
@@ -258,8 +256,9 @@ export class AgentOrchestrator {
       openaiMessages[lastIdx] = { role: "user", content: contentParts };
     }
 
-    const toolDefs = getToolOpenAIDefinitions();
-    const toolContext = { orgId, userId, conversationId: conversation.id };
+    const enabledToolsMA = config?.enabledTools as string[] | null;
+    const toolDefs = getToolOpenAIDefinitions(enabledToolsMA);
+    const toolContext = { orgId, userId, conversationId: conversation.id, userRole };
 
     let totalTokens = 0;
     let toolCallCount = 0;
@@ -267,13 +266,7 @@ export class AgentOrchestrator {
     const toolCallTraces: ToolCallTrace[] = [];
 
     for (let iteration = 0; iteration < maxIterations; iteration++) {
-      const response = await client.chat.completions.create({
-        model,
-        messages: openaiMessages,
-        tools: toolDefs.length > 0 ? toolDefs : undefined,
-        temperature: 0.3,
-        max_tokens: 4096,
-      });
+      const response = await this.callOpenAI(client, model, openaiMessages, toolDefs);
 
       const choice = response.choices[0];
       totalTokens += response.usage?.total_tokens || 0;
@@ -364,6 +357,7 @@ export class AgentOrchestrator {
     conversationId: string | undefined,
     userMessage: string,
     onChunk: (chunk: string) => void,
+    userRole?: string,
   ): Promise<AgentRunResult> {
     const client = await createOpenAIClient();
     if (!client) throw new Error("OpenAI is not configured. Please set up your API key.");
@@ -399,8 +393,9 @@ export class AgentOrchestrator {
 
     const history = await this.repo.messages.list(conversation.id, 50);
     const openaiMessages = this.buildOpenAIMessages(history, customPrompt);
-    const toolDefs = getToolOpenAIDefinitions();
-    const toolContext = { orgId, userId, conversationId: conversation.id };
+    const enabledToolsStream = config?.enabledTools as string[] | null;
+    const toolDefs = getToolOpenAIDefinitions(enabledToolsStream);
+    const toolContext = { orgId, userId, conversationId: conversation.id, userRole };
 
     let totalTokens = 0;
     let toolCallCount = 0;
@@ -412,9 +407,7 @@ export class AgentOrchestrator {
       const isLastChance = iteration === maxIterations - 1;
 
       if (isLastChance) {
-        const response = await client.chat.completions.create({
-          model, messages: openaiMessages, temperature: 0.3, max_tokens: 4096,
-        });
+        const response = await this.callOpenAI(client, model, openaiMessages);
         finalResponse = response.choices[0].message.content || "";
         finalResponseTokens = response.usage?.total_tokens || 0;
         totalTokens += finalResponseTokens;
@@ -422,11 +415,7 @@ export class AgentOrchestrator {
         break;
       }
 
-      const response = await client.chat.completions.create({
-        model, messages: openaiMessages,
-        tools: toolDefs.length > 0 ? toolDefs : undefined,
-        temperature: 0.3, max_tokens: 4096,
-      });
+      const response = await this.callOpenAI(client, model, openaiMessages, toolDefs);
 
       const choice = response.choices[0];
       const iterationTokens = response.usage?.total_tokens || 0;
@@ -572,6 +561,16 @@ export class AgentOrchestrator {
       return { toolResult: { error: `Tool ${toolName} is disabled` }, toolStatus: "error", toolError: "Tool disabled", durationMs: 0 };
     }
 
+    const userRole = (toolContext as { orgId: string; userId?: string; userRole?: string }).userRole;
+    if (!this.safety.checkWriteToolAccess(toolName, userRole)) {
+      return {
+        toolResult: { error: `Insufficient permissions: ${toolName} requires a maintenance role (chief engineer, captain, or admin)` },
+        toolStatus: "error",
+        toolError: "RBAC denied",
+        durationMs: 0,
+      };
+    }
+
     const tool = getTool(toolName);
     if (!tool) {
       return { toolResult: { error: `Unknown tool: ${toolName}` }, toolStatus: "error", toolError: `Unknown tool: ${toolName}`, durationMs: 0 };
@@ -619,6 +618,45 @@ export class AgentOrchestrator {
     });
 
     return { toolResult, toolStatus, toolError, durationMs };
+  }
+
+  private async callOpenAI(
+    client: OpenAI,
+    model: string,
+    messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
+    toolDefs?: ReturnType<typeof getToolOpenAIDefinitions>,
+  ): Promise<OpenAI.Chat.Completions.ChatCompletion> {
+    const maxRetries = 2;
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await client.chat.completions.create({
+          model,
+          messages,
+          tools: toolDefs && toolDefs.length > 0 ? toolDefs : undefined,
+          temperature: 0.3,
+          max_tokens: 4096,
+        });
+      } catch (err: unknown) {
+        lastError = err instanceof Error ? err : new Error("OpenAI call failed");
+        const statusCode = (err as { status?: number })?.status || 0;
+        const errorCode = (err as { code?: string })?.code || "";
+        const isRetryable = statusCode === 429 || statusCode === 500 || statusCode === 503 || statusCode === 502 ||
+          errorCode === "ECONNRESET" || errorCode === "ETIMEDOUT" || errorCode === "ENOTFOUND" ||
+          lastError.message.includes("timeout") || lastError.message.includes("network");
+
+        if (!isRetryable || attempt === maxRetries) break;
+
+        const delay = Math.min(1000 * Math.pow(2, attempt), 8000);
+        console.warn(`[Agent] OpenAI attempt ${attempt + 1} failed, retrying in ${delay}ms:`, lastError.message);
+        await new Promise(r => setTimeout(r, delay));
+      }
+    }
+
+    throw new Error(
+      `AI service is temporarily unavailable. Please try again in a moment. (${lastError?.message || "unknown error"})`,
+    );
   }
 
   private parseJson(str: string): Record<string, unknown> {

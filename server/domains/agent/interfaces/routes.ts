@@ -7,9 +7,11 @@ import { SafetyService } from "../application/safety-service";
 import { SuggestionEngine } from "../application/suggestion-engine";
 import { SchedulerService } from "../application/scheduler-service";
 import { agentRepo } from "../infrastructure/repository";
+import { getToolSummaries } from "../tools";
 import { storage } from "../../../storage";
 import type { AuthenticatedRequest } from "../../../middleware/auth";
 import { auditAction } from "../../../utils/audit-helpers";
+import { z } from "zod";
 
 const UPLOAD_DIR = "/tmp/agent-uploads";
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -43,17 +45,27 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
   const safety = new SafetyService(agentRepo);
   const suggestionEngine = new SuggestionEngine(agentRepo);
 
+  const requireAdminRole = (req: Request, res: Response, next: () => void) => {
+    const user = (req as AuthenticatedRequest).user;
+    const role = user?.role?.toLowerCase();
+    if (!role || role !== "admin") {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    next();
+  };
+
   app.post("/api/agent/chat", rateLimit.writeOperationRateLimit, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const userId = (req as AuthenticatedRequest).user?.id;
+      const userRole = (req as AuthenticatedRequest).user?.role;
       const { message, conversationId } = req.body;
 
       if (!message || typeof message !== "string") {
         return res.status(400).json({ error: "Message is required" });
       }
 
-      const result = await orchestrator.run(orgId, userId, conversationId, message);
+      const result = await orchestrator.run(orgId, userId, conversationId, message, userRole);
 
       await auditAction("agent_conversation", result.conversationId, "update", {
         action: "chat",
@@ -79,6 +91,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const userId = (req as AuthenticatedRequest).user?.id;
+      const userRole = (req as AuthenticatedRequest).user?.role;
       const { message, conversationId } = req.body;
 
       if (!message || typeof message !== "string") {
@@ -92,7 +105,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         size: f.size,
       }));
 
-      const result = await orchestrator.runWithAttachments(orgId, userId, conversationId, message, attachments);
+      const result = await orchestrator.runWithAttachments(orgId, userId, conversationId, message, attachments, userRole);
 
       res.json({
         conversationId: result.conversationId,
@@ -115,6 +128,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const userId = (req as AuthenticatedRequest).user?.id;
+      const userRole = (req as AuthenticatedRequest).user?.role;
       const message = req.query.message as string;
       const conversationId = req.query.conversationId as string | undefined;
 
@@ -131,7 +145,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
 
       await orchestrator.runStream(orgId, userId, conversationId, message, (chunk) => {
         res.write(`data: ${chunk}\n\n`);
-      });
+      }, userRole);
 
       res.end();
     } catch (error: unknown) {
@@ -284,7 +298,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
-  app.get("/api/agent/config", rateLimit.generalApiRateLimit, async (req: Request, res: Response) => {
+  app.get("/api/agent/config", rateLimit.generalApiRateLimit, requireAdminRole, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const config = await agentRepo.config.get(orgId);
@@ -294,17 +308,57 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
-  app.put("/api/agent/config", rateLimit.writeOperationRateLimit, async (req: Request, res: Response) => {
+  const configUpdateSchema = z.object({
+    defaultModel: z.enum(["gpt-4o-mini", "gpt-4o", "gpt-4-turbo"]).optional(),
+    maxIterationsPerRun: z.number().int().min(1).max(50).optional(),
+    maxTokensPerConversation: z.number().int().min(1000).max(500000).optional(),
+    dailyTokenLimit: z.number().int().min(10000).max(50000000).optional(),
+    monthlyTokenLimit: z.number().int().min(100000).max(500000000).optional(),
+    customSystemPrompt: z.string().max(5000).optional().nullable(),
+    enabledTools: z.array(z.string()).optional().nullable(),
+  });
+
+  app.put("/api/agent/config", rateLimit.writeOperationRateLimit, requireAdminRole, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const config = await agentRepo.config.upsert({ ...req.body, orgId });
+      const parsed = configUpdateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid configuration", details: parsed.error.flatten().fieldErrors });
+      }
+      const config = await agentRepo.config.upsert({ ...parsed.data, orgId });
+
+      await auditAction("agent_config", config.id, "update", {
+        action: "config_updated",
+        fields: Object.keys(parsed.data),
+      }, { orgId, userId: (req as AuthenticatedRequest).user?.id });
+
       res.json(config);
     } catch (error: unknown) {
       res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
-  app.get("/api/agent/usage", rateLimit.generalApiRateLimit, async (req: Request, res: Response) => {
+  app.delete("/api/agent/config", rateLimit.writeOperationRateLimit, requireAdminRole, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const defaults = {
+        orgId,
+        defaultModel: "gpt-4o-mini",
+        maxIterationsPerRun: 10,
+        maxTokensPerConversation: 50000,
+        dailyTokenLimit: 500000,
+        monthlyTokenLimit: 5000000,
+        customSystemPrompt: null,
+        enabledTools: null,
+      };
+      const config = await agentRepo.config.upsert(defaults);
+      res.json(config);
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  app.get("/api/agent/usage", rateLimit.generalApiRateLimit, requireAdminRole, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const days = parseInt(req.query.days as string) || 30;
@@ -315,7 +369,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
-  app.get("/api/agent/suggestions", rateLimit.generalApiRateLimit, async (req: Request, res: Response) => {
+  app.get("/api/agent/suggestions", rateLimit.generalApiRateLimit, requireAdminRole, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const status = req.query.status as string | undefined;
@@ -326,7 +380,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
-  app.post("/api/agent/suggestions/generate", rateLimit.writeOperationRateLimit, async (req: Request, res: Response) => {
+  app.post("/api/agent/suggestions/generate", rateLimit.writeOperationRateLimit, requireAdminRole, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const count = await suggestionEngine.generateProactiveSuggestions(orgId);
@@ -336,7 +390,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
-  app.put("/api/agent/suggestions/:id", rateLimit.writeOperationRateLimit, async (req: Request, res: Response) => {
+  app.put("/api/agent/suggestions/:id", rateLimit.writeOperationRateLimit, requireAdminRole, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const existing = await agentRepo.suggestions.list(orgId, undefined, 1000);
@@ -349,7 +403,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
-  app.get("/api/agent/schedules", rateLimit.generalApiRateLimit, async (req: Request, res: Response) => {
+  app.get("/api/agent/schedules", rateLimit.generalApiRateLimit, requireAdminRole, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const schedules = await agentRepo.schedules.list(orgId);
@@ -359,7 +413,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
-  app.post("/api/agent/schedules", rateLimit.writeOperationRateLimit, async (req: Request, res: Response) => {
+  app.post("/api/agent/schedules", rateLimit.writeOperationRateLimit, requireAdminRole, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const schedule = await agentRepo.schedules.create({ ...req.body, orgId });
@@ -369,7 +423,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
-  app.put("/api/agent/schedules/:id", rateLimit.writeOperationRateLimit, async (req: Request, res: Response) => {
+  app.put("/api/agent/schedules/:id", rateLimit.writeOperationRateLimit, requireAdminRole, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const existing = await agentRepo.schedules.get(req.params.id, orgId);
@@ -381,7 +435,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
-  app.delete("/api/agent/schedules/:id", rateLimit.writeOperationRateLimit, async (req: Request, res: Response) => {
+  app.delete("/api/agent/schedules/:id", rateLimit.writeOperationRateLimit, requireAdminRole, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const existing = await agentRepo.schedules.get(req.params.id, orgId);
@@ -393,7 +447,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
-  app.get("/api/agent/schedules/:id/runs", rateLimit.generalApiRateLimit, async (req: Request, res: Response) => {
+  app.get("/api/agent/schedules/:id/runs", rateLimit.generalApiRateLimit, requireAdminRole, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const existing = await agentRepo.schedules.get(req.params.id, orgId);
@@ -405,7 +459,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
-  app.post("/api/agent/schedules/:id/run", rateLimit.writeOperationRateLimit, async (req: Request, res: Response) => {
+  app.post("/api/agent/schedules/:id/run", rateLimit.writeOperationRateLimit, requireAdminRole, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const schedule = await agentRepo.schedules.get(req.params.id, orgId);
@@ -422,5 +476,45 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
-  console.log("[Agent Domain] Routes registered (chat, conversations, drafts, config, usage, suggestions, schedules)");
+  app.get("/api/agent/tools", rateLimit.generalApiRateLimit, requireAdminRole, async (_req: Request, res: Response) => {
+    try {
+      res.json(getToolSummaries());
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  app.get("/api/agent/admin/conversations", rateLimit.generalApiRateLimit, requireAdminRole, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const limit = parseInt(req.query.limit as string) || 100;
+      const conversations = await agentRepo.conversations.list(orgId, undefined, limit);
+      res.json(conversations);
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  app.delete("/api/agent/admin/conversations", rateLimit.writeOperationRateLimit, requireAdminRole, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const conversations = await agentRepo.conversations.list(orgId, undefined, 1000);
+      let purged = 0;
+      for (const conv of conversations) {
+        await agentRepo.conversations.delete(conv.id);
+        purged++;
+      }
+
+      await auditAction("agent_conversations", orgId, "delete", {
+        action: "bulk_purge",
+        count: purged,
+      }, { orgId, userId: (req as AuthenticatedRequest).user?.id });
+
+      res.json({ purged });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  console.log("[Agent Domain] Routes registered (chat, conversations, drafts, config, usage, suggestions, schedules, tools, admin)");
 }

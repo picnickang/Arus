@@ -101,13 +101,21 @@ registerTool({
         criticalityLevel: eq1.criticalityLevel,
         vesselName: eq1.vesselName,
       } : null,
-      relatedPredictions: relatedPredictions.map(p => ({
-        failureMode: p.failureMode,
-        failureProbability: p.failureProbability,
-        riskLevel: p.riskLevel,
-        remainingUsefulLife: p.remainingUsefulLife,
-        predictedFailureDate: p.predictedFailureDate,
-      })),
+      relatedPredictions: relatedPredictions.map(p => {
+        const prob = Number(p.failureProbability) || 0;
+        const confidenceLevel = prob >= 0.8 ? "high" : prob >= 0.6 ? "medium" : "low";
+        return {
+          failureMode: p.failureMode,
+          failureProbability: p.failureProbability,
+          riskLevel: p.riskLevel,
+          remainingUsefulLife: p.remainingUsefulLife,
+          predictedFailureDate: p.predictedFailureDate,
+          confidence: {
+            level: confidenceLevel,
+            warning: confidenceLevel === "low" ? "Low confidence prediction — verify with manual inspection" : undefined,
+          },
+        };
+      }),
       explanation: buildAlertExplanation(alert, eq1, relatedPredictions),
     };
   },

@@ -14,8 +14,20 @@ export function getAllTools(): ToolDefinition[] {
   return Array.from(tools.values());
 }
 
-export function getToolOpenAIDefinitions() {
+export function getToolSummaries(): { name: string; description: string; requiresApproval: boolean }[] {
   return getAllTools().map(t => ({
+    name: t.name,
+    description: t.description,
+    requiresApproval: t.requiresApproval,
+  }));
+}
+
+export function getToolOpenAIDefinitions(enabledTools?: string[] | null) {
+  let filtered = getAllTools();
+  if (enabledTools && enabledTools.length > 0) {
+    filtered = filtered.filter(t => enabledTools.includes(t.name));
+  }
+  return filtered.map(t => ({
     type: "function" as const,
     function: {
       name: t.name,

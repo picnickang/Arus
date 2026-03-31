@@ -54,7 +54,12 @@ export interface UsageStats {
   avgTokensPerConversation: number;
   topTools: { toolName: string; count: number }[];
   dailyUsage: { date: string; tokens: number; messages: number }[];
+  approvalStats: { total: number; approved: number; rejected: number; pending: number; approvalRate: number };
+  estimatedCost: number;
 }
+
+export const WRITE_TOOLS = ["draftWorkOrder"] as const;
+export const MAINTENANCE_ROLES = ["admin", "chief_engineer", "second_engineer", "captain", "chief_officer"] as const;
 
 export interface FileAttachment {
   filename: string;

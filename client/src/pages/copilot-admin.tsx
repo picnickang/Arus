@@ -13,9 +13,10 @@ import {
   Bot, Settings, BarChart3, Lightbulb, Clock,
   Save, RefreshCw, Loader2, Trash2, Play, Pause,
   AlertTriangle, CheckCircle, XCircle, Zap,
-  MessageSquare, Wrench, TrendingUp,
+  MessageSquare, Wrench, TrendingUp, RotateCcw,
+  Shield, Database,
 } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface AgentConfig {
@@ -36,6 +37,8 @@ interface UsageStats {
   avgTokensPerConversation: number;
   topTools: { toolName: string; count: number }[];
   dailyUsage: { date: string; tokens: number; messages: number }[];
+  approvalStats: { total: number; approved: number; rejected: number; pending: number; approvalRate: number };
+  estimatedCost: number;
 }
 
 interface Suggestion {
@@ -58,22 +61,44 @@ interface Schedule {
   createdAt: string;
 }
 
+interface ToolInfo {
+  name: string;
+  description: string;
+  requiresApproval: boolean;
+}
+
+interface AdminConversation {
+  id: string;
+  userId: string | null;
+  title: string | null;
+  status: string;
+  messageCount: number;
+  totalTokensUsed: number;
+  lastMessageAt: string | null;
+  createdAt: string;
+}
+
 function ConfigTab() {
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
   const { toast } = useToast();
 
   const { data: config, isLoading } = useQuery<AgentConfig>({
     queryKey: ["/api/agent/config"],
   });
 
+  const { data: availableTools = [] } = useQuery<ToolInfo[]>({
+    queryKey: ["/api/agent/tools"],
+  });
+
   const [formData, setFormData] = useState<Partial<AgentConfig>>({});
 
   const merged = { ...config, ...formData };
+  const currentEnabledTools = (merged.enabledTools as string[] | undefined | null) || null;
 
   const saveMutation = useMutation({
     mutationFn: () => apiRequest("PUT", "/api/agent/config", merged),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/agent/config"] });
+      qc.invalidateQueries({ queryKey: ["/api/agent/config"] });
       setFormData({});
       toast({ title: "Configuration saved" });
     },
@@ -81,6 +106,40 @@ function ConfigTab() {
       toast({ title: "Failed to save", description: err.message, variant: "destructive" });
     },
   });
+
+  const resetMutation = useMutation({
+    mutationFn: () => apiRequest("DELETE", "/api/agent/config"),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/agent/config"] });
+      setFormData({});
+      toast({ title: "Configuration reset to defaults" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Failed to reset", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const toggleTool = (toolName: string, enabled: boolean) => {
+    const allNames = availableTools.map(t => t.name);
+    let newList: string[] | null;
+    if (enabled) {
+      if (!currentEnabledTools) {
+        newList = null;
+      } else {
+        newList = [...currentEnabledTools, toolName];
+        if (newList.length === allNames.length) newList = null;
+      }
+    } else {
+      const base = currentEnabledTools || allNames;
+      newList = base.filter(n => n !== toolName);
+    }
+    setFormData(prev => ({ ...prev, enabledTools: newList }));
+  };
+
+  const isToolEnabled = (toolName: string) => {
+    if (!currentEnabledTools) return true;
+    return currentEnabledTools.includes(toolName);
+  };
 
   if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>;
 
@@ -169,6 +228,43 @@ function ConfigTab() {
         </CardContent>
       </Card>
 
+      {availableTools.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Wrench className="h-5 w-5" />
+              Tool Management
+            </CardTitle>
+            <CardDescription>Enable or disable individual copilot tools. All tools are enabled by default.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {availableTools.map((tool) => (
+                <div key={tool.name} className="flex items-center justify-between py-2 border-b last:border-0" data-testid={`tool-toggle-${tool.name}`}>
+                  <div className="flex-1 mr-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{tool.name}</span>
+                      {tool.requiresApproval && (
+                        <Badge variant="outline" className="text-xs">
+                          <Shield className="h-3 w-3 mr-1" />
+                          Approval Required
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{tool.description}</p>
+                  </div>
+                  <Switch
+                    checked={isToolEnabled(tool.name)}
+                    onCheckedChange={(checked) => toggleTool(tool.name, checked)}
+                    data-testid={`switch-tool-${tool.name}`}
+                  />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
@@ -188,7 +284,16 @@ function ConfigTab() {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between">
+        <Button
+          variant="outline"
+          onClick={() => resetMutation.mutate()}
+          disabled={resetMutation.isPending}
+          data-testid="button-reset-config"
+        >
+          {resetMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RotateCcw className="h-4 w-4 mr-2" />}
+          Reset to Defaults
+        </Button>
         <Button
           onClick={() => saveMutation.mutate()}
           disabled={saveMutation.isPending || Object.keys(formData).length === 0}
@@ -262,6 +367,58 @@ function UsageTab() {
               Tool Calls
             </div>
             <p className="text-2xl font-bold mt-1" data-testid="text-tool-count">{stats.toolCallCount}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <CheckCircle className="h-5 w-5" />
+              Draft Approvals
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Approved</p>
+                <p className="text-xl font-bold text-green-600" data-testid="text-approved-count">{stats.approvalStats?.approved || 0}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Rejected</p>
+                <p className="text-xl font-bold text-red-600" data-testid="text-rejected-count">{stats.approvalStats?.rejected || 0}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Pending</p>
+                <p className="text-xl font-bold text-yellow-600" data-testid="text-pending-count">{stats.approvalStats?.pending || 0}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Approval Rate</p>
+                <p className="text-xl font-bold" data-testid="text-approval-rate">{stats.approvalStats?.approvalRate || 0}%</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Cost & Performance
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Estimated Cost</p>
+                <p className="text-xl font-bold" data-testid="text-estimated-cost">${(stats.estimatedCost || 0).toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Avg Tokens/Conv</p>
+                <p className="text-xl font-bold" data-testid="text-avg-tokens">{stats.avgTokensPerConversation ? (stats.avgTokensPerConversation / 1000).toFixed(1) + "k" : "0"}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -588,6 +745,108 @@ function SchedulesTab() {
   );
 }
 
+function DataTab() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+
+  const { data: conversations = [], isLoading } = useQuery<AdminConversation[]>({
+    queryKey: ["/api/agent/admin/conversations"],
+  });
+
+  const purgeMutation = useMutation({
+    mutationFn: () => apiRequest("DELETE", "/api/agent/admin/conversations"),
+    onSuccess: (data: any) => {
+      qc.invalidateQueries({ queryKey: ["/api/agent/admin/conversations"] });
+      qc.invalidateQueries({ queryKey: ["/api/agent/usage"] });
+      toast({ title: `Purged ${data.purged || 0} conversations` });
+    },
+    onError: (err: any) => {
+      toast({ title: "Purge failed", description: err.message, variant: "destructive" });
+    },
+  });
+
+  if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+
+  const totalTokens = conversations.reduce((sum, c) => sum + (c.totalTokensUsed || 0), 0);
+  const totalMessages = conversations.reduce((sum, c) => sum + (c.messageCount || 0), 0);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-medium">Data Management</h3>
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={() => {
+            if (window.confirm("This will permanently delete all conversations, messages, tool calls, and drafts. Are you sure?")) {
+              purgeMutation.mutate();
+            }
+          }}
+          disabled={purgeMutation.isPending || conversations.length === 0}
+          data-testid="button-purge-conversations"
+        >
+          {purgeMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
+          Purge All
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+              <MessageSquare className="h-4 w-4" />
+              Total Conversations
+            </div>
+            <p className="text-2xl font-bold mt-1" data-testid="text-total-conversations">{conversations.length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+              <BarChart3 className="h-4 w-4" />
+              Total Messages
+            </div>
+            <p className="text-2xl font-bold mt-1" data-testid="text-data-messages">{totalMessages}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+              <Zap className="h-4 w-4" />
+              Total Tokens
+            </div>
+            <p className="text-2xl font-bold mt-1" data-testid="text-data-tokens">{(totalTokens / 1000).toFixed(1)}k</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {conversations.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Recent Conversations</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-1 max-h-80 overflow-y-auto">
+              {conversations.slice(0, 20).map((conv) => (
+                <div key={conv.id} className="flex items-center justify-between text-sm py-2 border-b last:border-0" data-testid={`conv-row-${conv.id}`}>
+                  <div className="flex-1 min-w-0 mr-4">
+                    <p className="font-medium truncate">{conv.title || "Untitled"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {conv.messageCount} msgs | {((conv.totalTokensUsed || 0) / 1000).toFixed(1)}k tokens
+                      {conv.lastMessageAt && ` | ${new Date(conv.lastMessageAt).toLocaleDateString()}`}
+                    </p>
+                  </div>
+                  <Badge variant={conv.status === "active" ? "default" : "secondary"}>{conv.status}</Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 export default function CopilotAdminPage() {
   return (
     <div className="container mx-auto py-6 px-4 max-w-4xl">
@@ -600,7 +859,7 @@ export default function CopilotAdminPage() {
       </div>
 
       <Tabs defaultValue="config">
-        <TabsList className="grid w-full grid-cols-4" data-testid="tabs-copilot-admin">
+        <TabsList className="grid w-full grid-cols-5" data-testid="tabs-copilot-admin">
           <TabsTrigger value="config" data-testid="tab-config">
             <Settings className="h-4 w-4 mr-2" />
             Config
@@ -616,6 +875,10 @@ export default function CopilotAdminPage() {
           <TabsTrigger value="schedules" data-testid="tab-schedules">
             <Clock className="h-4 w-4 mr-2" />
             Schedules
+          </TabsTrigger>
+          <TabsTrigger value="data" data-testid="tab-data">
+            <Database className="h-4 w-4 mr-2" />
+            Data
           </TabsTrigger>
         </TabsList>
 
@@ -633,6 +896,10 @@ export default function CopilotAdminPage() {
 
         <TabsContent value="schedules" className="mt-6">
           <SchedulesTab />
+        </TabsContent>
+
+        <TabsContent value="data" className="mt-6">
+          <DataTab />
         </TabsContent>
       </Tabs>
     </div>
