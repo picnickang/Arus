@@ -78,7 +78,7 @@ export class SuggestionEngine {
         WHERE org_id = ${orgId} AND quantity_on_hand <= min_stock_level
         LIMIT 5
       `);
-      const lowStockRows = (lowStockResult as any).rows || [];
+      const lowStockRows = (lowStockResult as { rows?: Array<Record<string, unknown>> }).rows || [];
 
       for (const part of lowStockRows) {
         await this.repo.suggestions.create({
@@ -87,14 +87,16 @@ export class SuggestionEngine {
           title: `Low stock: ${part.part_name}`,
           summary: `Current stock ${part.quantity_on_hand} is at or below minimum level ${part.min_stock_level}. Reorder recommended.`,
           entityType: "inventory",
-          entityId: part.id,
+          entityId: part.id as string,
           severity: "info",
           status: "pending",
           context: { part },
         });
         generated++;
       }
-    } catch {}
+    } catch (err) {
+      console.warn("[SuggestionEngine] Low stock query failed:", err instanceof Error ? err.message : "unknown");
+    }
 
     console.log(`[SuggestionEngine] Generated ${generated} suggestions for org ${orgId}`);
     return generated;

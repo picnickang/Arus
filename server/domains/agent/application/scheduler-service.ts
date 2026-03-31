@@ -62,13 +62,13 @@ export class SchedulerService {
       await this.repo.schedules.update(schedule.id, { lastRunAt: new Date() });
 
       console.log(`[SchedulerService] Schedule ${schedule.id} completed successfully`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       await this.repo.schedules.updateRun(run.id, {
         status: "failed",
-        error: err.message,
+        error: err instanceof Error ? err.message : "Unknown error",
         completedAt: new Date(),
       });
-      console.error(`[SchedulerService] Schedule ${schedule.id} failed:`, err.message);
+      console.error(`[SchedulerService] Schedule ${schedule.id} failed:`, err instanceof Error ? err.message : "Unknown error");
     }
   }
 

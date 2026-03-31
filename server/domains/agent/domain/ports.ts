@@ -36,8 +36,8 @@ export interface AgentToolCallPort {
     conversationId: string;
     messageId: string;
     toolName: string;
-    input: any;
-    output?: any;
+    input: Record<string, unknown>;
+    output?: Record<string, unknown>;
     status: string;
     durationMs?: number;
     error?: string;

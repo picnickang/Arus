@@ -5,6 +5,7 @@ import type { AgentRepositoryPort } from "../domain/ports";
 import type { AgentRunResult, FileAttachment, ToolCallTrace } from "../domain/types";
 import { getTool, getToolOpenAIDefinitions } from "../tools";
 import { SafetyService } from "./safety-service";
+import { auditAction } from "../../../utils/audit-helpers";
 import type { AgentConversation, AgentMessage, AgentConfigType } from "@shared/schema";
 
 interface StoredToolCallRef {
@@ -235,7 +236,8 @@ export class AgentOrchestrator {
             text: `\n\n--- Attached file: ${att.filename} ---\n${textContent}\n--- End of file ---`,
           });
           fileDescriptions.push(`[File: ${att.filename}]`);
-        } catch {
+        } catch (err) {
+          console.warn(`[Agent] Failed to read attachment ${att.filename}:`, err instanceof Error ? err.message : "unknown");
           fileDescriptions.push(`[File: ${att.filename} (could not read)]`);
         }
       }
@@ -605,7 +607,18 @@ export class AgentOrchestrator {
       toolError = errMsg;
     }
 
-    return { toolResult, toolStatus, toolError, durationMs: Date.now() - startTime };
+    const durationMs = Date.now() - startTime;
+
+    auditAction("agent_tool_call", conversationId, "create", {
+      toolName,
+      status: toolStatus,
+      durationMs,
+      error: toolError,
+    }, { orgId, userId }).catch((err) => {
+      console.warn("[Agent] Audit logging failed for tool call:", err instanceof Error ? err.message : "unknown");
+    });
+
+    return { toolResult, toolStatus, toolError, durationMs };
   }
 
   private parseJson(str: string): Record<string, unknown> {

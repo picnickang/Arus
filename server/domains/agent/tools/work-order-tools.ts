@@ -25,7 +25,7 @@ registerTool({
     type: z.string().optional(),
   }),
   requiresApproval: true,
-  async execute(input: any, ctx) {
+  async execute(input: { equipmentId: string; title: string; description: string; priority: string; estimatedHours?: number; type?: string }, ctx) {
     return {
       draftType: "work_order",
       data: {

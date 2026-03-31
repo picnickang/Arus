@@ -34,8 +34,8 @@ const upload = multer({
 });
 
 interface RateLimitMiddleware {
-  generalApiRateLimit: any;
-  writeOperationRateLimit: any;
+  generalApiRateLimit: (req: Request, res: Response, next: () => void) => void;
+  writeOperationRateLimit: (req: Request, res: Response, next: () => void) => void;
 }
 
 export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware) {
@@ -68,9 +68,9 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         toolCallCount: result.toolCallCount,
         totalTokens: result.totalTokens,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[Agent] Chat error:", error);
-      res.status(500).json({ error: error.message || "Agent error" });
+      res.status(500).json({ error: error instanceof Error ? error.message : "Agent error" });
     }
   });
 
@@ -101,9 +101,9 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         toolCallCount: result.toolCallCount,
         totalTokens: result.totalTokens,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[Agent] Multimodal chat error:", error);
-      res.status(500).json({ error: error.message || "Agent error" });
+      res.status(500).json({ error: error instanceof Error ? error.message : "Agent error" });
     } finally {
       for (const f of files) {
         fs.unlink(f.path, () => {});
@@ -134,12 +134,12 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       });
 
       res.end();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[Agent] Stream error:", error);
       if (!res.headersSent) {
-        res.status(500).json({ error: error.message || "Agent stream error" });
+        res.status(500).json({ error: error instanceof Error ? error.message : "Agent stream error" });
       } else {
-        res.write(`data: ${JSON.stringify({ type: "error", error: error.message })}\n\n`);
+        res.write(`data: ${JSON.stringify({ type: "error", error: error instanceof Error ? error.message : "Unknown error" })}\n\n`);
         res.end();
       }
     }
@@ -151,8 +151,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       const userId = (req as AuthenticatedRequest).user?.id;
       const conversations = await agentRepo.conversations.list(orgId, userId);
       res.json(conversations);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -162,8 +162,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       const conversation = await agentRepo.conversations.get(req.params.id, orgId);
       if (!conversation) return res.status(404).json({ error: "Conversation not found" });
       res.json(conversation);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -175,8 +175,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       const messages = await agentRepo.messages.list(req.params.id);
       const toolCalls = await agentRepo.toolCalls.list(req.params.id);
       res.json({ messages, toolCalls });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -187,8 +187,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       if (!conversation) return res.status(404).json({ error: "Conversation not found" });
       await agentRepo.conversations.delete(req.params.id);
       res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -198,8 +198,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       const status = req.query.status as string | undefined;
       const drafts = await agentRepo.drafts.list(orgId, status);
       res.json(drafts);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -214,7 +214,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       let resultId: string | undefined;
 
       if (draft.draftType === "work_order") {
-        const woData = draft.data as any;
+        const woData = draft.data as Record<string, unknown>;
         const wo = await storage.createWorkOrder({ ...woData, status: "open", orgId });
         resultId = wo.id;
       }
@@ -244,8 +244,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       }, { orgId, userId });
 
       res.json({ draft: updated, resultId });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -279,8 +279,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       }, { orgId, userId });
 
       res.json(updated);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -289,8 +289,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       const orgId = (req as AuthenticatedRequest).orgId;
       const config = await agentRepo.config.get(orgId);
       res.json(config || { defaultModel: "gpt-4o-mini", maxIterationsPerRun: 10, maxTokensPerConversation: 50000, dailyTokenLimit: 500000, monthlyTokenLimit: 5000000 });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -299,8 +299,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       const orgId = (req as AuthenticatedRequest).orgId;
       const config = await agentRepo.config.upsert({ ...req.body, orgId });
       res.json(config);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -310,8 +310,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       const days = parseInt(req.query.days as string) || 30;
       const stats = await safety.getUsageStats(orgId, days);
       res.json(stats);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -321,8 +321,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       const status = req.query.status as string | undefined;
       const suggestions = await agentRepo.suggestions.list(orgId, status);
       res.json(suggestions);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -331,8 +331,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       const orgId = (req as AuthenticatedRequest).orgId;
       const count = await suggestionEngine.generateProactiveSuggestions(orgId);
       res.json({ generated: count });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -344,8 +344,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       if (!match) return res.status(404).json({ error: "Suggestion not found" });
       const suggestion = await agentRepo.suggestions.update(req.params.id, req.body);
       res.json(suggestion);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -354,8 +354,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       const orgId = (req as AuthenticatedRequest).orgId;
       const schedules = await agentRepo.schedules.list(orgId);
       res.json(schedules);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -364,8 +364,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       const orgId = (req as AuthenticatedRequest).orgId;
       const schedule = await agentRepo.schedules.create({ ...req.body, orgId });
       res.status(201).json(schedule);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -376,8 +376,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       if (!existing) return res.status(404).json({ error: "Schedule not found" });
       const schedule = await agentRepo.schedules.update(req.params.id, req.body);
       res.json(schedule);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -388,8 +388,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       if (!existing) return res.status(404).json({ error: "Schedule not found" });
       await agentRepo.schedules.delete(req.params.id);
       res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -400,8 +400,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       if (!existing) return res.status(404).json({ error: "Schedule not found" });
       const runs = await agentRepo.schedules.getRuns(req.params.id);
       res.json(runs);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -417,8 +417,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       );
       await schedulerService.executeSchedule(schedule);
       res.json({ success: true, message: "Schedule run triggered" });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 

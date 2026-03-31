@@ -74,7 +74,8 @@ registerTool({
           .orderBy(desc(scheduleAssignments.date))
           .limit(input.limit || 20);
       }
-    } catch {
+    } catch (err) {
+      console.warn("[Agent] Schedule assignments query failed:", err instanceof Error ? err.message : "unknown");
       assignments = [];
     }
 

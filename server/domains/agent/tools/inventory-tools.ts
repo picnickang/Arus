@@ -13,7 +13,7 @@ registerTool({
   },
   inputSchema: z.object({}),
   requiresApproval: false,
-  async execute(_input: any, ctx) {
+  async execute(_input: Record<string, unknown>, ctx) {
     try {
       const result = await db.execute(sql`
         SELECT COUNT(*) as total_parts,
@@ -21,12 +21,14 @@ registerTool({
         FROM parts_inventory
         WHERE org_id = ${ctx.orgId}
       `);
-      const row = (result as any).rows?.[0] || {};
+      const rows = (result as { rows?: Array<Record<string, unknown>> }).rows || [];
+      const row = rows[0] || {};
       return {
         totalParts: Number(row.total_parts || 0),
         lowStockCount: Number(row.low_stock_count || 0),
       };
-    } catch {
+    } catch (err) {
+      console.warn("[Agent] Inventory query failed:", err instanceof Error ? err.message : "unknown");
       return { note: "Inventory data unavailable or table does not exist yet" };
     }
   },

@@ -34,8 +34,8 @@ export interface StreamChunk {
   type: "text" | "tool_call" | "tool_result" | "done" | "error";
   content?: string;
   toolName?: string;
-  input?: any;
-  result?: any;
+  input?: Record<string, unknown>;
+  result?: Record<string, unknown>;
   conversationId?: string;
   error?: string;
 }
