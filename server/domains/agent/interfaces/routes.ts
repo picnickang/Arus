@@ -769,9 +769,12 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       res.setHeader("Content-Disposition", `attachment; filename="agent-conversations-${new Date().toISOString().slice(0, 10)}.jsonl"`);
       res.setHeader("X-Total-Conversations", String(allConversations.length));
 
+      const MSG_LIMIT = 500;
+      let truncatedConversations = 0;
       for (const conv of allConversations) {
-        const messages = await agentRepo.messages.list(conv.id, 500);
+        const messages = await agentRepo.messages.list(conv.id, MSG_LIMIT);
         if (messages.length === 0) continue;
+        if (messages.length >= MSG_LIMIT) truncatedConversations++;
 
         const openaiMessages: Record<string, unknown>[] = [];
         openaiMessages.push({ role: "system", content: systemContent });
@@ -803,6 +806,9 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         }
       }
 
+      if (truncatedConversations > 0) {
+        res.write(JSON.stringify({ _meta: { truncatedConversations, messageLimitPerConversation: MSG_LIMIT } }) + "\n");
+      }
       res.end();
     } catch (error: unknown) {
       if (!res.headersSent) {
