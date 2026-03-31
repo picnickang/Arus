@@ -50,6 +50,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
 
   (async () => {
     try {
+      const { organizations } = await import("@shared/schema/core");
       const orgs = await db.select({ id: organizations.id }).from(organizations);
       for (const org of orgs) {
         suggestionEngine.startBackgroundEvaluation(org.id);
