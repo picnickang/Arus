@@ -9,6 +9,7 @@ import { SchedulerService } from "../application/scheduler-service";
 import { agentRepo } from "../infrastructure/repository";
 import { storage } from "../../../storage";
 import type { AuthenticatedRequest } from "../../../middleware/auth";
+import { auditAction } from "../../../utils/audit-helpers";
 
 const UPLOAD_DIR = "/tmp/agent-uploads";
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -53,6 +54,13 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       }
 
       const result = await orchestrator.run(orgId, userId, conversationId, message);
+
+      await auditAction("agent_conversation", result.conversationId, "update", {
+        action: "chat",
+        toolCallCount: result.toolCallCount,
+        totalTokens: result.totalTokens,
+      }, { orgId, userId });
+
       res.json({
         conversationId: result.conversationId,
         response: result.finalResponse,
@@ -217,6 +225,24 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         reviewNote: req.body.note,
         resultId,
       });
+
+      await agentRepo.approvals.create({
+        orgId,
+        draftId: draft.id,
+        conversationId: draft.conversationId,
+        action: "approved",
+        reviewedById: userId,
+        reviewNote: req.body.note,
+        resultId,
+      });
+
+      await auditAction("agent_draft", draft.id, "update", {
+        action: "approved",
+        draftType: draft.draftType,
+        reviewedBy: userId,
+        resultId,
+      }, { orgId, userId });
+
       res.json({ draft: updated, resultId });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -236,6 +262,22 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         reviewedById: userId,
         reviewNote: req.body.note,
       });
+
+      await agentRepo.approvals.create({
+        orgId,
+        draftId: draft.id,
+        conversationId: draft.conversationId,
+        action: "rejected",
+        reviewedById: userId,
+        reviewNote: req.body.note,
+      });
+
+      await auditAction("agent_draft", draft.id, "update", {
+        action: "rejected",
+        draftType: draft.draftType,
+        reviewedBy: userId,
+      }, { orgId, userId });
+
       res.json(updated);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
