@@ -93,7 +93,8 @@ function ConfigTab() {
   const [formData, setFormData] = useState<Partial<AgentConfig>>({});
 
   const merged = { ...config, ...formData };
-  const currentEnabledTools = (merged.enabledTools as string[] | undefined | null) || null;
+  const rawEnabledTools = merged.enabledTools as string[] | undefined | null;
+  const currentEnabledTools = rawEnabledTools === undefined ? null : rawEnabledTools;
 
   const saveMutation = useMutation({
     mutationFn: () => apiRequest("PUT", "/api/agent/config", merged),
@@ -121,23 +122,22 @@ function ConfigTab() {
 
   const toggleTool = (toolName: string, enabled: boolean) => {
     const allNames = availableTools.map(t => t.name);
-    let newList: string[] | null;
     if (enabled) {
-      if (!currentEnabledTools) {
-        newList = null;
+      if (currentEnabledTools === null) {
+        setFormData(prev => ({ ...prev, enabledTools: null }));
       } else {
-        newList = [...currentEnabledTools, toolName];
-        if (newList.length === allNames.length) newList = null;
+        const newList = [...currentEnabledTools, toolName];
+        setFormData(prev => ({ ...prev, enabledTools: newList.length === allNames.length ? null : newList }));
       }
     } else {
-      const base = currentEnabledTools || allNames;
-      newList = base.filter(n => n !== toolName);
+      const base = currentEnabledTools === null ? allNames : currentEnabledTools;
+      const newList = base.filter(n => n !== toolName);
+      setFormData(prev => ({ ...prev, enabledTools: newList }));
     }
-    setFormData(prev => ({ ...prev, enabledTools: newList }));
   };
 
   const isToolEnabled = (toolName: string) => {
-    if (!currentEnabledTools) return true;
+    if (currentEnabledTools === null) return true;
     return currentEnabledTools.includes(toolName);
   };
 

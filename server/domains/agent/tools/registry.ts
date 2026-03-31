@@ -24,7 +24,7 @@ export function getToolSummaries(): { name: string; description: string; require
 
 export function getToolOpenAIDefinitions(enabledTools?: string[] | null) {
   let filtered = getAllTools();
-  if (enabledTools && enabledTools.length > 0) {
+  if (enabledTools !== null && enabledTools !== undefined) {
     filtered = filtered.filter(t => enabledTools.includes(t.name));
   }
   return filtered.map(t => ({

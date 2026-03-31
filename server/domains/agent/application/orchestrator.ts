@@ -47,6 +47,22 @@ export class AgentOrchestrator {
     this.safety = new SafetyService(repo);
   }
 
+  private async auditRunLifecycle(
+    action: "run_start" | "run_complete" | "run_error",
+    conversationId: string,
+    orgId: string,
+    userId: string | undefined,
+    details: Record<string, unknown>,
+  ) {
+    try {
+      await auditAction("agent_run", conversationId, action === "run_start" ? "create" : "update", {
+        lifecycle: action,
+        ...details,
+      }, { orgId, userId });
+    } catch {
+    }
+  }
+
   async run(
     orgId: string,
     userId: string | undefined,
@@ -78,6 +94,9 @@ export class AgentOrchestrator {
       });
     }
 
+    const runStartTime = Date.now();
+    await this.auditRunLifecycle("run_start", conversation.id, orgId, userId, { model, maxIterations });
+
     await this.repo.messages.create({
       conversationId: conversation.id, role: "user", content: sanitizedMessage,
     });
@@ -94,88 +113,101 @@ export class AgentOrchestrator {
     let finalResponse = "";
     const toolCallTraces: ToolCallTrace[] = [];
 
-    for (let iteration = 0; iteration < maxIterations; iteration++) {
-      const response = await this.callOpenAI(client, model, openaiMessages, toolDefs);
+    try {
+      for (let iteration = 0; iteration < maxIterations; iteration++) {
+        const response = await this.callOpenAI(client, model, openaiMessages, toolDefs);
 
-      const choice = response.choices[0];
-      totalTokens += response.usage?.total_tokens || 0;
+        const choice = response.choices[0];
+        totalTokens += response.usage?.total_tokens || 0;
 
-      if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
-        const assistantMsg = await this.repo.messages.create({
+        if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
+          const assistantMsg = await this.repo.messages.create({
+            conversationId: conversation.id,
+            role: "assistant",
+            content: choice.message.content,
+            toolCalls: choice.message.tool_calls,
+            tokenCount: response.usage?.total_tokens,
+            model,
+          });
+          await this.repo.conversations.incrementMessageCount(conversation.id, response.usage?.total_tokens || 0);
+
+          openaiMessages.push({
+            role: "assistant",
+            content: choice.message.content,
+            tool_calls: choice.message.tool_calls,
+          });
+
+          for (const tc of choice.message.tool_calls) {
+            const parsedInput = this.parseJson(tc.function.arguments);
+            const { toolResult, toolStatus, toolError, durationMs } = await this.executeTool(
+              tc, toolContext, orgId, userId, conversation.id, config,
+            );
+            toolCallCount++;
+
+            toolCallTraces.push({
+              toolName: tc.function.name,
+              input: parsedInput,
+              output: toolResult,
+              status: toolStatus,
+              durationMs,
+              error: toolError,
+            });
+
+            await this.repo.toolCalls.create({
+              conversationId: conversation.id,
+              messageId: assistantMsg.id,
+              toolName: tc.function.name,
+              input: parsedInput,
+              output: toolResult,
+              status: toolStatus,
+              durationMs,
+              error: toolError,
+            });
+
+            const toolMsgContent = JSON.stringify(toolResult);
+            await this.repo.messages.create({
+              conversationId: conversation.id,
+              role: "tool",
+              content: toolMsgContent,
+              toolCalls: { toolCallId: tc.id },
+            });
+            await this.repo.conversations.incrementMessageCount(conversation.id, 0);
+
+            openaiMessages.push({
+              role: "tool", tool_call_id: tc.id, content: toolMsgContent,
+            });
+          }
+          continue;
+        }
+
+        finalResponse = choice.message.content || "";
+        await this.repo.messages.create({
           conversationId: conversation.id,
           role: "assistant",
-          content: choice.message.content,
-          toolCalls: choice.message.tool_calls,
+          content: finalResponse,
           tokenCount: response.usage?.total_tokens,
           model,
         });
         await this.repo.conversations.incrementMessageCount(conversation.id, response.usage?.total_tokens || 0);
-
-        openaiMessages.push({
-          role: "assistant",
-          content: choice.message.content,
-          tool_calls: choice.message.tool_calls,
-        });
-
-        for (const tc of choice.message.tool_calls) {
-          const parsedInput = this.parseJson(tc.function.arguments);
-          const { toolResult, toolStatus, toolError, durationMs } = await this.executeTool(
-            tc, toolContext, orgId, userId, conversation.id, config,
-          );
-          toolCallCount++;
-
-          toolCallTraces.push({
-            toolName: tc.function.name,
-            input: parsedInput,
-            output: toolResult,
-            status: toolStatus,
-            durationMs,
-            error: toolError,
-          });
-
-          await this.repo.toolCalls.create({
-            conversationId: conversation.id,
-            messageId: assistantMsg.id,
-            toolName: tc.function.name,
-            input: parsedInput,
-            output: toolResult,
-            status: toolStatus,
-            durationMs,
-            error: toolError,
-          });
-
-          const toolMsgContent = JSON.stringify(toolResult);
-          await this.repo.messages.create({
-            conversationId: conversation.id,
-            role: "tool",
-            content: toolMsgContent,
-            toolCalls: { toolCallId: tc.id },
-          });
-          await this.repo.conversations.incrementMessageCount(conversation.id, 0);
-
-          openaiMessages.push({
-            role: "tool", tool_call_id: tc.id, content: toolMsgContent,
-          });
-        }
-        continue;
+        break;
       }
-
-      finalResponse = choice.message.content || "";
-      await this.repo.messages.create({
-        conversationId: conversation.id,
-        role: "assistant",
-        content: finalResponse,
-        tokenCount: response.usage?.total_tokens,
-        model,
+    } catch (err) {
+      await this.auditRunLifecycle("run_error", conversation.id, orgId, userId, {
+        model, totalTokens, toolCallCount, durationMs: Date.now() - runStartTime,
+        error: err instanceof Error ? err.message : "Unknown error",
       });
-      await this.repo.conversations.incrementMessageCount(conversation.id, response.usage?.total_tokens || 0);
-      break;
+      throw err;
     }
 
     if (!conversation.title || conversation.title === sanitizedMessage.slice(0, 100)) {
       const title = sanitizedMessage.length > 60 ? sanitizedMessage.slice(0, 57) + "..." : sanitizedMessage;
       await this.repo.conversations.update(conversation.id, { title });
     }
+
+    await this.auditRunLifecycle("run_complete", conversation.id, orgId, userId, {
+      model, totalTokens, toolCallCount, durationMs: Date.now() - runStartTime,
+      toolsUsed: toolCallTraces.map(t => t.toolName),
+    });
 
     return { conversationId: conversation.id, toolCalls: toolCallTraces, finalResponse, toolCallCount, totalTokens };
   }
