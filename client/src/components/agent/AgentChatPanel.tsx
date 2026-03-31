@@ -65,9 +65,8 @@ interface DraftRecord {
 }
 
 const ALLOWED_FILE_TYPES = [
-  "image/png", "image/jpeg", "image/gif", "image/webp",
-  "application/pdf", "text/plain", "text/csv",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "image/png", "image/jpeg",
+  "application/pdf", "text/csv",
 ];
 
 const MAX_RETRIES = 3;
@@ -397,7 +396,7 @@ export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolea
   const addFiles = useCallback((files: File[]) => {
     const valid = files.filter(f => ALLOWED_FILE_TYPES.includes(f.type) && f.size <= 10 * 1024 * 1024);
     if (valid.length < files.length) {
-      toast({ title: "Some files skipped", description: "Only images, PDFs, text, CSV, and XLSX under 10MB are supported.", variant: "destructive" });
+      toast({ title: "Some files skipped", description: "Only PNG/JPG images, PDFs, and CSV files under 10MB are supported.", variant: "destructive" });
     }
     valid.forEach(generatePreview);
     setAttachedFiles(prev => [...prev, ...valid].slice(0, 5));

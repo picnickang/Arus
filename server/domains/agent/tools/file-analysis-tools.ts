@@ -150,6 +150,9 @@ registerTool({
         }
       }
 
+      const maxDataRows = question ? Math.min(rows.length, 200) : 5;
+      const dataRows = rows.slice(0, maxDataRows);
+
       const result: Record<string, unknown> = {
         fileId,
         filename: record.filename,
@@ -157,13 +160,31 @@ registerTool({
         columnCount: headers.length,
         columns: headers,
         columnStats,
-        sampleRows: rows.slice(0, 5),
+        sampleRows: dataRows,
         parseErrors: parsed.errors.length,
       };
 
       if (question) {
         result.question = question;
-        result.note = "Use the column statistics and sample rows above to answer the question. For detailed queries, the full dataset has been parsed.";
+
+        const qLower = question.toLowerCase();
+        const matchingRows: Record<string, unknown>[] = [];
+        for (const row of rows) {
+          for (const col of headers) {
+            const val = row[col];
+            if (val != null && String(val).toLowerCase().includes(qLower)) {
+              matchingRows.push(row);
+              break;
+            }
+          }
+          if (matchingRows.length >= 50) break;
+        }
+        if (matchingRows.length > 0) {
+          result.matchingRows = matchingRows;
+          result.matchCount = matchingRows.length;
+        }
+
+        result.instruction = "Answer the user's question using the data provided. The sampleRows contain up to 200 rows of raw data, and matchingRows contains rows where any cell matches query terms.";
       }
 
       return result;

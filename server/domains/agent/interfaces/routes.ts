@@ -126,18 +126,19 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         return res.status(400).json({ error: "Message is required" });
       }
 
-      const resolvedConvId = conversationId || `conv-${Date.now()}`;
-
-      const fileRecords = files.map(f => registerFile(orgId, resolvedConvId, f));
-      const attachments = fileRecords.map(r => ({
-        filename: r.filename,
-        mimetype: r.mimetype,
-        path: r.storedPath,
-        size: r.size,
-        fileId: r.id,
+      const attachments = files.map(f => ({
+        filename: f.originalname,
+        mimetype: f.mimetype,
+        path: f.path,
+        size: f.size,
       }));
 
       const result = await orchestrator.runWithAttachments(orgId, userId, conversationId, message, attachments, userRole);
+
+      const realConvId = result.conversationId;
+      for (const f of files) {
+        registerFile(orgId, realConvId, f);
+      }
 
       res.json({
         conversationId: result.conversationId,
