@@ -1,6 +1,6 @@
 import { db } from "../../../db";
 import { eq, desc, and } from "drizzle-orm";
-import { alertNotifications } from "@shared/schema";
+import { alertNotifications, failurePredictions, equipment } from "@shared/schema";
 import { registerTool } from "./registry";
 
 registerTool({
@@ -36,3 +36,102 @@ registerTool({
     };
   },
 });
+
+registerTool({
+  name: "explainPdmAlert",
+  description: "Explain a predictive maintenance alert in detail. Provides context about the alert, related predictions, equipment info, and recommended actions.",
+  parameters: {
+    type: "object",
+    properties: {
+      alertId: { type: "string", description: "The alert ID to explain" },
+    },
+    required: ["alertId"],
+  },
+  requiresApproval: false,
+  async execute(input: { alertId: string }, ctx) {
+    const [alert] = await db.select().from(alertNotifications)
+      .where(and(
+        eq(alertNotifications.id, input.alertId),
+        eq(alertNotifications.orgId, ctx.orgId),
+      ));
+
+    if (!alert) {
+      return { error: "Alert not found" };
+    }
+
+    const equipInfo = alert.equipmentId
+      ? await db.select().from(equipment)
+          .where(and(
+            eq(equipment.id, alert.equipmentId),
+            eq(equipment.orgId, ctx.orgId),
+          ))
+      : [];
+
+    const relatedPredictions = alert.equipmentId
+      ? await db.select().from(failurePredictions)
+          .where(and(
+            eq(failurePredictions.equipmentId, alert.equipmentId),
+            eq(failurePredictions.orgId, ctx.orgId),
+          ))
+          .orderBy(desc(failurePredictions.predictionTimestamp))
+          .limit(5)
+      : [];
+
+    const eq1 = equipInfo[0];
+
+    return {
+      alert: {
+        id: alert.id,
+        equipmentId: alert.equipmentId,
+        sensorType: alert.sensorType,
+        alertType: alert.alertType,
+        message: alert.message,
+        value: alert.value,
+        threshold: alert.threshold,
+        acknowledged: alert.acknowledged,
+        createdAt: alert.createdAt,
+      },
+      equipment: eq1 ? {
+        name: eq1.name,
+        systemType: eq1.systemType,
+        componentType: eq1.componentType,
+        criticalityLevel: eq1.criticalityLevel,
+        vesselName: eq1.vesselName,
+      } : null,
+      relatedPredictions: relatedPredictions.map(p => ({
+        failureMode: p.failureMode,
+        failureProbability: p.failureProbability,
+        riskLevel: p.riskLevel,
+        remainingUsefulLife: p.remainingUsefulLife,
+        predictedFailureDate: p.predictedFailureDate,
+      })),
+      explanation: buildAlertExplanation(alert, eq1, relatedPredictions),
+    };
+  },
+});
+
+function buildAlertExplanation(
+  alert: typeof alertNotifications.$inferSelect,
+  equip: typeof equipment.$inferSelect | undefined,
+  predictions: (typeof failurePredictions.$inferSelect)[]
+): string {
+  const parts: string[] = [];
+  parts.push(`Alert type: ${alert.alertType || "threshold breach"} on sensor: ${alert.sensorType || "unknown"}.`);
+  if (alert.value != null && alert.threshold != null) {
+    parts.push(`Current value ${alert.value} exceeded threshold ${alert.threshold}.`);
+  }
+  if (equip) {
+    parts.push(`Equipment: ${equip.name} (${equip.systemType || "unknown system"}, criticality: ${equip.criticalityLevel || "standard"}).`);
+  }
+  if (predictions.length > 0) {
+    const highRisk = predictions.filter(p => p.riskLevel === "high" || p.riskLevel === "critical");
+    if (highRisk.length > 0) {
+      parts.push(`WARNING: ${highRisk.length} high/critical risk prediction(s) for this equipment. Immediate action recommended.`);
+    }
+    const nearest = predictions[0];
+    if (nearest?.remainingUsefulLife) {
+      parts.push(`Estimated remaining useful life: ${nearest.remainingUsefulLife} hours.`);
+    }
+  }
+  return parts.join(" ");
+}

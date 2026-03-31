@@ -5,7 +5,17 @@ import type { AgentRepositoryPort } from "../domain/ports";
 import type { AgentRunResult, FileAttachment } from "../domain/types";
 import { getTool, getToolOpenAIDefinitions } from "../tools";
 import { SafetyService } from "./safety-service";
-import type { AgentConversation, AgentMessage } from "@shared/schema";
+import type { AgentConversation, AgentMessage, AgentConfigType } from "@shared/schema";
+
+interface StoredToolCallRef {
+  toolCallId: string;
+}
+
+interface ToolContext {
+  orgId: string;
+  userId: string | undefined;
+  conversationId: string;
+}
 
 const SYSTEM_PROMPT = `You are ARUS Copilot, an AI assistant for marine fleet operations and predictive maintenance.
 
@@ -229,9 +239,10 @@ export class AgentOrchestrator {
     const history = await this.repo.messages.list(conversation.id, 50);
     const openaiMessages = this.buildOpenAIMessages(history, customPrompt);
 
-    const lastMsg = openaiMessages[openaiMessages.length - 1];
+    const lastIdx = openaiMessages.length - 1;
+    const lastMsg = openaiMessages[lastIdx];
     if (lastMsg && lastMsg.role === "user") {
-      (openaiMessages[openaiMessages.length - 1] as any).content = contentParts;
+      openaiMessages[lastIdx] = { role: "user", content: contentParts };
     }
 
     const toolDefs = getToolOpenAIDefinitions();
@@ -480,19 +491,21 @@ export class AgentOrchestrator {
           ? `${SYSTEM_PROMPT}\n\nAdditional instructions from your organization:\n${customPrompt}`
           : SYSTEM_PROMPT,
       },
-      ...history.map(m => {
+      ...history.map((m): OpenAI.Chat.Completions.ChatCompletionMessageParam => {
         if (m.role === "tool") {
+          const ref = m.toolCalls as unknown as StoredToolCallRef | null;
           return {
             role: "tool" as const,
             content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
-            tool_call_id: (m.toolCalls as any)?.toolCallId || "unknown",
+            tool_call_id: ref?.toolCallId || "unknown",
           };
         }
         if (m.role === "assistant" && m.toolCalls) {
+          const calls = m.toolCalls as unknown as OpenAI.Chat.Completions.ChatCompletionMessageToolCall[];
           return {
             role: "assistant" as const,
             content: m.content || null,
-            tool_calls: m.toolCalls as any[],
+            tool_calls: calls,
           };
         }
         return { role: m.role as "user" | "assistant", content: m.content || "" };
@@ -502,20 +515,21 @@ export class AgentOrchestrator {
 
   private async executeTool(
     tc: OpenAI.Chat.Completions.ChatCompletionMessageToolCall,
-    toolContext: any,
+    toolContext: ToolContext,
     orgId: string,
     userId: string | undefined,
     conversationId: string,
-    config: any,
+    config: AgentConfigType | null | undefined,
   ) {
     const toolName = tc.function.name;
     const toolInput = this.parseJson(tc.function.arguments);
     const startTime = Date.now();
-    let toolResult: any;
+    let toolResult: Record<string, unknown> = {};
     let toolStatus = "success";
     let toolError: string | undefined;
 
-    if (config?.enabledTools && !this.safety.validateToolAccess(toolName, config.enabledTools)) {
+    const enabledTools = config?.enabledTools as string[] | null | undefined;
+    if (enabledTools && !this.safety.validateToolAccess(toolName, enabledTools)) {
       return { toolResult: { error: `Tool ${toolName} is disabled` }, toolStatus: "error", toolError: "Tool disabled", durationMs: 0 };
     }
 
@@ -526,27 +540,30 @@ export class AgentOrchestrator {
 
     try {
       toolResult = await tool.execute(toolInput, toolContext);
-      if (tool.requiresApproval && toolResult.requiresApproval) {
+      if (tool.requiresApproval && (toolResult as Record<string, unknown>).requiresApproval) {
+        const resultData = toolResult as Record<string, unknown>;
+        const data = resultData.data as Record<string, unknown>;
         const draft = await this.repo.drafts.create({
           orgId, conversationId,
-          draftType: toolResult.draftType,
-          title: toolResult.data.title || toolName,
-          data: toolResult.data,
+          draftType: resultData.draftType as string,
+          title: (data?.title as string) || toolName,
+          data,
           status: "pending",
           createdById: userId,
         });
         toolResult = { ...toolResult, draftId: draft.id };
       }
-    } catch (err: any) {
-      toolResult = { error: err.message || "Tool execution failed" };
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : "Tool execution failed";
+      toolResult = { error: errMsg };
       toolStatus = "error";
-      toolError = err.message;
+      toolError = errMsg;
     }
 
     return { toolResult, toolStatus, toolError, durationMs: Date.now() - startTime };
   }
 
-  private parseJson(str: string): any {
-    try { return JSON.parse(str); } catch { return {}; }
+  private parseJson(str: string): Record<string, unknown> {
+    try { return JSON.parse(str) as Record<string, unknown>; } catch { return {}; }
   }
 }

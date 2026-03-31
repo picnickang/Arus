@@ -1,8 +1,27 @@
 import { db } from "../../../db";
-import { sql, gte, and, eq, count, sum } from "drizzle-orm";
-import { agentConversations, agentMessages, agentToolCalls } from "@shared/schema";
+import { sql } from "drizzle-orm";
 import type { AgentRepositoryPort } from "../domain/ports";
-import type { SafetyCheckResult, UsageStats, DEFAULT_CONFIG } from "../domain/types";
+import type { SafetyCheckResult, UsageStats } from "../domain/types";
+import { InputSanitizer } from "../../../services/rag/security/input-sanitizer";
+import { DEFAULT_RAG_SECURITY_CONFIG } from "../../../services/rag/security/types";
+
+interface DbQueryRow {
+  total?: string | number;
+  conv_count?: string | number;
+  msg_count?: string | number;
+  token_total?: string | number;
+  tool_name?: string;
+  call_count?: string | number;
+  day?: string;
+  tokens?: string | number;
+  messages?: string | number;
+}
+
+interface DbQueryResult {
+  rows: DbQueryRow[];
+}
+
+const inputSanitizer = new InputSanitizer(DEFAULT_RAG_SECURITY_CONFIG.promptSecurity);
 
 export class SafetyService {
   constructor(private repo: AgentRepositoryPort) {}
@@ -26,8 +45,8 @@ export class SafetyService {
       SELECT COALESCE(SUM(total_tokens_used), 0)::int as total
       FROM agent_conversations
       WHERE org_id = ${orgId} AND created_at >= ${today}
-    `);
-    const dailyTokens = Number((dailyResult as any).rows?.[0]?.total || 0);
+    `) as unknown as DbQueryResult;
+    const dailyTokens = Number(dailyResult.rows?.[0]?.total || 0);
     const dailyLimit = config.dailyTokenLimit || 500000;
 
     if (dailyTokens >= dailyLimit) {
@@ -39,8 +58,8 @@ export class SafetyService {
       SELECT COALESCE(SUM(total_tokens_used), 0)::int as total
       FROM agent_conversations
       WHERE org_id = ${orgId} AND created_at >= ${monthStart}
-    `);
-    const monthlyTokens = Number((monthlyResult as any).rows?.[0]?.total || 0);
+    `) as unknown as DbQueryResult;
+    const monthlyTokens = Number(monthlyResult.rows?.[0]?.total || 0);
     const monthlyLimit = config.monthlyTokenLimit || 5000000;
 
     if (monthlyTokens >= monthlyLimit) {
@@ -63,14 +82,14 @@ export class SafetyService {
                COALESCE(SUM(total_tokens_used), 0)::int as token_total
         FROM agent_conversations
         WHERE org_id = ${orgId} AND created_at >= ${since}
-      `),
+      `) as unknown as DbQueryResult,
       db.execute(sql`
         SELECT tool_name, COUNT(*)::int as call_count
         FROM agent_tool_calls tc
         JOIN agent_conversations c ON tc.conversation_id = c.id
         WHERE c.org_id = ${orgId} AND tc.created_at >= ${since}
         GROUP BY tool_name ORDER BY call_count DESC LIMIT 10
-      `),
+      `) as unknown as DbQueryResult,
       db.execute(sql`
         SELECT DATE(created_at) as day,
                COALESCE(SUM(total_tokens_used), 0)::int as tokens,
@@ -78,12 +97,12 @@ export class SafetyService {
         FROM agent_conversations
         WHERE org_id = ${orgId} AND created_at >= ${since}
         GROUP BY DATE(created_at) ORDER BY day DESC LIMIT ${days}
-      `),
+      `) as unknown as DbQueryResult,
     ]);
 
-    const convRow = (convStats as any).rows?.[0] || {};
-    const toolRows = (toolStats as any).rows || [];
-    const dailyRows = (dailyStats as any).rows || [];
+    const convRow = convStats.rows?.[0] || {};
+    const toolRows = toolStats.rows || [];
+    const dailyRows = dailyStats.rows || [];
 
     const convCount = Number(convRow.conv_count || 0);
     const tokenTotal = Number(convRow.token_total || 0);
@@ -92,23 +111,21 @@ export class SafetyService {
       conversationCount: convCount,
       messageCount: Number(convRow.msg_count || 0),
       totalTokens: tokenTotal,
-      toolCallCount: toolRows.reduce((sum: number, r: any) => sum + Number(r.call_count || 0), 0),
+      toolCallCount: toolRows.reduce((sum: number, r: DbQueryRow) => sum + Number(r.call_count || 0), 0),
       avgTokensPerConversation: convCount > 0 ? Math.round(tokenTotal / convCount) : 0,
-      topTools: toolRows.map((r: any) => ({ toolName: r.tool_name, count: Number(r.call_count) })),
-      dailyUsage: dailyRows.map((r: any) => ({
-        date: r.day, tokens: Number(r.tokens), messages: Number(r.messages),
+      topTools: toolRows.map((r: DbQueryRow) => ({ toolName: r.tool_name || "", count: Number(r.call_count) })),
+      dailyUsage: dailyRows.map((r: DbQueryRow) => ({
+        date: String(r.day || ""), tokens: Number(r.tokens), messages: Number(r.messages),
       })),
     };
   }
 
   sanitizeInput(text: string): string {
-    return text
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "")
-      .slice(0, 10000);
+    const result = inputSanitizer.sanitize(text);
+    return result.sanitized;
   }
 
-  validateToolAccess(toolName: string, enabledTools: any): boolean {
+  validateToolAccess(toolName: string, enabledTools: string[] | null | undefined): boolean {
     if (!enabledTools || !Array.isArray(enabledTools)) return true;
     return enabledTools.includes(toolName);
   }
