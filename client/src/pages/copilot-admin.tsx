@@ -14,7 +14,7 @@ import {
   Save, RefreshCw, Loader2, Trash2, Play, Pause,
   AlertTriangle, CheckCircle, XCircle, Zap,
   MessageSquare, Wrench, TrendingUp, RotateCcw,
-  Shield, Database,
+  Shield, Database, Pencil,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -60,6 +60,7 @@ interface Schedule {
   allowWriteTools: boolean;
   maxTokenBudget: number | null;
   consecutiveFailures: number;
+  allowedTools: string[] | null;
   enabled: boolean;
   lastRunAt?: string;
   createdAt: string;
@@ -626,27 +627,134 @@ function ScheduleRunHistory({ scheduleId }: { scheduleId: string }) {
   );
 }
 
+function ScheduleForm({ initial, onSave, onCancel, isPending, saveLabel }: {
+  initial: { name: string; prompt: string; cronExpression: string; outputDestination: string; allowWriteTools: boolean; maxTokenBudget: number; allowedTools: string[] | null };
+  onSave: (data: typeof initial) => void;
+  onCancel: () => void;
+  isPending: boolean;
+  saveLabel: string;
+}) {
+  const [form, setForm] = useState(initial);
+  const { data: availableTools = [] } = useQuery<ToolInfo[]>({ queryKey: ["/api/agent/tools"] });
+
+  const isToolSelected = (name: string) => form.allowedTools === null || form.allowedTools.includes(name);
+  const toggleScheduleTool = (name: string, on: boolean) => {
+    const allNames = availableTools.map(t => t.name);
+    if (on) {
+      if (form.allowedTools === null) return;
+      const newList = [...form.allowedTools, name];
+      setForm(prev => ({ ...prev, allowedTools: newList.length === allNames.length ? null : newList }));
+    } else {
+      const base = form.allowedTools === null ? allNames : form.allowedTools;
+      setForm(prev => ({ ...prev, allowedTools: base.filter(n => n !== name) }));
+    }
+  };
+
+  return (
+    <Card>
+      <CardContent className="pt-4 space-y-4">
+        <div className="space-y-2">
+          <Label>Schedule Name</Label>
+          <Input value={form.name} onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))} placeholder="e.g., Weekly fleet health check" data-testid="input-schedule-name" />
+        </div>
+        <div className="space-y-2">
+          <Label>Prompt</Label>
+          <Textarea value={form.prompt} onChange={(e) => setForm(prev => ({ ...prev, prompt: e.target.value }))} placeholder="e.g., Generate a full fleet health report" rows={3} data-testid="input-schedule-prompt" />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Frequency</Label>
+            <Select value={form.cronExpression} onValueChange={(v) => setForm(prev => ({ ...prev, cronExpression: v }))}>
+              <SelectTrigger data-testid="select-schedule-cron"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0 */6 * * *">Every 6 hours</SelectItem>
+                <SelectItem value="0 8 * * *">Daily (8am)</SelectItem>
+                <SelectItem value="0 8 * * 1">Weekly (Monday 8am)</SelectItem>
+                <SelectItem value="0 8 1 * *">Monthly (1st 8am)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Output Destination</Label>
+            <Select value={form.outputDestination} onValueChange={(v) => setForm(prev => ({ ...prev, outputDestination: v }))}>
+              <SelectTrigger data-testid="select-schedule-output"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="notification">Notification</SelectItem>
+                <SelectItem value="email">Email</SelectItem>
+                <SelectItem value="report">Stored Report</SelectItem>
+                <SelectItem value="both">All (Notification + Email + Report)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Token Budget</Label>
+            <Input type="number" value={form.maxTokenBudget} onChange={(e) => setForm(prev => ({ ...prev, maxTokenBudget: parseInt(e.target.value) || 4000 }))} min={500} max={100000} data-testid="input-schedule-tokens" />
+          </div>
+          <div className="flex items-center gap-2 pt-6">
+            <Switch checked={form.allowWriteTools} onCheckedChange={(v) => setForm(prev => ({ ...prev, allowWriteTools: v }))} data-testid="switch-allow-write-tools" />
+            <Label className="text-sm">Allow write tools (e.g., draft work orders)</Label>
+          </div>
+        </div>
+        {form.allowWriteTools && (
+          <div className="flex items-center gap-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded text-xs text-yellow-800 dark:text-yellow-300">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            Write tools allow the agent to create drafts autonomously. All drafts still require human approval.
+          </div>
+        )}
+        {availableTools.length > 0 && (
+          <div className="space-y-2">
+            <Label className="text-sm">Allowed Tools</Label>
+            <p className="text-xs text-muted-foreground">Select which tools this schedule can use. All tools are allowed by default.</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-40 overflow-y-auto p-2 border rounded">
+              {availableTools.map(tool => (
+                <div key={tool.name} className="flex items-center gap-1.5">
+                  <Switch checked={isToolSelected(tool.name)} onCheckedChange={(v) => toggleScheduleTool(tool.name, v)} className="scale-75" data-testid={`switch-tool-${tool.name}`} />
+                  <span className="text-xs truncate" title={tool.description}>{tool.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <div className="flex gap-2">
+          <Button onClick={() => onSave(form)} disabled={isPending || !form.name || !form.prompt} data-testid="button-save-schedule">
+            {isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
+            {saveLabel}
+          </Button>
+          <Button variant="outline" onClick={onCancel} data-testid="button-cancel-schedule">Cancel</Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function SchedulesTab() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedSchedule, setExpandedSchedule] = useState<string | null>(null);
-  const [newSchedule, setNewSchedule] = useState({
-    name: "", prompt: "", cronExpression: "0 8 * * 1",
-    outputDestination: "notification", allowWriteTools: false, maxTokenBudget: 4000,
-  });
 
   const { data: schedules = [], isLoading } = useQuery<Schedule[]>({
     queryKey: ["/api/agent/schedules"],
   });
 
   const createMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/agent/schedules", { ...newSchedule, enabled: true }),
+    mutationFn: (data: any) => apiRequest("POST", "/api/agent/schedules", { ...data, enabled: true }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agent/schedules"] });
       setShowForm(false);
-      setNewSchedule({ name: "", prompt: "", cronExpression: "0 8 * * 1", outputDestination: "notification", allowWriteTools: false, maxTokenBudget: 4000 });
       toast({ title: "Schedule created" });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => apiRequest("PUT", `/api/agent/schedules/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/agent/schedules"] });
+      setEditingId(null);
+      toast({ title: "Schedule updated" });
     },
   });
 
@@ -706,100 +814,13 @@ function SchedulesTab() {
       </div>
 
       {showForm && (
-        <Card>
-          <CardContent className="pt-4 space-y-4">
-            <div className="space-y-2">
-              <Label>Schedule Name</Label>
-              <Input
-                value={newSchedule.name}
-                onChange={(e) => setNewSchedule(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="e.g., Weekly fleet health check"
-                data-testid="input-schedule-name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Prompt</Label>
-              <Textarea
-                value={newSchedule.prompt}
-                onChange={(e) => setNewSchedule(prev => ({ ...prev, prompt: e.target.value }))}
-                placeholder="e.g., Generate a full fleet health report and highlight critical issues"
-                rows={3}
-                data-testid="input-schedule-prompt"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Frequency</Label>
-                <Select
-                  value={newSchedule.cronExpression}
-                  onValueChange={(v) => setNewSchedule(prev => ({ ...prev, cronExpression: v }))}
-                >
-                  <SelectTrigger data-testid="select-schedule-cron">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0 */6 * * *">Every 6 hours</SelectItem>
-                    <SelectItem value="0 8 * * *">Daily (8am)</SelectItem>
-                    <SelectItem value="0 8 * * 1">Weekly (Monday 8am)</SelectItem>
-                    <SelectItem value="0 8 1 * *">Monthly (1st 8am)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Output Destination</Label>
-                <Select
-                  value={newSchedule.outputDestination}
-                  onValueChange={(v) => setNewSchedule(prev => ({ ...prev, outputDestination: v }))}
-                >
-                  <SelectTrigger data-testid="select-schedule-output">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="notification">Notification</SelectItem>
-                    <SelectItem value="email">Email</SelectItem>
-                    <SelectItem value="report">Stored Report</SelectItem>
-                    <SelectItem value="both">All (Notification + Email + Report)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Token Budget</Label>
-                <Input
-                  type="number"
-                  value={newSchedule.maxTokenBudget}
-                  onChange={(e) => setNewSchedule(prev => ({ ...prev, maxTokenBudget: parseInt(e.target.value) || 4000 }))}
-                  min={500}
-                  max={100000}
-                  data-testid="input-schedule-tokens"
-                />
-              </div>
-              <div className="flex items-center gap-2 pt-6">
-                <Switch
-                  checked={newSchedule.allowWriteTools}
-                  onCheckedChange={(v) => setNewSchedule(prev => ({ ...prev, allowWriteTools: v }))}
-                  data-testid="switch-allow-write-tools"
-                />
-                <Label className="text-sm">Allow write tools (e.g., draft work orders)</Label>
-              </div>
-            </div>
-            {newSchedule.allowWriteTools && (
-              <div className="flex items-center gap-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded text-xs text-yellow-800 dark:text-yellow-300">
-                <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                Write tools allow the agent to create drafts autonomously. All drafts still require human approval.
-              </div>
-            )}
-            <Button
-              onClick={() => createMutation.mutate()}
-              disabled={createMutation.isPending || !newSchedule.name || !newSchedule.prompt}
-              data-testid="button-create-schedule"
-            >
-              {createMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
-              Create Schedule
-            </Button>
-          </CardContent>
-        </Card>
+        <ScheduleForm
+          initial={{ name: "", prompt: "", cronExpression: "0 8 * * 1", outputDestination: "notification", allowWriteTools: false, maxTokenBudget: 4000, allowedTools: null }}
+          onSave={(data) => createMutation.mutate(data)}
+          onCancel={() => setShowForm(false)}
+          isPending={createMutation.isPending}
+          saveLabel="Create Schedule"
+        />
       )}
 
       {schedules.length === 0 && !showForm ? (
@@ -812,71 +833,74 @@ function SchedulesTab() {
       ) : (
         <div className="space-y-3">
           {schedules.map((s) => (
-            <Card key={s.id} data-testid={`schedule-${s.id}`}>
-              <CardContent className="pt-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="font-medium text-sm">{s.name}</p>
-                      <Badge variant={s.enabled ? "default" : "secondary"}>
-                        {s.enabled ? "Active" : "Paused"}
-                      </Badge>
-                      {s.consecutiveFailures > 0 && (
-                        <Badge variant="destructive" className="text-[10px]">
-                          {s.consecutiveFailures >= 3 ? "Auto-disabled" : `${s.consecutiveFailures} failure${s.consecutiveFailures > 1 ? "s" : ""}`}
-                        </Badge>
-                      )}
-                      {s.allowWriteTools && (
-                        <Badge variant="outline" className="text-[10px]">Write</Badge>
-                      )}
+            <div key={s.id} data-testid={`schedule-${s.id}`}>
+              {editingId === s.id ? (
+                <ScheduleForm
+                  initial={{
+                    name: s.name,
+                    prompt: s.prompt,
+                    cronExpression: s.cronExpression,
+                    outputDestination: s.outputDestination || "notification",
+                    allowWriteTools: s.allowWriteTools,
+                    maxTokenBudget: s.maxTokenBudget || 4000,
+                    allowedTools: Array.isArray(s.allowedTools) ? s.allowedTools : null,
+                  }}
+                  onSave={(data) => updateMutation.mutate({ id: s.id, data })}
+                  onCancel={() => setEditingId(null)}
+                  isPending={updateMutation.isPending}
+                  saveLabel="Save Changes"
+                />
+              ) : (
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-medium text-sm">{s.name}</p>
+                          <Badge variant={s.enabled ? "default" : "secondary"}>
+                            {s.enabled ? "Active" : "Paused"}
+                          </Badge>
+                          {s.consecutiveFailures > 0 && (
+                            <Badge variant="destructive" className="text-[10px]">
+                              {s.consecutiveFailures >= 3 ? "Auto-disabled" : `${s.consecutiveFailures} failure${s.consecutiveFailures > 1 ? "s" : ""}`}
+                            </Badge>
+                          )}
+                          {s.allowWriteTools && (
+                            <Badge variant="outline" className="text-[10px]">Write</Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate max-w-sm">{s.prompt}</p>
+                        <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                          <span>{cronLabel(s.cronExpression)}</span>
+                          <span>{destLabel(s.outputDestination)}</span>
+                          {s.maxTokenBudget && <span>{s.maxTokenBudget.toLocaleString()} token limit</span>}
+                          {s.lastRunAt && <span>Last: {new Date(s.lastRunAt).toLocaleString()}</span>}
+                          {Array.isArray(s.allowedTools) && <span>{s.allowedTools.length} tools selected</span>}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => setEditingId(s.id)} data-testid={`button-edit-${s.id}`}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => setExpandedSchedule(expandedSchedule === s.id ? null : s.id)} data-testid={`button-history-${s.id}`}>
+                          <BarChart3 className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => runMutation.mutate(s.id)} disabled={runMutation.isPending} data-testid={`button-run-${s.id}`}>
+                          <Play className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => toggleMutation.mutate({ id: s.id, enabled: !s.enabled })} data-testid={`button-toggle-${s.id}`}>
+                          {s.enabled ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 text-green-500" />}
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(s.id)} data-testid={`button-delete-${s.id}`}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground truncate max-w-sm">{s.prompt}</p>
-                    <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                      <span>{cronLabel(s.cronExpression)}</span>
-                      <span>{destLabel(s.outputDestination)}</span>
-                      {s.maxTokenBudget && <span>{s.maxTokenBudget.toLocaleString()} token limit</span>}
-                      {s.lastRunAt && <span>Last: {new Date(s.lastRunAt).toLocaleString()}</span>}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setExpandedSchedule(expandedSchedule === s.id ? null : s.id)}
-                      data-testid={`button-history-${s.id}`}
-                    >
-                      <BarChart3 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => runMutation.mutate(s.id)}
-                      disabled={runMutation.isPending}
-                      data-testid={`button-run-${s.id}`}
-                    >
-                      <Play className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => toggleMutation.mutate({ id: s.id, enabled: !s.enabled })}
-                      data-testid={`button-toggle-${s.id}`}
-                    >
-                      {s.enabled ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 text-green-500" />}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => deleteMutation.mutate(s.id)}
-                      data-testid={`button-delete-${s.id}`}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                </div>
-                {expandedSchedule === s.id && <ScheduleRunHistory scheduleId={s.id} />}
-              </CardContent>
-            </Card>
+                    {expandedSchedule === s.id && <ScheduleRunHistory scheduleId={s.id} />}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           ))}
         </div>
       )}
