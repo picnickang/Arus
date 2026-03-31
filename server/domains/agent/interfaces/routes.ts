@@ -486,7 +486,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
 
       const schedulerService = new SchedulerService(
         agentRepo,
-        (org, user, conv, msg) => orchestrator.run(org, user, conv, msg),
+        (org, user, conv, msg, role) => orchestrator.run(org, user, conv, msg, role),
       );
       await schedulerService.executeSchedule(schedule);
       res.json({ success: true, message: "Schedule run triggered" });

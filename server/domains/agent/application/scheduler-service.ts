@@ -6,7 +6,7 @@ export class SchedulerService {
 
   constructor(
     private repo: AgentRepositoryPort,
-    private runAgentFn: (orgId: string, userId: string | undefined, conversationId: string | undefined, message: string) => Promise<any>,
+    private runAgentFn: (orgId: string, userId: string | undefined, conversationId: string | undefined, message: string, userRole?: string) => Promise<any>,
   ) {}
 
   async initialize(orgId: string): Promise<void> {
@@ -50,7 +50,7 @@ export class SchedulerService {
     });
 
     try {
-      const result = await this.runAgentFn(schedule.orgId, undefined, undefined, schedule.prompt);
+      const result = await this.runAgentFn(schedule.orgId, undefined, undefined, schedule.prompt, "system");
 
       await this.repo.schedules.updateRun(run.id, {
         status: "completed",

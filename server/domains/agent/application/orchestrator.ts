@@ -109,6 +109,8 @@ export class AgentOrchestrator {
     const toolContext = { orgId, userId, conversationId: conversation.id, userRole };
 
     let totalTokens = 0;
+    let promptTokens = 0;
+    let completionTokens = 0;
     let toolCallCount = 0;
     let finalResponse = "";
     const toolCallTraces: ToolCallTrace[] = [];
@@ -119,6 +121,8 @@ export class AgentOrchestrator {
 
         const choice = response.choices[0];
         totalTokens += response.usage?.total_tokens || 0;
+        promptTokens += response.usage?.prompt_tokens || 0;
+        completionTokens += response.usage?.completion_tokens || 0;
 
         if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
           const assistantMsg = await this.repo.messages.create({
@@ -193,7 +197,7 @@ export class AgentOrchestrator {
       }
     } catch (err) {
       await this.auditRunLifecycle("run_error", conversation.id, orgId, userId, {
-        model, totalTokens, toolCallCount, durationMs: Date.now() - runStartTime,
+        model, totalTokens, promptTokens, completionTokens, toolCallCount, durationMs: Date.now() - runStartTime,
         error: err instanceof Error ? err.message : "Unknown error",
       });
       throw err;
@@ -205,7 +209,7 @@ export class AgentOrchestrator {
     }
 
     await this.auditRunLifecycle("run_complete", conversation.id, orgId, userId, {
-      model, totalTokens, toolCallCount, durationMs: Date.now() - runStartTime,
+      model, totalTokens, promptTokens, completionTokens, toolCallCount, durationMs: Date.now() - runStartTime,
       toolsUsed: toolCallTraces.map(t => t.toolName),
     });
 
@@ -293,6 +297,8 @@ export class AgentOrchestrator {
     const toolContext = { orgId, userId, conversationId: conversation.id, userRole };
 
     let totalTokens = 0;
+    let promptTokens = 0;
+    let completionTokens = 0;
     let toolCallCount = 0;
     let finalResponse = "";
     const toolCallTraces: ToolCallTrace[] = [];
@@ -306,6 +312,8 @@ export class AgentOrchestrator {
 
         const choice = response.choices[0];
         totalTokens += response.usage?.total_tokens || 0;
+        promptTokens += response.usage?.prompt_tokens || 0;
+        completionTokens += response.usage?.completion_tokens || 0;
 
         if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
           const assistantMsg = await this.repo.messages.create({
@@ -380,7 +388,7 @@ export class AgentOrchestrator {
       }
     } catch (err) {
       await this.auditRunLifecycle("run_error", conversation.id, orgId, userId, {
-        model, totalTokens, toolCallCount, durationMs: Date.now() - runStartTime, mode: "attachments",
+        model, totalTokens, promptTokens, completionTokens, toolCallCount, durationMs: Date.now() - runStartTime, mode: "attachments",
         error: err instanceof Error ? err.message : "Unknown error",
       });
       throw err;
@@ -392,7 +400,7 @@ export class AgentOrchestrator {
     }
 
     await this.auditRunLifecycle("run_complete", conversation.id, orgId, userId, {
-      model, totalTokens, toolCallCount, durationMs: Date.now() - runStartTime, mode: "attachments",
+      model, totalTokens, promptTokens, completionTokens, toolCallCount, durationMs: Date.now() - runStartTime, mode: "attachments",
       toolsUsed: toolCallTraces.map(t => t.toolName),
     });
 
@@ -446,6 +454,8 @@ export class AgentOrchestrator {
     const toolContext = { orgId, userId, conversationId: conversation.id, userRole };
 
     let totalTokens = 0;
+    let promptTokens = 0;
+    let completionTokens = 0;
     let toolCallCount = 0;
     let finalResponse = "";
     let finalResponseTokens = 0;
@@ -463,6 +473,8 @@ export class AgentOrchestrator {
           finalResponse = response.choices[0].message.content || "";
           finalResponseTokens = response.usage?.total_tokens || 0;
           totalTokens += finalResponseTokens;
+          promptTokens += response.usage?.prompt_tokens || 0;
+          completionTokens += response.usage?.completion_tokens || 0;
           onChunk(JSON.stringify({ type: "text", content: finalResponse }) + "\n");
           break;
         }
@@ -472,6 +484,8 @@ export class AgentOrchestrator {
         const choice = response.choices[0];
         const iterationTokens = response.usage?.total_tokens || 0;
         totalTokens += iterationTokens;
+        promptTokens += response.usage?.prompt_tokens || 0;
+        completionTokens += response.usage?.completion_tokens || 0;
 
         if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
           const assistantMsg = await this.repo.messages.create({
@@ -542,7 +556,7 @@ export class AgentOrchestrator {
       }
     } catch (err) {
       await this.auditRunLifecycle("run_error", conversation.id, orgId, userId, {
-        model, totalTokens, toolCallCount, durationMs: Date.now() - runStartTime, mode: "stream",
+        model, totalTokens, promptTokens, completionTokens, toolCallCount, durationMs: Date.now() - runStartTime, mode: "stream",
         error: err instanceof Error ? err.message : "Unknown error",
       });
       throw err;
@@ -565,7 +579,7 @@ export class AgentOrchestrator {
     onChunk(JSON.stringify({ type: "done", conversationId: conversation.id }) + "\n");
 
     await this.auditRunLifecycle("run_complete", conversation.id, orgId, userId, {
-      model, totalTokens, toolCallCount, durationMs: Date.now() - runStartTime, mode: "stream",
+      model, totalTokens, promptTokens, completionTokens, toolCallCount, durationMs: Date.now() - runStartTime, mode: "stream",
       toolsUsed: toolCallTraces.map(t => t.toolName),
     });
 
