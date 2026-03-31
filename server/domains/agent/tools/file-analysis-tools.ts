@@ -1,37 +1,40 @@
-import fs from "fs";
 import { z } from "zod";
 import { registerTool } from "./registry";
 import { createOpenAIClient } from "../../../openai/client";
+import { resolveFile } from "../infrastructure/file-registry";
+import fs from "fs";
 
 registerTool({
   name: "analyzeImage",
-  description: "Analyze an uploaded image using AI vision. Useful for assessing equipment condition, reading gauges, identifying parts, or inspecting visible damage in marine equipment photos.",
+  description: "Analyze an uploaded image using AI vision. Useful for assessing equipment condition, reading gauges, identifying parts, or inspecting visible damage in marine equipment photos. Requires a fileId from a previously uploaded image.",
   parameters: {
     type: "object",
     properties: {
-      filePath: { type: "string", description: "Server-side path to the uploaded image file" },
-      filename: { type: "string", description: "Original filename of the image" },
+      fileId: { type: "string", description: "The file ID of the uploaded image (from the file upload response)" },
       analysisType: {
         type: "string",
         enum: ["condition_assessment", "gauge_reading", "part_identification", "damage_inspection", "general"],
         description: "Type of analysis to perform on the image",
       },
     },
-    required: ["filePath", "filename"],
+    required: ["fileId"],
   },
   inputSchema: z.object({
-    filePath: z.string().min(1),
-    filename: z.string().min(1),
+    fileId: z.string().uuid(),
     analysisType: z.enum(["condition_assessment", "gauge_reading", "part_identification", "damage_inspection", "general"]).optional().default("general"),
   }),
   requiresApproval: false,
-  async execute(input: Record<string, unknown>) {
-    const filePath = input.filePath as string;
-    const filename = input.filename as string;
+  async execute(input: Record<string, unknown>, ctx) {
+    const fileId = input.fileId as string;
     const analysisType = (input.analysisType as string) || "general";
 
-    if (!fs.existsSync(filePath)) {
-      return { error: `Image file not found: ${filename}` };
+    const record = resolveFile(fileId, ctx.orgId);
+    if (!record) {
+      return { error: "Image file not found or access denied" };
+    }
+
+    if (!record.mimetype.startsWith("image/")) {
+      return { error: `File is not an image (type: ${record.mimetype})` };
     }
 
     const client = await createOpenAIClient();
@@ -39,11 +42,8 @@ registerTool({
       return { error: "OpenAI is not configured for image analysis" };
     }
 
-    const base64 = fs.readFileSync(filePath, "base64");
-    const ext = filePath.split(".").pop()?.toLowerCase() || "jpeg";
-    const mimeMap: Record<string, string> = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", gif: "image/gif", webp: "image/webp" };
-    const mime = mimeMap[ext] || "image/jpeg";
-    const dataUrl = `data:${mime};base64,${base64}`;
+    const base64 = fs.readFileSync(record.storedPath, "base64");
+    const dataUrl = `data:${record.mimetype};base64,${base64}`;
 
     const prompts: Record<string, string> = {
       condition_assessment: "You are a marine equipment inspection specialist. Analyze this image and provide: 1) Overall condition rating (good/fair/poor/critical), 2) Visible wear or degradation, 3) Maintenance recommendations, 4) Urgency level.",
@@ -61,7 +61,7 @@ registerTool({
           {
             role: "user",
             content: [
-              { type: "text", text: `Analyze this image (${filename}):` },
+              { type: "text", text: `Analyze this image (${record.filename}):` },
               { type: "image_url", image_url: { url: dataUrl, detail: "high" } },
             ],
           },
@@ -69,12 +69,11 @@ registerTool({
         max_tokens: 1500,
       });
 
-      const analysis = response.choices[0]?.message?.content || "No analysis available";
-
       return {
-        filename,
+        fileId,
+        filename: record.filename,
         analysisType,
-        analysis,
+        analysis: response.choices[0]?.message?.content || "No analysis available",
         tokensUsed: response.usage?.total_tokens || 0,
       };
     } catch (err) {
@@ -85,38 +84,40 @@ registerTool({
 
 registerTool({
   name: "analyzeSpreadsheet",
-  description: "Parse and analyze an uploaded CSV or spreadsheet file. Generates summary statistics for numeric columns and can answer questions about specific rows, columns, or data patterns.",
+  description: "Parse and analyze an uploaded CSV file. Generates summary statistics for numeric columns and can answer questions about specific rows, columns, or data patterns. Requires a fileId from a previously uploaded CSV.",
   parameters: {
     type: "object",
     properties: {
-      filePath: { type: "string", description: "Server-side path to the uploaded CSV file" },
-      filename: { type: "string", description: "Original filename" },
+      fileId: { type: "string", description: "The file ID of the uploaded CSV file (from the file upload response)" },
       question: { type: "string", description: "Optional specific question about the data" },
     },
-    required: ["filePath", "filename"],
+    required: ["fileId"],
   },
   inputSchema: z.object({
-    filePath: z.string().min(1),
-    filename: z.string().min(1),
+    fileId: z.string().uuid(),
     question: z.string().optional(),
   }),
   requiresApproval: false,
-  async execute(input: Record<string, unknown>) {
-    const filePath = input.filePath as string;
-    const filename = input.filename as string;
+  async execute(input: Record<string, unknown>, ctx) {
+    const fileId = input.fileId as string;
     const question = input.question as string | undefined;
 
-    if (!fs.existsSync(filePath)) {
-      return { error: `File not found: ${filename}` };
+    const record = resolveFile(fileId, ctx.orgId);
+    if (!record) {
+      return { error: "File not found or access denied" };
+    }
+
+    const csvTypes = ["text/csv", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"];
+    if (!csvTypes.includes(record.mimetype)) {
+      return { error: `File is not a spreadsheet (type: ${record.mimetype})` };
     }
 
     try {
-      const csvText = fs.readFileSync(filePath, "utf-8");
+      const csvText = fs.readFileSync(record.storedPath, "utf-8");
       const Papa = (await import("papaparse")).default;
       const parsed = Papa.parse(csvText, { header: true, dynamicTyping: true, skipEmptyLines: true });
       const rows = parsed.data as Record<string, unknown>[];
       const headers = parsed.meta.fields || [];
-      const rowCount = rows.length;
 
       const columnStats: Record<string, Record<string, unknown>> = {};
       for (const col of headers) {
@@ -149,15 +150,14 @@ registerTool({
         }
       }
 
-      const sampleRows = rows.slice(0, 5);
-
       const result: Record<string, unknown> = {
-        filename,
-        rowCount,
+        fileId,
+        filename: record.filename,
+        rowCount: rows.length,
         columnCount: headers.length,
         columns: headers,
         columnStats,
-        sampleRows,
+        sampleRows: rows.slice(0, 5),
         parseErrors: parsed.errors.length,
       };
 

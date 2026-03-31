@@ -16,15 +16,7 @@ import type { AuthenticatedRequest } from "../../../middleware/auth";
 import { auditAction } from "../../../utils/audit-helpers";
 import { z } from "zod";
 
-const UPLOAD_BASE_DIR = "/tmp/agent-uploads";
-if (!fs.existsSync(UPLOAD_BASE_DIR)) fs.mkdirSync(UPLOAD_BASE_DIR, { recursive: true });
-
-function getOrgUploadDir(orgId: string): string {
-  const safe = orgId.replace(/[^a-zA-Z0-9_-]/g, "_");
-  const dir = path.join(UPLOAD_BASE_DIR, safe);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  return dir;
-}
+import { getOrgUploadDir, registerFile, listConversationFiles } from "../infrastructure/file-registry";
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -40,9 +32,8 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const allowed = [
-      "image/png", "image/jpeg", "image/gif", "image/webp",
-      "application/pdf", "text/plain", "text/csv",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "image/png", "image/jpeg",
+      "application/pdf", "text/csv",
     ];
     cb(null, allowed.includes(file.mimetype));
   },
@@ -135,11 +126,15 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         return res.status(400).json({ error: "Message is required" });
       }
 
-      const attachments = files.map(f => ({
-        filename: f.originalname,
-        mimetype: f.mimetype,
-        path: f.path,
-        size: f.size,
+      const resolvedConvId = conversationId || `conv-${Date.now()}`;
+
+      const fileRecords = files.map(f => registerFile(orgId, resolvedConvId, f));
+      const attachments = fileRecords.map(r => ({
+        filename: r.filename,
+        mimetype: r.mimetype,
+        path: r.storedPath,
+        size: r.size,
+        fileId: r.id,
       }));
 
       const result = await orchestrator.runWithAttachments(orgId, userId, conversationId, message, attachments, userRole);
@@ -154,10 +149,6 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     } catch (error: unknown) {
       console.error("[Agent] Multimodal chat error:", error);
       res.status(500).json({ error: error instanceof Error ? error.message : "Agent error" });
-    } finally {
-      for (const f of files) {
-        fs.unlink(f.path, () => {});
-      }
     }
   });
 
@@ -172,17 +163,31 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         return res.status(404).json({ error: "Conversation not found" });
       }
 
-      const fileRefs = files.map(f => ({
-        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        filename: f.originalname,
-        mimetype: f.mimetype,
-        size: f.size,
-      }));
+      const fileRefs = files.map(f => {
+        const record = registerFile(orgId, conversationId, f);
+        return {
+          fileId: record.id,
+          filename: record.filename,
+          mimetype: record.mimetype,
+          size: record.size,
+        };
+      });
 
       res.json({ files: fileRefs });
     } catch (error: unknown) {
       console.error("[Agent] File upload error:", error);
       res.status(500).json({ error: error instanceof Error ? error.message : "Upload failed" });
+    }
+  });
+
+  app.get("/api/agent/conversations/:id/files", rateLimit.generalApiRateLimit, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const conversationId = req.params.id;
+      const files = listConversationFiles(conversationId, orgId);
+      res.json({ files: files.map(f => ({ fileId: f.id, filename: f.filename, mimetype: f.mimetype, size: f.size })) });
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Failed to list files" });
     }
   });
 

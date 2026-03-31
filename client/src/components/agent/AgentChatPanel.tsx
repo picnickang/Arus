@@ -249,6 +249,7 @@ export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolea
   const [streamingMessages, setStreamingMessages] = useState<ChatMessage[]>([]);
   const [pendingToolCalls, setPendingToolCalls] = useState<ToolCallTrace[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [streamText, setStreamText] = useState("");
   const [retryStatus, setRetryStatus] = useState<string | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
@@ -491,16 +492,29 @@ export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolea
         if (conversationId) formData.append("conversationId", conversationId);
         filesToSend.forEach(f => formData.append("files", f));
 
-        const response = await fetch("/api/agent/chat-multimodal", {
-          method: "POST",
-          headers: { "x-org-id": getCurrentOrgId() || "default-org-id" },
-          body: formData,
+        setUploadProgress(0);
+        const result = await new Promise<{ conversationId?: string; response?: string; toolCalls?: ToolCallTrace[] }>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open("POST", "/api/agent/chat-multimodal");
+          xhr.setRequestHeader("x-org-id", getCurrentOrgId() || "default-org-id");
+          xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+              setUploadProgress(Math.round((e.loaded / e.total) * 100));
+            }
+          };
+          xhr.onload = () => {
+            setUploadProgress(null);
+            if (xhr.status >= 200 && xhr.status < 300) {
+              try { resolve(JSON.parse(xhr.responseText)); }
+              catch { reject(new Error("Invalid response")); }
+            } else {
+              reject(new Error(xhr.responseText || `HTTP ${xhr.status}`));
+            }
+          };
+          xhr.onerror = () => { setUploadProgress(null); reject(new Error("Upload failed")); };
+          xhr.send(formData);
         });
-        if (!response.ok) {
-          const errBody = await response.text().catch(() => "");
-          throw new Error(errBody || `HTTP ${response.status}`);
-        }
-        const result = await response.json() as { conversationId?: string; response?: string; toolCalls?: ToolCallTrace[] };
+
         if (result.conversationId) {
           resolvedConvId = result.conversationId;
           setConversationId(result.conversationId);
@@ -863,6 +877,20 @@ export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolea
                   })}
                 </div>
               )}
+              {uploadProgress !== null && (
+                <div className="mb-2" data-testid="upload-progress">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    <span>Uploading... {uploadProgress}%</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all duration-200"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
               <form
                 ref={chatFormRef}
                 onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
@@ -873,7 +901,7 @@ export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolea
                   ref={fileInputRef}
                   type="file"
                   multiple
-                  accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.csv,.xlsx"
+                  accept=".png,.jpg,.jpeg,.pdf,.csv"
                   onChange={handleFileSelect}
                   className="hidden"
                   aria-label="Upload files"
