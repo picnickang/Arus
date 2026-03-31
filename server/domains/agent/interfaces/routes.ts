@@ -139,7 +139,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
 
       const result = await orchestrator.runWithAttachments(orgId, userId, conversationId, message, attachments, userRole);
 
-      const convFiles = listConversationFiles(result.conversationId, orgId);
+      const convFiles = await listConversationFiles(result.conversationId, orgId);
       const fileRefs = convFiles.map(f => ({
         fileId: f.id, filename: f.filename, mimetype: f.mimetype, size: f.size,
       }));
@@ -169,15 +169,15 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         return res.status(404).json({ error: "Conversation not found" });
       }
 
-      const fileRefs = files.map(f => {
-        const record = registerFile(orgId, conversationId, f);
+      const fileRefs = await Promise.all(files.map(async f => {
+        const record = await registerFile(orgId, conversationId, f);
         return {
           fileId: record.id,
           filename: record.filename,
           mimetype: record.mimetype,
           size: record.size,
         };
-      });
+      }));
 
       res.json({ files: fileRefs });
     } catch (error: unknown) {
@@ -190,7 +190,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const conversationId = req.params.id;
-      const files = listConversationFiles(conversationId, orgId);
+      const files = await listConversationFiles(conversationId, orgId);
       res.json({ files: files.map(f => ({ fileId: f.id, filename: f.filename, mimetype: f.mimetype, size: f.size })) });
     } catch (error: unknown) {
       res.status(500).json({ error: error instanceof Error ? error.message : "Failed to list files" });

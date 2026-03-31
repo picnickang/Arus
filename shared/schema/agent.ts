@@ -210,3 +210,19 @@ export type InsertAgentSuggestion = z.infer<typeof insertAgentSuggestionSchema>;
 export type AgentSchedule = typeof agentSchedules.$inferSelect;
 export type InsertAgentSchedule = z.infer<typeof insertAgentScheduleSchema>;
 export type AgentScheduleRun = typeof agentScheduleRuns.$inferSelect;
+
+export const agentFiles = pgTable("agent_files", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orgId: varchar("org_id").notNull(),
+  conversationId: varchar("conversation_id").notNull(),
+  filename: varchar("filename").notNull(),
+  mimetype: varchar("mimetype").notNull(),
+  size: integer("size").notNull(),
+  storedPath: text("stored_path").notNull(),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
+}, (table) => [
+  index("idx_agent_files_conv").on(table.conversationId),
+  index("idx_agent_files_org").on(table.orgId),
+]);
+
+export type AgentFile = typeof agentFiles.$inferSelect;

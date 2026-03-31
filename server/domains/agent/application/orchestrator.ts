@@ -106,6 +106,18 @@ export class AgentOrchestrator {
 
     const history = await this.repo.messages.list(conversation.id, 50);
     const openaiMessages = this.buildOpenAIMessages(history, customPrompt);
+
+    const convFiles = await listConversationFiles(conversation.id, orgId);
+    if (convFiles.length > 0) {
+      const fileRefContext = convFiles.map(f =>
+        `- fileId: "${f.id}" | ${f.filename} (${f.mimetype}, ${f.size} bytes)`
+      ).join("\n");
+      openaiMessages.push({
+        role: "system" as const,
+        content: `Available files for this conversation:\n${fileRefContext}\nUse analyzeImage or analyzeSpreadsheet tools with these fileIds when relevant.`,
+      });
+    }
+
     const enabledTools = options?.toolAllowlist !== undefined ? options.toolAllowlist : (config?.enabledTools as string[] | null);
     const toolDefs = getToolOpenAIDefinitions(enabledTools);
     const toolContext = { orgId, userId, conversationId: conversation.id, userRole };
@@ -337,7 +349,7 @@ export class AgentOrchestrator {
     }
 
     for (const att of attachments) {
-      registerFile(orgId, conversation.id, {
+      await registerFile(orgId, conversation.id, {
         originalname: att.filename,
         mimetype: att.mimetype,
         size: att.size,
@@ -345,7 +357,7 @@ export class AgentOrchestrator {
       });
     }
 
-    const convFiles = listConversationFiles(conversation.id, orgId);
+    const convFiles = await listConversationFiles(conversation.id, orgId);
     if (convFiles.length > 0) {
       const fileRefContext = convFiles.map(f =>
         `- fileId: "${f.id}" | ${f.filename} (${f.mimetype}, ${f.size} bytes)`

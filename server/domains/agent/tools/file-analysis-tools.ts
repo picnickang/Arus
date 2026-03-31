@@ -28,7 +28,7 @@ registerTool({
     const fileId = input.fileId as string;
     const analysisType = (input.analysisType as string) || "general";
 
-    const record = resolveFile(fileId, ctx.orgId);
+    const record = await resolveFile(fileId, ctx.orgId);
     if (!record) {
       return { error: "Image file not found or access denied" };
     }
@@ -129,7 +129,7 @@ registerTool({
     const fileId = input.fileId as string;
     const question = input.question as string | undefined;
 
-    const record = resolveFile(fileId, ctx.orgId);
+    const record = await resolveFile(fileId, ctx.orgId);
     if (!record) {
       return { error: "File not found or access denied" };
     }

@@ -1,6 +1,8 @@
 import path from "path";
 import fs from "fs";
-import crypto from "crypto";
+import { db } from "../../../db";
+import { eq, and } from "drizzle-orm";
+import { agentFiles } from "@shared/schema/agent";
 
 export interface FileRecord {
   id: string;
@@ -10,12 +12,10 @@ export interface FileRecord {
   mimetype: string;
   size: number;
   storedPath: string;
-  createdAt: string;
+  createdAt: Date | null;
 }
 
 const UPLOAD_BASE_DIR = "/tmp/agent-uploads";
-
-const fileStore = new Map<string, FileRecord>();
 
 export function getOrgUploadDir(orgId: string): string {
   const safe = orgId.replace(/[^a-zA-Z0-9_-]/g, "_");
@@ -24,30 +24,26 @@ export function getOrgUploadDir(orgId: string): string {
   return dir;
 }
 
-export function registerFile(
+export async function registerFile(
   orgId: string,
   conversationId: string,
   multerFile: { originalname: string; mimetype: string; size: number; path: string },
-): FileRecord {
-  const id = crypto.randomUUID();
-  const record: FileRecord = {
-    id,
+): Promise<FileRecord> {
+  const [record] = await db.insert(agentFiles).values({
     orgId,
     conversationId,
     filename: multerFile.originalname,
     mimetype: multerFile.mimetype,
     size: multerFile.size,
     storedPath: multerFile.path,
-    createdAt: new Date().toISOString(),
-  };
-  fileStore.set(id, record);
+  }).returning();
   return record;
 }
 
-export function resolveFile(fileId: string, orgId: string): FileRecord | null {
-  const record = fileStore.get(fileId);
+export async function resolveFile(fileId: string, orgId: string): Promise<FileRecord | null> {
+  const [record] = await db.select().from(agentFiles)
+    .where(and(eq(agentFiles.id, fileId), eq(agentFiles.orgId, orgId)));
   if (!record) return null;
-  if (record.orgId !== orgId) return null;
   if (!fs.existsSync(record.storedPath)) return null;
   const resolved = path.resolve(record.storedPath);
   const orgDir = path.resolve(getOrgUploadDir(orgId));
@@ -55,21 +51,16 @@ export function resolveFile(fileId: string, orgId: string): FileRecord | null {
   return record;
 }
 
-export function listConversationFiles(conversationId: string, orgId: string): FileRecord[] {
-  const results: FileRecord[] = [];
-  for (const record of fileStore.values()) {
-    if (record.conversationId === conversationId && record.orgId === orgId) {
-      results.push(record);
-    }
-  }
-  return results;
+export async function listConversationFiles(conversationId: string, orgId: string): Promise<FileRecord[]> {
+  return db.select().from(agentFiles)
+    .where(and(eq(agentFiles.conversationId, conversationId), eq(agentFiles.orgId, orgId)));
 }
 
-export function deleteFile(fileId: string, orgId: string): boolean {
-  const record = resolveFile(fileId, orgId);
+export async function deleteFile(fileId: string, orgId: string): Promise<boolean> {
+  const record = await resolveFile(fileId, orgId);
   if (!record) return false;
   try { fs.unlinkSync(record.storedPath); } catch {}
-  fileStore.delete(fileId);
+  await db.delete(agentFiles).where(and(eq(agentFiles.id, fileId), eq(agentFiles.orgId, orgId)));
   return true;
 }
 
