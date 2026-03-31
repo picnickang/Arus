@@ -258,6 +258,10 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
           });
         }
 
+        if (reportArtifact.orgId !== orgId) {
+          return res.status(403).json({ error: "Access denied to report artifact" });
+        }
+
         const fileContent = fs.readFileSync(reportArtifact.filePath);
         const mimeMap: Record<string, string> = {
           pdf: "application/pdf",

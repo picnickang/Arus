@@ -1,7 +1,7 @@
 import { db } from "../../../db";
 import { sql } from "drizzle-orm";
 import type { AgentRepositoryPort } from "../domain/ports";
-import { MAINTENANCE_ROLES } from "../domain/types";
+import { MAINTENANCE_ROLES, WRITE_TOOLS } from "../domain/types";
 import type { SafetyCheckResult, UsageStats } from "../domain/types";
 import { InputSanitizer } from "../../../services/rag/security/input-sanitizer";
 import { DEFAULT_RAG_SECURITY_CONFIG } from "../../../services/rag/security/types";
@@ -154,8 +154,7 @@ export class SafetyService {
   }
 
   checkWriteToolAccess(toolName: string, userRole: string | undefined): boolean {
-    const writeTools = ["draftWorkOrder"];
-    if (!writeTools.includes(toolName)) return true;
+    if (!WRITE_TOOLS.includes(toolName as typeof WRITE_TOOLS[number])) return true;
     const role = (userRole || "").toLowerCase();
     if (role === "system") return true;
     return MAINTENANCE_ROLES.includes(role as typeof MAINTENANCE_ROLES[number]);

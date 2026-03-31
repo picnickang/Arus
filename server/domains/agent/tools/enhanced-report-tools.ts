@@ -8,6 +8,7 @@ import { enhancedLLM } from "../../../enhanced-llm/enhanced-llm";
 import type { Audience } from "../../../enhanced-llm/types";
 
 const REPORT_ARTIFACTS_DIR = join(process.cwd(), ".data", "report-artifacts");
+const REGISTRY_FILE = join(REPORT_ARTIFACTS_DIR, "_registry.json");
 
 interface ReportArtifactMeta {
   reportId: string;
@@ -21,6 +22,31 @@ interface ReportArtifactMeta {
 }
 
 const reportArtifactRegistry = new Map<string, ReportArtifactMeta>();
+let registryLoaded = false;
+
+async function loadRegistry(): Promise<void> {
+  if (registryLoaded) return;
+  registryLoaded = true;
+  try {
+    const { readFile } = await import("node:fs/promises");
+    const data = await readFile(REGISTRY_FILE, "utf-8");
+    const entries = JSON.parse(data) as ReportArtifactMeta[];
+    for (const entry of entries) {
+      reportArtifactRegistry.set(entry.reportId, entry);
+    }
+  } catch {
+    // File doesn't exist yet or is corrupt — start fresh
+  }
+}
+
+async function saveRegistry(): Promise<void> {
+  await mkdir(REPORT_ARTIFACTS_DIR, { recursive: true });
+  const entries = Array.from(reportArtifactRegistry.values());
+  const { writeFile: wf } = await import("node:fs/promises");
+  await wf(REGISTRY_FILE, JSON.stringify(entries, null, 2), "utf-8");
+}
+
+loadRegistry();
 
 export function getReportArtifact(reportId: string): ReportArtifactMeta | undefined {
   return reportArtifactRegistry.get(reportId);
@@ -250,6 +276,7 @@ async function storeReportArtifact(
     createdAt: new Date().toISOString(),
   };
   reportArtifactRegistry.set(reportId, meta);
+  await saveRegistry();
 
   return { filePath, fileName };
 }
