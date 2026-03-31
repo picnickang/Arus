@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
-import { writeFile, mkdir, readFile } from "node:fs/promises";
+import { writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import PDFDocument from "pdfkit";
 import { registerTool } from "./registry";
@@ -392,25 +392,24 @@ registerTool({
         response.vesselId = vesselId;
       }
 
-      if (outputFormat !== "inline") {
-        try {
-          const textContent = formatReportAsText(reportType, audience, result.analysis, response, vesselId);
-          let pdfBuffer: Buffer | undefined;
-          if (outputFormat === "pdf") {
-            pdfBuffer = await generatePdfBuffer(reportType, audience, result.analysis, response, vesselId);
-          }
-          const artifact = await storeReportArtifact(
-            reportId, ctx.orgId, ctx.userId, reportType, textContent, response, outputFormat, pdfBuffer
-          );
-          response.artifact = {
-            fileName: artifact.fileName,
-            format: outputFormat,
-            downloadUrl: `/api/agent/reports/${reportId}/download`,
-          };
-          response.downloadAvailable = true;
-        } catch (artifactErr) {
-          response.artifactError = "Report generated successfully but file export failed. The report content is available inline above.";
+      try {
+        const textContent = formatReportAsText(reportType, audience, result.analysis, response, vesselId);
+        const artifactFormat = outputFormat === "inline" ? "pdf" : outputFormat;
+        let pdfBuffer: Buffer | undefined;
+        if (artifactFormat === "pdf") {
+          pdfBuffer = await generatePdfBuffer(reportType, audience, result.analysis, response, vesselId);
         }
+        const artifact = await storeReportArtifact(
+          reportId, ctx.orgId, ctx.userId, reportType, textContent, response, artifactFormat, pdfBuffer
+        );
+        response.artifact = {
+          fileName: artifact.fileName,
+          format: artifactFormat,
+          downloadUrl: `/api/agent/reports/${reportId}/download`,
+        };
+        response.downloadAvailable = true;
+      } catch (artifactErr) {
+        response.artifactError = "Report generated successfully but file export failed. The report content is available inline above.";
       }
 
       response.previewCard = {

@@ -246,43 +246,63 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         const shareData = draft.data as Record<string, unknown>;
         const recipients = shareData.recipients as string[];
         const subject = shareData.subject as string;
+        const bodyText = shareData.message as string || "Please find the attached ARUS report.";
         const reportArtifact = getReportArtifact(shareData.reportId as string);
 
-        try {
-          const { emailSender } = await import("../../../services/email-notification/email-sender.js");
-          if (reportArtifact) {
-            const fileContent = await import("fs").then(f => f.readFileSync(reportArtifact.filePath));
-            const mimeMap: Record<string, string> = {
-              pdf: "application/pdf",
-              json: "application/json",
-              csv: "text/csv",
-              txt: "text/plain",
-            };
-            await emailSender.sendWithAttachment(
-              recipients[0],
-              subject,
-              shareData.message as string || "Please find the attached ARUS report.",
-              `<p>${shareData.message as string || "Please find the attached ARUS report."}</p>`,
-              {
-                filename: reportArtifact.fileName,
-                content: fileContent,
-                contentType: mimeMap[reportArtifact.format] || "application/octet-stream",
-              }
-            );
-            console.log(`[Agent] Report share sent: ${shareData.reportId} → ${recipients.join(", ")}`);
-          } else {
+        const { emailSender } = await import("../../../services/email-notification/email-sender.js");
+        const sendErrors: string[] = [];
+
+        if (reportArtifact && fs.existsSync(reportArtifact.filePath)) {
+          const fileContent = fs.readFileSync(reportArtifact.filePath);
+          const mimeMap: Record<string, string> = {
+            pdf: "application/pdf",
+            json: "application/json",
+            csv: "text/csv",
+            txt: "text/plain",
+          };
+          for (const recipient of recipients) {
+            try {
+              await emailSender.sendWithAttachment(
+                recipient,
+                subject,
+                bodyText,
+                `<p>${bodyText}</p>`,
+                {
+                  filename: reportArtifact.fileName,
+                  content: fileContent,
+                  contentType: mimeMap[reportArtifact.format] || "application/octet-stream",
+                }
+              );
+            } catch (err) {
+              sendErrors.push(`${recipient}: ${err instanceof Error ? err.message : "send failed"}`);
+            }
+          }
+        } else {
+          try {
             await emailSender.sendEmail({
               to: recipients,
               subject,
-              text: shareData.message as string || "An ARUS report has been shared with you.",
-              html: `<p>${shareData.message as string || "An ARUS report has been shared with you."}</p>`,
+              text: bodyText,
+              html: `<p>${bodyText}</p>`,
             });
-            console.log(`[Agent] Report share sent (no attachment): ${shareData.reportId} → ${recipients.join(", ")}`);
+          } catch (err) {
+            sendErrors.push(`all: ${err instanceof Error ? err.message : "send failed"}`);
           }
-        } catch (emailErr) {
-          console.warn(`[Agent] Report share email failed (draft still approved):`, emailErr);
         }
 
+        if (sendErrors.length > 0 && sendErrors.length === recipients.length) {
+          console.error(`[Agent] Report share failed for all recipients:`, sendErrors);
+          return res.status(502).json({
+            error: "Failed to send report to all recipients",
+            details: sendErrors,
+          });
+        }
+
+        if (sendErrors.length > 0) {
+          console.warn(`[Agent] Report share partial failure:`, sendErrors);
+        }
+
+        console.log(`[Agent] Report share sent: ${shareData.reportId} → ${recipients.join(", ")} (${sendErrors.length} failures)`);
         resultId = shareData.reportId as string;
       }
 
