@@ -17,6 +17,8 @@ type PartialCheck = Partial<InsertSystemHealthCheck>;
 
 export class DatabaseSystemAdminStorage extends DbAuditStorage {
   private s = new DbSettingsStorage();
+  async getSettings() { return this.s.getSettings(); }
+  async updateSettings(updates: Record<string, any>) { return this.s.updateSettings(updates); }
   async getAdminSystemSettings(orgId?: string, category?: string) { return this.s.getAdminSystemSettings(orgId, category); }
   async getAdminSystemSetting(orgId: string, category: string, key: string) { return this.s.getAdminSystemSetting(orgId, category, key); }
   async createAdminSystemSetting(setting: PartialSetting) { return this.s.createAdminSystemSetting(setting); }

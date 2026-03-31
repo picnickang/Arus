@@ -8,6 +8,20 @@ import { adminSystemSettings, integrationConfigs, maintenanceWindows, systemHeal
 import type { SystemHealthResult } from "./types.js";
 
 export class DbSettingsStorage {
+  async getSettings() {
+    const { systemSettings } = await import("@shared/schema/core");
+    const [settings] = await db.select().from(systemSettings).where(eq(systemSettings.id, "system"));
+    if (settings) return settings;
+    const [created] = await db.insert(systemSettings).values({ id: "system" }).returning();
+    return created;
+  }
+
+  async updateSettings(updates: Record<string, any>) {
+    const { systemSettings } = await import("@shared/schema/core");
+    await this.getSettings();
+    const [updated] = await db.update(systemSettings).set(updates).where(eq(systemSettings.id, "system")).returning();
+    return updated;
+  }
   async getAdminSystemSettings(orgId?: string, category?: string): Promise<AdminSystemSetting[]> { const conditions = []; if (orgId) {conditions.push(eq(adminSystemSettings.orgId, orgId));} if (category) {conditions.push(eq(adminSystemSettings.category, category));} let query = db.select().from(adminSystemSettings); if (conditions.length > 0) {query = query.where(and(...conditions));} return query.orderBy(adminSystemSettings.key); }
   async getAdminSystemSetting(orgId: string, category: string, key: string): Promise<AdminSystemSetting | undefined> { const [result] = await db.select().from(adminSystemSettings).where(and(eq(adminSystemSettings.orgId, orgId), eq(adminSystemSettings.category, category), eq(adminSystemSettings.key, key))); return result; }
   async createAdminSystemSetting(setting: InsertAdminSystemSetting): Promise<AdminSystemSetting> { const [n] = await db.insert(adminSystemSettings).values({ ...setting, createdAt: new Date(), updatedAt: new Date() }).returning(); return n; }

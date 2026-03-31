@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,10 +9,136 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Edit, Trash2, Mail, Bell, FileText, ChevronRight } from "lucide-react";
+import { Plus, Edit, Trash2, Mail, Bell, FileText, ChevronRight, Key, Eye, EyeOff, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { useSystemSettingsTabData } from "@/features/settings";
 import { useLocation } from "wouter";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import type { AdminSystemSetting } from "@shared/schema";
+
+function OpenAIKeyCard() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [apiKey, setApiKey] = useState("");
+  const [showKey, setShowKey] = useState(false);
+
+  const settingsQuery = useQuery<{ openaiApiKey?: string | null; llmModel?: string | null }>({
+    queryKey: ["/api/settings"],
+  });
+
+  const validateQuery = useQuery<{ valid: boolean; status: string; message: string; source: string | null }>({
+    queryKey: ["/api/settings", "validate-openai-key"],
+    queryFn: () => apiRequest("GET", "/api/settings/validate-openai-key"),
+    refetchOnWindowFocus: false,
+    staleTime: 60000,
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: (key: string) => apiRequest("PUT", "/api/settings", { openaiApiKey: key }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      toast({ title: "API key saved", description: "Your OpenAI API key has been updated." });
+      setApiKey("");
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to save API key.", variant: "destructive" });
+    },
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: () => apiRequest("PUT", "/api/settings", { openaiApiKey: "" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      toast({ title: "API key removed", description: "Your OpenAI API key has been cleared." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to remove API key.", variant: "destructive" });
+    },
+  });
+
+  const hasKey = !!settingsQuery.data?.openaiApiKey;
+  const maskedKey = hasKey ? `sk-...${settingsQuery.data!.openaiApiKey!.slice(-4)}` : null;
+
+  return (
+    <Card data-testid="card-openai-settings">
+      <CardHeader>
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Key className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <CardTitle className="text-base">OpenAI API Key</CardTitle>
+            <CardDescription className="text-sm">
+              Configure your OpenAI API key for AI Copilot, reports, and predictive analytics
+            </CardDescription>
+          </div>
+          {validateQuery.isLoading ? (
+            <Badge variant="outline"><Loader2 className="h-3 w-3 mr-1 animate-spin" />Checking</Badge>
+          ) : validateQuery.data?.valid ? (
+            <Badge variant="default" className="bg-green-600" data-testid="badge-openai-status">
+              <CheckCircle className="h-3 w-3 mr-1" />Active
+            </Badge>
+          ) : (
+            <Badge variant="destructive" data-testid="badge-openai-status">
+              <XCircle className="h-3 w-3 mr-1" />
+              {validateQuery.data?.status === "not_configured" ? "Not Set" : "Invalid"}
+            </Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {hasKey && (
+          <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+            <span className="text-sm font-mono flex-1" data-testid="text-current-key">
+              {showKey ? settingsQuery.data!.openaiApiKey : maskedKey}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowKey(!showKey)}
+              data-testid="button-toggle-key-visibility"
+            >
+              {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => removeMutation.mutate()}
+              disabled={removeMutation.isPending}
+              data-testid="button-remove-key"
+            >
+              <Trash2 className="h-4 w-4 mr-1" />Remove
+            </Button>
+          </div>
+        )}
+        <div className="flex items-center gap-2">
+          <Input
+            type="password"
+            placeholder={hasKey ? "Enter new API key to replace..." : "Enter your OpenAI API key (sk-...)"}
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            data-testid="input-openai-key"
+          />
+          <Button
+            onClick={() => saveMutation.mutate(apiKey)}
+            disabled={!apiKey.trim() || saveMutation.isPending}
+            data-testid="button-save-key"
+          >
+            {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+          </Button>
+        </div>
+        {validateQuery.data?.source && (
+          <p className="text-xs text-muted-foreground">
+            Source: {validateQuery.data.source === "user_configured" ? "User-configured key" : 
+                    validateQuery.data.source === "ai_integrations" ? "Replit AI Integrations" : validateQuery.data.source}
+            {validateQuery.data.message && ` — ${validateQuery.data.message}`}
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 function SystemSettingsTabContent() {
   const [, setLocation] = useLocation();
@@ -30,6 +156,8 @@ function SystemSettingsTabContent() {
 
   return (
     <div className="space-y-6">
+      <OpenAIKeyCard />
+
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={navigateToEmailSettings} data-testid="card-email-settings">
           <CardHeader className="pb-3">

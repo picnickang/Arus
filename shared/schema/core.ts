@@ -204,6 +204,7 @@ export type UpdateUser = z.infer<typeof updateUserSchema>;
 export type SetPassword = z.infer<typeof setPasswordSchema>;
 export type SystemSettings = typeof systemSettings.$inferSelect;
 export type InsertSystemSettings = z.infer<typeof insertSettingsSchema>;
+export type InsertSettings = InsertSystemSettings;
 export type EmailSettings = typeof emailSettings.$inferSelect;
 export type InsertEmailSettings = z.infer<typeof insertEmailSettingsSchema>;
 export type UpdateEmailSettings = z.infer<typeof updateEmailSettingsSchema>;
