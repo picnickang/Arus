@@ -118,6 +118,7 @@ export const agentConfig = pgTable("agent_config", {
   compactionThreshold: integer("compaction_threshold").notNull().default(30),
   toolOutputCharLimit: integer("tool_output_char_limit").notNull().default(4000),
   deferredToolLoading: boolean("deferred_tool_loading").notNull().default(true),
+  permissionTier: text("permission_tier").notNull().default("strict"),
   suggestionPreferences: jsonb("suggestion_preferences"),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),

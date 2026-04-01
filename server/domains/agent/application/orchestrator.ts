@@ -7,6 +7,7 @@ import { DEFAULT_CONFIG } from "../domain/types";
 import { getTool, getToolOpenAIDefinitions } from "../tools";
 import type { ToolLoadingMode } from "../tools/registry";
 import { SafetyService } from "./safety-service";
+import { executeDraftAction } from "./draft-executor";
 import { auditAction } from "../../../utils/audit-helpers";
 import { registerFile, listConversationFiles } from "../infrastructure/file-registry";
 import { ingestFilesToKB, buildIngestionSystemMessage } from "../infrastructure/kb-ingestion-helper";
@@ -1002,17 +1003,58 @@ export class AgentOrchestrator {
     try {
       toolResult = await tool.execute(toolInput, toolContext);
       if (tool.requiresApproval && (toolResult as Record<string, unknown>).requiresApproval) {
+        const permissionTier = ((config?.permissionTier as string) || "strict") as import("../domain/types").PermissionTier;
+        const autoApprove = this.safety.shouldAutoApprove(tool.riskLevel, permissionTier, userRole);
+
         const resultData = toolResult as Record<string, unknown>;
         const data = resultData.data as Record<string, unknown>;
-        const draft = await this.repo.drafts.create({
-          orgId, conversationId,
-          draftType: resultData.draftType as string,
-          title: (data?.title as string) || toolName,
-          data,
-          status: "pending",
-          createdById: userId,
-        });
-        toolResult = { ...toolResult, draftId: draft.id };
+
+        if (autoApprove) {
+          const draftType = resultData.draftType as string;
+          const execResult = await executeDraftAction(draftType, data, orgId);
+
+          if (execResult.error) {
+            toolResult = { ...toolResult, autoApproveError: execResult.error };
+          } else {
+            const draft = await this.repo.drafts.create({
+              orgId, conversationId,
+              draftType,
+              title: (data?.title as string) || toolName,
+              data,
+              status: "approved",
+              createdById: userId,
+            });
+            if (execResult.resultId) {
+              await this.repo.drafts.update(draft.id, { resultId: execResult.resultId });
+            }
+            await this.repo.approvals.create({
+              orgId, draftId: draft.id, conversationId,
+              action: "approved",
+              reviewedById: userId,
+              reviewNote: `Auto-approved (tier: ${permissionTier}, risk: ${tool.riskLevel})`,
+              resultId: execResult.resultId,
+            });
+            auditAction("agent_draft", draft.id, "update", {
+              action: "auto_approved",
+              draftType,
+              permissionTier,
+              riskLevel: tool.riskLevel,
+              approvalMode: "auto",
+              resultId: execResult.resultId,
+            }, { orgId, userId });
+            toolResult = { ...toolResult, draftId: draft.id, resultId: execResult.resultId, autoApproved: true, approvalMode: "auto" };
+          }
+        } else {
+          const draft = await this.repo.drafts.create({
+            orgId, conversationId,
+            draftType: resultData.draftType as string,
+            title: (data?.title as string) || toolName,
+            data,
+            status: "pending",
+            createdById: userId,
+          });
+          toolResult = { ...toolResult, draftId: draft.id };
+        }
       }
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : "Tool execution failed";

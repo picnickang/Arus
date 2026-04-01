@@ -2,7 +2,7 @@ import { db } from "../../../db";
 import { sql } from "drizzle-orm";
 import type { AgentRepositoryPort } from "../domain/ports";
 import { MAINTENANCE_ROLES, WRITE_TOOLS } from "../domain/types";
-import type { SafetyCheckResult, UsageStats } from "../domain/types";
+import type { SafetyCheckResult, UsageStats, PermissionTier, RiskLevel } from "../domain/types";
 import { InputSanitizer } from "../../../services/rag/security/input-sanitizer";
 import { DEFAULT_RAG_SECURITY_CONFIG } from "../../../services/rag/security/types";
 
@@ -158,6 +158,30 @@ export class SafetyService {
     const role = (userRole || "").toLowerCase();
     if (role === "system") return true;
     return MAINTENANCE_ROLES.includes(role as typeof MAINTENANCE_ROLES[number]);
+  }
+
+  shouldAutoApprove(
+    toolRiskLevel: RiskLevel,
+    permissionTier: PermissionTier,
+    userRole: string | undefined,
+  ): boolean {
+    if (toolRiskLevel === "read") return true;
+
+    if (permissionTier === "strict") return false;
+
+    if (permissionTier === "autonomous") {
+      const role = (userRole || "").toLowerCase();
+      return role === "admin";
+    }
+
+    if (permissionTier === "balanced") {
+      if (toolRiskLevel === "high-write") return false;
+      const role = (userRole || "").toLowerCase();
+      if (role === "system") return true;
+      return MAINTENANCE_ROLES.includes(role as typeof MAINTENANCE_ROLES[number]);
+    }
+
+    return false;
   }
 
   sanitizeInput(text: string): string {

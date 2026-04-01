@@ -1,9 +1,14 @@
 export type ToolCategory = "fleet" | "maintenance" | "alerts" | "predictions" | "crew" | "inventory" | "work-orders" | "analytics" | "files" | "knowledge-base" | "meta";
 
+export type RiskLevel = "read" | "low-write" | "high-write";
+
+export type PermissionTier = "strict" | "balanced" | "autonomous";
+
 export interface ToolDefinition {
   name: string;
   description: string;
   category: ToolCategory;
+  riskLevel: RiskLevel;
   parameters: Record<string, unknown>;
   inputSchema?: import("zod").ZodType;
   requiresApproval: boolean;
@@ -94,4 +99,5 @@ export const DEFAULT_CONFIG = {
   compactionThreshold: 30,
   toolOutputCharLimit: 4000,
   deferredToolLoading: true,
+  permissionTier: "strict" as PermissionTier,
 } as const;

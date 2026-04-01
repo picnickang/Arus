@@ -7,6 +7,7 @@ import { registerTool } from "./registry";
 registerTool({
   name: "getEquipmentSummary",
   category: "fleet",
+  riskLevel: "read",
   description: "Get detailed information about a specific piece of equipment including its current status, type, and vessel assignment.",
   parameters: {
     type: "object",
@@ -42,6 +43,7 @@ registerTool({
 registerTool({
   name: "getVesselOverview",
   category: "fleet",
+  riskLevel: "read",
   description: "Get overview information about a vessel or list all vessels. Use when asking about a specific ship or the entire fleet.",
   parameters: {
     type: "object",
@@ -78,6 +80,7 @@ registerTool({
 registerTool({
   name: "getRiskiestEquipment",
   category: "fleet",
+  riskLevel: "read",
   description: "Find equipment across the fleet ranked by risk. Uses criticality level and active alerts to assess risk.",
   parameters: {
     type: "object",

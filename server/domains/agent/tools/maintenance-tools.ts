@@ -7,6 +7,7 @@ import { registerTool } from "./registry";
 registerTool({
   name: "getMaintenanceHistory",
   category: "maintenance",
+  riskLevel: "read",
   description: "Get maintenance schedule history for equipment. Shows upcoming, overdue, and completed maintenance tasks.",
   parameters: {
     type: "object",

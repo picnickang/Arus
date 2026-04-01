@@ -31,6 +31,7 @@ interface AgentConfig {
   compactionThreshold?: number;
   toolOutputCharLimit?: number;
   deferredToolLoading?: boolean;
+  permissionTier?: string;
 }
 
 interface UsageStats {
@@ -322,6 +323,48 @@ function ConfigTab() {
               onCheckedChange={(checked) => setFormData(prev => ({ ...prev, deferredToolLoading: checked }))}
               data-testid="switch-deferred-tool-loading"
             />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Permission Tier
+          </CardTitle>
+          <CardDescription>Control how write operations are approved by the copilot</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Select
+            value={merged.permissionTier || "strict"}
+            onValueChange={(v) => setFormData(prev => ({ ...prev, permissionTier: v }))}
+          >
+            <SelectTrigger data-testid="select-permission-tier">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="strict">Strict</SelectItem>
+              <SelectItem value="balanced">Balanced</SelectItem>
+              <SelectItem value="autonomous">Autonomous</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="text-sm text-muted-foreground space-y-2">
+            {(merged.permissionTier || "strict") === "strict" && (
+              <p>All write operations require manual approval before execution. This is the safest mode and the default.</p>
+            )}
+            {merged.permissionTier === "balanced" && (
+              <p>Low-risk write operations (e.g., sharing reports) are auto-approved for users with maintenance roles. High-risk operations (e.g., creating work orders) still require manual approval.</p>
+            )}
+            {merged.permissionTier === "autonomous" && (
+              <div>
+                <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 mb-1">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span className="font-medium">Admin-only mode</span>
+                </div>
+                <p>All tool calls are auto-approved when invoked by an admin. Other roles still follow strict approval. Use with caution in production environments.</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

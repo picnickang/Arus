@@ -4,6 +4,7 @@ import { registerTool } from "./registry";
 registerTool({
   name: "searchKnowledgeBase",
   category: "knowledge-base",
+  riskLevel: "read",
   description: "Search the organization's Knowledge Base for information from uploaded documents such as maintenance manuals, technical specifications, regulatory procedures, equipment guides, and other reference materials. Returns an AI-generated answer with citations referencing the source documents. Use this tool when the user asks about procedures, regulations, technical specs, or any topic that may be covered in uploaded documentation rather than live operational data.",
   parameters: {
     type: "object",
@@ -71,6 +72,7 @@ registerTool({
 registerTool({
   name: "listKnowledgeBaseDocs",
   category: "knowledge-base",
+  riskLevel: "read",
   description: "List all documents available in the organization's Knowledge Base. Shows document names, types, upload dates, and chunk counts. Use this tool when the user asks what documents or reference materials are available, or wants to know what's been uploaded to the knowledge base.",
   parameters: {
     type: "object",

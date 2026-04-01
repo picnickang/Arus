@@ -52,6 +52,7 @@ export function registerListAvailableToolsMeta(): void {
   registerTool({
     name: LIST_AVAILABLE_TOOLS_NAME,
     category: "meta",
+    riskLevel: "read",
     description: "List all available tools grouped by category with brief descriptions. Call this tool first to discover what capabilities are available before requesting specific tools. After reviewing the list, you can call any tool directly — the system will load it for you.",
     parameters: {
       type: "object",

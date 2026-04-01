@@ -14,6 +14,7 @@ function classifyConfidence(probability: number | null | undefined): { level: st
 registerTool({
   name: "getFailurePredictions",
   category: "predictions",
+  riskLevel: "read",
   description: "Get AI-generated failure predictions for equipment. Shows predicted failures, confidence levels, and remaining useful life. Low-confidence predictions (below 0.6) are flagged with warnings.",
   parameters: {
     type: "object",

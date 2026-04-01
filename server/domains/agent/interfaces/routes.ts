@@ -9,6 +9,7 @@ import { SchedulerService } from "../application/scheduler-service";
 import { agentRepo } from "../infrastructure/repository";
 import { getToolSummaries, getRegisteredToolNames } from "../tools";
 import { getReportArtifact } from "../tools/enhanced-report-tools";
+import { executeDraftAction } from "../application/draft-executor";
 import { MAINTENANCE_ROLES } from "../domain/types";
 import { storage } from "../../../storage";
 import { db } from "../../../db";
@@ -340,72 +341,26 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       if (!draft) return res.status(404).json({ error: "Draft not found" });
       if (draft.status !== "pending") return res.status(400).json({ error: "Draft is not pending" });
 
-      let resultId: string | undefined;
+      const execResult = await executeDraftAction(
+        draft.draftType,
+        draft.data as Record<string, unknown>,
+        orgId
+      );
 
-      if (draft.draftType === "work_order") {
-        const woData = draft.data as Record<string, unknown>;
-        const wo = await storage.createWorkOrder({ ...woData, status: "open", orgId });
-        resultId = wo.id;
-      } else if (draft.draftType === "report_share") {
-        const shareData = draft.data as Record<string, unknown>;
-        const recipients = shareData.recipients as string[];
-        const subject = shareData.subject as string;
-        const bodyText = shareData.message as string || "Please find the attached ARUS report.";
-        const reportArtifact = getReportArtifact(shareData.reportId as string);
-
-        const { emailSender } = await import("../../../services/email-notification/email-sender.js");
-        const sendErrors: string[] = [];
-
-        if (!reportArtifact || !fs.existsSync(reportArtifact.filePath)) {
-          return res.status(404).json({
-            error: "Report artifact not found or file no longer available. Cannot share without the report file.",
-          });
-        }
-
-        if (reportArtifact.orgId !== orgId) {
-          return res.status(403).json({ error: "Access denied to report artifact" });
-        }
-
-        const fileContent = fs.readFileSync(reportArtifact.filePath);
-        const mimeMap: Record<string, string> = {
-          pdf: "application/pdf",
-          json: "application/json",
-          csv: "text/csv",
-          txt: "text/plain",
-        };
-        for (const recipient of recipients) {
-          try {
-            await emailSender.sendWithAttachment(
-              recipient,
-              subject,
-              bodyText,
-              `<p>${bodyText}</p>`,
-              {
-                filename: reportArtifact.fileName,
-                content: fileContent,
-                contentType: mimeMap[reportArtifact.format] || "application/octet-stream",
-              }
-            );
-          } catch (err) {
-            sendErrors.push(`${recipient}: ${err instanceof Error ? err.message : "send failed"}`);
-          }
-        }
-
-        if (sendErrors.length > 0 && sendErrors.length === recipients.length) {
-          console.error(`[Agent] Report share failed for all recipients:`, sendErrors);
-          return res.status(502).json({
-            error: "Failed to send report to all recipients",
-            details: sendErrors,
-          });
-        }
-
-        if (sendErrors.length > 0) {
-          console.warn(`[Agent] Report share partial failure:`, sendErrors);
-        }
-
-        console.log(`[Agent] Report share sent: ${shareData.reportId} → ${recipients.join(", ")} (${sendErrors.length} failures)`);
-        resultId = shareData.reportId as string;
+      if (execResult.error) {
+        const statusCode = execResult.error.includes("Access denied") ? 403 : 
+                          execResult.error.includes("not found") ? 404 : 502;
+        return res.status(statusCode).json({
+          error: execResult.error,
+          details: execResult.partialFailures,
+        });
       }
+
+      if (execResult.partialFailures && execResult.partialFailures.length > 0) {
+        console.warn(`[Agent] Draft execution partial failure:`, execResult.partialFailures);
+      }
+
+      const resultId = execResult.resultId;
 
       const updated = await agentRepo.drafts.update(draft.id, {
         status: "approved",
@@ -476,7 +431,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const config = await agentRepo.config.get(orgId);
-      res.json(config || { defaultModel: "gpt-4o-mini", maxIterationsPerRun: 10, maxTokensPerConversation: 50000, dailyTokenLimit: 500000, monthlyTokenLimit: 5000000, contextCompaction: true, compactionThreshold: 30, toolOutputCharLimit: 4000, deferredToolLoading: true });
+      res.json(config || { defaultModel: "gpt-4o-mini", maxIterationsPerRun: 10, maxTokensPerConversation: 50000, dailyTokenLimit: 500000, monthlyTokenLimit: 5000000, contextCompaction: true, compactionThreshold: 30, toolOutputCharLimit: 4000, deferredToolLoading: true, permissionTier: "strict" });
     } catch (error: unknown) {
       res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
@@ -494,6 +449,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     compactionThreshold: z.number().int().min(5).max(100).optional(),
     toolOutputCharLimit: z.number().int().min(500).max(50000).optional(),
     deferredToolLoading: z.boolean().optional(),
+    permissionTier: z.enum(["strict", "balanced", "autonomous"]).optional(),
   });
 
   app.put("/api/agent/config", rateLimit.writeOperationRateLimit, requireAdminRole, async (req: Request, res: Response) => {
@@ -541,6 +497,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         compactionThreshold: 30,
         toolOutputCharLimit: 4000,
         deferredToolLoading: true,
+        permissionTier: "strict",
       };
       const config = await agentRepo.config.upsert(defaults);
       res.json(config);

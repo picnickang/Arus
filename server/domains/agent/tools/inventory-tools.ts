@@ -6,6 +6,7 @@ import { registerTool } from "./registry";
 registerTool({
   name: "getInventoryStatus",
   category: "inventory",
+  riskLevel: "read",
   description: "Get inventory and parts status summary.",
   parameters: {
     type: "object",

@@ -10,6 +10,7 @@ import { registerTool } from "./registry";
 registerTool({
   name: "generateFleetReport",
   category: "analytics",
+  riskLevel: "read",
   description: "Generate a comprehensive fleet health report. Aggregates equipment status, active alerts, upcoming maintenance, and failure predictions into a summary.",
   parameters: {
     type: "object",

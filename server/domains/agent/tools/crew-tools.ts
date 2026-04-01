@@ -7,6 +7,7 @@ import { registerTool } from "./registry";
 registerTool({
   name: "getCrewInfo",
   category: "crew",
+  riskLevel: "read",
   description: "Get crew member information. Shows crew assignments, roles, and availability.",
   parameters: {
     type: "object",
@@ -40,6 +41,7 @@ registerTool({
 registerTool({
   name: "getCrewSchedule",
   category: "crew",
+  riskLevel: "read",
   description: "Get crew scheduling information including shift assignments, duty rosters, and upcoming schedules for a vessel or specific crew member.",
   parameters: {
     type: "object",
