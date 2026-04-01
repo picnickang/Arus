@@ -1039,9 +1039,11 @@ export class AgentOrchestrator {
               status: "approved",
               createdById: userId,
             });
-            if (execResult.resultId) {
-              await this.repo.drafts.update(draft.id, { resultId: execResult.resultId });
-            }
+            await this.repo.drafts.update(draft.id, {
+              reviewedById: userId,
+              reviewNote: `Auto-approved (tier: ${permissionTier}, risk: ${tool.riskLevel})`,
+              ...(execResult.resultId ? { resultId: execResult.resultId } : {}),
+            });
             await this.repo.approvals.create({
               orgId, draftId: draft.id, conversationId,
               action: "approved",
