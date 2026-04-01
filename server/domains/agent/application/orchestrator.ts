@@ -340,6 +340,7 @@ export class AgentOrchestrator {
       });
     }
 
+    const kbIngestedFiles: Array<{ name: string; chunks: number }> = [];
     if (this.knowledgeBase) {
       const docMimeTypes = ["application/pdf", "text/csv", "text/plain",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -360,6 +361,7 @@ export class AgentOrchestrator {
           const ext = att.filename.split(".").pop()?.toLowerCase() || "";
           const fileType = mimeToType[att.mimetype] || ext || "txt";
           const result = await this.knowledgeBase.ingestDocument(orgId, att.filename, fileBuffer, fileType, userId);
+          kbIngestedFiles.push({ name: att.filename, chunks: result.chunkCount });
           fileDescriptions.push(`[KB: "${att.filename}" ingested — ${result.chunkCount} chunks indexed]`);
         } catch (err) {
           console.warn(`[Agent] KB ingestion failed for ${att.filename}:`, err instanceof Error ? err.message : "unknown");
@@ -383,6 +385,16 @@ export class AgentOrchestrator {
       conversationId: conversation.id, role: "user", content: displayContent,
     });
     await this.repo.conversations.incrementMessageCount(conversation.id, 0);
+
+    if (kbIngestedFiles.length > 0) {
+      const ingestionSummary = kbIngestedFiles
+        .map(f => `• "${f.name}" — ${f.chunks} chunks indexed`)
+        .join("\n");
+      const systemContent = `[Knowledge Base] ${kbIngestedFiles.length} document(s) automatically ingested into the Knowledge Base:\n${ingestionSummary}\nThese documents are now searchable via the searchKnowledgeBase tool.`;
+      await this.repo.messages.create({
+        conversationId: conversation.id, role: "system", content: systemContent,
+      });
+    }
 
     const history = await this.repo.messages.list(conversation.id, 50);
     const openaiMessages = this.buildOpenAIMessages(history, customPrompt);

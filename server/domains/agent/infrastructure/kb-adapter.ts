@@ -113,9 +113,15 @@ export function createKnowledgeBaseAdapter(): KnowledgeBasePort {
 
     async ingestDocument(orgId, fileName, fileBuffer, fileType, uploadedBy) {
       const { ingestDocument } = await import("../../../services/document-ingestion");
-      const validTypes = ["pdf", "png", "jpg", "jpeg", "docx", "xlsx", "txt", "md"];
+      type SupportedFileType = "pdf" | "png" | "jpg" | "jpeg" | "docx" | "xlsx" | "txt" | "md";
+      const supportedTypes: SupportedFileType[] = ["pdf", "png", "jpg", "jpeg", "docx", "xlsx", "txt", "md"];
       const normalizedType = fileType.toLowerCase().replace(/^\./, "");
-      if (!validTypes.includes(normalizedType)) {
+
+      function isSupportedFileType(t: string): t is SupportedFileType {
+        return (supportedTypes as string[]).includes(t);
+      }
+
+      if (!isSupportedFileType(normalizedType)) {
         throw new Error(`Unsupported file type for KB ingestion: ${fileType}`);
       }
 
@@ -123,7 +129,7 @@ export function createKnowledgeBaseAdapter(): KnowledgeBasePort {
         orgId,
         fileName,
         fileBuffer,
-        fileType: normalizedType as any,
+        fileType: normalizedType,
         uploadedBy,
       }, { skipValidation: false });
 
