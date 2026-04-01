@@ -91,23 +91,34 @@ export interface AgentApprovalPort {
   list(orgId: string, draftId?: string): Promise<AgentApproval[]>;
 }
 
+/** A single citation referencing a chunk from a KB document. */
 export interface KnowledgeBaseCitation {
   docId: string;
   docName: string;
   chunkId: string;
   text: string;
+  /** Relevance score between 0 and 1. */
   relevance: number;
+  /** Ordinal position of the citation within the result set. */
   ord: number;
 }
 
+/**
+ * Result of a KB search query.
+ * On success, `answer` contains the generated response and `error` is undefined.
+ * On failure, `error` contains a human-readable message and `answer` may be empty.
+ */
 export interface KnowledgeBaseSearchResult {
   answer: string;
   citations: KnowledgeBaseCitation[];
   sourceChunkIds: string[];
   modelUsed: string;
   cached: boolean;
+  /** Set when the search failed; consumers should check this field before using `answer`. */
+  error?: string;
 }
 
+/** Summary metadata for a single KB document. */
 export interface KnowledgeBaseDocSummary {
   id: string;
   name: string;
@@ -118,20 +129,39 @@ export interface KnowledgeBaseDocSummary {
   status: string;
 }
 
+/** Aggregate statistics for all documents in an org's KB. */
 export interface KnowledgeBaseStats {
   totalDocs: number;
   totalChunks: number;
 }
 
+/** Result returned after successfully ingesting a document into the KB. */
 export interface KnowledgeBaseIngestResult {
   docId: string;
   chunkCount: number;
 }
 
+/**
+ * Port for interacting with the organization-scoped Knowledge Base.
+ * All methods accept an `orgId` to scope operations to a single organization.
+ */
 export interface KnowledgeBasePort {
+  /**
+   * Search the KB with a natural-language query and return an AI-generated answer with citations.
+   * On error the returned result has `error` set instead of throwing.
+   */
   search(orgId: string, query: string, options?: { maxSources?: number; threshold?: number }): Promise<KnowledgeBaseSearchResult>;
+
+  /** List all documents ingested into the org's KB, ordered by creation date. */
   listDocuments(orgId: string): Promise<KnowledgeBaseDocSummary[]>;
+
+  /** Return aggregate doc/chunk counts for the org's KB. */
   getStats(orgId: string): Promise<KnowledgeBaseStats>;
+
+  /**
+   * Ingest a document into the KB. The file is chunked, embedded, and indexed.
+   * @throws if the file type is unsupported or ingestion fails.
+   */
   ingestDocument(orgId: string, fileName: string, fileBuffer: Buffer, fileType: string, uploadedBy?: string): Promise<KnowledgeBaseIngestResult>;
 }
 

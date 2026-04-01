@@ -445,7 +445,7 @@ registerTool({
         try {
           const kbQuery = `${reportType} ${vesselId ? "vessel " + vesselId : "fleet"} reference documentation`;
           const kbResult = await ctx.knowledgeBase.search(ctx.orgId, kbQuery, { maxSources: 3 });
-          if (kbResult.citations.length > 0) {
+          if (!kbResult.error && kbResult.citations.length > 0) {
             response.referenceDocuments = kbResult.citations.map((c, i) => ({
               ref: `[${i + 1}]`,
               document: c.docName,
@@ -453,7 +453,8 @@ registerTool({
               excerpt: c.text.length > 150 ? c.text.slice(0, 150) + "..." : c.text,
             }));
           }
-        } catch {
+        } catch (err) {
+          console.warn("[Agent] KB enrichment query failed:", err instanceof Error ? err.message : "unknown");
         }
       }
 

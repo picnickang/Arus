@@ -18,6 +18,7 @@ import { z } from "zod";
 
 import { getOrgUploadDir, registerFile, listConversationFiles } from "../infrastructure/file-registry";
 import { knowledgeBaseAdapter } from "../infrastructure/kb-adapter";
+import { ingestFilesToKB, buildIngestionSystemMessage } from "../infrastructure/kb-ingestion-helper";
 import { buildSystemPrompt } from "../domain/system-prompt";
 
 const upload = multer({
@@ -33,17 +34,20 @@ const upload = multer({
   }),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    const allowed = [
+    const allowedMimes = [
       "image/png", "image/jpeg",
       "application/pdf", "text/csv", "text/plain", "text/markdown",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     ];
     const allowedExtensions = /\.(pdf|csv|txt|md|docx|xlsx|png|jpe?g)$/i;
-    if (allowed.includes(file.mimetype) || allowedExtensions.test(file.originalname)) {
+    const mimeOk = allowedMimes.includes(file.mimetype) || file.mimetype === "application/octet-stream";
+    const extOk = allowedExtensions.test(file.originalname);
+    if (mimeOk && extOk) {
       cb(null, true);
     } else {
-      cb(new Error(`Unsupported file type: ${file.mimetype}. Allowed: PNG, JPEG, PDF, CSV, TXT, DOCX, XLSX.`));
+      console.warn(`[Agent] Rejected upload: "${file.originalname}" (MIME: ${file.mimetype}, ext match: ${extOk}, mime match: ${mimeOk})`);
+      cb(new Error(`Unsupported file type: ${file.mimetype}. Allowed: PNG, JPEG, PDF, CSV, TXT, MD, DOCX, XLSX.`));
     }
   },
 });
@@ -175,56 +179,49 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         return res.status(404).json({ error: "Conversation not found" });
       }
 
-      const docMimeTypes = ["application/pdf", "text/csv", "text/plain", "text/markdown",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"];
-      const mimeToType: Record<string, string> = {
-        "application/pdf": "pdf", "text/csv": "txt", "text/plain": "txt", "text/markdown": "md",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
-      };
-
       const fileRefs = await Promise.all(files.map(async f => {
         const record = await registerFile(orgId, conversationId, f);
-
-        const isDoc = docMimeTypes.includes(f.mimetype) || /\.(pdf|docx|xlsx|txt|md|csv)$/i.test(f.originalname);
-        let kbIngested = false;
-        if (isDoc) {
-          try {
-            const fs = await import("fs");
-            const fileBuffer = fs.readFileSync(f.path);
-            const ext = f.originalname.split(".").pop()?.toLowerCase() || "";
-            const fileType = mimeToType[f.mimetype] || ext || "txt";
-            await knowledgeBaseAdapter.ingestDocument(orgId, f.originalname, fileBuffer, fileType, userId);
-            kbIngested = true;
-          } catch (err) {
-            console.warn(`[Agent] KB ingestion failed for ${f.originalname}:`, err instanceof Error ? err.message : "unknown");
-          }
-        }
-
         return {
           fileId: record.id,
           filename: record.filename,
           mimetype: record.mimetype,
           size: record.size,
-          kbIngested,
+          originalname: f.originalname,
+          path: f.path,
         };
       }));
 
-      const ingestedFiles = fileRefs.filter(f => f.kbIngested);
-      if (ingestedFiles.length > 0) {
+      const kbFiles = fileRefs.map(f => ({
+        path: f.path,
+        filename: f.originalname,
+        mimetype: f.mimetype,
+      }));
+      const kbResults = await ingestFilesToKB(knowledgeBaseAdapter, orgId, kbFiles, userId);
+
+      const kbIngestedSet = new Set(kbResults.map(r => r.filename));
+
+      if (kbResults.length > 0) {
         try {
-          const summary = ingestedFiles.map(f => `• "${f.filename}"`).join("\n");
+          const systemContent = buildIngestionSystemMessage(kbResults);
           await agentRepo.messages.create({
             conversationId,
             role: "system",
-            content: `[Knowledge Base] ${ingestedFiles.length} document(s) automatically ingested:\n${summary}\nThese documents are now searchable via the searchKnowledgeBase tool.`,
+            content: systemContent,
           });
-        } catch {
+        } catch (err) {
+          console.warn("[Agent] Failed to create KB ingestion system message:", err instanceof Error ? err.message : "unknown");
         }
       }
 
-      res.json({ files: fileRefs });
+      res.json({
+        files: fileRefs.map(f => ({
+          fileId: f.fileId,
+          filename: f.filename,
+          mimetype: f.mimetype,
+          size: f.size,
+          kbIngested: kbIngestedSet.has(f.originalname),
+        })),
+      });
     } catch (error: unknown) {
       console.error("[Agent] File upload error:", error);
       res.status(500).json({ error: error instanceof Error ? error.message : "Upload failed" });

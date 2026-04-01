@@ -46,12 +46,14 @@ export function createKnowledgeBaseAdapter(): KnowledgeBasePort {
         };
       } catch (err) {
         const message = err instanceof Error ? err.message : "Knowledge base search failed";
+        console.warn("[KBAdapter] search failed:", message);
         return {
-          answer: `Unable to search the knowledge base: ${message}`,
+          answer: "",
           citations: [],
           sourceChunkIds: [],
           modelUsed: "none",
           cached: false,
+          error: `Unable to search the knowledge base: ${message}`,
         };
       }
     },

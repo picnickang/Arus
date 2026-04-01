@@ -34,9 +34,9 @@ registerTool({
       maxSources: maxSources ?? 5,
     });
 
-    if (result.answer.startsWith("Unable to search")) {
+    if (result.error) {
       return {
-        error: result.answer,
+        error: result.error,
         documentsFound: 0,
         suggestion: "The Knowledge Base search encountered an error. Please try again or contact an administrator.",
       };

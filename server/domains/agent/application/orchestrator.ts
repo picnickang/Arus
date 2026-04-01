@@ -7,6 +7,7 @@ import { getTool, getToolOpenAIDefinitions } from "../tools";
 import { SafetyService } from "./safety-service";
 import { auditAction } from "../../../utils/audit-helpers";
 import { registerFile, listConversationFiles } from "../infrastructure/file-registry";
+import { ingestFilesToKB, buildIngestionSystemMessage } from "../infrastructure/kb-ingestion-helper";
 import { buildSystemPrompt } from "../domain/system-prompt";
 import type { AgentConversation, AgentMessage, AgentConfigType } from "@shared/schema";
 
@@ -340,32 +341,17 @@ export class AgentOrchestrator {
       });
     }
 
-    const kbIngestedFiles: Array<{ name: string; chunks: number }> = [];
+    const kbIngested: Array<{ filename: string; chunkCount: number }> = [];
     if (this.knowledgeBase) {
-      const docMimeTypes = ["application/pdf", "text/csv", "text/plain",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"];
-      const mimeToType: Record<string, string> = {
-        "application/pdf": "pdf",
-        "text/csv": "txt",
-        "text/plain": "txt",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
-      };
-      for (const att of attachments) {
-        const isDoc = docMimeTypes.includes(att.mimetype) ||
-          /\.(pdf|docx|xlsx|txt|md|csv)$/i.test(att.filename);
-        if (!isDoc) continue;
-        try {
-          const fileBuffer = fs.readFileSync(att.path);
-          const ext = att.filename.split(".").pop()?.toLowerCase() || "";
-          const fileType = mimeToType[att.mimetype] || ext || "txt";
-          const result = await this.knowledgeBase.ingestDocument(orgId, att.filename, fileBuffer, fileType, userId);
-          kbIngestedFiles.push({ name: att.filename, chunks: result.chunkCount });
-          fileDescriptions.push(`[KB: "${att.filename}" ingested — ${result.chunkCount} chunks indexed]`);
-        } catch (err) {
-          console.warn(`[Agent] KB ingestion failed for ${att.filename}:`, err instanceof Error ? err.message : "unknown");
-        }
+      const results = await ingestFilesToKB(
+        this.knowledgeBase,
+        orgId,
+        attachments.map(att => ({ path: att.path, filename: att.filename, mimetype: att.mimetype })),
+        userId,
+      );
+      for (const r of results) {
+        kbIngested.push(r);
+        fileDescriptions.push(`[KB: "${r.filename}" ingested — ${r.chunkCount} chunks indexed]`);
       }
     }
 
@@ -386,11 +372,8 @@ export class AgentOrchestrator {
     });
     await this.repo.conversations.incrementMessageCount(conversation.id, 0);
 
-    if (kbIngestedFiles.length > 0) {
-      const ingestionSummary = kbIngestedFiles
-        .map(f => `• "${f.name}" — ${f.chunks} chunks indexed`)
-        .join("\n");
-      const systemContent = `[Knowledge Base] ${kbIngestedFiles.length} document(s) automatically ingested into the Knowledge Base:\n${ingestionSummary}\nThese documents are now searchable via the searchKnowledgeBase tool.`;
+    if (kbIngested.length > 0) {
+      const systemContent = buildIngestionSystemMessage(kbIngested);
       await this.repo.messages.create({
         conversationId: conversation.id, role: "system", content: systemContent,
       });
