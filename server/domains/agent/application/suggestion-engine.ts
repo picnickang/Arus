@@ -129,11 +129,14 @@ export class SuggestionEngine {
   private async evaluateHighRiskPredictions(orgId: string, minSeverity: string, pendingKeys: Set<string>): Promise<AgentSuggestion[]> {
     const results: AgentSuggestion[] = [];
     const highRiskPredictions = await db.select({
+      id: failurePredictions.id,
       equipmentId: failurePredictions.equipmentId,
       failureMode: failurePredictions.failureMode,
       failureProbability: failurePredictions.failureProbability,
       riskLevel: failurePredictions.riskLevel,
       predictedFailureDate: failurePredictions.predictedFailureDate,
+      modelId: failurePredictions.modelId,
+      confidenceInterval: failurePredictions.confidenceInterval,
     }).from(failurePredictions)
       .where(and(
         eq(failurePredictions.orgId, orgId),
@@ -184,10 +187,13 @@ export class SuggestionEngine {
             const signal: AgentSignal = {
               type: "high_risk_prediction",
               orgId,
+              predictionId: pred.id,
               equipmentId: pred.equipmentId,
               failureProbability: pred.failureProbability,
               failureMode: pred.failureMode || "Unknown",
               riskLevel: pred.riskLevel || "high",
+              modelId: pred.modelId,
+              confidenceInterval: pred.confidenceInterval,
               predictedFailureDate: pred.predictedFailureDate
                 ? new Date(pred.predictedFailureDate).toISOString()
                 : null,

@@ -145,7 +145,7 @@ export class AgentOrchestrator {
       undefined,
       undefined,
       prompt,
-      "system",
+      "admin",
       { maxTokenBudget: 4000 },
     );
 
@@ -161,21 +161,29 @@ export class AgentOrchestrator {
     }
 
     try {
+      const existing = await this.repo.conversations.get(result.conversationId, signal.orgId);
+      const existingMeta = (existing?.metadata as Record<string, unknown>) || {};
+      const provenance = {
+        ...existingMeta,
+        triggerType: "prediction_signal",
+        triggerId: String(signal.predictionId),
+        signalType: signal.type,
+        equipmentId: signal.equipmentId,
+        failureProbability: signal.failureProbability,
+        riskLevel: signal.riskLevel,
+        modelId: signal.modelId ?? null,
+        confidenceInterval: signal.confidenceInterval ?? null,
+      };
       await this.repo.conversations.update(result.conversationId, {
-        metadata: {
-          triggerType: "prediction_signal",
-          triggerId: signal.equipmentId,
-          signalType: signal.type,
-          failureProbability: signal.failureProbability,
-        },
-      } as any);
+        metadata: provenance,
+      } as Partial<AgentConversation>);
     } catch {
       // Non-critical
     }
 
     console.log(
       `[AgentOrchestrator] Signal processed: ${signal.type} for equipment ${signal.equipmentId} ` +
-      `(probability: ${signal.failureProbability}) → conversation ${result.conversationId}`,
+      `(prediction #${signal.predictionId}, probability: ${signal.failureProbability}) → conversation ${result.conversationId}`,
     );
 
     return result;

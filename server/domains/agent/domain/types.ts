@@ -94,10 +94,13 @@ export const AGENT_EVENTS = {
 export interface AgentSignal {
   type: "high_risk_prediction";
   orgId: string;
+  predictionId: number;
   equipmentId: string;
   failureProbability: number;
   failureMode: string;
   riskLevel: string;
+  modelId?: string | null;
+  confidenceInterval?: unknown;
   predictedFailureDate?: string | null;
   suggestionId?: string;
 }

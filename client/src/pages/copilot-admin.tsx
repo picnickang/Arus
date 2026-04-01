@@ -99,6 +99,16 @@ interface AdminConversation {
   totalTokensUsed: number;
   lastMessageAt: string | null;
   createdAt: string;
+  metadata?: {
+    triggerType?: string;
+    triggerId?: string;
+    signalType?: string;
+    equipmentId?: string;
+    failureProbability?: number;
+    riskLevel?: string;
+    modelId?: string | null;
+    [key: string]: unknown;
+  } | null;
 }
 
 function ConfigTab() {
@@ -1201,18 +1211,38 @@ function DataTab() {
           </CardHeader>
           <CardContent>
             <div className="space-y-1 max-h-80 overflow-y-auto">
-              {conversations.slice(0, 20).map((conv) => (
-                <div key={conv.id} className="flex items-center justify-between text-sm py-2 border-b last:border-0" data-testid={`conv-row-${conv.id}`}>
-                  <div className="flex-1 min-w-0 mr-4">
-                    <p className="font-medium truncate">{conv.title || "Untitled"}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {conv.messageCount} msgs | {((conv.totalTokensUsed || 0) / 1000).toFixed(1)}k tokens
-                      {conv.lastMessageAt && ` | ${new Date(conv.lastMessageAt).toLocaleDateString()}`}
-                    </p>
+              {conversations.slice(0, 20).map((conv) => {
+                const meta = conv.metadata;
+                const isAutoTriggered = meta?.triggerType === "prediction_signal";
+                return (
+                  <div key={conv.id} className="flex items-center justify-between text-sm py-2 border-b last:border-0" data-testid={`conv-row-${conv.id}`}>
+                    <div className="flex-1 min-w-0 mr-4">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium truncate">{conv.title || "Untitled"}</p>
+                        {isAutoTriggered && (
+                          <Badge variant="outline" className="text-xs shrink-0" data-testid={`badge-auto-trigger-${conv.id}`}>
+                            <Zap className="h-3 w-3 mr-1" />
+                            Auto-triggered
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {conv.messageCount} msgs | {((conv.totalTokensUsed || 0) / 1000).toFixed(1)}k tokens
+                        {conv.lastMessageAt && ` | ${new Date(conv.lastMessageAt).toLocaleDateString()}`}
+                      </p>
+                      {isAutoTriggered && meta && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5" data-testid={`text-provenance-${conv.id}`}>
+                          Prediction #{meta.triggerId} | Equipment: {meta.equipmentId}
+                          {meta.failureProbability != null && ` | ${(meta.failureProbability * 100).toFixed(0)}% probability`}
+                          {meta.riskLevel && ` | Risk: ${meta.riskLevel}`}
+                          {meta.modelId && ` | Model: ${meta.modelId}`}
+                        </p>
+                      )}
+                    </div>
+                    <Badge variant={conv.status === "active" ? "default" : "secondary"}>{conv.status}</Badge>
                   </div>
-                  <Badge variant={conv.status === "active" ? "default" : "secondary"}>{conv.status}</Badge>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
