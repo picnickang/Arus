@@ -88,6 +88,13 @@ export function createAgentRepository(): AgentRepositoryPort {
           .orderBy(agentMessages.createdAt)
           .limit(limit);
       },
+      async listRecent(conversationId: string, limit = 50): Promise<AgentMessage[]> {
+        const rows = await db.select().from(agentMessages)
+          .where(eq(agentMessages.conversationId, conversationId))
+          .orderBy(desc(agentMessages.createdAt))
+          .limit(limit);
+        return rows.reverse();
+      },
     },
 
     toolCalls: {

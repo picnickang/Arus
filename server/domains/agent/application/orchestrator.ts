@@ -3,12 +3,20 @@ import fs from "fs";
 import { createOpenAIClient } from "../../../openai/client";
 import type { AgentRepositoryPort, KnowledgeBasePort } from "../domain/ports";
 import type { AgentRunResult, FileAttachment, ToolCallTrace } from "../domain/types";
+import { DEFAULT_CONFIG } from "../domain/types";
 import { getTool, getToolOpenAIDefinitions } from "../tools";
 import { SafetyService } from "./safety-service";
 import { auditAction } from "../../../utils/audit-helpers";
 import { registerFile, listConversationFiles } from "../infrastructure/file-registry";
 import { ingestFilesToKB, buildIngestionSystemMessage } from "../infrastructure/kb-ingestion-helper";
 import { buildSystemPrompt } from "../domain/system-prompt";
+import {
+  buildCompactedMessages,
+  compactToolOutput,
+  generateConversationSummary,
+  shouldSummarize,
+  type CompactionConfig,
+} from "./context-compaction";
 import type { AgentConversation, AgentMessage, AgentConfigType } from "@shared/schema";
 
 interface StoredToolCallRef {
@@ -30,6 +38,45 @@ export class AgentOrchestrator {
   constructor(private repo: AgentRepositoryPort, knowledgeBase?: KnowledgeBasePort) {
     this.safety = new SafetyService(repo);
     this.knowledgeBase = knowledgeBase;
+  }
+
+  private getCompactionConfig(config: AgentConfigType | null | undefined, model: string): CompactionConfig {
+    return {
+      enabled: config?.contextCompaction ?? DEFAULT_CONFIG.contextCompaction,
+      threshold: config?.compactionThreshold ?? DEFAULT_CONFIG.compactionThreshold,
+      model,
+    };
+  }
+
+  private async maybeSummarize(
+    client: OpenAI,
+    conversation: AgentConversation,
+    compactionCfg: CompactionConfig,
+    model: string,
+  ): Promise<string | null | undefined> {
+    if (!compactionCfg.enabled) return conversation.contextSummary;
+
+    const summarizedUpTo = conversation.summarizedUpTo || 0;
+    if (!shouldSummarize(conversation.messageCount, summarizedUpTo, compactionCfg.threshold)) {
+      return conversation.contextSummary;
+    }
+
+    const allMessages = await this.repo.messages.list(conversation.id, 500);
+    const keepRecent = 10;
+    const messagesToSummarize = allMessages.slice(0, Math.max(0, allMessages.length - keepRecent));
+
+    if (messagesToSummarize.length < 5) return conversation.contextSummary;
+
+    const summary = await generateConversationSummary(client, messagesToSummarize, model);
+    if (!summary) return conversation.contextSummary;
+
+    const newSummarizedUpTo = messagesToSummarize.length;
+    await this.repo.conversations.update(conversation.id, {
+      contextSummary: summary,
+      summarizedUpTo: newSummarizedUpTo,
+    } as Partial<AgentConversation>);
+
+    return summary;
   }
 
   private async auditRunLifecycle(
@@ -88,8 +135,13 @@ export class AgentOrchestrator {
     });
     await this.repo.conversations.incrementMessageCount(conversation.id, 0);
 
-    const history = await this.repo.messages.list(conversation.id, 50);
-    const openaiMessages = this.buildOpenAIMessages(history, customPrompt);
+    const compactionCfg = this.getCompactionConfig(config, model);
+    const contextSummary = await this.maybeSummarize(client, conversation, compactionCfg, model);
+
+    const history = compactionCfg.enabled
+      ? await this.repo.messages.listRecent(conversation.id, 100)
+      : await this.repo.messages.list(conversation.id, 50);
+    const openaiMessages = buildCompactedMessages(history, customPrompt, contextSummary, compactionCfg);
 
     const convFiles = await listConversationFiles(conversation.id, orgId);
     if (convFiles.length > 0) {
@@ -181,8 +233,9 @@ export class AgentOrchestrator {
             });
             await this.repo.conversations.incrementMessageCount(conversation.id, 0);
 
+            const compactedContent = compactionCfg.enabled ? compactToolOutput(toolMsgContent) : toolMsgContent;
             openaiMessages.push({
-              role: "tool", tool_call_id: tc.id, content: toolMsgContent,
+              role: "tool", tool_call_id: tc.id, content: compactedContent,
             });
           }
           continue;
@@ -379,8 +432,13 @@ export class AgentOrchestrator {
       });
     }
 
-    const history = await this.repo.messages.list(conversation.id, 50);
-    const openaiMessages = this.buildOpenAIMessages(history, customPrompt);
+    const compactionCfg = this.getCompactionConfig(config, model);
+    const contextSummary = await this.maybeSummarize(client, conversation, compactionCfg, model);
+
+    const history = compactionCfg.enabled
+      ? await this.repo.messages.listRecent(conversation.id, 100)
+      : await this.repo.messages.list(conversation.id, 50);
+    const openaiMessages = buildCompactedMessages(history, customPrompt, contextSummary, compactionCfg);
 
     for (let i = openaiMessages.length - 1; i >= 0; i--) {
       if (openaiMessages[i].role === "user") {
@@ -465,8 +523,9 @@ export class AgentOrchestrator {
             });
             await this.repo.conversations.incrementMessageCount(conversation.id, 0);
 
+            const compactedContent = compactionCfg.enabled ? compactToolOutput(toolMsgContent) : toolMsgContent;
             openaiMessages.push({
-              role: "tool", tool_call_id: tc.id, content: toolMsgContent,
+              role: "tool", tool_call_id: tc.id, content: compactedContent,
             });
           }
           continue;
@@ -544,8 +603,13 @@ export class AgentOrchestrator {
     });
     await this.repo.conversations.incrementMessageCount(conversation.id, 0);
 
-    const history = await this.repo.messages.list(conversation.id, 50);
-    const openaiMessages = this.buildOpenAIMessages(history, customPrompt);
+    const compactionCfg = this.getCompactionConfig(config, model);
+    const contextSummary = await this.maybeSummarize(client, conversation, compactionCfg, model);
+
+    const history = compactionCfg.enabled
+      ? await this.repo.messages.listRecent(conversation.id, 100)
+      : await this.repo.messages.list(conversation.id, 50);
+    const openaiMessages = buildCompactedMessages(history, customPrompt, contextSummary, compactionCfg);
     const enabledToolsStream = config?.enabledTools as string[] | null;
     const toolDefs = getToolOpenAIDefinitions(enabledToolsStream);
     const toolContext: ToolContext = { orgId, userId, conversationId: conversation.id, userRole, knowledgeBase: this.knowledgeBase };
@@ -641,7 +705,8 @@ export class AgentOrchestrator {
             });
             await this.repo.conversations.incrementMessageCount(conversation.id, 0);
 
-            openaiMessages.push({ role: "tool", tool_call_id: tc.id, content: toolMsgContent });
+            const compactedContent = compactionCfg.enabled ? compactToolOutput(toolMsgContent) : toolMsgContent;
+            openaiMessages.push({ role: "tool", tool_call_id: tc.id, content: compactedContent });
           }
           continue;
         }

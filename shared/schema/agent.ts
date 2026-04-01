@@ -23,6 +23,8 @@ export const agentConversations = pgTable("agent_conversations", {
   totalTokensUsed: integer("total_tokens_used").default(0),
   lastMessageAt: timestamp("last_message_at", { mode: "date" }),
   metadata: jsonb("metadata").default({}),
+  contextSummary: text("context_summary"),
+  summarizedUpTo: integer("summarized_up_to").default(0),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
 }, (table) => [
@@ -112,6 +114,8 @@ export const agentConfig = pgTable("agent_config", {
   monthlyTokenLimit: integer("monthly_token_limit").default(5000000),
   customSystemPrompt: text("custom_system_prompt"),
   enabledTools: jsonb("enabled_tools"),
+  contextCompaction: boolean("context_compaction").notNull().default(true),
+  compactionThreshold: integer("compaction_threshold").notNull().default(30),
   suggestionPreferences: jsonb("suggestion_preferences"),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
@@ -174,7 +178,7 @@ export const agentScheduleRuns = pgTable("agent_schedule_runs", {
 ]);
 
 export const insertAgentConversationSchema = createInsertSchema(agentConversations)
-  .omit({ id: true, createdAt: true, updatedAt: true, messageCount: true, totalTokensUsed: true, lastMessageAt: true });
+  .omit({ id: true, createdAt: true, updatedAt: true, messageCount: true, totalTokensUsed: true, lastMessageAt: true, contextSummary: true, summarizedUpTo: true });
 
 export const insertAgentMessageSchema = createInsertSchema(agentMessages)
   .omit({ id: true, createdAt: true });

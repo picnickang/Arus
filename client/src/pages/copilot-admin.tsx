@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   Bot, Settings, BarChart3, Lightbulb, Clock,
   Save, RefreshCw, Loader2, Trash2, Play, Pause,
-  AlertTriangle, CheckCircle, XCircle, Zap,
+  AlertTriangle, CheckCircle, XCircle, Zap, Layers,
   MessageSquare, Wrench, TrendingUp, RotateCcw,
   Shield, Database, Pencil, Download,
 } from "lucide-react";
@@ -27,6 +27,8 @@ interface AgentConfig {
   monthlyTokenLimit: number;
   customSystemPrompt?: string;
   enabledTools?: string[] | null;
+  contextCompaction?: boolean;
+  compactionThreshold?: number;
 }
 
 interface UsageStats {
@@ -241,6 +243,45 @@ function ConfigTab() {
               />
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Layers className="h-5 w-5" />
+            Context Compaction
+          </CardTitle>
+          <CardDescription>Smart context management to keep long conversations coherent while reducing token usage</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="contextCompaction">Enable Context Compaction</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">Automatically summarize older messages and truncate large tool outputs</p>
+            </div>
+            <Switch
+              id="contextCompaction"
+              checked={merged.contextCompaction !== false}
+              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, contextCompaction: checked }))}
+              data-testid="switch-context-compaction"
+            />
+          </div>
+          {merged.contextCompaction !== false && (
+            <div className="space-y-2">
+              <Label htmlFor="compactionThreshold">Compaction Threshold (messages)</Label>
+              <p className="text-xs text-muted-foreground">Summarize older messages when conversation exceeds this count</p>
+              <Input
+                id="compactionThreshold"
+                type="number"
+                min={5}
+                max={100}
+                value={merged.compactionThreshold || 30}
+                onChange={(e) => setFormData(prev => ({ ...prev, compactionThreshold: parseInt(e.target.value) || 30 }))}
+                data-testid="input-compaction-threshold"
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -87,4 +87,6 @@ export const DEFAULT_CONFIG = {
   maxTokensPerConversation: 50000,
   dailyTokenLimit: 500000,
   monthlyTokenLimit: 5000000,
+  contextCompaction: true,
+  compactionThreshold: 30,
 } as const;
