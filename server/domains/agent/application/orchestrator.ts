@@ -1014,7 +1014,22 @@ export class AgentOrchestrator {
           const execResult = await executeDraftAction(draftType, data, orgId);
 
           if (execResult.error) {
-            toolResult = { ...toolResult, autoApproveError: execResult.error };
+            const fallbackDraft = await this.repo.drafts.create({
+              orgId, conversationId,
+              draftType,
+              title: (data?.title as string) || toolName,
+              data,
+              status: "pending",
+              createdById: userId,
+            });
+            toolResult = {
+              ...toolResult,
+              draftId: fallbackDraft.id,
+              autoApproveError: execResult.error,
+              autoApproveFailed: true,
+              message: `Auto-approval failed: ${execResult.error}. A pending draft has been created for manual review.`,
+            };
+            toolStatus = "error";
           } else {
             const draft = await this.repo.drafts.create({
               orgId, conversationId,
