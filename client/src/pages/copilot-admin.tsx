@@ -444,16 +444,22 @@ function ConfigTab() {
               <div className="space-y-2">
                 <Label htmlFor="autoTriggerThreshold">Failure Probability Threshold</Label>
                 <p className="text-xs text-muted-foreground">Predictions with probability at or above this value will trigger an automatic agent run (0.80 - 1.00)</p>
-                <Input
-                  id="autoTriggerThreshold"
-                  type="number"
-                  min={0.8}
-                  max={1.0}
-                  step={0.05}
-                  value={merged.autoTriggerThreshold ?? 0.85}
-                  onChange={(e) => setFormData(prev => ({ ...prev, autoTriggerThreshold: parseFloat(e.target.value) || 0.85 }))}
-                  data-testid="input-auto-trigger-threshold"
-                />
+                <div className="flex items-center gap-4">
+                  <input
+                    id="autoTriggerThreshold"
+                    type="range"
+                    min={0.80}
+                    max={1.0}
+                    step={0.01}
+                    value={merged.autoTriggerThreshold ?? 0.85}
+                    onChange={(e) => setFormData(prev => ({ ...prev, autoTriggerThreshold: parseFloat(e.target.value) || 0.85 }))}
+                    className="flex-1 h-2 rounded-lg appearance-none cursor-pointer accent-primary"
+                    data-testid="input-auto-trigger-threshold"
+                  />
+                  <span className="text-sm font-mono font-medium w-14 text-right" data-testid="text-threshold-value">
+                    {((merged.autoTriggerThreshold ?? 0.85) * 100).toFixed(0)}%
+                  </span>
+                </div>
               </div>
               <div className="rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-3">
                 <div className="flex items-start gap-2">

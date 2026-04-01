@@ -181,6 +181,17 @@ export class AgentOrchestrator {
       // Non-critical
     }
 
+    await this.auditRunLifecycle("run_complete", result.conversationId, signal.orgId, undefined, {
+      triggerType: "prediction_signal",
+      triggerId: String(signal.predictionId),
+      signalType: signal.type,
+      equipmentId: signal.equipmentId,
+      failureProbability: signal.failureProbability,
+      riskLevel: signal.riskLevel,
+      modelId: signal.modelId ?? null,
+      autoTriggered: true,
+    });
+
     console.log(
       `[AgentOrchestrator] Signal processed: ${signal.type} for equipment ${signal.equipmentId} ` +
       `(prediction #${signal.predictionId}, probability: ${signal.failureProbability}) → conversation ${result.conversationId}`,
