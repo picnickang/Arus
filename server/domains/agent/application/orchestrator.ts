@@ -4,7 +4,7 @@ import { createOpenAIClient } from "../../../openai/client";
 import type { AgentRepositoryPort, KnowledgeBasePort } from "../domain/ports";
 import type { AgentRunResult, FileAttachment, ToolCallTrace } from "../domain/types";
 import { DEFAULT_CONFIG } from "../domain/types";
-import { getTool, getToolOpenAIDefinitions, getAllTools } from "../tools";
+import { getTool, getToolOpenAIDefinitions } from "../tools";
 import type { ToolLoadingMode } from "../tools/registry";
 import { SafetyService } from "./safety-service";
 import { auditAction } from "../../../utils/audit-helpers";
@@ -78,16 +78,30 @@ export class AgentOrchestrator {
     toolResult: Record<string, unknown>,
     activatedTools: Set<string>,
     input: Record<string, unknown>,
+    enabledTools?: string[] | null,
   ): void {
     const categories = toolResult.categories as Record<string, { name: string }[]> | undefined;
     if (!categories) return;
 
+    const enabledSet = Array.isArray(enabledTools) && enabledTools.length > 0 ? new Set(enabledTools) : null;
     const requestedCategory = input.category as string | undefined;
     for (const [cat, tools] of Object.entries(categories)) {
       if (requestedCategory && cat !== requestedCategory) continue;
       for (const t of tools) {
-        if (t.name) activatedTools.add(t.name);
+        if (!t.name) continue;
+        if (enabledSet && !enabledSet.has(t.name)) continue;
+        activatedTools.add(t.name);
       }
+    }
+
+    if (enabledSet) {
+      const filtered: Record<string, { name: string }[]> = {};
+      for (const [cat, tools] of Object.entries(categories)) {
+        const allowed = tools.filter(t => enabledSet.has(t.name));
+        if (allowed.length > 0) filtered[cat] = allowed;
+      }
+      toolResult.categories = filtered;
+      toolResult.totalTools = Object.values(filtered).reduce((sum, arr) => sum + arr.length, 0);
     }
   }
 
@@ -299,7 +313,7 @@ export class AgentOrchestrator {
             });
 
             if (toolLoadingMode === "light" && tc.function.name === "listAvailableTools") {
-              this.expandActivatedToolsFromDiscovery(toolResult, activatedTools, parsedInput);
+              this.expandActivatedToolsFromDiscovery(toolResult, activatedTools, parsedInput, enabledTools);
             }
 
             const toolMsgContent = JSON.stringify(toolResult);
@@ -624,7 +638,7 @@ export class AgentOrchestrator {
             });
 
             if (maToolMode === "light" && tc.function.name === "listAvailableTools") {
-              this.expandActivatedToolsFromDiscovery(toolResult, activatedToolsMA, parsedInput);
+              this.expandActivatedToolsFromDiscovery(toolResult, activatedToolsMA, parsedInput, enabledToolsMA);
             }
 
             const toolMsgContent = JSON.stringify(toolResult);
@@ -835,7 +849,7 @@ export class AgentOrchestrator {
             });
 
             if (streamToolMode === "light" && tc.function.name === "listAvailableTools") {
-              this.expandActivatedToolsFromDiscovery(toolResult, activatedToolsStream, parsedInput);
+              this.expandActivatedToolsFromDiscovery(toolResult, activatedToolsStream, parsedInput, enabledToolsStream);
             }
 
             onChunk(JSON.stringify({ type: "tool_result", toolName: tc.function.name, result: toolResult }) + "\n");
