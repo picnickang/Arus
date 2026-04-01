@@ -89,4 +89,5 @@ export const DEFAULT_CONFIG = {
   monthlyTokenLimit: 5000000,
   contextCompaction: true,
   compactionThreshold: 30,
+  toolOutputCharLimit: 4000,
 } as const;

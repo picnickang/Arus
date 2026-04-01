@@ -29,6 +29,7 @@ interface AgentConfig {
   enabledTools?: string[] | null;
   contextCompaction?: boolean;
   compactionThreshold?: number;
+  toolOutputCharLimit?: number;
 }
 
 interface UsageStats {
@@ -268,18 +269,33 @@ function ConfigTab() {
             />
           </div>
           {merged.contextCompaction !== false && (
-            <div className="space-y-2">
-              <Label htmlFor="compactionThreshold">Compaction Threshold (messages)</Label>
-              <p className="text-xs text-muted-foreground">Summarize older messages when conversation exceeds this count</p>
-              <Input
-                id="compactionThreshold"
-                type="number"
-                min={5}
-                max={100}
-                value={merged.compactionThreshold || 30}
-                onChange={(e) => setFormData(prev => ({ ...prev, compactionThreshold: parseInt(e.target.value) || 30 }))}
-                data-testid="input-compaction-threshold"
-              />
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="compactionThreshold">Compaction Threshold (messages)</Label>
+                <p className="text-xs text-muted-foreground">Summarize older messages when conversation exceeds this count</p>
+                <Input
+                  id="compactionThreshold"
+                  type="number"
+                  min={5}
+                  max={100}
+                  value={merged.compactionThreshold || 30}
+                  onChange={(e) => setFormData(prev => ({ ...prev, compactionThreshold: parseInt(e.target.value) || 30 }))}
+                  data-testid="input-compaction-threshold"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="toolOutputCharLimit">Tool Output Char Limit</Label>
+                <p className="text-xs text-muted-foreground">Truncate tool outputs longer than this many characters before sending to the model</p>
+                <Input
+                  id="toolOutputCharLimit"
+                  type="number"
+                  min={500}
+                  max={50000}
+                  value={merged.toolOutputCharLimit || 4000}
+                  onChange={(e) => setFormData(prev => ({ ...prev, toolOutputCharLimit: parseInt(e.target.value) || 4000 }))}
+                  data-testid="input-tool-output-char-limit"
+                />
+              </div>
             </div>
           )}
         </CardContent>

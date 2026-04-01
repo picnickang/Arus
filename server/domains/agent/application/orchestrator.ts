@@ -45,7 +45,7 @@ export class AgentOrchestrator {
       enabled: config?.contextCompaction ?? DEFAULT_CONFIG.contextCompaction,
       threshold: config?.compactionThreshold ?? DEFAULT_CONFIG.compactionThreshold,
       model,
-      toolOutputCharLimit: 4000,
+      toolOutputCharLimit: config?.toolOutputCharLimit ?? DEFAULT_CONFIG.toolOutputCharLimit,
     };
   }
 
@@ -78,6 +78,8 @@ export class AgentOrchestrator {
       contextSummary: summary,
       summarizedUpTo: newSummarizedUpTo,
     } as Partial<AgentConversation>);
+
+    conversation.summarizedUpTo = newSummarizedUpTo;
 
     return summary;
   }
