@@ -63,3 +63,7 @@ expertMode = true
 
 [userenv.development]
 ENABLE_FAKE_TELEMETRY = "1"
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 60000
