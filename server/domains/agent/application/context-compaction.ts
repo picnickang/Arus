@@ -220,6 +220,10 @@ export function buildCompactedMessages(
     selected.unshift(msg);
   }
 
+  while (selected.length > 0 && selected[0].role === "tool") {
+    selected.shift();
+  }
+
   result.push(...selected);
   return result;
 }
