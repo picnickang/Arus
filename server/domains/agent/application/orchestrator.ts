@@ -399,10 +399,11 @@ export class AgentOrchestrator {
     const history = await this.repo.messages.list(conversation.id, 50);
     const openaiMessages = this.buildOpenAIMessages(history, customPrompt);
 
-    const lastIdx = openaiMessages.length - 1;
-    const lastMsg = openaiMessages[lastIdx];
-    if (lastMsg && lastMsg.role === "user") {
-      openaiMessages[lastIdx] = { role: "user", content: contentParts };
+    for (let i = openaiMessages.length - 1; i >= 0; i--) {
+      if (openaiMessages[i].role === "user") {
+        openaiMessages[i] = { role: "user", content: contentParts };
+        break;
+      }
     }
 
     const enabledToolsMA = config?.enabledTools as string[] | null;
