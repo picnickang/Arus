@@ -69,7 +69,7 @@ export class AgentOrchestrator {
     if (messagesToSummarize.length < 5) return conversation.contextSummary;
 
     const summary = await generateProgressiveSummary(
-      client, messagesToSummarize, model, conversation.contextSummary,
+      client, messagesToSummarize, conversation.contextSummary,
     );
     if (!summary) return conversation.contextSummary;
 

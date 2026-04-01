@@ -76,15 +76,14 @@ export function compactToolOutput(content: string, charLimit: number = DEFAULT_T
 export async function generateConversationSummary(
   client: OpenAI,
   messages: AgentMessage[],
-  model: string,
+  _model: string,
 ): Promise<string> {
-  return generateProgressiveSummary(client, messages, model, null);
+  return generateProgressiveSummary(client, messages, null);
 }
 
 export async function generateProgressiveSummary(
   client: OpenAI,
   messages: AgentMessage[],
-  model: string,
   existingSummary: string | null | undefined,
 ): Promise<string> {
   const condensed = messages.map(m => {
@@ -214,7 +213,7 @@ export function buildCompactedMessages(
   for (let i = messagesWithTokens.length - 1; i >= 0; i--) {
     const { msg, tokens } = messagesWithTokens[i];
     if (tokens > budgetRemaining) {
-      break;
+      continue;
     }
     budgetRemaining -= tokens;
     selected.unshift(msg);
