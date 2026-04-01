@@ -170,6 +170,15 @@ if (!isInitDbMode && !isHealthCheckMode) (async () => {
       console.warn("⚠️ Sync services initialization skipped:", e.message);
     }
 
+    console.log("→ Initializing domain event bus...");
+    try {
+      const { initAllBridges } = await import("./lib/domain-event-bus/bridge.js");
+      initAllBridges();
+      console.log("✓ Domain event bus initialized");
+    } catch (e: unknown) {
+      console.warn("⚠️ Domain event bus initialization skipped:", e instanceof Error ? e.message : String(e));
+    }
+
     const isEmbedded = process.env.EMBEDDED_MODE === "true";
 
     try {

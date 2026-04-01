@@ -1,18 +1,13 @@
-/**
- * Crew Extensions Event Publisher Adapter
- * Implements ICrewExtensionsEventPublisher and ICrewExtensionsAuditPort
- */
-
 import type { ICrewExtensionsEventPublisher, ICrewExtensionsAuditPort } from '../domain/ports.js';
 import type { CrewExtensionsDomainEvent } from '../domain/events.js';
+import { domainEventBus, createDomainEvent } from '../../../lib/domain-event-bus/index.js';
 import { recordAndPublish } from '../../../sync-events';
-import { schedulerEventBus } from '../../../events/scheduler-bus.js';
 
 export class CrewExtensionsEventPublisherAdapter implements ICrewExtensionsEventPublisher, ICrewExtensionsAuditPort {
   async publish(event: CrewExtensionsDomainEvent): Promise<void> {
     const entityType = this.mapAggregateToEntityType(event.aggregateType);
     const operation = this.mapEventTypeToOperation(event.eventType);
-    
+
     await recordAndPublish(
       entityType,
       event.aggregateId,
@@ -21,40 +16,46 @@ export class CrewExtensionsEventPublisherAdapter implements ICrewExtensionsEvent
       event.userId
     );
 
-    this.emitToSchedulerBus(event);
+    this.emitToUnifiedBus(event);
   }
 
-  private emitToSchedulerBus(event: CrewExtensionsDomainEvent): void {
+  private emitToUnifiedBus(event: CrewExtensionsDomainEvent): void {
     switch (event.eventType) {
       case 'SimulationPreviewCreated':
-        schedulerEventBus.emitSimulationPreviewCreated({
-          orgId: event.orgId,
-          previewId: event.payload.previewId,
-          proposedCount: event.payload.proposedCount,
-          unfilledCount: event.payload.unfilledCount,
-          complianceRate: event.payload.complianceRate,
-          strategy: event.payload.strategy,
-          dateRange: {
-            start: event.payload.dateRange.from,
-            end: event.payload.dateRange.to,
-          },
-        });
+        domainEventBus.emit(
+          "simulation.preview.created",
+          createDomainEvent("simulation.preview.created", event.orgId, {
+            previewId: event.payload.previewId,
+            proposedCount: event.payload.proposedCount,
+            unfilledCount: event.payload.unfilledCount,
+            complianceRate: event.payload.complianceRate,
+            strategy: event.payload.strategy,
+            dateRange: {
+              start: event.payload.dateRange.from,
+              end: event.payload.dateRange.to,
+            },
+          }, { aggregateId: event.aggregateId, aggregateType: event.aggregateType, userId: event.userId }),
+        );
         break;
       case 'SimulationCommitted':
-        schedulerEventBus.emitSimulationCommitted({
-          orgId: event.orgId,
-          previewId: event.payload.previewId,
-          runId: event.payload.runId,
-          assignmentsCommitted: event.payload.assignmentsCommitted,
-          selectedOnly: event.payload.selectedOnly,
-        });
+        domainEventBus.emit(
+          "simulation.committed",
+          createDomainEvent("simulation.committed", event.orgId, {
+            previewId: event.payload.previewId,
+            runId: event.payload.runId,
+            assignmentsCommitted: event.payload.assignmentsCommitted,
+            selectedOnly: event.payload.selectedOnly,
+          }, { aggregateId: event.aggregateId, aggregateType: event.aggregateType, userId: event.userId }),
+        );
         break;
       case 'SimulationDiscarded':
-        schedulerEventBus.emitSimulationDiscarded({
-          orgId: event.orgId,
-          previewId: event.payload.previewId,
-          reason: event.payload.reason,
-        });
+        domainEventBus.emit(
+          "simulation.discarded",
+          createDomainEvent("simulation.discarded", event.orgId, {
+            previewId: event.payload.previewId,
+            reason: event.payload.reason,
+          }, { aggregateId: event.aggregateId, aggregateType: event.aggregateType, userId: event.userId }),
+        );
         break;
     }
   }

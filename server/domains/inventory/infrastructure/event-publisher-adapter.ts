@@ -1,24 +1,40 @@
-/**
- * Inventory Event Publisher Adapter
- * Implements IInventoryEventPublisher and IInventoryAuditPort
- */
-
 import type { IInventoryEventPublisher, IInventoryAuditPort } from '../domain/ports.js';
 import type { InventoryDomainEvent } from '../domain/events.js';
+import { domainEventBus, createDomainEvent } from '../../../lib/domain-event-bus/index.js';
+import type { DomainEventName } from '../../../lib/domain-event-bus/index.js';
 import { recordAndPublish } from '../../../sync-events';
+
+function mapEventType(eventType: string): DomainEventName | null {
+  const mapping: Record<string, DomainEventName> = {
+    PartCreated: "inventory.part_created",
+    PartUpdated: "inventory.part_updated",
+    PartDeleted: "inventory.part_deleted",
+    InventoryItemCreated: "inventory.item_created",
+    InventoryItemUpdated: "inventory.item_updated",
+    InventoryItemDeleted: "inventory.item_deleted",
+    StockMovementRecorded: "inventory.stock_movement",
+    LowStockDetected: "inventory.low_stock",
+    StockReplenished: "inventory.stock_replenished",
+  };
+  return mapping[eventType] ?? null;
+}
 
 export class InventoryEventPublisherAdapter implements IInventoryEventPublisher, IInventoryAuditPort {
   async publish(event: InventoryDomainEvent): Promise<void> {
-    const entityType = this.mapAggregateToEntityType(event.aggregateType);
-    const operation = this.mapEventTypeToOperation(event.eventType);
-    
-    await recordAndPublish(
-      entityType,
-      event.aggregateId,
-      operation,
+    const domainEventType = mapEventType(event.eventType);
+    if (!domainEventType) return;
+
+    const domainEvent = createDomainEvent(
+      domainEventType,
+      event.orgId,
       event.payload,
-      event.userId
+      {
+        aggregateId: event.aggregateId,
+        aggregateType: event.aggregateType,
+        userId: event.userId,
+      },
     );
+    domainEventBus.emit(domainEventType, domainEvent);
   }
 
   async publishBatch(events: InventoryDomainEvent[]): Promise<void> {
@@ -45,16 +61,6 @@ export class InventoryEventPublisherAdapter implements IInventoryEventPublisher,
     );
   }
 
-  private mapAggregateToEntityType(aggregateType: string): 'part' | 'stock' | 'inventory_movement' {
-    const typeMap: Record<string, 'part' | 'stock' | 'inventory_movement'> = {
-      'Part': 'part',
-      'PartsInventory': 'part',
-      'Stock': 'stock',
-      'InventoryMovement': 'inventory_movement',
-    };
-    return typeMap[aggregateType] || 'part';
-  }
-
   private mapStringToEntityType(entityType: string): 'part' | 'stock' | 'inventory_movement' {
     const typeMap: Record<string, 'part' | 'stock' | 'inventory_movement'> = {
       'parts': 'part',
@@ -63,12 +69,6 @@ export class InventoryEventPublisherAdapter implements IInventoryEventPublisher,
       'inventory_movement': 'inventory_movement',
     };
     return typeMap[entityType] || 'part';
-  }
-
-  private mapEventTypeToOperation(eventType: string): 'create' | 'update' | 'delete' {
-    if (eventType.includes('Created')) return 'create';
-    if (eventType.includes('Deleted')) return 'delete';
-    return 'update';
   }
 }
 
