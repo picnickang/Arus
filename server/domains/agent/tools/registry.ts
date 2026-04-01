@@ -28,7 +28,7 @@ export function getRegisteredToolNames(): string[] {
 
 export function getToolOpenAIDefinitions(enabledTools?: string[] | null) {
   let filtered = getAllTools();
-  if (enabledTools !== null && enabledTools !== undefined) {
+  if (Array.isArray(enabledTools) && enabledTools.length > 0) {
     filtered = filtered.filter(t => enabledTools.includes(t.name));
   }
   return filtered.map(t => ({
