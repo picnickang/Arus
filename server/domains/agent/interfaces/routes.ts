@@ -211,6 +211,19 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         };
       }));
 
+      const ingestedFiles = fileRefs.filter(f => f.kbIngested);
+      if (ingestedFiles.length > 0) {
+        try {
+          const summary = ingestedFiles.map(f => `• "${f.filename}"`).join("\n");
+          await agentRepo.messages.create({
+            conversationId,
+            role: "system",
+            content: `[Knowledge Base] ${ingestedFiles.length} document(s) automatically ingested:\n${summary}\nThese documents are now searchable via the searchKnowledgeBase tool.`,
+          });
+        } catch {
+        }
+      }
+
       res.json({ files: fileRefs });
     } catch (error: unknown) {
       console.error("[Agent] File upload error:", error);
