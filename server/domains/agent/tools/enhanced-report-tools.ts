@@ -141,6 +141,16 @@ function formatReportAsText(
     lines.push(`  Risk Reduction: ${(roi.riskReduction * 100).toFixed(0)}%`);
   }
 
+  if (result.referenceDocuments && Array.isArray(result.referenceDocuments) && result.referenceDocuments.length > 0) {
+    lines.push(`\n${"─".repeat(40)}`);
+    lines.push("REFERENCE DOCUMENTS");
+    lines.push(`${"─".repeat(40)}`);
+    for (const ref of result.referenceDocuments as Array<{ ref: string; document: string; relevance: string; excerpt: string }>) {
+      lines.push(`\n${ref.ref} ${ref.document} (relevance: ${ref.relevance})`);
+      lines.push(`   ${ref.excerpt}`);
+    }
+  }
+
   return lines.join("\n");
 }
 
@@ -206,6 +216,17 @@ async function generatePdfBuffer(
       doc.text(`Investment Required: $${roi.investmentRequired.toLocaleString()}`);
       doc.text(`Payback Period: ${roi.paybackPeriod} months`);
       doc.text(`Risk Reduction: ${(roi.riskReduction * 100).toFixed(0)}%`);
+    }
+
+    if (result.referenceDocuments && Array.isArray(result.referenceDocuments) && result.referenceDocuments.length > 0) {
+      doc.moveDown(1);
+      doc.fontSize(14).font("Helvetica-Bold").text("Reference Documents");
+      doc.moveDown(0.5);
+      for (const ref of result.referenceDocuments as Array<{ ref: string; document: string; relevance: string; excerpt: string }>) {
+        doc.fontSize(11).font("Helvetica-Bold").text(`${ref.ref} ${ref.document} (relevance: ${ref.relevance})`);
+        doc.fontSize(10).font("Helvetica").text(`   ${ref.excerpt}`);
+        doc.moveDown(0.3);
+      }
     }
 
     doc.end();
