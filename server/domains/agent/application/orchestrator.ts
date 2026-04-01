@@ -100,7 +100,9 @@ export class AgentOrchestrator {
       "outside my capabilities", "beyond my capabilities",
       "don't have the ability", "not equipped", "no way to",
     ];
-    return refusalPhrases.some(p => lowerResp.includes(p));
+    if (refusalPhrases.some(p => lowerResp.includes(p))) return true;
+    if (response.length < 40 && /\?/.test(response)) return true;
+    return false;
   }
 
   private async maybeSummarize(
@@ -951,7 +953,7 @@ export class AgentOrchestrator {
     let toolStatus = "success";
     let toolError: string | undefined;
 
-    if (runtimeAllowedTools && !runtimeAllowedTools.includes(toolName)) {
+    if (runtimeAllowedTools && toolName !== "listAvailableTools" && !runtimeAllowedTools.includes(toolName)) {
       return { toolResult: { error: `Tool ${toolName} is not in the schedule allowlist` }, toolStatus: "error", toolError: "Schedule allowlist denied", durationMs: 0 };
     }
 
