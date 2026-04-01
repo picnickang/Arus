@@ -1,8 +1,11 @@
 import { domainEventBus } from "./bus.js";
-import type { DomainEventMap, DomainEventName } from "./types.js";
+import { createDomainEvent } from "./types.js";
+import type { DomainEventMap, DomainEventName, DomainEventEnvelope } from "./types.js";
 import { syncEventBus, type EventType, recordJournalEntry, publishEvent } from "../../sync-events.js";
 import { schedulerEventBus } from "../../events/scheduler-bus.js";
 import { mqttReliableSync } from "../../mqtt-reliable-sync/index.js";
+
+const BRIDGE_SOURCE_MARKER = Symbol("bridgeSource");
 
 const SYNC_EVENT_ENTITY_MAP: Record<string, string> = {
   "work_order.created": "work_order",
@@ -175,18 +178,65 @@ export function initSyncEventBusBridge(): void {
 
   for (const eventType of bridgedEvents) {
     domainEventBus.on(eventType, (event) => {
+      if ((event as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) return;
       const syncEvent = mapDomainEventToSyncEvent(eventType);
       if (syncEvent) {
-        syncEventBus.emit(syncEvent, {
-          id: event.aggregateId,
-          data: event.payload,
-          operation: mapOperationFromEventType(eventType),
-        });
+        const markedPayload = { id: event.aggregateId, data: event.payload, operation: mapOperationFromEventType(eventType), [BRIDGE_SOURCE_MARKER]: true };
+        syncEventBus.emit(syncEvent, markedPayload);
       }
     });
   }
 
-  console.log(`[DomainEventBridge] SyncEventBus bridge initialized (${bridgedEvents.length} events forwarded)`);
+  console.log(`[DomainEventBridge] SyncEventBus bridge initialized (${bridgedEvents.length} events forwarded, new→old)`);
+}
+
+function mapSyncEventToDomainEvent(syncEvent: string): DomainEventName | null {
+  const reverseMapping: Record<string, DomainEventName> = {
+    "work_order.created": "work_order.created",
+    "work_order.updated": "work_order.updated",
+    "part.created": "inventory.part_created",
+    "part.updated": "inventory.part_updated",
+    "part.deleted": "inventory.part_deleted",
+    "parts_inventory.created": "inventory.item_created",
+    "parts_inventory.updated": "inventory.item_updated",
+    "parts_inventory.deleted": "inventory.item_deleted",
+    "inventory_movement.created": "inventory.stock_movement",
+    "crew.created": "crew.member_created",
+    "crew.updated": "crew.member_updated",
+    "crew.deleted": "crew.member_deleted",
+    "crew_assignment.created": "crew.assigned",
+    "crew_assignment.deleted": "crew.unassigned",
+  };
+  return reverseMapping[syncEvent] ?? null;
+}
+
+export function initReverseSyncEventBusBridge(): void {
+  const syncEventsToForward: EventType[] = [
+    "work_order.created", "work_order.updated",
+    "part.created", "part.updated", "part.deleted",
+    "parts_inventory.created", "parts_inventory.updated", "parts_inventory.deleted",
+    "inventory_movement.created",
+    "crew.created", "crew.updated", "crew.deleted",
+    "crew_assignment.created", "crew_assignment.deleted",
+  ];
+
+  for (const syncEvent of syncEventsToForward) {
+    syncEventBus.on(syncEvent, (data: Record<string | symbol, unknown>) => {
+      if (data[BRIDGE_SOURCE_MARKER]) return;
+      const domainEventType = mapSyncEventToDomainEvent(syncEvent);
+      if (!domainEventType) return;
+      const orgId = (data.orgId as string) || "bridged";
+      const aggregateId = (data.id as string) || "unknown";
+      const envelope = createDomainEvent(domainEventType, orgId, data.data ?? data, {
+        aggregateId,
+        aggregateType: domainEventType.split(".")[0],
+      });
+      (envelope as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER] = true;
+      domainEventBus.emit(domainEventType, envelope as DomainEventEnvelope<unknown>);
+    });
+  }
+
+  console.log(`[DomainEventBridge] Reverse SyncEventBus bridge initialized (${syncEventsToForward.length} events forwarded, old→new)`);
 }
 
 function initLoggingMiddleware(): void {
@@ -203,5 +253,6 @@ export function initAllBridges(): void {
   initMqttSubscriber();
   initSchedulerBusBridge();
   initSyncEventBusBridge();
+  initReverseSyncEventBusBridge();
   console.log("[DomainEventBridge] All bridges initialized");
 }
