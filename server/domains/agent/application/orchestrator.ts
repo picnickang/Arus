@@ -45,6 +45,7 @@ export class AgentOrchestrator {
       enabled: config?.contextCompaction ?? DEFAULT_CONFIG.contextCompaction,
       threshold: config?.compactionThreshold ?? DEFAULT_CONFIG.compactionThreshold,
       model,
+      toolOutputCharLimit: 4000,
     };
   }
 
@@ -233,7 +234,7 @@ export class AgentOrchestrator {
             });
             await this.repo.conversations.incrementMessageCount(conversation.id, 0);
 
-            const compactedContent = compactionCfg.enabled ? compactToolOutput(toolMsgContent) : toolMsgContent;
+            const compactedContent = compactionCfg.enabled ? compactToolOutput(toolMsgContent, compactionCfg.toolOutputCharLimit) : toolMsgContent;
             openaiMessages.push({
               role: "tool", tool_call_id: tc.id, content: compactedContent,
             });
@@ -523,7 +524,7 @@ export class AgentOrchestrator {
             });
             await this.repo.conversations.incrementMessageCount(conversation.id, 0);
 
-            const compactedContent = compactionCfg.enabled ? compactToolOutput(toolMsgContent) : toolMsgContent;
+            const compactedContent = compactionCfg.enabled ? compactToolOutput(toolMsgContent, compactionCfg.toolOutputCharLimit) : toolMsgContent;
             openaiMessages.push({
               role: "tool", tool_call_id: tc.id, content: compactedContent,
             });
@@ -705,7 +706,7 @@ export class AgentOrchestrator {
             });
             await this.repo.conversations.incrementMessageCount(conversation.id, 0);
 
-            const compactedContent = compactionCfg.enabled ? compactToolOutput(toolMsgContent) : toolMsgContent;
+            const compactedContent = compactionCfg.enabled ? compactToolOutput(toolMsgContent, compactionCfg.toolOutputCharLimit) : toolMsgContent;
             openaiMessages.push({ role: "tool", tool_call_id: tc.id, content: compactedContent });
           }
           continue;

@@ -29,6 +29,7 @@ export interface AgentConversationPort {
 export interface AgentMessagePort {
   create(data: InsertAgentMessage): Promise<AgentMessage>;
   list(conversationId: string, limit?: number): Promise<AgentMessage[]>;
+  listRecent(conversationId: string, limit?: number): Promise<AgentMessage[]>;
 }
 
 export interface AgentToolCallPort {

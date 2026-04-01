@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import type { AgentMessage } from "@shared/schema";
 import { buildSystemPrompt } from "../domain/system-prompt";
 
-const TOOL_OUTPUT_CHAR_LIMIT = 4000;
+const DEFAULT_TOOL_OUTPUT_CHAR_LIMIT = 4000;
 
 const MODEL_CONTEXT_WINDOWS: Record<string, number> = {
   "gpt-4o-mini": 128000,
@@ -16,7 +16,8 @@ export function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
 }
 
-export function compactToolOutput(content: string): string {
+export function compactToolOutput(content: string, charLimit: number = DEFAULT_TOOL_OUTPUT_CHAR_LIMIT): string {
+  const TOOL_OUTPUT_CHAR_LIMIT = charLimit;
   if (content.length <= TOOL_OUTPUT_CHAR_LIMIT) return content;
 
   let parsed: unknown;
@@ -120,6 +121,7 @@ export interface CompactionConfig {
   enabled: boolean;
   threshold: number;
   model: string;
+  toolOutputCharLimit: number;
 }
 
 export function buildCompactedMessages(
@@ -157,7 +159,7 @@ export function buildCompactedMessages(
       let content = typeof m.content === "string" ? m.content : JSON.stringify(m.content);
 
       if (compactionConfig.enabled) {
-        content = compactToolOutput(content);
+        content = compactToolOutput(content, compactionConfig.toolOutputCharLimit);
       }
 
       mappedMessages.push({
