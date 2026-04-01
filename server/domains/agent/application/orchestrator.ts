@@ -142,7 +142,10 @@ export class AgentOrchestrator {
     const contextSummary = await this.maybeSummarize(client, conversation, compactionCfg, model);
 
     const history = compactionCfg.enabled
-      ? await this.repo.messages.listRecent(conversation.id, 100)
+      ? await this.repo.messages.listRecent(
+          conversation.id,
+          contextSummary ? Math.max(20, (conversation.messageCount || 50) - (conversation.summarizedUpTo || 0)) : 100,
+        )
       : await this.repo.messages.list(conversation.id, 50);
     const openaiMessages = buildCompactedMessages(history, customPrompt, contextSummary, compactionCfg);
 
@@ -439,7 +442,10 @@ export class AgentOrchestrator {
     const contextSummary = await this.maybeSummarize(client, conversation, compactionCfg, model);
 
     const history = compactionCfg.enabled
-      ? await this.repo.messages.listRecent(conversation.id, 100)
+      ? await this.repo.messages.listRecent(
+          conversation.id,
+          contextSummary ? Math.max(20, (conversation.messageCount || 50) - (conversation.summarizedUpTo || 0)) : 100,
+        )
       : await this.repo.messages.list(conversation.id, 50);
     const openaiMessages = buildCompactedMessages(history, customPrompt, contextSummary, compactionCfg);
 
@@ -610,7 +616,10 @@ export class AgentOrchestrator {
     const contextSummary = await this.maybeSummarize(client, conversation, compactionCfg, model);
 
     const history = compactionCfg.enabled
-      ? await this.repo.messages.listRecent(conversation.id, 100)
+      ? await this.repo.messages.listRecent(
+          conversation.id,
+          contextSummary ? Math.max(20, (conversation.messageCount || 50) - (conversation.summarizedUpTo || 0)) : 100,
+        )
       : await this.repo.messages.list(conversation.id, 50);
     const openaiMessages = buildCompactedMessages(history, customPrompt, contextSummary, compactionCfg);
     const enabledToolsStream = config?.enabledTools as string[] | null;
