@@ -31,7 +31,14 @@ export class SchedulerService {
 
   constructor(
     private repo: AgentRepositoryPort,
-    private runAgentFn: (orgId: string, userId: string | undefined, conversationId: string | undefined, message: string, userRole?: string, options?: { toolAllowlist?: string[] | null; maxTokenBudget?: number }) => Promise<any>,
+    private runAgentFn: (
+      orgId: string,
+      userId: string | undefined,
+      conversationId: string | undefined,
+      message: string,
+      userRole?: string,
+      options?: { toolAllowlist?: string[] | null; maxTokenBudget?: number },
+    ) => Promise<any>,
   ) {}
 
   async initialize(orgId: string): Promise<void> {
@@ -83,14 +90,23 @@ export class SchedulerService {
     });
 
     const filteredTools = this.getFilteredTools(schedule);
-    const runOptions = { toolAllowlist: filteredTools, maxTokenBudget: schedule.maxTokenBudget || 4000 };
+    const runOptions = {
+      toolAllowlist: filteredTools,
+      maxTokenBudget: schedule.maxTokenBudget || 4000,
+    };
 
     try {
-      const result = await this.runAgentFn(schedule.orgId, undefined, undefined, schedule.prompt, "system", runOptions);
+      const result = await this.runAgentFn(
+        schedule.orgId, undefined, undefined, schedule.prompt, "system", runOptions,
+      );
 
       await this.repo.schedules.updateRun(run.id, {
         status: "completed",
-        output: { response: result.finalResponse, toolCallCount: result.toolCallCount, tokensUsed: result.totalTokens },
+        output: {
+          response: result.finalResponse,
+          toolCallCount: result.toolCallCount,
+          tokensUsed: result.totalTokens,
+        },
         tokenUsage: result.totalTokens,
         completedAt: new Date(),
       });
@@ -112,14 +128,41 @@ export class SchedulerService {
         completedAt: new Date(),
       });
 
-      console.log(`[SchedulerService] Schedule ${schedule.id} failed, retrying once...`);
-      try {
-        const retryResult = await this.runAgentFn(schedule.orgId, undefined, undefined, schedule.prompt, "system", runOptions);
+      console.log(`[SchedulerService] Schedule ${schedule.id} failed, scheduling async retry...`);
 
-        const retryRun = await this.repo.schedules.createRun({ scheduleId: schedule.id, status: "running" });
+      // Non-blocking retry: queue via setImmediate so we don't block the cron
+      // thread while the retry runs.
+      this.scheduleRetry(schedule, runOptions, errorMsg);
+    }
+  }
+
+  /**
+   * Retry a failed schedule run asynchronously.  Previously the retry was
+   * synchronous inside executeSchedule which blocked the cron thread.
+   */
+  private scheduleRetry(
+    schedule: AgentSchedule,
+    runOptions: { toolAllowlist: string[] | null; maxTokenBudget: number },
+    originalError: string,
+  ): void {
+    setImmediate(async () => {
+      try {
+        const retryResult = await this.runAgentFn(
+          schedule.orgId, undefined, undefined, schedule.prompt, "system", runOptions,
+        );
+
+        const retryRun = await this.repo.schedules.createRun({
+          scheduleId: schedule.id,
+          status: "running",
+        });
         await this.repo.schedules.updateRun(retryRun.id, {
           status: "completed",
-          output: { response: retryResult.finalResponse, toolCallCount: retryResult.toolCallCount, tokensUsed: retryResult.totalTokens, retried: true },
+          output: {
+            response: retryResult.finalResponse,
+            toolCallCount: retryResult.toolCallCount,
+            tokensUsed: retryResult.totalTokens,
+            retried: true,
+          },
           tokenUsage: retryResult.totalTokens,
           completedAt: new Date(),
         });
@@ -131,29 +174,40 @@ export class SchedulerService {
 
         await this.deliverOutput(schedule, retryResult.finalResponse, retryResult);
         console.log(`[SchedulerService] Schedule ${schedule.id} retry succeeded`);
-        return;
       } catch (retryErr: unknown) {
         const retryErrMsg = retryErr instanceof Error ? retryErr.message : "Unknown error";
         console.error(`[SchedulerService] Schedule ${schedule.id} retry also failed:`, retryErrMsg);
+
+        await this.handleConsecutiveFailure(schedule, originalError);
       }
+    });
+  }
 
-      const freshSchedule = await this.repo.schedules.get(schedule.id, schedule.orgId);
-      const currentFailCount = freshSchedule?.consecutiveFailures || 0;
-      const newFailCount = currentFailCount + 1;
+  /**
+   * Increment failure counter, auto-disable if threshold reached, alert admin.
+   */
+  private async handleConsecutiveFailure(
+    schedule: AgentSchedule,
+    errorMsg: string,
+  ): Promise<void> {
+    const freshSchedule = await this.repo.schedules.get(schedule.id, schedule.orgId);
+    const currentFailCount = freshSchedule?.consecutiveFailures || 0;
+    const newFailCount = currentFailCount + 1;
 
-      await this.repo.schedules.update(schedule.id, {
-        consecutiveFailures: newFailCount,
-      });
+    await this.repo.schedules.update(schedule.id, {
+      consecutiveFailures: newFailCount,
+    });
 
-      if (newFailCount >= MAX_CONSECUTIVE_FAILURES) {
-        await this.repo.schedules.update(schedule.id, { enabled: false });
-        this.cancelJob(schedule.id);
-        console.warn(`[SchedulerService] Schedule ${schedule.id} auto-disabled after ${MAX_CONSECUTIVE_FAILURES} consecutive failures`);
-      }
-
-      await this.alertAdminFailure(schedule, errorMsg, newFailCount);
-      console.error(`[SchedulerService] Schedule ${schedule.id} failed:`, errorMsg);
+    if (newFailCount >= MAX_CONSECUTIVE_FAILURES) {
+      await this.repo.schedules.update(schedule.id, { enabled: false });
+      this.cancelJob(schedule.id);
+      console.warn(
+        `[SchedulerService] Schedule ${schedule.id} auto-disabled after ${MAX_CONSECUTIVE_FAILURES} consecutive failures`,
+      );
     }
+
+    await this.alertAdminFailure(schedule, errorMsg, newFailCount);
+    console.error(`[SchedulerService] Schedule ${schedule.id} failed:`, errorMsg);
   }
 
   getFilteredTools(schedule: AgentSchedule): string[] | null {
@@ -211,10 +265,17 @@ export class SchedulerService {
             fileSize: Buffer.byteLength(response, "utf8"),
             status: "completed",
             expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-            metadata: { response, toolCallCount: result.toolCallCount, tokensUsed: result.totalTokens },
+            metadata: {
+              response,
+              toolCallCount: result.toolCallCount,
+              tokensUsed: result.totalTokens,
+            },
           });
         } catch (reportErr) {
-          console.warn("[SchedulerService] Report storage failed, falling back to notification:", reportErr instanceof Error ? reportErr.message : "unknown");
+          console.warn(
+            "[SchedulerService] Report storage failed, falling back to notification:",
+            reportErr instanceof Error ? reportErr.message : "unknown",
+          );
           await db.insert(notificationQueue).values({
             orgId: schedule.orgId,
             notificationType: "agent_schedule_report",
@@ -228,11 +289,18 @@ export class SchedulerService {
         }
       }
     } catch (err) {
-      console.warn("[SchedulerService] Output delivery failed (non-blocking):", err instanceof Error ? err.message : "unknown");
+      console.warn(
+        "[SchedulerService] Output delivery failed (non-blocking):",
+        err instanceof Error ? err.message : "unknown",
+      );
     }
   }
 
-  private async alertAdminFailure(schedule: AgentSchedule, errorMsg: string, failCount: number): Promise<void> {
+  private async alertAdminFailure(
+    schedule: AgentSchedule,
+    errorMsg: string,
+    failCount: number,
+  ): Promise<void> {
     try {
       const autoDisabled = failCount >= MAX_CONSECUTIVE_FAILURES;
       const adminEmails = await resolveAdminEmails(schedule.orgId);
@@ -240,7 +308,11 @@ export class SchedulerService {
         orgId: schedule.orgId,
         notificationType: "agent_schedule_failure",
         subject: `Agent Schedule Failed: ${schedule.name}${autoDisabled ? " (Auto-Disabled)" : ""}`,
-        body: `Schedule "${schedule.name}" failed${autoDisabled ? ` and was auto-disabled after ${failCount} consecutive failures` : ` (${failCount}/${MAX_CONSECUTIVE_FAILURES} failures)`}. Error: ${errorMsg}`,
+        body: `Schedule "${schedule.name}" failed${
+          autoDisabled
+            ? ` and was auto-disabled after ${failCount} consecutive failures`
+            : ` (${failCount}/${MAX_CONSECUTIVE_FAILURES} failures)`
+        }. Error: ${errorMsg}`,
         recipients: adminEmails,
         relatedEntityType: "agent_schedule",
         relatedEntityId: schedule.id,
