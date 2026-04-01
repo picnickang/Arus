@@ -92,12 +92,13 @@ export class AgentOrchestrator {
   }
 
   private looksLikeFallbackNeeded(response: string): boolean {
-    if (!response || response.length < 80) return true;
+    if (!response) return true;
     const lowerResp = response.toLowerCase();
     const refusalPhrases = [
       "i can't", "i cannot", "i don't have", "i'm unable", "i am unable",
       "i'm not able", "i am not able", "i don't have access", "no tools",
       "outside my capabilities", "beyond my capabilities",
+      "don't have the ability", "not equipped", "no way to",
     ];
     return refusalPhrases.some(p => lowerResp.includes(p));
   }
@@ -955,7 +956,7 @@ export class AgentOrchestrator {
     }
 
     const enabledTools = config?.enabledTools as string[] | null | undefined;
-    if (enabledTools && !this.safety.validateToolAccess(toolName, enabledTools)) {
+    if (enabledTools && toolName !== "listAvailableTools" && !this.safety.validateToolAccess(toolName, enabledTools)) {
       return { toolResult: { error: `Tool ${toolName} is disabled` }, toolStatus: "error", toolError: "Tool disabled", durationMs: 0 };
     }
 
