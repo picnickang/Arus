@@ -63,6 +63,10 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
   const safety = new SafetyService(agentRepo);
   const suggestionEngine = new SuggestionEngine(agentRepo);
 
+  suggestionEngine.setSignalHandler(async (signal) => {
+    await orchestrator.processSignal(signal);
+  });
+
   (async () => {
     try {
       const { organizations } = await import("@shared/schema/core");
@@ -431,7 +435,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const config = await agentRepo.config.get(orgId);
-      res.json(config || { defaultModel: "gpt-4o-mini", maxIterationsPerRun: 10, maxTokensPerConversation: 50000, dailyTokenLimit: 500000, monthlyTokenLimit: 5000000, contextCompaction: true, compactionThreshold: 30, toolOutputCharLimit: 4000, deferredToolLoading: true, permissionTier: "strict" });
+      res.json(config || { defaultModel: "gpt-4o-mini", maxIterationsPerRun: 10, maxTokensPerConversation: 50000, dailyTokenLimit: 500000, monthlyTokenLimit: 5000000, contextCompaction: true, compactionThreshold: 30, toolOutputCharLimit: 4000, deferredToolLoading: true, permissionTier: "strict", autoTriggerEnabled: false, autoTriggerThreshold: 0.85 });
     } catch (error: unknown) {
       res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
@@ -450,6 +454,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     toolOutputCharLimit: z.number().int().min(500).max(50000).optional(),
     deferredToolLoading: z.boolean().optional(),
     permissionTier: z.enum(["strict", "balanced", "autonomous"]).optional(),
+    autoTriggerEnabled: z.boolean().optional(),
+    autoTriggerThreshold: z.number().min(0.8).max(1.0).optional(),
   });
 
   app.put("/api/agent/config", rateLimit.writeOperationRateLimit, requireAdminRole, async (req: Request, res: Response) => {
@@ -498,6 +504,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         toolOutputCharLimit: 4000,
         deferredToolLoading: true,
         permissionTier: "strict",
+        autoTriggerEnabled: false,
+        autoTriggerThreshold: 0.85,
       };
       const config = await agentRepo.config.upsert(defaults);
       res.json(config);

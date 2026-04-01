@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import fs from "fs";
 import { createOpenAIClient } from "../../../openai/client";
 import type { AgentRepositoryPort, KnowledgeBasePort } from "../domain/ports";
-import type { AgentRunResult, FileAttachment, ToolCallTrace } from "../domain/types";
+import type { AgentRunResult, AgentSignal, FileAttachment, ToolCallTrace } from "../domain/types";
 import { DEFAULT_CONFIG } from "../domain/types";
 import { getTool, getToolOpenAIDefinitions } from "../tools";
 import type { ToolLoadingMode } from "../tools/registry";
@@ -136,6 +136,64 @@ export class AgentOrchestrator {
       });
       throw err;
     }
+  }
+
+  async processSignal(signal: AgentSignal): Promise<AgentRunResult> {
+    const prompt = this.buildSignalPrompt(signal);
+    const result = await this.run(
+      signal.orgId,
+      undefined,
+      undefined,
+      prompt,
+      "system",
+      { maxTokenBudget: 4000 },
+    );
+
+    if (signal.suggestionId) {
+      try {
+        await this.repo.suggestions.update(signal.suggestionId, {
+          actedOn: true,
+          status: "acted",
+        });
+      } catch {
+        // Non-critical
+      }
+    }
+
+    try {
+      await this.repo.conversations.update(result.conversationId, {
+        metadata: {
+          triggerType: "prediction_signal",
+          triggerId: signal.equipmentId,
+          signalType: signal.type,
+          failureProbability: signal.failureProbability,
+        },
+      } as any);
+    } catch {
+      // Non-critical
+    }
+
+    console.log(
+      `[AgentOrchestrator] Signal processed: ${signal.type} for equipment ${signal.equipmentId} ` +
+      `(probability: ${signal.failureProbability}) → conversation ${result.conversationId}`,
+    );
+
+    return result;
+  }
+
+  private buildSignalPrompt(signal: AgentSignal): string {
+    const pct = (signal.failureProbability * 100).toFixed(0);
+    const dateStr = signal.predictedFailureDate
+      ? ` Predicted failure date: ${signal.predictedFailureDate}.`
+      : "";
+    return (
+      `AUTOMATED SIGNAL: A high-risk failure prediction has been detected. ` +
+      `Equipment ${signal.equipmentId} has a ${pct}% probability of ${signal.failureMode} failure ` +
+      `(risk level: ${signal.riskLevel}).${dateStr} ` +
+      `Please investigate this equipment, check its recent maintenance history, review any related alerts, ` +
+      `and recommend immediate actions to prevent the predicted failure. ` +
+      `If appropriate, draft a preventive maintenance work order.`
+    );
   }
 
   async runWithAttachments(

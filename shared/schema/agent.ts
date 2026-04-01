@@ -119,6 +119,8 @@ export const agentConfig = pgTable("agent_config", {
   toolOutputCharLimit: integer("tool_output_char_limit").notNull().default(4000),
   deferredToolLoading: boolean("deferred_tool_loading").notNull().default(true),
   permissionTier: text("permission_tier").notNull().default("strict"),
+  autoTriggerEnabled: boolean("auto_trigger_enabled").notNull().default(false),
+  autoTriggerThreshold: real("auto_trigger_threshold").notNull().default(0.85),
   suggestionPreferences: jsonb("suggestion_preferences"),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),

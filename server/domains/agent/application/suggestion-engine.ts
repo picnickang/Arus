@@ -6,6 +6,7 @@ import {
 } from "@shared/schema";
 import type { AgentRepositoryPort } from "../domain/ports";
 import type { AgentSuggestion, InsertAgentSuggestion } from "@shared/schema/agent";
+import type { AgentSignal } from "../domain/types";
 
 interface SuggestionPreferences {
   maintenance: boolean;
@@ -34,8 +35,15 @@ function meetsMinSeverity(severity: string, min: string): boolean {
 export class SuggestionEngine {
   private intervalIds: Map<string, NodeJS.Timeout> = new Map();
   private evaluationIntervalMs = 4 * 60 * 60 * 1000;
+  private signalHandler: ((signal: AgentSignal) => Promise<void>) | null = null;
+  private recentSignals: Map<string, number> = new Map();
+  private signalCooldownMs = 4 * 60 * 60 * 1000;
 
   constructor(private repo: AgentRepositoryPort) {}
+
+  setSignalHandler(handler: (signal: AgentSignal) => Promise<void>): void {
+    this.signalHandler = handler;
+  }
 
   startBackgroundEvaluation(orgId: string, intervalMs?: number): void {
     if (this.intervalIds.has(orgId)) return;
@@ -134,6 +142,16 @@ export class SuggestionEngine {
       .orderBy(desc(failurePredictions.failureProbability))
       .limit(10);
 
+    let config: import("@shared/schema/agent").AgentConfigType | null = null;
+    try {
+      config = await this.repo.config.get(orgId);
+    } catch {
+      // Non-critical — auto-trigger defaults to off
+    }
+
+    const autoTriggerEnabled = config?.autoTriggerEnabled ?? false;
+    const autoTriggerThreshold = config?.autoTriggerThreshold ?? 0.85;
+
     for (const pred of highRiskPredictions) {
       if (pred.failureProbability > 0.8) {
         const dedupKey = `high_risk_prediction:${pred.equipmentId}`;
@@ -152,9 +170,50 @@ export class SuggestionEngine {
           context: { prediction: pred },
         });
         results.push(sug);
+
+        if (
+          autoTriggerEnabled &&
+          this.signalHandler &&
+          pred.failureProbability >= autoTriggerThreshold
+        ) {
+          const cooldownKey = `${orgId}:${pred.equipmentId}:high_risk_prediction`;
+          const lastDispatch = this.recentSignals.get(cooldownKey);
+          const now = Date.now();
+          if (!lastDispatch || (now - lastDispatch) >= this.signalCooldownMs) {
+            this.recentSignals.set(cooldownKey, now);
+            const signal: AgentSignal = {
+              type: "high_risk_prediction",
+              orgId,
+              equipmentId: pred.equipmentId,
+              failureProbability: pred.failureProbability,
+              failureMode: pred.failureMode || "Unknown",
+              riskLevel: pred.riskLevel || "high",
+              predictedFailureDate: pred.predictedFailureDate
+                ? new Date(pred.predictedFailureDate).toISOString()
+                : null,
+              suggestionId: sug.id,
+            };
+            this.dispatchSignal(signal);
+          }
+        }
       }
     }
     return results;
+  }
+
+  private dispatchSignal(signal: AgentSignal): void {
+    if (!this.signalHandler) return;
+    const handler = this.signalHandler;
+    setImmediate(async () => {
+      try {
+        await handler(signal);
+      } catch (err) {
+        console.error(
+          `[SuggestionEngine] Signal dispatch failed for ${signal.type} on ${signal.equipmentId}:`,
+          err instanceof Error ? err.message : "unknown",
+        );
+      }
+    });
   }
 
   private async evaluateOverdueMaintenance(orgId: string, minSeverity: string, pendingKeys: Set<string>): Promise<AgentSuggestion[]> {

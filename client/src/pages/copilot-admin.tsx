@@ -32,6 +32,8 @@ interface AgentConfig {
   toolOutputCharLimit?: number;
   deferredToolLoading?: boolean;
   permissionTier?: string;
+  autoTriggerEnabled?: boolean;
+  autoTriggerThreshold?: number;
 }
 
 interface UsageStats {
@@ -405,6 +407,57 @@ function ConfigTab() {
           </CardContent>
         </Card>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            Automatic Prediction Response
+          </CardTitle>
+          <CardDescription>Automatically trigger agent investigation when high-risk failure predictions are detected</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="autoTriggerEnabled">Enable Auto-Trigger</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">When enabled, the copilot will automatically investigate equipment with failure probability above the threshold</p>
+            </div>
+            <Switch
+              id="autoTriggerEnabled"
+              checked={merged.autoTriggerEnabled === true}
+              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, autoTriggerEnabled: checked }))}
+              data-testid="switch-auto-trigger"
+            />
+          </div>
+          {merged.autoTriggerEnabled === true && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="autoTriggerThreshold">Failure Probability Threshold</Label>
+                <p className="text-xs text-muted-foreground">Predictions with probability at or above this value will trigger an automatic agent run (0.80 - 1.00)</p>
+                <Input
+                  id="autoTriggerThreshold"
+                  type="number"
+                  min={0.8}
+                  max={1.0}
+                  step={0.05}
+                  value={merged.autoTriggerThreshold ?? 0.85}
+                  onChange={(e) => setFormData(prev => ({ ...prev, autoTriggerThreshold: parseFloat(e.target.value) || 0.85 }))}
+                  data-testid="input-auto-trigger-threshold"
+                />
+              </div>
+              <div className="rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-3">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                  <div className="text-sm text-amber-800 dark:text-amber-200">
+                    <p className="font-medium">Token usage notice</p>
+                    <p className="mt-1 text-xs">Each automated trigger creates a new conversation and consumes tokens. The agent will investigate the equipment, check maintenance history, review alerts, and may draft preventive work orders.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

@@ -87,7 +87,20 @@ export const AGENT_EVENTS = {
   DRAFT_REJECTED: "agent.draft.rejected",
   SUGGESTION_GENERATED: "agent.suggestion.generated",
   SCHEDULE_EXECUTED: "agent.schedule.executed",
+  SIGNAL_DISPATCHED: "agent.signal.dispatched",
+  SIGNAL_COMPLETED: "agent.signal.completed",
 } as const;
+
+export interface AgentSignal {
+  type: "high_risk_prediction";
+  orgId: string;
+  equipmentId: string;
+  failureProbability: number;
+  failureMode: string;
+  riskLevel: string;
+  predictedFailureDate?: string | null;
+  suggestionId?: string;
+}
 
 export const DEFAULT_CONFIG = {
   defaultModel: "gpt-4o-mini",
@@ -100,4 +113,6 @@ export const DEFAULT_CONFIG = {
   toolOutputCharLimit: 4000,
   deferredToolLoading: true,
   permissionTier: "strict" as PermissionTier,
+  autoTriggerEnabled: false,
+  autoTriggerThreshold: 0.85,
 } as const;
