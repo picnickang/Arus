@@ -120,3 +120,9 @@ id = "DdgJJ_3XSvwXu-uEzhhUY"
 uri = "file://exports/telemetry-ingestion-database-files.txt"
 type = "text"
 title = "Telemetry Ingestion & Database Files (46 files, 212KB)"
+
+[[outputs]]
+id = "Iq-lCvveDMHZ-5pZHO5qF"
+uri = "file://copilot-rag-code-export.txt"
+type = "text"
+title = "AI Copilot & RAG System - Complete Source Code"
