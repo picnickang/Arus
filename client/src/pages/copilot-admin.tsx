@@ -1168,13 +1168,36 @@ function DataTab() {
   );
 }
 
+function PermissionTierBadge() {
+  const { data: config } = useQuery<AgentConfig>({ queryKey: ["/api/agent/config"] });
+  const tier = config?.permissionTier || "strict";
+  const tierLabels: Record<string, string> = { strict: "Strict", balanced: "Balanced", autonomous: "Autonomous" };
+  const tierVariants: Record<string, string> = {
+    strict: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+    balanced: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+    autonomous: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+  };
+  return (
+    <div className="flex items-center gap-2" data-testid="status-permission-tier">
+      <Shield className="h-4 w-4 text-muted-foreground" />
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${tierVariants[tier] || tierVariants.strict}`}>
+        {tier === "autonomous" && <AlertTriangle className="h-3 w-3" />}
+        {tierLabels[tier] || tier}
+      </span>
+    </div>
+  );
+}
+
 export default function CopilotAdminPage() {
   return (
     <div className="container mx-auto py-6 px-4 max-w-4xl">
       <div className="flex items-center gap-3 mb-6">
         <Bot className="h-8 w-8 text-primary" />
-        <div>
-          <h1 className="text-2xl font-bold" data-testid="text-page-title">AI Copilot Administration</h1>
+        <div className="flex-1">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold" data-testid="text-page-title">AI Copilot Administration</h1>
+            <PermissionTierBadge />
+          </div>
           <p className="text-muted-foreground text-sm">Configure, monitor, and manage the AI Copilot agent</p>
         </div>
       </div>
