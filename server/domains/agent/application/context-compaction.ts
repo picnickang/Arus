@@ -78,6 +78,15 @@ export async function generateConversationSummary(
   messages: AgentMessage[],
   model: string,
 ): Promise<string> {
+  return generateProgressiveSummary(client, messages, model, null);
+}
+
+export async function generateProgressiveSummary(
+  client: OpenAI,
+  messages: AgentMessage[],
+  model: string,
+  existingSummary: string | null | undefined,
+): Promise<string> {
   const condensed = messages.map(m => {
     const role = m.role;
     let text = m.content || "";
@@ -85,14 +94,18 @@ export async function generateConversationSummary(
     return `[${role}]: ${text}`;
   }).join("\n");
 
-  const summaryPrompt = `Summarize the following conversation history into a concise paragraph. Focus on:
+  const priorContext = existingSummary
+    ? `\nExisting summary of earlier messages:\n${existingSummary}\n\nNew messages to incorporate:\n`
+    : "";
+
+  const summaryPrompt = `${existingSummary ? "Update and extend the existing conversation summary to incorporate the new messages below." : "Summarize the following conversation history into a concise paragraph."} Focus on:
 - Key topics discussed
 - Important data points, equipment, or entities mentioned
 - Decisions made or actions taken
 - Any pending questions or issues
 
 Keep the summary under 300 words. Be factual and specific.
-
+${priorContext}
 Conversation:
 ${condensed}`;
 

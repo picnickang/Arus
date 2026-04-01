@@ -13,7 +13,7 @@ import { buildSystemPrompt } from "../domain/system-prompt";
 import {
   buildCompactedMessages,
   compactToolOutput,
-  generateConversationSummary,
+  generateProgressiveSummary,
   shouldSummarize,
   type CompactionConfig,
 } from "./context-compaction";
@@ -62,16 +62,18 @@ export class AgentOrchestrator {
       return conversation.contextSummary;
     }
 
-    const allMessages = await this.repo.messages.list(conversation.id, 500);
+    const allMessages = await this.repo.messages.list(conversation.id, 10000);
     const keepRecent = 10;
-    const messagesToSummarize = allMessages.slice(0, Math.max(0, allMessages.length - keepRecent));
+    const messagesToSummarize = allMessages.slice(summarizedUpTo, Math.max(summarizedUpTo, allMessages.length - keepRecent));
 
     if (messagesToSummarize.length < 5) return conversation.contextSummary;
 
-    const summary = await generateConversationSummary(client, messagesToSummarize, model);
+    const summary = await generateProgressiveSummary(
+      client, messagesToSummarize, model, conversation.contextSummary,
+    );
     if (!summary) return conversation.contextSummary;
 
-    const newSummarizedUpTo = messagesToSummarize.length;
+    const newSummarizedUpTo = Math.max(0, allMessages.length - keepRecent);
     await this.repo.conversations.update(conversation.id, {
       contextSummary: summary,
       summarizedUpTo: newSummarizedUpTo,
