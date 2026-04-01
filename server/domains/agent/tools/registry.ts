@@ -94,7 +94,7 @@ export function getToolOpenAIDefinitions(
   enabledTools?: string[] | null,
   options?: { mode?: ToolLoadingMode; activatedTools?: string[] },
 ) {
-  const mode = options?.mode || "full";
+  const mode = options?.mode || "light";
   const activatedTools = options?.activatedTools || [];
 
   let filtered = getAllTools();

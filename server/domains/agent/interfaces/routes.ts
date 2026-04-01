@@ -540,6 +540,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         contextCompaction: true,
         compactionThreshold: 30,
         toolOutputCharLimit: 4000,
+        deferredToolLoading: true,
       };
       const config = await agentRepo.config.upsert(defaults);
       res.json(config);

@@ -74,6 +74,23 @@ export class AgentOrchestrator {
     }
   }
 
+  private expandActivatedToolsFromDiscovery(
+    toolResult: Record<string, unknown>,
+    activatedTools: Set<string>,
+    input: Record<string, unknown>,
+  ): void {
+    const categories = toolResult.categories as Record<string, { name: string }[]> | undefined;
+    if (!categories) return;
+
+    const requestedCategory = input.category as string | undefined;
+    for (const [cat, tools] of Object.entries(categories)) {
+      if (requestedCategory && cat !== requestedCategory) continue;
+      for (const t of tools) {
+        if (t.name) activatedTools.add(t.name);
+      }
+    }
+  }
+
   private looksLikeFallbackNeeded(response: string): boolean {
     if (!response || response.length < 80) return true;
     const lowerResp = response.toLowerCase();
@@ -235,15 +252,6 @@ export class AgentOrchestrator {
             activatedTools.add(tc.function.name);
           }
 
-          if (toolLoadingMode === "light") {
-            const needsExpansion = choice.message.tool_calls.some(
-              tc => tc.function.name !== "listAvailableTools" && !toolDefs.some(d => d.function.name === tc.function.name)
-            );
-            if (needsExpansion) {
-              toolDefs = getToolOpenAIDefinitions(enabledTools, { mode: "light", activatedTools: [...activatedTools] });
-            }
-          }
-
           const assistantMsg = await this.repo.messages.create({
             conversationId: conversation.id,
             role: "assistant",
@@ -286,6 +294,10 @@ export class AgentOrchestrator {
               durationMs,
               error: toolError,
             });
+
+            if (toolLoadingMode === "light" && tc.function.name === "listAvailableTools") {
+              this.expandActivatedToolsFromDiscovery(toolResult, activatedTools, parsedInput);
+            }
 
             const toolMsgContent = JSON.stringify(toolResult);
             await this.repo.messages.create({
@@ -608,6 +620,10 @@ export class AgentOrchestrator {
               error: toolError,
             });
 
+            if (maToolMode === "light" && tc.function.name === "listAvailableTools") {
+              this.expandActivatedToolsFromDiscovery(toolResult, activatedToolsMA, parsedInput);
+            }
+
             const toolMsgContent = JSON.stringify(toolResult);
             await this.repo.messages.create({
               conversationId: conversation.id,
@@ -770,10 +786,6 @@ export class AgentOrchestrator {
             activatedToolsStream.add(tc.function.name);
           }
 
-          if (streamToolMode === "light") {
-            toolDefs = getToolOpenAIDefinitions(enabledToolsStream, { mode: "light", activatedTools: [...activatedToolsStream] });
-          }
-
           const assistantMsg = await this.repo.messages.create({
             conversationId: conversation.id,
             role: "assistant",
@@ -819,6 +831,10 @@ export class AgentOrchestrator {
               error: toolError,
             });
 
+            if (streamToolMode === "light" && tc.function.name === "listAvailableTools") {
+              this.expandActivatedToolsFromDiscovery(toolResult, activatedToolsStream, parsedInput);
+            }
+
             onChunk(JSON.stringify({ type: "tool_result", toolName: tc.function.name, result: toolResult }) + "\n");
 
             const toolMsgContent = JSON.stringify(toolResult);
@@ -833,6 +849,8 @@ export class AgentOrchestrator {
             const compactedContent = compactionCfg.enabled ? compactToolOutput(toolMsgContent, compactionCfg.toolOutputCharLimit) : toolMsgContent;
             openaiMessages.push({ role: "tool", tool_call_id: tc.id, content: compactedContent });
           }
+
+          toolDefs = getToolOpenAIDefinitions(enabledToolsStream, { mode: streamToolMode, activatedTools: [...activatedToolsStream] });
           continue;
         }
 
