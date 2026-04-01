@@ -8,6 +8,7 @@ import "./work-order-tools";
 import "./report-tools";
 import "./enhanced-report-tools";
 import "./file-analysis-tools";
+import "./knowledge-base-tools";
 
 export { getTool, getAllTools, getToolOpenAIDefinitions, getToolSummaries, getRegisteredToolNames } from "./registry";
 export type { ToolDefinition, ToolContext } from "../domain/types";

@@ -420,6 +420,22 @@ registerTool({
         response.vesselId = vesselId;
       }
 
+      if (ctx.knowledgeBase) {
+        try {
+          const kbQuery = `${reportType} ${vesselId ? "vessel " + vesselId : "fleet"} reference documentation`;
+          const kbResult = await ctx.knowledgeBase.search(ctx.orgId, kbQuery, { maxSources: 3 });
+          if (kbResult.citations.length > 0) {
+            response.referenceDocuments = kbResult.citations.map((c, i) => ({
+              ref: `[${i + 1}]`,
+              document: c.docName,
+              relevance: `${(c.relevance * 100).toFixed(0)}%`,
+              excerpt: c.text.length > 150 ? c.text.slice(0, 150) + "..." : c.text,
+            }));
+          }
+        } catch {
+        }
+      }
+
       try {
         const textContent = formatReportAsText(reportType, audience, result.analysis, response, vesselId);
         const artifactFormat = outputFormat === "inline" ? "pdf" : outputFormat;

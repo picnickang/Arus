@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import fs from "fs";
 import { createOpenAIClient } from "../../../openai/client";
-import type { AgentRepositoryPort } from "../domain/ports";
+import type { AgentRepositoryPort, KnowledgeBasePort } from "../domain/ports";
 import type { AgentRunResult, FileAttachment, ToolCallTrace } from "../domain/types";
 import { getTool, getToolOpenAIDefinitions } from "../tools";
 import { SafetyService } from "./safety-service";
@@ -19,13 +19,16 @@ interface ToolContext {
   userId: string | undefined;
   conversationId: string;
   userRole?: string;
+  knowledgeBase?: KnowledgeBasePort;
 }
 
 export class AgentOrchestrator {
   private safety: SafetyService;
+  private knowledgeBase?: KnowledgeBasePort;
 
-  constructor(private repo: AgentRepositoryPort) {
+  constructor(private repo: AgentRepositoryPort, knowledgeBase?: KnowledgeBasePort) {
     this.safety = new SafetyService(repo);
+    this.knowledgeBase = knowledgeBase;
   }
 
   private async auditRunLifecycle(
@@ -100,7 +103,7 @@ export class AgentOrchestrator {
 
     const enabledTools = options?.toolAllowlist !== undefined ? options.toolAllowlist : (config?.enabledTools as string[] | null);
     const toolDefs = getToolOpenAIDefinitions(enabledTools);
-    const toolContext = { orgId, userId, conversationId: conversation.id, userRole };
+    const toolContext: ToolContext = { orgId, userId, conversationId: conversation.id, userRole, knowledgeBase: this.knowledgeBase };
 
     let totalTokens = 0;
     let promptTokens = 0;
@@ -337,6 +340,33 @@ export class AgentOrchestrator {
       });
     }
 
+    if (this.knowledgeBase) {
+      const docMimeTypes = ["application/pdf", "text/csv", "text/plain",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"];
+      const mimeToType: Record<string, string> = {
+        "application/pdf": "pdf",
+        "text/csv": "txt",
+        "text/plain": "txt",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+      };
+      for (const att of attachments) {
+        const isDoc = docMimeTypes.includes(att.mimetype) ||
+          /\.(pdf|docx|xlsx|txt|md|csv)$/i.test(att.filename);
+        if (!isDoc) continue;
+        try {
+          const fileBuffer = fs.readFileSync(att.path);
+          const ext = att.filename.split(".").pop()?.toLowerCase() || "";
+          const fileType = mimeToType[att.mimetype] || ext || "txt";
+          const result = await this.knowledgeBase.ingestDocument(orgId, att.filename, fileBuffer, fileType, userId);
+          fileDescriptions.push(`[KB: "${att.filename}" ingested — ${result.chunkCount} chunks indexed]`);
+        } catch (err) {
+          console.warn(`[Agent] KB ingestion failed for ${att.filename}:`, err instanceof Error ? err.message : "unknown");
+        }
+      }
+    }
+
     const convFiles = await listConversationFiles(conversation.id, orgId);
     if (convFiles.length > 0) {
       const fileRefContext = convFiles.map(f =>
@@ -365,7 +395,7 @@ export class AgentOrchestrator {
 
     const enabledToolsMA = config?.enabledTools as string[] | null;
     const toolDefs = getToolOpenAIDefinitions(enabledToolsMA);
-    const toolContext = { orgId, userId, conversationId: conversation.id, userRole };
+    const toolContext: ToolContext = { orgId, userId, conversationId: conversation.id, userRole, knowledgeBase: this.knowledgeBase };
 
     let totalTokens = 0;
     let promptTokens = 0;
@@ -522,7 +552,7 @@ export class AgentOrchestrator {
     const openaiMessages = this.buildOpenAIMessages(history, customPrompt);
     const enabledToolsStream = config?.enabledTools as string[] | null;
     const toolDefs = getToolOpenAIDefinitions(enabledToolsStream);
-    const toolContext = { orgId, userId, conversationId: conversation.id, userRole };
+    const toolContext: ToolContext = { orgId, userId, conversationId: conversation.id, userRole, knowledgeBase: this.knowledgeBase };
 
     let totalTokens = 0;
     let promptTokens = 0;

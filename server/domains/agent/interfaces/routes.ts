@@ -17,6 +17,7 @@ import { auditAction } from "../../../utils/audit-helpers";
 import { z } from "zod";
 
 import { getOrgUploadDir, registerFile, listConversationFiles } from "../infrastructure/file-registry";
+import { knowledgeBaseAdapter } from "../infrastructure/kb-adapter";
 import { buildSystemPrompt } from "../domain/system-prompt";
 
 const upload = multer({
@@ -34,12 +35,15 @@ const upload = multer({
   fileFilter: (_req, file, cb) => {
     const allowed = [
       "image/png", "image/jpeg",
-      "application/pdf", "text/csv",
+      "application/pdf", "text/csv", "text/plain", "text/markdown",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     ];
-    if (allowed.includes(file.mimetype)) {
+    const allowedExtensions = /\.(pdf|csv|txt|md|docx|xlsx|png|jpe?g)$/i;
+    if (allowed.includes(file.mimetype) || allowedExtensions.test(file.originalname)) {
       cb(null, true);
     } else {
-      cb(new Error(`Unsupported file type: ${file.mimetype}. Allowed: PNG, JPEG, PDF, CSV.`));
+      cb(new Error(`Unsupported file type: ${file.mimetype}. Allowed: PNG, JPEG, PDF, CSV, TXT, DOCX, XLSX.`));
     }
   },
 });
@@ -50,7 +54,7 @@ interface RateLimitMiddleware {
 }
 
 export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware) {
-  const orchestrator = new AgentOrchestrator(agentRepo);
+  const orchestrator = new AgentOrchestrator(agentRepo, knowledgeBaseAdapter);
   const safety = new SafetyService(agentRepo);
   const suggestionEngine = new SuggestionEngine(agentRepo);
 
@@ -163,6 +167,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     const files = (req.files as Express.Multer.File[]) || [];
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
+      const userId = (req as AuthenticatedRequest).user?.id;
       const conversationId = req.params.id;
 
       const existing = await agentRepo.conversations.get(conversationId, orgId);
@@ -170,13 +175,39 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         return res.status(404).json({ error: "Conversation not found" });
       }
 
+      const docMimeTypes = ["application/pdf", "text/csv", "text/plain", "text/markdown",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"];
+      const mimeToType: Record<string, string> = {
+        "application/pdf": "pdf", "text/csv": "txt", "text/plain": "txt", "text/markdown": "md",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+      };
+
       const fileRefs = await Promise.all(files.map(async f => {
         const record = await registerFile(orgId, conversationId, f);
+
+        const isDoc = docMimeTypes.includes(f.mimetype) || /\.(pdf|docx|xlsx|txt|md|csv)$/i.test(f.originalname);
+        let kbIngested = false;
+        if (isDoc) {
+          try {
+            const fs = await import("fs");
+            const fileBuffer = fs.readFileSync(f.path);
+            const ext = f.originalname.split(".").pop()?.toLowerCase() || "";
+            const fileType = mimeToType[f.mimetype] || ext || "txt";
+            await knowledgeBaseAdapter.ingestDocument(orgId, f.originalname, fileBuffer, fileType, userId);
+            kbIngested = true;
+          } catch (err) {
+            console.warn(`[Agent] KB ingestion failed for ${f.originalname}:`, err instanceof Error ? err.message : "unknown");
+          }
+        }
+
         return {
           fileId: record.id,
           filename: record.filename,
           mimetype: record.mimetype,
           size: record.size,
+          kbIngested,
         };
       }));
 

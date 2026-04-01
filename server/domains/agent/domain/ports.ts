@@ -91,6 +91,50 @@ export interface AgentApprovalPort {
   list(orgId: string, draftId?: string): Promise<AgentApproval[]>;
 }
 
+export interface KnowledgeBaseCitation {
+  docId: string;
+  docName: string;
+  chunkId: string;
+  text: string;
+  relevance: number;
+  ord: number;
+}
+
+export interface KnowledgeBaseSearchResult {
+  answer: string;
+  citations: KnowledgeBaseCitation[];
+  sourceChunkIds: string[];
+  modelUsed: string;
+  cached: boolean;
+}
+
+export interface KnowledgeBaseDocSummary {
+  id: string;
+  name: string;
+  fileType: string | null;
+  uploadedAt: Date;
+  chunkCount: number;
+  sizeBytes: number | null;
+  status: string;
+}
+
+export interface KnowledgeBaseStats {
+  totalDocs: number;
+  totalChunks: number;
+}
+
+export interface KnowledgeBaseIngestResult {
+  docId: string;
+  chunkCount: number;
+}
+
+export interface KnowledgeBasePort {
+  search(orgId: string, query: string, options?: { maxSources?: number; threshold?: number }): Promise<KnowledgeBaseSearchResult>;
+  listDocuments(orgId: string): Promise<KnowledgeBaseDocSummary[]>;
+  getStats(orgId: string): Promise<KnowledgeBaseStats>;
+  ingestDocument(orgId: string, fileName: string, fileBuffer: Buffer, fileType: string, uploadedBy?: string): Promise<KnowledgeBaseIngestResult>;
+}
+
 export interface AgentRepositoryPort {
   conversations: AgentConversationPort;
   messages: AgentMessagePort;

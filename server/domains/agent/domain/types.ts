@@ -12,6 +12,7 @@ export interface ToolContext {
   userId?: string;
   conversationId: string;
   userRole?: string;
+  knowledgeBase?: import("./ports").KnowledgeBasePort;
 }
 
 export interface ToolCallTrace {
