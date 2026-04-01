@@ -6,6 +6,7 @@ import { registerTool } from "./registry";
 
 registerTool({
   name: "getOpenAlerts",
+  category: "alerts",
   description: "Get active alert notifications. Shows current issues and threshold breaches requiring attention.",
   parameters: {
     type: "object",
@@ -41,6 +42,7 @@ registerTool({
 
 registerTool({
   name: "explainPdmAlert",
+  category: "alerts",
   description: "Explain a predictive maintenance alert in detail. Provides context about the alert, related predictions, equipment info, and recommended actions.",
   parameters: {
     type: "object",

@@ -30,6 +30,7 @@ interface AgentConfig {
   contextCompaction?: boolean;
   compactionThreshold?: number;
   toolOutputCharLimit?: number;
+  deferredToolLoading?: boolean;
 }
 
 interface UsageStats {
@@ -298,6 +299,30 @@ function ConfigTab() {
               </div>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Zap className="h-5 w-5" />
+            Deferred Tool Loading
+          </CardTitle>
+          <CardDescription>Reduce token usage by only loading tool definitions when needed</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="deferredToolLoading">Enable Deferred Tool Loading</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">Send lightweight tool summaries by default and load full definitions on-demand. Falls back to full mode if needed.</p>
+            </div>
+            <Switch
+              id="deferredToolLoading"
+              checked={merged.deferredToolLoading !== false}
+              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, deferredToolLoading: checked }))}
+              data-testid="switch-deferred-tool-loading"
+            />
+          </div>
         </CardContent>
       </Card>
 

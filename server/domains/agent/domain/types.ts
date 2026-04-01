@@ -1,6 +1,9 @@
+export type ToolCategory = "fleet" | "maintenance" | "alerts" | "predictions" | "crew" | "inventory" | "work-orders" | "analytics" | "files" | "knowledge-base" | "meta";
+
 export interface ToolDefinition {
   name: string;
   description: string;
+  category: ToolCategory;
   parameters: Record<string, unknown>;
   inputSchema?: import("zod").ZodType;
   requiresApproval: boolean;
@@ -90,4 +93,5 @@ export const DEFAULT_CONFIG = {
   contextCompaction: true,
   compactionThreshold: 30,
   toolOutputCharLimit: 4000,
+  deferredToolLoading: true,
 } as const;

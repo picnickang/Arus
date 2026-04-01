@@ -3,6 +3,7 @@ import { registerTool } from "./registry";
 
 registerTool({
   name: "draftWorkOrder",
+  category: "work-orders",
   description: "Create a DRAFT work order for maintenance. This does NOT create the work order directly — it creates a draft that requires human approval.",
   parameters: {
     type: "object",

@@ -6,6 +6,7 @@ import fs from "fs";
 
 registerTool({
   name: "analyzeImage",
+  category: "files",
   description: "Analyze an uploaded image using AI vision. Useful for assessing equipment condition, reading gauges, identifying parts, or inspecting visible damage in marine equipment photos. Requires a fileId from a previously uploaded image.",
   parameters: {
     type: "object",
@@ -111,6 +112,7 @@ Only include fields relevant to the analysis type. Return valid JSON only.`;
 
 registerTool({
   name: "analyzeSpreadsheet",
+  category: "files",
   description: "Parse and analyze an uploaded CSV file. Generates summary statistics for numeric columns and can answer questions about specific rows, columns, or data patterns. Requires a fileId from a previously uploaded CSV.",
   parameters: {
     type: "object",

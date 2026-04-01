@@ -10,5 +10,8 @@ import "./enhanced-report-tools";
 import "./file-analysis-tools";
 import "./knowledge-base-tools";
 
-export { getTool, getAllTools, getToolOpenAIDefinitions, getToolSummaries, getRegisteredToolNames } from "./registry";
-export type { ToolDefinition, ToolContext } from "../domain/types";
+import { registerListAvailableToolsMeta } from "./registry";
+registerListAvailableToolsMeta();
+
+export { getTool, getAllTools, getToolOpenAIDefinitions, getToolSummaries, getRegisteredToolNames, getToolsByCategory, getToolCategorySummary } from "./registry";
+export type { ToolDefinition, ToolContext, ToolCategory } from "../domain/types";

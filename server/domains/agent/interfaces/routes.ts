@@ -476,7 +476,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const config = await agentRepo.config.get(orgId);
-      res.json(config || { defaultModel: "gpt-4o-mini", maxIterationsPerRun: 10, maxTokensPerConversation: 50000, dailyTokenLimit: 500000, monthlyTokenLimit: 5000000, contextCompaction: true, compactionThreshold: 30, toolOutputCharLimit: 4000 });
+      res.json(config || { defaultModel: "gpt-4o-mini", maxIterationsPerRun: 10, maxTokensPerConversation: 50000, dailyTokenLimit: 500000, monthlyTokenLimit: 5000000, contextCompaction: true, compactionThreshold: 30, toolOutputCharLimit: 4000, deferredToolLoading: true });
     } catch (error: unknown) {
       res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
@@ -493,6 +493,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     contextCompaction: z.boolean().optional(),
     compactionThreshold: z.number().int().min(5).max(100).optional(),
     toolOutputCharLimit: z.number().int().min(500).max(50000).optional(),
+    deferredToolLoading: z.boolean().optional(),
   });
 
   app.put("/api/agent/config", rateLimit.writeOperationRateLimit, requireAdminRole, async (req: Request, res: Response) => {

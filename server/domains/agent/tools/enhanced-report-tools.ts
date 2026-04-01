@@ -304,6 +304,7 @@ async function storeReportArtifact(
 
 registerTool({
   name: "generateReport",
+  category: "analytics",
   description: "Generate a comprehensive AI-powered report. Supports report types: health (vessel health), fleet_summary (fleet-wide overview), maintenance (maintenance analysis), compliance (regulatory compliance), cost_summary (cost and ROI analysis). Reports are audience-aware and include a download link. Use the shareReport tool if the user wants to email or share the report externally.",
   parameters: {
     type: "object",
@@ -516,6 +517,7 @@ registerTool({
 
 registerTool({
   name: "shareReport",
+  category: "analytics",
   description: "Share or email a previously generated report to external recipients. This creates a draft that requires human approval before the report is sent. Use generateReport first to create the report, then use this tool with the reportId to share it.",
   parameters: {
     type: "object",

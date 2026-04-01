@@ -4,7 +4,8 @@ import { createOpenAIClient } from "../../../openai/client";
 import type { AgentRepositoryPort, KnowledgeBasePort } from "../domain/ports";
 import type { AgentRunResult, FileAttachment, ToolCallTrace } from "../domain/types";
 import { DEFAULT_CONFIG } from "../domain/types";
-import { getTool, getToolOpenAIDefinitions } from "../tools";
+import { getTool, getToolOpenAIDefinitions, getAllTools } from "../tools";
+import type { ToolLoadingMode } from "../tools/registry";
 import { SafetyService } from "./safety-service";
 import { auditAction } from "../../../utils/audit-helpers";
 import { registerFile, listConversationFiles } from "../infrastructure/file-registry";
@@ -47,6 +48,41 @@ export class AgentOrchestrator {
       model,
       toolOutputCharLimit: config?.toolOutputCharLimit ?? DEFAULT_CONFIG.toolOutputCharLimit,
     };
+  }
+
+  private isDeferredToolLoadingEnabled(config: AgentConfigType | null | undefined): boolean {
+    return config?.deferredToolLoading ?? true;
+  }
+
+  private getActivatedToolsFromMetadata(conversation: AgentConversation): string[] {
+    const meta = conversation.metadata as Record<string, unknown> | null;
+    if (meta && Array.isArray(meta.activatedTools)) {
+      return meta.activatedTools as string[];
+    }
+    return [];
+  }
+
+  private async persistActivatedTools(conversation: AgentConversation, activatedTools: string[]): Promise<void> {
+    try {
+      const meta = (conversation.metadata as Record<string, unknown>) || {};
+      const existing = Array.isArray(meta.activatedTools) ? (meta.activatedTools as string[]) : [];
+      const merged = [...new Set([...existing, ...activatedTools])];
+      await this.repo.conversations.update(conversation.id, {
+        metadata: { ...meta, activatedTools: merged },
+      } as Partial<AgentConversation>);
+    } catch {
+    }
+  }
+
+  private looksLikeFallbackNeeded(response: string): boolean {
+    if (!response || response.length < 80) return true;
+    const lowerResp = response.toLowerCase();
+    const refusalPhrases = [
+      "i can't", "i cannot", "i don't have", "i'm unable", "i am unable",
+      "i'm not able", "i am not able", "i don't have access", "no tools",
+      "outside my capabilities", "beyond my capabilities",
+    ];
+    return refusalPhrases.some(p => lowerResp.includes(p));
   }
 
   private async maybeSummarize(
@@ -163,7 +199,12 @@ export class AgentOrchestrator {
     }
 
     const enabledTools = options?.toolAllowlist !== undefined ? options.toolAllowlist : (config?.enabledTools as string[] | null);
-    const toolDefs = getToolOpenAIDefinitions(enabledTools);
+    const deferredEnabled = this.isDeferredToolLoadingEnabled(config);
+    const previouslyActivated = this.getActivatedToolsFromMetadata(conversation);
+    const activatedTools = new Set<string>(previouslyActivated);
+    let toolLoadingMode: ToolLoadingMode = deferredEnabled ? "light" : "full";
+
+    let toolDefs = getToolOpenAIDefinitions(enabledTools, { mode: toolLoadingMode, activatedTools: [...activatedTools] });
     const toolContext: ToolContext = { orgId, userId, conversationId: conversation.id, userRole, knowledgeBase: this.knowledgeBase };
 
     let totalTokens = 0;
@@ -173,6 +214,7 @@ export class AgentOrchestrator {
     let finalResponse = "";
     const toolCallTraces: ToolCallTrace[] = [];
     const maxTokenBudget = options?.maxTokenBudget;
+    let didFallbackToFull = false;
 
     try {
       for (let iteration = 0; iteration < maxIterations; iteration++) {
@@ -189,6 +231,19 @@ export class AgentOrchestrator {
         completionTokens += response.usage?.completion_tokens || 0;
 
         if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
+          for (const tc of choice.message.tool_calls) {
+            activatedTools.add(tc.function.name);
+          }
+
+          if (toolLoadingMode === "light") {
+            const needsExpansion = choice.message.tool_calls.some(
+              tc => tc.function.name !== "listAvailableTools" && !toolDefs.some(d => d.function.name === tc.function.name)
+            );
+            if (needsExpansion) {
+              toolDefs = getToolOpenAIDefinitions(enabledTools, { mode: "light", activatedTools: [...activatedTools] });
+            }
+          }
+
           const assistantMsg = await this.repo.messages.create({
             conversationId: conversation.id,
             role: "assistant",
@@ -246,10 +301,20 @@ export class AgentOrchestrator {
               role: "tool", tool_call_id: tc.id, content: compactedContent,
             });
           }
+
+          toolDefs = getToolOpenAIDefinitions(enabledTools, { mode: toolLoadingMode, activatedTools: [...activatedTools] });
           continue;
         }
 
         finalResponse = choice.message.content || "";
+
+        if (toolLoadingMode === "light" && !didFallbackToFull && iteration === 0 && this.looksLikeFallbackNeeded(finalResponse)) {
+          toolLoadingMode = "full";
+          toolDefs = getToolOpenAIDefinitions(enabledTools, { mode: "full" });
+          didFallbackToFull = true;
+          continue;
+        }
+
         await this.repo.messages.create({
           conversationId: conversation.id,
           role: "assistant",
@@ -266,6 +331,10 @@ export class AgentOrchestrator {
         error: err instanceof Error ? err.message : "Unknown error",
       });
       throw err;
+    }
+
+    if (activatedTools.size > 0) {
+      await this.persistActivatedTools(conversation, [...activatedTools]);
     }
 
     if (!conversation.title || conversation.title === sanitizedMessage.slice(0, 100)) {
@@ -459,7 +528,12 @@ export class AgentOrchestrator {
     }
 
     const enabledToolsMA = config?.enabledTools as string[] | null;
-    const toolDefs = getToolOpenAIDefinitions(enabledToolsMA);
+    const deferredEnabledMA = this.isDeferredToolLoadingEnabled(config);
+    const previouslyActivatedMA = this.getActivatedToolsFromMetadata(conversation);
+    const activatedToolsMA = new Set<string>(previouslyActivatedMA);
+    let maToolMode: ToolLoadingMode = deferredEnabledMA ? "light" : "full";
+
+    let toolDefs = getToolOpenAIDefinitions(enabledToolsMA, { mode: maToolMode, activatedTools: [...activatedToolsMA] });
     const toolContext: ToolContext = { orgId, userId, conversationId: conversation.id, userRole, knowledgeBase: this.knowledgeBase };
 
     let totalTokens = 0;
@@ -468,6 +542,7 @@ export class AgentOrchestrator {
     let toolCallCount = 0;
     let finalResponse = "";
     const toolCallTraces: ToolCallTrace[] = [];
+    let didMAFallback = false;
 
     const runStartTime = Date.now();
     await this.auditRunLifecycle("run_start", conversation.id, orgId, userId, { model, maxIterations, mode: "attachments" });
@@ -482,6 +557,14 @@ export class AgentOrchestrator {
         completionTokens += response.usage?.completion_tokens || 0;
 
         if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
+          for (const tc of choice.message.tool_calls) {
+            activatedToolsMA.add(tc.function.name);
+          }
+
+          if (maToolMode === "light") {
+            toolDefs = getToolOpenAIDefinitions(enabledToolsMA, { mode: "light", activatedTools: [...activatedToolsMA] });
+          }
+
           const assistantMsg = await this.repo.messages.create({
             conversationId: conversation.id,
             role: "assistant",
@@ -539,10 +622,20 @@ export class AgentOrchestrator {
               role: "tool", tool_call_id: tc.id, content: compactedContent,
             });
           }
+
+          toolDefs = getToolOpenAIDefinitions(enabledToolsMA, { mode: maToolMode, activatedTools: [...activatedToolsMA] });
           continue;
         }
 
         finalResponse = choice.message.content || "";
+
+        if (maToolMode === "light" && !didMAFallback && iteration === 0 && this.looksLikeFallbackNeeded(finalResponse)) {
+          maToolMode = "full";
+          toolDefs = getToolOpenAIDefinitions(enabledToolsMA, { mode: "full" });
+          didMAFallback = true;
+          continue;
+        }
+
         await this.repo.messages.create({
           conversationId: conversation.id,
           role: "assistant",
@@ -559,6 +652,10 @@ export class AgentOrchestrator {
         error: err instanceof Error ? err.message : "Unknown error",
       });
       throw err;
+    }
+
+    if (activatedToolsMA.size > 0) {
+      await this.persistActivatedTools(conversation, [...activatedToolsMA]);
     }
 
     if (!conversation.title || conversation.title === sanitizedMessage.slice(0, 100)) {
@@ -625,7 +722,12 @@ export class AgentOrchestrator {
       : await this.repo.messages.list(conversation.id, 50);
     const openaiMessages = buildCompactedMessages(history, customPrompt, contextSummary, compactionCfg);
     const enabledToolsStream = config?.enabledTools as string[] | null;
-    const toolDefs = getToolOpenAIDefinitions(enabledToolsStream);
+    const deferredEnabledStream = this.isDeferredToolLoadingEnabled(config);
+    const previouslyActivatedStream = this.getActivatedToolsFromMetadata(conversation);
+    const activatedToolsStream = new Set<string>(previouslyActivatedStream);
+    let streamToolMode: ToolLoadingMode = deferredEnabledStream ? "light" : "full";
+
+    let toolDefs = getToolOpenAIDefinitions(enabledToolsStream, { mode: streamToolMode, activatedTools: [...activatedToolsStream] });
     const toolContext: ToolContext = { orgId, userId, conversationId: conversation.id, userRole, knowledgeBase: this.knowledgeBase };
 
     let totalTokens = 0;
@@ -635,6 +737,7 @@ export class AgentOrchestrator {
     let finalResponse = "";
     let finalResponseTokens = 0;
     const toolCallTraces: ToolCallTrace[] = [];
+    let didStreamFallback = false;
 
     const runStartTime = Date.now();
     await this.auditRunLifecycle("run_start", conversation.id, orgId, userId, { model, maxIterations, mode: "stream" });
@@ -663,6 +766,14 @@ export class AgentOrchestrator {
         completionTokens += response.usage?.completion_tokens || 0;
 
         if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
+          for (const tc of choice.message.tool_calls) {
+            activatedToolsStream.add(tc.function.name);
+          }
+
+          if (streamToolMode === "light") {
+            toolDefs = getToolOpenAIDefinitions(enabledToolsStream, { mode: "light", activatedTools: [...activatedToolsStream] });
+          }
+
           const assistantMsg = await this.repo.messages.create({
             conversationId: conversation.id,
             role: "assistant",
@@ -727,6 +838,14 @@ export class AgentOrchestrator {
 
         finalResponse = choice.message.content || "";
         finalResponseTokens = iterationTokens;
+
+        if (streamToolMode === "light" && !didStreamFallback && iteration === 0 && this.looksLikeFallbackNeeded(finalResponse)) {
+          streamToolMode = "full";
+          toolDefs = getToolOpenAIDefinitions(enabledToolsStream, { mode: "full" });
+          didStreamFallback = true;
+          continue;
+        }
+
         onChunk(JSON.stringify({ type: "text", content: finalResponse }) + "\n");
         break;
       }
@@ -746,6 +865,10 @@ export class AgentOrchestrator {
       model,
     });
     await this.repo.conversations.incrementMessageCount(conversation.id, finalResponseTokens);
+
+    if (activatedToolsStream.size > 0) {
+      await this.persistActivatedTools(conversation, [...activatedToolsStream]);
+    }
 
     if (!conversation.title || conversation.title === sanitizedMessage.slice(0, 100)) {
       const title = sanitizedMessage.length > 60 ? sanitizedMessage.slice(0, 57) + "..." : sanitizedMessage;
