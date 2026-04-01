@@ -34,7 +34,15 @@ registerTool({
       maxSources: maxSources ?? 5,
     });
 
-    if (!result.citations.length && result.answer.startsWith("Unable to search")) {
+    if (result.answer.startsWith("Unable to search")) {
+      return {
+        error: result.answer,
+        documentsFound: 0,
+        suggestion: "The Knowledge Base search encountered an error. Please try again or contact an administrator.",
+      };
+    }
+
+    if (!result.citations.length) {
       return {
         answer: result.answer,
         documentsFound: 0,
