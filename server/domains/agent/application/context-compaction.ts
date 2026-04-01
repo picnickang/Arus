@@ -199,31 +199,48 @@ export function buildCompactedMessages(
     return result;
   }
 
-  const messagesWithTokens = mappedMessages.map(m => {
-    let text: string;
-    if (m.role === "assistant" && "tool_calls" in m && m.tool_calls) {
-      text = (m.content || "") + JSON.stringify(m.tool_calls);
+  interface MessageGroup {
+    messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[];
+    tokens: number;
+  }
+
+  const groups: MessageGroup[] = [];
+  let i = 0;
+  while (i < mappedMessages.length) {
+    const msg = mappedMessages[i];
+    if (msg.role === "assistant" && "tool_calls" in msg && msg.tool_calls) {
+      const group: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [msg];
+      let groupTokens = estimateTokens((msg.content || "") + JSON.stringify(msg.tool_calls));
+      let j = i + 1;
+      while (j < mappedMessages.length && mappedMessages[j].role === "tool") {
+        group.push(mappedMessages[j]);
+        const toolContent = typeof mappedMessages[j].content === "string"
+          ? mappedMessages[j].content as string
+          : JSON.stringify(mappedMessages[j].content || "");
+        groupTokens += estimateTokens(toolContent);
+        j++;
+      }
+      groups.push({ messages: group, tokens: groupTokens });
+      i = j;
     } else {
-      text = typeof m.content === "string" ? m.content : JSON.stringify(m.content || "");
+      const text = typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content || "");
+      groups.push({ messages: [msg], tokens: estimateTokens(text) });
+      i++;
     }
-    return { msg: m, tokens: estimateTokens(text) };
-  });
-
-  const selected: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
-  for (let i = messagesWithTokens.length - 1; i >= 0; i--) {
-    const { msg, tokens } = messagesWithTokens[i];
-    if (tokens > budgetRemaining) {
-      continue;
-    }
-    budgetRemaining -= tokens;
-    selected.unshift(msg);
   }
 
-  while (selected.length > 0 && selected[0].role === "tool") {
-    selected.shift();
+  const totalGroupTokens = groups.reduce((sum, g) => sum + g.tokens, 0);
+  let trimFromFront = totalGroupTokens - budgetRemaining;
+  let startIdx = 0;
+  while (startIdx < groups.length && trimFromFront > 0) {
+    trimFromFront -= groups[startIdx].tokens;
+    startIdx++;
   }
 
-  result.push(...selected);
+  for (let k = startIdx; k < groups.length; k++) {
+    result.push(...groups[k].messages);
+  }
+
   return result;
 }
 
