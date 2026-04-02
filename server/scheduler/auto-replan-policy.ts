@@ -18,16 +18,14 @@ function riskToRank(r: string): number {
 
 export function initializeAutoReplanPolicy(): void {
   domainEventBus.on("pdm.rul.updated", async (event) => {
-    const p = event.payload as {
-      vesselId: string; equipmentId: string; remainingDays: number; riskLevel: string;
-    };
+    const { vesselId, equipmentId, remainingDays, riskLevel } = event.payload;
     const shouldReplan =
-      p.remainingDays <= RUL_DAYS_CRITICAL ||
-      riskToRank(p.riskLevel) >= riskToRank(RISK_REPLAN_LEVEL);
+      remainingDays <= RUL_DAYS_CRITICAL ||
+      riskToRank(riskLevel) >= riskToRank(RISK_REPLAN_LEVEL);
 
     if (shouldReplan) {
       console.log(
-        `[Auto-Replan] RUL trigger: vessel=${p.vesselId}, remainingDays=${p.remainingDays}, risk=${p.riskLevel}`
+        `[Auto-Replan] RUL trigger: vessel=${vesselId}, remainingDays=${remainingDays}, risk=${riskLevel}`
       );
       schedAutoReplanTriggers.labels(event.orgId, "rul_critical").inc();
 
@@ -35,13 +33,13 @@ export function initializeAutoReplanPolicy(): void {
         await planAndMaybeExecute({
           orgId: event.orgId,
           days: AUTO_REPLAN_DAYS,
-          vessels: [p.vesselId],
+          vessels: [vesselId],
           mode: "auto",
           trigger: "rul_critical",
           triggerContext: {
-            equipmentId: p.equipmentId,
-            remainingDays: p.remainingDays,
-            riskLevel: p.riskLevel,
+            equipmentId,
+            remainingDays,
+            riskLevel,
           },
         });
       } catch (error) {
@@ -51,12 +49,10 @@ export function initializeAutoReplanPolicy(): void {
   });
 
   domainEventBus.on("pdm.anomaly.created", async (event) => {
-    const p = event.payload as {
-      vesselId: string; equipmentId: string; severity: string; anomalyType: string;
-    };
-    if (p.severity === "high" || p.severity === "critical") {
+    const { vesselId, equipmentId, severity, anomalyType } = event.payload;
+    if (severity === "high" || severity === "critical") {
       console.log(
-        `[Auto-Replan] Anomaly trigger: vessel=${p.vesselId}, severity=${p.severity}`
+        `[Auto-Replan] Anomaly trigger: vessel=${vesselId}, severity=${severity}`
       );
       schedAutoReplanTriggers.labels(event.orgId, "anomaly_detected").inc();
 
@@ -64,13 +60,13 @@ export function initializeAutoReplanPolicy(): void {
         await planAndMaybeExecute({
           orgId: event.orgId,
           days: AUTO_REPLAN_DAYS,
-          vessels: [p.vesselId],
+          vessels: [vesselId],
           mode: "auto",
           trigger: "anomaly_detected",
           triggerContext: {
-            equipmentId: p.equipmentId,
-            severity: p.severity,
-            anomalyType: p.anomalyType,
+            equipmentId,
+            severity,
+            anomalyType,
           },
         });
       } catch (error) {
@@ -80,24 +76,22 @@ export function initializeAutoReplanPolicy(): void {
   });
 
   domainEventBus.on("pdm.maintenance.window", async (event) => {
-    const p = event.payload as {
-      vesselId: string; equipmentId: string; start: Date; end: Date; priority: string;
-    };
-    console.log(`[Auto-Replan] Maintenance window trigger: vessel=${p.vesselId}`);
+    const { vesselId, equipmentId, start, end, priority } = event.payload;
+    console.log(`[Auto-Replan] Maintenance window trigger: vessel=${vesselId}`);
     schedAutoReplanTriggers.labels(event.orgId, "maintenance_scheduled").inc();
 
     try {
       await planAndMaybeExecute({
         orgId: event.orgId,
         days: AUTO_REPLAN_DAYS,
-        vessels: [p.vesselId],
+        vessels: [vesselId],
         mode: "auto",
         trigger: "maintenance_scheduled",
         triggerContext: {
-          equipmentId: p.equipmentId,
-          start: p.start instanceof Date ? p.start.toISOString() : String(p.start),
-          end: p.end instanceof Date ? p.end.toISOString() : String(p.end),
-          priority: p.priority,
+          equipmentId,
+          start: start instanceof Date ? start.toISOString() : String(start),
+          end: end instanceof Date ? end.toISOString() : String(end),
+          priority,
         },
       });
     } catch (error) {

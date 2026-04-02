@@ -269,10 +269,10 @@ export const crewAssignmentProjection = new CrewAssignmentProjectionAdapter();
 
 export function initCrewAssignmentProjectionEventHandler(): void {
   domainEventBus.on("scheduler.run.completed", (event) => {
-    const p = event.payload as { runId: string };
+    const { runId } = event.payload;
     logger.debug("Scheduler run completed, invalidating projection cache", {
       orgId: event.orgId,
-      runId: p.runId,
+      runId,
     });
     crewAssignmentProjection.refresh(event.orgId);
   });

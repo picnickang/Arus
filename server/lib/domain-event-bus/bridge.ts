@@ -32,6 +32,15 @@ const SYNC_EVENT_ENTITY_MAP: Record<string, string> = {
   "crew.leave_requested": "crew",
   "crew.leave_approved": "crew",
   "crew.certification_expiring": "crew",
+  "maintenance.scheduled": "maintenance_schedule",
+  "maintenance.updated": "maintenance_schedule",
+  "maintenance.deleted": "maintenance_schedule",
+  "maintenance.completed": "maintenance_schedule",
+  "maintenance.overdue": "maintenance_schedule",
+  "maintenance.auto_scheduled": "maintenance_schedule",
+  "maintenance.template_created": "maintenance_template",
+  "maintenance.template_updated": "maintenance_template",
+  "maintenance.template_deleted": "maintenance_template",
 };
 
 function mapDomainEventToSyncEvent(eventType: string): EventType | null {
@@ -81,6 +90,9 @@ export function initSyncJournalSubscriber(): void {
     "crew.member_created", "crew.member_updated", "crew.member_deleted",
     "crew.assigned", "crew.unassigned", "crew.leave_requested", "crew.leave_approved",
     "crew.certification_expiring",
+    "maintenance.scheduled", "maintenance.updated", "maintenance.deleted",
+    "maintenance.completed", "maintenance.overdue", "maintenance.auto_scheduled",
+    "maintenance.template_created", "maintenance.template_updated", "maintenance.template_deleted",
   ];
 
   for (const eventType of trackedEvents) {
@@ -133,14 +145,18 @@ export function initMqttSubscriber(): void {
     });
   }
 
-  domainEventBus.on("maintenance.scheduled", (event) => {
-    if ((event as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) return;
-    mqttReliableSync.publishMaintenanceChange("create", { id: event.aggregateId, ...event.payload }).catch(() => {});
-  });
-  domainEventBus.on("maintenance.completed", (event) => {
-    if ((event as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) return;
-    mqttReliableSync.publishMaintenanceChange("update", { id: event.aggregateId, ...event.payload }).catch(() => {});
-  });
+  const maintenanceEvents: DomainEventName[] = [
+    "maintenance.scheduled", "maintenance.updated", "maintenance.deleted",
+    "maintenance.completed", "maintenance.overdue", "maintenance.auto_scheduled",
+    "maintenance.template_created", "maintenance.template_updated", "maintenance.template_deleted",
+  ];
+  for (const eventType of maintenanceEvents) {
+    domainEventBus.on(eventType, (event) => {
+      if ((event as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) return;
+      const op = mapOperationFromEventType(eventType);
+      mqttReliableSync.publishMaintenanceChange(op, { id: event.aggregateId, eventType, ...event.payload }).catch(() => {});
+    });
+  }
 
   console.log("[DomainEventBridge] MQTT subscriber initialized");
 }
@@ -248,7 +264,7 @@ export function initReverseSyncEventBusBridge(): void {
         aggregateType: domainEventType.split(".")[0],
       });
       (envelope as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER] = true;
-      domainEventBus.emit(domainEventType, envelope as DomainEventEnvelope<unknown>);
+      domainEventBus.emitUnchecked(domainEventType, envelope as DomainEventMap[DomainEventName]);
     });
   }
 

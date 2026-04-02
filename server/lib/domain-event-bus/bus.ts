@@ -57,6 +57,16 @@ class DomainEventBusImpl {
     this.middlewares.push(middleware);
   }
 
+  emitUnchecked(eventType: DomainEventName, event: DomainEventMap[DomainEventName]): void {
+    for (const mw of this.middlewares) {
+      try {
+        mw(eventType, event);
+      } catch {
+      }
+    }
+    this.emitter.emit(eventType, event);
+  }
+
   listenerCount(eventType: DomainEventName): number {
     return this.emitter.listenerCount(eventType);
   }

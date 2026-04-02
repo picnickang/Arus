@@ -21,18 +21,15 @@ export function setupSimulationEventBridge(): void {
       console.warn('[SimulationEventBridge] No WebSocket server registered, skipping preview_created broadcast');
       return;
     }
-    const p = event.payload as {
-      previewId: string; proposedCount: number; unfilledCount: number;
-      complianceRate: number; strategy: string; dateRange: { start: string; end: string };
-    };
+    const { previewId, proposedCount, unfilledCount, complianceRate, strategy, dateRange } = event.payload;
     wsServer.broadcastScheduleSimulation('preview_created', {
-      previewId: p.previewId,
+      previewId,
       orgId: event.orgId,
-      proposedCount: p.proposedCount,
-      unfilledCount: p.unfilledCount,
-      complianceRate: p.complianceRate,
-      strategy: p.strategy,
-      dateRange: p.dateRange,
+      proposedCount,
+      unfilledCount,
+      complianceRate,
+      strategy,
+      dateRange,
     });
   });
 
@@ -41,19 +38,17 @@ export function setupSimulationEventBridge(): void {
       console.warn('[SimulationEventBridge] No WebSocket server registered, skipping committed broadcast');
       return;
     }
-    const p = event.payload as {
-      previewId: string; runId: string; assignmentsCommitted: number; selectedOnly: boolean;
-    };
+    const { previewId, runId, assignmentsCommitted, selectedOnly } = event.payload;
     wsServer.broadcastScheduleSimulation('committed', {
-      previewId: p.previewId,
-      runId: p.runId,
+      previewId,
+      runId,
       orgId: event.orgId,
-      assignmentsCommitted: p.assignmentsCommitted,
-      selectedOnly: p.selectedOnly,
+      assignmentsCommitted,
+      selectedOnly,
     });
     wsServer.broadcastSchedulePlannerUpdate('refresh', {
       orgId: event.orgId,
-      runId: p.runId,
+      runId,
       reason: 'simulation_committed',
     });
   });
@@ -63,11 +58,11 @@ export function setupSimulationEventBridge(): void {
       console.warn('[SimulationEventBridge] No WebSocket server registered, skipping discarded broadcast');
       return;
     }
-    const p = event.payload as { previewId: string; reason: string };
+    const { previewId, reason } = event.payload;
     wsServer.broadcastScheduleSimulation('discarded', {
-      previewId: p.previewId,
+      previewId,
       orgId: event.orgId,
-      reason: p.reason,
+      reason,
     });
   });
 
@@ -75,10 +70,10 @@ export function setupSimulationEventBridge(): void {
     if (!wsServer) {
       return;
     }
-    const p = event.payload as { runId: string };
+    const { runId } = event.payload;
     wsServer.broadcastSchedulePlannerUpdate('refresh', {
       orgId: event.orgId,
-      runId: p.runId,
+      runId,
       reason: 'scheduler_run_completed',
     });
   });
