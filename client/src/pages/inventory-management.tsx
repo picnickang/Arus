@@ -195,7 +195,7 @@ export default function InventoryManagement() {
                     onClearAll={handleClearFilters} className="h-full" />
                 </div>
               )}
-              <div className="flex-1 p-4 overflow-hidden">
+              <div className="flex-1 p-4 overflow-x-auto overflow-y-hidden">
                 {isGenuinelyEmpty ? (
                   <div className="flex flex-col items-center justify-center h-full text-center gap-4 text-muted-foreground">
                     <PackageX className="h-16 w-16 opacity-30" />

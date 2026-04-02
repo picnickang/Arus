@@ -75,7 +75,7 @@ export function VirtualizedWorkOrderTable({
         <div className="overflow-x-auto">
           <div style={{ minWidth: `${totalWidth}px` }}>
             <TableHeader sortColumn={sortColumn} sortDirection={sortDirection} onSort={onSort} />
-            <div ref={parentRef} className="h-[600px] overflow-auto" style={{ contain: "strict" }}>
+            <div ref={parentRef} className="h-[400px] md:h-[600px] overflow-auto" style={{ contain: "strict" }}>
               <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: "100%", position: "relative" }}>
                 {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                   const order = workOrders[virtualRow.index];

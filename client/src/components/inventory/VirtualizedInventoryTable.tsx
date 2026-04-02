@@ -259,7 +259,7 @@ export function VirtualizedInventoryTable({
   const virtualItems = rowVirtualizer.getVirtualItems();
 
   return (
-    <div className="border rounded-lg overflow-hidden flex flex-col" data-testid="virtualized-inventory-table">
+    <div className="border rounded-lg overflow-x-auto flex flex-col" data-testid="virtualized-inventory-table">
       <div className="bg-muted/50 flex-none">
         <Table>
           <TableHeader>

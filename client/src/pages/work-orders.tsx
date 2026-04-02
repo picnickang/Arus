@@ -72,15 +72,15 @@ export default function WorkOrders() {
         </PermissionGate>
       </div>
 
-      <div className="p-6 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
           <StatCard label="Total Orders" value={workOrders?.length || 0} testId="stat-total-orders" />
           <StatCard label="Open" value={openOrders.length} testId="stat-open-orders" className="text-chart-2" />
           <StatCard label="High Priority" value={highPriorityOrders.length} testId="stat-high-priority-orders" className="text-destructive" />
           <StatCard label="Completed" value={completedOrders.length} testId="stat-completed-orders" className="text-chart-3" />
         </div>
 
-        <div className="flex gap-6">
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
           <WorkOrderFilterPanel filters={filters} onFiltersChange={setFilters} />
           <div className="flex-1 min-w-0">
             <div className="mb-4 flex items-center justify-between">
@@ -107,7 +107,7 @@ export default function WorkOrders() {
 }
 
 function StatCard({ label, value, testId, className = "text-foreground" }: { label: string; value: number; testId: string; className?: string }) {
-  return <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-sm">{label}</p><p className={`text-2xl font-bold mt-1 ${className}`} data-testid={testId}>{value}</p></div></div></CardContent></Card>;
+  return <Card><CardContent className="p-4 md:p-6"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-xs md:text-sm">{label}</p><p className={`text-xl md:text-2xl font-bold mt-1 ${className}`} data-testid={testId}>{value}</p></div></div></CardContent></Card>;
 }
 
 function ViewOrderTabs({ order, getEquipmentName, getVesselName, onComplete, isCompleting, onClose, queryClient }: { order: WorkOrder; getEquipmentName: (id: string) => string; getVesselName: (id: string | null) => string; onComplete: () => void; isCompleting: boolean; onClose: () => void; queryClient: { invalidateQueries: (options: { queryKey: string[] }) => void } }) {
