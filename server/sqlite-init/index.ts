@@ -70,6 +70,15 @@ async function safeAddColumn(client: LibsqlClient, table: string, col: string, d
   }
 }
 
+export async function applyInventoryMigrations(): Promise<void> {
+  const { libsqlClient } = await import("../db-config.js");
+  if (!libsqlClient) {
+    throw new Error("SQLite client not initialized");
+  }
+  await runInventoryMigrations(libsqlClient);
+  await verifyInventorySchema(libsqlClient);
+}
+
 async function runInventoryMigrations(client: LibsqlClient): Promise<void> {
   const piCols = await getTableColumns(client, "parts_inventory");
   if (!piCols.length) return;

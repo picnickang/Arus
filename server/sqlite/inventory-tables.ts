@@ -38,10 +38,3 @@ export function getInventoryIndexesSql(): SQL[] {
   ];
 }
 
-export function getInventoryMigrationsSql(): SQL[] {
-  return [
-    sql`ALTER TABLE parts_inventory RENAME COLUMN min_quantity TO min_stock_level`,
-    sql`ALTER TABLE parts_inventory RENAME COLUMN current_quantity TO quantity_on_hand`,
-    sql`ALTER TABLE stock RENAME COLUMN quantity TO quantity_on_hand`,
-  ];
-}

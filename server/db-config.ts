@@ -259,8 +259,7 @@ async function initializeLocalDatabase() {
   
   console.log(`✓ Local SQLite: ${localDbPath}`);
 
-  // Initialize SQLite database with required tables if needed
-  const { initializeSqliteDatabase, isSqliteDatabaseInitialized } = await import("./sqlite-init");
+  const { initializeSqliteDatabase, isSqliteDatabaseInitialized, applyInventoryMigrations } = await import("./sqlite-init");
   const isInitialized = await isSqliteDatabaseInitialized();
 
   if (!isInitialized) {
@@ -268,7 +267,9 @@ async function initializeLocalDatabase() {
     await initializeSqliteDatabase();
     console.log("✓ SQLite tables initialized");
   } else {
-    console.log("✓ SQLite tables verified");
+    console.log("→ Running schema migrations on existing SQLite database...");
+    await applyInventoryMigrations();
+    console.log("✓ SQLite schema migrations applied");
   }
 
   // Perform initial sync if sync is enabled
