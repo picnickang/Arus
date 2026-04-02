@@ -198,6 +198,15 @@ async function runInventoryMigrations(client: LibsqlClient): Promise<void> {
       }
       if (!poiCols.includes("org_id")) {
         await safeAddColumn(client, "purchase_order_items", "org_id", "TEXT NOT NULL DEFAULT ''");
+        const poIdCol = poiCols.includes("po_id") ? "po_id" : (poiCols.includes("purchase_order_id") ? "purchase_order_id" : null);
+        if (poIdCol) {
+          const backfilled = await client.execute(
+            `UPDATE purchase_order_items SET org_id = (SELECT po.org_id FROM purchase_orders po WHERE po.id = purchase_order_items.${poIdCol}) WHERE org_id = ''`
+          );
+          if (backfilled.rowsAffected > 0) {
+            console.log(`  ✓ Backfilled ${backfilled.rowsAffected} purchase_order_items.org_id from purchase_orders`);
+          }
+        }
       }
       if (!poiCols.includes("po_id")) {
         await safeAddColumn(client, "purchase_order_items", "po_id", "TEXT NOT NULL DEFAULT ''");
@@ -243,6 +252,16 @@ async function verifyInventorySchema(client: LibsqlClient): Promise<void> {
     const msg = `Inventory schema verification FAILED:\n  ${details.join("\n  ")}`;
     console.error(msg);
     throw new Error(msg);
+  }
+
+  if (poiCols.includes("org_id")) {
+    const orphaned = await client.execute(
+      "SELECT COUNT(*) as cnt FROM purchase_order_items WHERE org_id = '' OR org_id IS NULL"
+    );
+    const count = Number(orphaned.rows[0]?.cnt ?? 0);
+    if (count > 0) {
+      console.warn(`⚠ ${count} purchase_order_items rows have empty org_id — tenant isolation incomplete`);
+    }
   }
 
   const legacyPiCols = ["min_quantity", "current_quantity", "reorder_level", "reorder_quantity"];
