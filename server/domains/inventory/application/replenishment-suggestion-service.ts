@@ -65,7 +65,22 @@ export class ReplenishmentSuggestionService {
       demandByPart.set(d.partId, existing);
     }
 
-    const suggestions: SmartReplenishmentSuggestion[] = (lowStockParts as unknown as LowStockPartRecord[]).map((part) => {
+    const typedParts: LowStockPartRecord[] = lowStockParts.map((p) => ({
+      id: p.id,
+      partNumber: p.partNumber,
+      partName: p.partName,
+      category: p.category,
+      criticality: (p as Record<string, unknown>).criticality as string | undefined,
+      quantityOnHand: p.quantityOnHand,
+      minStockLevel: p.minStockLevel ?? 0,
+      maxStockLevel: p.maxStockLevel ?? 0,
+      supplierId: (p as Record<string, unknown>).supplierId as string | undefined,
+      supplierName: p.supplierName ?? undefined,
+      leadTimeDays: p.leadTimeDays ?? undefined,
+      unitCost: p.unitCost,
+    }));
+
+    const suggestions: SmartReplenishmentSuggestion[] = typedParts.map((part) => {
       const currentQty = part.quantityOnHand || 0;
       const minLevel = part.minStockLevel || 0;
       const maxLevel = part.maxStockLevel || minLevel * 3 || 10;

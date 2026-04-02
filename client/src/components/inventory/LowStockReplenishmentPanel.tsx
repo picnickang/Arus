@@ -237,6 +237,12 @@ export function LowStockReplenishmentPanel({
                           >
                             <Wrench className="h-2.5 w-2.5 mr-0.5" />
                             Needed for {s.upcomingWOCount} WO{s.upcomingWOCount !== 1 ? "s" : ""}
+                            {(() => {
+                              const refs = (s.upcomingWONumbers ?? []).filter(Boolean) as string[];
+                              if (refs.length === 0) return null;
+                              const display = refs.length <= 2 ? refs.join(", ") : `${refs[0]}, +${refs.length - 1} more`;
+                              return <span className="ml-0.5 opacity-75">({display})</span>;
+                            })()}
                           </Badge>
                         )}
                         <Badge className={cn("text-[10px]", CRITICALITY_COLOR[s.criticality])} data-testid={`badge-criticality-${s.partId}`}>
