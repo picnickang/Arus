@@ -71,7 +71,7 @@ export function LowStockReplenishmentPanel({
 
   const fallbackQuery = useQuery<{
     total: number;
-    suggestions: SmartReplenishmentSuggestion[];
+    suggestions: Array<Omit<SmartReplenishmentSuggestion, "upcomingWOCount" | "upcomingWOIds" | "upcomingWONumbers" | "urgencyScore">>;
     estimatedTotalCost: number;
   }>({
     queryKey: ["/api/parts-inventory/low-stock-suggestions"],
@@ -79,7 +79,20 @@ export function LowStockReplenishmentPanel({
     staleTime: 60_000,
   });
 
-  const data = smartQuery.data ?? fallbackQuery.data;
+  const data = React.useMemo(() => {
+    if (smartQuery.data) return smartQuery.data;
+    if (!fallbackQuery.data) return undefined;
+    return {
+      ...fallbackQuery.data,
+      suggestions: fallbackQuery.data.suggestions.map((s) => ({
+        ...s,
+        upcomingWOCount: 0,
+        upcomingWOIds: [] as string[],
+        upcomingWONumbers: [] as (string | null)[],
+        urgencyScore: 0,
+      })),
+    };
+  }, [smartQuery.data, fallbackQuery.data]);
   const isLoading = smartQuery.isLoading || (smartQuery.isError && fallbackQuery.isLoading);
 
   React.useEffect(() => {
@@ -220,15 +233,10 @@ export function LowStockReplenishmentPanel({
                             variant="secondary"
                             className="text-[10px] bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
                             data-testid={`badge-wo-demand-${s.partId}`}
-                            title={s.upcomingWOIds.join(", ")}
+                            title={(s.upcomingWONumbers ?? []).filter(Boolean).join(", ") || s.upcomingWOIds.join(", ")}
                           >
                             <Wrench className="h-2.5 w-2.5 mr-0.5" />
-                            {(() => {
-                              const woNums = (s.upcomingWONumbers ?? []).filter(Boolean) as string[];
-                              if (woNums.length === 0) return `${s.upcomingWOCount} WO${s.upcomingWOCount !== 1 ? "s" : ""}`;
-                              if (woNums.length === 1) return woNums[0];
-                              return `${woNums[0]} +${woNums.length - 1}`;
-                            })()}
+                            Needed for {s.upcomingWOCount} WO{s.upcomingWOCount !== 1 ? "s" : ""}
                           </Badge>
                         )}
                         <Badge className={cn("text-[10px]", CRITICALITY_COLOR[s.criticality])} data-testid={`badge-criticality-${s.partId}`}>
