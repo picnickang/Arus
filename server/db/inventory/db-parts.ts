@@ -70,10 +70,11 @@ export class DbPartsStorage {
     if (partsRows.length === 0) return [];
 
     const partIds = partsRows.map(p => p.id);
+    const partIdsArray = sql`ARRAY[${sql.join(partIds.map(id => sql`${id}`), sql`, `)}]::text[]`;
     const stockRows = await db.select().from(stock).where(
       orgId
-        ? and(eq(stock.orgId, orgId), sql`${stock.partId} = ANY(${partIds})`)
-        : sql`${stock.partId} = ANY(${partIds})`
+        ? and(eq(stock.orgId, orgId), sql`${stock.partId} = ANY(${partIdsArray})`)
+        : sql`${stock.partId} = ANY(${partIdsArray})`
     );
     const stockByPartId = new Map<string, Stock[]>();
     for (const s of stockRows) {

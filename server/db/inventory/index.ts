@@ -133,7 +133,8 @@ export class DatabaseInventoryStorage extends DbPartsStorage {
     if (partRows.length === 0) return [];
 
     const partIds = partRows.map(p => p.id);
-    const stockRows = await db.select().from(stock).where(sql`${stock.partId} = ANY(${partIds})`);
+    const partIdsArray = sql`ARRAY[${sql.join(partIds.map(id => sql`${id}`), sql`, `)}]::text[]`;
+    const stockRows = await db.select().from(stock).where(sql`${stock.partId} = ANY(${partIdsArray})`);
     const stockMap = new Map<string, Stock[]>();
     for (const s of stockRows) {
       const arr = stockMap.get(s.partId) || [];
