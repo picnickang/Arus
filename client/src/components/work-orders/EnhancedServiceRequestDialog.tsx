@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Wrench, Plus, Trash2, AlertTriangle, CalendarIcon } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Loader2, Wrench, Plus, Trash2, AlertTriangle, CalendarIcon, ChevronDown, ChevronUp, Settings2 } from "lucide-react";
 import { useServiceProviders } from "@/features/suppliers/hooks/useSuppliers";
 import { useEquipmentList } from "@/features/vessels/hooks/useVessels";
 import { cn } from "@/lib/utils";
@@ -66,9 +67,10 @@ interface EnhancedServiceRequestDialogProps {
   isPending: boolean;
   initialData?: InitialServiceOrderData;
   isEditing?: boolean;
+  defaultExpanded?: boolean;
 }
 
-export function EnhancedServiceRequestDialog({ open, onOpenChange, onSubmit, isPending, initialData, isEditing = false }: EnhancedServiceRequestDialogProps) {
+export function EnhancedServiceRequestDialog({ open, onOpenChange, onSubmit, isPending, initialData, isEditing = false, defaultExpanded = false }: EnhancedServiceRequestDialogProps) {
   const { data: providers = [] } = useServiceProviders();
   const { data: equipment = [] } = useEquipmentList();
 
@@ -89,6 +91,15 @@ export function EnhancedServiceRequestDialog({ open, onOpenChange, onSubmit, isP
   const [mocNumber, setMocNumber] = useState("");
   const [certificateItems, setCertificateItems] = useState<CertificateItem[]>([]);
   const [initialized, setInitialized] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(defaultExpanded);
+
+  const advancedSectionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (open) {
+      setShowAdvanced(defaultExpanded || isEditing);
+    }
+  }, [open, defaultExpanded, isEditing]);
 
   if (open && isEditing && initialData && !initialized) {
     if (initialData.serviceProviderId) setProviderId(initialData.serviceProviderId);
@@ -129,31 +140,56 @@ export function EnhancedServiceRequestDialog({ open, onOpenChange, onSubmit, isP
   }, []);
 
   const handleSubmit = () => {
-    onSubmit({
-      serviceProviderId: providerId, equipmentIds: selectedEquipmentIds, severity, assistanceTags, symptomDescription,
-      probableCause: probableCause || undefined, actionTakenSoFar: actionTakenSoFar || undefined, isRecurringDefect,
-      requestedStartDate, requestedEndDate,
-      estimatedDurationHours: estimatedHours ? Number.parseFloat(estimatedHours) : undefined,
-      quotedAmount: quotedAmount ? Number.parseFloat(quotedAmount) : undefined,
-      notes: notes || undefined, mocRequired, mocNumber: mocRequired ? mocNumber || undefined : undefined,
-      certificateItems: showCertificates && certificateItems.length > 0
-        ? certificateItems.filter(c => c.name.trim()).map(c => ({ name: c.name, expiryDate: c.expiryDate?.toISOString(), remarks: c.remarks || undefined }))
-        : undefined,
+    const data: EnhancedServiceRequestData = {
+      serviceProviderId: providerId,
+      equipmentIds: selectedEquipmentIds,
+      severity: showAdvanced ? severity : "general",
+      assistanceTags: showAdvanced ? assistanceTags : [],
+      symptomDescription,
+      isRecurringDefect: showAdvanced ? isRecurringDefect : false,
+      requestedStartDate,
+      mocRequired: showAdvanced ? mocRequired : false,
       scope: symptomDescription,
-    });
+    };
+
+    if (showAdvanced) {
+      data.probableCause = probableCause || undefined;
+      data.actionTakenSoFar = actionTakenSoFar || undefined;
+      data.requestedEndDate = requestedEndDate;
+      data.estimatedDurationHours = estimatedHours ? Number.parseFloat(estimatedHours) : undefined;
+      data.quotedAmount = quotedAmount ? Number.parseFloat(quotedAmount) : undefined;
+      data.notes = notes || undefined;
+      data.mocNumber = mocRequired ? mocNumber || undefined : undefined;
+      data.certificateItems = showCertificates && certificateItems.length > 0
+        ? certificateItems.filter(c => c.name.trim()).map(c => ({ name: c.name, expiryDate: c.expiryDate?.toISOString(), remarks: c.remarks || undefined }))
+        : undefined;
+    }
+
+    onSubmit(data);
   };
 
   const handleOpenChange = (isOpen: boolean) => { if (!isOpen) {resetForm(); setInitialized(false);} onOpenChange(isOpen); };
+
   const canSubmit = isEditing 
     ? symptomDescription.trim() && !isPending
     : providerId && selectedEquipmentIds.length > 0 && symptomDescription.trim() && !isPending;
+
+  const handleToggleAdvanced = () => {
+    const newState = !showAdvanced;
+    setShowAdvanced(newState);
+    if (newState) {
+      setTimeout(() => {
+        advancedSectionRef.current?.querySelector<HTMLElement>("input, textarea, select, button")?.focus();
+      }, 150);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Wrench className="h-5 w-5" />{isEditing ? "Edit Service Order" : "Request External Service"}</DialogTitle>
-          <DialogDescription>{isEditing ? "Update the service order details." : "Create a service request with detailed diagnostics and scheduling information."}</DialogDescription>
+          <DialogTitle className="flex items-center gap-2"><Wrench className="h-5 w-5" />{isEditing ? "Edit Service Order" : "Quick Service Request"}</DialogTitle>
+          <DialogDescription>{isEditing ? "Update the service order details." : "Fill in the basics, or expand advanced options for full details."}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -165,87 +201,109 @@ export function EnhancedServiceRequestDialog({ open, onOpenChange, onSubmit, isP
                 <SelectContent>{providers.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>Severity *</Label>
-              <div className="flex gap-2 mt-2">
-                {SEVERITY_OPTIONS.map(opt => (
-                  <Badge key={opt.value} className={cn("cursor-pointer px-3 py-1", severity === opt.value ? opt.color : "bg-muted text-muted-foreground hover:bg-muted/80")} onClick={() => setSeverity(opt.value)} data-testid={`badge-severity-${opt.value}`}>
-                    {opt.label}
-                  </Badge>
-                ))}
-              </div>
-            </div>
+            <DatePickerField label="Requested Date" value={requestedStartDate} onChange={setRequestedStartDate} testId="date-start" />
           </div>
 
           <EquipmentMultiSelect equipment={equipment} selectedIds={selectedEquipmentIds} onChange={setSelectedEquipmentIds} />
 
-          <div>
-            <Label className="mb-2 block">Assistance Required</Label>
-            <div className="flex flex-wrap gap-2">
-              {ASSISTANCE_TAGS.map(tag => (
-                <Badge key={tag.value} variant={assistanceTags.includes(tag.value) ? "default" : "outline"} className="cursor-pointer" onClick={() => toggleTag(tag.value)} data-testid={`tag-${tag.value}`}>
-                  {tag.label}
-                </Badge>
-              ))}
-            </div>
-          </div>
+          <div><Label>Description *</Label><Textarea value={symptomDescription} onChange={(e) => setSymptomDescription(e.target.value)} placeholder="Describe the work needed..." rows={3} data-testid="input-symptom" /></div>
 
-          <Separator />
+          <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+            <CollapsibleTrigger asChild>
+              <button
+                type="button"
+                onClick={handleToggleAdvanced}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full py-2"
+                data-testid="toggle-advanced-options"
+              >
+                <Settings2 className="h-4 w-4" />
+                {showAdvanced ? "Hide advanced options" : "Show advanced options"}
+                {showAdvanced ? <ChevronUp className="h-4 w-4 ml-auto" /> : <ChevronDown className="h-4 w-4 ml-auto" />}
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="overflow-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2">
+              <div ref={advancedSectionRef} className="space-y-6 pt-4">
+                <Separator />
 
-          <div className="space-y-4">
-            <h4 className="font-medium flex items-center gap-2"><AlertTriangle className="h-4 w-4" />Diagnostics</h4>
-            <div><Label>Symptom / Issue Description *</Label><Textarea value={symptomDescription} onChange={(e) => setSymptomDescription(e.target.value)} placeholder="Describe the issue in detail..." rows={3} data-testid="input-symptom" /></div>
-            <div className="grid grid-cols-2 gap-4">
-              <div><Label>Probable Cause</Label><Textarea value={probableCause} onChange={(e) => setProbableCause(e.target.value)} placeholder="What might be causing this..." rows={2} data-testid="input-probable-cause" /></div>
-              <div><Label>Action Taken So Far</Label><Textarea value={actionTakenSoFar} onChange={(e) => setActionTakenSoFar(e.target.value)} placeholder="Any troubleshooting done..." rows={2} data-testid="input-action-taken" /></div>
-            </div>
-            <div className="flex items-center space-x-2"><Switch id="recurring" checked={isRecurringDefect} onCheckedChange={setIsRecurringDefect} data-testid="switch-recurring" /><Label htmlFor="recurring">Recurring Defect</Label></div>
-          </div>
-
-          <Separator />
-
-          <div className="space-y-4">
-            <h4 className="font-medium flex items-center gap-2"><CalendarIcon className="h-4 w-4" />Scheduling</h4>
-            <div className="grid grid-cols-2 gap-4">
-              <DatePickerField label="Requested Start Date" value={requestedStartDate} onChange={setRequestedStartDate} testId="date-start" />
-              <DatePickerField label="Requested End Date" value={requestedEndDate} onChange={setRequestedEndDate} testId="date-end" />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div><Label>Estimated Hours</Label><Input type="number" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} placeholder="0" data-testid="input-hours" /></div>
-              <div><Label>Quoted Amount ($)</Label><Input type="number" value={quotedAmount} onChange={(e) => setQuotedAmount(e.target.value)} placeholder="0.00" data-testid="input-quote" /></div>
-            </div>
-          </div>
-
-          <Separator />
-
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2"><Switch id="moc" checked={mocRequired} onCheckedChange={setMocRequired} data-testid="switch-moc" /><Label htmlFor="moc">MOC (Management of Change) Required</Label></div>
-            {mocRequired && <div><Label>MOC Number</Label><Input value={mocNumber} onChange={(e) => setMocNumber(e.target.value)} placeholder="MOC-2024-001" data-testid="input-moc-number" /></div>}
-          </div>
-
-          {showCertificates && (
-            <>
-              <Separator />
-              <div className="space-y-4">
-                <div className="flex items-center justify-between"><h4 className="font-medium">Certificate Renewals</h4><Button variant="outline" size="sm" onClick={addCertificate} data-testid="btn-add-certificate"><Plus className="h-4 w-4 mr-1" />Add Certificate</Button></div>
-                {certificateItems.map(cert => (
-                  <div key={cert.id} className="grid grid-cols-4 gap-2 items-end">
-                    <div><Label className="text-xs">Certificate Name</Label><Input value={cert.name} onChange={(e) => updateCertificate(cert.id, "name", e.target.value)} placeholder="Certificate name" data-testid={`input-cert-name-${cert.id}`} /></div>
-                    <DatePickerField label="Expiry Date" value={cert.expiryDate} onChange={(d) => updateCertificate(cert.id, "expiryDate", d)} testId={`cert-expiry-${cert.id}`} compact />
-                    <div><Label className="text-xs">Remarks</Label><Input value={cert.remarks} onChange={(e) => updateCertificate(cert.id, "remarks", e.target.value)} placeholder="Remarks" data-testid={`input-cert-remarks-${cert.id}`} /></div>
-                    <Button variant="ghost" size="sm" onClick={() => removeCertificate(cert.id)} data-testid={`btn-remove-cert-${cert.id}`}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                <div>
+                  <Label>Severity</Label>
+                  <div className="flex gap-2 mt-2">
+                    {SEVERITY_OPTIONS.map(opt => (
+                      <Badge key={opt.value} className={cn("cursor-pointer px-3 py-1", severity === opt.value ? opt.color : "bg-muted text-muted-foreground hover:bg-muted/80")} onClick={() => setSeverity(opt.value)} data-testid={`badge-severity-${opt.value}`}>
+                        {opt.label}
+                      </Badge>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </>
-          )}
+                </div>
 
-          <div><Label>Additional Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any additional notes..." rows={2} data-testid="input-notes" /></div>
+                <div>
+                  <Label className="mb-2 block">Assistance Required</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {ASSISTANCE_TAGS.map(tag => (
+                      <Badge key={tag.value} variant={assistanceTags.includes(tag.value) ? "default" : "outline"} className="cursor-pointer" onClick={() => toggleTag(tag.value)} data-testid={`tag-${tag.value}`}>
+                        {tag.label}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h4 className="font-medium flex items-center gap-2"><AlertTriangle className="h-4 w-4" />Diagnostics</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div><Label>Probable Cause</Label><Textarea value={probableCause} onChange={(e) => setProbableCause(e.target.value)} placeholder="What might be causing this..." rows={2} data-testid="input-probable-cause" /></div>
+                    <div><Label>Action Taken So Far</Label><Textarea value={actionTakenSoFar} onChange={(e) => setActionTakenSoFar(e.target.value)} placeholder="Any troubleshooting done..." rows={2} data-testid="input-action-taken" /></div>
+                  </div>
+                  <div className="flex items-center space-x-2"><Switch id="recurring" checked={isRecurringDefect} onCheckedChange={setIsRecurringDefect} data-testid="switch-recurring" /><Label htmlFor="recurring">Recurring Defect</Label></div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h4 className="font-medium flex items-center gap-2"><CalendarIcon className="h-4 w-4" />Scheduling</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <DatePickerField label="Requested End Date" value={requestedEndDate} onChange={setRequestedEndDate} testId="date-end" />
+                    <div><Label>Estimated Hours</Label><Input type="number" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} placeholder="0" data-testid="input-hours" /></div>
+                  </div>
+                  <div>
+                    <Label>Quoted Amount ($)</Label><Input type="number" value={quotedAmount} onChange={(e) => setQuotedAmount(e.target.value)} placeholder="0.00" data-testid="input-quote" />
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2"><Switch id="moc" checked={mocRequired} onCheckedChange={setMocRequired} data-testid="switch-moc" /><Label htmlFor="moc">MOC (Management of Change) Required</Label></div>
+                  {mocRequired && <div><Label>MOC Number</Label><Input value={mocNumber} onChange={(e) => setMocNumber(e.target.value)} placeholder="MOC-2024-001" data-testid="input-moc-number" /></div>}
+                </div>
+
+                {showCertificates && (
+                  <>
+                    <Separator />
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between"><h4 className="font-medium">Certificate Renewals</h4><Button variant="outline" size="sm" onClick={addCertificate} data-testid="btn-add-certificate"><Plus className="h-4 w-4 mr-1" />Add Certificate</Button></div>
+                      {certificateItems.map(cert => (
+                        <div key={cert.id} className="grid grid-cols-4 gap-2 items-end">
+                          <div><Label className="text-xs">Certificate Name</Label><Input value={cert.name} onChange={(e) => updateCertificate(cert.id, "name", e.target.value)} placeholder="Certificate name" data-testid={`input-cert-name-${cert.id}`} /></div>
+                          <DatePickerField label="Expiry Date" value={cert.expiryDate} onChange={(d) => updateCertificate(cert.id, "expiryDate", d)} testId={`cert-expiry-${cert.id}`} compact />
+                          <div><Label className="text-xs">Remarks</Label><Input value={cert.remarks} onChange={(e) => updateCertificate(cert.id, "remarks", e.target.value)} placeholder="Remarks" data-testid={`input-cert-remarks-${cert.id}`} /></div>
+                          <Button variant="ghost" size="sm" onClick={() => removeCertificate(cert.id)} data-testid={`btn-remove-cert-${cert.id}`}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                <div><Label>Additional Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any additional notes..." rows={2} data-testid="input-notes" /></div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={!canSubmit} data-testid="btn-submit-sr">{isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}{isEditing ? "Update Service Order" : "Create Service Order"}</Button>
+          <Button onClick={handleSubmit} disabled={!canSubmit} data-testid="button-submit-service-request">{isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}{isEditing ? "Update Service Order" : "Create Service Order"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
