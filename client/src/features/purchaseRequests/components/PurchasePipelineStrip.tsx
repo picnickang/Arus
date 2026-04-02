@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   Check,
@@ -18,6 +19,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow, format } from "date-fns";
@@ -50,6 +56,43 @@ function StageIcon({
   if (status === "current") return <Clock className="h-4 w-4" />;
   const Icon = STAGE_ICONS[stageKey] || Circle;
   return <Icon className="h-3.5 w-3.5" />;
+}
+
+function formatDetails(details: Record<string, unknown> | null): string[] {
+  if (!details) return [];
+  const lines: string[] = [];
+  for (const [key, value] of Object.entries(details)) {
+    if (value === null || value === undefined) continue;
+    if (typeof value === "object") continue;
+    const label = key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase());
+    lines.push(`${label}: ${String(value)}`);
+  }
+  return lines;
+}
+
+function StageDetailContent({ stage }: { stage: PipelineStage }) {
+  const detailLines = formatDetails(stage.details);
+  return (
+    <div className="text-xs max-w-[240px]">
+      <p className="font-semibold">{stage.label}</p>
+      <p className="text-muted-foreground">{stage.description}</p>
+      {stage.timestamp && (
+        <p className="mt-1">
+          {format(new Date(stage.timestamp), "MMM d, yyyy HH:mm")}
+        </p>
+      )}
+      {(stage.actorName || stage.actor) && (
+        <p className="text-muted-foreground">By: {stage.actorName || stage.actor}</p>
+      )}
+      {detailLines.length > 0 && (
+        <div className="mt-1.5 pt-1.5 border-t border-border space-y-0.5">
+          {detailLines.map((line) => (
+            <p key={line} className="text-muted-foreground">{line}</p>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function DesktopPipeline({ stages }: { stages: PipelineStage[] }) {
@@ -103,17 +146,8 @@ function DesktopPipeline({ stages }: { stages: PipelineStage[] }) {
                   )}
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs max-w-[220px]">
-                <p className="font-semibold">{stage.label}</p>
-                <p className="text-muted-foreground">{stage.description}</p>
-                {stage.timestamp && (
-                  <p className="mt-1">
-                    {format(new Date(stage.timestamp), "MMM d, yyyy HH:mm")}
-                  </p>
-                )}
-                {stage.actor && (
-                  <p className="text-muted-foreground">By: {stage.actor}</p>
-                )}
+              <TooltipContent side="bottom" className="p-3">
+                <StageDetailContent stage={stage} />
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -133,27 +167,41 @@ function DesktopPipeline({ stages }: { stages: PipelineStage[] }) {
 }
 
 function MobilePipeline({ stages }: { stages: PipelineStage[] }) {
+  const [openStage, setOpenStage] = useState<string | null>(null);
+
   return (
     <div className="md:hidden flex items-center gap-1 overflow-x-auto pb-1">
       {stages.map((stage, index) => (
         <div key={stage.key} className="flex items-center flex-shrink-0">
-          <Badge
-            variant={stage.status === "upcoming" ? "outline" : "default"}
-            className={cn(
-              "text-[10px] px-2 py-0.5 whitespace-nowrap cursor-default",
-              stage.status === "completed" &&
-                "bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/30",
-              stage.status === "current" &&
-                "bg-primary/20 text-primary border-primary/30",
-              stage.status === "upcoming" && "opacity-40"
-            )}
-            data-testid={`pipeline-step-${stage.key}`}
-          >
-            {stage.status === "completed" && (
-              <Check className="h-3 w-3 mr-0.5" />
-            )}
-            {stage.label}
-          </Badge>
+          <Popover open={openStage === stage.key} onOpenChange={(open) => setOpenStage(open ? stage.key : null)}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="focus:outline-none"
+                data-testid={`pipeline-step-${stage.key}`}
+              >
+                <Badge
+                  variant={stage.status === "upcoming" ? "outline" : "default"}
+                  className={cn(
+                    "text-[10px] px-2 py-0.5 whitespace-nowrap cursor-pointer",
+                    stage.status === "completed" &&
+                      "bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/30",
+                    stage.status === "current" &&
+                      "bg-primary/20 text-primary border-primary/30",
+                    stage.status === "upcoming" && "opacity-40"
+                  )}
+                >
+                  {stage.status === "completed" && (
+                    <Check className="h-3 w-3 mr-0.5" />
+                  )}
+                  {stage.label}
+                </Badge>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent side="bottom" className="p-3 w-auto">
+              <StageDetailContent stage={stage} />
+            </PopoverContent>
+          </Popover>
           {index < stages.length - 1 && (
             <ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0 mx-0.5" />
           )}

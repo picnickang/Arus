@@ -17,6 +17,7 @@ export interface PipelineStage {
   status: "completed" | "current" | "upcoming";
   timestamp: string | null;
   actor: string | null;
+  actorName: string | null;
   details: Record<string, unknown> | null;
 }
 

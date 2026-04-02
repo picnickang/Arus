@@ -1,10 +1,11 @@
 import { db } from "../../../db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, inArray } from "drizzle-orm";
 import {
   purchaseRequests,
   purchaseRequestEvents,
   purchaseOrderEvents,
   purchaseOrders,
+  users,
 } from "@shared/schema";
 import type { IPurchaseEventRepository } from "../domain/ports";
 import type { PipelineDataSources, RawEvent } from "../domain/types";
@@ -127,5 +128,21 @@ export class PurchaseEventRepositoryAdapter implements IPurchaseEventRepository 
     }
 
     return Array.from(poIds);
+  }
+
+  async resolveUserNames(userIds: string[]): Promise<Map<string, string>> {
+    const nameMap = new Map<string, string>();
+    if (userIds.length === 0) return nameMap;
+
+    const uniqueIds = [...new Set(userIds)];
+    const rows = await db
+      .select({ id: users.id, name: users.name })
+      .from(users)
+      .where(inArray(users.id, uniqueIds));
+
+    for (const row of rows) {
+      nameMap.set(row.id, row.name);
+    }
+    return nameMap;
   }
 }

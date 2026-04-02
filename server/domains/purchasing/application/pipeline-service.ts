@@ -90,9 +90,15 @@ export class PurchasePipelineService {
     return this.assemblePipeline(prId, data);
   }
 
-  assemblePipeline(prId: string, data: PipelineDataSources): PurchasePipeline {
+  async assemblePipeline(prId: string, data: PipelineDataSources): Promise<PurchasePipeline> {
     const currentStage = this.resolveCurrentStage(data);
     const currentIdx = stageIndex(currentStage);
+
+    const userIds = new Set<string>();
+    for (const evt of [...data.prEvents, ...data.poEvents]) {
+      if (evt.userId) userIds.add(evt.userId);
+    }
+    const nameMap = await this.repo.resolveUserNames([...userIds]);
 
     const stages: PipelineStage[] = PIPELINE_STAGE_KEYS.map((key) => {
       const idx = stageIndex(key);
@@ -102,6 +108,7 @@ export class PurchasePipelineService {
       else if (idx === currentIdx) status = "current";
 
       const { timestamp, actor, details } = this.resolveStageData(key, data);
+      const actorName = actor ? (nameMap.get(actor) ?? actor) : null;
 
       return {
         key,
@@ -110,6 +117,7 @@ export class PurchasePipelineService {
         status,
         timestamp,
         actor,
+        actorName,
         details,
       };
     });
