@@ -230,6 +230,10 @@ const domainRouters: DomainRouterConfig[] = [
   // AI Copilot Agent
   { name: "Agent", importPath: "../domains/agent/index.js", functionName: "registerAgentRoutes",
     getDeps: () => ({ generalApiRateLimit, writeOperationRateLimit }) },
+
+  // Purchasing Pipeline (read-only pipeline view)
+  { name: "PurchasingPipeline", importPath: "../domains/purchasing/index.js", functionName: "registerPurchasingPipelineRoutes",
+    getDeps: () => ({ generalApiRateLimit }) },
 ];
 
 /**

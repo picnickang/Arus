@@ -51,28 +51,30 @@ export async function getPurchaseRequestWithItems(
   const pr = await getPurchaseRequestById(id, orgId);
   if (!pr) return null;
 
-  const items = await db
-    .select({
-      id:           purchaseRequestItems.id,
-      orgId:        purchaseRequestItems.orgId,
-      prId:         purchaseRequestItems.prId,
-      partId:       purchaseRequestItems.partId,
-      supplierId:   purchaseRequestItems.supplierId,
-      quantity:     purchaseRequestItems.quantity,
-      robSnapshot:  purchaseRequestItems.robSnapshot,
-      uom:          purchaseRequestItems.uom,
-      remarks:      purchaseRequestItems.remarks,
-      createdAt:    purchaseRequestItems.createdAt,
-      partName:     parts.name,
-      partNumber:   parts.partNumber,
-      supplierName: suppliers.name,
-    })
+  const rawItems = await db
+    .select()
     .from(purchaseRequestItems)
-    .leftJoin(parts, eq(purchaseRequestItems.partId, parts.id))
-    .leftJoin(suppliers, eq(purchaseRequestItems.supplierId, suppliers.id))
     .where(eq(purchaseRequestItems.prId, id));
 
-  return { ...pr, items: items as PRItemWithDetails[] };
+  const items: PRItemWithDetails[] = [];
+  for (const item of rawItems) {
+    let partName: string | null = null;
+    let partNumber: string | null = null;
+    let supplierName: string | null = null;
+
+    if (item.partId) {
+      const [part] = await db.select({ name: parts.name, partNumber: parts.partNumber }).from(parts).where(eq(parts.id, item.partId));
+      if (part) { partName = part.name; partNumber = part.partNumber; }
+    }
+    if (item.supplierId) {
+      const [supplier] = await db.select({ name: suppliers.name }).from(suppliers).where(eq(suppliers.id, item.supplierId));
+      if (supplier) { supplierName = supplier.name; }
+    }
+
+    items.push({ ...item, partName, partNumber, supplierName } as PRItemWithDetails);
+  }
+
+  return { ...pr, items };
 }
 
 export async function listPurchaseRequests(filters: PRListFilters) {

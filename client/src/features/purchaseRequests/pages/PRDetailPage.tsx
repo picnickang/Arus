@@ -9,7 +9,7 @@ import { ArrowLeft, Plus, Send, XCircle, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { usePurchaseRequest, useAddPRItem, useRemovePRItem, useSendPR, useCancelPR } from "../hooks/usePurchaseRequests";
 import { PRStatusBadge } from "../components/PRStatusBadge";
-import { PRStatusPipeline } from "../components/PRStatusPipeline";
+import { PurchasePipelineStrip } from "../components/PurchasePipelineStrip";
 import { PRItemsTable } from "../components/PRItemsTable";
 import { AddItemDialog } from "../components/AddItemDialog";
 import type { PRItemFormData } from "../types";
@@ -118,14 +118,7 @@ export function PRDetailPage() {
         )}
       </div>
 
-      <PRStatusPipeline
-        status={pr.status}
-        events={pr.events}
-        linkedPO={pr.linkedPO}
-        sentAt={pr.sentAt}
-        closedAt={pr.closedAt}
-        className="mb-2"
-      />
+      <PurchasePipelineStrip prId={id} className="mb-2" />
 
       <Card>
         <CardHeader>
