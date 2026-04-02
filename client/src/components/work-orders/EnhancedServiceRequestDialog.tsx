@@ -102,10 +102,12 @@ export function EnhancedServiceRequestDialog({ open, onOpenChange, onSubmit, isP
   const advancedSectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (open && (defaultExpanded || isEditing)) {
-      setShowAdvanced(true);
-    } else if (open && sessionAdvancedState !== null) {
-      setShowAdvanced(sessionAdvancedState);
+    if (open) {
+      if (defaultExpanded || isEditing) {
+        setShowAdvanced(true);
+      } else {
+        setShowAdvanced(sessionAdvancedState ?? false);
+      }
     }
   }, [open, defaultExpanded, isEditing]);
 

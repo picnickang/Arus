@@ -151,7 +151,7 @@ export function WorkOrderDetailDrawer({ workOrder, open, onClose, equipment, ves
             </TabsContent>
 
             <TabsContent value="requests" className="mt-0 p-4 sm:p-6">
-              <WorkOrderRequestsTab workOrderId={workOrder.id} isReadOnly={workOrder.status === "completed" || workOrder.status === "cancelled"} requireAdvancedOptions={(workOrder as any).maintenanceType === "drydock"} />
+              <WorkOrderRequestsTab workOrderId={workOrder.id} isReadOnly={workOrder.status === "completed" || workOrder.status === "cancelled"} requireAdvancedOptions={workOrder.maintenanceType === "drydock"} />
             </TabsContent>
 
             <TabsContent value="tasks" className="mt-0 p-4 sm:p-6">
