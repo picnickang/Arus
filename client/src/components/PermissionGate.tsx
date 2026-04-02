@@ -37,7 +37,7 @@ export function PermissionGate({
   }
 
   if (permissions.isLoading) {
-    return <>{fallback}</>;
+    return null;
   }
 
   let hasAccess = false;
@@ -77,7 +77,7 @@ export function MultiPermissionGate({
   }
 
   if (permissions.isLoading) {
-    return <>{fallback}</>;
+    return null;
   }
 
   let hasAccess = false;

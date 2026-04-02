@@ -78,11 +78,12 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
   });
 
-  const effectiveDevMode = clientDevMode || (data?.isDevMode === true);
+  const isViteDev = import.meta.env.DEV === true;
+  const effectiveDevMode = clientDevMode || (data?.isDevMode === true) || (isViteDev && !data && !!error);
 
   const permissions: UserPermissions = useMemo(() => {
     if (isLoading) {
-      return { ...defaultPermissions, isLoading: true, isDevMode: effectiveDevMode };
+      return { ...defaultPermissions, isLoading: true, isDevMode: clientDevMode || isViteDev };
     }
     if (error || !data) {
       return {
@@ -102,7 +103,7 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
       isLoading: false,
       error: null,
     };
-  }, [data, isLoading, error, effectiveDevMode]);
+  }, [data, isLoading, error, effectiveDevMode, clientDevMode, isViteDev]);
 
   const hasPermission = (resource: string, action: string): boolean => {
     if (permissions.isDevMode) return true;
