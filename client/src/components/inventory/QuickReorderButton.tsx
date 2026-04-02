@@ -14,9 +14,9 @@
  */
 
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { useCreatePR, useAddPRItem } from "@/features/purchaseRequests/hooks/usePurchaseRequests";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -66,8 +66,9 @@ export function QuickReorderButton({
   const [open, setOpen] = useState(false);
   const [quantity, setQuantity] = useState<number>(0);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const [, navigate] = useLocation();
+  const createPR = useCreatePR();
+  const addPRItem = useAddPRItem();
 
   const quantityOnHand = part.stock?.quantityOnHand ?? 0;
   const quantityReserved = part.stock?.quantityReserved ?? 0;
@@ -76,29 +77,27 @@ export function QuickReorderButton({
   const maxStock = part.maxStockLevel ?? 100;
   const suggestedQty = Math.max(1, maxStock - availableQuantity);
 
-  const createPRMutation = useMutation({
-    mutationFn: async (data: {
-      partId: string;
-      quantity: number;
-      supplierId?: string;
-      notes: string;
-    }) => {
-      const pr = await apiRequest("POST", "/api/purchase-requests", {
+  const isPending = createPR.isPending || addPRItem.isPending;
+
+  const handleCreatePR = async (data: {
+    partId: string;
+    quantity: number;
+    supplierId?: string;
+    notes: string;
+  }) => {
+    try {
+      const pr = await createPR.mutateAsync({
         requestedBy: "Quick Reorder",
         notes: data.notes,
       });
-      await apiRequest("POST", `/api/purchase-requests/${pr.id}/items`, {
+      await addPRItem.mutateAsync({
+        prId: pr.id,
         partId: data.partId,
         quantity: data.quantity,
         supplierId: data.supplierId,
         uom: "ea",
         remarks: `Quick reorder: ${part.partName || part.partNumber}`,
       });
-      return pr;
-    },
-    onSuccess: (pr: { id: string; prNumber?: string }) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/purchase-requests"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
       toast({
         title: "Purchase Request Created",
         description: `PR #${pr.prNumber || pr.id} for ${quantity}x ${part.partName || part.partNumber}.`,
@@ -114,15 +113,14 @@ export function QuickReorderButton({
       });
       setOpen(false);
       onReorderCreated?.();
-    },
-    onError: (err) => {
+    } catch (err) {
       toast({
         title: "Reorder Failed",
         description: String(err),
         variant: "destructive",
       });
-    },
-  });
+    }
+  };
 
   const handleOpen = () => {
     setQuantity(suggestedQty);
@@ -131,7 +129,7 @@ export function QuickReorderButton({
 
   const handleReorder = () => {
     if (quantity <= 0) return;
-    createPRMutation.mutate({
+    handleCreatePR({
       partId: part.id,
       quantity,
       supplierId: part.supplierId || undefined,
@@ -166,7 +164,7 @@ export function QuickReorderButton({
           currentStock={currentStock}
           maxStock={maxStock}
           onConfirm={handleReorder}
-          isPending={createPRMutation.isPending}
+          isPending={isPending}
         />
       </>
     );
@@ -198,7 +196,7 @@ export function QuickReorderButton({
           currentStock={currentStock}
           maxStock={maxStock}
           onConfirm={handleReorder}
-          isPending={createPRMutation.isPending}
+          isPending={isPending}
         />
       </>
     );
@@ -227,7 +225,7 @@ export function QuickReorderButton({
         currentStock={currentStock}
         maxStock={maxStock}
         onConfirm={handleReorder}
-        isPending={createPRMutation.isPending}
+        isPending={isPending}
       />
     </>
   );

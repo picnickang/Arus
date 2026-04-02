@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +9,7 @@ import { ToastAction } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { MultiLinePartsRequestDialog } from "@/components/work-orders/MultiLinePartsRequestDialog";
 import type { SuggestedPart } from "@/components/work-orders/MultiLinePartsRequestDialog";
+import { useCreatePR, useAddPRItem } from "@/features/purchaseRequests/hooks/usePurchaseRequests";
 import type { PartsInventoryItem } from "./VirtualizedInventoryTable";
 
 interface InventoryBatchActionsProps {
@@ -27,8 +27,9 @@ export function InventoryBatchActions({
 }: InventoryBatchActionsProps) {
   const [prDialogOpen, setPrDialogOpen] = useState(false);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const [, navigate] = useLocation();
+  const createPR = useCreatePR();
+  const addPRItem = useAddPRItem();
 
   const selectedParts = parts.filter((p) => selectedItems.has(p.id));
   const count = selectedItems.size;
@@ -55,14 +56,15 @@ export function InventoryBatchActions({
 
   const createPRMutation = useMutation({
     mutationFn: async (data: { notes?: string; items: Array<{ partId?: string; description: string; quantity: number; notes?: string; supplierId?: string }> }) => {
-      const pr = await apiRequest("POST", "/api/purchase-requests", {
+      const pr = await createPR.mutateAsync({
         requestedBy: "Batch Reorder",
         notes: data.notes || `Batch reorder for ${data.items.length} parts`,
       });
 
       for (const item of data.items) {
-        await apiRequest("POST", `/api/purchase-requests/${pr.id}/items`, {
-          partId: item.partId,
+        await addPRItem.mutateAsync({
+          prId: pr.id,
+          partId: item.partId || "",
           quantity: item.quantity,
           uom: "ea",
           remarks: item.notes || item.description,
@@ -73,7 +75,6 @@ export function InventoryBatchActions({
       return pr;
     },
     onSuccess: (pr: { id: string; prNumber?: string }) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/purchase-requests"] });
       toast({
         title: "Purchase Request Created",
         description: `PR #${pr.prNumber || pr.id} created with ${selectedParts.length} items.`,
@@ -149,7 +150,7 @@ export function InventoryBatchActions({
             data-testid="button-batch-create-pr"
           >
             <ShoppingCart className="h-4 w-4 mr-1" />
-            Create PR
+            Create PR for Selected
           </Button>
           <Button
             variant="secondary"
