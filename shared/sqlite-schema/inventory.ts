@@ -139,16 +139,19 @@ export const purchaseOrderItemsSqlite = sqliteTable(
   "purchase_order_items",
   {
     id: text("id").primaryKey(),
-    purchaseOrderId: text("purchase_order_id").notNull(),
+    orgId: text("org_id").notNull(),
+    poId: text("po_id").notNull(),
     partId: text("part_id").notNull(),
-    quantity: integer("quantity").notNull(),
+    quantity: real("quantity").notNull(),
     unitPrice: real("unit_price").notNull(),
     totalPrice: real("total_price").notNull(),
     receivedQuantity: integer("received_quantity").default(0),
     notes: text("notes"),
+    createdAt: integer("created_at", { mode: "timestamp" }),
   },
   (table) => ({
-    poIdx: index("idx_poi_po").on(table.purchaseOrderId),
+    orgIdx: index("idx_poi_org").on(table.orgId),
+    poIdx: index("idx_poi_po").on(table.poId),
     partIdx: index("idx_poi_part").on(table.partId),
   })
 );

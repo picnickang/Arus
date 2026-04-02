@@ -165,6 +165,23 @@ async function runInventoryMigrations(client: LibsqlClient): Promise<void> {
     migrationErrors.push(`stock: ${error instanceof Error ? error.message : String(error)}`);
   }
 
+  const poiCols = await getTableColumns(client, "purchase_order_items");
+  if (poiCols.length) {
+    try {
+      if (poiCols.includes("purchase_order_id") && !poiCols.includes("po_id")) {
+        await safeRenameColumn(client, "purchase_order_items", "purchase_order_id", "po_id");
+      }
+      if (!poiCols.includes("org_id")) {
+        await safeAddColumn(client, "purchase_order_items", "org_id", "TEXT NOT NULL DEFAULT ''");
+      }
+      if (!poiCols.includes("po_id")) {
+        await safeAddColumn(client, "purchase_order_items", "po_id", "TEXT NOT NULL DEFAULT ''");
+      }
+    } catch (error) {
+      migrationErrors.push(`purchase_order_items: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
   if (migrationErrors.length > 0) {
     const errorMsg = `Inventory schema migration failed:\n  ${migrationErrors.join("\n  ")}`;
     console.error(errorMsg);
@@ -182,16 +199,22 @@ async function verifyInventorySchema(client: LibsqlClient): Promise<void> {
     "quantity_on_hand", "quantity_reserved", "quantity_on_order", "part_no"
   ];
 
+  const requiredPoiCols = ["org_id", "po_id"];
+
   const piCols = await getTableColumns(client, "parts_inventory");
   const missingPi = requiredPiCols.filter(c => !piCols.includes(c));
 
   const stockCols = await getTableColumns(client, "stock");
   const missingStock = requiredStockCols.filter(c => !stockCols.includes(c));
 
-  if (missingPi.length > 0 || missingStock.length > 0) {
+  const poiCols = await getTableColumns(client, "purchase_order_items");
+  const missingPoi = poiCols.length ? requiredPoiCols.filter(c => !poiCols.includes(c)) : [];
+
+  if (missingPi.length > 0 || missingStock.length > 0 || missingPoi.length > 0) {
     const details: string[] = [];
     if (missingPi.length) details.push(`parts_inventory missing: ${missingPi.join(", ")}`);
     if (missingStock.length) details.push(`stock missing: ${missingStock.join(", ")}`);
+    if (missingPoi.length) details.push(`purchase_order_items missing: ${missingPoi.join(", ")}`);
     const msg = `Inventory schema verification FAILED:\n  ${details.join("\n  ")}`;
     console.error(msg);
     throw new Error(msg);
