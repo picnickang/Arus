@@ -89,12 +89,12 @@ export function QuickReorderButton({
         ],
       });
     },
-    onSuccess: () => {
+    onSuccess: (pr: { id: string; prNumber?: string }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/purchase-requests"] });
       queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
       toast({
         title: "Purchase Request Created",
-        description: `PR for ${quantity}x ${part.partName || part.partNumber} sent to purchasing.`,
+        description: `PR #${pr.prNumber || pr.id} for ${quantity}x ${part.partName || part.partNumber}. View in Purchasing tab.`,
       });
       setOpen(false);
       onReorderCreated?.();

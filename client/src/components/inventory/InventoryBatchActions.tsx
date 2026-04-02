@@ -1,73 +1,18 @@
-/**
- * Inventory Batch Actions Bar
- *
- * UX FIX #7: Floating action bar that appears when inventory items are selected.
- * Enables:
- *   - Create multi-line PR from selected parts
- *   - Export selected parts to CSV
- *   - Mark selected parts inactive
- *
- * Renders as a sticky bar at the bottom of the inventory table.
- *
- * Usage:
- *   <InventoryBatchActions
- *     selectedItems={selectedItems}
- *     parts={allParts}
- *     onClearSelection={() => setSelectedItems(new Set())}
- *     onBatchReorder={handleBatchReorder}
- *   />
- */
-
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Download, X, Loader2, Package, Minus, Plus } from "lucide-react";
+import { ShoppingCart, Download, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-
-interface InventoryPart {
-  id: string;
-  partNumber?: string;
-  partName?: string;
-  category?: string;
-  standardCost?: number;
-  supplierId?: string;
-  supplierName?: string;
-  stock?: {
-    quantityOnHand?: number;
-    quantityReserved?: number;
-  } | null;
-  minStockLevel?: number;
-  maxStockLevel?: number;
-}
-
-interface BatchReorderItem {
-  partId: string;
-  partNumber: string;
-  partName: string;
-  quantity: number;
-  suggestedQty: number;
-  unitCost: number;
-  currentStock: number;
-  maxStock: number;
-  supplierName?: string;
-}
+import { MultiLinePartsRequestDialog } from "@/components/work-orders/MultiLinePartsRequestDialog";
+import type { SuggestedPart } from "@/components/work-orders/MultiLinePartsRequestDialog";
+import type { PartsInventoryItem } from "./VirtualizedInventoryTable";
 
 interface InventoryBatchActionsProps {
   selectedItems: Set<string>;
-  parts: InventoryPart[];
+  parts: PartsInventoryItem[];
   onClearSelection: () => void;
   className?: string;
 }
@@ -78,37 +23,69 @@ export function InventoryBatchActions({
   onClearSelection,
   className,
 }: InventoryBatchActionsProps) {
-  const [reorderDialogOpen, setReorderDialogOpen] = useState(false);
-  const [reorderItems, setReorderItems] = useState<BatchReorderItem[]>([]);
+  const [prDialogOpen, setPrDialogOpen] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const selectedParts = parts.filter((p) => selectedItems.has(p.id));
   const count = selectedItems.size;
 
   if (count === 0) return null;
 
-  const handleOpenReorder = () => {
-    const items: BatchReorderItem[] = selectedParts.map((part) => {
-      const currentStock = part.stock?.quantityOnHand ?? 0;
-      const maxStock = part.maxStockLevel ?? 100;
-      const suggestedQty = Math.max(1, maxStock - currentStock);
+  const suggestions: SuggestedPart[] = selectedParts.map((part) => {
+    const available = part.stock
+      ? Math.max(0, part.stock.quantityOnHand - part.stock.quantityReserved)
+      : 0;
+    const quantityOnHand = part.stock?.quantityOnHand ?? 0;
+    const suggestedOrderQuantity = Math.max(1, part.maxStockLevel - available);
 
-      return {
-        partId: part.id,
-        partNumber: part.partNumber || "N/A",
-        partName: part.partName || "Unknown",
-        quantity: suggestedQty,
-        suggestedQty,
-        unitCost: part.standardCost ?? 0,
-        currentStock,
-        maxStock,
-        supplierName: part.supplierName,
-      };
-    });
+    return {
+      partId: part.id,
+      partNo: part.partNumber,
+      partName: part.partName,
+      quantityNeeded: part.maxStockLevel,
+      quantityOnHand,
+      shortfall: Math.max(0, part.minStockLevel - available),
+      suggestedOrderQuantity,
+    };
+  });
 
-    setReorderItems(items);
-    setReorderDialogOpen(true);
-  };
+  const createPRMutation = useMutation({
+    mutationFn: async (data: { notes?: string; items: Array<{ partId?: string; description: string; quantity: number; notes?: string; supplierId?: string }> }) => {
+      const pr = await apiRequest("POST", "/api/purchase-requests", {
+        requestedBy: "Batch Reorder",
+        notes: data.notes || `Batch reorder for ${data.items.length} parts`,
+      });
+
+      for (const item of data.items) {
+        await apiRequest("POST", `/api/purchase-requests/${pr.id}/items`, {
+          partId: item.partId,
+          quantity: item.quantity,
+          uom: "ea",
+          remarks: item.notes || item.description,
+          supplierId: item.supplierId,
+        });
+      }
+
+      return pr;
+    },
+    onSuccess: (pr) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/purchase-requests"] });
+      toast({
+        title: "Purchase Request Created",
+        description: `PR #${pr.prNumber || pr.id} created with ${selectedParts.length} items. View in Purchasing tab.`,
+      });
+      setPrDialogOpen(false);
+      onClearSelection();
+    },
+    onError: (err) => {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : String(err),
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleExportSelected = () => {
     const headers = ["Part Number", "Part Name", "Category", "Current Stock", "Min Stock", "Max Stock", "Unit Cost", "Supplier"];
@@ -137,7 +114,6 @@ export function InventoryBatchActions({
 
   return (
     <>
-      {/* Floating action bar */}
       <div
         className={cn(
           "fixed bottom-16 md:bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-auto",
@@ -156,7 +132,7 @@ export function InventoryBatchActions({
           <Button
             variant="secondary"
             size="sm"
-            onClick={handleOpenReorder}
+            onClick={() => setPrDialogOpen(true)}
             className="bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground"
             data-testid="button-batch-create-pr"
           >
@@ -186,191 +162,14 @@ export function InventoryBatchActions({
         </Button>
       </div>
 
-      {/* Batch reorder dialog */}
-      <BatchReorderDialog
-        open={reorderDialogOpen}
-        onOpenChange={setReorderDialogOpen}
-        items={reorderItems}
-        setItems={setReorderItems}
-        onSuccess={() => {
-          setReorderDialogOpen(false);
-          onClearSelection();
-        }}
+      <MultiLinePartsRequestDialog
+        open={prDialogOpen}
+        onOpenChange={setPrDialogOpen}
+        onSubmit={(data) => createPRMutation.mutate(data)}
+        isPending={createPRMutation.isPending}
+        suggestions={suggestions}
       />
     </>
-  );
-}
-
-// ============================================================================
-// Batch reorder dialog
-// ============================================================================
-
-function BatchReorderDialog({
-  open,
-  onOpenChange,
-  items,
-  setItems,
-  onSuccess,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  items: BatchReorderItem[];
-  setItems: (items: BatchReorderItem[]) => void;
-  onSuccess: () => void;
-}) {
-  const { toast } = useToast();
-
-  const totalCost = items.reduce((sum, i) => sum + i.quantity * i.unitCost, 0);
-  const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
-
-  const updateQuantity = (partId: string, qty: number) => {
-    setItems(items.map((i) => (i.partId === partId ? { ...i, quantity: Math.max(1, qty) } : i)));
-  };
-
-  const removeItem = (partId: string) => {
-    setItems(items.filter((i) => i.partId !== partId));
-  };
-
-  const createBatchPR = useMutation({
-    mutationFn: async () => {
-      return apiRequest("POST", "/api/purchase-requests", {
-        requestedBy: "Batch Reorder",
-        notes: `Batch reorder for ${items.length} parts`,
-        items: items.map((item) => ({
-          partId: item.partId,
-          quantity: item.quantity,
-          remarks: `Reorder: current ${item.currentStock}, target ${item.maxStock}`,
-        })),
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/purchase-requests"] });
-      toast({
-        title: "Purchase Request Created",
-        description: `PR with ${items.length} line items created successfully.`,
-      });
-      onSuccess();
-    },
-    onError: (err) => {
-      toast({
-        title: "Error",
-        description: String(err),
-        variant: "destructive",
-      });
-    },
-  });
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Batch Purchase Request — {items.length} parts
-          </DialogTitle>
-          <DialogDescription>
-            Review quantities and create a multi-line purchase request
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-3">
-          {items.map((item) => (
-            <div
-              key={item.partId}
-              className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30"
-              data-testid={`batch-item-${item.partId}`}
-            >
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-sm truncate">{item.partName}</div>
-                <div className="text-xs text-muted-foreground">
-                  {item.partNumber}
-                  {item.supplierName && ` · ${item.supplierName}`}
-                </div>
-                <div className="text-xs text-muted-foreground mt-0.5">
-                  Stock: {item.currentStock} → {item.currentStock + item.quantity}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => updateQuantity(item.partId, item.quantity - 1)}
-                  disabled={item.quantity <= 1}
-                >
-                  <Minus className="h-3 w-3" />
-                </Button>
-                <Input
-                  type="number"
-                  min={1}
-                  value={item.quantity}
-                  onChange={(e) => updateQuantity(item.partId, parseInt(e.target.value, 10) || 1)}
-                  className="w-16 h-7 text-center text-sm"
-                />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => updateQuantity(item.partId, item.quantity + 1)}
-                >
-                  <Plus className="h-3 w-3" />
-                </Button>
-              </div>
-
-              <div className="text-right min-w-[70px]">
-                <div className="text-sm font-medium">${(item.quantity * item.unitCost).toFixed(2)}</div>
-              </div>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 text-muted-foreground"
-                onClick={() => removeItem(item.partId)}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </div>
-          ))}
-        </div>
-
-        {items.length === 0 && (
-          <p className="text-center text-muted-foreground py-8">No items in order</p>
-        )}
-
-        {items.length > 0 && (
-          <div className="flex items-center justify-between pt-3 border-t">
-            <div className="text-sm text-muted-foreground">
-              {totalItems} items across {items.length} parts
-            </div>
-            <div className="text-lg font-semibold">Total: ${totalCost.toFixed(2)}</div>
-          </div>
-        )}
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button
-            onClick={() => createBatchPR.mutate()}
-            disabled={createBatchPR.isPending || items.length === 0}
-            data-testid="btn-create-batch-pr"
-          >
-            {createBatchPR.isPending ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Creating...
-              </>
-            ) : (
-              <>
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                Create Purchase Request
-              </>
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }
 
