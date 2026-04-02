@@ -118,11 +118,15 @@ export function initializeGlobalErrorHandlers() {
 
       return response;
     } catch (error) {
+      const errMsg = (error as Error).message || "";
+      if (errMsg === "Load failed" || errMsg === "Failed to fetch") {
+        throw error;
+      }
       const url = typeof args[0] === "string" ? args[0] : args[0].url;
       logErrorToBackend(
         "error",
         "api",
-        `Network Error: ${(error as Error).message}`,
+        `Network Error: ${errMsg}`,
         (error as Error).stack,
         {
           url,

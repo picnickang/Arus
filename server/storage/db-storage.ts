@@ -144,7 +144,9 @@ export class DatabaseStorage implements IStorage {
   async closeWorkOrder(id: string, closeData: { notes?: string; completedBy?: string }): Promise<WorkOrder> {
     const closedOrder = await db.transaction(async (tx) => {
       const txParts = await tx.select().from(workOrderParts).where(eq(workOrderParts.workOrderId, id));
-      await tx.select().from(stock).where(sql`${stock.partId} = ANY(${txParts.map((p) => p.partId)})`).for("update");
+      const partIds = txParts.map((p) => p.partId);
+      const partIdsArray = partIds.length > 0 ? sql`ARRAY[${sql.join(partIds.map(id => sql`${id}`), sql`, `)}]::text[]` : sql`ARRAY[]::text[]`;
+      await tx.select().from(stock).where(sql`${stock.partId} = ANY(${partIdsArray})`).for("update");
       const [workOrder] = await tx.select().from(workOrders).where(eq(workOrders.id, id)).limit(1).for("update");
       if (!workOrder) { throw new Error(`Work order ${id} not found`); }
       if (workOrder.status === "completed") { throw new Error(`Work order ${id} is already completed`); }

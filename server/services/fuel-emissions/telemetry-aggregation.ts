@@ -46,7 +46,7 @@ export async function aggregateTelemetryForPeriod(
     .where(
       and(
         eq(equipmentTelemetry.orgId, orgId),
-        sql`${equipmentTelemetry.equipmentId} = ANY(${equipmentIds})`,
+        sql`${equipmentTelemetry.equipmentId} = ANY(ARRAY[${sql.join(equipmentIds.map((id: string) => sql`${id}`), sql`, `)}]::text[])`,
         gte(equipmentTelemetry.timestamp, periodStart),
         lte(equipmentTelemetry.timestamp, periodEnd)
       )
