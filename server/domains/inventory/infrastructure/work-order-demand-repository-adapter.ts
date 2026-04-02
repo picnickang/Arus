@@ -10,10 +10,12 @@ export class WorkOrderDemandRepositoryAdapter implements IWorkOrderDemandReposit
 
     const openStatuses = ["open", "in_progress", "pending", "planned", "scheduled"];
 
+    const now = new Date();
+
     const conditions = [
       eq(workOrders.orgId, orgId),
       inArray(workOrders.status, openStatuses),
-      sql`(${workOrders.plannedStartDate} IS NULL OR ${workOrders.plannedStartDate} <= ${cutoffDate})`,
+      sql`(${workOrders.plannedStartDate} IS NOT NULL AND ${workOrders.plannedStartDate} >= ${now} AND ${workOrders.plannedStartDate} <= ${cutoffDate})`,
     ];
 
     if (vesselId) {
