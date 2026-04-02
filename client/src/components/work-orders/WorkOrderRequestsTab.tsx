@@ -244,7 +244,7 @@ export function WorkOrderRequestsTab({ workOrderId, isReadOnly = false, requireA
         onSubmit={handleCreateServiceOrder}
         isPending={editingSO ? isUpdatingServiceOrder : isCreatingServiceOrder}
         initialData={editingSO ? {
-          serviceProviderId: (editingSO as any).serviceProviderId,
+          serviceProviderId: editingSO.serviceProviderId,
           scope: editingSO.scope,
           scheduledStartDate: editingSO.scheduledStartDate,
           scheduledEndDate: editingSO.scheduledEndDate,

@@ -184,8 +184,7 @@ export function EnhancedServiceRequestDialog({ open, onOpenChange, onSubmit, isP
     ? symptomDescription.trim() && !isPending
     : providerId && selectedEquipmentIds.length > 0 && symptomDescription.trim() && requestedStartDate && !isPending;
 
-  const handleToggleAdvanced = () => {
-    const newState = !showAdvanced;
+  const handleAdvancedOpenChange = (newState: boolean) => {
     setShowAdvanced(newState);
     sessionAdvancedState = newState;
     if (newState) {
@@ -219,11 +218,10 @@ export function EnhancedServiceRequestDialog({ open, onOpenChange, onSubmit, isP
 
           <div><Label>Description *</Label><Textarea value={symptomDescription} onChange={(e) => setSymptomDescription(e.target.value)} placeholder="Describe the work needed..." rows={3} data-testid="input-symptom" /></div>
 
-          <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+          <Collapsible open={showAdvanced} onOpenChange={handleAdvancedOpenChange}>
             <CollapsibleTrigger asChild>
               <button
                 type="button"
-                onClick={handleToggleAdvanced}
                 className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full py-2"
                 data-testid="toggle-advanced-options"
               >

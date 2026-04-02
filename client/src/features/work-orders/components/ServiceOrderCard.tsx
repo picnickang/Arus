@@ -26,6 +26,7 @@ export interface ServiceOrderCardData {
   id: string;
   soNumber: string;
   status: string;
+  serviceProviderId?: string;
   serviceProviderName?: string;
   scope?: string;
   equipmentName?: string;
