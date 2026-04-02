@@ -20,12 +20,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, TrendingDown, ShoppingCart, Package, CheckCircle2, Star, AlertTriangle } from "lucide-react";
+import { AlertCircle, TrendingDown, ShoppingCart, Package, CheckCircle2 } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
-import { useSupplierPerformance } from "@/features/suppliers";
+import { useSupplierPerformance, SupplierSelectOption } from "@/features/suppliers";
 
 interface ReplenishmentSuggestion {
   partId:           string;
@@ -220,24 +220,15 @@ export function LowStockReplenishmentPanel({
                         &nbsp;/ min {s.minStockLevel}
                       </span>
                       <span>Order: <strong className="text-foreground">{s.suggestedOrderQty}</strong></span>
-                      {s.supplierName && s.supplierId && (() => {
-                        const perf = perfMap.get(s.supplierId);
-                        return (
-                          <span className="flex items-center gap-1" data-testid={`supplier-option-${s.supplierId}`}>
-                            {s.supplierName}
-                            {perf && (
-                              <>
-                                <span className={cn("inline-block w-1.5 h-1.5 rounded-full", perf.performanceScore >= 80 ? "bg-emerald-500" : perf.performanceScore >= 60 ? "bg-amber-500" : "bg-red-500")} />
-                                <span className="font-medium">{perf.performanceScore}</span>
-                                <span>{perf.qualityRating.toFixed(1)}q</span>
-                                {perf.status === "preferred" && <Star className="h-2.5 w-2.5 text-amber-500 fill-amber-500" />}
-                                {perf.performanceScore < 60 && <AlertTriangle className="h-2.5 w-2.5 text-red-500" />}
-                              </>
-                            )}
-                          </span>
-                        );
-                      })()}
-                      {s.supplierName && !s.supplierId && <span>{s.supplierName}</span>}
+                      {s.supplierName && s.supplierId ? (
+                        <SupplierSelectOption
+                          supplierId={s.supplierId}
+                          name={s.supplierName}
+                          performance={perfMap.get(s.supplierId)}
+                        />
+                      ) : s.supplierName ? (
+                        <span>{s.supplierName}</span>
+                      ) : null}
                       <span>~{s.leadTimeDays}d lead</span>
                     </div>
                     {s.estimatedCost > 0 && (

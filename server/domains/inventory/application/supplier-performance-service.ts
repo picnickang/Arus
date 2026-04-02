@@ -55,7 +55,7 @@ export async function getSupplierPerformanceSummaries(orgId: string): Promise<Su
     .select()
     .from(suppliers)
     .where(and(eq(suppliers.orgId, orgId), eq(suppliers.isActive, true)))
-    .limit(500);
+;
 
   const supplierQualityMap = new Map(
     activeSuppliers.map((s) => [s.id, s.qualityRating ?? 0])
