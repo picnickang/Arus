@@ -10,7 +10,7 @@
  */
 
 import { db } from "../db";
-import { eq, and, gte, lte, sql } from "drizzle-orm";
+import { eq, and, gte, lte, sql, inArray } from "drizzle-orm";
 import {
   purchaseRequests,
   purchaseRequestItems,
@@ -56,23 +56,30 @@ export async function getPurchaseRequestWithItems(
     .from(purchaseRequestItems)
     .where(eq(purchaseRequestItems.prId, id));
 
-  const items: PRItemWithDetails[] = [];
-  for (const item of rawItems) {
-    let partName: string | null = null;
-    let partNumber: string | null = null;
-    let supplierName: string | null = null;
+  const partIds = [...new Set(rawItems.map(i => i.partId).filter(Boolean))] as string[];
+  const supplierIds = [...new Set(rawItems.map(i => i.supplierId).filter(Boolean))] as string[];
 
-    if (item.partId) {
-      const [part] = await db.select({ name: parts.name, partNumber: parts.partNumber }).from(parts).where(eq(parts.id, item.partId));
-      if (part) { partName = part.name; partNumber = part.partNumber; }
-    }
-    if (item.supplierId) {
-      const [supplier] = await db.select({ name: suppliers.name }).from(suppliers).where(eq(suppliers.id, item.supplierId));
-      if (supplier) { supplierName = supplier.name; }
-    }
+  const partsMap = new Map<string, { name: string; partNumber: string }>();
+  const suppliersMap = new Map<string, string>();
 
-    items.push({ ...item, partName, partNumber, supplierName } as PRItemWithDetails);
+  if (partIds.length > 0) {
+    const partRows = await db.select({ id: parts.id, name: parts.name, partNumber: parts.partNumber }).from(parts).where(inArray(parts.id, partIds));
+    for (const p of partRows) partsMap.set(p.id, { name: p.name, partNumber: p.partNumber });
   }
+  if (supplierIds.length > 0) {
+    const supplierRows = await db.select({ id: suppliers.id, name: suppliers.name }).from(suppliers).where(inArray(suppliers.id, supplierIds));
+    for (const s of supplierRows) suppliersMap.set(s.id, s.name);
+  }
+
+  const items: PRItemWithDetails[] = rawItems.map(item => {
+    const part = item.partId ? partsMap.get(item.partId) : null;
+    return {
+      ...item,
+      partName: part?.name ?? null,
+      partNumber: part?.partNumber ?? null,
+      supplierName: item.supplierId ? (suppliersMap.get(item.supplierId) ?? null) : null,
+    } as PRItemWithDetails;
+  });
 
   return { ...pr, items };
 }
