@@ -1,8 +1,3 @@
-/**
- * Crew Domain Events
- * Domain events for crew lifecycle and operations
- */
-
 export interface CrewMemberCreated {
   type: "CREW_MEMBER_CREATED";
   crewMemberId: string;
@@ -14,6 +9,7 @@ export interface CrewMemberCreated {
 export interface CrewMemberUpdated {
   type: "CREW_MEMBER_UPDATED";
   crewMemberId: string;
+  orgId: string;
   changes: Record<string, unknown>;
   timestamp: Date;
 }
@@ -21,12 +17,14 @@ export interface CrewMemberUpdated {
 export interface CrewMemberDeleted {
   type: "CREW_MEMBER_DELETED";
   crewMemberId: string;
+  orgId: string;
   timestamp: Date;
 }
 
 export interface CrewAssigned {
   type: "CREW_ASSIGNED";
   crewMemberId: string;
+  orgId: string;
   vesselId: string;
   assignmentId: string;
   startDate: Date;
@@ -37,6 +35,7 @@ export interface CrewAssigned {
 export interface CrewUnassigned {
   type: "CREW_UNASSIGNED";
   crewMemberId: string;
+  orgId: string;
   vesselId: string;
   assignmentId: string;
   timestamp: Date;
@@ -45,6 +44,7 @@ export interface CrewUnassigned {
 export interface LeaveRequested {
   type: "LEAVE_REQUESTED";
   crewMemberId: string;
+  orgId: string;
   leaveId: string;
   startDate: Date;
   endDate: Date;
@@ -55,6 +55,7 @@ export interface LeaveRequested {
 export interface LeaveApproved {
   type: "LEAVE_APPROVED";
   crewMemberId: string;
+  orgId: string;
   leaveId: string;
   approvedBy: string;
   timestamp: Date;
@@ -63,6 +64,7 @@ export interface LeaveApproved {
 export interface CertificationExpiring {
   type: "CERTIFICATION_EXPIRING";
   crewMemberId: string;
+  orgId: string;
   certificationId: string;
   expiryDate: Date;
   daysRemaining: number;

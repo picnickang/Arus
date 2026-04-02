@@ -10,9 +10,10 @@ import { withErrorHandling, sendNotFound } from "../../../lib/route-utils.js";
 import { logger } from "../../../utils/logger.js";
 import type { MlAnalyticsConfig } from "./types.js";
 import type { AuthenticatedRequest } from "../../../middleware/auth";
+import { domainEventBus, createDomainEvent } from "../../../lib/domain-event-bus/index.js";
 
 export function registerAnomalyRoutes(app: Express, config: MlAnalyticsConfig) {
-  const { storage, writeOperationRateLimit, schedulerEventBus } = config;
+  const { storage, writeOperationRateLimit } = config;
 
   app.get("/api/analytics/anomaly-detections",
     withErrorHandling("fetch anomaly detections", async (req, res) => {
@@ -58,13 +59,12 @@ export function registerAnomalyRoutes(app: Express, config: MlAnalyticsConfig) {
         try {
           const equipment = await storage.getEquipment(orgId as string, detection.equipmentId);
           if (equipment) {
-            schedulerEventBus.emitAnomalyCreated({
-              orgId: orgId as string,
+            domainEventBus.emit("pdm.anomaly.created", createDomainEvent("pdm.anomaly.created", orgId as string, {
               vesselId: equipment.vesselId || "unknown",
               equipmentId: detection.equipmentId,
               severity: detection.severity as "low" | "medium" | "high" | "critical",
               anomalyType: detection.anomalyType || "unknown",
-            });
+            }));
           }
         } catch (eventError) {
           logger.error("AnomalyRoutes", "Failed to emit anomaly event", eventError);

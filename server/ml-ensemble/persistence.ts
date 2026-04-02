@@ -5,7 +5,7 @@
  */
 
 import type { IStorage } from "../storage.js";
-import { schedulerEventBus } from "../events/scheduler-bus.js";
+import { domainEventBus, createDomainEvent } from "../lib/domain-event-bus/index.js";
 import { logger } from "../utils/logger.js";
 import type { ModelBreakdown, ModelWeights } from "./types.js";
 
@@ -90,14 +90,13 @@ export async function persistPrediction(
             : finalPrediction >= 0.2
               ? "medium"
               : "low";
-      schedulerEventBus.emitRulUpdate({
-        orgId,
+      domainEventBus.emit("pdm.rul.updated", createDomainEvent("pdm.rul.updated", orgId, {
         vesselId: equipment.vesselId || "unknown",
         equipmentId,
         remainingDays: daysToFailure || 30,
         riskLevel,
         operatingMode: equipment.operatingMode,
-      });
+      }));
     }
   } catch (eventError) {
     logger.error("MlEnsemble", "Failed to emit RUL event", eventError);

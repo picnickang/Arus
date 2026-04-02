@@ -3,7 +3,7 @@
  */
 import { IStorage } from "../storage.js";
 import type { TimeSeriesFeatures, ClassificationFeatures } from "../ml-training-data.js";
-import { schedulerEventBus } from "../events/scheduler-bus.js";
+import { domainEventBus, createDomainEvent } from "../lib/domain-event-bus/index.js";
 import { logger } from "../utils/logger.js";
 import { getModel } from "./model-loader.js";
 import { predictFailureWithLSTM, predictHealthWithRandomForest } from "./predictors.js";
@@ -20,7 +20,9 @@ function calculateRiskLevel(failureProbability: number): RiskLevel {
 
 function emitRulUpdateSafe(orgId: string, vesselId: string, equipmentId: string, remainingDays: number, riskLevel: RiskLevel, operatingMode: string | null | undefined): void {
   try {
-    schedulerEventBus.emitRulUpdate({ orgId, vesselId, equipmentId, remainingDays, riskLevel, operatingMode });
+    domainEventBus.emit("pdm.rul.updated", createDomainEvent("pdm.rul.updated", orgId, {
+      vesselId, equipmentId, remainingDays, riskLevel, operatingMode,
+    }));
   } catch (e) {
     logger.error("MlPrediction", "Failed to emit RUL event", e);
   }

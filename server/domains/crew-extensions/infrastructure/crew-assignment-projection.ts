@@ -10,7 +10,7 @@ import { scheduleAssignments, schedulerRuns, crew, vessels } from "@shared/schem
 import { eq, and, gte, lte, inArray, sql } from "drizzle-orm";
 import { createLogger } from "../../../lib/structured-logger";
 import type { CrewAssignmentCreatedEvent } from "../../../lib/domain-events/types.js";
-import { schedulerEventBus } from "../../../events/scheduler-bus.js";
+import { domainEventBus } from "../../../lib/domain-event-bus/index.js";
 import { formatDate, mapShift, mapStatus } from "./schedule-planner-utils.js";
 import { recordCacheHit, recordCacheMiss, recordViewQuery } from "./schedule-planner-metrics.js";
 
@@ -268,10 +268,11 @@ export class CrewAssignmentProjectionAdapter implements ICrewAssignmentProjectio
 export const crewAssignmentProjection = new CrewAssignmentProjectionAdapter();
 
 export function initCrewAssignmentProjectionEventHandler(): void {
-  schedulerEventBus.on("scheduler.run.completed", (event: { orgId: string; runId: string }) => {
+  domainEventBus.on("scheduler.run.completed", (event) => {
+    const p = event.payload as { runId: string };
     logger.debug("Scheduler run completed, invalidating projection cache", {
       orgId: event.orgId,
-      runId: event.runId,
+      runId: p.runId,
     });
     crewAssignmentProjection.refresh(event.orgId);
   });

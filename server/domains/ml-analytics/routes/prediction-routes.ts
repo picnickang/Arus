@@ -10,9 +10,10 @@ import { withErrorHandling, sendNotFound } from "../../../lib/route-utils.js";
 import { logger } from "../../../utils/logger.js";
 import type { MlAnalyticsConfig } from "./types.js";
 import type { AuthenticatedRequest } from "../../../middleware/auth";
+import { domainEventBus, createDomainEvent } from "../../../lib/domain-event-bus/index.js";
 
 export function registerPredictionRoutes(app: Express, config: MlAnalyticsConfig) {
-  const { storage, writeOperationRateLimit, schedulerEventBus } = config;
+  const { storage, writeOperationRateLimit } = config;
 
   app.get("/api/analytics/failure-predictions",
     withErrorHandling("fetch failure predictions", async (req, res) => {
@@ -66,13 +67,12 @@ export function registerPredictionRoutes(app: Express, config: MlAnalyticsConfig
               )
             : 30;
 
-          schedulerEventBus.emitRulUpdate({
-            orgId: orgId as string,
+          domainEventBus.emit("pdm.rul.updated", createDomainEvent("pdm.rul.updated", orgId as string, {
             vesselId: equipment.vesselId || "unknown",
             equipmentId: validatedData.equipmentId,
             remainingDays,
             confidenceScore: validatedData.failureProbability || 0.8,
-          });
+          }));
         }
       } catch (eventError) {
         logger.error("PredictionRoutes", "Failed to emit RUL update event", eventError);

@@ -1,13 +1,7 @@
-import {
-  schedulerEventBus,
-  RulUpdatedEvent,
-  AnomalyCreatedEvent,
-  MaintenanceWindowEvent,
-} from "../events/scheduler-bus";
+import { domainEventBus } from "../lib/domain-event-bus/index.js";
 import { planAndMaybeExecute } from "./scheduler-controller";
 import { schedAutoReplanTriggers } from "../observability/scheduler-metrics";
 
-// Configuration from environment
 const RUL_DAYS_CRITICAL = Number(process.env.SCHED_RUL_DAYS_CRITICAL ?? 9);
 const RISK_REPLAN_LEVEL = (process.env.SCHED_RISK_REPLAN_LEVEL ?? "high").toLowerCase();
 const AUTO_REPLAN_DAYS = Number(process.env.SCHED_AUTO_REPLAN_DAYS ?? 7);
@@ -22,17 +16,18 @@ function riskToRank(r: string): number {
   return ranks[r] ?? 0;
 }
 
-// Initialize auto-replan listeners
 export function initializeAutoReplanPolicy(): void {
-  // RUL-triggered replanning
-  schedulerEventBus.onRulUpdate(async (event: RulUpdatedEvent) => {
+  domainEventBus.on("pdm.rul.updated", async (event) => {
+    const p = event.payload as {
+      vesselId: string; equipmentId: string; remainingDays: number; riskLevel: string;
+    };
     const shouldReplan =
-      event.remainingDays <= RUL_DAYS_CRITICAL ||
-      riskToRank(event.riskLevel) >= riskToRank(RISK_REPLAN_LEVEL);
+      p.remainingDays <= RUL_DAYS_CRITICAL ||
+      riskToRank(p.riskLevel) >= riskToRank(RISK_REPLAN_LEVEL);
 
     if (shouldReplan) {
       console.log(
-        `[Auto-Replan] RUL trigger: vessel=${event.vesselId}, remainingDays=${event.remainingDays}, risk=${event.riskLevel}`
+        `[Auto-Replan] RUL trigger: vessel=${p.vesselId}, remainingDays=${p.remainingDays}, risk=${p.riskLevel}`
       );
       schedAutoReplanTriggers.labels(event.orgId, "rul_critical").inc();
 
@@ -40,13 +35,13 @@ export function initializeAutoReplanPolicy(): void {
         await planAndMaybeExecute({
           orgId: event.orgId,
           days: AUTO_REPLAN_DAYS,
-          vessels: [event.vesselId],
+          vessels: [p.vesselId],
           mode: "auto",
           trigger: "rul_critical",
           triggerContext: {
-            equipmentId: event.equipmentId,
-            remainingDays: event.remainingDays,
-            riskLevel: event.riskLevel,
+            equipmentId: p.equipmentId,
+            remainingDays: p.remainingDays,
+            riskLevel: p.riskLevel,
           },
         });
       } catch (error) {
@@ -55,11 +50,13 @@ export function initializeAutoReplanPolicy(): void {
     }
   });
 
-  // Anomaly-triggered replanning
-  schedulerEventBus.onAnomalyCreated(async (event: AnomalyCreatedEvent) => {
-    if (event.severity === "high" || event.severity === "critical") {
+  domainEventBus.on("pdm.anomaly.created", async (event) => {
+    const p = event.payload as {
+      vesselId: string; equipmentId: string; severity: string; anomalyType: string;
+    };
+    if (p.severity === "high" || p.severity === "critical") {
       console.log(
-        `[Auto-Replan] Anomaly trigger: vessel=${event.vesselId}, severity=${event.severity}`
+        `[Auto-Replan] Anomaly trigger: vessel=${p.vesselId}, severity=${p.severity}`
       );
       schedAutoReplanTriggers.labels(event.orgId, "anomaly_detected").inc();
 
@@ -67,13 +64,13 @@ export function initializeAutoReplanPolicy(): void {
         await planAndMaybeExecute({
           orgId: event.orgId,
           days: AUTO_REPLAN_DAYS,
-          vessels: [event.vesselId],
+          vessels: [p.vesselId],
           mode: "auto",
           trigger: "anomaly_detected",
           triggerContext: {
-            equipmentId: event.equipmentId,
-            severity: event.severity,
-            anomalyType: event.anomalyType,
+            equipmentId: p.equipmentId,
+            severity: p.severity,
+            anomalyType: p.anomalyType,
           },
         });
       } catch (error) {
@@ -82,23 +79,25 @@ export function initializeAutoReplanPolicy(): void {
     }
   });
 
-  // Maintenance window replanning
-  schedulerEventBus.onMaintenanceWindow(async (event: MaintenanceWindowEvent) => {
-    console.log(`[Auto-Replan] Maintenance window trigger: vessel=${event.vesselId}`);
+  domainEventBus.on("pdm.maintenance.window", async (event) => {
+    const p = event.payload as {
+      vesselId: string; equipmentId: string; start: Date; end: Date; priority: string;
+    };
+    console.log(`[Auto-Replan] Maintenance window trigger: vessel=${p.vesselId}`);
     schedAutoReplanTriggers.labels(event.orgId, "maintenance_scheduled").inc();
 
     try {
       await planAndMaybeExecute({
         orgId: event.orgId,
         days: AUTO_REPLAN_DAYS,
-        vessels: [event.vesselId],
+        vessels: [p.vesselId],
         mode: "auto",
         trigger: "maintenance_scheduled",
         triggerContext: {
-          equipmentId: event.equipmentId,
-          start: event.start.toISOString(),
-          end: event.end.toISOString(),
-          priority: event.priority,
+          equipmentId: p.equipmentId,
+          start: p.start instanceof Date ? p.start.toISOString() : String(p.start),
+          end: p.end instanceof Date ? p.end.toISOString() : String(p.end),
+          priority: p.priority,
         },
       });
     } catch (error) {

@@ -3,6 +3,9 @@ import type { InventoryDomainEvent } from '../domain/events.js';
 import { domainEventBus, createDomainEvent } from '../../../lib/domain-event-bus/index.js';
 import type { DomainEventName } from '../../../lib/domain-event-bus/index.js';
 import { recordAndPublish } from '../../../sync-events';
+import { createLogger } from '../../../lib/structured-logger';
+
+const logger = createLogger("InventoryEventPublisher");
 
 function mapEventType(eventType: string): DomainEventName | null {
   const mapping: Record<string, DomainEventName> = {
@@ -22,7 +25,11 @@ function mapEventType(eventType: string): DomainEventName | null {
 export class InventoryEventPublisherAdapter implements IInventoryEventPublisher, IInventoryAuditPort {
   async publish(event: InventoryDomainEvent): Promise<void> {
     const domainEventType = mapEventType(event.eventType);
-    if (!domainEventType) return;
+    if (!domainEventType) {
+      logger.warn("Unmapped inventory event type, falling back to legacy path", { eventType: event.eventType });
+      await recordAndPublish("part", event.aggregateId, "update", event.payload, event.userId);
+      return;
+    }
 
     const domainEvent = createDomainEvent(
       domainEventType,

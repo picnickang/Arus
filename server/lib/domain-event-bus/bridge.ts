@@ -41,6 +41,8 @@ function mapDomainEventToSyncEvent(eventType: string): EventType | null {
     "work_order.completed": "work_order.updated",
     "work_order.status_changed": "work_order.updated",
     "work_order.assigned": "work_order.updated",
+    "work_order.part_added": "work_order.updated",
+    "work_order.task_completed": "work_order.updated",
     "inventory.part_created": "part.created",
     "inventory.part_updated": "part.updated",
     "inventory.part_deleted": "part.deleted",
@@ -48,11 +50,16 @@ function mapDomainEventToSyncEvent(eventType: string): EventType | null {
     "inventory.item_updated": "parts_inventory.updated",
     "inventory.item_deleted": "parts_inventory.deleted",
     "inventory.stock_movement": "inventory_movement.created",
+    "inventory.low_stock": "parts_inventory.updated",
+    "inventory.stock_replenished": "parts_inventory.updated",
     "crew.member_created": "crew.created",
     "crew.member_updated": "crew.updated",
     "crew.member_deleted": "crew.deleted",
     "crew.assigned": "crew_assignment.created",
     "crew.unassigned": "crew_assignment.deleted",
+    "crew.leave_requested": "crew.updated",
+    "crew.leave_approved": "crew.updated",
+    "crew.certification_expiring": "crew.updated",
   };
   return mapping[eventType] ?? null;
 }
@@ -168,12 +175,14 @@ export function initSchedulerBusBridge(): void {
 export function initSyncEventBusBridge(): void {
   const bridgedEvents: DomainEventName[] = [
     "work_order.created", "work_order.updated", "work_order.completed",
-    "work_order.status_changed",
+    "work_order.status_changed", "work_order.assigned",
+    "work_order.part_added", "work_order.task_completed",
     "inventory.part_created", "inventory.part_updated", "inventory.part_deleted",
     "inventory.item_created", "inventory.item_updated", "inventory.item_deleted",
-    "inventory.stock_movement",
+    "inventory.stock_movement", "inventory.low_stock", "inventory.stock_replenished",
     "crew.member_created", "crew.member_updated", "crew.member_deleted",
     "crew.assigned", "crew.unassigned",
+    "crew.leave_requested", "crew.leave_approved", "crew.certification_expiring",
   ];
 
   for (const eventType of bridgedEvents) {

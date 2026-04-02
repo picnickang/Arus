@@ -1,9 +1,4 @@
-/**
- * Simulation Event Bridge
- * Connects domain events to WebSocket broadcasts for real-time UI updates
- */
-
-import { schedulerEventBus } from '../../../events/scheduler-bus.js';
+import { domainEventBus } from '../../../lib/domain-event-bus/index.js';
 import type { TelemetryWebSocketServer } from '../../../websocket.js';
 
 let wsServer: TelemetryWebSocketServer | null = null;
@@ -20,63 +15,73 @@ export function setupSimulationEventBridge(): void {
     return;
   }
   bridgeInitialized = true;
-  schedulerEventBus.onSimulationPreviewCreated((event) => {
+
+  domainEventBus.on("simulation.preview.created", (event) => {
     if (!wsServer) {
       console.warn('[SimulationEventBridge] No WebSocket server registered, skipping preview_created broadcast');
       return;
     }
+    const p = event.payload as {
+      previewId: string; proposedCount: number; unfilledCount: number;
+      complianceRate: number; strategy: string; dateRange: { start: string; end: string };
+    };
     wsServer.broadcastScheduleSimulation('preview_created', {
-      previewId: event.previewId,
+      previewId: p.previewId,
       orgId: event.orgId,
-      proposedCount: event.proposedCount,
-      unfilledCount: event.unfilledCount,
-      complianceRate: event.complianceRate,
-      strategy: event.strategy,
-      dateRange: event.dateRange,
+      proposedCount: p.proposedCount,
+      unfilledCount: p.unfilledCount,
+      complianceRate: p.complianceRate,
+      strategy: p.strategy,
+      dateRange: p.dateRange,
     });
   });
 
-  schedulerEventBus.onSimulationCommitted((event) => {
+  domainEventBus.on("simulation.committed", (event) => {
     if (!wsServer) {
       console.warn('[SimulationEventBridge] No WebSocket server registered, skipping committed broadcast');
       return;
     }
+    const p = event.payload as {
+      previewId: string; runId: string; assignmentsCommitted: number; selectedOnly: boolean;
+    };
     wsServer.broadcastScheduleSimulation('committed', {
-      previewId: event.previewId,
-      runId: event.runId,
+      previewId: p.previewId,
+      runId: p.runId,
       orgId: event.orgId,
-      assignmentsCommitted: event.assignmentsCommitted,
-      selectedOnly: event.selectedOnly,
+      assignmentsCommitted: p.assignmentsCommitted,
+      selectedOnly: p.selectedOnly,
     });
     wsServer.broadcastSchedulePlannerUpdate('refresh', {
       orgId: event.orgId,
-      runId: event.runId,
+      runId: p.runId,
       reason: 'simulation_committed',
     });
   });
 
-  schedulerEventBus.onSimulationDiscarded((event) => {
+  domainEventBus.on("simulation.discarded", (event) => {
     if (!wsServer) {
       console.warn('[SimulationEventBridge] No WebSocket server registered, skipping discarded broadcast');
       return;
     }
+    const p = event.payload as { previewId: string; reason: string };
     wsServer.broadcastScheduleSimulation('discarded', {
-      previewId: event.previewId,
+      previewId: p.previewId,
       orgId: event.orgId,
-      reason: event.reason,
+      reason: p.reason,
     });
   });
 
-  schedulerEventBus.onSchedulerRunCompleted((event) => {
+  domainEventBus.on("scheduler.run.completed", (event) => {
     if (!wsServer) {
       return;
     }
+    const p = event.payload as { runId: string };
     wsServer.broadcastSchedulePlannerUpdate('refresh', {
       orgId: event.orgId,
-      runId: event.runId,
+      runId: p.runId,
       reason: 'scheduler_run_completed',
     });
   });
 
-  console.log('[SimulationEventBridge] Event listeners registered');
+  console.log('[SimulationEventBridge] Event listeners registered (unified bus)');
 }

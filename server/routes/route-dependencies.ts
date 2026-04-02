@@ -78,7 +78,7 @@ export { getSyncMetrics, processPendingEvents, recordAndPublish } from "../sync-
 // ML & Analytics
 export * as adaptiveTrainingWindow from "../adaptive-training-window";
 
-// Scheduler
+// Scheduler (deprecated - use domainEventBus from lib/domain-event-bus)
 export { schedulerEventBus } from "../events/scheduler-bus.js";
 
 // WebSocket

@@ -1,8 +1,3 @@
-/**
- * Work Orders Domain Events
- * Domain events for work order lifecycle
- */
-
 export interface WorkOrderCreated {
   type: "WORK_ORDER_CREATED";
   workOrderId: string;
@@ -16,6 +11,7 @@ export interface WorkOrderCreated {
 export interface WorkOrderUpdated {
   type: "WORK_ORDER_UPDATED";
   workOrderId: string;
+  orgId: string;
   changes: Record<string, unknown>;
   timestamp: Date;
 }
@@ -23,6 +19,7 @@ export interface WorkOrderUpdated {
 export interface WorkOrderStatusChanged {
   type: "WORK_ORDER_STATUS_CHANGED";
   workOrderId: string;
+  orgId: string;
   previousStatus: string;
   newStatus: string;
   changedBy?: string;
@@ -32,6 +29,7 @@ export interface WorkOrderStatusChanged {
 export interface WorkOrderAssigned {
   type: "WORK_ORDER_ASSIGNED";
   workOrderId: string;
+  orgId: string;
   assigneeId: string;
   assignedBy?: string;
   timestamp: Date;
@@ -40,6 +38,7 @@ export interface WorkOrderAssigned {
 export interface WorkOrderCompleted {
   type: "WORK_ORDER_COMPLETED";
   workOrderId: string;
+  orgId: string;
   completedBy?: string;
   actualHours?: number;
   completionNotes?: string;
@@ -49,6 +48,7 @@ export interface WorkOrderCompleted {
 export interface WorkOrderPartAdded {
   type: "WORK_ORDER_PART_ADDED";
   workOrderId: string;
+  orgId: string;
   partId: string;
   quantity: number;
   timestamp: Date;
@@ -57,6 +57,7 @@ export interface WorkOrderPartAdded {
 export interface WorkOrderTaskCompleted {
   type: "WORK_ORDER_TASK_COMPLETED";
   workOrderId: string;
+  orgId: string;
   taskId: string;
   completedBy?: string;
   timestamp: Date;

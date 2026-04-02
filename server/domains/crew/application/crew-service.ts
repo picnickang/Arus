@@ -51,7 +51,7 @@ export class CrewApplicationService {
     return crew;
   }
 
-  async updateCrew(id: string, data: Partial<InsertCrew>, userId?: string): Promise<SelectCrew> {
+  async updateCrew(id: string, data: Partial<InsertCrew>, userId?: string, orgId?: string): Promise<SelectCrew> {
     const sanitizedData = {
       ...data,
       ...(data.vesselId !== undefined && { vesselId: data.vesselId || null }),
@@ -63,6 +63,7 @@ export class CrewApplicationService {
     await this.deps.eventPublisher.publish({
       type: "CREW_MEMBER_UPDATED",
       crewMemberId: crew.id,
+      orgId: crew.orgId || orgId || "default",
       changes: data,
       timestamp: new Date(),
     });
@@ -70,12 +71,13 @@ export class CrewApplicationService {
     return crew;
   }
 
-  async deleteCrew(id: string, userId?: string): Promise<void> {
+  async deleteCrew(id: string, userId?: string, orgId?: string): Promise<void> {
     await this.deps.crewMemberRepository.deleteCrew(id);
 
     await this.deps.eventPublisher.publish({
       type: "CREW_MEMBER_DELETED",
       crewMemberId: id,
+      orgId: orgId || "default",
       timestamp: new Date(),
     });
   }

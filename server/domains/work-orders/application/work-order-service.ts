@@ -60,11 +60,13 @@ export class WorkOrderApplicationService {
   async updateWorkOrder(id: string, data: Partial<InsertWorkOrder>, orgId?: string, userId?: string): Promise<SelectWorkOrder> {
     const previous = await workOrderRepository.findById(id, orgId as string);
     const workOrder = await workOrderRepository.update(id, data);
+    const resolvedOrgId = workOrder.orgId || orgId || "default";
 
     if (data.status && previous && data.status !== previous.status) {
       await this.deps.eventPublisher.publish({
         type: "WORK_ORDER_STATUS_CHANGED",
         workOrderId: workOrder.id,
+        orgId: resolvedOrgId,
         previousStatus: previous.status || "draft",
         newStatus: data.status,
         changedBy: userId,
@@ -74,6 +76,7 @@ export class WorkOrderApplicationService {
       await this.deps.eventPublisher.publish({
         type: "WORK_ORDER_UPDATED",
         workOrderId: workOrder.id,
+        orgId: resolvedOrgId,
         changes: data,
         timestamp: new Date(),
       });
@@ -97,6 +100,7 @@ export class WorkOrderApplicationService {
     await this.deps.eventPublisher.publish({
       type: "WORK_ORDER_COMPLETED",
       workOrderId,
+      orgId: orgId || "default",
       completedBy: userId,
       timestamp: new Date(),
     });
