@@ -18,6 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { QuickReorderButton } from "./QuickReorderButton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -381,8 +382,17 @@ export function VirtualizedInventoryTable({
                 <div className="px-4 text-right" style={{ width: 100, minWidth: 100 }}>
                   {formatCurrencyDisplay(totalValue)}
                 </div>
-                <div className="px-4" style={{ width: 100, minWidth: 100 }}>
+                <div className="px-4 flex items-center gap-1" style={{ width: 100, minWidth: 100 }}>
                   {getStatusBadge(status)}
+                  {(status === "critical" || status === "low") && (
+                    <span onClick={(e) => e.stopPropagation()}>
+                      <QuickReorderButton
+                        part={item}
+                        variant="icon"
+                        onReorderCreated={() => {}}
+                      />
+                    </span>
+                  )}
                 </div>
                 <div className="px-4" style={{ width: 60, minWidth: 60 }}>
                   <DropdownMenu>

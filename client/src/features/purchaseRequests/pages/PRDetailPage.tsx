@@ -120,10 +120,10 @@ export function PRDetailPage() {
 
       <PRStatusPipeline
         status={pr.status}
-        events={(pr as any).events}
-        linkedPO={(pr as any).linkedPO}
-        sentAt={(pr as any).sentAt}
-        closedAt={(pr as any).closedAt}
+        events={pr.events}
+        linkedPO={pr.linkedPO}
+        sentAt={pr.sentAt}
+        closedAt={pr.closedAt}
         className="mb-2"
       />
 

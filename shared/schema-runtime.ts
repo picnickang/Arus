@@ -314,6 +314,9 @@ export const stormgeoSnapshots = IS_POSTGRES ? pgSchema.stormgeoSnapshots : unde
 export const deckLogHourlyAutoFill = IS_POSTGRES ? pgSchema.deckLogHourlyAutoFill : undefined as any;
 export const stormgeoImportHistory = IS_POSTGRES ? pgSchema.stormgeoImportHistory : undefined as any;
 
+// External Data Cache (AI Copilot - cloud-only)
+export const externalDataCache = IS_POSTGRES ? pgSchema.externalDataCache : undefined as any;
+
 // ============================================================================
 // ZOD SCHEMA EXPORTS
 // Explicitly export Zod validators (no wildcard to prevent table binding conflicts)

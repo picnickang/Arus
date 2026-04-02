@@ -24,6 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SOCard } from "../components/SOCard";
 import { ServiceOrderFormDialog } from "../components/ServiceOrderFormDialog";
 import { ServiceOrderCalendar } from "../components/ServiceOrderCalendar";
+import { SupplierPerformanceSelect } from "@/features/suppliers/components/SupplierPerformanceSelect";
 import { useServiceOrders, useSendServiceOrder, useConfirmServiceOrder, useStartServiceOrder, useCompleteServiceOrder, useCancelServiceOrder } from "../hooks/useServiceOrders";
 import type { ServiceOrder } from "../types";
 
@@ -149,24 +150,16 @@ export default function ServiceOrdersPage() {
                   </SelectContent>
                 </Select>
                 {/* UX FIX #6: Supplier performance in dropdown */}
-                <Select value={providerFilter} onValueChange={setProviderFilter}>
-                  <SelectTrigger className="w-48" data-testid="select-provider-filter"><SelectValue placeholder="Provider" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Providers</SelectItem>
-                    {suppliers?.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        <span className="flex items-center gap-2">
-                          <span>{s.name}</span>
-                          {s.qualityRating != null && (
-                            <span className="text-[10px] text-muted-foreground">
-                              ★{s.qualityRating.toFixed(1)}
-                            </span>
-                          )}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SupplierPerformanceSelect
+                  value={providerFilter}
+                  onValueChange={setProviderFilter}
+                  filterType="service_provider"
+                  includeAll
+                  allLabel="All Providers"
+                  placeholder="Provider"
+                  className="w-48"
+                  data-testid="select-provider-filter"
+                />
               </div>
             </div>
           </CardHeader>
