@@ -86,6 +86,7 @@ export function initSyncJournalSubscriber(): void {
   for (const eventType of trackedEvents) {
     domainEventBus.on(eventType, async (event) => {
       try {
+        if ((event as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) return;
         const entityType = SYNC_EVENT_ENTITY_MAP[eventType];
         if (!entityType) return;
         const operation = mapOperationFromEventType(eventType);
@@ -112,6 +113,7 @@ export function initMqttSubscriber(): void {
   ];
   for (const eventType of workOrderEvents) {
     domainEventBus.on(eventType, (event) => {
+      if ((event as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) return;
       const op = mapOperationFromEventType(eventType);
       mqttReliableSync.publishWorkOrderChange(op, { id: event.aggregateId, eventType, ...event.payload }).catch(() => {});
     });
@@ -125,15 +127,18 @@ export function initMqttSubscriber(): void {
   ];
   for (const eventType of crewEvents) {
     domainEventBus.on(eventType, (event) => {
+      if ((event as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) return;
       const op = mapOperationFromEventType(eventType);
       mqttReliableSync.publishCrewChange(op, event.payload).catch(() => {});
     });
   }
 
   domainEventBus.on("maintenance.scheduled", (event) => {
+    if ((event as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) return;
     mqttReliableSync.publishMaintenanceChange("create", { id: event.aggregateId, ...event.payload }).catch(() => {});
   });
   domainEventBus.on("maintenance.completed", (event) => {
+    if ((event as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) return;
     mqttReliableSync.publishMaintenanceChange("update", { id: event.aggregateId, ...event.payload }).catch(() => {});
   });
 
@@ -234,9 +239,11 @@ export function initReverseSyncEventBusBridge(): void {
       if (data[BRIDGE_SOURCE_MARKER]) return;
       const domainEventType = mapSyncEventToDomainEvent(syncEvent);
       if (!domainEventType) return;
-      const orgId = (data.orgId as string) || "bridged";
+      const nested = data.data as Record<string, unknown> | undefined;
+      const orgId = (data.orgId as string) || (nested?.orgId as string);
+      if (!orgId) return;
       const aggregateId = (data.id as string) || "unknown";
-      const envelope = createDomainEvent(domainEventType, orgId, data.data ?? data, {
+      const envelope = createDomainEvent(domainEventType, orgId, nested ?? data, {
         aggregateId,
         aggregateType: domainEventType.split(".")[0],
       });

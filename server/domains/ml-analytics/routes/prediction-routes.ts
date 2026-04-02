@@ -67,11 +67,15 @@ export function registerPredictionRoutes(app: Express, config: MlAnalyticsConfig
               )
             : 30;
 
+          const riskLevel = remainingDays <= 3 ? "critical"
+            : remainingDays <= 7 ? "high"
+            : remainingDays <= 14 ? "medium"
+            : "low";
           domainEventBus.emit("pdm.rul.updated", createDomainEvent("pdm.rul.updated", orgId as string, {
             vesselId: equipment.vesselId || "unknown",
             equipmentId: validatedData.equipmentId,
             remainingDays,
-            confidenceScore: validatedData.failureProbability || 0.8,
+            riskLevel,
           }));
         }
       } catch (eventError) {
