@@ -27,7 +27,7 @@ export function SupplierSelectOption({ supplierId, name, code, performance }: Su
       <span className="truncate flex-1">
         {code ? `${code} - ${name}` : name}
       </span>
-      {performance && performance.totalOrders > 0 && (
+      {performance && (
         <div className="flex items-center gap-1.5 shrink-0 text-xs">
           <span
             className={cn("inline-block w-2 h-2 rounded-full", getScoreColor(performance.performanceScore))}
@@ -36,8 +36,13 @@ export function SupplierSelectOption({ supplierId, name, code, performance }: Su
           <span className={cn("font-medium tabular-nums", getScoreTextColor(performance.performanceScore))}>
             {performance.performanceScore}
           </span>
+          {performance.totalOrders > 0 && (
+            <span className="text-muted-foreground tabular-nums">
+              {Math.round(performance.onTimeRate * 100)}%
+            </span>
+          )}
           <span className="text-muted-foreground tabular-nums">
-            {Math.round(performance.onTimeRate * 100)}%
+            {performance.qualityRating.toFixed(1)}q
           </span>
           {performance.status === "preferred" && (
             <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
@@ -46,9 +51,6 @@ export function SupplierSelectOption({ supplierId, name, code, performance }: Su
             <AlertTriangle className="h-3 w-3 text-red-500" />
           )}
         </div>
-      )}
-      {performance && performance.totalOrders === 0 && (
-        <span className="text-xs text-muted-foreground shrink-0">New</span>
       )}
     </div>
   );
