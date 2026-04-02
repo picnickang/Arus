@@ -22,6 +22,8 @@ export function useWorkOrders(filters?: { status?: string; equipmentId?: string;
   return useQuery<WorkOrder[]>({
     queryKey: [...workOrderKeys.list(), filterKey],
     queryFn: () => apiRequest("GET", `/api/work-orders${queryString ? `?${queryString}` : ""}`),
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
   });
 }
 

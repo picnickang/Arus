@@ -1,4 +1,4 @@
-import { Plus, Trash2, Package, FileText, Wrench } from "lucide-react";
+import { Plus, Trash2, Package, FileText, Wrench, RefreshCw, AlertTriangle } from "lucide-react";
 import { WorkOrderRequestsTab } from "@/components/work-orders/WorkOrderRequestsTab";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/navigation";
@@ -17,7 +17,7 @@ import { PermissionGate } from "@/components/PermissionGate";
 
 export default function WorkOrders() {
   const {
-    workOrders, vessels, equipment, allCrewMembers, isLoading, error,
+    workOrders, vessels, equipment, allCrewMembers, isLoading, error, refetch,
     selectedOrder, viewModalOpen, setViewModalOpen, formDialogOpen, setFormDialogOpen, formDialogMode,
     defaultVesselId, defaultEquipmentId, sortColumn, sortDirection, filters, setFilters,
     drawerOpen, drawerOrder, cloneDialogOpen, cloneOrder,
@@ -36,7 +36,29 @@ export default function WorkOrders() {
     </div>
   );}
 
-  if (error) { const message = (error)?.message ?? "Unknown error"; return <div className="flex items-center justify-center min-h-screen"><div className="text-destructive">Error loading work orders: {message}</div></div>; }
+  if (error) {
+    const message = (error)?.message ?? "Unknown error";
+    const isNetworkError = message === "Load failed" || message === "Failed to fetch" || message.includes("NetworkError");
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4 max-w-md px-4">
+          <AlertTriangle className="h-10 w-10 text-muted-foreground mx-auto" />
+          <h2 className="text-lg font-semibold" data-testid="text-work-orders-error-title">
+            {isNetworkError ? "Connection issue" : "Error loading work orders"}
+          </h2>
+          <p className="text-sm text-muted-foreground" data-testid="text-work-orders-error-message">
+            {isNetworkError
+              ? "Could not reach the server. Please check your connection and try again."
+              : message}
+          </p>
+          <Button onClick={() => refetch()} variant="outline" data-testid="button-retry-work-orders">
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">

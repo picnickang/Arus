@@ -38,7 +38,7 @@ export function useWorkOrdersPageData() {
 
   const filterVesselId = filters.vesselId !== "all" ? filters.vesselId : undefined;
   const filterStatus = filters.status !== "all" ? filters.status : undefined;
-  const { data: workOrders, isLoading, error } = useWorkOrders({ vesselId: filterVesselId, status: filterStatus });
+  const { data: workOrders, isLoading, error, refetch } = useWorkOrders({ vesselId: filterVesselId, status: filterStatus });
   const { data: vessels = [] } = useVessels();
   const { data: equipment = [] } = useEquipmentList();
   const { data: allCrewMembers = [] } = useCrewList();
@@ -91,7 +91,7 @@ export function useWorkOrdersPageData() {
   const highPriorityOrders = workOrders?.filter((wo) => wo.priority === 1) ?? [];
 
   return {
-    workOrders, vessels, equipment, allCrewMembers, crewMembers, isLoading, error,
+    workOrders, vessels, equipment, allCrewMembers, crewMembers, isLoading, error, refetch,
     selectedOrder, viewModalOpen, setViewModalOpen, formDialogOpen, setFormDialogOpen, formDialogMode,
     defaultVesselId, defaultEquipmentId, sortColumn, sortDirection, filters, setFilters,
     drawerOpen, drawerOrder, cloneDialogOpen, cloneOrder,
