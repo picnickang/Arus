@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { db } from "../../../db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { vessels } from "@shared/schema";
 import { registerTool, getTool } from "./registry";
 import { fetchWithCacheFallback } from "../infrastructure/external-data-cache";
@@ -265,15 +265,16 @@ registerTool({
 
       vesselName = vessel.name;
 
-      // Try to get position from vessel metadata
-      const meta = vessel.metadata as Record<string, unknown> | null;
-      if (meta?.latitude && meta?.longitude) {
-        lat = Number(meta.latitude);
-        lng = Number(meta.longitude);
-      } else if (meta?.lastPosition && typeof meta.lastPosition === "object") {
-        const pos = meta.lastPosition as Record<string, unknown>;
-        lat = Number(pos.lat ?? pos.latitude);
-        lng = Number(pos.lng ?? pos.longitude);
+      // Try to get last known position from weather cache
+      const posResult = await db.execute(sql`
+        SELECT latitude, longitude FROM weather_cache
+        WHERE vessel_id = ${input.vesselId} AND org_id = ${ctx.orgId}
+        ORDER BY fetched_at DESC LIMIT 1
+      `);
+      const posRows = (posResult as { rows?: Array<Record<string, unknown>> }).rows || [];
+      if (posRows.length > 0) {
+        lat = Number(posRows[0].latitude);
+        lng = Number(posRows[0].longitude);
       }
 
       if (lat == null || lng == null || isNaN(lat) || isNaN(lng)) {

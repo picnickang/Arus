@@ -1,4 +1,4 @@
-export type ToolCategory = "fleet" | "maintenance" | "alerts" | "predictions" | "crew" | "inventory" | "work-orders" | "analytics" | "files" | "knowledge-base" | "meta";
+export type ToolCategory = "fleet" | "maintenance" | "alerts" | "predictions" | "crew" | "inventory" | "work-orders" | "analytics" | "files" | "knowledge-base" | "compliance" | "meta";
 
 export type RiskLevel = "read" | "low-write" | "high-write";
 

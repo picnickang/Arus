@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { registerTool } from "./registry";
-import { fetchWithCacheFallback, getCachedExternal } from "../infrastructure/external-data-cache";
+import { fetchWithCacheFallback } from "../infrastructure/external-data-cache";
 
 // ---------------------------------------------------------------------------
 // Config — adapt to your regulatory data provider
@@ -123,7 +123,7 @@ async function fetchRegulatoryNotices(
 
 registerTool({
   name: "getPortStateControlHistory",
-  category: "fleet",
+  category: "compliance",
   riskLevel: "read",
   description:
     "Retrieve Port State Control (PSC) inspection history for a vessel by IMO number. " +
@@ -185,6 +185,20 @@ registerTool({
       REGULATORY_CACHE_TTL_SEC,
     );
 
+    if ((result.data as Record<string, unknown>)?.error || (result.data as Record<string, unknown>)?.offline) {
+      return {
+        imoNumber,
+        ...(vesselName ? { vesselName } : {}),
+        error: "PSC data unavailable — external API unreachable and no cached data exists",
+        _meta: {
+          fromCache: result.fromCache,
+          stale: result.stale,
+          dataAge: result.ageLabel,
+          fetchError: result.fetchError,
+        },
+      };
+    }
+
     const inspections = Array.isArray(result.data) ? result.data : [];
     const totalDeficiencies = inspections.reduce((sum, r) => sum + r.deficiencyCount, 0);
     const detentions = inspections.filter(r => r.result === "detention");
@@ -226,7 +240,7 @@ registerTool({
 
 registerTool({
   name: "getRegulatoryNotices",
-  category: "fleet",
+  category: "compliance",
   riskLevel: "read",
   description:
     "Get recent maritime regulatory notices, flag state advisories, and IMO circulars. " +
@@ -272,8 +286,7 @@ registerTool({
         .where(and(eq(vessels.id, input.vesselId as string), eq(vessels.orgId, ctx.orgId)));
 
       if (vessel) {
-        const meta = vessel.metadata as Record<string, unknown> | null;
-        if (!flagState && meta?.flagState) flagState = meta.flagState as string;
+        if (!flagState && vessel.flag) flagState = vessel.flag;
         if (!vesselType && vessel.vesselType) vesselType = vessel.vesselType;
       }
     }
@@ -287,6 +300,19 @@ registerTool({
       () => fetchRegulatoryNotices(flagState, vesselType),
       REGULATORY_CACHE_TTL_SEC,
     );
+
+    if ((result.data as Record<string, unknown>)?.error || (result.data as Record<string, unknown>)?.offline) {
+      return {
+        error: "Regulatory notices unavailable — external API unreachable and no cached data exists",
+        filters: { flagState: flagState || "all", vesselType: vesselType || "all" },
+        _meta: {
+          fromCache: result.fromCache,
+          stale: result.stale,
+          dataAge: result.ageLabel,
+          fetchError: result.fetchError,
+        },
+      };
+    }
 
     const notices = Array.isArray(result.data) ? result.data : [];
 

@@ -59,7 +59,7 @@ export function registerListAvailableToolsMeta(): void {
       properties: {
         category: {
           type: "string",
-          description: "Optional: filter to a specific category (fleet, maintenance, alerts, predictions, crew, inventory, work-orders, analytics, files, knowledge-base)",
+          description: "Optional: filter to a specific category (fleet, maintenance, alerts, predictions, crew, inventory, work-orders, analytics, files, knowledge-base, compliance)",
         },
       },
       required: [],
