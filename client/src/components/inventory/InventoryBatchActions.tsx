@@ -158,7 +158,7 @@ export function InventoryBatchActions({
             size="sm"
             onClick={handleOpenReorder}
             className="bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground"
-            data-testid="btn-batch-reorder"
+            data-testid="button-batch-create-pr"
           >
             <ShoppingCart className="h-4 w-4 mr-1" />
             Create PR
@@ -168,7 +168,7 @@ export function InventoryBatchActions({
             size="sm"
             onClick={handleExportSelected}
             className="bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground"
-            data-testid="btn-batch-export"
+            data-testid="button-batch-export"
           >
             <Download className="h-4 w-4 mr-1" />
             Export

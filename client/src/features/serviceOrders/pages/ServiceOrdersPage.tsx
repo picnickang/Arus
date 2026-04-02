@@ -34,7 +34,15 @@ export default function ServiceOrdersPage() {
   const [search, setSearch] = useState("");
   const [providerFilter, setProviderFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [viewMode, setViewMode] = useState<ViewMode>("cards");
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    const saved = localStorage.getItem("arus:serviceOrders:viewMode");
+    return saved === "calendar" ? "calendar" : "cards";
+  });
+
+  const handleViewModeChange = (mode: ViewMode) => {
+    setViewMode(mode);
+    localStorage.setItem("arus:serviceOrders:viewMode", mode);
+  };
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<ServiceOrder | null>(null);
@@ -93,9 +101,9 @@ export default function ServiceOrdersPage() {
           <Button
             variant={viewMode === "cards" ? "secondary" : "ghost"}
             size="sm"
-            onClick={() => setViewMode("cards")}
+            onClick={() => handleViewModeChange("cards")}
             className="h-8 px-3"
-            data-testid="btn-view-cards"
+            data-testid="toggle-view-cards"
           >
             <LayoutGrid className="h-4 w-4 mr-1" />
             Cards
@@ -103,9 +111,9 @@ export default function ServiceOrdersPage() {
           <Button
             variant={viewMode === "calendar" ? "secondary" : "ghost"}
             size="sm"
-            onClick={() => setViewMode("calendar")}
+            onClick={() => handleViewModeChange("calendar")}
             className="h-8 px-3"
-            data-testid="btn-view-calendar"
+            data-testid="toggle-view-calendar"
           >
             <Calendar className="h-4 w-4 mr-1" />
             Calendar

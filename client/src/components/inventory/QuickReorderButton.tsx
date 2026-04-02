@@ -136,7 +136,7 @@ export function QuickReorderButton({
             handleOpen();
           }}
           title="Quick reorder"
-          data-testid={`btn-reorder-${part.id}`}
+          data-testid={`button-reorder-${part.id}`}
         >
           <ShoppingCart className="h-4 w-4" />
         </Button>
@@ -167,7 +167,7 @@ export function QuickReorderButton({
             e.stopPropagation();
             handleOpen();
           }}
-          data-testid={`btn-reorder-${part.id}`}
+          data-testid={`button-reorder-${part.id}`}
         >
           <ShoppingCart className="h-3.5 w-3.5 mr-1" />
           Reorder
@@ -196,7 +196,7 @@ export function QuickReorderButton({
           e.stopPropagation();
           handleOpen();
         }}
-        data-testid={`btn-reorder-${part.id}`}
+        data-testid={`button-reorder-${part.id}`}
       >
         <ShoppingCart className="h-4 w-4 mr-2" />
         Quick Reorder
