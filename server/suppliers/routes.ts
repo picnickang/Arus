@@ -91,6 +91,43 @@ router.get("/suppliers/preferred", async (req: Request, res: Response) => {
   }
 });
 
+let performanceCache: { data: any[]; expiresAt: number } | null = null;
+const PERF_CACHE_TTL = 5 * 60 * 1000;
+
+router.get("/suppliers/performance-summary", async (req: Request, res: Response) => {
+  try {
+    const orgId = (req.headers["x-org-id"] as string) || DEFAULT_ORG_ID;
+
+    if (performanceCache && Date.now() < performanceCache.expiresAt) {
+      return res.json(performanceCache.data);
+    }
+
+    const allSuppliers = await repo.listSuppliers({ orgId, limit: 500, offset: 0 });
+
+    const { evaluateSupplierPerformance } = await import("../inventory-engine/supplier-performance.js");
+
+    const deliveryHistory = await repo.getDeliveryHistory(orgId);
+
+    const performances = evaluateSupplierPerformance(allSuppliers, deliveryHistory);
+
+    const summary = performances.map((p) => ({
+      supplierId: p.supplierId,
+      name: p.name,
+      performanceScore: p.performanceScore,
+      onTimeRate: p.onTimeDeliveryRate,
+      qualityRating: p.qualityRating,
+      totalOrders: p.totalOrders,
+      status: p.status,
+    }));
+
+    performanceCache = { data: summary, expiresAt: Date.now() + PERF_CACHE_TTL };
+    res.json(summary);
+  } catch (error) {
+    console.error("[Suppliers] Error getting performance summary:", error);
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
 router.get("/suppliers/:id", async (req: Request, res: Response) => {
   try {
     const orgId = (req.headers["x-org-id"] as string) || DEFAULT_ORG_ID;

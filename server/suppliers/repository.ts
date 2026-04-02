@@ -7,6 +7,7 @@ import { db } from "../db";
 import { eq, and, or, ilike, sql, count } from "drizzle-orm";
 import { suppliers, purchaseOrders } from "@shared/schema";
 import type { InsertSupplier, SupplierListFilters, SupplierWithStats } from "./types";
+import type { DeliveryHistoryRecord } from "../inventory-engine/types";
 
 export async function createSupplier(data: InsertSupplier) {
   const [result] = await db
@@ -146,4 +147,26 @@ export async function getPreferredSuppliers(orgId: string) {
       )
     )
     .orderBy(suppliers.name);
+}
+
+export async function getDeliveryHistory(_orgId: string): Promise<DeliveryHistoryRecord[]> {
+  const orders = await db
+    .select({
+      supplierId: purchaseOrders.supplierId,
+      createdAt: purchaseOrders.createdAt,
+      expectedDate: purchaseOrders.expectedDate,
+      status: purchaseOrders.status,
+    })
+    .from(purchaseOrders)
+    .where(eq(purchaseOrders.status, "received"));
+
+  return orders
+    .filter((o) => o.createdAt && o.expectedDate)
+    .map((o) => ({
+      supplierId: o.supplierId,
+      orderDate: new Date(o.createdAt!),
+      deliveryDate: new Date(o.expectedDate!),
+      expectedDeliveryDate: new Date(o.expectedDate!),
+      qualityScore: 7,
+    }));
 }

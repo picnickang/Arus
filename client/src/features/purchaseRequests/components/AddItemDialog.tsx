@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
-import { useSuppliers } from "@/features/suppliers";
+import { useSuppliers, useSupplierPerformance, SupplierSelectOption } from "@/features/suppliers";
 import { useParts } from "@/features/inventory/hooks/useInventory";
 import type { PRItemFormData } from "../types";
 
@@ -30,6 +30,8 @@ interface AddItemDialogProps {
 export function AddItemDialog({ open, onOpenChange, onSubmit, isPending }: AddItemDialogProps) {
   const { data: parts, isLoading: partsLoading } = useParts();
   const { data: suppliers, isLoading: suppliersLoading } = useSuppliers();
+  const { data: perfData } = useSupplierPerformance();
+  const perfMap = new Map(perfData?.map((p) => [p.supplierId, p]) ?? []);
 
   const form = useForm<PRItemFormData>({
     resolver: zodResolver(itemSchema),
@@ -88,7 +90,7 @@ export function AddItemDialog({ open, onOpenChange, onSubmit, isPending }: AddIt
                   <SelectContent>
                     {suppliers?.map((s) => (
                       <SelectItem key={s.id} value={s.id}>
-                        {s.code} - {s.name}
+                        <SupplierSelectOption supplierId={s.id} name={s.name} code={s.code} performance={perfMap.get(s.id)} />
                       </SelectItem>
                     ))}
                   </SelectContent>

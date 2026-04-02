@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { useSupplierPerformance, SupplierSelectOption } from "@/features/suppliers";
 
 interface Supplier {
   id: string;
@@ -39,6 +40,8 @@ export function SupplierMultiSelect({
     queryKey: ["/api/suppliers"],
     staleTime: 5 * 60 * 1000,
   });
+  const { data: perfData } = useSupplierPerformance();
+  const perfMap = new Map(perfData?.map((p) => [p.supplierId, p]) ?? []);
 
   const selectedSuppliers = suppliers.filter((s) => value.includes(s.id));
 
@@ -123,12 +126,7 @@ export function SupplierMultiSelect({
                           isSelected ? "opacity-100" : "opacity-0"
                         )}
                       />
-                      <span className="flex-1">
-                        {supplier.name}
-                        <span className="text-muted-foreground ml-2 text-sm">
-                          ({supplier.code})
-                        </span>
-                      </span>
+                      <SupplierSelectOption supplierId={supplier.id} name={supplier.name} code={supplier.code} performance={perfMap.get(supplier.id)} />
                     </CommandItem>
                   );
                 })}

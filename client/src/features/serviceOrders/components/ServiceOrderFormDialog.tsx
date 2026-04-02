@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, ShieldAlert, Wrench, RefreshCw } from "lucide-react";
+import { useSupplierPerformance, SupplierSelectOption } from "@/features/suppliers";
 import { useCreateServiceOrder, useUpdateServiceOrder, useSendServiceOrder, useCancelServiceOrder } from "../hooks/useServiceOrders";
 import { useToast } from "@/hooks/use-toast";
 import { useCanModifyRecord } from "@/hooks/useUserPermissions";
@@ -56,6 +57,8 @@ export function ServiceOrderFormDialog({ open, onOpenChange, mode, serviceOrder,
   const cancelMutation = useCancelServiceOrder();
 
   const { data: suppliers, isLoading: loadingSuppliers } = useQuery<{ id: string; name: string }[]>({ queryKey: ["/api/suppliers"] });
+  const { data: perfData } = useSupplierPerformance();
+  const perfMap = new Map(perfData?.map((p) => [p.supplierId, p]) ?? []);
   const { data: workOrders, isLoading: loadingWOs } = useQuery<{ id: string; woNumber: string; reason?: string }[]>({ queryKey: ["/api/work-orders"] });
   const { data: vessels, isLoading: loadingVessels } = useQuery<{ id: string; name: string }[]>({ queryKey: ["/api/vessels"] });
 
@@ -285,7 +288,7 @@ export function ServiceOrderFormDialog({ open, onOpenChange, mode, serviceOrder,
                   <Select value={field.value} onValueChange={field.onChange} disabled={!canEditForm}>
                     <FormControl><SelectTrigger data-testid="select-provider"><SelectValue placeholder="Select provider" /></SelectTrigger></FormControl>
                     <SelectContent>
-                      {suppliers?.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                      {suppliers?.map(s => <SelectItem key={s.id} value={s.id}><SupplierSelectOption supplierId={s.id} name={s.name} performance={perfMap.get(s.id)} /></SelectItem>)}
                     </SelectContent>
                   </Select>
                   <FormMessage />
