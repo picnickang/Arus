@@ -10,7 +10,7 @@ import { getCoreTablesSql, getCoreIndexesSql } from "./core-tables.js";
 import { getVesselTablesSql, getVesselIndexesSql } from "./vessel-tables.js";
 import { getWorkOrderTablesSql, getWorkOrderIndexesSql } from "./workorder-tables.js";
 import { getMaintenanceTablesSql, getMaintenanceIndexesSql } from "./maintenance-tables.js";
-import { getInventoryTablesSql, getInventoryIndexesSql } from "./inventory-tables.js";
+import { getInventoryTablesSql, getInventoryIndexesSql, getInventoryMigrationsSql } from "./inventory-tables.js";
 import { getCrewTablesSql, getCrewIndexesSql } from "./crew-tables.js";
 import { getAlertTablesSql, getAlertIndexesSql } from "./alert-tables.js";
 import { getMlTablesSql, getMlIndexesSql } from "./ml-tables.js";
@@ -76,7 +76,7 @@ export {
   getVesselTablesSql, getVesselIndexesSql,
   getWorkOrderTablesSql, getWorkOrderIndexesSql,
   getMaintenanceTablesSql, getMaintenanceIndexesSql,
-  getInventoryTablesSql, getInventoryIndexesSql,
+  getInventoryTablesSql, getInventoryIndexesSql, getInventoryMigrationsSql,
   getCrewTablesSql, getCrewIndexesSql,
   getAlertTablesSql, getAlertIndexesSql,
   getMlTablesSql, getMlIndexesSql,
