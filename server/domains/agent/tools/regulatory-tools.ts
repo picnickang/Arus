@@ -186,10 +186,14 @@ registerTool({
     );
 
     if ((result.data as Record<string, unknown>)?.error || (result.data as Record<string, unknown>)?.offline) {
+      const isNotConfigured = result.fetchError?.includes("not configured");
       return {
         imoNumber,
         ...(vesselName ? { vesselName } : {}),
-        error: "PSC data unavailable — external API unreachable and no cached data exists",
+        error: isNotConfigured
+          ? "PSC data unavailable — MARITIME_REGULATORY_API_URL/KEY not configured"
+          : "PSC data unavailable — external API unreachable and no cached data exists",
+        reason: isNotConfigured ? "not_configured" : "unreachable",
         _meta: {
           fromCache: result.fromCache,
           stale: result.stale,
@@ -302,8 +306,12 @@ registerTool({
     );
 
     if ((result.data as Record<string, unknown>)?.error || (result.data as Record<string, unknown>)?.offline) {
+      const isNotConfigured = result.fetchError?.includes("not configured");
       return {
-        error: "Regulatory notices unavailable — external API unreachable and no cached data exists",
+        error: isNotConfigured
+          ? "Regulatory notices unavailable — MARITIME_REGULATORY_API_URL/KEY not configured"
+          : "Regulatory notices unavailable — external API unreachable and no cached data exists",
+        reason: isNotConfigured ? "not_configured" : "unreachable",
         filters: { flagState: flagState || "all", vesselType: vesselType || "all" },
         _meta: {
           fromCache: result.fromCache,
