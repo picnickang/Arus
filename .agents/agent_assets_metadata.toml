@@ -126,3 +126,9 @@ id = "Iq-lCvveDMHZ-5pZHO5qF"
 uri = "file://copilot-rag-code-export.txt"
 type = "text"
 title = "AI Copilot & RAG System - Complete Source Code"
+
+[[outputs]]
+id = "LGO8EtRWHsgHUEDkJGv4v"
+uri = "file://code-export/logistics-all-review.txt"
+type = "text"
+title = "ARUS Logistics Review Bundle (Inventory, Service Orders, Purchases, Vendors)"
