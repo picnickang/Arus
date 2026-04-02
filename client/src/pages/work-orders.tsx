@@ -115,7 +115,7 @@ function ViewOrderTabs({ order, getEquipmentName, getVesselName, onComplete, isC
         </div>
       </TabsContent>
       <TabsContent value="requests" className="mt-6">
-        <WorkOrderRequestsTab workOrderId={order.id} isReadOnly={order.status === "completed"} />
+        <WorkOrderRequestsTab workOrderId={order.id} isReadOnly={order.status === "completed"} requireAdvancedOptions={order.maintenanceType === "drydock"} />
         <div className="flex justify-end pt-4"><Button variant="outline" onClick={onClose}>Close</Button></div>
       </TabsContent>
       <TabsContent value="parts" className="mt-6">

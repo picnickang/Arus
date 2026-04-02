@@ -70,6 +70,8 @@ interface EnhancedServiceRequestDialogProps {
   defaultExpanded?: boolean;
 }
 
+let sessionAdvancedState: boolean | null = null;
+
 export function EnhancedServiceRequestDialog({ open, onOpenChange, onSubmit, isPending, initialData, isEditing = false, defaultExpanded = false }: EnhancedServiceRequestDialogProps) {
   const { data: providers = [] } = useServiceProviders();
   const { data: equipment = [] } = useEquipmentList();
@@ -91,13 +93,19 @@ export function EnhancedServiceRequestDialog({ open, onOpenChange, onSubmit, isP
   const [mocNumber, setMocNumber] = useState("");
   const [certificateItems, setCertificateItems] = useState<CertificateItem[]>([]);
   const [initialized, setInitialized] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(defaultExpanded);
+  const [showAdvanced, setShowAdvanced] = useState(() => {
+    if (defaultExpanded || isEditing) return true;
+    if (sessionAdvancedState !== null) return sessionAdvancedState;
+    return false;
+  });
 
   const advancedSectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (open) {
-      setShowAdvanced(defaultExpanded || isEditing);
+    if (open && (defaultExpanded || isEditing)) {
+      setShowAdvanced(true);
+    } else if (open && sessionAdvancedState !== null) {
+      setShowAdvanced(sessionAdvancedState);
     }
   }, [open, defaultExpanded, isEditing]);
 
@@ -172,11 +180,12 @@ export function EnhancedServiceRequestDialog({ open, onOpenChange, onSubmit, isP
 
   const canSubmit = isEditing 
     ? symptomDescription.trim() && !isPending
-    : providerId && selectedEquipmentIds.length > 0 && symptomDescription.trim() && !isPending;
+    : providerId && selectedEquipmentIds.length > 0 && symptomDescription.trim() && requestedStartDate && !isPending;
 
   const handleToggleAdvanced = () => {
     const newState = !showAdvanced;
     setShowAdvanced(newState);
+    sessionAdvancedState = newState;
     if (newState) {
       setTimeout(() => {
         advancedSectionRef.current?.querySelector<HTMLElement>("input, textarea, select, button")?.focus();

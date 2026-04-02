@@ -28,9 +28,10 @@ import type { PartsRequestCardData } from "@/features/work-orders/components/Par
 interface WorkOrderRequestsTabProps {
   workOrderId: string;
   isReadOnly?: boolean;
+  requireAdvancedOptions?: boolean;
 }
 
-export function WorkOrderRequestsTab({ workOrderId, isReadOnly = false }: WorkOrderRequestsTabProps) {
+export function WorkOrderRequestsTab({ workOrderId, isReadOnly = false, requireAdvancedOptions = false }: WorkOrderRequestsTabProps) {
   const [soDialogOpen, setSoDialogOpen] = useState(false);
   const [prDialogOpen, setPrDialogOpen] = useState(false);
   const [editingSO, setEditingSO] = useState<ServiceOrderCardData | null>(null);
@@ -250,6 +251,7 @@ export function WorkOrderRequestsTab({ workOrderId, isReadOnly = false }: WorkOr
           estimatedDurationHours: editingSO.estimatedDurationHours,
         } : undefined}
         isEditing={!!editingSO}
+        defaultExpanded={requireAdvancedOptions}
       />
       <MultiLinePartsRequestDialog
         open={prDialogOpen}
