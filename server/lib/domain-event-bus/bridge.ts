@@ -73,10 +73,44 @@ function mapDomainEventToSyncEvent(eventType: string): EventType | null {
   return mapping[eventType] ?? null;
 }
 
+const EVENT_OPERATION_MAP: Record<string, "create" | "update" | "delete"> = {
+  "work_order.created": "create",
+  "work_order.updated": "update",
+  "work_order.completed": "update",
+  "work_order.status_changed": "update",
+  "work_order.assigned": "update",
+  "work_order.part_added": "update",
+  "work_order.task_completed": "update",
+  "inventory.part_created": "create",
+  "inventory.part_updated": "update",
+  "inventory.part_deleted": "delete",
+  "inventory.item_created": "create",
+  "inventory.item_updated": "update",
+  "inventory.item_deleted": "delete",
+  "inventory.stock_movement": "create",
+  "inventory.low_stock": "update",
+  "inventory.stock_replenished": "update",
+  "crew.member_created": "create",
+  "crew.member_updated": "update",
+  "crew.member_deleted": "delete",
+  "crew.assigned": "create",
+  "crew.unassigned": "delete",
+  "crew.leave_requested": "create",
+  "crew.leave_approved": "update",
+  "crew.certification_expiring": "update",
+  "maintenance.scheduled": "create",
+  "maintenance.updated": "update",
+  "maintenance.deleted": "delete",
+  "maintenance.completed": "update",
+  "maintenance.overdue": "update",
+  "maintenance.auto_scheduled": "create",
+  "maintenance.template_created": "create",
+  "maintenance.template_updated": "update",
+  "maintenance.template_deleted": "delete",
+};
+
 function mapOperationFromEventType(eventType: string): "create" | "update" | "delete" {
-  if (eventType.includes("deleted") || eventType.includes("unassigned")) return "delete";
-  if (eventType.includes("created") || eventType.includes("assigned") || eventType.includes("requested")) return "create";
-  return "update";
+  return EVENT_OPERATION_MAP[eventType] ?? "update";
 }
 
 export function initSyncJournalSubscriber(): void {
