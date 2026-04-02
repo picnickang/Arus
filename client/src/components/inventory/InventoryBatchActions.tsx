@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Download, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { MultiLinePartsRequestDialog } from "@/components/work-orders/MultiLinePartsRequestDialog";
 import type { SuggestedPart } from "@/components/work-orders/MultiLinePartsRequestDialog";
@@ -26,6 +28,7 @@ export function InventoryBatchActions({
   const [prDialogOpen, setPrDialogOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
 
   const selectedParts = parts.filter((p) => selectedItems.has(p.id));
   const count = selectedItems.size;
@@ -69,11 +72,20 @@ export function InventoryBatchActions({
 
       return pr;
     },
-    onSuccess: (pr) => {
+    onSuccess: (pr: { id: string; prNumber?: string }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/purchase-requests"] });
       toast({
         title: "Purchase Request Created",
-        description: `PR #${pr.prNumber || pr.id} created with ${selectedParts.length} items. View in Purchasing tab.`,
+        description: `PR #${pr.prNumber || pr.id} created with ${selectedParts.length} items.`,
+        action: (
+          <ToastAction
+            altText="View Purchase Request"
+            onClick={() => navigate(`/purchase-requests/${pr.id}`)}
+            data-testid="toast-link-pr"
+          >
+            View PR
+          </ToastAction>
+        ),
       });
       setPrDialogOpen(false);
       onClearSelection();

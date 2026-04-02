@@ -52,6 +52,7 @@ export interface PartsInventoryItem {
   leadTimeDays?: number | null;
   minStockLevel: number;
   maxStockLevel: number;
+  supplierId?: string | null;
   supplierName?: string | null;
   stock?: {
     id: string;

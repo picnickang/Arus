@@ -14,8 +14,9 @@
  */
 
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -30,6 +31,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ShoppingCart, Loader2, Check, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 
 interface PartForReorder {
   id: string;
@@ -64,10 +66,15 @@ export function QuickReorderButton({
   const [open, setOpen] = useState(false);
   const [quantity, setQuantity] = useState<number>(0);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
 
-  const currentStock = part.stock?.quantityOnHand ?? 0;
+  const quantityOnHand = part.stock?.quantityOnHand ?? 0;
+  const quantityReserved = part.stock?.quantityReserved ?? 0;
+  const availableQuantity = Math.max(0, quantityOnHand - quantityReserved);
+  const currentStock = quantityOnHand;
   const maxStock = part.maxStockLevel ?? 100;
-  const suggestedQty = Math.max(1, maxStock - currentStock);
+  const suggestedQty = Math.max(1, maxStock - availableQuantity);
 
   const createPRMutation = useMutation({
     mutationFn: async (data: {
@@ -76,25 +83,34 @@ export function QuickReorderButton({
       supplierId?: string;
       notes: string;
     }) => {
-      return apiRequest("POST", "/api/purchase-requests", {
+      const pr = await apiRequest("POST", "/api/purchase-requests", {
         requestedBy: "Quick Reorder",
         notes: data.notes,
-        items: [
-          {
-            partId: data.partId,
-            quantity: data.quantity,
-            supplierId: data.supplierId,
-            remarks: `Quick reorder: ${part.partName || part.partNumber}`,
-          },
-        ],
       });
+      await apiRequest("POST", `/api/purchase-requests/${pr.id}/items`, {
+        partId: data.partId,
+        quantity: data.quantity,
+        supplierId: data.supplierId,
+        uom: "ea",
+        remarks: `Quick reorder: ${part.partName || part.partNumber}`,
+      });
+      return pr;
     },
     onSuccess: (pr: { id: string; prNumber?: string }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/purchase-requests"] });
       queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
       toast({
         title: "Purchase Request Created",
-        description: `PR #${pr.prNumber || pr.id} for ${quantity}x ${part.partName || part.partNumber}. View in Purchasing tab.`,
+        description: `PR #${pr.prNumber || pr.id} for ${quantity}x ${part.partName || part.partNumber}.`,
+        action: (
+          <ToastAction
+            altText="View Purchase Request"
+            onClick={() => navigate(`/purchase-requests/${pr.id}`)}
+            data-testid="toast-link-pr"
+          >
+            View PR
+          </ToastAction>
+        ),
       });
       setOpen(false);
       onReorderCreated?.();
@@ -119,7 +135,7 @@ export function QuickReorderButton({
       partId: part.id,
       quantity,
       supplierId: part.supplierId || undefined,
-      notes: `Quick reorder for ${part.partName || part.partNumber}. Current stock: ${currentStock}, target: ${maxStock}.`,
+      notes: `Quick reorder for ${part.partName || part.partNumber}. Available: ${availableQuantity}, target: ${maxStock}.`,
     });
   };
 
