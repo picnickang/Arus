@@ -370,6 +370,80 @@ Before merging any PR that adds or modifies a table:
 
 ---
 
+## Rule 16: Testing Requirements
+
+Every schema or storage-layer change touching dual-mode tables must pass these gates:
+
+### 16.1 Schema Parity Smoke Test
+
+Before merging, manually verify that both PG and SQLite schemas for the affected
+table define the same logical columns (accounting for type mapping rules above).
+Run a diff of column names between `shared/schema/<domain>.ts` and
+`shared/sqlite-schema/<domain>.ts` for any modified table.
+
+### 16.2 Insert/Read Parity Tests
+
+For any new or modified table that exists in both modes, write a test (or manually
+verify) that:
+
+1. **UUID PK generation:** Insert a row with an app-generated UUID into both schemas.
+   Confirm the ID round-trips correctly.
+2. **Timestamp fields:** Insert a `Date` value. Read it back. Confirm both PG
+   (`timestamp` → `Date`) and SQLite (`integer` epoch → `Date`) produce the same
+   JS `Date` object.
+3. **Boolean fields:** Insert `true`/`false`. Read back. Confirm PG returns
+   `boolean` and SQLite returns `boolean` (not `0`/`1`).
+4. **JSON fields:** Insert a complex object. Read back via `jsonb` (PG) and
+   `text` + `sqliteJsonHelpers.parseJson()` (SQLite). Confirm structural equality.
+5. **Array fields:** Insert a string array. Read back via `.array()` (PG) and
+   `text` + `sqliteJsonHelpers.parseArray()` (SQLite). Confirm array equality.
+
+### 16.3 Cloud-Only Table Guard Tests
+
+For any table marked cloud-only in `schema-runtime.ts`:
+
+1. Set `LOCAL_MODE=true` in the test environment.
+2. Attempt to access the table export.
+3. Confirm access throws or returns `undefined` (current behavior) rather than
+   silently succeeding with wrong data.
+
+### 16.4 Dual-DB Test Matrix (Recommended for CI)
+
+When CI infrastructure supports it, the following matrix should run:
+
+| Test target | DATABASE_URL | LOCAL_MODE | Expected |
+|------------|-------------|------------|----------|
+| Cloud mode | PostgreSQL connection | `false` | All PG schemas operational |
+| Vessel mode | (none) | `true` | SQLite schemas operational, cloud-only tables guarded |
+
+### 16.5 Schema-Runtime Consistency Check
+
+Periodically verify that every table exported by `schema-runtime.ts` has a valid
+ternary (PG branch and SQLite/guard branch). A simple grep-based check:
+
+```bash
+grep -c "IS_POSTGRES\|isLocalMode" shared/schema-runtime.ts
+```
+
+The count should match the number of exported table constants.
+
+---
+
+## Automation Status
+
+The following automation is **deferred** from this task (documentation-only scope):
+
+| Automation | Status | Follow-up |
+|-----------|--------|-----------|
+| ESLint rule banning `serial()` imports in new schema files | Deferred | Create custom ESLint plugin or `no-restricted-imports` rule |
+| CI schema parity check (PG vs SQLite column name diff) | Deferred | Shell script comparing column names across schema pairs |
+| Automated dual-DB test matrix in CI | Deferred | Requires CI pipeline with both PG and SQLite test databases |
+| Pre-commit hook for `schema-runtime.ts` ternary validation | Deferred | Script to verify every table export has both branches |
+
+These should be tracked as separate engineering tasks and implemented incrementally.
+
+---
+
 ## Appendix A: Current Violations Audit
 
 ### A.1 Serial Primary Keys (Breaking — prevents SQLite sync)
@@ -469,26 +543,47 @@ maintenance burden when adding new fields.
 - `COUNT`, `SUM`, `AVG`, `MIN`, `MAX`
 - `COALESCE`, `CASE WHEN`
 - `LIKE`, `IN`, `BETWEEN`
-- `CREATE INDEX ... ON`
+- `CREATE INDEX ... ON` (standard B-tree)
 - `BEGIN`, `COMMIT`, `ROLLBACK`
+- `RETURNING` clause (SQLite 3.35+ / libSQL supports this)
+- `ON CONFLICT ... DO UPDATE` (UPSERT — SQLite 3.24+ / libSQL supports this)
+- `ON CONFLICT ... DO NOTHING`
+- `WINDOW` functions with `PARTITION BY`, `ROW_NUMBER`, `RANK` (SQLite 3.25+)
+- `CAST(expr AS type)`
+- `INSERT OR REPLACE` (SQLite), `ON CONFLICT DO UPDATE` (both)
+- `CURRENT_TIMESTAMP` (literal, not function — works in both)
+- `->>` JSON extract operator (SQLite 3.38+ / libSQL supports this)
 
 ### PostgreSQL Only (Blacklist for Portable Code)
-- `RETURNING` clause (use separate SELECT after INSERT in portable code)
-- `ON CONFLICT ... DO UPDATE` (SQLite uses `INSERT OR REPLACE` / `ON CONFLICT` with different syntax)
-- `jsonb` operators (`->`, `->>`, `@>`, `?`, `?|`, `?&`)
+- `jsonb` operators beyond `->>`: `->` (returns jsonb), `@>`, `?`, `?|`, `?&`
 - `ARRAY` operators (`ANY`, `ALL`, `@>`, `<@`)
 - `LATERAL JOIN`
-- `WINDOW` functions with `PARTITION BY` (SQLite 3.25+ supports some)
 - `MATERIALIZED VIEW`
 - `LISTEN`/`NOTIFY`
 - `COPY` command
 - `EXPLAIN ANALYZE` (SQLite uses `EXPLAIN QUERY PLAN`)
 - `CREATE INDEX ... USING gin/gist/brin`
 - `ALTER TABLE ... ADD CONSTRAINT`
-- `gen_random_uuid()` (SQLite: generate in app code)
-- `NOW()` / `CURRENT_TIMESTAMP` as function (SQLite: use `strftime`)
-- Type casts with `::` (use `CAST()` instead)
-- `INTERVAL` arithmetic
-- `DISTINCT ON`
-- `FOR UPDATE` / `FOR SHARE` (row locking)
+- `gen_random_uuid()` (SQLite: generate in app code via `crypto.randomUUID()`)
+- `NOW()` as a function call (SQLite: use `datetime('now')` or `strftime`)
+- Type casts with `::` syntax (use `CAST()` instead)
+- `INTERVAL` arithmetic (use app-layer date math)
+- `DISTINCT ON` (use `GROUP BY` + window function instead)
+- `FOR UPDATE` / `FOR SHARE` (row-level locking — SQLite uses file-level locking)
 - `TRUNCATE` (use `DELETE FROM` in portable code)
+- `pgEnum` type definitions
+- `serial` / `bigserial` auto-increment types
+
+### Version-Dependent (Use with Caution)
+
+The following features work in modern SQLite/libSQL but may not be available in
+older embedded SQLite versions. ARUS uses libSQL via Turso, which supports all of these:
+
+| Feature | Minimum SQLite version | libSQL status |
+|---------|----------------------|---------------|
+| `RETURNING` | 3.35.0 (2021-03) | Supported |
+| `UPSERT` (`ON CONFLICT DO UPDATE`) | 3.24.0 (2018-06) | Supported |
+| Window functions | 3.25.0 (2018-09) | Supported |
+| `->>`  JSON extract | 3.38.0 (2022-02) | Supported |
+| `STRICT` tables | 3.37.0 (2021-11) | Supported |
+| `RIGHT JOIN` / `FULL OUTER JOIN` | 3.39.0 (2022-09) | Supported |
