@@ -265,16 +265,19 @@ registerTool({
 
       vesselName = vessel.name;
 
-      // Try to get last known position from weather cache
-      const posResult = await db.execute(sql`
-        SELECT latitude, longitude FROM weather_cache
-        WHERE vessel_id = ${input.vesselId} AND org_id = ${ctx.orgId}
-        ORDER BY fetched_at DESC LIMIT 1
-      `);
-      const posRows = (posResult as { rows?: Array<Record<string, unknown>> }).rows || [];
-      if (posRows.length > 0) {
-        lat = Number(posRows[0].latitude);
-        lng = Number(posRows[0].longitude);
+      try {
+        const posResult = await db.execute(sql`
+          SELECT latitude, longitude FROM weather_cache
+          WHERE vessel_id = ${input.vesselId} AND org_id = ${ctx.orgId}
+          ORDER BY fetched_at DESC LIMIT 1
+        `);
+        const posRows = (posResult as { rows?: Array<Record<string, unknown>> }).rows || [];
+        if (posRows.length > 0) {
+          lat = Number(posRows[0].latitude);
+          lng = Number(posRows[0].longitude);
+        }
+      } catch {
+        // weather_cache may not exist in local/SQLite mode — fall through to error
       }
 
       if (lat == null || lng == null || isNaN(lat) || isNaN(lng)) {
