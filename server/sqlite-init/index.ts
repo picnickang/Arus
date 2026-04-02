@@ -60,6 +60,16 @@ async function safeRenameColumn(client: LibsqlClient, table: string, oldCol: str
   console.log(`  ✓ Renamed ${table}.${oldCol} → ${newCol}`);
 }
 
+async function backfillFromLegacy(client: LibsqlClient, table: string, oldCol: string, newCol: string): Promise<void> {
+  const result = await client.execute(
+    `UPDATE ${table} SET ${newCol} = ${oldCol} WHERE ${newCol} IS NULL OR ${newCol} = '' OR ${newCol} = 0`
+  );
+  const count = result.rowsAffected;
+  if (count > 0) {
+    console.log(`  ✓ Backfilled ${count} rows: ${table}.${oldCol} → ${newCol}`);
+  }
+}
+
 async function safeAddColumn(client: LibsqlClient, table: string, col: string, definition: string): Promise<void> {
   try {
     await client.execute(`ALTER TABLE ${table} ADD COLUMN ${col} ${definition}`);
@@ -88,21 +98,32 @@ async function runInventoryMigrations(client: LibsqlClient): Promise<void> {
   try {
     if (piCols.includes("min_quantity") && !piCols.includes("min_stock_level")) {
       await safeRenameColumn(client, "parts_inventory", "min_quantity", "min_stock_level");
+    } else if (piCols.includes("min_quantity") && piCols.includes("min_stock_level")) {
+      await backfillFromLegacy(client, "parts_inventory", "min_quantity", "min_stock_level");
     }
+
     if (piCols.includes("reorder_level") && !piCols.includes("min_stock_level")) {
       await safeRenameColumn(client, "parts_inventory", "reorder_level", "min_stock_level");
+    } else if (piCols.includes("reorder_level") && piCols.includes("min_stock_level")) {
+      await backfillFromLegacy(client, "parts_inventory", "reorder_level", "min_stock_level");
     }
 
     if (piCols.includes("current_quantity") && !piCols.includes("quantity_on_hand")) {
       await safeRenameColumn(client, "parts_inventory", "current_quantity", "quantity_on_hand");
+    } else if (piCols.includes("current_quantity") && piCols.includes("quantity_on_hand")) {
+      await backfillFromLegacy(client, "parts_inventory", "current_quantity", "quantity_on_hand");
     }
 
     if (piCols.includes("reorder_quantity") && !piCols.includes("max_stock_level")) {
       await safeRenameColumn(client, "parts_inventory", "reorder_quantity", "max_stock_level");
+    } else if (piCols.includes("reorder_quantity") && piCols.includes("max_stock_level")) {
+      await backfillFromLegacy(client, "parts_inventory", "reorder_quantity", "max_stock_level");
     }
 
     if (piCols.includes("name") && !piCols.includes("part_name")) {
       await safeRenameColumn(client, "parts_inventory", "name", "part_name");
+    } else if (piCols.includes("name") && piCols.includes("part_name")) {
+      await backfillFromLegacy(client, "parts_inventory", "name", "part_name");
     }
 
     if (!piCols.includes("quantity_on_hand")) {
@@ -139,6 +160,8 @@ async function runInventoryMigrations(client: LibsqlClient): Promise<void> {
   try {
     if (stockCols.includes("quantity") && !stockCols.includes("quantity_on_hand")) {
       await safeRenameColumn(client, "stock", "quantity", "quantity_on_hand");
+    } else if (stockCols.includes("quantity") && stockCols.includes("quantity_on_hand")) {
+      await backfillFromLegacy(client, "stock", "quantity", "quantity_on_hand");
     }
     if (!stockCols.includes("quantity_reserved")) {
       await safeAddColumn(client, "stock", "quantity_reserved", "REAL DEFAULT 0");
@@ -170,6 +193,8 @@ async function runInventoryMigrations(client: LibsqlClient): Promise<void> {
     try {
       if (poiCols.includes("purchase_order_id") && !poiCols.includes("po_id")) {
         await safeRenameColumn(client, "purchase_order_items", "purchase_order_id", "po_id");
+      } else if (poiCols.includes("purchase_order_id") && poiCols.includes("po_id")) {
+        await backfillFromLegacy(client, "purchase_order_items", "purchase_order_id", "po_id");
       }
       if (!poiCols.includes("org_id")) {
         await safeAddColumn(client, "purchase_order_items", "org_id", "TEXT NOT NULL DEFAULT ''");
