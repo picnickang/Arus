@@ -101,8 +101,10 @@ export class PurchaseEventRepositoryAdapter implements IPurchaseEventRepository 
       }
       if (Array.isArray(details.purchaseOrders)) {
         for (const po of details.purchaseOrders) {
-          if (po && typeof po === "object" && "id" in po && typeof po.id === "string") {
-            poIds.add(po.id);
+          if (po && typeof po === "object") {
+            const poObj = po as Record<string, unknown>;
+            if (typeof poObj.poId === "string") poIds.add(poObj.poId);
+            else if (typeof poObj.id === "string") poIds.add(poObj.id);
           }
         }
       }
