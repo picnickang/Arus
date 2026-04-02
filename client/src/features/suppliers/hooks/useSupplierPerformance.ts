@@ -12,12 +12,7 @@ export interface SupplierPerformanceSummary {
 
 export function useSupplierPerformance() {
   return useQuery<SupplierPerformanceSummary[]>({
-    queryKey: ["/api/suppliers", "performance-summary"],
-    queryFn: async () => {
-      const res = await fetch("/api/suppliers/performance-summary");
-      if (!res.ok) throw new Error("Failed to fetch performance data");
-      return res.json();
-    },
+    queryKey: ["/api/suppliers/performance-summary"],
     staleTime: 5 * 60 * 1000,
   });
 }
