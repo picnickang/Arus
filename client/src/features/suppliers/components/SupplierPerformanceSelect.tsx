@@ -14,7 +14,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Star, Clock, Award } from "lucide-react";
+import { Star, Clock } from "lucide-react";
 
 interface Supplier {
   id: string;
