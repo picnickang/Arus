@@ -453,7 +453,7 @@ The following PG tables use `serial("id").primaryKey()` instead of UUID:
 | File | Tables |
 |------|--------|
 | `shared/schema/core.ts` | `metricsHistory`, `dbSchemaVersion` |
-| `shared/schema/telemetry.ts` | `rawTelemetry` (line 139) |
+| `shared/schema/telemetry.ts` | `telemetryAggregates` (line 139) |
 | `shared/schema/ml-analytics-core.ts` | `modelVersions`, `modelAccuracyHistory`, `trainingJobs`, `featureEngineering`, `hyperparameterSets` |
 | `shared/schema/ml-analytics-advanced.ts` | `realTimePredictions`, `calibrationCurves`, `sensorFusionSnapshots`, `acousticEvents`, `featureImportances`, `modelDeployments`, `modelDriftDetection`, `retrainingTriggers`, `thresholdOptimizations` |
 | `shared/schema/insights.ts` | `dailyMetricRollups` |
