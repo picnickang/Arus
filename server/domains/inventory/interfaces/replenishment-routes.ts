@@ -16,7 +16,8 @@ replenishmentRouter.get(
   generalLimit,
   asyncHandler(async (req, res) => {
     const orgId = (req as AuthenticatedRequest).orgId!;
-    const result = await service.getSmartSuggestions(orgId);
+    const vesselId = typeof req.query.vesselId === "string" ? req.query.vesselId : undefined;
+    const result = await service.getSmartSuggestions(orgId, vesselId);
     res.json(result);
   })
 );

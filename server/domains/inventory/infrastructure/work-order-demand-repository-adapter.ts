@@ -1,14 +1,24 @@
 import { db } from "../../../db";
-import { and, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { workOrders, workOrderParts } from "@shared/schema";
 import type { IWorkOrderDemandRepository, WorkOrderPartDemand } from "../domain/ports";
 
 export class WorkOrderDemandRepositoryAdapter implements IWorkOrderDemandRepository {
-  async getUpcomingDemand(orgId: string, daysAhead = 30): Promise<WorkOrderPartDemand[]> {
+  async getUpcomingDemand(orgId: string, daysAhead = 30, vesselId?: string): Promise<WorkOrderPartDemand[]> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() + daysAhead);
 
     const openStatuses = ["open", "in_progress", "pending", "planned", "scheduled"];
+
+    const conditions = [
+      eq(workOrders.orgId, orgId),
+      inArray(workOrders.status, openStatuses),
+      sql`(${workOrders.plannedStartDate} IS NULL OR ${workOrders.plannedStartDate} <= ${cutoffDate})`,
+    ];
+
+    if (vesselId) {
+      conditions.push(eq(workOrders.vesselId, vesselId));
+    }
 
     const rows = await db
       .select({
@@ -22,13 +32,7 @@ export class WorkOrderDemandRepositoryAdapter implements IWorkOrderDemandReposit
       })
       .from(workOrderParts)
       .innerJoin(workOrders, eq(workOrderParts.workOrderId, workOrders.id))
-      .where(
-        and(
-          eq(workOrders.orgId, orgId),
-          inArray(workOrders.status, openStatuses),
-          sql`(${workOrders.plannedStartDate} IS NULL OR ${workOrders.plannedStartDate} <= ${cutoffDate})`
-        )
-      );
+      .where(and(...conditions));
 
     return rows.map((r) => ({
       partId: r.partId,

@@ -74,5 +74,5 @@ export interface WorkOrderPartDemand {
 }
 
 export interface IWorkOrderDemandRepository {
-  getUpcomingDemand(orgId: string, daysAhead?: number): Promise<WorkOrderPartDemand[]>;
+  getUpcomingDemand(orgId: string, daysAhead?: number, vesselId?: string): Promise<WorkOrderPartDemand[]>;
 }

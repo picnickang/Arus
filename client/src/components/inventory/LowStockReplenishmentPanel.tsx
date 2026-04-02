@@ -29,6 +29,7 @@ interface SmartReplenishmentSuggestion {
   estimatedCost: number;
   upcomingWOCount: number;
   upcomingWOIds: string[];
+  upcomingWONumbers: (string | null)[];
   urgencyScore: number;
 }
 
@@ -57,7 +58,7 @@ export function LowStockReplenishmentPanel({
   const { data: perfData } = useSupplierPerformance();
   const perfMap = new Map(perfData?.map((p) => [p.supplierId, p]) ?? []);
 
-  const { data, isLoading } = useQuery<{
+  const smartQuery = useQuery<{
     total: number;
     suggestions: SmartReplenishmentSuggestion[];
     estimatedTotalCost: number;
@@ -65,7 +66,21 @@ export function LowStockReplenishmentPanel({
     queryKey: ["/api/parts-inventory/smart-replenishment"],
     enabled: open,
     staleTime: 60_000,
+    retry: false,
   });
+
+  const fallbackQuery = useQuery<{
+    total: number;
+    suggestions: SmartReplenishmentSuggestion[];
+    estimatedTotalCost: number;
+  }>({
+    queryKey: ["/api/parts-inventory/low-stock-suggestions"],
+    enabled: open && smartQuery.isError,
+    staleTime: 60_000,
+  });
+
+  const data = smartQuery.data ?? fallbackQuery.data;
+  const isLoading = smartQuery.isLoading || (smartQuery.isError && fallbackQuery.isLoading);
 
   React.useEffect(() => {
     if (data?.suggestions) {
@@ -205,9 +220,15 @@ export function LowStockReplenishmentPanel({
                             variant="secondary"
                             className="text-[10px] bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
                             data-testid={`badge-wo-demand-${s.partId}`}
+                            title={s.upcomingWOIds.join(", ")}
                           >
                             <Wrench className="h-2.5 w-2.5 mr-0.5" />
-                            {s.upcomingWOCount} WO{s.upcomingWOCount !== 1 ? "s" : ""}
+                            {(() => {
+                              const woNums = (s.upcomingWONumbers ?? []).filter(Boolean) as string[];
+                              if (woNums.length === 0) return `${s.upcomingWOCount} WO${s.upcomingWOCount !== 1 ? "s" : ""}`;
+                              if (woNums.length === 1) return woNums[0];
+                              return `${woNums[0]} +${woNums.length - 1}`;
+                            })()}
                           </Badge>
                         )}
                         <Badge className={cn("text-[10px]", CRITICALITY_COLOR[s.criticality])} data-testid={`badge-criticality-${s.partId}`}>

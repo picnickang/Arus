@@ -1,6 +1,21 @@
 import type { IWorkOrderDemandRepository, WorkOrderPartDemand } from "../domain/ports";
 import { inventoryService } from "../service";
 
+interface LowStockPartRecord {
+  id: string;
+  partNumber: string;
+  partName: string;
+  category: string;
+  criticality?: string;
+  quantityOnHand: number;
+  minStockLevel: number;
+  maxStockLevel: number;
+  supplierId?: string;
+  supplierName?: string;
+  leadTimeDays?: number;
+  unitCost: number;
+}
+
 export interface SmartReplenishmentSuggestion {
   partId: string;
   partNumber: string;
@@ -17,6 +32,7 @@ export interface SmartReplenishmentSuggestion {
   estimatedCost: number;
   upcomingWOCount: number;
   upcomingWOIds: string[];
+  upcomingWONumbers: (string | null)[];
   urgencyScore: number;
 }
 
@@ -36,10 +52,10 @@ const CRITICALITY_WEIGHT: Record<string, number> = {
 export class ReplenishmentSuggestionService {
   constructor(private workOrderDemandRepo: IWorkOrderDemandRepository) {}
 
-  async getSmartSuggestions(orgId: string): Promise<SmartReplenishmentResult> {
+  async getSmartSuggestions(orgId: string, vesselId?: string): Promise<SmartReplenishmentResult> {
     const [lowStockParts, demands] = await Promise.all([
       inventoryService.getLowStockParts(orgId),
-      this.workOrderDemandRepo.getUpcomingDemand(orgId, 30),
+      this.workOrderDemandRepo.getUpcomingDemand(orgId, 30, vesselId),
     ]);
 
     const demandByPart = new Map<string, WorkOrderPartDemand[]>();
@@ -49,7 +65,7 @@ export class ReplenishmentSuggestionService {
       demandByPart.set(d.partId, existing);
     }
 
-    const suggestions: SmartReplenishmentSuggestion[] = lowStockParts.map((part: any) => {
+    const suggestions: SmartReplenishmentSuggestion[] = (lowStockParts as unknown as LowStockPartRecord[]).map((part) => {
       const currentQty = part.quantityOnHand || 0;
       const minLevel = part.minStockLevel || 0;
       const maxLevel = part.maxStockLevel || minLevel * 3 || 10;
@@ -57,12 +73,14 @@ export class ReplenishmentSuggestionService {
       const partDemands = demandByPart.get(part.id) || [];
       const totalDemandQty = partDemands.reduce((sum, d) => sum + d.quantityRequired, 0);
       const uniqueWOIds = [...new Set(partDemands.map((d) => d.workOrderId))];
+      const woNumbers = [...new Set(partDemands.map((d) => d.woNumber))];
 
       const baseReorderQty = Math.max(1, maxLevel - currentQty);
       const demandAdjustedQty = Math.max(baseReorderQty, totalDemandQty + minLevel - currentQty);
       const suggestedOrderQty = Math.max(1, Math.ceil(demandAdjustedQty));
 
-      const critWeight = CRITICALITY_WEIGHT[part.criticality] ?? 25;
+      const criticality = part.criticality ?? "medium";
+      const critWeight = CRITICALITY_WEIGHT[criticality] ?? 25;
       const stockDeficitRatio = minLevel > 0 ? Math.max(0, (minLevel - currentQty) / minLevel) : 0;
       const urgencyScore =
         critWeight +
@@ -75,7 +93,7 @@ export class ReplenishmentSuggestionService {
         partNumber: part.partNumber,
         partName: part.partName,
         category: part.category,
-        criticality: part.criticality ?? "medium",
+        criticality,
         quantityOnHand: currentQty,
         minStockLevel: minLevel,
         maxStockLevel: maxLevel,
@@ -86,6 +104,7 @@ export class ReplenishmentSuggestionService {
         estimatedCost: suggestedOrderQty * (part.unitCost || 0),
         upcomingWOCount: uniqueWOIds.length,
         upcomingWOIds: uniqueWOIds,
+        upcomingWONumbers: woNumbers,
         urgencyScore,
       };
     });
