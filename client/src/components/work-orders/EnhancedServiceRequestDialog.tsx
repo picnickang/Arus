@@ -100,6 +100,7 @@ export function EnhancedServiceRequestDialog({ open, onOpenChange, onSubmit, isP
   });
 
   const advancedSectionRef = useRef<HTMLDivElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -191,6 +192,8 @@ export function EnhancedServiceRequestDialog({ open, onOpenChange, onSubmit, isP
       setTimeout(() => {
         advancedSectionRef.current?.querySelector<HTMLElement>("input, textarea, select, button")?.focus();
       }, 150);
+    } else {
+      setTimeout(() => toggleRef.current?.focus(), 50);
     }
   };
 
@@ -221,6 +224,7 @@ export function EnhancedServiceRequestDialog({ open, onOpenChange, onSubmit, isP
           <Collapsible open={showAdvanced} onOpenChange={handleAdvancedOpenChange}>
             <CollapsibleTrigger asChild>
               <button
+                ref={toggleRef}
                 type="button"
                 className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full py-2"
                 data-testid="toggle-advanced-options"
