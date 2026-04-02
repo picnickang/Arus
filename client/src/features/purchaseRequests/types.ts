@@ -30,7 +30,7 @@ export interface PRItem {
 export interface PRWithItems extends PurchaseRequest {
   items: PRItem[];
   events?: Array<{ eventType: string; createdAt: string | Date; details?: Record<string, unknown> }>;
-  linkedPO?: { id: string; poNumber: string } | null;
+  linkedPO?: { id: string; orderNumber: string; status: string; totalAmount?: number; expectedDate?: string | Date | null } | null;
   sentAt?: string | Date | null;
   closedAt?: string | Date | null;
 }

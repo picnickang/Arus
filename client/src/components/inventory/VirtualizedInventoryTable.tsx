@@ -384,7 +384,7 @@ export function VirtualizedInventoryTable({
                 </div>
                 <div className="px-4 flex items-center gap-1" style={{ width: 100, minWidth: 100 }}>
                   {getStatusBadge(status)}
-                  {(status === "critical" || status === "low") && (
+                  {(status === "critical" || status === "low_stock" || status === "out_of_stock") && (
                     <span onClick={(e) => e.stopPropagation()}>
                       <QuickReorderButton
                         part={item}
