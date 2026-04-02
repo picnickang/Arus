@@ -1,26 +1,45 @@
+/**
+ * ServiceOrdersPage — UX Improvements
+ *
+ * UX FIX #3: Cards/Calendar toggle view
+ * UX FIX #6: Supplier performance scores in provider filter dropdown
+ *
+ * Changes from original:
+ * - Added "Cards | Calendar" view toggle in the header
+ * - Calendar view renders ServiceOrderCalendar component
+ * - Provider filter shows performance badge inline
+ *
+ * Drop-in replacement for:
+ *   client/src/features/serviceOrders/pages/ServiceOrdersPage.tsx
+ */
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Search, Building2, Calendar, Wrench, CheckCircle, Plus, FileText } from "lucide-react";
+import { Search, Building2, Calendar, Wrench, CheckCircle, Plus, FileText, LayoutGrid } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SOCard } from "../components/SOCard";
 import { ServiceOrderFormDialog } from "../components/ServiceOrderFormDialog";
+import { ServiceOrderCalendar } from "../components/ServiceOrderCalendar";
 import { useServiceOrders, useSendServiceOrder, useConfirmServiceOrder, useStartServiceOrder, useCompleteServiceOrder, useCancelServiceOrder } from "../hooks/useServiceOrders";
 import type { ServiceOrder } from "../types";
+
+type ViewMode = "cards" | "calendar";
 
 export default function ServiceOrdersPage() {
   const [search, setSearch] = useState("");
   const [providerFilter, setProviderFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<ViewMode>("cards");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<ServiceOrder | null>(null);
 
   const { data: orders, isLoading, refetch } = useServiceOrders(statusFilter !== "all" ? { status: statusFilter } : {});
-  const { data: suppliers } = useQuery<{ id: string; name: string }[]>({ queryKey: ["/api/suppliers"] });
+  const { data: suppliers } = useQuery<{ id: string; name: string; qualityRating?: number; responseSlaHours?: number }[]>({ queryKey: ["/api/suppliers"] });
 
   const sendMutation = useSendServiceOrder();
   const confirmMutation = useConfirmServiceOrder();
@@ -60,7 +79,7 @@ export default function ServiceOrdersPage() {
       <div className="p-6 space-y-6">
         <div className="flex justify-between items-center"><div className="space-y-2"><Skeleton className="h-8 w-48" /><Skeleton className="h-4 w-96" /></div><Skeleton className="h-10 w-48" /></div>
         <div className="grid grid-cols-5 gap-6">{[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-24" />)}</div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{[1, 2, 3, 4, 5, 6].map((i) => <Skeleton key={i} className="h-64" />)}</div>
+        <Skeleton className="h-96" />
       </div>
     );
   }
@@ -68,13 +87,37 @@ export default function ServiceOrdersPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between px-6 pt-4">
-        <div />
+        {/* UX FIX #3: View toggle */}
+        <div className="flex items-center gap-1 p-0.5 rounded-lg bg-muted">
+          <Button
+            variant={viewMode === "cards" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("cards")}
+            className="h-8 px-3"
+            data-testid="btn-view-cards"
+          >
+            <LayoutGrid className="h-4 w-4 mr-1" />
+            Cards
+          </Button>
+          <Button
+            variant={viewMode === "calendar" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("calendar")}
+            className="h-8 px-3"
+            data-testid="btn-view-calendar"
+          >
+            <Calendar className="h-4 w-4 mr-1" />
+            Calendar
+          </Button>
+        </div>
+
         <Button onClick={() => setCreateDialogOpen(true)} data-testid="button-create-so">
           <Plus className="h-4 w-4 mr-2" /> New Service Order
         </Button>
       </div>
 
       <div className="px-6 pb-6 space-y-6">
+        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
           <StatCard icon={<Wrench className="h-5 w-5" />} label="Total Orders" value={stats.total} testId="stat-total-so" />
           <StatCard icon={<FileText className="h-5 w-5" />} label="Draft" value={stats.draft} testId="stat-draft-so" className="text-gray-600" />
@@ -83,6 +126,7 @@ export default function ServiceOrdersPage() {
           <StatCard icon={<CheckCircle className="h-5 w-5" />} label="Completed" value={stats.completed} testId="stat-completed-so" className="text-green-600" />
         </div>
 
+        {/* Filters */}
         <Card>
           <CardHeader>
             <div className="flex flex-wrap gap-4 items-center justify-between">
@@ -104,18 +148,49 @@ export default function ServiceOrdersPage() {
                     <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
+                {/* UX FIX #6: Supplier performance in dropdown */}
                 <Select value={providerFilter} onValueChange={setProviderFilter}>
                   <SelectTrigger className="w-48" data-testid="select-provider-filter"><SelectValue placeholder="Provider" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Providers</SelectItem>
-                    {suppliers?.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    {suppliers?.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        <span className="flex items-center gap-2">
+                          <span>{s.name}</span>
+                          {s.qualityRating != null && (
+                            <span className="text-[10px] text-muted-foreground">
+                              ★{s.qualityRating.toFixed(1)}
+                            </span>
+                          )}
+                        </span>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            {filteredOrders.length === 0 ? (
+            {/* UX FIX #3: Conditional rendering based on view mode */}
+            {viewMode === "calendar" ? (
+              <ServiceOrderCalendar
+                serviceOrders={filteredOrders.map((o) => ({
+                  id: o.id,
+                  soNumber: o.soNumber,
+                  status: o.status,
+                  scheduledStartDate: o.scheduledStartDate,
+                  scheduledEndDate: o.scheduledEndDate,
+                  serviceProviderName: o.serviceProviderName,
+                  vesselName: o.vesselName,
+                  equipmentName: o.equipmentName,
+                  estimatedDurationHours: o.estimatedDurationHours,
+                }))}
+                onSelect={(so) => {
+                  const order = filteredOrders.find((o) => o.id === so.id);
+                  if (order) handleEdit(order);
+                }}
+              />
+            ) : filteredOrders.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground" data-testid="text-no-orders">
                 <Wrench className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>No service orders found</p>

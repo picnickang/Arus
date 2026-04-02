@@ -200,7 +200,7 @@ export async function applySensorConfiguration(
 
     return { processedValue, shouldKeep: true, flags };
   } catch (_error) {
-    console.error(`Failed to apply sensor configuration for ${equipmentId}/${sensorType}:`, error);
+    console.error(`Failed to apply sensor configuration for ${equipmentId}/${sensorType}:`, _error);
     return { processedValue, shouldKeep: true, flags: ["config_error"] };
   }
 }

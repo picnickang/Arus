@@ -9,6 +9,9 @@ import "./report-tools";
 import "./enhanced-report-tools";
 import "./file-analysis-tools";
 import "./knowledge-base-tools";
+import "./weather-tools";
+import "./regulatory-tools";
+import "./parts-supplier-tools";
 
 import { registerListAvailableToolsMeta } from "./registry";
 registerListAvailableToolsMeta();

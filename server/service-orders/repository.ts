@@ -3,20 +3,12 @@ import { serviceOrders, serviceOrderEvents, workOrders, suppliers, vessels, equi
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { ServiceOrder, InsertServiceOrder, ServiceOrderWithDetails, ServiceOrderListFilters, ServiceOrderStatus } from "./types";
 
-export async function generateSoNumber(orgId: string): Promise<string> {
-  const result = await db
-    .select({
-      nextSeq: sql<number>`COALESCE(MAX(CAST(SUBSTRING(${serviceOrders.soNumber} FROM 'SO-(\\d+)') AS INTEGER)), 0) + 1`,
-    })
-    .from(serviceOrders)
-    .where(
-      and(
-        eq(serviceOrders.orgId, orgId),
-        sql`${serviceOrders.soNumber} ~ '^SO-\\d+$'`
-      )
-    );
-
-  const nextNum = result[0]?.nextSeq ?? 1;
+export async function generateSoNumber(_orgId: string): Promise<string> {
+  await db.execute(sql`CREATE SEQUENCE IF NOT EXISTS so_number_seq START 1`);
+  const result = await db.execute(
+    sql`SELECT nextval('so_number_seq') as next_val`
+  );
+  const nextNum = Number((result as { rows?: Array<{ next_val: string }> }).rows?.[0]?.next_val ?? 1);
   return `SO-${String(nextNum).padStart(3, "0")}`;
 }
 

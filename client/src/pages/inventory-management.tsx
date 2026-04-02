@@ -35,6 +35,7 @@ import InventoryFilterPanel from "@/components/inventory/InventoryFilterPanel";
 import PartDetailDrawer from "@/components/inventory/PartDetailDrawer";
 import { SupplierMultiSelect } from "@/components/inventory/SupplierMultiSelect";
 import { LowStockReplenishmentPanel } from "@/components/inventory/LowStockReplenishmentPanel";
+import { InventoryBatchActions } from "@/components/inventory/InventoryBatchActions";
 import { useInventoryManagementData } from "@/features/inventory";
 import { formatCurrency } from "@/lib/formatters";
 import { PermissionGate } from "@/components/PermissionGate";
@@ -55,8 +56,8 @@ export default function InventoryManagement() {
     onSubmitPart, handleExportCSV, handlePartDialogClose, handlePartDetailEdit,
   } = useInventoryManagementData();
 
-  // Improvement #7: replenishment panel state
   const [replenishmentOpen, setReplenishmentOpen] = React.useState(false);
+  const [selectedItems, setSelectedItems] = React.useState<Set<string>>(new Set());
 
   const filterBadgeLabel   = activeFilterCount > 9 ? "9+" : activeFilterCount;
   const categoryOptions    = filterOptions?.categories?.length > 0
@@ -211,13 +212,28 @@ export default function InventoryManagement() {
                 ) : (
                   <VirtualizedInventoryTable items={filteredParts} isLoading={isLoadingInventory}
                     sortField={sortField} sortDirection={sortDirection} onSort={handleSort}
-                    onRowClick={handleRowClick} onEdit={handleEditPart} onDelete={handleDeletePart} />
+                    onRowClick={handleRowClick} onEdit={handleEditPart} onDelete={handleDeletePart}
+                    selectedItems={selectedItems}
+                    onSelectionChange={(itemId, selected) => {
+                      setSelectedItems(prev => {
+                        const next = new Set(prev);
+                        if (selected) next.add(itemId);
+                        else next.delete(itemId);
+                        return next;
+                      });
+                    }} />
                 )}
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      <InventoryBatchActions
+        selectedItems={selectedItems}
+        parts={filteredParts}
+        onClearSelection={() => setSelectedItems(new Set())}
+      />
 
       {/* Drawers & dialogs */}
       <PartDetailDrawer part={selectedPart} open={isDrawerOpen} onOpenChange={setIsDrawerOpen} onEdit={handlePartDetailEdit} />

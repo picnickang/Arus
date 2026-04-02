@@ -32,6 +32,8 @@ export async function checkWorkOrdersPendingOnPO(orgId: string): Promise<CheckRe
       .where(
         and(
           eq(parts.orgId, orgId),
+          eq(reservations.orgId, orgId),
+          eq(purchaseOrders.orgId, orgId),
           eq(reservations.status, "active"),
           sql`${purchaseOrders.status} IN ('draft', 'sent', 'acknowledged', 'shipped')`
         )
@@ -61,12 +63,12 @@ export async function checkWorkOrdersPendingOnPO(orgId: string): Promise<CheckRe
 
     return { issues, entitiesChecked: pendingWorkOrders.length };
   } catch (_error) {
-    console.error("Work orders pending on PO check failed:", error);
+    console.error("Work orders pending on PO check failed:", _error);
     return {
       issues: [
         {
           code: "PO_DEPENDENCY_CHECK_ERROR",
-          message: `Failed to check work order PO dependencies: ${error instanceof Error ? error.message : "Unknown error"}`,
+          message: `Failed to check work order PO dependencies: ${_error instanceof Error ? _error.message : "Unknown error"}`,
           severity: "high",
         },
       ],

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tooltip,
@@ -182,6 +183,7 @@ export function VirtualizedInventoryTable({
   onEdit,
   onDelete,
   selectedItems = new Set(),
+  onSelectionChange,
   rowHeight = 48,
 }: VirtualizedInventoryTableProps) {
   const parentRef = useRef<HTMLDivElement>(null);
@@ -260,6 +262,9 @@ export function VirtualizedInventoryTable({
         <Table>
           <TableHeader>
             <TableRow>
+              {onSelectionChange && (
+                <TableHead style={{ width: 40, minWidth: 40 }} />
+              )}
               {COLUMNS.map((column) => (
                 <TableHead
                   key={column.key}
@@ -321,6 +326,18 @@ export function VirtualizedInventoryTable({
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onRowClick?.(item); } }}
                 data-testid={`inventory-row-${item.id}`}
               >
+                {onSelectionChange && (
+                  <div className="px-2 flex items-center justify-center" style={{ width: 40, minWidth: 40 }}>
+                    <Checkbox
+                      checked={selectedItems.has(item.id)}
+                      onCheckedChange={(checked) => {
+                        onSelectionChange(item.id, !!checked);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      data-testid={`checkbox-select-${item.id}`}
+                    />
+                  </div>
+                )}
                 <div className="font-mono text-sm px-4 truncate" style={{ width: 120, minWidth: 120 }}>
                   <TooltipProvider>
                     <Tooltip>

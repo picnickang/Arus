@@ -35,8 +35,8 @@ export function useWorkOrderRequests(workOrderId: string) {
     mutationFn: (data: Record<string, unknown>) => {
       const payload = {
         serviceProviderId: data.serviceProviderId,
-        scheduledStartDate: data.requestedStartDate,
-        scheduledEndDate: data.requestedEndDate,
+        scheduledStartDate: data.scheduledStartDate ?? data.requestedStartDate,
+        scheduledEndDate: data.scheduledEndDate ?? data.requestedEndDate,
         scope: data.symptomDescription || data.scope,
         serviceDetails: {
           equipmentIds: data.equipmentIds,
@@ -51,7 +51,7 @@ export function useWorkOrderRequests(workOrderId: string) {
         },
         estimatedDurationHours: data.estimatedDurationHours,
         quotedAmount: data.quotedAmount,
-        specialRequirements: data.notes,
+        specialRequirements: data.specialRequirements ?? data.notes,
       };
       return apiRequest("POST", `/api/work-orders/${workOrderId}/service-orders`, payload);
     },

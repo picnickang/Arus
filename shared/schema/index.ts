@@ -35,6 +35,7 @@ export * from './stormgeo';
 export * from './pdm-feature-store';
 export * from './digital-twin';
 export * from './agent';
+export * from './external-data-cache';
 
 import * as core from './core';
 import * as purchasing from './purchasing';

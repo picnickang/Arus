@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wrench, Package, Plus, Loader2, Trash2 } from "lucide-react";
 import { MultiLinePartsRequestDialog } from "./MultiLinePartsRequestDialog";
 import { EnhancedServiceRequestDialog } from "./EnhancedServiceRequestDialog";
+import { QuickServiceRequestDialog } from "./QuickServiceRequestDialog";
 import {
   useWorkOrderRequests,
   useOutOfStockSuggestions,
@@ -237,20 +238,30 @@ export function WorkOrderRequestsTab({ workOrderId, isReadOnly = false }: WorkOr
         </CardContent>
       </Card>
 
-      <EnhancedServiceRequestDialog
-        open={soDialogOpen}
-        onOpenChange={handleSoDialogClose}
-        onSubmit={handleCreateServiceOrder}
-        isPending={isCreatingServiceOrder || isUpdatingServiceOrder}
-        initialData={editingSO ? {
-          serviceProviderId: (editingSO as any).serviceProviderId,
-          scope: editingSO.scope,
-          scheduledStartDate: editingSO.scheduledStartDate,
-          scheduledEndDate: editingSO.scheduledEndDate,
-          estimatedDurationHours: editingSO.estimatedDurationHours,
-        } : undefined}
-        isEditing={!!editingSO}
-      />
+      {editingSO ? (
+        <EnhancedServiceRequestDialog
+          open={soDialogOpen}
+          onOpenChange={handleSoDialogClose}
+          onSubmit={handleCreateServiceOrder}
+          isPending={isUpdatingServiceOrder}
+          initialData={{
+            serviceProviderId: (editingSO as any).serviceProviderId,
+            scope: editingSO.scope,
+            scheduledStartDate: editingSO.scheduledStartDate,
+            scheduledEndDate: editingSO.scheduledEndDate,
+            estimatedDurationHours: editingSO.estimatedDurationHours,
+          }}
+          isEditing={true}
+        />
+      ) : (
+        <QuickServiceRequestDialog
+          open={soDialogOpen}
+          onOpenChange={handleSoDialogClose}
+          onSubmit={handleCreateServiceOrder}
+          isPending={isCreatingServiceOrder}
+          workOrderId={workOrderId}
+        />
+      )}
       <MultiLinePartsRequestDialog
         open={prDialogOpen}
         onOpenChange={setPrDialogOpen}
