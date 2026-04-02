@@ -62,3 +62,17 @@ export interface IInventoryAuditPort {
     details?: Record<string, unknown>
   ): Promise<void>;
 }
+
+export interface WorkOrderPartDemand {
+  partId: string;
+  workOrderId: string;
+  woNumber: string | null;
+  quantityRequired: number;
+  plannedStartDate: Date | null;
+  priority: number;
+  status: string;
+}
+
+export interface IWorkOrderDemandRepository {
+  getUpcomingDemand(orgId: string, daysAhead?: number): Promise<WorkOrderPartDemand[]>;
+}

@@ -1,0 +1,45 @@
+import { db } from "../../../db";
+import { and, eq, gte, inArray, sql } from "drizzle-orm";
+import { workOrders, workOrderParts } from "@shared/schema";
+import type { IWorkOrderDemandRepository, WorkOrderPartDemand } from "../domain/ports";
+
+export class WorkOrderDemandRepositoryAdapter implements IWorkOrderDemandRepository {
+  async getUpcomingDemand(orgId: string, daysAhead = 30): Promise<WorkOrderPartDemand[]> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() + daysAhead);
+
+    const openStatuses = ["open", "in_progress", "pending", "planned", "scheduled"];
+
+    const rows = await db
+      .select({
+        partId: workOrderParts.partId,
+        workOrderId: workOrderParts.workOrderId,
+        woNumber: workOrders.woNumber,
+        quantityRequired: workOrderParts.quantityUsed,
+        plannedStartDate: workOrders.plannedStartDate,
+        priority: workOrders.priority,
+        status: workOrders.status,
+      })
+      .from(workOrderParts)
+      .innerJoin(workOrders, eq(workOrderParts.workOrderId, workOrders.id))
+      .where(
+        and(
+          eq(workOrders.orgId, orgId),
+          inArray(workOrders.status, openStatuses),
+          sql`(${workOrders.plannedStartDate} IS NULL OR ${workOrders.plannedStartDate} <= ${cutoffDate})`
+        )
+      );
+
+    return rows.map((r) => ({
+      partId: r.partId,
+      workOrderId: r.workOrderId,
+      woNumber: r.woNumber,
+      quantityRequired: r.quantityRequired ?? 0,
+      plannedStartDate: r.plannedStartDate,
+      priority: r.priority,
+      status: r.status,
+    }));
+  }
+}
+
+export const workOrderDemandRepository = new WorkOrderDemandRepositoryAdapter();

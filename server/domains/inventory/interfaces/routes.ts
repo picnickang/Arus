@@ -17,6 +17,7 @@ import type { Express, Request, Response } from "express";
 import { inventoryService } from "../service";
 import { inventorySupplierRouter } from "./supplier-routes";
 import { supplierPerformanceRouter } from "./supplier-performance-routes";
+import { replenishmentRouter } from "./replenishment-routes";
 import { insertPartsInventorySchema } from "@shared/schema-runtime";
 import { requireOrgId, requireOrgIdAndValidateBody, AuthenticatedRequest } from "../../../middleware/auth";
 import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../../lib/route-utils";
@@ -316,4 +317,5 @@ export function registerInventoryRoutes(
 
   app.use("/api", inventorySupplierRouter);
   app.use("/api", supplierPerformanceRouter);
+  app.use("/api", replenishmentRouter);
 }
