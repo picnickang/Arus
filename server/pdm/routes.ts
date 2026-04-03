@@ -411,7 +411,7 @@ router.get('/alerts', async (req, res) => {
       equipmentId: item.equipmentId,
       equipmentName: item.equipmentName,
       vesselName: item.vesselName,
-      severity: item.riskLevel === 'critical' ? 'high' : item.riskLevel === 'high' ? 'warn' : 'info',
+      severity: item.severity === 'critical' ? 'high' : item.severity === 'high' ? 'warn' : item.severity || 'info',
       message: `${item.failureMode} detected on ${item.equipmentName}`,
       at: item.detectedAt,
       acknowledged: item.status === 'resolved',
