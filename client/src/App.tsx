@@ -222,7 +222,9 @@ function App() {
       <ErrorBoundary>
         <Router />
       </ErrorBoundary>
-      <DevPerformanceOverlay />
+      <Suspense fallback={null}>
+        <DevPerformanceOverlay />
+      </Suspense>
     </ComposeProviders>
   );
 }
