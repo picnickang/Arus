@@ -177,6 +177,7 @@ export function registerRagRoutes(
   app.get('/api/rag/conversations/:id', generalApiRateLimit,
     withErrorHandling('get RAG conversation', async (req, res) => {
       const { id } = req.params;
+      const orgId = req.headers['x-org-id'] as string || (req as any).orgId || 'default-org-id';
 
       const conversationService = getConversationService();
       const conversation = await conversationService.getConversation(id);
@@ -185,7 +186,12 @@ export function registerRagRoutes(
         return res.status(404).json({ message: 'Conversation not found' });
       }
 
-      res.json(conversation);
+      if (conversation.orgId && conversation.orgId !== orgId) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+
+      const messages = await conversationService.getMessages(id, 100);
+      res.json({ conversation, messages });
     })
   );
 

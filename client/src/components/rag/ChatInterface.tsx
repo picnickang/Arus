@@ -70,8 +70,7 @@ export function ChatInterface() {
 
   const createConversationMutation = useMutation({
     mutationFn: async (title: string) => {
-      const response = await apiRequest('POST', '/api/rag/conversations', { title });
-      return response.json();
+      return apiRequest('POST', '/api/rag/conversations', { title });
     },
     onSuccess: (data) => {
       setActiveConversationId(data.id);
@@ -80,18 +79,23 @@ export function ChatInterface() {
   });
 
   const askMutation = useMutation({
-    mutationFn: async (query: string) => {
-      const response = await apiRequest('POST', '/api/rag/ask', {
+    mutationFn: async ({ query, conversationId }: { query: string; conversationId?: string | null }) => {
+      return apiRequest('POST', '/api/rag/ask', {
         query,
-        conversationId: activeConversationId,
-      });
-      return response.json() as Promise<RagAskResponse>;
+        conversationId: conversationId ?? activeConversationId ?? undefined,
+      }) as Promise<RagAskResponse>;
     },
     onSuccess: (data) => {
+      const convId = data.conversationId || activeConversationId;
       if (!activeConversationId && data.conversationId) {
         setActiveConversationId(data.conversationId);
       }
-      queryClient.invalidateQueries({ queryKey: ['/api/rag/conversations', activeConversationId] });
+      if (convId) {
+        queryClient.invalidateQueries({ queryKey: ['/api/rag/conversations', convId] });
+      }
+      if (activeConversationId && activeConversationId !== convId) {
+        queryClient.invalidateQueries({ queryKey: ['/api/rag/conversations', activeConversationId] });
+      }
       queryClient.invalidateQueries({ queryKey: ['/api/rag/conversations'] });
     },
     onError: (error: any) => {
@@ -130,9 +134,13 @@ export function ChatInterface() {
 
     if (!activeConversationId) {
       const conversation = await createConversationMutation.mutateAsync(query.slice(0, 50));
-      await askMutation.mutateAsync(query);
+      const askResult = await askMutation.mutateAsync({ query, conversationId: conversation.id });
+      const convId = askResult.conversationId || conversation.id;
+      setActiveConversationId(convId);
+      await queryClient.refetchQueries({ queryKey: ['/api/rag/conversations', convId] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/rag/conversations'] });
     } else {
-      await askMutation.mutateAsync(query);
+      await askMutation.mutateAsync({ query });
     }
   };
 

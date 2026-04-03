@@ -17,6 +17,10 @@ export function getOrgId(req: Request, res: Response): string | null {
   if (orgId && typeof orgId === "string" && orgId.trim() !== "") {
     return orgId.trim();
   }
+  const authOrgId = (req as any).orgId;
+  if (authOrgId && typeof authOrgId === "string" && authOrgId.trim() !== "") {
+    return authOrgId.trim();
+  }
   res.status(401).json({
     error: { code: "MISSING_ORG_ID", message: "Organization ID is required (x-org-id header)" },
     metadata: { timestamp: new Date(), version: "1.0" },
