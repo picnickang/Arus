@@ -38,11 +38,14 @@ Developed with Express.js and TypeScript, offering RESTful APIs with Zod validat
 -   **Knowledge Base**: RAG enrichment for AI-powered report generation, featuring document ingestion, semantic chunking, and hybrid vector+BM25 search, integrated into a RAG Conversation System.
 -   **Telemetry Resilience Modules**: Includes a circuit breaker for PostgreSQL write protection, graceful shutdown, in-memory dead-letter queue, and equipment heartbeat tracking.
 -   **Unified Domain Event Bus**: A consolidated, strongly-typed event bus replacing fragmented event systems, covering 40+ event types across multiple namespaces.
+-   **Certificate Registry**: Hexagonal domain for vessel certificates (class, statutory, flag state) with validity tracking, survey windows, conditions of class, flag state endorsements, and immutable audit trail. Routes: `/api/certificates`, `/api/certificates/summary`, `/api/certificates/expiring`. Migration: `006-certificates-hazmat-devmode.sql`.
+-   **Hazmat/IMDG Parts**: Dedicated columns on `parts` table for dangerous goods classification (`imo_dg_class`, `un_number`, `imdg_code`, `is_hazmat`, `hazmat_handling`, `shelf_life_days`, `customs_tariff_code`, `msds_url`) replacing generic JSONB storage.
+-   **Dev Mode Production Guard**: All dev mode permission bypasses gated by `import.meta.env.DEV` (Vite build-time constant). In production builds, dev mode code is tree-shaken out entirely. Affects `PermissionsContext`, `PermissionGate`, `DevModeToggle`.
 -   **Hardening**: Comprehensive security (HMAC key rotation, RAG document sanitizer), resilience (DB degradation layer, LLM statistical fallback), data (idempotency middleware, telemetry partitioning), performance (dashboard pre-computation, API caching), ops (migration runner, API versioning), and maritime-specific (vessel timezone service, running hour accumulator, class survey tracking) features.
 
 ### Hexagonal Architecture (DDD Modular Monolith)
 
-The backend employs a hexagonal architecture for clear separation of concerns, featuring a Domain Layer, Application Layer, Infrastructure Layer, Interfaces Layer, Domain Event Registry, and Cloud-Safe Outbox Processor. Key domains like Maintenance, Crew-Extensions, Inventory, Crew, and Work-Orders follow this pattern, with the Fleet Registry being the first fully extracted hexagonal module.
+The backend employs a hexagonal architecture for clear separation of concerns, featuring a Domain Layer, Application Layer, Infrastructure Layer, Interfaces Layer, Domain Event Registry, and Cloud-Safe Outbox Processor. Key domains like Maintenance, Crew-Extensions, Inventory, Crew, Work-Orders, and Certificates follow this pattern, with the Fleet Registry being the first fully extracted hexagonal module.
 
 ## System Design Choices
 

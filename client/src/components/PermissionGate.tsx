@@ -32,7 +32,7 @@ export function PermissionGate({
 }: PermissionGateProps) {
   const { hasPermission, hasAnyPermission, hasAllPermissions, permissions } = usePermissions();
 
-  if (permissions.isDevMode) {
+  if (import.meta.env.DEV && permissions.isDevMode) {
     return <>{children}</>;
   }
 
@@ -72,7 +72,7 @@ export function MultiPermissionGate({
 }: MultiPermissionGateProps) {
   const { hasPermission, hasAllPermissions, permissions } = usePermissions();
 
-  if (permissions.isDevMode) {
+  if (import.meta.env.DEV && permissions.isDevMode) {
     return <>{children}</>;
   }
 
@@ -108,7 +108,7 @@ export function PermissionGatedButton({
 }: PermissionGatedButtonProps) {
   const { hasPermission, permissions } = usePermissions();
 
-  if (permissions.isDevMode) {
+  if (import.meta.env.DEV && permissions.isDevMode) {
     return <button {...buttonProps}>{children}</button>;
   }
 
@@ -133,7 +133,7 @@ export function usePermissionGate(resource: string, action: string): {
   const { hasPermission, permissions } = usePermissions();
 
   return {
-    hasAccess: permissions.isDevMode || hasPermission(resource, action),
+    hasAccess: (import.meta.env.DEV && permissions.isDevMode) || hasPermission(resource, action),
     isLoading: permissions.isLoading,
     isDevMode: permissions.isDevMode,
   };
@@ -147,7 +147,7 @@ export function useMultiPermissionGate(checks: Array<{ resource: string; action:
   const { hasPermission, hasAllPermissions, permissions } = usePermissions();
 
   let hasAccess = false;
-  if (permissions.isDevMode) {
+  if (import.meta.env.DEV && permissions.isDevMode) {
     hasAccess = true;
   } else if (requireAll) {
     hasAccess = hasAllPermissions(checks);

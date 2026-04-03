@@ -234,6 +234,10 @@ const domainRouters: DomainRouterConfig[] = [
   // Purchasing Pipeline (read-only pipeline view)
   { name: "PurchasingPipeline", importPath: "../domains/purchasing/index.js", functionName: "registerPurchasingPipelineRoutes",
     getDeps: () => ({ generalApiRateLimit }) },
+
+  // Certificate Registry (hexagonal)
+  { name: "Certificates", importPath: "../domains/certificates/index.js", functionName: "registerCertificateRoutes",
+    getDeps: () => ({ generalApiRateLimit, writeOperationRateLimit }) },
 ];
 
 /**

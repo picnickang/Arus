@@ -28,6 +28,7 @@ export function setDevModeOverride(enabled: boolean): void {
 }
 
 export function DevModeToggle() {
+  if (!import.meta.env.DEV) return null;
   const [isDevMode, setIsDevMode] = useState(getDevModeOverride);
 
   useEffect(() => {

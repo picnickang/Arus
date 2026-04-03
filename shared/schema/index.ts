@@ -36,6 +36,7 @@ export * from './pdm-feature-store';
 export * from './digital-twin';
 export * from './agent';
 export * from './external-data-cache';
+export * from './certificates';
 
 import * as core from './core';
 import * as purchasing from './purchasing';
@@ -62,6 +63,7 @@ import * as optimizer from './optimizer';
 import * as permissions from './permissions';
 import * as telemetryMod from './telemetry';
 import * as agent from './agent';
+import * as certificates from './certificates';
 
 export const CoreSchema = { ...core };
 export const SyncSchema = { ...sync };
@@ -88,6 +90,7 @@ export const OptimizerSchema = { ...optimizer };
 export const PermissionsSchema = { ...permissions };
 export const PurchasingSchema = { ...purchasing };
 export const AgentSchema = { ...agent };
+export const CertificatesSchema = { ...certificates };
 
 export const MLSchema = {
   ...mlCore,
@@ -118,7 +121,7 @@ export type DomainName =
   | 'alerts' | 'maintenance' | 'telemetry' | 'sensors' | 'inventory'
   | 'crew' | 'compliance' | 'ml-analytics' | 'ml' | 'iot-edge' | 'knowledge-base'
   | 'rag' | 'insights' | 'optimizer' | 'permissions' | 'settings' | 'purchasing'
-  | 'digital-twin' | 'agent';
+  | 'digital-twin' | 'agent' | 'certificates';
 
 export const SchemaDomains: Record<DomainName, object> = {
   'core': CoreSchema,
@@ -145,4 +148,5 @@ export const SchemaDomains: Record<DomainName, object> = {
   'purchasing': PurchasingSchema,
   'digital-twin': DigitalTwinSchema,
   'agent': AgentSchema,
+  'certificates': CertificatesSchema,
 };

@@ -1,0 +1,1 @@
+export { registerCertificateRoutes } from './routes';
