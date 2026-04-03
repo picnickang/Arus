@@ -183,6 +183,7 @@ export function DevPerformanceOverlay() {
   }, [isDev]);
 
   useEffect(() => {
+    if (!isDev) return;
     if (lastLocationRef.current !== location) {
       const duration = performance.now() - navigationStartRef.current;
       
@@ -197,10 +198,10 @@ export function DevPerformanceOverlay() {
       lastLocationRef.current = location;
     }
     navigationStartRef.current = performance.now();
-  }, [location]);
+  }, [location, isDev]);
 
   useEffect(() => {
-    if (!isVisible) return;
+    if (!isDev || !isVisible) return;
 
     const updateMemory = () => {
       if (performance.memory) {
@@ -229,6 +230,7 @@ export function DevPerformanceOverlay() {
   }, [isVisible]);
 
   useEffect(() => {
+    if (!isDev) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.key === 'P') {
         e.preventDefault();
@@ -241,7 +243,7 @@ export function DevPerformanceOverlay() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [isDev]);
 
   if (!isDev) return null;
 

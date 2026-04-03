@@ -21,7 +21,7 @@ import {
   type VesselCertificate,
   type InsertVesselCertificate,
 } from '@shared/schema';
-import { eq, and, lte, desc } from 'drizzle-orm';
+import { eq, and, lte, gte, desc } from 'drizzle-orm';
 
 export class CertificateRepositoryAdapter implements ICertificateRepository {
   async findAll(orgId: string, filters?: {
@@ -84,6 +84,7 @@ export class CertificateRepositoryAdapter implements ICertificateRepository {
         and(
           eq(vesselCertificates.orgId, orgId),
           eq(vesselCertificates.status, "valid"),
+          gte(vesselCertificates.expiryDate, new Date()),
           lte(vesselCertificates.expiryDate, cutoffDate)
         )
       )
@@ -111,12 +112,14 @@ export class CertificateRepositoryAdapter implements ICertificateRepository {
     const thirtyDays = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
     const ninetyDays = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
 
-    const expired = certs.filter((c) => c.expiryDate && new Date(c.expiryDate) < now && c.status === "valid");
+    const expired = certs.filter((c) =>
+      c.status === "expired" || (c.expiryDate && new Date(c.expiryDate) < now && c.status === "valid")
+    );
     const expiringIn30 = certs.filter((c) =>
-      c.expiryDate && new Date(c.expiryDate) >= now && new Date(c.expiryDate) <= thirtyDays && c.status === "valid"
+      c.status === "valid" && c.expiryDate && new Date(c.expiryDate) >= now && new Date(c.expiryDate) <= thirtyDays
     );
     const expiringIn90 = certs.filter((c) =>
-      c.expiryDate && new Date(c.expiryDate) >= now && new Date(c.expiryDate) <= ninetyDays && c.status === "valid"
+      c.status === "valid" && c.expiryDate && new Date(c.expiryDate) >= now && new Date(c.expiryDate) <= ninetyDays
     );
     const surveysDue = certs.filter((c) =>
       c.nextSurveyDue && new Date(c.nextSurveyDue) <= ninetyDays && c.status === "valid"

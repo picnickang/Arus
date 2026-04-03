@@ -11,7 +11,6 @@ import { AdminAccessProvider } from "@/contexts/AdminAccessContext";
 import { OrganizationProvider, useOrganization } from "@/contexts/OrganizationContext";
 import { PermissionsProvider } from "@/contexts/PermissionsContext";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
-import { DevPerformanceOverlay } from "@/components/DevPerformanceOverlay";
 import { ConnectivityBanner } from "@/components/shared/ConnectivityBanner";
 import { BottomNav } from "@/components/BottomNav";
 import { CopilotFab } from "@/components/agent/CopilotFab";
@@ -24,6 +23,10 @@ import { trackPageVisit } from "@/lib/pageTracking";
 const HomePage = lazy(() => import("@/pages/home"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 const DesktopSetup = lazy(() => import("@/pages/desktop-setup"));
+
+const DevPerformanceOverlay = import.meta.env.DEV
+  ? lazy(() => import("@/components/DevPerformanceOverlay").then(m => ({ default: m.DevPerformanceOverlay })))
+  : () => null;
 
 import { operationsRoutes } from "@/routes/operations";
 import { fleetRoutes } from "@/routes/fleet";
