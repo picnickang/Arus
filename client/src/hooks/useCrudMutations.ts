@@ -196,11 +196,12 @@ export function useBatchDeleteMutation<TOutput = unknown>(
   });
 }
 
+type InvalidateKey = string | string[];
 interface CustomMutationOptions<TInput, TOutput> {
   mutationFn: (data: TInput) => Promise<TOutput>;
-  invalidateKeys?: string[];
-  successMessage?: string;
-  errorMessage?: string;
+  invalidateKeys?: InvalidateKey[];
+  successMessage?: string | ((data: TOutput) => string);
+  errorMessage?: string | ((error: unknown) => string);
   onSuccess?: (data: TOutput) => void;
   onError?: (error: Error) => void;
 }
@@ -225,24 +226,26 @@ export function useCustomMutation<TInput, TOutput = unknown>(
   return useMutation({
     mutationFn: options.mutationFn,
     onSuccess: (data) => {
-      // Invalidate specified query keys (prefix match)
       options.invalidateKeys?.forEach((key) => {
-        queryClient.invalidateQueries({ queryKey: [key], exact: false });
+        const queryKey = Array.isArray(key) ? key : [key];
+        queryClient.invalidateQueries({ queryKey, exact: false });
       });
 
       if (options.successMessage) {
+        const message = typeof options.successMessage === 'function' ? options.successMessage(data) : options.successMessage;
         toast({
           title: "Success",
-          description: options.successMessage,
+          description: message,
         });
       }
 
       options.onSuccess?.(data);
     },
     onError: (error: Error) => {
+      const message = typeof options.errorMessage === 'function' ? options.errorMessage(error) : (options.errorMessage || error.message);
       toast({
         title: "Error",
-        description: options.errorMessage || error.message,
+        description: message,
         variant: "destructive",
       });
 

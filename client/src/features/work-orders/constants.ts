@@ -17,9 +17,10 @@ export const WORK_ORDER_FORM_STATUS_OPTIONS = [
 
 export const WORK_ORDER_FILTER_PRIORITY_OPTIONS = [
   { value: "all", label: "All Priorities" },
-  { value: "1", label: "High" },
-  { value: "2", label: "Medium" },
-  { value: "3", label: "Low" },
+  { value: "1", label: "Critical" },
+  { value: "2", label: "High" },
+  { value: "3", label: "Medium" },
+  { value: "4", label: "Low" },
 ] as const;
 
 export const WORK_ORDER_FORM_PRIORITY_OPTIONS = [

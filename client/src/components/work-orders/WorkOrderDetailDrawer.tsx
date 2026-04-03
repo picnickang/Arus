@@ -1,4 +1,4 @@
-import { Clock, User, Ship, Wrench, Calendar, DollarSign, FileText, Package, ClipboardList, History, Copy, Link2, Send } from "lucide-react";
+import { Clock, User, Ship, Wrench, Calendar, DollarSign, FileText, Package, ClipboardList, History, Copy, Link2, Send, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -27,6 +27,7 @@ interface WorkOrderDetailDrawerProps {
   onComplete: (workOrderId: string) => void;
   onEdit: (workOrder: WorkOrder) => void;
   onClone?: (workOrder: WorkOrder) => void;
+  onDelete?: (workOrder: WorkOrder) => void;
   isCompleting?: boolean;
 }
 
@@ -39,9 +40,10 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
 };
 
 const PRIORITY_CONFIG: Record<number, { label: string; className: string }> = {
-  1: { label: "High Priority", className: "bg-red-500/20 text-red-700 dark:text-red-300" },
-  2: { label: "Medium Priority", className: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-300" },
-  3: { label: "Low Priority", className: "bg-green-500/20 text-green-700 dark:text-green-300" },
+  1: { label: "Critical", className: "bg-red-500/20 text-red-700 dark:text-red-300" },
+  2: { label: "High Priority", className: "bg-orange-500/20 text-orange-700 dark:text-orange-300" },
+  3: { label: "Medium Priority", className: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-300" },
+  4: { label: "Low Priority", className: "bg-green-500/20 text-green-700 dark:text-green-300" },
 };
 
 function InfoCard({ icon: Icon, label, value, subValue }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string; subValue?: string }) {
@@ -57,7 +59,7 @@ function InfoCard({ icon: Icon, label, value, subValue }: { icon: React.Componen
   );
 }
 
-export function WorkOrderDetailDrawer({ workOrder, open, onClose, equipment, vessels, crew, onComplete, onEdit, onClone, isCompleting = false }: WorkOrderDetailDrawerProps) {
+export function WorkOrderDetailDrawer({ workOrder, open, onClose, equipment, vessels, crew, onComplete, onEdit, onClone, onDelete, isCompleting = false }: WorkOrderDetailDrawerProps) {
   const {
     activeTab, setActiveTab, linkTemplateDialogOpen, setLinkTemplateDialogOpen,
     workOrderParts, totalPartsCost, totalOtherCosts, grandTotal, invalidateParts, invalidateChecklist,
@@ -174,6 +176,7 @@ export function WorkOrderDetailDrawer({ workOrder, open, onClose, equipment, ves
             )}
             {onClone && <Button variant="outline" size="sm" onClick={() => onClone(workOrder)} data-testid="button-clone-wo-drawer" className="text-xs sm:text-sm"><Copy className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />Clone</Button>}
             <Button variant="outline" size="sm" onClick={() => onEdit(workOrder)} data-testid="button-edit-wo-drawer" className="text-xs sm:text-sm">Edit</Button>
+            {onDelete && <Button variant="outline" size="sm" onClick={() => { onClose(); onDelete(workOrder); }} data-testid="button-delete-wo-drawer" className="text-xs sm:text-sm text-destructive hover:text-destructive"><Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />Delete</Button>}
             {workOrder.status !== "completed" && workOrder.status !== "cancelled" && (
               <Button size="sm" onClick={() => onComplete(workOrder.id)} disabled={isCompleting} data-testid="button-complete-wo-drawer" className="text-xs sm:text-sm">{isCompleting ? "Completing..." : "Complete"}</Button>
             )}

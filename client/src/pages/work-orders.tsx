@@ -91,7 +91,7 @@ export default function WorkOrders() {
         </div>
       </div>
 
-      <WorkOrderDetailDrawer workOrder={drawerOrder} open={drawerOpen} onClose={closeDrawer} equipment={equipment} vessels={vessels} crew={allCrewMembers} onComplete={(id) => { completeWorkOrderMutation.mutate(id); closeDrawer(); }} onEdit={(_order) => { closeDrawer(); handleEditOrder(_order); }} onClone={(_order) => { closeDrawer(); closeCloneDialog(true); }} isCompleting={completeWorkOrderMutation.isPending} />
+      <WorkOrderDetailDrawer workOrder={drawerOrder} open={drawerOpen} onClose={closeDrawer} equipment={equipment} vessels={vessels} crew={allCrewMembers} onComplete={(id) => { completeWorkOrderMutation.mutate(id); closeDrawer(); }} onEdit={(_order) => { closeDrawer(); handleEditOrder(_order); }} onClone={(_order) => { closeDrawer(); closeCloneDialog(true); }} onDelete={handleDeleteOrder} isCompleting={completeWorkOrderMutation.isPending} />
       <WorkOrderCloneDialog workOrder={cloneOrder} open={cloneDialogOpen} onOpenChange={closeCloneDialog} onSuccess={onCloneSuccess} />
 
       <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>

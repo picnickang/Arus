@@ -66,7 +66,7 @@ export function useInventoryManagementData() {
       }
       return result;
     },
-    invalidateKeys: [["/api/parts-inventory"], ["/api/parts-inventory/filters"]],
+    invalidateKeys: ["/api/parts-inventory", "/api/parts-inventory/filters"],
     successMessage: "Part added successfully",
     onSuccess: () => { setIsAddPartDialogOpen(false); partForm.reset(); }
   });
@@ -79,11 +79,11 @@ export function useInventoryManagementData() {
       await apiRequest("PUT", `/api/inventory/${id}/suppliers`, { supplierIds, preferredSupplierId });
       return result;
     },
-    invalidateKeys: [["/api/parts-inventory"], ["/api/parts-inventory/filters"]],
+    invalidateKeys: ["/api/parts-inventory", "/api/parts-inventory/filters"],
     successMessage: "Part updated successfully",
     onSuccess: () => { setIsEditPartDialogOpen(false); setEditingPart(null); partForm.reset(); }
   });
-  const deletePartMutation = useCustomMutation({ mutationFn: async (id: string) => apiRequest("DELETE", `/api/parts-inventory/${id}`), invalidateKeys: [["/api/parts-inventory"], ["/api/parts-inventory/filters"]], successMessage: "Part deleted successfully" });
+  const deletePartMutation = useCustomMutation({ mutationFn: async (id: string) => apiRequest("DELETE", `/api/parts-inventory/${id}`), invalidateKeys: ["/api/parts-inventory", "/api/parts-inventory/filters"], successMessage: "Part deleted successfully" });
 
   const handleSort = useCallback((field: string) => { if (sortField === field) { setSortDirection((prev) => (prev === "asc" ? "desc" : "asc")); } else { setSortField(field); setSortDirection("asc"); } }, [sortField]);
   const handleClearFilters = useCallback(() => { setFilters(createDefaultFilters()); }, []);

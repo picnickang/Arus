@@ -489,11 +489,23 @@ export const pdmAlertsQuerySchema = z.object({
 // Update schemas for PATCH operations
 export const updateWorkOrderSchema = z.object({
   status: z.enum(["open", "in_progress", "completed", "cancelled"]).optional(),
-  priority: z.number().int().min(1).max(3).optional(),
+  priority: z.number().int().min(1).max(4).optional(),
   estimatedCompletion: z.string().optional(),
   actualCompletion: z.string().optional(),
   notes: z.string().optional(),
   assignedTo: z.string().optional(),
+  reason: z.string().optional(),
+  description: z.string().optional(),
+  vesselId: z.string().optional(),
+  equipmentId: z.string().optional(),
+  maintenanceType: z.string().optional(),
+  assignedCrewId: z.string().nullable().optional(),
+  plannedStartDate: z.union([z.string(), z.date()]).nullable().optional(),
+  plannedEndDate: z.union([z.string(), z.date()]).nullable().optional(),
+  actualStartDate: z.union([z.string(), z.date()]).nullable().optional(),
+  estimatedHours: z.number().nullable().optional(),
+  estimatedDowntimeHours: z.number().nullable().optional(),
+  affectsVesselDowntime: z.boolean().optional(),
 });
 
 export const updatePartSchema = z.object({

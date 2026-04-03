@@ -111,5 +111,5 @@ export function getWorkOrderDuration(order: WorkOrder & { actualDuration?: numbe
 }
 
 export function getPriorityColor(priority: number): string { switch (priority) { case 1: return "bg-destructive/20 text-destructive"; case 2: return "bg-chart-2/20 text-chart-2"; default: return "bg-chart-3/20 text-chart-3"; } }
-export function getPriorityLabel(priority: number): string { switch (priority) { case 1: return "High"; case 2: return "Medium"; default: return "Low"; } }
+export function getPriorityLabel(priority: number): string { switch (priority) { case 1: return "Critical"; case 2: return "High"; case 3: return "Medium"; default: return "Low"; } }
 export function getStatusColor(status: string): string { switch (status) { case "completed": return "bg-chart-3/20 text-chart-3"; case "in_progress": return "bg-chart-2/20 text-chart-2"; default: return "bg-muted/20 text-muted-foreground"; } }

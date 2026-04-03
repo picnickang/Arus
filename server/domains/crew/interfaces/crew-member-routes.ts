@@ -13,11 +13,12 @@ import type { CrewRouteDeps } from "./types.js";
 export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): void {
   const { writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit } = rateLimit;
 
-  app.get("/api/crew", generalApiRateLimit,
+  app.get("/api/crew", requireOrgId, generalApiRateLimit,
     withErrorHandling("fetch crew", async (req, res) => {
-      const { orgId, vesselId } = req.query;
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const { vesselId } = req.query;
       const crew = await crewService.listCrew(
-        orgId as string | undefined,
+        orgId,
         vesselId as string | undefined
       );
       res.json(crew);
@@ -26,7 +27,10 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
 
   app.post("/api/crew", requireOrgIdAndValidateBody, writeOperationRateLimit,
     withErrorHandling("create crew member", async (req, res) => {
-      const crewData = insertCrewSchema.parse(req.body);
+      const body = { ...req.body };
+      if (typeof body.startDate === "string" && body.startDate) body.startDate = new Date(body.startDate);
+      if (typeof body.contractEndDate === "string" && body.contractEndDate) body.contractEndDate = new Date(body.contractEndDate);
+      const crewData = insertCrewSchema.parse(body);
       const crew = await crewService.createCrew(crewData, req.user?.id);
       sendCreated(res, crew);
     })
@@ -76,15 +80,20 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
 
   app.put("/api/crew/:id", requireOrgIdAndValidateBody, writeOperationRateLimit,
     withErrorHandling("update crew member", async (req, res) => {
-      const crewData = insertCrewSchema.partial().parse(req.body);
-      const crew = await crewService.updateCrew(req.params.id, crewData, req.user?.id);
+      const body = { ...req.body };
+      if (typeof body.startDate === "string" && body.startDate) body.startDate = new Date(body.startDate);
+      if (typeof body.contractEndDate === "string" && body.contractEndDate) body.contractEndDate = new Date(body.contractEndDate);
+      const crewData = insertCrewSchema.partial().parse(body);
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const crew = await crewService.updateCrew(req.params.id, crewData, req.user?.id, orgId);
       res.json(crew);
     })
   );
 
   app.delete("/api/crew/:id", requireOrgId, criticalOperationRateLimit,
     withErrorHandling("delete crew member", async (req, res) => {
-      await crewService.deleteCrew(req.params.id, req.user?.id);
+      const orgId = (req as AuthenticatedRequest).orgId;
+      await crewService.deleteCrew(req.params.id, req.user?.id, orgId);
       sendDeleted(res);
     })
   );
