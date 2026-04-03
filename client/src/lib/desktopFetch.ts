@@ -37,19 +37,20 @@ export async function resolveBackendUrl(): Promise<string> {
   } catch {
   }
 
-  _cachedUrl = DEFAULT_URL;
+  _cachedUrl = isDesktop() ? DEFAULT_URL : '';
   return _cachedUrl;
 }
 
 export function getBackendUrlSync(): string {
   if (_cachedUrl) return _cachedUrl;
   try {
-    return localStorage.getItem(STORAGE_KEY)
-      ?? localStorage.getItem(LEGACY_KEY)
-      ?? DEFAULT_URL;
+    const stored = localStorage.getItem(STORAGE_KEY)
+      ?? localStorage.getItem(LEGACY_KEY);
+    if (stored) return stored;
   } catch {
-    return DEFAULT_URL;
   }
+  if (isDesktop()) return DEFAULT_URL;
+  return '';
 }
 
 export function setBackendUrl(url: string): void {
