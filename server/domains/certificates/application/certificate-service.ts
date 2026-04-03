@@ -151,7 +151,7 @@ export class CertificateApplicationService {
     await this.eventRepo.create({
       orgId,
       certificateId: id,
-      eventType: "condition_closed",
+      eventType: status === "closed" ? "condition_closed" : "condition_reopened",
       userId,
       details: { conditionId, status },
     });
