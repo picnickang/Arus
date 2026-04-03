@@ -273,11 +273,14 @@ export class CertificateRepositoryAdapter implements ICertificateRepository {
 }
 
 export class CertificateEventRepositoryAdapter implements ICertificateEventRepository {
-  async findByCertificateId(certificateId: string): Promise<CertificateEventEntity[]> {
+  async findByCertificateId(certificateId: string, orgId?: string): Promise<CertificateEventEntity[]> {
+    const conditions = [eq(certificateEvents.certificateId, certificateId)];
+    if (orgId) conditions.push(eq(certificateEvents.orgId, orgId));
+
     const events = await db
       .select()
       .from(certificateEvents)
-      .where(eq(certificateEvents.certificateId, certificateId))
+      .where(and(...conditions))
       .orderBy(desc(certificateEvents.createdAt));
 
     return events.map((e) => ({

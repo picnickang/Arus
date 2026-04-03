@@ -83,7 +83,7 @@ export function registerCertificateRoutes(
   app.get("/api/certificates/expiring", requireOrgId, generalApiRateLimit,
     withErrorHandling("fetch expiring certificates", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const days = Number(req.query.days) || 90;
+      const days = Math.min(Math.max(Number(req.query.days) || 90, 1), 365);
       const certs = await certificateService.getExpiring(orgId, days);
       res.json(certs);
     })

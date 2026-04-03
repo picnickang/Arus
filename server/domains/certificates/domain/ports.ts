@@ -38,7 +38,7 @@ export interface ICertificateRepository {
 }
 
 export interface ICertificateEventRepository {
-  findByCertificateId(certificateId: string): Promise<CertificateEventEntity[]>;
+  findByCertificateId(certificateId: string, orgId?: string): Promise<CertificateEventEntity[]>;
 
   create(event: {
     orgId: string;
