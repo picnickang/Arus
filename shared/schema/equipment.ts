@@ -68,6 +68,9 @@ export const equipment = pgTable(
     decommissionEventId: varchar("decommission_event_id"),
     reinstatedAt: timestamp("reinstated_at", { mode: "date" }),
     reinstatedBy: varchar("reinstated_by"),
+    parentEquipmentId: varchar("parent_equipment_id").references((): any => equipment.id, { onDelete: "set null" }),
+    hierarchyLevel: integer("hierarchy_level").default(0),
+    hierarchyPath: text("hierarchy_path").default(""),
     ...timestamps(),
     ...versionTracking(),
   },
@@ -377,7 +380,7 @@ export const operatingConditionAlerts = pgTable(
 
 // Insert schemas
 export const insertEquipmentSchema = createInsertSchema(equipment)
-  .omit({ id: true, createdAt: true, updatedAt: true })
+  .omit({ id: true, createdAt: true, updatedAt: true, hierarchyLevel: true, hierarchyPath: true })
   .extend({
     vesselId: z.string().uuid().optional(),
     vesselName: z.string().optional(),

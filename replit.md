@@ -29,6 +29,8 @@ Developed with Express.js and TypeScript, offering RESTful APIs with Zod validat
 -   **AI/ML Capabilities**: Condition Monitoring AI Studio, AI Sensor Optimization, OpenAI-powered LLM reports, advanced ML & acoustic monitoring, automated ML training, FFT-based vibration analysis, a PdM Platform (Feature Store, Fleet Analytics, Model Registry, Inference Pipeline, Explainability, Model Monitoring/Drift Detection), and a Training Pipeline.
 -   **Digital Twin Platform**: Provides Twin Definition, Twin State computation, Residual Analysis, Scenario Simulation, and Replay/Time Travel capabilities with continuous updates.
 -   **Operational & Compliance**: STCW-compliant Crew Scheduling with Fatigue Risk Score, Cost Savings & ROI Tracking, CII Compliance, Operating Mode Detection, immutable audit trails, digital logbooks, and a Compliance Rules Engine.
+-   **AMOS Import Adapter**: CSV/XML file import from AMOS CMMS with field mapping, dry-run preview, upsert logic, and optional RAG ingestion. Supports equipment (with hierarchy), work orders, parts, and maintenance plans. Routes: `POST /api/import/amos`, `POST /api/import/amos/preview`, `GET /api/import/amos/mappings`.
+-   **Equipment Hierarchy**: Parent-child equipment relationships with `parentEquipmentId`, auto-computed `hierarchyLevel` and `hierarchyPath` via DB trigger, and `equipment_tree` view.
 -   **Inventory & Work Orders**: Modernized UIs with virtualized tables, checklists, multi-supplier support, and an out-of-stock purchase request workflow, integrated with a Unified Vendors System.
 -   **Analytics**: Interactive visualizations, multi-format export, and a Real-Time Notification System.
 -   **Simulation**: A Physics-Aware Vessel Telemetry Simulator for generating synthetic data.

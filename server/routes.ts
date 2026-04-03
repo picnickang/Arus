@@ -212,6 +212,11 @@ export async function registerRoutes(
   });
   console.log("[PdM Gap Fill] Registered (calibration, outcomes, anomaly-groups, aggregation, evaluation, training-queue)");
 
+  // AMOS Import Adapter
+  const { amosImportRouter } = await import("./import-adapters/amos/index");
+  app.use(generalApiRateLimit, amosImportRouter);
+  console.log("[AMOS Import] Registered (import, preview, mappings)");
+
   // Scheduled Reports domain
   const { createScheduledReportsDomain } = await import("./domains/scheduled-reports/index.js");
   const scheduledReportsDomain = createScheduledReportsDomain();
