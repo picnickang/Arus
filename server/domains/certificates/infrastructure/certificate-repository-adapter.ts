@@ -14,8 +14,13 @@ import type {
   FlagStateEndorsement,
 } from '../domain/types';
 import { db } from '../../../db';
-import { vesselCertificates, certificateEvents } from '@shared/schema';
-import { vessels } from '@shared/schema';
+import {
+  vesselCertificates,
+  certificateEvents,
+  vessels,
+  type VesselCertificate,
+  type InsertVesselCertificate,
+} from '@shared/schema';
 import { eq, and, lte, desc } from 'drizzle-orm';
 
 export class CertificateRepositoryAdapter implements ICertificateRepository {
@@ -119,8 +124,10 @@ export class CertificateRepositoryAdapter implements ICertificateRepository {
 
     let openConditions = 0;
     for (const cert of certs) {
-      const coc = (cert.conditionsOfClass as any[]) || [];
-      openConditions += coc.filter((c: any) => c.status === "open" || c.status === "overdue").length;
+      const coc = Array.isArray(cert.conditionsOfClass)
+        ? (cert.conditionsOfClass as ConditionOfClass[])
+        : [];
+      openConditions += coc.filter((c) => c.status === "open" || c.status === "overdue").length;
     }
 
     return {
@@ -144,34 +151,39 @@ export class CertificateRepositoryAdapter implements ICertificateRepository {
   }
 
   async create(command: CreateCertificateCommand): Promise<CertificateEntity> {
+    const insertValues: InsertVesselCertificate = {
+      orgId: command.orgId,
+      vesselId: command.vesselId,
+      certificateType: command.certificateType,
+      certificateName: command.certificateName,
+      certificateNumber: command.certificateNumber ?? null,
+      issuingAuthority: command.issuingAuthority,
+      issuingAuthorityType: command.issuingAuthorityType ?? "class_society",
+      issueDate: new Date(command.issueDate),
+      expiryDate: command.expiryDate ? new Date(command.expiryDate) : null,
+      nextSurveyDue: command.nextSurveyDue ? new Date(command.nextSurveyDue) : null,
+      surveyWindowStart: command.surveyWindowStart ? new Date(command.surveyWindowStart) : null,
+      surveyWindowEnd: command.surveyWindowEnd ? new Date(command.surveyWindowEnd) : null,
+      equipmentId: command.equipmentId ?? null,
+      surveyId: command.surveyId ?? null,
+      notes: command.notes ?? null,
+      documentUrl: command.documentUrl ?? null,
+      status: "valid",
+    };
+
     const [cert] = await db
       .insert(vesselCertificates)
-      .values({
-        orgId: command.orgId,
-        vesselId: command.vesselId,
-        certificateType: command.certificateType,
-        certificateName: command.certificateName,
-        certificateNumber: command.certificateNumber || null,
-        issuingAuthority: command.issuingAuthority,
-        issuingAuthorityType: command.issuingAuthorityType || "class_society",
-        issueDate: new Date(command.issueDate),
-        expiryDate: command.expiryDate ? new Date(command.expiryDate) : null,
-        nextSurveyDue: command.nextSurveyDue ? new Date(command.nextSurveyDue) : null,
-        surveyWindowStart: command.surveyWindowStart ? new Date(command.surveyWindowStart) : null,
-        surveyWindowEnd: command.surveyWindowEnd ? new Date(command.surveyWindowEnd) : null,
-        equipmentId: command.equipmentId || null,
-        surveyId: command.surveyId || null,
-        notes: command.notes || null,
-        documentUrl: command.documentUrl || null,
-        status: "valid",
-      } as any)
+      .values(insertValues)
       .returning();
 
     return this.mapToEntity(cert);
   }
 
   async update(id: string, orgId: string, updates: UpdateCertificateCommand, updatedBy?: string) {
-    const updateValues: Record<string, unknown> = { updatedAt: new Date(), updatedBy };
+    const updateValues: Partial<VesselCertificate> = {
+      updatedAt: new Date(),
+      updatedBy: updatedBy ?? null,
+    };
 
     if (updates.status !== undefined) updateValues.status = updates.status;
     if (updates.certificateNumber !== undefined) updateValues.certificateNumber = updates.certificateNumber;
@@ -222,7 +234,7 @@ export class CertificateRepositoryAdapter implements ICertificateRepository {
     return updated ? this.mapToEntity(updated) : undefined;
   }
 
-  private mapToEntity(row: any): CertificateEntity {
+  private mapToEntity(row: VesselCertificate): CertificateEntity {
     return {
       id: row.id,
       orgId: row.orgId,
@@ -238,9 +250,13 @@ export class CertificateRepositoryAdapter implements ICertificateRepository {
       nextSurveyDue: row.nextSurveyDue,
       surveyWindowStart: row.surveyWindowStart,
       surveyWindowEnd: row.surveyWindowEnd,
-      status: row.status,
-      conditionsOfClass: row.conditionsOfClass || [],
-      endorsements: row.endorsements || [],
+      status: row.status as CertificateEntity['status'],
+      conditionsOfClass: Array.isArray(row.conditionsOfClass)
+        ? (row.conditionsOfClass as ConditionOfClass[])
+        : [],
+      endorsements: Array.isArray(row.endorsements)
+        ? (row.endorsements as FlagStateEndorsement[])
+        : [],
       surveyId: row.surveyId,
       equipmentId: row.equipmentId,
       documentUrl: row.documentUrl,
@@ -285,8 +301,8 @@ export class CertificateEventRepositoryAdapter implements ICertificateEventRepos
         orgId: event.orgId,
         certificateId: event.certificateId,
         eventType: event.eventType,
-        userId: event.userId || null,
-        details: event.details || null,
+        userId: event.userId ?? null,
+        details: event.details ?? null,
       })
       .returning();
 
