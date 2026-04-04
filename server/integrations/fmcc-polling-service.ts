@@ -142,17 +142,28 @@ export class FmccPollingService extends EventEmitter {
       fuel: {},
     };
 
-    if (data.foFlowRate !== undefined || data.foNetFlowKgPerH !== undefined) {
+    const hasFuelData = data.foFlowRate !== undefined || data.foNetFlowKgPerH !== undefined ||
+      data.bunkerFlowKgPerH !== undefined || data.doFlowKgPerH !== undefined ||
+      data.boilerFlowKgPerH !== undefined || data.foDensity !== undefined;
+    if (hasFuelData) {
       snapshot.fuel = {
         totalFlowKgPerH: data.foNetFlowKgPerH ?? data.foFlowRate,
         mainEngineFlowKgPerH: data.foFlowRate,
         generatorFlowKgPerH: data.doFlowRate,
+        portEngineFlowKgPerH: data.portEngineFlowKgPerH,
+        stbdEngineFlowKgPerH: data.stbdEngineFlowKgPerH,
+        boilerFlowKgPerH: data.boilerFlowKgPerH,
+        auxEngine1FlowKgPerH: data.auxEngine1FlowKgPerH,
+        auxEngine2FlowKgPerH: data.auxEngine2FlowKgPerH,
         foDensity: data.foDensity,
         doDensity: data.doDensity,
         foTemperature: data.foTemperature,
         doTemperature: data.doTemperature,
         foCumulativeKg: data.foCumulativeKg,
         doCumulativeKg: data.doCumulativeKg,
+        doFlowKgPerH: data.doFlowKgPerH,
+        bunkerFlowKgPerH: data.bunkerFlowKgPerH,
+        bunkerCumulativeKg: data.bunkerCumulativeKg,
       };
     }
 
@@ -172,6 +183,28 @@ export class FmccPollingService extends EventEmitter {
         loadPercent: data.engine?.loadPercent ?? data.load,
         runningHours: data.engine?.runningHours,
         powerKw: data.engine?.powerKw,
+      };
+    }
+
+    if (data.shaft || data.shaftPowerKw !== undefined) {
+      snapshot.shaft = {
+        powerKw: data.shaft?.powerKw ?? data.shaftPowerKw,
+        torqueNm: data.shaft?.torqueNm ?? data.shaftTorqueNm,
+        rpmShaft: data.shaft?.rpmShaft ?? data.shaftRpm,
+        shaftGeneratorKw: data.shaft?.shaftGeneratorKw ?? data.shaftGeneratorKw,
+      };
+    }
+
+    if (data.tanks || data.foServiceLevelPct !== undefined) {
+      snapshot.tanks = {
+        foServiceLevelPct: data.tanks?.foServiceLevelPct ?? data.foServiceLevelPct,
+        foSettlingLevelPct: data.tanks?.foSettlingLevelPct ?? data.foSettlingLevelPct,
+        doServiceLevelPct: data.tanks?.doServiceLevelPct ?? data.doServiceLevelPct,
+        doSettlingLevelPct: data.tanks?.doSettlingLevelPct ?? data.doSettlingLevelPct,
+        foServiceVolumeM3: data.tanks?.foServiceVolumeM3 ?? data.foServiceVolumeM3,
+        foSettlingVolumeM3: data.tanks?.foSettlingVolumeM3 ?? data.foSettlingVolumeM3,
+        doServiceVolumeM3: data.tanks?.doServiceVolumeM3 ?? data.doServiceVolumeM3,
+        doSettlingVolumeM3: data.tanks?.doSettlingVolumeM3 ?? data.doSettlingVolumeM3,
       };
     }
 
@@ -199,6 +232,18 @@ export class FmccPollingService extends EventEmitter {
 
       if (snapshot.engine?.rpm !== undefined) {
         promises.push(this.routeToTelemetry(snapshot, 'engine'));
+      }
+
+      if (snapshot.tanks) {
+        promises.push(this.routeToTelemetry(snapshot, 'tanks'));
+      }
+
+      if (snapshot.shaft && (snapshot.shaft.powerKw !== undefined || snapshot.shaft.torqueNm !== undefined || snapshot.shaft.rpmShaft !== undefined)) {
+        promises.push(this.routeToTelemetry(snapshot, 'shaft'));
+      }
+
+      if (snapshot.fuel.bunkerFlowKgPerH !== undefined) {
+        promises.push(this.routeToTelemetry(snapshot, 'bunker'));
       }
     }
 
@@ -254,7 +299,7 @@ export class FmccPollingService extends EventEmitter {
   /**
    * Route fuel/engine telemetry to the EXISTING telemetry pipeline
    */
-  private async routeToTelemetry(snapshot: FmccSnapshot, type: 'fuel' | 'engine'): Promise<void> {
+  private async routeToTelemetry(snapshot: FmccSnapshot, type: 'fuel' | 'engine' | 'tanks' | 'shaft' | 'bunker'): Promise<void> {
     try {
       const timestamp = new Date(snapshot.timestamp);
 
@@ -326,6 +371,56 @@ export class FmccPollingService extends EventEmitter {
             metadata: { source: 'fmcc', vesselId: snapshot.vesselId, unit: 'kW' },
           });
         }
+      }
+
+      if (type === 'tanks' && snapshot.tanks) {
+        const tankEntries: Array<[string, number | undefined]> = [
+          ['tank_fo_service', snapshot.tanks.foServiceLevelPct],
+          ['tank_fo_settling', snapshot.tanks.foSettlingLevelPct],
+          ['tank_do_service', snapshot.tanks.doServiceLevelPct],
+          ['tank_do_settling', snapshot.tanks.doSettlingLevelPct],
+        ];
+        for (const [sensorType, value] of tankEntries) {
+          if (value !== undefined) {
+            await storage.createTelemetryReading({
+              equipmentId: `fmcc-fuel-${snapshot.vesselId}`,
+              sensorType,
+              value,
+              timestamp,
+              metadata: { source: 'fmcc', vesselId: snapshot.vesselId, unit: '%' },
+            });
+          }
+        }
+      }
+
+      if (type === 'shaft' && snapshot.shaft) {
+        const shaftEntries: Array<[string, number | undefined, string]> = [
+          ['shaft_power', snapshot.shaft.powerKw, 'kW'],
+          ['shaft_torque', snapshot.shaft.torqueNm, 'Nm'],
+          ['shaft_rpm', snapshot.shaft.rpmShaft, 'RPM'],
+          ['shaft_generator', snapshot.shaft.shaftGeneratorKw, 'kW'],
+        ];
+        for (const [sensorType, value, unit] of shaftEntries) {
+          if (value !== undefined) {
+            await storage.createTelemetryReading({
+              equipmentId: `fmcc-engine-${snapshot.vesselId}`,
+              sensorType,
+              value,
+              timestamp,
+              metadata: { source: 'fmcc', vesselId: snapshot.vesselId, unit },
+            });
+          }
+        }
+      }
+
+      if (type === 'bunker' && snapshot.fuel.bunkerFlowKgPerH !== undefined) {
+        await storage.createTelemetryReading({
+          equipmentId: `fmcc-fuel-${snapshot.vesselId}`,
+          sensorType: 'bunker_flow',
+          value: snapshot.fuel.bunkerFlowKgPerH,
+          timestamp,
+          metadata: { source: 'fmcc', vesselId: snapshot.vesselId, unit: 'kg/h' },
+        });
       }
     } catch (error) {
       console.error(`[FMCC Polling] Failed to store ${type} telemetry:`, error);

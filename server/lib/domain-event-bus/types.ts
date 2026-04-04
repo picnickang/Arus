@@ -346,6 +346,35 @@ export interface TelemetryBatchIngestedPayload {
   source: string;
 }
 
+export interface BunkeringStartedPayload {
+  eventId: string;
+  vesselId: string;
+  flowKgPerH: number;
+  startedAt: Date;
+}
+
+export interface BunkeringCompletedPayload {
+  eventId: string;
+  vesselId: string;
+  volumeKg: number;
+  volumeLitres: number;
+  durationHours: number;
+  avgFlowKgPerH: number;
+  peakFlowKgPerH: number;
+  startedAt: Date;
+  endedAt: Date;
+}
+
+export interface RmsAlertTriggeredPayload {
+  alertLogId: string;
+  configId?: string;
+  vesselId: string;
+  alertType: string;
+  severity: string;
+  title: string;
+  message: string;
+}
+
 export interface DomainEventMap {
   "pdm.rul.updated": DomainEventEnvelope<"pdm.rul.updated", PdmRulUpdatedPayload>;
   "pdm.anomaly.created": DomainEventEnvelope<"pdm.anomaly.created", PdmAnomalyCreatedPayload>;
@@ -404,6 +433,10 @@ export interface DomainEventMap {
 
   "telemetry.anomaly_detected": DomainEventEnvelope<"telemetry.anomaly_detected", TelemetryAnomalyDetectedPayload>;
   "telemetry.batch_ingested": DomainEventEnvelope<"telemetry.batch_ingested", TelemetryBatchIngestedPayload>;
+
+  "bunkering.started": DomainEventEnvelope<"bunkering.started", BunkeringStartedPayload>;
+  "bunkering.completed": DomainEventEnvelope<"bunkering.completed", BunkeringCompletedPayload>;
+  "rms.alert_triggered": DomainEventEnvelope<"rms.alert_triggered", RmsAlertTriggeredPayload>;
 }
 
 export type DomainEventName = keyof DomainEventMap;
