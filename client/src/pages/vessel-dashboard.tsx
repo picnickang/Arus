@@ -241,9 +241,9 @@ export default function VesselDashboard() {
 
   const filteredParts = useMemo(() => {
     if (inventoryTab === "all") return allParts;
-    if (inventoryTab === "compatible" && selectedEquipment) return compatibleParts;
+    if (inventoryTab === "compatible") return selectedEquipment ? compatibleParts : [];
     if (inventoryTab === "critical") return allParts.filter((p) => p.criticality === "critical" || p.criticality === "high");
-    return selectedEquipment ? compatibleParts : allParts.slice(0, 20);
+    return [];
   }, [inventoryTab, selectedEquipment, compatibleParts, allParts]);
 
   const avgHealth = useMemo(() => {
