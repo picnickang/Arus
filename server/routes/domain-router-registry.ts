@@ -238,6 +238,14 @@ const domainRouters: DomainRouterConfig[] = [
   // Certificate Registry (hexagonal)
   { name: "Certificates", importPath: "../domains/certificates/index.js", functionName: "registerCertificateRoutes",
     getDeps: () => ({ generalApiRateLimit, writeOperationRateLimit }) },
+
+  // Logbook Corrections (correction workflow + immutable audit trail)
+  { name: "LogbookCorrections", importPath: "../domains/logbook/index.js", functionName: "registerLogbookCorrectionRoutes",
+    getDeps: () => ({}) },
+
+  // Sensor Calibration Registry (PdM data quality)
+  { name: "SensorCalibration", importPath: "../domains/sensors/index.js", functionName: "registerSensorCalibrationRoutes",
+    getDeps: () => ({}) },
 ];
 
 /**
