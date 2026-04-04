@@ -139,10 +139,17 @@ export default function RmsMonitoringPage() {
   const [selectedVessel, setSelectedVessel] = useState<string>("all");
   const [activeTab, setActiveTab] = useState("overview");
   const [timeRange, setTimeRange] = useState("24h");
+  const [dateFrom, setDateFrom] = useState(() => {
+    const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().split("T")[0];
+  });
+  const [dateTo, setDateTo] = useState(() => new Date().toISOString().split("T")[0]);
+  const [useCustomRange, setUseCustomRange] = useState(false);
   const { toast } = useToast();
 
   const hoursMap: Record<string, number> = { "6h": 6, "12h": 12, "24h": 24, "48h": 48, "7d": 168 };
-  const hours = hoursMap[timeRange] || 24;
+  const hours = useCustomRange
+    ? Math.max(1, Math.round((new Date(dateTo + "T23:59:59").getTime() - new Date(dateFrom + "T00:00:00").getTime()) / 3600000))
+    : (hoursMap[timeRange] || 24);
   const daysMap: Record<string, number> = { "24h": 1, "48h": 2, "7d": 7, "30d": 30 };
 
   const { data: vessels = [] } = useQuery<Vessel[]>({ queryKey: ["/api/vessels"] });
@@ -290,19 +297,41 @@ export default function RmsMonitoringPage() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-[130px]" data-testid="select-rms-timerange">
-              <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="6h">6 Hours</SelectItem>
-              <SelectItem value="12h">12 Hours</SelectItem>
-              <SelectItem value="24h">24 Hours</SelectItem>
-              <SelectItem value="48h">48 Hours</SelectItem>
-              <SelectItem value="7d">7 Days</SelectItem>
-            </SelectContent>
-          </Select>
+          {useCustomRange ? (
+            <div className="flex items-center gap-2">
+              <Input
+                type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+                className="w-[140px] h-9 text-sm" data-testid="input-date-from"
+              />
+              <span className="text-muted-foreground text-sm">to</span>
+              <Input
+                type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+                className="w-[140px] h-9 text-sm" data-testid="input-date-to"
+              />
+              <Button size="sm" variant="ghost" onClick={() => setUseCustomRange(false)} data-testid="btn-preset-range">
+                <Clock className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1">
+              <Select value={timeRange} onValueChange={setTimeRange}>
+                <SelectTrigger className="w-[130px]" data-testid="select-rms-timerange">
+                  <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="6h">6 Hours</SelectItem>
+                  <SelectItem value="12h">12 Hours</SelectItem>
+                  <SelectItem value="24h">24 Hours</SelectItem>
+                  <SelectItem value="48h">48 Hours</SelectItem>
+                  <SelectItem value="7d">7 Days</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button size="sm" variant="ghost" onClick={() => setUseCustomRange(true)} title="Custom date range" data-testid="btn-custom-range">
+                <BarChart3 className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -913,8 +942,10 @@ function FleetMapCard({
   const padding = 40;
 
   const validPositions = positions.filter((p) => p.latitude != null && p.longitude != null);
-  const allPoints = [...validPositions.map((p) => ({ lat: +p.latitude!, lon: +p.longitude! })),
-    ...vesselTrack.map((t) => ({ lat: +t.latitude, lon: +t.longitude }))];
+  const allPoints = useMemo(() => [
+    ...validPositions.map((p) => ({ lat: +p.latitude!, lon: +p.longitude! })),
+    ...vesselTrack.map((t) => ({ lat: +t.latitude, lon: +t.longitude })),
+  ], [validPositions, vesselTrack]);
 
   const bounds = useMemo(() => {
     if (allPoints.length === 0) return { minLat: 0, maxLat: 10, minLon: 100, maxLon: 120 };
@@ -925,7 +956,7 @@ function FleetMapCard({
       minLat: Math.min(...lats) - pad, maxLat: Math.max(...lats) + pad,
       minLon: Math.min(...lons) - pad, maxLon: Math.max(...lons) + pad,
     };
-  }, [allPoints.length]);
+  }, [allPoints]);
 
   const project = (lat: number, lon: number) => {
     const latRange = bounds.maxLat - bounds.minLat || 1;

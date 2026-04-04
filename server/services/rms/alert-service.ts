@@ -304,16 +304,29 @@ class RmsAlertService {
     }
   }
 
+  private async getOrgRecipients(orgId: string): Promise<string[]> {
+    try {
+      const result = await db.execute(sql`
+        SELECT DISTINCT email FROM users WHERE org_id = ${orgId} AND email IS NOT NULL LIMIT 50
+      `);
+      const emails = getRows(result).map((r: Record<string, unknown>) => r.email as string).filter(Boolean);
+      return emails.length > 0 ? emails : [orgId];
+    } catch {
+      return [orgId];
+    }
+  }
+
   private async createInAppNotification(
     config: AlertConfig, severity: string, title: string, message: string
   ): Promise<void> {
     try {
+      const recipients = await this.getOrgRecipients(config.orgId);
       await db.execute(sql`
         INSERT INTO notification_queue (
           org_id, notification_type, subject, body, recipients, related_entity_type, status
         ) VALUES (
           ${config.orgId}, 'rms_alert', ${title}, ${message},
-          ${JSON.stringify([config.orgId])}::jsonb, 'rms_alert', 'pending'
+          ${JSON.stringify(recipients)}::jsonb, 'rms_alert', 'pending'
         )
       `);
     } catch (err) {
@@ -325,6 +338,7 @@ class RmsAlertService {
     config: AlertConfig, severity: string, title: string, message: string
   ): Promise<void> {
     try {
+      const recipients = await this.getOrgRecipients(config.orgId);
       const subject = `[RMS ${severity.toUpperCase()}] ${title}`;
       const body = `${message}\n\nVessel: ${config.vesselId}\nAlert Type: ${config.alertType}\nSeverity: ${severity}`;
       await db.execute(sql`
@@ -332,7 +346,7 @@ class RmsAlertService {
           org_id, notification_type, subject, body, recipients, related_entity_type, status
         ) VALUES (
           ${config.orgId}, 'rms_email_alert', ${subject}, ${body},
-          ${JSON.stringify([config.orgId])}::jsonb, 'rms_alert', 'pending'
+          ${JSON.stringify(recipients)}::jsonb, 'rms_alert', 'pending'
         )
       `);
     } catch (err) {
