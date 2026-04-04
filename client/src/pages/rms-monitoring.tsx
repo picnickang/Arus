@@ -923,7 +923,7 @@ function FleetMapCard({
 function EngineFlowGauges({ consumption }: { consumption: any[] }) {
   const latestReadings = useMemo(() => {
     if (!consumption || consumption.length === 0) return [];
-    const latest = consumption[0];
+    const latest = consumption[consumption.length - 1];
     const engines = [
       { key: 'mainEngine', label: 'Main Engine', icon: '⚙️', flow: latest?.main_engine_flow, max: 2000 },
       { key: 'portEngine', label: 'Port Engine', icon: '◀', flow: latest?.port_engine_flow, max: 1500 },

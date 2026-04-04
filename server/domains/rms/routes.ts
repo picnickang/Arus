@@ -78,20 +78,37 @@ router.get("/consumption/hourly/:vesselId", requireOrgId, async (req: Request, r
     const hoursBack = Math.min(parseInt(hours as string, 10) || 24, 168);
     const since = new Date(Date.now() - hoursBack * 60 * 60 * 1000);
 
+    const vesselId = req.params.vesselId;
+    const orgId = getOrgId(req);
+    const fuelEquipmentId = 'fmcc-fuel-' + vesselId;
+    const engineEquipmentId = 'fmcc-engine-' + vesselId;
+
     const result = await db.execute(sql`
       SELECT
         date_trunc('hour', timestamp) as hour,
-        AVG(CASE WHEN sensor_type = 'fuel_consumption' THEN value END) as avg_flow_kg_per_h,
-        MAX(CASE WHEN sensor_type = 'fuel_consumption' THEN value END) as max_flow_kg_per_h,
-        MIN(CASE WHEN sensor_type = 'fuel_consumption' THEN value END) as min_flow_kg_per_h,
+        AVG(CASE WHEN sensor_type = 'fuel_consumption' AND equipment_id = ${fuelEquipmentId} THEN value END) as avg_flow_kg_per_h,
+        MAX(CASE WHEN sensor_type = 'fuel_consumption' AND equipment_id = ${fuelEquipmentId} THEN value END) as max_flow_kg_per_h,
+        MIN(CASE WHEN sensor_type = 'fuel_consumption' AND equipment_id = ${fuelEquipmentId} THEN value END) as min_flow_kg_per_h,
         AVG(CASE WHEN sensor_type = 'fuel_density' THEN value END) as avg_density,
         AVG(CASE WHEN sensor_type = 'fuel_temperature' THEN value END) as avg_temperature,
+        AVG(CASE WHEN sensor_type = 'main_engine_flow' THEN value END) as main_engine_flow,
+        AVG(CASE WHEN sensor_type = 'port_engine_flow' THEN value END) as port_engine_flow,
+        AVG(CASE WHEN sensor_type = 'stbd_engine_flow' THEN value END) as stbd_engine_flow,
+        AVG(CASE WHEN sensor_type = 'generator_flow' THEN value END) as generator_flow,
+        AVG(CASE WHEN sensor_type = 'boiler_flow' THEN value END) as boiler_flow,
+        AVG(CASE WHEN sensor_type = 'do_flow' THEN value END) as do_flow,
+        AVG(CASE WHEN sensor_type = 'aux_engine_1_flow' THEN value END) as aux_engine_1_flow,
+        AVG(CASE WHEN sensor_type = 'aux_engine_2_flow' THEN value END) as aux_engine_2_flow,
+        AVG(CASE WHEN sensor_type = 'bunker_flow' THEN value END) as bunker_flow,
+        AVG(CASE WHEN sensor_type = 'shaft_power' THEN value END) as shaft_power_kw,
+        AVG(CASE WHEN sensor_type = 'shaft_torque' THEN value END) as shaft_torque_nm,
+        AVG(CASE WHEN sensor_type = 'shaft_rpm' THEN value END) as shaft_rpm,
+        AVG(CASE WHEN sensor_type = 'running_hours' THEN value END) as running_hours,
         COUNT(*) as data_points
       FROM equipment_telemetry
-      WHERE equipment_id LIKE ${'fmcc-fuel-' + req.params.vesselId}
-        AND org_id = ${getOrgId(req)}
+      WHERE (equipment_id = ${fuelEquipmentId} OR equipment_id = ${engineEquipmentId})
+        AND org_id = ${orgId}
         AND timestamp >= ${since}
-        AND sensor_type IN ('fuel_consumption', 'fuel_density', 'fuel_temperature')
       GROUP BY date_trunc('hour', timestamp)
       ORDER BY hour ASC
     `);
@@ -109,6 +126,11 @@ router.get("/consumption/daily/:vesselId", requireOrgId, async (req: Request, re
     const daysBack = Math.min(parseInt(days as string, 10) || 7, 90);
     const since = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
 
+    const vesselId = req.params.vesselId;
+    const orgId = getOrgId(req);
+    const fuelEquipmentId = 'fmcc-fuel-' + vesselId;
+    const engineEquipmentId = 'fmcc-engine-' + vesselId;
+
     const result = await db.execute(sql`
       SELECT
         date_trunc('day', timestamp) as day,
@@ -116,12 +138,19 @@ router.get("/consumption/daily/:vesselId", requireOrgId, async (req: Request, re
         MAX(CASE WHEN sensor_type = 'fuel_consumption' THEN value END) as max_flow_kg_per_h,
         SUM(CASE WHEN sensor_type = 'fuel_consumption' THEN value END) / NULLIF(COUNT(DISTINCT date_trunc('hour', timestamp)), 0) * 24 / 1000 as estimated_daily_mt,
         AVG(CASE WHEN sensor_type = 'fuel_density' THEN value END) as avg_density,
+        AVG(CASE WHEN sensor_type = 'main_engine_flow' THEN value END) as main_engine_flow,
+        AVG(CASE WHEN sensor_type = 'port_engine_flow' THEN value END) as port_engine_flow,
+        AVG(CASE WHEN sensor_type = 'stbd_engine_flow' THEN value END) as stbd_engine_flow,
+        AVG(CASE WHEN sensor_type = 'generator_flow' THEN value END) as generator_flow,
+        AVG(CASE WHEN sensor_type = 'boiler_flow' THEN value END) as boiler_flow,
+        AVG(CASE WHEN sensor_type = 'do_flow' THEN value END) as do_flow,
+        MAX(CASE WHEN sensor_type = 'running_hours' THEN value END) - MIN(CASE WHEN sensor_type = 'running_hours' THEN value END) as running_hours_delta,
+        MAX(CASE WHEN sensor_type = 'running_hours' THEN value END) as running_hours_total,
         COUNT(*) as data_points
       FROM equipment_telemetry
-      WHERE equipment_id LIKE ${'fmcc-fuel-' + req.params.vesselId}
-        AND org_id = ${getOrgId(req)}
+      WHERE (equipment_id = ${fuelEquipmentId} OR equipment_id = ${engineEquipmentId})
+        AND org_id = ${orgId}
         AND timestamp >= ${since}
-        AND sensor_type IN ('fuel_consumption', 'fuel_density')
       GROUP BY date_trunc('day', timestamp)
       ORDER BY day DESC
     `);

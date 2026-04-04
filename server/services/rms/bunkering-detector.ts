@@ -215,25 +215,33 @@ class BunkeringDetectorService {
     volumeKg: number, volumeLitres: number, avgFlow: number
   ): Promise<void> {
     try {
+      const logDate = endTime.toISOString().slice(0, 10);
+      const fuelType = active.fuelType.toLowerCase();
+      const volumeMT = volumeKg / 1000;
+
+      const bunkeringHfoVal = fuelType === 'hfo' ? volumeMT : null;
+      const bunkeringMdoVal = fuelType === 'mdo' || fuelType === 'do' ? volumeMT : null;
+      const bunkeringMgoVal = fuelType === 'mgo' ? volumeMT : null;
+      const remarks = `Auto-detected bunkering: ${volumeMT.toFixed(2)} MT ${active.fuelType.toUpperCase()}, Duration: ${((endTime.getTime() - active.startedAt.getTime()) / 60000).toFixed(0)} min, Avg flow: ${avgFlow.toFixed(1)} kg/h, Peak: ${active.peakFlow.toFixed(1)} kg/h${active.density ? ', Density: ' + active.density.toFixed(4) + ' kg/m³' : ''}`;
+
       await db.execute(sql`
-        INSERT INTO log_entries (
-          org_id, vessel_id, log_type, category, timestamp, recorded_by,
-          title, description, metadata
+        INSERT INTO engine_log_daily (
+          org_id, vessel_id, log_date,
+          bunkering_hfo, bunkering_mdo, bunkering_mgo,
+          bunkering_supplier, remarks, status
         ) VALUES (
-          ${active.orgId}, ${active.vesselId}, 'engine', 'bunkering',
-          ${endTime}, 'FMCC Auto-Detection',
-          ${'Bunkering Operation - ' + (volumeKg / 1000).toFixed(2) + ' MT'},
-          ${'Auto-detected bunkering operation. Volume: ' + (volumeKg / 1000).toFixed(2) + ' MT (' + volumeLitres.toFixed(0) + ' L), Duration: ' + ((endTime.getTime() - active.startedAt.getTime()) / 60000).toFixed(0) + ' min, Avg flow: ' + avgFlow.toFixed(1) + ' kg/h, Peak flow: ' + active.peakFlow.toFixed(1) + ' kg/h, Fuel type: ' + active.fuelType.toUpperCase() + (active.density ? ', Density: ' + active.density.toFixed(4) + ' kg/m³' : '')},
-          ${JSON.stringify({
-            bunkeringEventId: active.eventId,
-            volumeKg, volumeLitres, avgFlowKgPerH: avgFlow,
-            peakFlowKgPerH: active.peakFlow, fuelType: active.fuelType,
-            density: active.density, startedAt: active.startedAt.toISOString(),
-            endedAt: endTime.toISOString(), source: 'fmcc-auto-detection',
-          })}
+          ${active.orgId}, ${active.vesselId}, ${logDate},
+          ${bunkeringHfoVal}, ${bunkeringMdoVal}, ${bunkeringMgoVal},
+          ${'FMCC Auto-Detection'}, ${remarks}, 'open'
         )
+        ON CONFLICT (vessel_id, log_date) DO UPDATE SET
+          bunkering_hfo = COALESCE(engine_log_daily.bunkering_hfo, 0) + COALESCE(EXCLUDED.bunkering_hfo, 0),
+          bunkering_mdo = COALESCE(engine_log_daily.bunkering_mdo, 0) + COALESCE(EXCLUDED.bunkering_mdo, 0),
+          bunkering_mgo = COALESCE(engine_log_daily.bunkering_mgo, 0) + COALESCE(EXCLUDED.bunkering_mgo, 0),
+          remarks = engine_log_daily.remarks || E'\n' || EXCLUDED.remarks,
+          updated_at = NOW()
       `);
-      logger.info(MODULE, "Engine log bunkering entry created", { eventId: active.eventId });
+      logger.info(MODULE, "Engine log daily bunkering entry created/updated", { eventId: active.eventId, logDate });
     } catch (err) {
       logger.warn(MODULE, "Failed to create engine log bunkering entry (non-critical)", { error: err });
     }

@@ -339,6 +339,28 @@ export class FmccPollingService extends EventEmitter {
             metadata: { source: 'fmcc', vesselId: snapshot.vesselId, unit: '°C' },
           });
         }
+
+        const perEngineFlows: Array<[string, number | undefined]> = [
+          ['main_engine_flow', snapshot.fuel.mainEngineFlowKgPerH],
+          ['port_engine_flow', snapshot.fuel.portEngineFlowKgPerH],
+          ['stbd_engine_flow', snapshot.fuel.stbdEngineFlowKgPerH],
+          ['generator_flow', snapshot.fuel.generatorFlowKgPerH],
+          ['boiler_flow', snapshot.fuel.boilerFlowKgPerH],
+          ['do_flow', snapshot.fuel.doFlowKgPerH],
+          ['aux_engine_1_flow', snapshot.fuel.auxEngine1FlowKgPerH],
+          ['aux_engine_2_flow', snapshot.fuel.auxEngine2FlowKgPerH],
+        ];
+        for (const [sensorType, value] of perEngineFlows) {
+          if (value !== undefined) {
+            await storage.createTelemetryReading({
+              equipmentId: `fmcc-fuel-${snapshot.vesselId}`,
+              sensorType,
+              value,
+              timestamp,
+              metadata: { source: 'fmcc', vesselId: snapshot.vesselId, unit: 'kg/h' },
+            });
+          }
+        }
       }
 
       if (type === 'engine' && snapshot.engine) {
@@ -369,6 +391,16 @@ export class FmccPollingService extends EventEmitter {
             value: snapshot.engine.powerKw,
             timestamp,
             metadata: { source: 'fmcc', vesselId: snapshot.vesselId, unit: 'kW' },
+          });
+        }
+
+        if (snapshot.engine.runningHours !== undefined) {
+          await storage.createTelemetryReading({
+            equipmentId: `fmcc-engine-${snapshot.vesselId}`,
+            sensorType: 'running_hours',
+            value: snapshot.engine.runningHours,
+            timestamp,
+            metadata: { source: 'fmcc', vesselId: snapshot.vesselId, unit: 'hours' },
           });
         }
       }
