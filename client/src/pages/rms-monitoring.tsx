@@ -20,6 +20,121 @@ import { Switch } from "@/components/ui/switch";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
+interface Vessel {
+  id: string;
+  name: string;
+  vessel_type?: string;
+  online_status?: string;
+}
+
+interface RmsSummary {
+  alerts?: { unacknowledged?: number; critical?: number; total24h?: number };
+  bunkering?: { last30Days?: number; active?: number };
+  efmsConnections?: { polling?: number; total?: number; error?: number };
+}
+
+interface RmsAlert {
+  id: string;
+  vessel_id: string;
+  vessel_name?: string;
+  alert_type: string;
+  severity: string;
+  title: string;
+  message: string;
+  acknowledged: boolean;
+  created_at: string;
+}
+
+interface BunkeringEvent {
+  id: string;
+  vessel_id: string;
+  vessel_name?: string;
+  started_at: string;
+  ended_at?: string;
+  status: string;
+  volume_kg?: string;
+  avg_flow_kg_per_h?: string;
+  fuel_type?: string;
+  source?: string;
+  supplier?: string;
+  port?: string;
+}
+
+interface AlertConfig {
+  id: string;
+  vessel_id: string;
+  vessel_name?: string;
+  name: string;
+  alert_type: string;
+  enabled: boolean;
+  cooldown_minutes: number;
+  config: Record<string, unknown>;
+  last_triggered_at?: string;
+}
+
+interface HourlyConsumption {
+  hour: string;
+  avg_flow_kg_per_h?: string;
+  max_flow_kg_per_h?: string;
+  min_flow_kg_per_h?: string;
+  avg_density?: string;
+  avg_temperature?: string;
+  main_engine_flow?: string;
+  port_engine_flow?: string;
+  stbd_engine_flow?: string;
+  generator_flow?: string;
+  boiler_flow?: string;
+  do_flow?: string;
+  shaft_power_kw?: string;
+  shaft_rpm?: string;
+  running_hours?: string;
+  data_points?: number;
+}
+
+interface DailyConsumption {
+  day: string;
+  avg_flow_kg_per_h?: string;
+  estimated_daily_mt?: string;
+  running_hours_delta?: string;
+  est_distance_nm?: string;
+  avg_sog?: string;
+  main_engine_flow?: string;
+  generator_flow?: string;
+  avg_density?: string;
+}
+
+interface TankReading {
+  sensor_type: string;
+  value: string;
+  timestamp?: string;
+}
+
+interface RobEstimate {
+  avgConsumptionKgPerH: number;
+  tanks?: TankReading[];
+  estimatedAt?: string;
+}
+
+interface FleetPosition {
+  vessel_id: string;
+  vessel_name?: string;
+  latitude?: number;
+  longitude?: number;
+  sog?: number;
+  cog?: number;
+  heading?: number;
+  last_position_at?: string;
+}
+
+interface TrackPoint {
+  latitude: number;
+  longitude: number;
+  sog?: number;
+  cog?: number;
+  heading?: number;
+  timestamp?: string;
+}
+
 export default function RmsMonitoringPage() {
   const [selectedVessel, setSelectedVessel] = useState<string>("all");
   const [activeTab, setActiveTab] = useState("overview");
@@ -30,13 +145,13 @@ export default function RmsMonitoringPage() {
   const hours = hoursMap[timeRange] || 24;
   const daysMap: Record<string, number> = { "24h": 1, "48h": 2, "7d": 7, "30d": 30 };
 
-  const { data: vessels = [] } = useQuery<any[]>({ queryKey: ["/api/vessels"] });
+  const { data: vessels = [] } = useQuery<Vessel[]>({ queryKey: ["/api/vessels"] });
 
-  const { data: summary, isLoading: summaryLoading } = useQuery<any>({
+  const { data: summary, isLoading: summaryLoading } = useQuery<RmsSummary>({
     queryKey: ["/api/rms/summary"],
   });
 
-  const { data: alerts = [], isLoading: alertsLoading } = useQuery<any[]>({
+  const { data: alerts = [], isLoading: alertsLoading } = useQuery<RmsAlert[]>({
     queryKey: ["/api/rms/alerts", { vesselId: selectedVessel !== "all" ? selectedVessel : undefined, days: "7" }],
     queryFn: async () => {
       const params = new URLSearchParams({ days: "7" });
@@ -47,7 +162,7 @@ export default function RmsMonitoringPage() {
     },
   });
 
-  const { data: bunkerings = [], isLoading: bunkeringLoading } = useQuery<any[]>({
+  const { data: bunkerings = [], isLoading: bunkeringLoading } = useQuery<BunkeringEvent[]>({
     queryKey: ["/api/rms/bunkering", { vesselId: selectedVessel !== "all" ? selectedVessel : undefined }],
     queryFn: async () => {
       const params = new URLSearchParams({ days: "30" });
@@ -58,7 +173,7 @@ export default function RmsMonitoringPage() {
     },
   });
 
-  const { data: alertConfigs = [], isLoading: configsLoading } = useQuery<any[]>({
+  const { data: alertConfigs = [], isLoading: configsLoading } = useQuery<AlertConfig[]>({
     queryKey: ["/api/rms/alerts/configs", { vesselId: selectedVessel !== "all" ? selectedVessel : undefined }],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -69,7 +184,7 @@ export default function RmsMonitoringPage() {
     },
   });
 
-  const { data: consumption = [], isLoading: consumptionLoading } = useQuery<any[]>({
+  const { data: consumption = [], isLoading: consumptionLoading } = useQuery<HourlyConsumption[]>({
     queryKey: ["/api/rms/consumption/hourly", selectedVessel, hours],
     queryFn: async () => {
       if (selectedVessel === "all") return [];
@@ -80,7 +195,7 @@ export default function RmsMonitoringPage() {
     enabled: selectedVessel !== "all",
   });
 
-  const { data: dailyConsumption = [] } = useQuery<any[]>({
+  const { data: dailyConsumption = [] } = useQuery<DailyConsumption[]>({
     queryKey: ["/api/rms/consumption/daily", selectedVessel],
     queryFn: async () => {
       if (selectedVessel === "all") return [];
@@ -91,7 +206,7 @@ export default function RmsMonitoringPage() {
     enabled: selectedVessel !== "all",
   });
 
-  const { data: tanks = [] } = useQuery<any[]>({
+  const { data: tanks = [] } = useQuery<TankReading[]>({
     queryKey: ["/api/rms/tanks", selectedVessel],
     queryFn: async () => {
       if (selectedVessel === "all") return [];
@@ -102,7 +217,7 @@ export default function RmsMonitoringPage() {
     enabled: selectedVessel !== "all",
   });
 
-  const { data: rob } = useQuery<any>({
+  const { data: rob } = useQuery<RobEstimate>({
     queryKey: ["/api/rms/rob", selectedVessel],
     queryFn: async () => {
       if (selectedVessel === "all") return null;
@@ -113,12 +228,12 @@ export default function RmsMonitoringPage() {
     enabled: selectedVessel !== "all",
   });
 
-  const { data: fleetPositions = [] } = useQuery<any[]>({
+  const { data: fleetPositions = [] } = useQuery<FleetPosition[]>({
     queryKey: ["/api/rms/fleet-positions"],
     refetchInterval: 30000,
   });
 
-  const { data: vesselTrack = [] } = useQuery<any[]>({
+  const { data: vesselTrack = [] } = useQuery<TrackPoint[]>({
     queryKey: ["/api/rms/vessel-track", selectedVessel, hours],
     queryFn: async () => {
       if (selectedVessel === "all") return [];
@@ -150,7 +265,7 @@ export default function RmsMonitoringPage() {
     },
   });
 
-  const unacknowledgedAlerts = alerts.filter((a: any) => !a.acknowledged);
+  const unacknowledgedAlerts = alerts.filter((a) => !a.acknowledged);
 
   return (
     <div className="container mx-auto p-6 max-w-7xl">
@@ -170,7 +285,7 @@ export default function RmsMonitoringPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Vessels</SelectItem>
-              {vessels.filter((v: any) => v.id).map((v: any) => (
+              {vessels.filter((v) => v.id).map((v) => (
                 <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
               ))}
             </SelectContent>
@@ -301,7 +416,7 @@ export default function RmsMonitoringPage() {
             selectedVessel={selectedVessel}
             onSelectVessel={setSelectedVessel}
             alerts={unacknowledgedAlerts}
-            bunkerings={bunkerings.filter((b: any) => b.status === "in_progress")}
+            bunkerings={bunkerings.filter((b) => b.status === "in_progress")}
           />
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -341,7 +456,7 @@ export default function RmsMonitoringPage() {
                   <p className="text-sm text-muted-foreground text-center py-4">No tank data available</p>
                 ) : (
                   <div className="space-y-3">
-                    {tanks.map((tank: any, idx: number) => (
+                    {tanks.map((tank, idx) => (
                       <div key={idx} className="flex items-center justify-between" data-testid={`tank-level-${idx}`}>
                         <span className="text-sm font-medium capitalize">{tank.sensor_type?.replace("tank_", "").replace(/_/g, " ")}</span>
                         <div className="flex items-center gap-2">
@@ -411,7 +526,7 @@ export default function RmsMonitoringPage() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {unacknowledgedAlerts.slice(0, 5).map((alert: any) => (
+                    {unacknowledgedAlerts.slice(0, 5).map((alert) => (
                       <div key={alert.id} className="flex items-center justify-between p-2 rounded-lg border" data-testid={`alert-row-${alert.id}`}>
                         <div className="flex items-center gap-3">
                           <SeverityIcon severity={alert.severity} />
@@ -470,7 +585,7 @@ export default function RmsMonitoringPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {alerts.map((alert: any) => (
+                      {alerts.map((alert) => (
                         <TableRow key={alert.id} data-testid={`alert-table-row-${alert.id}`}>
                           <TableCell><SeverityBadge severity={alert.severity} /></TableCell>
                           <TableCell className="font-medium max-w-[300px] truncate">{alert.title}</TableCell>
@@ -540,11 +655,13 @@ export default function RmsMonitoringPage() {
                         <TableHead className="text-right">Volume (MT)</TableHead>
                         <TableHead className="text-right">Avg Flow</TableHead>
                         <TableHead>Fuel</TableHead>
+                        <TableHead>Supplier</TableHead>
+                        <TableHead>Port</TableHead>
                         <TableHead>Source</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {bunkerings.map((b: any) => {
+                      {bunkerings.map((b) => {
                         const durationMin = b.ended_at
                           ? Math.round((new Date(b.ended_at).getTime() - new Date(b.started_at).getTime()) / 60000)
                           : null;
@@ -566,6 +683,8 @@ export default function RmsMonitoringPage() {
                               {b.avg_flow_kg_per_h ? `${parseFloat(b.avg_flow_kg_per_h).toFixed(0)} kg/h` : "--"}
                             </TableCell>
                             <TableCell><Badge variant="outline">{b.fuel_type?.toUpperCase()}</Badge></TableCell>
+                            <TableCell className="text-sm">{b.supplier || "--"}</TableCell>
+                            <TableCell className="text-sm">{b.port || "--"}</TableCell>
                             <TableCell><Badge variant={b.source === "auto" ? "default" : "secondary"}>{b.source}</Badge></TableCell>
                           </TableRow>
                         );
@@ -620,7 +739,7 @@ export default function RmsMonitoringPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {consumption.map((c: any, idx: number) => (
+                          {consumption.map((c, idx) => (
                             <TableRow key={idx} data-testid={`consumption-row-${idx}`}>
                               <TableCell className="font-medium">{c.hour && format(new Date(c.hour), "dd MMM HH:mm")}</TableCell>
                               <TableCell className="text-right font-mono">{c.avg_flow_kg_per_h ? parseFloat(c.avg_flow_kg_per_h).toFixed(1) : "--"}</TableCell>
@@ -668,7 +787,7 @@ export default function RmsMonitoringPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {dailyConsumption.map((d: any, idx: number) => (
+                          {dailyConsumption.map((d, idx) => (
                             <TableRow key={idx} data-testid={`daily-row-${idx}`}>
                               <TableCell className="font-medium">{d.day && format(new Date(d.day), "dd MMM yyyy")}</TableCell>
                               <TableCell className="text-right font-mono">{d.avg_flow_kg_per_h ? parseFloat(d.avg_flow_kg_per_h).toFixed(1) : "--"}</TableCell>
@@ -728,7 +847,7 @@ export default function RmsMonitoringPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {alertConfigs.map((cfg: any) => (
+                      {alertConfigs.map((cfg) => (
                         <TableRow key={cfg.id} data-testid={`config-row-${cfg.id}`}>
                           <TableCell className="font-medium">{cfg.name}</TableCell>
                           <TableCell><Badge variant="outline">{cfg.alert_type}</Badge></TableCell>
@@ -786,16 +905,16 @@ function SeverityBadge({ severity }: { severity: string }) {
 function FleetMapCard({
   positions, vesselTrack, selectedVessel, onSelectVessel, alerts, bunkerings,
 }: {
-  positions: any[]; vesselTrack: any[]; selectedVessel: string;
-  onSelectVessel: (id: string) => void; alerts: any[]; bunkerings: any[];
+  positions: FleetPosition[]; vesselTrack: TrackPoint[]; selectedVessel: string;
+  onSelectVessel: (id: string) => void; alerts: RmsAlert[]; bunkerings: BunkeringEvent[];
 }) {
   const svgWidth = 700;
   const svgHeight = 340;
   const padding = 40;
 
-  const validPositions = positions.filter((p: any) => p.latitude != null && p.longitude != null);
-  const allPoints = [...validPositions.map((p: any) => ({ lat: +p.latitude, lon: +p.longitude })),
-    ...vesselTrack.map((t: any) => ({ lat: +t.latitude, lon: +t.longitude }))];
+  const validPositions = positions.filter((p) => p.latitude != null && p.longitude != null);
+  const allPoints = [...validPositions.map((p) => ({ lat: +p.latitude!, lon: +p.longitude! })),
+    ...vesselTrack.map((t) => ({ lat: +t.latitude, lon: +t.longitude }))];
 
   const bounds = useMemo(() => {
     if (allPoints.length === 0) return { minLat: 0, maxLat: 10, minLon: 100, maxLon: 120 };
@@ -817,8 +936,8 @@ function FleetMapCard({
     };
   };
 
-  const alertVesselIds = new Set(alerts.map((a: any) => a.vessel_id));
-  const bunkeringVesselIds = new Set(bunkerings.map((b: any) => b.vessel_id));
+  const alertVesselIds = new Set(alerts.map((a) => a.vessel_id));
+  const bunkeringVesselIds = new Set(bunkerings.map((b) => b.vessel_id));
 
   return (
     <Card>
@@ -858,7 +977,7 @@ function FleetMapCard({
               {vesselTrack.length > 1 && (
                 <polyline
                   fill="none" stroke="#3b82f6" strokeWidth={2} strokeOpacity={0.6}
-                  points={vesselTrack.map((t: any) => {
+                  points={vesselTrack.map((t) => {
                     const p = project(+t.latitude, +t.longitude);
                     return `${p.x},${p.y}`;
                   }).join(" ")}
@@ -866,7 +985,7 @@ function FleetMapCard({
               )}
 
               {/* Vessel markers */}
-              {validPositions.map((v: any) => {
+              {validPositions.map((v) => {
                 const pos = project(+v.latitude, +v.longitude);
                 const isSelected = selectedVessel === v.vessel_id;
                 const hasAlert = alertVesselIds.has(v.vessel_id);
@@ -923,6 +1042,23 @@ function FleetMapCard({
               <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-blue-500 animate-pulse" /> Bunkering</div>
               <div className="flex items-center gap-1"><span className="text-blue-500">—</span> Track</div>
             </div>
+            {/* Per-vessel freshness */}
+            {validPositions.length > 0 && (
+              <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                {validPositions.map((v) => {
+                  const freshness = v.last_position_at ? (Date.now() - new Date(v.last_position_at).getTime()) / 60000 : Infinity;
+                  const freshnessColor = freshness > 60 ? "text-red-500" : freshness > 30 ? "text-amber-500" : "text-green-600";
+                  return (
+                    <div key={v.vessel_id} className="flex items-center gap-1.5 truncate" data-testid={`freshness-${v.vessel_id}`}>
+                      <span className="font-medium truncate">{v.vessel_name || v.vessel_id}</span>
+                      <span className={freshnessColor}>
+                        {v.last_position_at ? formatDistanceToNow(new Date(v.last_position_at), { addSuffix: true }) : "no data"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </CardContent>
@@ -930,10 +1066,10 @@ function FleetMapCard({
   );
 }
 
-function ConsumptionTrendChart({ consumption, loading }: { consumption: any[]; loading: boolean }) {
+function ConsumptionTrendChart({ consumption, loading }: { consumption: HourlyConsumption[]; loading: boolean }) {
   const chartData = useMemo(() => {
     if (!consumption || consumption.length === 0) return [];
-    return consumption.map((c: any) => ({
+    return consumption.map((c) => ({
       hour: c.hour ? format(new Date(c.hour), "HH:mm") : "",
       total: c.avg_flow_kg_per_h ? parseFloat(c.avg_flow_kg_per_h) : 0,
       me: c.main_engine_flow ? parseFloat(c.main_engine_flow) : 0,
@@ -1014,7 +1150,7 @@ function ConsumptionTrendChart({ consumption, loading }: { consumption: any[]; l
   );
 }
 
-function EngineFlowGauges({ consumption }: { consumption: any[] }) {
+function EngineFlowGauges({ consumption }: { consumption: HourlyConsumption[] }) {
   const latestReadings = useMemo(() => {
     if (!consumption || consumption.length === 0) return [];
     const latest = consumption[consumption.length - 1];
@@ -1057,7 +1193,7 @@ function EngineFlowGauges({ consumption }: { consumption: any[] }) {
   );
 }
 
-function CreateAlertConfigDialog({ vessels }: { vessels: any[] }) {
+function CreateAlertConfigDialog({ vessels }: { vessels: Vessel[] }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [vesselId, setVesselId] = useState("");
@@ -1074,7 +1210,7 @@ function CreateAlertConfigDialog({ vessels }: { vessels: any[] }) {
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      let config: any = {};
+      let config: Record<string, unknown> = {};
       if (alertType === "fuel_threshold") {
         config = { engineKey, thresholdKgPerH: parseFloat(thresholdValue), direction };
       } else if (alertType === "daily_consumption") {
@@ -1120,7 +1256,7 @@ function CreateAlertConfigDialog({ vessels }: { vessels: any[] }) {
             <Select value={vesselId} onValueChange={setVesselId}>
               <SelectTrigger data-testid="select-alert-vessel"><SelectValue placeholder="Select vessel" /></SelectTrigger>
               <SelectContent>
-                {vessels.filter((v: any) => v.id).map((v: any) => (
+                {vessels.filter((v) => v.id).map((v) => (
                   <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
                 ))}
               </SelectContent>

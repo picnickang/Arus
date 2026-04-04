@@ -13,7 +13,7 @@ interface AlertConfig {
   orgId: string;
   alertType: string;
   name: string;
-  config: any;
+  config: Record<string, unknown>;
   cooldownMinutes: number;
   lastTriggeredAt: Date | null;
   notifyEmail: boolean;
@@ -60,7 +60,7 @@ class RmsAlertService {
   }
 
   private async checkFuelThreshold(snapshot: FmccSnapshot, config: AlertConfig): Promise<void> {
-    const { engineKey, thresholdKgPerH, direction } = config.config;
+    const { engineKey, thresholdKgPerH, direction } = config.config as { engineKey?: string; thresholdKgPerH?: number; direction?: string };
     if (!engineKey || thresholdKgPerH === undefined) return;
 
     const flowMap: Record<string, number | undefined> = {
@@ -89,23 +89,52 @@ class RmsAlertService {
   }
 
   private async checkDailyConsumption(snapshot: FmccSnapshot, config: AlertConfig): Promise<void> {
-    const { maxDailyMt } = config.config;
+    const { maxDailyMt } = config.config as { maxDailyMt?: number };
     if (!maxDailyMt) return;
 
-    const totalFlowKgPerH = snapshot.fuel.totalFlowKgPerH ?? 0;
-    const projectedDailyMt = (totalFlowKgPerH * 24) / 1000;
+    const fuelEquipmentId = 'fmcc-fuel-' + snapshot.vesselId;
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
 
-    if (projectedDailyMt > maxDailyMt && this.canTrigger(config)) {
-      await this.triggerAlert(config, 'warning',
-        `Daily Consumption Projected: ${config.name}`,
-        `Current flow rate ${totalFlowKgPerH.toFixed(1)} kg/h projects to ${projectedDailyMt.toFixed(2)} MT/day, exceeding limit of ${maxDailyMt} MT/day`,
-        { currentFlowKgPerH: totalFlowKgPerH, projectedDailyMt, maxDailyMt }
-      );
+    try {
+      const result = await db.execute(sql`
+        SELECT
+          COUNT(DISTINCT date_trunc('hour', ts)) as hours_with_data,
+          AVG(CASE WHEN sensor_type = 'fuel_consumption' THEN value END) as avg_flow_kg_per_h
+        FROM equipment_telemetry
+        WHERE equipment_id = ${fuelEquipmentId}
+          AND org_id = ${snapshot.orgId}
+          AND sensor_type = 'fuel_consumption'
+          AND ts >= ${todayStart}
+      `);
+
+      const row = getFirstRow(result);
+      const hoursWithData = Number(row?.hours_with_data ?? 0);
+      const avgFlowKgPerH = Number(row?.avg_flow_kg_per_h ?? 0);
+
+      if (hoursWithData < 1) return;
+
+      const actualConsumptionKg = avgFlowKgPerH * hoursWithData;
+      const projectedDailyMt = (avgFlowKgPerH * 24) / 1000;
+      const actualDailyMt = actualConsumptionKg / 1000;
+
+      if (projectedDailyMt > maxDailyMt && this.canTrigger(config)) {
+        await this.triggerAlert(config, 'warning',
+          `Daily Consumption Alert: ${config.name}`,
+          `Avg flow ${avgFlowKgPerH.toFixed(1)} kg/h over ${hoursWithData}h today (${actualDailyMt.toFixed(2)} MT so far) projects to ${projectedDailyMt.toFixed(2)} MT/day, exceeding limit of ${maxDailyMt} MT/day`,
+          { avgFlowKgPerH, hoursWithData, actualDailyMt, projectedDailyMt, maxDailyMt }
+        );
+      }
+    } catch (err) {
+      logger.error(MODULE, "Failed to aggregate daily consumption", { error: err });
     }
   }
 
   private async checkGeofence(snapshot: FmccSnapshot, config: AlertConfig): Promise<void> {
-    const { centerLat, centerLon, radiusNm, polygon, triggerOn } = config.config;
+    const { centerLat, centerLon, radiusNm, polygon, triggerOn } = config.config as {
+      centerLat?: number; centerLon?: number; radiusNm?: number;
+      polygon?: Array<{ lat: number; lon: number }>; triggerOn?: string;
+    };
     if (snapshot.navigation?.latDeg == null || snapshot.navigation?.lonDeg == null) return;
 
     const vesselLat = snapshot.navigation.latDeg;
@@ -150,7 +179,9 @@ class RmsAlertService {
     const bunkerFlow = snapshot.fuel.bunkerFlowKgPerH;
     if (bunkerFlow === undefined) return;
 
-    const { notifyOnStart, notifyOnEnd, minVolumeLitres } = config.config;
+    const { notifyOnStart, notifyOnEnd, minVolumeLitres } = config.config as {
+      notifyOnStart?: boolean; notifyOnEnd?: boolean; minVolumeLitres?: number;
+    };
     const minVolumeL = typeof minVolumeLitres === 'number' ? minVolumeLitres : 0;
     const BUNKERING_THRESHOLD = 500;
     const stateKey = `bunker:${config.id}:${snapshot.vesselId}`;
