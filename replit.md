@@ -12,6 +12,8 @@ Preferred communication style: Simple, everyday language.
 
 The frontend is a mobile-first React 18 single-page application built with TypeScript, `shadcn/ui`, Wouter, and TanStack Query. It emphasizes intuitive navigation, high information density, clear visual hierarchy, and WCAG 2.1 AA accessibility.
 
+-   **Vessel Dashboard**: Three-panel command center (`vessel-dashboard.tsx`, route `/vessels/:id`) replaces the old `vessel-detail.tsx`. Left panel: vessel status sidebar with health/risk gauges, key metrics. Center: interactive SVG vessel schematic with equipment hotspots + bottom tabs (Work Orders, Crew, Maintenance, Performance, DTCs). Right: inventory panel with compatible/critical/all parts tabs linked to selected equipment. Legacy `equipment-registry.tsx` deleted (was already a dead redirect to `/equipment`).
+
 ## Technical Implementations
 
 ### Frontend
