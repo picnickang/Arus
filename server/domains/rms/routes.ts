@@ -29,8 +29,8 @@ router.get("/fleet-positions", requireOrgId, async (req: Request, res: Response)
 
     const result = await db.execute(sql`
       SELECT DISTINCT ON (v.id)
-        v.id as vessel_id, v.name as vessel_name, v.imo_number,
-        v.dp_class, v.charter_status, v.vetting_status,
+        v.id as vessel_id, v.name as vessel_name, v.vessel_type,
+        v.online_status, v.last_heartbeat,
         vtl.latitude, vtl.longitude, vtl.speed_over_ground as sog,
         vtl.course_over_ground as cog, vtl.heading,
         vtl.timestamp as last_position_at,

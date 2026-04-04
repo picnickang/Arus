@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import {
   Fuel, Ship, Bell, BellOff, AlertTriangle, CheckCircle, Anchor,
   Droplets, BarChart3, Gauge, Activity, Plus, Trash2, RefreshCw,
-  MapPin, Settings, TrendingUp, Clock
+  MapPin, Settings, TrendingUp, Clock, Navigation, Compass, Waves, Map
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -108,6 +108,22 @@ export default function RmsMonitoringPage() {
       if (selectedVessel === "all") return null;
       const res = await fetch(`/api/rms/rob/${selectedVessel}`);
       if (!res.ok) throw new Error("Failed to fetch ROB");
+      return res.json();
+    },
+    enabled: selectedVessel !== "all",
+  });
+
+  const { data: fleetPositions = [] } = useQuery<any[]>({
+    queryKey: ["/api/rms/fleet-positions"],
+    refetchInterval: 30000,
+  });
+
+  const { data: vesselTrack = [] } = useQuery<any[]>({
+    queryKey: ["/api/rms/vessel-track", selectedVessel, hours],
+    queryFn: async () => {
+      if (selectedVessel === "all") return [];
+      const res = await fetch(`/api/rms/vessel-track/${selectedVessel}?hours=${hours}`);
+      if (!res.ok) throw new Error("Failed to fetch vessel track");
       return res.json();
     },
     enabled: selectedVessel !== "all",
@@ -278,7 +294,37 @@ export default function RmsMonitoringPage() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
+          {/* Fleet Map */}
+          <FleetMapCard
+            positions={fleetPositions}
+            vesselTrack={vesselTrack}
+            selectedVessel={selectedVessel}
+            onSelectVessel={setSelectedVessel}
+            alerts={unacknowledgedAlerts}
+            bunkerings={bunkerings.filter((b: any) => b.status === "in_progress")}
+          />
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {/* Per-Engine Gauges */}
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Gauge className="h-5 w-5 text-green-600" />
+                  Engine Flow Gauges
+                </CardTitle>
+                <CardDescription>
+                  {selectedVessel === "all" ? "Select a vessel for per-engine data" : "Real-time fuel flow by engine / consumer"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {selectedVessel === "all" ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">Select a vessel to view engine gauges</p>
+                ) : (
+                  <EngineFlowGauges consumption={consumption} />
+                )}
+              </CardContent>
+            </Card>
+
             {/* Tank Levels Card */}
             <Card>
               <CardHeader>
@@ -310,15 +356,16 @@ export default function RmsMonitoringPage() {
                 )}
               </CardContent>
             </Card>
+          </div>
 
-            {/* ROB Summary Card */}
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* ROB Summary */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Fuel className="h-5 w-5 text-amber-600" />
                   Remaining On Board
                 </CardTitle>
-                <CardDescription>Estimated fuel remaining</CardDescription>
               </CardHeader>
               <CardContent>
                 {selectedVessel === "all" || !rob ? (
@@ -344,53 +391,53 @@ export default function RmsMonitoringPage() {
                 )}
               </CardContent>
             </Card>
-          </div>
 
-          {/* Recent Alerts Preview */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5 text-orange-500" />
-                Recent Alerts
-              </CardTitle>
-              <CardDescription>Latest unacknowledged alerts</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {alertsLoading ? (
-                <div className="space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
-              ) : unacknowledgedAlerts.length === 0 ? (
-                <div className="text-center py-6 text-muted-foreground">
-                  <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-500" />
-                  <p>No unacknowledged alerts</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {unacknowledgedAlerts.slice(0, 5).map((alert: any) => (
-                    <div key={alert.id} className="flex items-center justify-between p-2 rounded-lg border" data-testid={`alert-row-${alert.id}`}>
-                      <div className="flex items-center gap-3">
-                        <SeverityIcon severity={alert.severity} />
-                        <div>
-                          <p className="text-sm font-medium">{alert.title}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {alert.vessel_name} &middot; {alert.created_at && format(new Date(alert.created_at), "dd MMM HH:mm")}
-                          </p>
+            {/* Recent Alerts Preview */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="h-5 w-5 text-orange-500" />
+                  Recent Alerts
+                </CardTitle>
+                <CardDescription>Latest unacknowledged alerts</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {alertsLoading ? (
+                  <div className="space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
+                ) : unacknowledgedAlerts.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-500" />
+                    <p>No unacknowledged alerts</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {unacknowledgedAlerts.slice(0, 5).map((alert: any) => (
+                      <div key={alert.id} className="flex items-center justify-between p-2 rounded-lg border" data-testid={`alert-row-${alert.id}`}>
+                        <div className="flex items-center gap-3">
+                          <SeverityIcon severity={alert.severity} />
+                          <div>
+                            <p className="text-sm font-medium">{alert.title}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {alert.vessel_name} &middot; {alert.created_at && format(new Date(alert.created_at), "dd MMM HH:mm")}
+                            </p>
+                          </div>
                         </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => acknowledgeMutation.mutate(alert.id)}
+                          disabled={acknowledgeMutation.isPending}
+                          data-testid={`btn-ack-${alert.id}`}
+                        >
+                          <BellOff className="h-3 w-3 mr-1" />Ack
+                        </Button>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => acknowledgeMutation.mutate(alert.id)}
-                        disabled={acknowledgeMutation.isPending}
-                        data-testid={`btn-ack-${alert.id}`}
-                      >
-                        <BellOff className="h-3 w-3 mr-1" />Ack
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* Alerts Tab */}
@@ -724,6 +771,196 @@ function SeverityBadge({ severity }: { severity: string }) {
     info: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
   };
   return <Badge className={colors[severity] || colors.info}>{severity}</Badge>;
+}
+
+function FleetMapCard({
+  positions, vesselTrack, selectedVessel, onSelectVessel, alerts, bunkerings,
+}: {
+  positions: any[]; vesselTrack: any[]; selectedVessel: string;
+  onSelectVessel: (id: string) => void; alerts: any[]; bunkerings: any[];
+}) {
+  const svgWidth = 700;
+  const svgHeight = 340;
+  const padding = 40;
+
+  const validPositions = positions.filter((p: any) => p.latitude != null && p.longitude != null);
+  const allPoints = [...validPositions.map((p: any) => ({ lat: +p.latitude, lon: +p.longitude })),
+    ...vesselTrack.map((t: any) => ({ lat: +t.latitude, lon: +t.longitude }))];
+
+  const bounds = useMemo(() => {
+    if (allPoints.length === 0) return { minLat: 0, maxLat: 10, minLon: 100, maxLon: 120 };
+    const lats = allPoints.map(p => p.lat);
+    const lons = allPoints.map(p => p.lon);
+    const pad = 0.05;
+    return {
+      minLat: Math.min(...lats) - pad, maxLat: Math.max(...lats) + pad,
+      minLon: Math.min(...lons) - pad, maxLon: Math.max(...lons) + pad,
+    };
+  }, [allPoints.length]);
+
+  const project = (lat: number, lon: number) => {
+    const latRange = bounds.maxLat - bounds.minLat || 1;
+    const lonRange = bounds.maxLon - bounds.minLon || 1;
+    return {
+      x: padding + ((lon - bounds.minLon) / lonRange) * (svgWidth - 2 * padding),
+      y: padding + ((bounds.maxLat - lat) / latRange) * (svgHeight - 2 * padding),
+    };
+  };
+
+  const alertVesselIds = new Set(alerts.map((a: any) => a.vessel_id));
+  const bunkeringVesselIds = new Set(bunkerings.map((b: any) => b.vessel_id));
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Map className="h-5 w-5 text-blue-600" />
+          Fleet Map
+        </CardTitle>
+        <CardDescription>
+          {validPositions.length} vessels with position data &middot; Click a vessel to select
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {validPositions.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <Navigation className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>No position data available</p>
+            <p className="text-sm">Vessel positions appear when FMCC or AIS data is ingested</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="w-full border rounded-lg bg-slate-50 dark:bg-slate-900" data-testid="fleet-map-svg">
+              {/* Grid lines */}
+              {[0.25, 0.5, 0.75].map(f => (
+                <g key={f}>
+                  <line x1={padding} y1={padding + f * (svgHeight - 2 * padding)} x2={svgWidth - padding} y2={padding + f * (svgHeight - 2 * padding)} stroke="currentColor" strokeOpacity={0.1} strokeDasharray="4" />
+                  <line x1={padding + f * (svgWidth - 2 * padding)} y1={padding} x2={padding + f * (svgWidth - 2 * padding)} y2={svgHeight - padding} stroke="currentColor" strokeOpacity={0.1} strokeDasharray="4" />
+                </g>
+              ))}
+              {/* Axis labels */}
+              <text x={padding} y={svgHeight - 5} fontSize={9} fill="currentColor" fillOpacity={0.4}>{bounds.minLon.toFixed(2)}°E</text>
+              <text x={svgWidth - padding} y={svgHeight - 5} fontSize={9} fill="currentColor" fillOpacity={0.4} textAnchor="end">{bounds.maxLon.toFixed(2)}°E</text>
+              <text x={5} y={padding + 10} fontSize={9} fill="currentColor" fillOpacity={0.4}>{bounds.maxLat.toFixed(2)}°N</text>
+              <text x={5} y={svgHeight - padding} fontSize={9} fill="currentColor" fillOpacity={0.4}>{bounds.minLat.toFixed(2)}°N</text>
+
+              {/* Vessel track polyline */}
+              {vesselTrack.length > 1 && (
+                <polyline
+                  fill="none" stroke="#3b82f6" strokeWidth={2} strokeOpacity={0.6}
+                  points={vesselTrack.map((t: any) => {
+                    const p = project(+t.latitude, +t.longitude);
+                    return `${p.x},${p.y}`;
+                  }).join(" ")}
+                />
+              )}
+
+              {/* Vessel markers */}
+              {validPositions.map((v: any) => {
+                const pos = project(+v.latitude, +v.longitude);
+                const isSelected = selectedVessel === v.vessel_id;
+                const hasAlert = alertVesselIds.has(v.vessel_id);
+                const isBunkering = bunkeringVesselIds.has(v.vessel_id);
+                const heading = v.heading || v.cog || 0;
+                const freshness = v.last_position_at ? (Date.now() - new Date(v.last_position_at).getTime()) / 60000 : Infinity;
+                const isStale = freshness > 60;
+
+                return (
+                  <g key={v.vessel_id}
+                    className="cursor-pointer"
+                    onClick={() => onSelectVessel(v.vessel_id)}
+                    data-testid={`map-vessel-${v.vessel_id}`}
+                  >
+                    {/* Heading arrow */}
+                    <g transform={`translate(${pos.x},${pos.y}) rotate(${heading})`}>
+                      <polygon
+                        points="0,-12 -6,6 6,6"
+                        fill={hasAlert ? "#ef4444" : isBunkering ? "#3b82f6" : isStale ? "#9ca3af" : "#22c55e"}
+                        stroke={isSelected ? "#000" : "none"} strokeWidth={isSelected ? 2 : 0}
+                        opacity={isStale ? 0.5 : 1}
+                      />
+                    </g>
+                    {/* Label */}
+                    <text
+                      x={pos.x} y={pos.y + 18}
+                      textAnchor="middle" fontSize={8}
+                      fill="currentColor" fillOpacity={0.8}
+                      fontWeight={isSelected ? "bold" : "normal"}
+                    >
+                      {v.vessel_name?.substring(0, 12)}
+                    </text>
+                    {/* Freshness dot */}
+                    <circle
+                      cx={pos.x + 10} cy={pos.y - 10} r={3}
+                      fill={isStale ? "#ef4444" : freshness > 30 ? "#f59e0b" : "#22c55e"}
+                    />
+                    {/* Bunkering indicator */}
+                    {isBunkering && (
+                      <circle cx={pos.x - 10} cy={pos.y - 10} r={4} fill="#3b82f6" strokeWidth={1} stroke="#fff">
+                        <animate attributeName="opacity" values="1;0.3;1" dur="1.5s" repeatCount="indefinite" />
+                      </circle>
+                    )}
+                  </g>
+                );
+              })}
+            </svg>
+
+            {/* Map Legend */}
+            <div className="flex flex-wrap gap-4 mt-3 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-green-500" /> Online</div>
+              <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-amber-500" /> &gt;30 min ago</div>
+              <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-red-500" /> Stale / Alert</div>
+              <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-blue-500 animate-pulse" /> Bunkering</div>
+              <div className="flex items-center gap-1"><span className="text-blue-500">—</span> Track</div>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function EngineFlowGauges({ consumption }: { consumption: any[] }) {
+  const latestReadings = useMemo(() => {
+    if (!consumption || consumption.length === 0) return [];
+    const latest = consumption[0];
+    const engines = [
+      { key: 'mainEngine', label: 'Main Engine', icon: '⚙️', flow: latest?.main_engine_flow, max: 2000 },
+      { key: 'portEngine', label: 'Port Engine', icon: '◀', flow: latest?.port_engine_flow, max: 1500 },
+      { key: 'stbdEngine', label: 'Stbd Engine', icon: '▶', flow: latest?.stbd_engine_flow, max: 1500 },
+      { key: 'generator', label: 'Generator', icon: '🔌', flow: latest?.generator_flow, max: 500 },
+      { key: 'boiler', label: 'Boiler', icon: '🔥', flow: latest?.boiler_flow, max: 300 },
+      { key: 'total', label: 'Total', icon: '∑', flow: latest?.avg_flow_kg_per_h, max: 5000 },
+    ];
+    return engines;
+  }, [consumption]);
+
+  if (latestReadings.length === 0) {
+    return <p className="text-sm text-muted-foreground text-center py-4">No engine flow data available</p>;
+  }
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      {latestReadings.map((engine) => {
+        const flow = engine.flow ? parseFloat(engine.flow) : 0;
+        const pct = Math.min((flow / engine.max) * 100, 100);
+        const color = pct > 80 ? "bg-red-500" : pct > 50 ? "bg-amber-500" : "bg-green-500";
+        return (
+          <div key={engine.key} className="p-3 rounded-lg border space-y-2" data-testid={`gauge-${engine.key}`}>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium">{engine.icon} {engine.label}</span>
+            </div>
+            <div className="text-lg font-bold font-mono">
+              {flow > 0 ? `${flow.toFixed(0)}` : "--"} <span className="text-xs font-normal text-muted-foreground">kg/h</span>
+            </div>
+            <div className="h-2 rounded-full bg-muted overflow-hidden">
+              <div className={`h-full rounded-full ${color} transition-all`} style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function CreateAlertConfigDialog({ vessels }: { vessels: any[] }) {

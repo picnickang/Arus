@@ -49,6 +49,9 @@ class RmsAlertService {
           case 'geofence':
             await this.checkGeofence(snapshot, config);
             break;
+          case 'bunkering':
+            await this.checkBunkering(snapshot, config);
+            break;
         }
       } catch (err) {
         logger.error(MODULE, "Alert check failed", { configId: config.id, error: err });
@@ -102,19 +105,27 @@ class RmsAlertService {
   }
 
   private async checkGeofence(snapshot: FmccSnapshot, config: AlertConfig): Promise<void> {
-    const { centerLat, centerLon, radiusNm, triggerOn } = config.config;
+    const { centerLat, centerLon, radiusNm, polygon, triggerOn } = config.config;
     if (snapshot.navigation?.latDeg == null || snapshot.navigation?.lonDeg == null) return;
-    if (centerLat == null || centerLon == null || radiusNm == null) return;
 
-    const distNm = this.haversineNm(
-      snapshot.navigation.latDeg, snapshot.navigation.lonDeg,
-      centerLat, centerLon
-    );
+    const vesselLat = snapshot.navigation.latDeg;
+    const vesselLon = snapshot.navigation.lonDeg;
+    let inside: boolean;
+    let detail: string;
 
-    const inside = distNm <= radiusNm;
+    if (polygon && Array.isArray(polygon) && polygon.length >= 3) {
+      inside = this.pointInPolygon(vesselLat, vesselLon, polygon);
+      detail = `polygon (${polygon.length} vertices)`;
+    } else if (centerLat != null && centerLon != null && radiusNm != null) {
+      const distNm = this.haversineNm(vesselLat, vesselLon, centerLat, centerLon);
+      inside = distNm <= radiusNm;
+      detail = `distance: ${distNm.toFixed(1)} NM, radius: ${radiusNm} NM`;
+    } else {
+      return;
+    }
+
     const stateKey = `${config.id}:${snapshot.vesselId}`;
     const wasInside = this.geofenceState.get(stateKey);
-
     const crossed = wasInside !== undefined && wasInside !== inside;
     this.geofenceState.set(stateKey, inside);
 
@@ -127,8 +138,39 @@ class RmsAlertService {
     if (shouldTrigger && this.canTrigger(config)) {
       await this.triggerAlert(config, 'info',
         `Geofence ${inside ? 'Entry' : 'Exit'}: ${config.name}`,
-        `Vessel ${inside ? 'entered' : 'exited'} geofence zone "${config.name}" (distance: ${distNm.toFixed(1)} NM, radius: ${radiusNm} NM)`,
-        { lat: snapshot.navigation.latDeg, lon: snapshot.navigation.lonDeg, distNm, radiusNm, inside }
+        `Vessel ${inside ? 'entered' : 'exited'} geofence zone "${config.name}" (${detail})`,
+        { lat: vesselLat, lon: vesselLon, inside }
+      );
+    }
+  }
+
+  private async checkBunkering(snapshot: FmccSnapshot, config: AlertConfig): Promise<void> {
+    const bunkerFlow = snapshot.fuel.bunkerFlowKgPerH;
+    if (bunkerFlow === undefined) return;
+
+    const { notifyOnStart, notifyOnEnd, minVolumeLitres } = config.config;
+    const BUNKERING_THRESHOLD = 500;
+    const stateKey = `bunker:${config.id}:${snapshot.vesselId}`;
+    const wasBunkering = this.geofenceState.get(stateKey);
+    const isBunkering = bunkerFlow > BUNKERING_THRESHOLD;
+
+    this.geofenceState.set(stateKey, isBunkering);
+
+    if (wasBunkering === undefined) return;
+
+    if (!wasBunkering && isBunkering && notifyOnStart && this.canTrigger(config)) {
+      await this.triggerAlert(config, 'info',
+        `Bunkering Detected: ${config.name}`,
+        `Bunkering operation detected. Flow rate: ${bunkerFlow.toFixed(1)} kg/h`,
+        { flowKgPerH: bunkerFlow }
+      );
+    }
+
+    if (wasBunkering && !isBunkering && notifyOnEnd && this.canTrigger(config)) {
+      await this.triggerAlert(config, 'info',
+        `Bunkering Ended: ${config.name}`,
+        `Bunkering operation appears to have ended. Min volume filter: ${minVolumeLitres ?? 0} L`,
+        { flowKgPerH: bunkerFlow, minVolumeLitres }
       );
     }
   }
@@ -140,6 +182,18 @@ class RmsAlertService {
     const a = Math.sin(dLat / 2) ** 2 +
       Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  private pointInPolygon(lat: number, lon: number, polygon: Array<{ lat: number; lon: number }>): boolean {
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+      const xi = polygon[i].lat, yi = polygon[i].lon;
+      const xj = polygon[j].lat, yj = polygon[j].lon;
+      const intersect = ((yi > lon) !== (yj > lon)) &&
+        (lat < (xj - xi) * (lon - yi) / (yj - yi) + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
   }
 
   private canTrigger(config: AlertConfig): boolean {

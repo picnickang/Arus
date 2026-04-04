@@ -27,23 +27,34 @@ function getFirstRow(result: any): any | undefined {
 
 const BUNKER_FLOW_THRESHOLD_KG_PER_H = 500;
 const BUNKER_END_QUIET_READINGS = 3;
+const FLOW_REVERSAL_THRESHOLD_KG_PER_H = -50;
+const SUDDEN_INTAKE_SPIKE_FACTOR = 3.0;
 
 class BunkeringDetectorService {
   private activeBunkerings = new Map<string, ActiveBunkering>();
   private quietCounters = new Map<string, number>();
+  private previousFlows = new Map<string, number[]>();
 
   async processSnapshot(snapshot: FmccSnapshot): Promise<void> {
     const bunkerFlow = snapshot.fuel.bunkerFlowKgPerH;
-    if (bunkerFlow === undefined) return;
 
     const vesselKey = snapshot.vesselId;
-    const isBunkering = bunkerFlow > BUNKER_FLOW_THRESHOLD_KG_PER_H;
+    const isBunkeringByDedicatedMeter = bunkerFlow !== undefined && bunkerFlow > BUNKER_FLOW_THRESHOLD_KG_PER_H;
+    const isBunkeringByReversal = this.detectFlowReversal(snapshot);
+    const isBunkeringBySurge = this.detectSuddenIntakeSurge(snapshot);
+    const isBunkering = isBunkeringByDedicatedMeter || isBunkeringByReversal || isBunkeringBySurge;
+
+    const effectiveFlow = bunkerFlow ?? (isBunkeringByReversal ? Math.abs(snapshot.fuel.totalFlowKgPerH ?? 0) : 0);
     const active = this.activeBunkerings.get(vesselKey);
 
+    this.trackFlowHistory(vesselKey, snapshot.fuel.totalFlowKgPerH);
+
     if (isBunkering && !active) {
-      await this.startBunkering(snapshot, bunkerFlow);
+      const detectionMethod = isBunkeringByDedicatedMeter ? 'bunker_meter' :
+        isBunkeringByReversal ? 'flow_reversal' : 'surge_detection';
+      await this.startBunkering(snapshot, effectiveFlow, detectionMethod);
     } else if (isBunkering && active) {
-      this.updateBunkering(active, snapshot, bunkerFlow);
+      this.updateBunkering(active, snapshot, effectiveFlow);
       this.quietCounters.set(vesselKey, 0);
     } else if (!isBunkering && active) {
       const quietCount = (this.quietCounters.get(vesselKey) || 0) + 1;
@@ -57,7 +68,34 @@ class BunkeringDetectorService {
     }
   }
 
-  private async startBunkering(snapshot: FmccSnapshot, flowKgPerH: number): Promise<void> {
+  private detectFlowReversal(snapshot: FmccSnapshot): boolean {
+    const totalFlow = snapshot.fuel.totalFlowKgPerH;
+    if (totalFlow === undefined) return false;
+    return totalFlow < FLOW_REVERSAL_THRESHOLD_KG_PER_H;
+  }
+
+  private detectSuddenIntakeSurge(snapshot: FmccSnapshot): boolean {
+    const totalFlow = snapshot.fuel.totalFlowKgPerH;
+    if (totalFlow === undefined || totalFlow <= 0) return false;
+
+    const history = this.previousFlows.get(snapshot.vesselId);
+    if (!history || history.length < 5) return false;
+
+    const avgRecentFlow = history.slice(-5).reduce((s, v) => s + v, 0) / 5;
+    if (avgRecentFlow <= 0) return false;
+
+    return totalFlow > avgRecentFlow * SUDDEN_INTAKE_SPIKE_FACTOR && totalFlow > BUNKER_FLOW_THRESHOLD_KG_PER_H;
+  }
+
+  private trackFlowHistory(vesselId: string, flow: number | undefined): void {
+    if (flow === undefined) return;
+    const history = this.previousFlows.get(vesselId) || [];
+    history.push(flow);
+    if (history.length > 20) history.shift();
+    this.previousFlows.set(vesselId, history);
+  }
+
+  private async startBunkering(snapshot: FmccSnapshot, flowKgPerH: number, detectionMethod: string = 'bunker_meter'): Promise<void> {
     try {
       const result = await db.execute(sql`
         INSERT INTO rms_bunkering_events (
@@ -66,7 +104,7 @@ class BunkeringDetectorService {
           ${snapshot.orgId}, ${snapshot.vesselId}, ${new Date(snapshot.timestamp)},
           'in_progress', 'fo',
           ${snapshot.fuel.foDensity ?? null}, ${snapshot.fuel.foTemperature ?? null},
-          'auto'
+          ${'auto:' + detectionMethod}
         ) RETURNING id
       `);
 
