@@ -142,28 +142,30 @@ export class FmccPollingService extends EventEmitter {
       fuel: {},
     };
 
-    const hasFuelData = data.foFlowRate !== undefined || data.foNetFlowKgPerH !== undefined ||
-      data.bunkerFlowKgPerH !== undefined || data.doFlowKgPerH !== undefined ||
-      data.boilerFlowKgPerH !== undefined || data.foDensity !== undefined;
+    const fuelData = data.fuel ?? data;
+    const hasFuelData = fuelData.foFlowKgPerH !== undefined || fuelData.foNetFlowKgPerH !== undefined ||
+      fuelData.totalFlowKgPerH !== undefined || fuelData.mainEngineFlowKgPerH !== undefined ||
+      fuelData.bunkerFlowKgPerH !== undefined || fuelData.doFlowKgPerH !== undefined ||
+      fuelData.boilerFlowKgPerH !== undefined || fuelData.foDensity !== undefined;
     if (hasFuelData) {
       snapshot.fuel = {
-        totalFlowKgPerH: data.foNetFlowKgPerH ?? data.foFlowRate,
-        mainEngineFlowKgPerH: data.foFlowRate,
-        generatorFlowKgPerH: data.doFlowRate,
-        portEngineFlowKgPerH: data.portEngineFlowKgPerH,
-        stbdEngineFlowKgPerH: data.stbdEngineFlowKgPerH,
-        boilerFlowKgPerH: data.boilerFlowKgPerH,
-        auxEngine1FlowKgPerH: data.auxEngine1FlowKgPerH,
-        auxEngine2FlowKgPerH: data.auxEngine2FlowKgPerH,
-        foDensity: data.foDensity,
-        doDensity: data.doDensity,
-        foTemperature: data.foTemperature,
-        doTemperature: data.doTemperature,
-        foCumulativeKg: data.foCumulativeKg,
-        doCumulativeKg: data.doCumulativeKg,
-        doFlowKgPerH: data.doFlowKgPerH,
-        bunkerFlowKgPerH: data.bunkerFlowKgPerH,
-        bunkerCumulativeKg: data.bunkerCumulativeKg,
+        totalFlowKgPerH: fuelData.totalFlowKgPerH ?? fuelData.foNetFlowKgPerH ?? fuelData.foFlowKgPerH,
+        mainEngineFlowKgPerH: fuelData.mainEngineFlowKgPerH ?? fuelData.foFlowKgPerH,
+        generatorFlowKgPerH: fuelData.generatorFlowKgPerH ?? fuelData.doFlowKgPerH,
+        portEngineFlowKgPerH: fuelData.portEngineFlowKgPerH,
+        stbdEngineFlowKgPerH: fuelData.stbdEngineFlowKgPerH,
+        boilerFlowKgPerH: fuelData.boilerFlowKgPerH,
+        auxEngine1FlowKgPerH: fuelData.auxEngine1FlowKgPerH,
+        auxEngine2FlowKgPerH: fuelData.auxEngine2FlowKgPerH,
+        foDensity: fuelData.foDensity,
+        doDensity: fuelData.doDensity,
+        foTemperature: fuelData.foTemperature,
+        doTemperature: fuelData.doTemperature,
+        foCumulativeKg: fuelData.foCumulativeKg,
+        doCumulativeKg: fuelData.doCumulativeKg,
+        doFlowKgPerH: fuelData.doFlowKgPerH,
+        bunkerFlowKgPerH: fuelData.bunkerFlowKgPerH,
+        bunkerCumulativeKg: fuelData.bunkerCumulativeKg,
       };
     }
 
@@ -226,11 +228,13 @@ export class FmccPollingService extends EventEmitter {
     }
 
     if (this.config.enableTelemetryLogging) {
-      if (snapshot.fuel.totalFlowKgPerH !== undefined) {
+      const hasFuel = snapshot.fuel && Object.values(snapshot.fuel).some(v => v !== undefined);
+      if (hasFuel) {
         promises.push(this.routeToTelemetry(snapshot, 'fuel'));
       }
 
-      if (snapshot.engine?.rpm !== undefined) {
+      const hasEngine = snapshot.engine && Object.values(snapshot.engine).some(v => v !== undefined);
+      if (hasEngine) {
         promises.push(this.routeToTelemetry(snapshot, 'engine'));
       }
 
@@ -303,22 +307,24 @@ export class FmccPollingService extends EventEmitter {
     try {
       const timestamp = new Date(snapshot.timestamp);
 
-      if (type === 'fuel' && snapshot.fuel.totalFlowKgPerH !== undefined) {
-        await storage.createTelemetryReading({
-          equipmentId: `fmcc-fuel-${snapshot.vesselId}`,
-          sensorType: 'fuel_consumption',
-          value: snapshot.fuel.totalFlowKgPerH,
-          timestamp,
-          metadata: {
-            source: 'fmcc',
-            vesselId: snapshot.vesselId,
-            foDensity: snapshot.fuel.foDensity,
-            foTemperature: snapshot.fuel.foTemperature,
-            doDensity: snapshot.fuel.doDensity,
-            doTemperature: snapshot.fuel.doTemperature,
-            unit: 'kg/h',
-          },
-        });
+      if (type === 'fuel') {
+        if (snapshot.fuel.totalFlowKgPerH !== undefined) {
+          await storage.createTelemetryReading({
+            equipmentId: `fmcc-fuel-${snapshot.vesselId}`,
+            sensorType: 'fuel_consumption',
+            value: snapshot.fuel.totalFlowKgPerH,
+            timestamp,
+            metadata: {
+              source: 'fmcc',
+              vesselId: snapshot.vesselId,
+              foDensity: snapshot.fuel.foDensity,
+              foTemperature: snapshot.fuel.foTemperature,
+              doDensity: snapshot.fuel.doDensity,
+              doTemperature: snapshot.fuel.doTemperature,
+              unit: 'kg/h',
+            },
+          });
+        }
 
         if (snapshot.fuel.foDensity !== undefined) {
           await storage.createTelemetryReading({
@@ -373,7 +379,6 @@ export class FmccPollingService extends EventEmitter {
             metadata: { source: 'fmcc', vesselId: snapshot.vesselId, unit: 'rpm' },
           });
         }
-
         if (snapshot.engine.loadPercent !== undefined) {
           await storage.createTelemetryReading({
             equipmentId: `fmcc-engine-${snapshot.vesselId}`,

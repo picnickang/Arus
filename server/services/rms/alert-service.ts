@@ -144,11 +144,14 @@ class RmsAlertService {
     }
   }
 
+  private bunkerAccumulators = new Map<string, { startTime: Date; accumulatedKg: number; lastPollTime: Date }>();
+
   private async checkBunkering(snapshot: FmccSnapshot, config: AlertConfig): Promise<void> {
     const bunkerFlow = snapshot.fuel.bunkerFlowKgPerH;
     if (bunkerFlow === undefined) return;
 
     const { notifyOnStart, notifyOnEnd, minVolumeLitres } = config.config;
+    const minVolumeL = typeof minVolumeLitres === 'number' ? minVolumeLitres : 0;
     const BUNKERING_THRESHOLD = 500;
     const stateKey = `bunker:${config.id}:${snapshot.vesselId}`;
     const wasBunkering = this.geofenceState.get(stateKey);
@@ -156,9 +159,22 @@ class RmsAlertService {
 
     this.geofenceState.set(stateKey, isBunkering);
 
+    if (isBunkering) {
+      const now = new Date();
+      const acc = this.bunkerAccumulators.get(stateKey);
+      if (acc) {
+        const elapsedHours = (now.getTime() - acc.lastPollTime.getTime()) / 3600000;
+        acc.accumulatedKg += bunkerFlow * elapsedHours;
+        acc.lastPollTime = now;
+      } else {
+        this.bunkerAccumulators.set(stateKey, { startTime: now, accumulatedKg: 0, lastPollTime: now });
+      }
+    }
+
     if (wasBunkering === undefined) return;
 
     if (!wasBunkering && isBunkering && notifyOnStart && this.canTrigger(config)) {
+      this.bunkerAccumulators.set(stateKey, { startTime: new Date(), accumulatedKg: 0, lastPollTime: new Date() });
       await this.triggerAlert(config, 'info',
         `Bunkering Detected: ${config.name}`,
         `Bunkering operation detected. Flow rate: ${bunkerFlow.toFixed(1)} kg/h`,
@@ -167,10 +183,24 @@ class RmsAlertService {
     }
 
     if (wasBunkering && !isBunkering && notifyOnEnd && this.canTrigger(config)) {
+      const acc = this.bunkerAccumulators.get(stateKey);
+      const accumulatedKg = acc?.accumulatedKg ?? 0;
+      const density = snapshot.fuel.foDensity ?? 0.85;
+      const estimatedLitres = accumulatedKg / density;
+
+      this.bunkerAccumulators.delete(stateKey);
+
+      if (minVolumeL > 0 && estimatedLitres < minVolumeL) {
+        logger.info(MODULE, "Bunkering end suppressed below minVolumeLitres", {
+          configId: config.id, estimatedLitres, minVolumeL,
+        });
+        return;
+      }
+
       await this.triggerAlert(config, 'info',
         `Bunkering Ended: ${config.name}`,
-        `Bunkering operation appears to have ended. Min volume filter: ${minVolumeLitres ?? 0} L`,
-        { flowKgPerH: bunkerFlow, minVolumeLitres }
+        `Bunkering operation ended. Estimated volume: ${estimatedLitres.toFixed(0)} L (${(accumulatedKg / 1000).toFixed(2)} MT). Min volume filter: ${minVolumeL} L`,
+        { flowKgPerH: bunkerFlow, estimatedLitres, accumulatedKg, minVolumeLitres: minVolumeL }
       );
     }
   }
