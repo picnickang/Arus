@@ -1,10 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useRoute, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import {
   ArrowLeft, Ship, Wrench, Users, TrendingUp, AlertCircle, Sparkles,
   Package, ShoppingCart, Info, ChevronRight, Activity, Settings2,
+  Menu, X, PanelLeftOpen, PanelRightOpen,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -135,7 +136,7 @@ function VesselSchematic({
   onSelect: (id: string) => void;
 }) {
   return (
-    <svg viewBox="0 0 100 80" className="w-full h-full min-h-[320px]">
+    <svg viewBox="0 0 100 80" className="w-full h-full min-h-[240px] sm:min-h-[320px]">
       <defs>
         <linearGradient id="hull-grad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#1a2744" />
@@ -213,6 +214,283 @@ function StockBadge({ quantity, minLevel }: { quantity: number; minLevel?: numbe
   return <Badge variant="secondary" className="text-[10px] bg-green-500/15 text-green-500" data-testid="badge-stock-ok">In Stock</Badge>;
 }
 
+function SlidePanel({
+  open, onClose, side, children, testId,
+}: {
+  open: boolean;
+  onClose: () => void;
+  side: "left" | "right";
+  children: React.ReactNode;
+  testId?: string;
+}) {
+  return (
+    <>
+      {open && (
+        <div
+          className="fixed inset-0 bg-black/60 z-40 lg:hidden"
+          onClick={onClose}
+          data-testid={testId ? `${testId}-overlay` : undefined}
+        />
+      )}
+      <div
+        className={`fixed top-0 ${side === "left" ? "left-0" : "right-0"} h-full w-[300px] sm:w-[340px] bg-[#0a1120] border-${side === "left" ? "r" : "l"} border-slate-700/20 z-50 transform transition-transform duration-300 ease-out lg:hidden ${
+          open ? "translate-x-0" : side === "left" ? "-translate-x-full" : "translate-x-full"
+        }`}
+        data-testid={testId}
+      >
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/15">
+          <span className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+            {side === "left" ? "Vessel Status" : "Inventory"}
+          </span>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose} data-testid={`${testId}-close`}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="overflow-y-auto h-[calc(100%-49px)]">
+          {children}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function MobileStatusBar({
+  avgHealth, riskScore, riskLevel, activeWorkOrderCount, crewCount, equipmentCount,
+}: {
+  avgHealth: number;
+  riskScore: number;
+  riskLevel: string;
+  activeWorkOrderCount: number;
+  crewCount: number;
+  equipmentCount: number;
+}) {
+  return (
+    <div className="flex gap-2 px-4 py-2 bg-slate-900/60 border-b border-slate-700/10 overflow-x-auto lg:hidden" data-testid="mobile-status-bar">
+      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-green-500/[0.06] border border-green-500/10 shrink-0">
+        <span className="text-[10px] text-slate-400 uppercase">Health</span>
+        <span className="text-sm font-bold" style={{ color: healthColor(avgHealth) }}>{avgHealth}</span>
+      </div>
+      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border shrink-0" style={{ background: `${healthColor(100 - riskScore)}06`, borderColor: `${healthColor(100 - riskScore)}15` }}>
+        <span className="text-[10px] text-slate-400 uppercase">Risk</span>
+        <span className="text-sm font-bold" style={{ color: riskScore > 60 ? "#ef4444" : riskScore > 30 ? "#f59e0b" : "#22c55e" }}>{riskScore}</span>
+      </div>
+      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-sky-500/[0.04] border border-sky-500/10 shrink-0">
+        <Wrench className="h-3 w-3 text-sky-400" />
+        <span className="text-sm font-bold text-slate-200">{activeWorkOrderCount}</span>
+      </div>
+      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-slate-500/[0.04] border border-slate-500/10 shrink-0">
+        <Users className="h-3 w-3 text-slate-400" />
+        <span className="text-sm font-bold text-slate-200">{crewCount}</span>
+      </div>
+      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-slate-500/[0.04] border border-slate-500/10 shrink-0">
+        <Settings2 className="h-3 w-3 text-slate-400" />
+        <span className="text-sm font-bold text-slate-200">{equipmentCount}</span>
+      </div>
+    </div>
+  );
+}
+
+function VesselStatusContent({
+  vessel, equipment, avgHealth, riskScore, riskLevel,
+  activeWorkOrders, vesselCrew, utilizationRate, totalCost,
+  selected, selectedSchematic, filteredParts,
+}: {
+  vessel: any;
+  equipment: Equipment[];
+  avgHealth: number;
+  riskScore: number;
+  riskLevel: string;
+  activeWorkOrders: any[];
+  vesselCrew: any[];
+  utilizationRate: string;
+  totalCost: string;
+  selected: Equipment | undefined;
+  selectedSchematic: SchematicEquipment | undefined;
+  filteredParts: Part[];
+}) {
+  return (
+    <div className="p-4">
+      <div className="mb-5">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Vessel Status</h2>
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: vessel.onlineStatus === "online" ? "#22c55e" : "#64748b" }}>
+            <Pulse color={vessel.onlineStatus === "online" ? "#22c55e" : "#64748b"} size={7} />
+            {(vessel.onlineStatus || "UNKNOWN").toUpperCase()}
+          </div>
+        </div>
+
+        <div className="p-3.5 rounded-lg bg-sky-500/[0.03] border border-sky-500/10">
+          <div className="text-xl font-bold text-slate-100" data-testid="text-vessel-name-sidebar">{vessel.name}</div>
+          <div className="text-[11px] text-slate-500 font-mono">
+            {vessel.vesselClass?.replace("_", " ") || "N/A"} · {vessel.flag || "N/A"}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        <div className="p-3 rounded-lg bg-green-500/[0.04] border border-green-500/10">
+          <div className="text-[10px] text-slate-500 uppercase tracking-wide mb-1">Health</div>
+          <div className="text-2xl font-extrabold leading-none" style={{ color: healthColor(avgHealth) }} data-testid="text-health-score">{avgHealth}</div>
+          <HealthBar value={avgHealth} width={90} height={4} />
+        </div>
+        <div className="p-3 rounded-lg border" style={{ background: `${healthColor(100 - riskScore)}08`, borderColor: `${healthColor(100 - riskScore)}18` }}>
+          <div className="text-[10px] text-slate-500 uppercase tracking-wide mb-1">Risk</div>
+          <div className="text-2xl font-extrabold leading-none" style={{ color: riskScore > 60 ? "#ef4444" : riskScore > 30 ? "#f59e0b" : "#22c55e" }} data-testid="text-risk-score">{riskScore}</div>
+          <div className="text-[10px] font-semibold mt-1" style={{ color: riskScore > 60 ? "#ef4444" : riskScore > 30 ? "#f59e0b" : "#22c55e" }}>{riskLevel.toUpperCase()}</div>
+        </div>
+      </div>
+
+      <div className="mb-4">
+        {[
+          ["Open Work Orders", String(activeWorkOrders.length)],
+          ["Crew Assigned", String(vesselCrew.length)],
+          ["Running Hours", equipment[0]?.runningHours ? `${equipment[0].runningHours.toLocaleString()} hrs` : "N/A"],
+          ["Day Rate", vessel.dayRateSgd ? `SGD ${Number(vessel.dayRateSgd).toLocaleString()}` : "N/A"],
+          ["Revenue YTD", totalCost !== "N/A" ? `SGD ${Number(totalCost).toLocaleString()}` : "N/A"],
+          ["Downtime YTD", `${vessel.downtimeDays || 0} days`],
+          ["Utilization", utilizationRate === "N/A" || utilizationRate === "NaN" ? "N/A" : `${utilizationRate}%`],
+        ].map(([label, value]) => (
+          <div key={label} className="flex justify-between items-center py-1.5 border-b border-slate-700/10">
+            <span className="text-xs text-slate-400">{label}</span>
+            <span className="text-xs font-semibold text-slate-200 font-mono">{value}</span>
+          </div>
+        ))}
+      </div>
+
+      {selected && selectedSchematic && (
+        <div className="p-3.5 rounded-lg border animate-in fade-in-0 duration-300" style={{ background: `${statusFill(selectedSchematic.status)}06`, borderColor: `${statusFill(selectedSchematic.status)}20` }} data-testid="panel-selected-equipment">
+          <div className="text-[10px] text-slate-500 uppercase tracking-wide mb-1.5">Selected Equipment</div>
+          <div className="text-[15px] font-bold text-slate-100">{selected.name}</div>
+          <div className="text-[11px] text-slate-500 mb-2.5 font-mono">
+            {[selected.manufacturer, selected.model].filter(Boolean).join(" ") || selected.type}
+          </div>
+
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[11px] text-slate-400">Health</span>
+            <HealthBar value={selectedSchematic.health} width={80} height={5} />
+            <span className="text-xs font-bold" style={{ color: statusFill(selectedSchematic.status) }}>{selectedSchematic.health}%</span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <Badge variant="outline" className={`text-[10px] uppercase ${statusColor(selected.status)}`} data-testid="badge-equipment-status">
+              {selected.status}
+            </Badge>
+            <span className="text-[11px] text-slate-500">
+              {filteredParts.length} compatible part{filteredParts.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+
+          {selected.lastMaintenanceDate && (
+            <div className="text-[10px] text-slate-500 mt-2">
+              Last service: {formatDistanceToNow(new Date(selected.lastMaintenanceDate), { addSuffix: true })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InventoryContent({
+  inventoryTab, setInventoryTab, filteredParts, allParts, selectedEquipment,
+}: {
+  inventoryTab: string;
+  setInventoryTab: (tab: string) => void;
+  filteredParts: Part[];
+  allParts: Part[];
+  selectedEquipment: string | null;
+}) {
+  return (
+    <div className="flex flex-col h-full">
+      <div className="px-4 pt-3 pb-0 border-b border-slate-700/10">
+        <h2 className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-2.5 flex items-center gap-1.5">
+          <Package className="h-3.5 w-3.5" /> Inventory
+        </h2>
+        <div className="flex gap-0.5">
+          {[
+            ["compatible", "Compatible"],
+            ["critical", "Critical"],
+            ["all", "All Parts"],
+          ].map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setInventoryTab(key)}
+              className={`px-3 py-1.5 text-[11px] font-semibold rounded-t-md border border-b-0 transition-colors min-h-[36px] ${
+                inventoryTab === key
+                  ? "bg-sky-500/10 text-sky-400 border-sky-500/20"
+                  : "bg-transparent text-slate-500 border-transparent hover:text-slate-300"
+              }`}
+              data-testid={`btn-inventory-${key}`}
+            >
+              {label}
+              {key === "critical" && (
+                <span className="ml-1.5 text-[9px] font-bold px-1.5 py-px rounded bg-red-500/15 text-red-400">
+                  {allParts.filter((p) => p.criticality === "critical" || p.criticality === "high").length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-3 py-2">
+        {filteredParts.length === 0 ? (
+          <div className="py-10 text-center text-slate-500 text-xs">
+            {selectedEquipment
+              ? "No compatible parts found for selected equipment"
+              : "Select equipment on the schematic to see compatible parts"}
+          </div>
+        ) : (
+          filteredParts.map((part) => (
+            <div
+              key={part.id}
+              className="p-3 mb-1.5 rounded-lg bg-white/[0.015] border border-slate-700/10 hover:bg-sky-500/[0.04] transition-colors cursor-pointer"
+              data-testid={`card-part-${part.id}`}
+            >
+              <div className="flex justify-between items-start mb-1">
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13px] font-semibold text-slate-200 truncate">{part.name}</div>
+                  <div className="text-[10px] text-slate-500 font-mono">
+                    {part.partNumber} · {part.manufacturer || "N/A"}
+                  </div>
+                </div>
+                <StockBadge quantity={part.minStockLevel ? (part.reorderPoint || 1) : 1} minLevel={part.minStockLevel} />
+              </div>
+
+              <div className="flex justify-between items-center mt-2">
+                <div className="flex gap-2.5">
+                  <span className="text-[11px] text-slate-400">{part.category || "General"}</span>
+                </div>
+                {part.unitCost && (
+                  <span className="text-[13px] font-bold text-slate-200 font-mono">
+                    ${part.unitCost.toLocaleString()}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex gap-1.5 mt-2">
+                <Button size="sm" variant="outline" className="h-7 sm:h-6 text-[10px] px-2.5 border-sky-500/20 text-sky-400 hover:bg-sky-500/10" data-testid={`btn-reserve-${part.id}`}>
+                  Reserve
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 sm:h-6 text-[10px] px-2.5 text-slate-400" data-testid={`btn-details-${part.id}`}>
+                  <Info className="h-3 w-3 mr-1" /> Details
+                </Button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="px-4 py-2.5 border-t border-slate-700/10 bg-[#080e1a]/50 flex justify-between text-[11px]">
+        <span className="text-slate-500">{allParts.length} parts total</span>
+        <span className="text-red-400 font-semibold">
+          {allParts.filter((p) => p.criticality === "critical").length} critical
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default function VesselDashboard() {
   const { match, vesselId, vessel, vesselLoading, equipment, equipmentLoading,
     vesselWorkOrders, vesselCrew, vesselMaintenanceSchedules,
@@ -223,6 +501,8 @@ export default function VesselDashboard() {
   const [selectedEquipment, setSelectedEquipment] = useState<string | null>(null);
   const [inventoryTab, setInventoryTab] = useState("compatible");
   const [bottomTab, setBottomTab] = useState("work-orders");
+  const [statusDrawerOpen, setStatusDrawerOpen] = useState(false);
+  const [inventoryDrawerOpen, setInventoryDrawerOpen] = useState(false);
 
   const schematicEquipment = useMemo(() => mapEquipmentToSchematic(equipment), [equipment]);
   const selected = useMemo(() => equipment.find((e) => e.id === selectedEquipment), [selectedEquipment, equipment]);
@@ -259,14 +539,18 @@ export default function VesselDashboard() {
 
   const riskLevel = riskScore > 60 ? "high" : riskScore > 30 ? "medium" : "low";
 
+  const handleEquipmentSelect = useCallback((id: string) => {
+    setSelectedEquipment(id === selectedEquipment ? null : id);
+  }, [selectedEquipment]);
+
   if (!match || vesselLoading) {
     return (
-      <div className="p-6 space-y-6">
-        <Skeleton className="h-8 w-64" />
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+        <Skeleton className="h-8 w-48 sm:w-64" />
         <div className="grid gap-4 md:grid-cols-3">
-          <Skeleton className="h-[600px]" />
-          <Skeleton className="h-[600px]" />
-          <Skeleton className="h-[600px]" />
+          <Skeleton className="h-[400px] sm:h-[600px]" />
+          <Skeleton className="h-[400px] sm:h-[600px]" />
+          <Skeleton className="h-[400px] sm:h-[600px] hidden md:block" />
         </div>
       </div>
     );
@@ -274,7 +558,7 @@ export default function VesselDashboard() {
 
   if (!vessel) {
     return (
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <Card><CardContent className="pt-6">
           <div className="text-center">
             <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground" />
@@ -289,27 +573,27 @@ export default function VesselDashboard() {
 
   return (
     <div className="min-h-screen bg-[#080e1a] text-slate-200" data-testid="vessel-dashboard-page">
-      <header className="flex items-center justify-between px-5 py-2.5 border-b border-slate-700/20 bg-[#080e1a]/95 backdrop-blur-xl sticky top-0 z-20">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" asChild className="h-8 w-8" data-testid="btn-back">
+      <header className="flex items-center justify-between px-3 sm:px-5 py-2.5 border-b border-slate-700/20 bg-[#080e1a]/95 backdrop-blur-xl sticky top-0 z-20">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <Button variant="ghost" size="icon" asChild className="h-9 w-9 sm:h-8 sm:w-8 shrink-0" data-testid="btn-back">
             <Link href="/vessel-management"><ArrowLeft className="h-4 w-4" /></Link>
           </Button>
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-500 to-sky-700 flex items-center justify-center text-white font-bold text-sm">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-500 to-sky-700 flex items-center justify-center text-white font-bold text-sm shrink-0">
             <Ship className="h-4 w-4" />
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="text-sm font-semibold flex items-center gap-1.5">
-              <span className="text-slate-400">{vessel.vesselType || "Vessel"}</span>
-              <ChevronRight className="h-3 w-3 text-slate-600" />
-              <span className="text-sky-400" data-testid="text-vessel-name">{vessel.name}</span>
+              <span className="text-slate-400 hidden sm:inline">{vessel.vesselType || "Vessel"}</span>
+              <ChevronRight className="h-3 w-3 text-slate-600 hidden sm:inline" />
+              <span className="text-sky-400 truncate" data-testid="text-vessel-name">{vessel.name}</span>
             </div>
-            <div className="text-[11px] text-slate-500 font-mono">
+            <div className="text-[11px] text-slate-500 font-mono truncate">
               {vessel.imo ? `IMO ${vessel.imo}` : vessel.id.slice(0, 8)} · {vessel.vesselClass?.replace("_", " ") || "N/A"}
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           <div className="hidden md:flex gap-3 text-[11px]">
             {[["Healthy", "#22c55e"], ["Warning", "#f59e0b"], ["Critical", "#ef4444"]].map(([label, color]) => (
               <span key={label as string} className="flex items-center gap-1 text-slate-400">
@@ -318,117 +602,114 @@ export default function VesselDashboard() {
               </span>
             ))}
           </div>
-          <CIIBadge vesselId={vesselId!} vesselName={vessel.name} />
-          <OperatingModeChip vesselId={vesselId!} />
-          <Button variant="outline" size="sm" className="gap-1.5 border-sky-500/30 text-sky-400 hover:bg-sky-500/10" data-testid="btn-ai-assistant">
-            <Sparkles className="h-3.5 w-3.5" /> Ask AI
+          <div className="hidden sm:block">
+            <CIIBadge vesselId={vesselId!} vesselName={vessel.name} />
+          </div>
+          <div className="hidden sm:block">
+            <OperatingModeChip vesselId={vesselId!} />
+          </div>
+          <Button variant="outline" size="sm" className="gap-1.5 border-sky-500/30 text-sky-400 hover:bg-sky-500/10 h-9 sm:h-8" data-testid="btn-ai-assistant">
+            <Sparkles className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Ask AI</span>
           </Button>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_320px] h-[calc(100vh-53px)]">
+      <MobileStatusBar
+        avgHealth={avgHealth}
+        riskScore={riskScore}
+        riskLevel={riskLevel}
+        activeWorkOrderCount={activeWorkOrders.length}
+        crewCount={vesselCrew.length}
+        equipmentCount={equipment.length}
+      />
 
-        {/* LEFT: Vessel Status Sidebar */}
-        <aside className="border-r border-slate-700/15 overflow-y-auto p-4 bg-slate-900/50 hidden lg:block" data-testid="panel-vessel-status">
-          <div className="mb-5">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Vessel Status</h2>
-              <div className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: vessel.onlineStatus === "online" ? "#22c55e" : "#64748b" }}>
-                <Pulse color={vessel.onlineStatus === "online" ? "#22c55e" : "#64748b"} size={7} />
-                {(vessel.onlineStatus || "UNKNOWN").toUpperCase()}
-              </div>
-            </div>
+      <div className="flex lg:hidden items-center gap-2 px-3 py-2 border-b border-slate-700/10">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 gap-1.5 text-xs border-slate-700/20 text-slate-300 flex-1"
+          onClick={() => setStatusDrawerOpen(true)}
+          data-testid="btn-open-status-drawer"
+        >
+          <PanelLeftOpen className="h-3.5 w-3.5" /> Vessel Status
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 gap-1.5 text-xs border-slate-700/20 text-slate-300 flex-1"
+          onClick={() => setInventoryDrawerOpen(true)}
+          data-testid="btn-open-inventory-drawer"
+        >
+          <PanelRightOpen className="h-3.5 w-3.5" /> Inventory <Badge variant="secondary" className="text-[9px] ml-1 px-1 py-0 bg-slate-700/30">{allParts.length}</Badge>
+        </Button>
+      </div>
 
-            <div className="p-3.5 rounded-lg bg-sky-500/[0.03] border border-sky-500/10">
-              <div className="text-xl font-bold text-slate-100" data-testid="text-vessel-name-sidebar">{vessel.name}</div>
-              <div className="text-[11px] text-slate-500 font-mono">
-                {vessel.vesselClass?.replace("_", " ") || "N/A"} · {vessel.flag || "N/A"}
-              </div>
-            </div>
-          </div>
+      <SlidePanel open={statusDrawerOpen} onClose={() => setStatusDrawerOpen(false)} side="left" testId="mobile-status-drawer">
+        <VesselStatusContent
+          vessel={vessel}
+          equipment={equipment}
+          avgHealth={avgHealth}
+          riskScore={riskScore}
+          riskLevel={riskLevel}
+          activeWorkOrders={activeWorkOrders}
+          vesselCrew={vesselCrew}
+          utilizationRate={utilizationRate}
+          totalCost={totalCost}
+          selected={selected}
+          selectedSchematic={selectedSchematic}
+          filteredParts={filteredParts}
+        />
+      </SlidePanel>
 
-          <div className="grid grid-cols-2 gap-2 mb-4">
-            <div className="p-3 rounded-lg bg-green-500/[0.04] border border-green-500/10">
-              <div className="text-[10px] text-slate-500 uppercase tracking-wide mb-1">Health</div>
-              <div className="text-2xl font-extrabold leading-none" style={{ color: healthColor(avgHealth) }} data-testid="text-health-score">{avgHealth}</div>
-              <HealthBar value={avgHealth} width={90} height={4} />
-            </div>
-            <div className="p-3 rounded-lg border" style={{ background: `${healthColor(100 - riskScore)}08`, borderColor: `${healthColor(100 - riskScore)}18` }}>
-              <div className="text-[10px] text-slate-500 uppercase tracking-wide mb-1">Risk</div>
-              <div className="text-2xl font-extrabold leading-none" style={{ color: riskScore > 60 ? "#ef4444" : riskScore > 30 ? "#f59e0b" : "#22c55e" }} data-testid="text-risk-score">{riskScore}</div>
-              <div className="text-[10px] font-semibold mt-1" style={{ color: riskScore > 60 ? "#ef4444" : riskScore > 30 ? "#f59e0b" : "#22c55e" }}>{riskLevel.toUpperCase()}</div>
-            </div>
-          </div>
+      <SlidePanel open={inventoryDrawerOpen} onClose={() => setInventoryDrawerOpen(false)} side="right" testId="mobile-inventory-drawer">
+        <InventoryContent
+          inventoryTab={inventoryTab}
+          setInventoryTab={setInventoryTab}
+          filteredParts={filteredParts}
+          allParts={allParts}
+          selectedEquipment={selectedEquipment}
+        />
+      </SlidePanel>
 
-          <div className="mb-4">
-            {[
-              ["Open Work Orders", String(activeWorkOrders.length)],
-              ["Crew Assigned", String(vesselCrew.length)],
-              ["Running Hours", equipment[0]?.runningHours ? `${equipment[0].runningHours.toLocaleString()} hrs` : "N/A"],
-              ["Day Rate", vessel.dayRateSgd ? `SGD ${Number(vessel.dayRateSgd).toLocaleString()}` : "N/A"],
-              ["Revenue YTD", totalCost !== "N/A" ? `SGD ${Number(totalCost).toLocaleString()}` : "N/A"],
-              ["Downtime YTD", `${vessel.downtimeDays || 0} days`],
-              ["Utilization", utilizationRate === "N/A" || utilizationRate === "NaN" ? "N/A" : `${utilizationRate}%`],
-            ].map(([label, value]) => (
-              <div key={label} className="flex justify-between items-center py-1.5 border-b border-slate-700/10">
-                <span className="text-xs text-slate-400">{label}</span>
-                <span className="text-xs font-semibold text-slate-200 font-mono">{value}</span>
-              </div>
-            ))}
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_320px] lg:h-[calc(100vh-53px)]">
 
-          {selected && selectedSchematic && (
-            <div className="p-3.5 rounded-lg border animate-in fade-in-0 duration-300" style={{ background: `${statusFill(selectedSchematic.status)}06`, borderColor: `${statusFill(selectedSchematic.status)}20` }} data-testid="panel-selected-equipment">
-              <div className="text-[10px] text-slate-500 uppercase tracking-wide mb-1.5">Selected Equipment</div>
-              <div className="text-[15px] font-bold text-slate-100">{selected.name}</div>
-              <div className="text-[11px] text-slate-500 mb-2.5 font-mono">
-                {[selected.manufacturer, selected.model].filter(Boolean).join(" ") || selected.type}
-              </div>
-
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-[11px] text-slate-400">Health</span>
-                <HealthBar value={selectedSchematic.health} width={80} height={5} />
-                <span className="text-xs font-bold" style={{ color: statusFill(selectedSchematic.status) }}>{selectedSchematic.health}%</span>
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                <Badge variant="outline" className={`text-[10px] uppercase ${statusColor(selected.status)}`} data-testid="badge-equipment-status">
-                  {selected.status}
-                </Badge>
-                <span className="text-[11px] text-slate-500">
-                  {filteredParts.length} compatible part{filteredParts.length !== 1 ? "s" : ""}
-                </span>
-              </div>
-
-              {selected.lastMaintenanceDate && (
-                <div className="text-[10px] text-slate-500 mt-2">
-                  Last service: {formatDistanceToNow(new Date(selected.lastMaintenanceDate), { addSuffix: true })}
-                </div>
-              )}
-            </div>
-          )}
+        <aside className="border-r border-slate-700/15 overflow-y-auto bg-slate-900/50 hidden lg:block" data-testid="panel-vessel-status">
+          <VesselStatusContent
+            vessel={vessel}
+            equipment={equipment}
+            avgHealth={avgHealth}
+            riskScore={riskScore}
+            riskLevel={riskLevel}
+            activeWorkOrders={activeWorkOrders}
+            vesselCrew={vesselCrew}
+            utilizationRate={utilizationRate}
+            totalCost={totalCost}
+            selected={selected}
+            selectedSchematic={selectedSchematic}
+            filteredParts={filteredParts}
+          />
         </aside>
 
-        {/* CENTER: Equipment Schematic + Bottom Tabs */}
         <main className="relative overflow-hidden flex flex-col" style={{ background: "radial-gradient(ellipse at 50% 30%, rgba(56,189,248,0.03) 0%, transparent 70%)" }}>
           <div className="absolute inset-0 pointer-events-none overflow-hidden z-[1]">
             <div className="w-full h-px bg-gradient-to-r from-transparent via-sky-500/10 to-transparent" style={{ animation: "scan-line 8s linear infinite" }} />
           </div>
           <style>{`@keyframes scan-line { 0% { transform: translateY(-100vh); } 100% { transform: translateY(100vh); } }`}</style>
 
-          <div className="px-5 py-3 flex justify-between items-center border-b border-slate-700/10 shrink-0">
+          <div className="px-3 sm:px-5 py-3 flex justify-between items-center border-b border-slate-700/10 shrink-0">
             <div>
               <h2 className="text-[13px] font-bold text-slate-200 uppercase tracking-wide">Equipment Schematic</h2>
-              <div className="text-[11px] text-slate-500 mt-0.5">Tap equipment to view details and compatible parts</div>
+              <div className="text-[11px] text-slate-500 mt-0.5 hidden sm:block">Tap equipment to view details and compatible parts</div>
             </div>
-            <div className="flex gap-1.5">
+            <div className="flex gap-1.5 flex-wrap justify-end">
               {schematicEquipment.map((eq) => (
                 <button
                   key={eq.id}
-                  onClick={() => setSelectedEquipment(eq.id === selectedEquipment ? null : eq.id)}
+                  onClick={() => handleEquipmentSelect(eq.id)}
                   className="rounded-full p-0 transition-all duration-150"
                   style={{
-                    width: 8, height: 8,
+                    width: 12, height: 12,
+                    minWidth: 12, minHeight: 12,
                     background: eq.id === selectedEquipment ? "#38bdf8" : statusFill(eq.status),
                     border: eq.id === selectedEquipment ? "2px solid #38bdf8" : "1px solid transparent",
                     opacity: eq.id === selectedEquipment ? 1 : 0.6,
@@ -440,11 +721,11 @@ export default function VesselDashboard() {
             </div>
           </div>
 
-          <div className="flex-1 px-5 py-3 min-h-0">
+          <div className="flex-1 px-3 sm:px-5 py-3 min-h-0 overflow-auto touch-pan-x touch-pan-y">
             {equipmentLoading ? (
-              <Skeleton className="w-full h-full min-h-[320px]" />
+              <Skeleton className="w-full h-full min-h-[240px] sm:min-h-[320px]" />
             ) : equipment.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-slate-500 text-sm">
+              <div className="flex items-center justify-center h-full min-h-[200px] text-slate-500 text-sm">
                 <div className="text-center">
                   <Settings2 className="mx-auto h-12 w-12 mb-3 text-slate-600" />
                   <p>No equipment registered for this vessel</p>
@@ -454,15 +735,17 @@ export default function VesselDashboard() {
                 </div>
               </div>
             ) : (
-              <VesselSchematic
-                equipment={schematicEquipment}
-                selectedId={selectedEquipment}
-                onSelect={(id) => setSelectedEquipment(id === selectedEquipment ? null : id)}
-              />
+              <div className="min-w-[320px]">
+                <VesselSchematic
+                  equipment={schematicEquipment}
+                  selectedId={selectedEquipment}
+                  onSelect={handleEquipmentSelect}
+                />
+              </div>
             )}
           </div>
 
-          <div className="absolute bottom-0 left-0 right-0 px-5 py-2 bg-[#080e1a]/90 backdrop-blur border-t border-slate-700/10 flex gap-4 justify-center z-10">
+          <div className="px-3 sm:px-5 py-2 bg-[#080e1a]/90 backdrop-blur border-t border-slate-700/10 flex gap-3 sm:gap-4 justify-center z-10 shrink-0">
             {[
               [equipment.filter((e) => e.status === "operational").length, "Healthy", "#22c55e"],
               [equipment.filter((e) => e.status === "warning" || e.status === "degraded").length, "Warning", "#f59e0b"],
@@ -477,52 +760,66 @@ export default function VesselDashboard() {
             ))}
           </div>
 
-          {/* Bottom tabs area */}
           <div className="border-t border-slate-700/15 bg-slate-900/30 shrink-0">
             <Tabs value={bottomTab} onValueChange={setBottomTab}>
-              <TabsList className="w-full justify-start rounded-none bg-transparent border-b border-slate-700/10 px-4 h-9">
-                <TabsTrigger value="work-orders" className="text-xs data-[state=active]:text-sky-400" data-testid="tab-work-orders">
-                  <Wrench className="h-3 w-3 mr-1" /> Work Orders ({activeWorkOrders.length})
+              <TabsList className="w-full justify-start rounded-none bg-transparent border-b border-slate-700/10 px-2 sm:px-4 h-10 sm:h-9 overflow-x-auto flex-nowrap">
+                <TabsTrigger value="work-orders" className="text-xs data-[state=active]:text-sky-400 min-h-[40px] sm:min-h-[36px] px-2 sm:px-3 shrink-0" data-testid="tab-work-orders">
+                  <Wrench className="h-3.5 w-3.5 sm:mr-1" /> <span className="hidden sm:inline">Work Orders ({activeWorkOrders.length})</span><span className="sm:hidden text-[10px] ml-1">{activeWorkOrders.length}</span>
                 </TabsTrigger>
-                <TabsTrigger value="crew" className="text-xs data-[state=active]:text-sky-400" data-testid="tab-crew">
-                  <Users className="h-3 w-3 mr-1" /> Crew ({vesselCrew.length})
+                <TabsTrigger value="crew" className="text-xs data-[state=active]:text-sky-400 min-h-[40px] sm:min-h-[36px] px-2 sm:px-3 shrink-0" data-testid="tab-crew">
+                  <Users className="h-3.5 w-3.5 sm:mr-1" /> <span className="hidden sm:inline">Crew ({vesselCrew.length})</span><span className="sm:hidden text-[10px] ml-1">{vesselCrew.length}</span>
                 </TabsTrigger>
-                <TabsTrigger value="maintenance" className="text-xs data-[state=active]:text-sky-400" data-testid="tab-maintenance">
-                  <Activity className="h-3 w-3 mr-1" /> Maintenance
+                <TabsTrigger value="maintenance" className="text-xs data-[state=active]:text-sky-400 min-h-[40px] sm:min-h-[36px] px-2 sm:px-3 shrink-0" data-testid="tab-maintenance">
+                  <Activity className="h-3.5 w-3.5 sm:mr-1" /> <span className="hidden sm:inline">Maintenance</span>
                 </TabsTrigger>
-                <TabsTrigger value="performance" className="text-xs data-[state=active]:text-sky-400" data-testid="tab-performance">
-                  <TrendingUp className="h-3 w-3 mr-1" /> Performance
+                <TabsTrigger value="performance" className="text-xs data-[state=active]:text-sky-400 min-h-[40px] sm:min-h-[36px] px-2 sm:px-3 shrink-0" data-testid="tab-performance">
+                  <TrendingUp className="h-3.5 w-3.5 sm:mr-1" /> <span className="hidden sm:inline">Performance</span>
                 </TabsTrigger>
-                <TabsTrigger value="diagnostics" className="text-xs data-[state=active]:text-sky-400" data-testid="tab-diagnostics">
-                  <AlertCircle className="h-3 w-3 mr-1" /> DTCs
+                <TabsTrigger value="diagnostics" className="text-xs data-[state=active]:text-sky-400 min-h-[40px] sm:min-h-[36px] px-2 sm:px-3 shrink-0" data-testid="tab-diagnostics">
+                  <AlertCircle className="h-3.5 w-3.5 sm:mr-1" /> <span className="hidden sm:inline">DTCs</span>
                 </TabsTrigger>
               </TabsList>
 
-              <div className="h-[200px] overflow-y-auto px-4 py-2">
+              <div className="h-[200px] sm:h-[200px] overflow-y-auto px-3 sm:px-4 py-2">
                 <TabsContent value="work-orders" className="mt-0">
                   {workOrdersLoading ? <Skeleton className="h-20" /> : vesselWorkOrders.length === 0 ? (
                     <div className="text-center py-6 text-slate-500 text-xs">No work orders for this vessel</div>
                   ) : (
-                    <Table>
-                      <TableHeader><TableRow className="border-slate-700/20">
-                        <TableHead className="text-[11px] text-slate-500">ID</TableHead>
-                        <TableHead className="text-[11px] text-slate-500">Equipment</TableHead>
-                        <TableHead className="text-[11px] text-slate-500">Description</TableHead>
-                        <TableHead className="text-[11px] text-slate-500">Status</TableHead>
-                        <TableHead className="text-[11px] text-slate-500">Created</TableHead>
-                      </TableRow></TableHeader>
-                      <TableBody>
-                        {vesselWorkOrders.slice(0, 10).map((wo) => (
-                          <TableRow key={wo.id} className="border-slate-700/10" data-testid={`row-wo-${wo.id}`}>
-                            <TableCell className="font-mono text-[11px] text-slate-400">{wo.id.slice(0, 8)}</TableCell>
-                            <TableCell className="text-xs">{wo.equipmentId}</TableCell>
-                            <TableCell className="text-xs max-w-[200px] truncate">{wo.description}</TableCell>
-                            <TableCell><Badge variant={wo.status === "completed" ? "default" : "outline"} className="text-[10px]">{wo.status}</Badge></TableCell>
-                            <TableCell className="text-[11px] text-slate-500">{formatDistanceToNow(new Date(wo.createdAt), { addSuffix: true })}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                    <div className="hidden sm:block">
+                      <Table>
+                        <TableHeader><TableRow className="border-slate-700/20">
+                          <TableHead className="text-[11px] text-slate-500">ID</TableHead>
+                          <TableHead className="text-[11px] text-slate-500">Equipment</TableHead>
+                          <TableHead className="text-[11px] text-slate-500">Description</TableHead>
+                          <TableHead className="text-[11px] text-slate-500">Status</TableHead>
+                          <TableHead className="text-[11px] text-slate-500">Created</TableHead>
+                        </TableRow></TableHeader>
+                        <TableBody>
+                          {vesselWorkOrders.slice(0, 10).map((wo) => (
+                            <TableRow key={wo.id} className="border-slate-700/10" data-testid={`row-wo-${wo.id}`}>
+                              <TableCell className="font-mono text-[11px] text-slate-400">{wo.id.slice(0, 8)}</TableCell>
+                              <TableCell className="text-xs">{wo.equipmentId}</TableCell>
+                              <TableCell className="text-xs max-w-[200px] truncate">{wo.description}</TableCell>
+                              <TableCell><Badge variant={wo.status === "completed" ? "default" : "outline"} className="text-[10px]">{wo.status}</Badge></TableCell>
+                              <TableCell className="text-[11px] text-slate-500">{formatDistanceToNow(new Date(wo.createdAt), { addSuffix: true })}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                  {!workOrdersLoading && vesselWorkOrders.length > 0 && (
+                    <div className="sm:hidden space-y-2">
+                      {vesselWorkOrders.slice(0, 10).map((wo) => (
+                        <div key={wo.id} className="p-2.5 rounded-lg bg-white/[0.02] border border-slate-700/10" data-testid={`row-wo-${wo.id}`}>
+                          <div className="flex justify-between items-start mb-1">
+                            <span className="text-xs font-medium text-slate-200 truncate flex-1">{wo.description || wo.id.slice(0, 8)}</span>
+                            <Badge variant={wo.status === "completed" ? "default" : "outline"} className="text-[10px] ml-2 shrink-0">{wo.status}</Badge>
+                          </div>
+                          <div className="text-[10px] text-slate-500">{formatDistanceToNow(new Date(wo.createdAt), { addSuffix: true })}</div>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </TabsContent>
 
@@ -530,24 +827,39 @@ export default function VesselDashboard() {
                   {crewLoading ? <Skeleton className="h-20" /> : vesselCrew.length === 0 ? (
                     <div className="text-center py-6 text-slate-500 text-xs">No crew assigned</div>
                   ) : (
-                    <Table>
-                      <TableHeader><TableRow className="border-slate-700/20">
-                        <TableHead className="text-[11px] text-slate-500">Name</TableHead>
-                        <TableHead className="text-[11px] text-slate-500">Role</TableHead>
-                        <TableHead className="text-[11px] text-slate-500">Rank</TableHead>
-                        <TableHead className="text-[11px] text-slate-500">Status</TableHead>
-                      </TableRow></TableHeader>
-                      <TableBody>
+                    <>
+                      <div className="hidden sm:block">
+                        <Table>
+                          <TableHeader><TableRow className="border-slate-700/20">
+                            <TableHead className="text-[11px] text-slate-500">Name</TableHead>
+                            <TableHead className="text-[11px] text-slate-500">Role</TableHead>
+                            <TableHead className="text-[11px] text-slate-500">Rank</TableHead>
+                            <TableHead className="text-[11px] text-slate-500">Status</TableHead>
+                          </TableRow></TableHeader>
+                          <TableBody>
+                            {vesselCrew.map((member) => (
+                              <TableRow key={member.id} className="border-slate-700/10" data-testid={`row-crew-${member.id}`}>
+                                <TableCell className="text-xs font-medium">{member.name}</TableCell>
+                                <TableCell className="text-xs">{member.role || "N/A"}</TableCell>
+                                <TableCell className="text-xs">{member.rank || "N/A"}</TableCell>
+                                <TableCell><Badge variant="outline" className="text-[10px]">{member.status || "Active"}</Badge></TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                      <div className="sm:hidden space-y-2">
                         {vesselCrew.map((member) => (
-                          <TableRow key={member.id} className="border-slate-700/10" data-testid={`row-crew-${member.id}`}>
-                            <TableCell className="text-xs font-medium">{member.name}</TableCell>
-                            <TableCell className="text-xs">{member.role || "N/A"}</TableCell>
-                            <TableCell className="text-xs">{member.rank || "N/A"}</TableCell>
-                            <TableCell><Badge variant="outline" className="text-[10px]">{member.status || "Active"}</Badge></TableCell>
-                          </TableRow>
+                          <div key={member.id} className="p-2.5 rounded-lg bg-white/[0.02] border border-slate-700/10" data-testid={`row-crew-${member.id}`}>
+                            <div className="flex justify-between items-start">
+                              <span className="text-xs font-medium text-slate-200">{member.name}</span>
+                              <Badge variant="outline" className="text-[10px]">{member.status || "Active"}</Badge>
+                            </div>
+                            <div className="text-[10px] text-slate-500 mt-0.5">{member.role || "N/A"} · {member.rank || "N/A"}</div>
+                          </div>
                         ))}
-                      </TableBody>
-                    </Table>
+                      </div>
+                    </>
                   )}
                 </TabsContent>
 
@@ -555,24 +867,42 @@ export default function VesselDashboard() {
                   {schedulesLoading ? <Skeleton className="h-20" /> : vesselMaintenanceSchedules.length === 0 ? (
                     <div className="text-center py-6 text-slate-500 text-xs">No maintenance schedules</div>
                   ) : (
-                    <Table>
-                      <TableHeader><TableRow className="border-slate-700/20">
-                        <TableHead className="text-[11px] text-slate-500">Equipment</TableHead>
-                        <TableHead className="text-[11px] text-slate-500">Type</TableHead>
-                        <TableHead className="text-[11px] text-slate-500">Date</TableHead>
-                        <TableHead className="text-[11px] text-slate-500">Status</TableHead>
-                      </TableRow></TableHeader>
-                      <TableBody>
+                    <>
+                      <div className="hidden sm:block">
+                        <Table>
+                          <TableHeader><TableRow className="border-slate-700/20">
+                            <TableHead className="text-[11px] text-slate-500">Equipment</TableHead>
+                            <TableHead className="text-[11px] text-slate-500">Type</TableHead>
+                            <TableHead className="text-[11px] text-slate-500">Date</TableHead>
+                            <TableHead className="text-[11px] text-slate-500">Status</TableHead>
+                          </TableRow></TableHeader>
+                          <TableBody>
+                            {vesselMaintenanceSchedules.map((s) => (
+                              <TableRow key={s.id} className="border-slate-700/10">
+                                <TableCell className="text-xs">{s.equipmentId}</TableCell>
+                                <TableCell><Badge variant="outline" className="text-[10px]">{s.isPredictive ? "Predictive" : "Scheduled"}</Badge></TableCell>
+                                <TableCell className="text-xs">{new Date(s.scheduledDate).toLocaleDateString()}</TableCell>
+                                <TableCell><Badge variant={s.status === "completed" ? "default" : "outline"} className="text-[10px]">{s.status}</Badge></TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                      <div className="sm:hidden space-y-2">
                         {vesselMaintenanceSchedules.map((s) => (
-                          <TableRow key={s.id} className="border-slate-700/10">
-                            <TableCell className="text-xs">{s.equipmentId}</TableCell>
-                            <TableCell><Badge variant="outline" className="text-[10px]">{s.isPredictive ? "Predictive" : "Scheduled"}</Badge></TableCell>
-                            <TableCell className="text-xs">{new Date(s.scheduledDate).toLocaleDateString()}</TableCell>
-                            <TableCell><Badge variant={s.status === "completed" ? "default" : "outline"} className="text-[10px]">{s.status}</Badge></TableCell>
-                          </TableRow>
+                          <div key={s.id} className="p-2.5 rounded-lg bg-white/[0.02] border border-slate-700/10">
+                            <div className="flex justify-between items-start mb-1">
+                              <span className="text-xs font-medium text-slate-200 truncate flex-1">{s.equipmentId}</span>
+                              <Badge variant={s.status === "completed" ? "default" : "outline"} className="text-[10px] ml-2 shrink-0">{s.status}</Badge>
+                            </div>
+                            <div className="text-[10px] text-slate-500">
+                              <Badge variant="outline" className="text-[9px] mr-1.5">{s.isPredictive ? "Predictive" : "Scheduled"}</Badge>
+                              {new Date(s.scheduledDate).toLocaleDateString()}
+                            </div>
+                          </div>
                         ))}
-                      </TableBody>
-                    </Table>
+                      </div>
+                    </>
                   )}
                 </TabsContent>
 
@@ -601,93 +931,14 @@ export default function VesselDashboard() {
           </div>
         </main>
 
-        {/* RIGHT: Inventory Panel */}
         <aside className="border-l border-slate-700/15 flex flex-col bg-slate-900/50 hidden lg:flex" data-testid="panel-inventory">
-          <div className="px-4 pt-3 pb-0 border-b border-slate-700/10">
-            <h2 className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-2.5 flex items-center gap-1.5">
-              <Package className="h-3.5 w-3.5" /> Inventory
-            </h2>
-            <div className="flex gap-0.5">
-              {[
-                ["compatible", "Compatible"],
-                ["critical", "Critical"],
-                ["all", "All Parts"],
-              ].map(([key, label]) => (
-                <button
-                  key={key}
-                  onClick={() => setInventoryTab(key)}
-                  className={`px-3 py-1.5 text-[11px] font-semibold rounded-t-md border border-b-0 transition-colors ${
-                    inventoryTab === key
-                      ? "bg-sky-500/10 text-sky-400 border-sky-500/20"
-                      : "bg-transparent text-slate-500 border-transparent hover:text-slate-300"
-                  }`}
-                  data-testid={`btn-inventory-${key}`}
-                >
-                  {label}
-                  {key === "critical" && (
-                    <span className="ml-1.5 text-[9px] font-bold px-1.5 py-px rounded bg-red-500/15 text-red-400">
-                      {allParts.filter((p) => p.criticality === "critical" || p.criticality === "high").length}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto px-3 py-2">
-            {filteredParts.length === 0 ? (
-              <div className="py-10 text-center text-slate-500 text-xs">
-                {selectedEquipment
-                  ? "No compatible parts found for selected equipment"
-                  : "Select equipment on the schematic to see compatible parts"}
-              </div>
-            ) : (
-              filteredParts.map((part) => (
-                <div
-                  key={part.id}
-                  className="p-3 mb-1.5 rounded-lg bg-white/[0.015] border border-slate-700/10 hover:bg-sky-500/[0.04] transition-colors cursor-pointer"
-                  data-testid={`card-part-${part.id}`}
-                >
-                  <div className="flex justify-between items-start mb-1">
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[13px] font-semibold text-slate-200 truncate">{part.name}</div>
-                      <div className="text-[10px] text-slate-500 font-mono">
-                        {part.partNumber} · {part.manufacturer || "N/A"}
-                      </div>
-                    </div>
-                    <StockBadge quantity={part.minStockLevel ? (part.reorderPoint || 1) : 1} minLevel={part.minStockLevel} />
-                  </div>
-
-                  <div className="flex justify-between items-center mt-2">
-                    <div className="flex gap-2.5">
-                      <span className="text-[11px] text-slate-400">{part.category || "General"}</span>
-                    </div>
-                    {part.unitCost && (
-                      <span className="text-[13px] font-bold text-slate-200 font-mono">
-                        ${part.unitCost.toLocaleString()}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex gap-1.5 mt-2">
-                    <Button size="sm" variant="outline" className="h-6 text-[10px] px-2.5 border-sky-500/20 text-sky-400 hover:bg-sky-500/10" data-testid={`btn-reserve-${part.id}`}>
-                      Reserve
-                    </Button>
-                    <Button size="sm" variant="ghost" className="h-6 text-[10px] px-2.5 text-slate-400" data-testid={`btn-details-${part.id}`}>
-                      <Info className="h-3 w-3 mr-1" /> Details
-                    </Button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-
-          <div className="px-4 py-2.5 border-t border-slate-700/10 bg-[#080e1a]/50 flex justify-between text-[11px]">
-            <span className="text-slate-500">{allParts.length} parts total</span>
-            <span className="text-red-400 font-semibold">
-              {allParts.filter((p) => p.criticality === "critical").length} critical
-            </span>
-          </div>
+          <InventoryContent
+            inventoryTab={inventoryTab}
+            setInventoryTab={setInventoryTab}
+            filteredParts={filteredParts}
+            allParts={allParts}
+            selectedEquipment={selectedEquipment}
+          />
         </aside>
       </div>
     </div>
