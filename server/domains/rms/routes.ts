@@ -31,8 +31,8 @@ router.get("/fleet-positions", requireOrgId, async (req: Request, res: Response)
       SELECT DISTINCT ON (v.id)
         v.id as vessel_id, v.name as vessel_name, v.vessel_type,
         v.online_status, v.last_heartbeat,
-        vtl.latitude, vtl.longitude, vtl.speed_over_ground as sog,
-        vtl.course_over_ground as cog, vtl.heading,
+        vtl.latitude, vtl.longitude, vtl.sog,
+        vtl.cog, vtl.heading,
         vtl.timestamp as last_position_at,
         vtl.source
       FROM vessels v
@@ -56,8 +56,8 @@ router.get("/vessel-track/:vesselId", requireOrgId, async (req: Request, res: Re
     const since = new Date(Date.now() - hoursBack * 60 * 60 * 1000);
 
     const result = await db.execute(sql`
-      SELECT latitude, longitude, speed_over_ground as sog,
-        course_over_ground as cog, heading, timestamp, source
+      SELECT latitude, longitude, sog,
+        cog, heading, timestamp, source
       FROM vessel_track_log
       WHERE vessel_id = ${req.params.vesselId}
         AND org_id = ${getOrgId(req)}
@@ -85,7 +85,7 @@ router.get("/consumption/hourly/:vesselId", requireOrgId, async (req: Request, r
 
     const result = await db.execute(sql`
       SELECT
-        date_trunc('hour', timestamp) as hour,
+        date_trunc('hour', ts) as hour,
         AVG(CASE WHEN sensor_type = 'fuel_consumption' AND equipment_id = ${fuelEquipmentId} THEN value END) as avg_flow_kg_per_h,
         MAX(CASE WHEN sensor_type = 'fuel_consumption' AND equipment_id = ${fuelEquipmentId} THEN value END) as max_flow_kg_per_h,
         MIN(CASE WHEN sensor_type = 'fuel_consumption' AND equipment_id = ${fuelEquipmentId} THEN value END) as min_flow_kg_per_h,
@@ -108,8 +108,8 @@ router.get("/consumption/hourly/:vesselId", requireOrgId, async (req: Request, r
       FROM equipment_telemetry
       WHERE (equipment_id = ${fuelEquipmentId} OR equipment_id = ${engineEquipmentId})
         AND org_id = ${orgId}
-        AND timestamp >= ${since}
-      GROUP BY date_trunc('hour', timestamp)
+        AND ts >= ${since}
+      GROUP BY date_trunc('hour', ts)
       ORDER BY hour ASC
     `);
 
@@ -133,10 +133,10 @@ router.get("/consumption/daily/:vesselId", requireOrgId, async (req: Request, re
 
     const result = await db.execute(sql`
       SELECT
-        date_trunc('day', timestamp) as day,
+        date_trunc('day', ts) as day,
         AVG(CASE WHEN sensor_type = 'fuel_consumption' THEN value END) as avg_flow_kg_per_h,
         MAX(CASE WHEN sensor_type = 'fuel_consumption' THEN value END) as max_flow_kg_per_h,
-        SUM(CASE WHEN sensor_type = 'fuel_consumption' THEN value END) / NULLIF(COUNT(DISTINCT date_trunc('hour', timestamp)), 0) * 24 / 1000 as estimated_daily_mt,
+        SUM(CASE WHEN sensor_type = 'fuel_consumption' THEN value END) / NULLIF(COUNT(DISTINCT date_trunc('hour', ts)), 0) * 24 / 1000 as estimated_daily_mt,
         AVG(CASE WHEN sensor_type = 'fuel_density' THEN value END) as avg_density,
         AVG(CASE WHEN sensor_type = 'main_engine_flow' THEN value END) as main_engine_flow,
         AVG(CASE WHEN sensor_type = 'port_engine_flow' THEN value END) as port_engine_flow,
@@ -150,16 +150,16 @@ router.get("/consumption/daily/:vesselId", requireOrgId, async (req: Request, re
       FROM equipment_telemetry
       WHERE (equipment_id = ${fuelEquipmentId} OR equipment_id = ${engineEquipmentId})
         AND org_id = ${orgId}
-        AND timestamp >= ${since}
-      GROUP BY date_trunc('day', timestamp)
+        AND ts >= ${since}
+      GROUP BY date_trunc('day', ts)
       ORDER BY day DESC
     `);
 
     const trackResult = await db.execute(sql`
       SELECT
         date_trunc('day', timestamp) as day,
-        AVG(speed_over_ground) as avg_sog,
-        SUM(speed_over_ground * EXTRACT(EPOCH FROM '1 hour'::interval) / 3600) as est_distance_nm
+        AVG(sog) as avg_sog,
+        SUM(sog * EXTRACT(EPOCH FROM '1 hour'::interval) / 3600) as est_distance_nm
       FROM vessel_track_log
       WHERE vessel_id = ${req.params.vesselId}
         AND org_id = ${getOrgId(req)}
@@ -212,12 +212,12 @@ router.get("/tanks/:vesselId", requireOrgId, async (req: Request, res: Response)
   try {
     const result = await db.execute(sql`
       SELECT DISTINCT ON (sensor_type)
-        sensor_type, value, timestamp, metadata
+        sensor_type, value, ts as timestamp
       FROM equipment_telemetry
       WHERE equipment_id LIKE ${'fmcc-fuel-' + req.params.vesselId}
         AND org_id = ${getOrgId(req)}
         AND sensor_type LIKE 'tank_%'
-      ORDER BY sensor_type, timestamp DESC
+      ORDER BY sensor_type, ts DESC
     `);
 
     res.json(getRows(result));
@@ -232,12 +232,12 @@ router.get("/rob/:vesselId", requireOrgId, async (req: Request, res: Response) =
     const orgId = getOrgId(req);
     const tankResult = await db.execute(sql`
       SELECT DISTINCT ON (sensor_type)
-        sensor_type, value, timestamp
+        sensor_type, value, ts as timestamp
       FROM equipment_telemetry
       WHERE equipment_id LIKE ${'fmcc-fuel-' + req.params.vesselId}
         AND org_id = ${orgId}
         AND sensor_type LIKE 'tank_%'
-      ORDER BY sensor_type, timestamp DESC
+      ORDER BY sensor_type, ts DESC
     `);
 
     const consumptionResult = await db.execute(sql`
@@ -246,7 +246,7 @@ router.get("/rob/:vesselId", requireOrgId, async (req: Request, res: Response) =
       WHERE equipment_id = ${'fmcc-fuel-' + req.params.vesselId}
         AND org_id = ${orgId}
         AND sensor_type = 'fuel_consumption'
-        AND timestamp >= ${new Date(Date.now() - 24 * 60 * 60 * 1000)}
+        AND ts >= ${new Date(Date.now() - 24 * 60 * 60 * 1000)}
     `);
 
     const avgConsumption = getFirstRow(consumptionResult)?.avg_consumption_kg_per_h ?? 0;

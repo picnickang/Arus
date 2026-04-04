@@ -102,7 +102,7 @@ class BunkeringDetectorService {
           org_id, vessel_id, started_at, status, fuel_type, density_at_15c, temperature_c, source
         ) VALUES (
           ${snapshot.orgId}, ${snapshot.vesselId}, ${new Date(snapshot.timestamp)},
-          'in_progress', 'fo',
+          'in_progress', 'hfo',
           ${snapshot.fuel.foDensity ?? null}, ${snapshot.fuel.foTemperature ?? null},
           ${'auto:' + detectionMethod}
         ) RETURNING id
@@ -119,7 +119,7 @@ class BunkeringDetectorService {
         readings: [{ timestamp: new Date(snapshot.timestamp), flowKgPerH }],
         peakFlow: flowKgPerH,
         totalKg: 0,
-        fuelType: 'fo',
+        fuelType: 'hfo',
         density: snapshot.fuel.foDensity,
         temperature: snapshot.fuel.foTemperature,
       };

@@ -185,8 +185,8 @@ class RmsAlertService {
     if (wasBunkering && !isBunkering && notifyOnEnd && this.canTrigger(config)) {
       const acc = this.bunkerAccumulators.get(stateKey);
       const accumulatedKg = acc?.accumulatedKg ?? 0;
-      const density = snapshot.fuel.foDensity ?? 0.85;
-      const estimatedLitres = accumulatedKg / density;
+      const densityKgPerM3 = snapshot.fuel.foDensity ?? 850;
+      const estimatedLitres = (accumulatedKg / densityKgPerM3) * 1000;
 
       this.bunkerAccumulators.delete(stateKey);
 

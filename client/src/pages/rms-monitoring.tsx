@@ -588,7 +588,8 @@ export default function RmsMonitoringPage() {
             </Card>
           ) : (
             <>
-              {/* Hourly Consumption */}
+              <ConsumptionTrendChart consumption={consumption} loading={consumptionLoading} />
+
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -608,12 +609,14 @@ export default function RmsMonitoringPage() {
                         <TableHeader>
                           <TableRow>
                             <TableHead>Hour</TableHead>
-                            <TableHead className="text-right">Avg Flow (kg/h)</TableHead>
-                            <TableHead className="text-right">Max Flow (kg/h)</TableHead>
-                            <TableHead className="text-right">Min Flow (kg/h)</TableHead>
-                            <TableHead className="text-right">Density</TableHead>
-                            <TableHead className="text-right">Temp (°C)</TableHead>
-                            <TableHead className="text-right">Data Points</TableHead>
+                            <TableHead className="text-right">Total (kg/h)</TableHead>
+                            <TableHead className="text-right">ME Flow</TableHead>
+                            <TableHead className="text-right">Port</TableHead>
+                            <TableHead className="text-right">Stbd</TableHead>
+                            <TableHead className="text-right">Gen</TableHead>
+                            <TableHead className="text-right">Boiler</TableHead>
+                            <TableHead className="text-right">Shaft kW</TableHead>
+                            <TableHead className="text-right">Run Hrs</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -621,11 +624,13 @@ export default function RmsMonitoringPage() {
                             <TableRow key={idx} data-testid={`consumption-row-${idx}`}>
                               <TableCell className="font-medium">{c.hour && format(new Date(c.hour), "dd MMM HH:mm")}</TableCell>
                               <TableCell className="text-right font-mono">{c.avg_flow_kg_per_h ? parseFloat(c.avg_flow_kg_per_h).toFixed(1) : "--"}</TableCell>
-                              <TableCell className="text-right font-mono">{c.max_flow_kg_per_h ? parseFloat(c.max_flow_kg_per_h).toFixed(1) : "--"}</TableCell>
-                              <TableCell className="text-right font-mono">{c.min_flow_kg_per_h ? parseFloat(c.min_flow_kg_per_h).toFixed(1) : "--"}</TableCell>
-                              <TableCell className="text-right font-mono">{c.avg_density ? parseFloat(c.avg_density).toFixed(4) : "--"}</TableCell>
-                              <TableCell className="text-right font-mono">{c.avg_temperature ? parseFloat(c.avg_temperature).toFixed(1) : "--"}</TableCell>
-                              <TableCell className="text-right">{c.data_points}</TableCell>
+                              <TableCell className="text-right font-mono">{c.main_engine_flow ? parseFloat(c.main_engine_flow).toFixed(1) : "--"}</TableCell>
+                              <TableCell className="text-right font-mono">{c.port_engine_flow ? parseFloat(c.port_engine_flow).toFixed(1) : "--"}</TableCell>
+                              <TableCell className="text-right font-mono">{c.stbd_engine_flow ? parseFloat(c.stbd_engine_flow).toFixed(1) : "--"}</TableCell>
+                              <TableCell className="text-right font-mono">{c.generator_flow ? parseFloat(c.generator_flow).toFixed(1) : "--"}</TableCell>
+                              <TableCell className="text-right font-mono">{c.boiler_flow ? parseFloat(c.boiler_flow).toFixed(1) : "--"}</TableCell>
+                              <TableCell className="text-right font-mono">{c.shaft_power_kw ? parseFloat(c.shaft_power_kw).toFixed(0) : "--"}</TableCell>
+                              <TableCell className="text-right font-mono">{c.running_hours ? parseFloat(c.running_hours).toFixed(1) : "--"}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
@@ -635,14 +640,13 @@ export default function RmsMonitoringPage() {
                 </CardContent>
               </Card>
 
-              {/* Daily Summary */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5 text-amber-600" />
                     Daily Summary
                   </CardTitle>
-                  <CardDescription>Daily consumption and voyage data</CardDescription>
+                  <CardDescription>Daily consumption, running hours, and voyage data</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {dailyConsumption.length === 0 ? (
@@ -655,9 +659,12 @@ export default function RmsMonitoringPage() {
                             <TableHead>Day</TableHead>
                             <TableHead className="text-right">Avg Flow (kg/h)</TableHead>
                             <TableHead className="text-right">Est. Daily (MT)</TableHead>
+                            <TableHead className="text-right">Running Hrs</TableHead>
+                            <TableHead className="text-right">Distance (NM)</TableHead>
                             <TableHead className="text-right">Avg SOG (kn)</TableHead>
+                            <TableHead className="text-right">ME Flow</TableHead>
+                            <TableHead className="text-right">Gen Flow</TableHead>
                             <TableHead className="text-right">Density</TableHead>
-                            <TableHead className="text-right">Data Points</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -666,9 +673,12 @@ export default function RmsMonitoringPage() {
                               <TableCell className="font-medium">{d.day && format(new Date(d.day), "dd MMM yyyy")}</TableCell>
                               <TableCell className="text-right font-mono">{d.avg_flow_kg_per_h ? parseFloat(d.avg_flow_kg_per_h).toFixed(1) : "--"}</TableCell>
                               <TableCell className="text-right font-mono">{d.estimated_daily_mt ? parseFloat(d.estimated_daily_mt).toFixed(2) : "--"}</TableCell>
+                              <TableCell className="text-right font-mono">{d.running_hours_delta ? parseFloat(d.running_hours_delta).toFixed(1) : "--"}</TableCell>
+                              <TableCell className="text-right font-mono">{d.est_distance_nm ? parseFloat(d.est_distance_nm).toFixed(1) : "--"}</TableCell>
                               <TableCell className="text-right font-mono">{d.avg_sog ? parseFloat(d.avg_sog).toFixed(1) : "--"}</TableCell>
+                              <TableCell className="text-right font-mono">{d.main_engine_flow ? parseFloat(d.main_engine_flow).toFixed(1) : "--"}</TableCell>
+                              <TableCell className="text-right font-mono">{d.generator_flow ? parseFloat(d.generator_flow).toFixed(1) : "--"}</TableCell>
                               <TableCell className="text-right font-mono">{d.avg_density ? parseFloat(d.avg_density).toFixed(4) : "--"}</TableCell>
-                              <TableCell className="text-right">{d.data_points}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
@@ -915,6 +925,90 @@ function FleetMapCard({
             </div>
           </div>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ConsumptionTrendChart({ consumption, loading }: { consumption: any[]; loading: boolean }) {
+  const chartData = useMemo(() => {
+    if (!consumption || consumption.length === 0) return [];
+    return consumption.map((c: any) => ({
+      hour: c.hour ? format(new Date(c.hour), "HH:mm") : "",
+      total: c.avg_flow_kg_per_h ? parseFloat(c.avg_flow_kg_per_h) : 0,
+      me: c.main_engine_flow ? parseFloat(c.main_engine_flow) : 0,
+      gen: c.generator_flow ? parseFloat(c.generator_flow) : 0,
+      boiler: c.boiler_flow ? parseFloat(c.boiler_flow) : 0,
+    }));
+  }, [consumption]);
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader><CardTitle className="flex items-center gap-2"><Activity className="h-5 w-5 text-blue-600" />Consumption Trend</CardTitle></CardHeader>
+        <CardContent><Skeleton className="h-48 w-full" /></CardContent>
+      </Card>
+    );
+  }
+
+  if (chartData.length === 0) {
+    return (
+      <Card>
+        <CardHeader><CardTitle className="flex items-center gap-2"><Activity className="h-5 w-5 text-blue-600" />Consumption Trend</CardTitle></CardHeader>
+        <CardContent><p className="text-center py-6 text-muted-foreground">No trend data available</p></CardContent>
+      </Card>
+    );
+  }
+
+  const maxVal = Math.max(...chartData.map(d => d.total), 1);
+  const chartW = 700;
+  const chartH = 200;
+  const padL = 50;
+  const padR = 10;
+  const padT = 10;
+  const padB = 30;
+  const plotW = chartW - padL - padR;
+  const plotH = chartH - padT - padB;
+  const stepX = plotW / Math.max(chartData.length - 1, 1);
+  const scaleY = (v: number) => padT + plotH - (v / maxVal) * plotH;
+
+  const linePath = (key: 'total' | 'me' | 'gen' | 'boiler') =>
+    chartData.map((d, i) => `${i === 0 ? "M" : "L"}${padL + i * stepX},${scaleY(d[key])}`).join(" ");
+
+  const yTicks = [0, maxVal * 0.25, maxVal * 0.5, maxVal * 0.75, maxVal];
+  const xLabelInterval = Math.max(1, Math.floor(chartData.length / 8));
+
+  return (
+    <Card data-testid="card-consumption-trend">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Activity className="h-5 w-5 text-blue-600" />
+          Consumption Trend
+        </CardTitle>
+        <CardDescription>Hourly fuel flow trend (kg/h)</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <svg viewBox={`0 0 ${chartW} ${chartH}`} className="w-full h-auto" preserveAspectRatio="xMidYMid meet">
+          {yTicks.map((tick, i) => (
+            <g key={i}>
+              <line x1={padL} x2={chartW - padR} y1={scaleY(tick)} y2={scaleY(tick)} stroke="currentColor" strokeOpacity={0.1} />
+              <text x={padL - 5} y={scaleY(tick) + 3} textAnchor="end" className="fill-muted-foreground" fontSize={9}>{tick.toFixed(0)}</text>
+            </g>
+          ))}
+          {chartData.map((d, i) => i % xLabelInterval === 0 ? (
+            <text key={i} x={padL + i * stepX} y={chartH - 5} textAnchor="middle" className="fill-muted-foreground" fontSize={8}>{d.hour}</text>
+          ) : null)}
+          <path d={linePath('total')} fill="none" stroke="#3b82f6" strokeWidth={2} />
+          <path d={linePath('me')} fill="none" stroke="#22c55e" strokeWidth={1.5} strokeDasharray="4 2" />
+          <path d={linePath('gen')} fill="none" stroke="#f59e0b" strokeWidth={1.5} strokeDasharray="4 2" />
+          <path d={linePath('boiler')} fill="none" stroke="#ef4444" strokeWidth={1.5} strokeDasharray="4 2" />
+        </svg>
+        <div className="flex gap-4 justify-center mt-2 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1"><span className="inline-block w-3 h-0.5 bg-blue-500" /> Total</div>
+          <div className="flex items-center gap-1"><span className="inline-block w-3 h-0.5 bg-green-500" style={{ borderTop: "1px dashed" }} /> ME</div>
+          <div className="flex items-center gap-1"><span className="inline-block w-3 h-0.5 bg-amber-500" style={{ borderTop: "1px dashed" }} /> Gen</div>
+          <div className="flex items-center gap-1"><span className="inline-block w-3 h-0.5 bg-red-500" style={{ borderTop: "1px dashed" }} /> Boiler</div>
+        </div>
       </CardContent>
     </Card>
   );
