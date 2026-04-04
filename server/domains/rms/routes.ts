@@ -136,7 +136,7 @@ router.get("/consumption/daily/:vesselId", requireOrgId, async (req: Request, re
         date_trunc('day', ts) as day,
         AVG(CASE WHEN sensor_type = 'fuel_consumption' THEN value END) as avg_flow_kg_per_h,
         MAX(CASE WHEN sensor_type = 'fuel_consumption' THEN value END) as max_flow_kg_per_h,
-        SUM(CASE WHEN sensor_type = 'fuel_consumption' THEN value END) / NULLIF(COUNT(DISTINCT date_trunc('hour', ts)), 0) * 24 / 1000 as estimated_daily_mt,
+        AVG(CASE WHEN sensor_type = 'fuel_consumption' THEN value END) * 24 / 1000 as estimated_daily_mt,
         AVG(CASE WHEN sensor_type = 'fuel_density' THEN value END) as avg_density,
         AVG(CASE WHEN sensor_type = 'main_engine_flow' THEN value END) as main_engine_flow,
         AVG(CASE WHEN sensor_type = 'port_engine_flow' THEN value END) as port_engine_flow,
@@ -156,15 +156,18 @@ router.get("/consumption/daily/:vesselId", requireOrgId, async (req: Request, re
     `);
 
     const trackResult = await db.execute(sql`
-      SELECT
-        date_trunc('day', timestamp) as day,
-        AVG(sog) as avg_sog,
-        SUM(sog * EXTRACT(EPOCH FROM '1 hour'::interval) / 3600) as est_distance_nm
-      FROM vessel_track_log
-      WHERE vessel_id = ${req.params.vesselId}
-        AND org_id = ${getOrgId(req)}
-        AND timestamp >= ${since}
-      GROUP BY date_trunc('day', timestamp)
+      SELECT day, AVG(sog) as avg_sog, SUM(COALESCE(segment_nm, 0)) as est_distance_nm
+      FROM (
+        SELECT
+          date_trunc('day', timestamp) as day,
+          sog,
+          sog * EXTRACT(EPOCH FROM (timestamp - LAG(timestamp) OVER (PARTITION BY date_trunc('day', timestamp) ORDER BY timestamp))) / 3600.0 as segment_nm
+        FROM vessel_track_log
+        WHERE vessel_id = ${req.params.vesselId}
+          AND org_id = ${getOrgId(req)}
+          AND timestamp >= ${since}
+      ) segments
+      GROUP BY day
     `);
 
     const trackByDay: Record<string, any> = {};
