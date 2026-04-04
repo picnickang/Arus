@@ -217,6 +217,11 @@ export async function registerRoutes(
   app.use(generalApiRateLimit, amosImportRouter);
   console.log("[AMOS Import] Registered (import, preview, mappings)");
 
+  // SHIPMATE Import Adapter
+  const { shipmateImportRouter } = await import("./import-adapters/shipmate/index");
+  app.use("/api/import/shipmate", shipmateImportRouter);
+  console.log("[SHIPMATE Import] Registered (import, preview, modules)");
+
   // Scheduled Reports domain
   const { createScheduledReportsDomain } = await import("./domains/scheduled-reports/index.js");
   const scheduledReportsDomain = createScheduledReportsDomain();
