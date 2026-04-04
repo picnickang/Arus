@@ -246,6 +246,18 @@ const domainRouters: DomainRouterConfig[] = [
   // Sensor Calibration Registry (PdM data quality)
   { name: "SensorCalibration", importPath: "../domains/sensors/index.js", functionName: "registerSensorCalibrationRoutes",
     getDeps: () => ({}) },
+
+  // OSV-Specific Domains
+  { name: "DpMonitoring", importPath: "../domains/dp/index.js", functionName: "registerDpRoutes",
+    getDeps: () => ({}) },
+  { name: "CharterCompliance", importPath: "../domains/charter/index.js", functionName: "registerCharterRoutes",
+    getDeps: () => ({}) },
+  { name: "Vetting", importPath: "../domains/vetting/index.js", functionName: "registerVettingRoutes",
+    getDeps: () => ({}) },
+  { name: "OffshoreOps", importPath: "../domains/offshore-ops/index.js", functionName: "registerOffshoreOpsRoutes",
+    getDeps: () => ({}) },
+  { name: "Efms", importPath: "../domains/efms/index.js", functionName: "registerEfmsRoutes",
+    getDeps: () => ({}) },
 ];
 
 /**
