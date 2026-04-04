@@ -32,6 +32,7 @@ class RmsAlertService {
   private configCache = new Map<string, { configs: AlertConfig[]; loadedAt: number }>();
   private readonly CACHE_TTL_MS = 60_000;
   private geofenceState = new Map<string, boolean>();
+  private bunkeringState = new Map<string, boolean>();
 
   async processSnapshot(snapshot: FmccSnapshot): Promise<void> {
     const configs = await this.getVesselAlertConfigs(snapshot.orgId, snapshot.vesselId);
@@ -185,10 +186,10 @@ class RmsAlertService {
     const minVolumeL = typeof minVolumeLitres === 'number' ? minVolumeLitres : 0;
     const BUNKERING_THRESHOLD = 500;
     const stateKey = `bunker:${config.id}:${snapshot.vesselId}`;
-    const wasBunkering = this.geofenceState.get(stateKey);
+    const wasBunkering = this.bunkeringState.get(stateKey);
     const isBunkering = bunkerFlow > BUNKERING_THRESHOLD;
 
-    this.geofenceState.set(stateKey, isBunkering);
+    this.bunkeringState.set(stateKey, isBunkering);
 
     if (isBunkering) {
       const now = new Date();
@@ -204,7 +205,7 @@ class RmsAlertService {
 
     if (wasBunkering === undefined) return;
 
-    if (!wasBunkering && isBunkering && notifyOnStart && this.canTrigger(config)) {
+    if (!wasBunkering && isBunkering && notifyOnStart && this.canTriggerKeyed(`${stateKey}:start`, config.cooldownMinutes)) {
       this.bunkerAccumulators.set(stateKey, { startTime: new Date(), accumulatedKg: 0, lastPollTime: new Date() });
       await this.triggerAlert(config, 'info',
         `Bunkering Detected: ${config.name}`,
@@ -213,7 +214,7 @@ class RmsAlertService {
       );
     }
 
-    if (wasBunkering && !isBunkering && notifyOnEnd && this.canTrigger(config)) {
+    if (wasBunkering && !isBunkering && notifyOnEnd && this.canTriggerKeyed(`${stateKey}:end`, config.cooldownMinutes)) {
       const acc = this.bunkerAccumulators.get(stateKey);
       const accumulatedKg = acc?.accumulatedKg ?? 0;
       const densityKgPerM3 = snapshot.fuel.foDensity ?? 850;
@@ -261,6 +262,16 @@ class RmsAlertService {
     if (!config.lastTriggeredAt) return true;
     const cooldownMs = config.cooldownMinutes * 60 * 1000;
     return Date.now() - new Date(config.lastTriggeredAt).getTime() > cooldownMs;
+  }
+
+  private transitionCooldowns = new Map<string, number>();
+
+  private canTriggerKeyed(key: string, cooldownMinutes: number): boolean {
+    const lastMs = this.transitionCooldowns.get(key);
+    if (!lastMs) { this.transitionCooldowns.set(key, Date.now()); return true; }
+    const cooldownMs = cooldownMinutes * 60 * 1000;
+    if (Date.now() - lastMs > cooldownMs) { this.transitionCooldowns.set(key, Date.now()); return true; }
+    return false;
   }
 
   private async triggerAlert(
