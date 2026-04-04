@@ -258,6 +258,8 @@ const domainRouters: DomainRouterConfig[] = [
     getDeps: () => ({}) },
   { name: "Efms", importPath: "../domains/efms/index.js", functionName: "registerEfmsRoutes",
     getDeps: () => ({}) },
+  { name: "Rms", importPath: "../domains/rms/index.js", functionName: "registerRmsRoutes",
+    getDeps: () => ({}) },
 ];
 
 /**

@@ -388,6 +388,25 @@ export function getFmccPollingService(): FmccPollingService {
 
 export function initializeFmccPolling(): void {
   const service = getFmccPollingService();
+
+  service.on('poll_success', async (snapshot: FmccSnapshot) => {
+    try {
+      const { bunkeringDetector } = await import('../services/rms/bunkering-detector');
+      const { rmsAlertService } = await import('../services/rms/alert-service');
+      const results = await Promise.allSettled([
+        bunkeringDetector.processSnapshot(snapshot),
+        rmsAlertService.processSnapshot(snapshot),
+      ]);
+      for (const r of results) {
+        if (r.status === 'rejected') {
+          console.error('[FMCC→RMS] Processor error:', r.reason);
+        }
+      }
+    } catch (err) {
+      console.error('[FMCC→RMS] Integration error:', err);
+    }
+  });
+
   if (service.getConfig().enabled && !service.isRunning()) {
     service.start();
   }

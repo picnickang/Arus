@@ -7,6 +7,7 @@ const LogsComplianceHub = lazy(() => import("@/pages/logs-compliance-hub"));
 const FuelEmissionsLog = lazy(() => import("@/pages/fuel-emissions-log"));
 const VesselTrackLog = lazy(() => import("@/pages/vessel-track-log"));
 const ConditionMonitoringLog = lazy(() => import("@/pages/condition-monitoring-log"));
+const RmsMonitoring = lazy(() => import("@/pages/rms-monitoring"));
 
 export const recordsRoutes = [
   { path: "/logs", component: LogsHub },
@@ -20,4 +21,5 @@ export const recordsRoutes = [
   { path: "/fuel-emissions-log", component: FuelEmissionsLog },
   { path: "/vessel-track-log", component: VesselTrackLog },
   { path: "/condition-monitoring-log", component: ConditionMonitoringLog },
+  { path: "/rms-monitoring", component: RmsMonitoring },
 ];

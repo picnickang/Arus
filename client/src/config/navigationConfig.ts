@@ -108,6 +108,7 @@ export const routeResourceMap: Record<string, string> = {
   "/fuel-emissions-log": "engine_logbook",
   "/vessel-track-log": "deck_logbook",
   "/condition-monitoring-log": "condition_monitoring",
+  "/rms-monitoring": "sensors",
   "/logs-compliance": "compliance_reports",
   
   // Analytics
@@ -206,6 +207,7 @@ export const navigationCategories: NavigationCategory[] = [
       { name: "Deck Log", href: "/logs/deck", icon: Anchor, description: "Deck logbook & vessel track" },
       { name: "Engine Log", href: "/logs/engine", icon: Wrench, description: "Engine room & fuel" },
       { name: "Equipment Log", href: "/logs/equipment", icon: Activity, description: "Condition & decommissioned" },
+      { name: "RMS Monitoring", href: "/rms-monitoring", icon: Gauge, description: "Aquametro fuel monitoring & alerts", resource: "sensors" },
     ],
   },
   {
