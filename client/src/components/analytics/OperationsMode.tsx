@@ -51,7 +51,7 @@ export function OperationsMode() {
   });
 
   const handleViewDetails = useCallback((equipmentId: string, sensorType: string) => {
-    navigate(`/active-telemetry?equipment=${equipmentId}&sensor=${sensorType}`);
+    navigate(`/dashboard?tab=telemetry&equipment=${equipmentId}&sensor=${sensorType}`);
   }, [navigate]);
 
   return (
@@ -132,7 +132,7 @@ export function OperationsMode() {
                     <Badge variant="outline" className="mt-1 text-xs" data-testid={`badge-anomaly-time-${idx}`}>{formatDistanceToNow(new Date(anomaly.timestamp), { addSuffix: true })}</Badge>
                   </div>
                   <div className="flex gap-2 flex-wrap">
-                    <Link href={`/active-telemetry?equipment=${anomaly.equipmentId}&sensor=${anomaly.sensorType}`}>
+                    <Link href={`/dashboard?tab=telemetry&equipment=${anomaly.equipmentId}&sensor=${anomaly.sensorType}`}>
                       <Button size="sm" variant="outline" data-testid={`button-view-graph-${idx}`}><LineChartIcon className="h-3 w-3 mr-1" />Graph</Button>
                     </Link>
                     {status === "unacknowledged" && (

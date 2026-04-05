@@ -15,6 +15,8 @@ import { HealthLegend, HealthIndexTooltip } from "@/components/HealthLegend";
 import { FleetRisksCard } from "@/components/dashboard/FleetRisksCard";
 import { STCWComplianceWidget } from "@/components/crew/STCWComplianceWidget";
 import { useDashboardData } from "@/features/analytics";
+import { TelemetryTab } from "@/components/dashboard/TelemetryTab";
+import { InsightsTab } from "@/components/dashboard/InsightsTab";
 
 function DashboardSkeleton() {
   return (
@@ -192,7 +194,7 @@ export default function DashboardImproved() {
           <UnifiedMetricCard label="Risk Alerts" value={metrics?.riskAlerts || 0} icon={AlertTriangle} color="red" variant={preferences.metricsVariant === "minimal" ? "minimal" : "default"} status={metrics?.riskAlerts && metrics.riskAlerts > 0 ? "warning" : "healthy"} trend={metrics?.trends?.riskAlerts ? { value: metrics.trends.riskAlerts.value, label: `${metrics.trends.riskAlerts.direction === "up" ? "more" : "fewer"} than last week`, direction: metrics.trends.riskAlerts.direction, isPositive: metrics.trends.riskAlerts.direction !== "up" } : undefined} data-testid="metric-risk-alerts" />
           <UnifiedMetricCard label="Diagnostic Codes" value={dtcStats?.totalActiveDtcs || 0} icon={Activity} color="purple" variant={preferences.metricsVariant === "minimal" ? "minimal" : "default"} status={dtcStats?.criticalDtcs && dtcStats.criticalDtcs > 0 ? "critical" : "healthy"} trend={dtcStats?.criticalDtcs === undefined ? undefined : { value: dtcStats.criticalDtcs, label: "critical DTCs", direction: dtcStats.criticalDtcs > 0 ? "up" : "neutral", isPositive: dtcStats.criticalDtcs === 0 }} data-testid="metric-diagnostic-codes" />
         </MetricCardGrid>
-        <DashboardTabs overviewContent={overviewContent} devicesContent={devicesContent} maintenanceContent={maintenanceContent} />
+        <DashboardTabs overviewContent={overviewContent} devicesContent={devicesContent} maintenanceContent={maintenanceContent} telemetryContent={<TelemetryTab />} insightsContent={<InsightsTab />} />
       </div>
     </div>
   );

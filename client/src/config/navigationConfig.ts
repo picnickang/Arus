@@ -13,7 +13,6 @@ import {
   Shield,
   Activity,
   Building,
-  Lightbulb,
   Boxes,
   Database,
   SlidersHorizontal,
@@ -50,9 +49,7 @@ export interface NavigationCategory {
 export const routeResourceMap: Record<string, string> = {
   // Operations
   "/dashboard": "dashboard",
-  "/active-telemetry": "sensors",
   "/alerts": "alerts",
-  "/actionable-insights": "ai_reports",
   "/governance-dashboard": "compliance_reports",
   "/diagnostics": "system_settings",
   
@@ -134,9 +131,7 @@ export const navigationCategories: NavigationCategory[] = [
     hubRoute: "/operations",
     description: "Dashboard, telemetry, and insights",
     children: [
-      { name: "Dashboard", href: "/dashboard", icon: Gauge, description: "Overview, metrics, alerts" },
-      { name: "Active Telemetry", href: "/active-telemetry", icon: Activity, description: "Live sensor streams and graphs" },
-      { name: "Actionable Insights", href: "/actionable-insights", icon: Lightbulb, description: "AI recommendations" },
+      { name: "Dashboard", href: "/dashboard", icon: Gauge, description: "Overview, metrics, alerts, telemetry & insights" },
     ],
   },
   {
@@ -267,6 +262,8 @@ export const routeMigrations: Record<string, string> = {
   "/prediction-feedback": "/analytics",
   "/llm-costs": "/analytics",
   "/alerts": "/dashboard",
+  "/active-telemetry": "/dashboard?tab=telemetry",
+  "/actionable-insights": "/dashboard?tab=insights",
 };
 
 // Helper: Migrate legacy route to current route

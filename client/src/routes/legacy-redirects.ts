@@ -35,6 +35,8 @@ const additionalRedirects: Array<{ from: string; to: string }> = [
   { from: "/fleet-overview", to: "/fleet" },
   { from: "/bridge-view", to: "/fleet" },
   { from: "/alerts", to: "/dashboard" },
+  { from: "/active-telemetry", to: "/dashboard?tab=telemetry" },
+  { from: "/actionable-insights", to: "/dashboard?tab=insights" },
   { from: "/governance", to: "/governance-dashboard" },
   { from: "/kb-chat", to: "/knowledge-base?tab=chat" },
 ];

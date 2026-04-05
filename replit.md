@@ -32,6 +32,7 @@ Developed with Express.js and TypeScript, offering RESTful APIs with Zod validat
 -   **Import Adapters**: Supports CSV/XML imports from AMOS CMMS and SBN SHIPMATE ERP for equipment, work orders, parts, and maintenance plans.
 -   **Equipment Hierarchy**: Manages parent-child equipment relationships with auto-computed hierarchy levels.
 -   **Inventory & Work Orders**: Modernized UIs with virtualized tables, checklists, multi-supplier support, and out-of-stock purchase request workflows.
+-   **Dashboard**: Consolidated operations dashboard with five tabs: Overview, Devices, Maintenance, Telemetry (live sensor streams), and Insights (actionable AI recommendations with acknowledge/resolve workflows). Tab selection syncs to URL via `?tab=` parameter. `/active-telemetry` and `/actionable-insights` redirect to `/dashboard?tab=telemetry` and `/dashboard?tab=insights`.
 -   **Analytics**: Interactive visualizations, multi-format export, and a Real-Time Notification System.
 -   **Simulation**: Physics-Aware Vessel Telemetry Simulator for synthetic data generation.
 -   **AI Copilot Agent**: Natural language chat interface (OpenAI function-calling) for fleet operations queries with tiered permissions, SSE streaming, and conversation persistence.
