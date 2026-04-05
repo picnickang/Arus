@@ -167,6 +167,10 @@ export const navigationCategories: NavigationCategory[] = [
       { name: "Schedules", href: "/maintenance", icon: Wrench, description: "Maintenance schedules" },
       { name: "Templates", href: "/maintenance-templates", icon: Clipboard, description: "Maintenance templates" },
       { name: "Equipment Intelligence", href: "/equipment-intelligence", icon: Brain, description: "AI health, predictions & recommendations" },
+      { name: "PdM Dashboard", href: "/pdm-dashboard", icon: Activity, description: "Risk queue, telemetry coverage & scheduling" },
+      { name: "PdM Pack", href: "/pdm-pack", icon: Zap, description: "Bearing & pump diagnostic toolkit" },
+      { name: "PdM Platform", href: "/pdm-platform", icon: Database, description: "ML models, training, inference & governance" },
+      { name: "Digital Twin", href: "/digital-twin", icon: Box, description: "Virtual asset replicas & scenario simulation" },
     ],
   },
   {
@@ -217,6 +221,8 @@ export const navigationCategories: NavigationCategory[] = [
     description: "Reports, AI, and performance tracking",
     children: [
       { name: "Equipment Intelligence", href: "/equipment-intelligence", icon: Brain, description: "Consolidated AI health, predictions & recommendations" },
+      { name: "PdM Dashboard", href: "/pdm-dashboard", icon: Activity, description: "Risk queue & maintenance pipeline" },
+      { name: "Digital Twin", href: "/digital-twin", icon: Box, description: "Virtual replicas & simulation" },
       { name: "Analytics Dashboard", href: "/analytics", icon: BarChart3, description: "Reports and analytics" },
       { name: "Knowledge Base", href: "/knowledge-base", icon: BookOpen, description: "Documentation and RAG" },
       { name: "KB Assistant", href: "/kb-chat", icon: Bot, description: "AI-powered knowledge assistant" },
