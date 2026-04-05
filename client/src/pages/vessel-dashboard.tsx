@@ -726,7 +726,7 @@ export default function VesselDashboard() {
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 text-slate-400 hover:text-sky-400"
-                onClick={() => setConfigPanelOpen(!configPanelOpen)}
+                onClick={() => { const next = !configPanelOpen; setConfigPanelOpen(next); if (!next) setPreviewLayout(null); }}
                 data-testid="btn-config-schematic"
               >
                 <Settings2 className="h-4 w-4" />
