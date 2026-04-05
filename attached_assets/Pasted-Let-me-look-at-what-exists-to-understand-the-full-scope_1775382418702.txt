@@ -1,0 +1,19 @@
+Let me look at what exists to understand the full scope of AI/ML/PdM pages before recommending a consolidation.​​​​​​​​​​​​​​​​
+
+Now I have a clear picture. Here’s what exists across AI/ML/PdM:
+Maintenance Hub (6 items): Work Orders, Schedules, Templates, Optimization, PdM Pack, PdM Dashboard
+Analytics Hub (7 items): Mission Overview, Operations, Maintenance, Finance, Data Integrity, AI Health, Knowledge Base
+Standalone pages: Digital Twin, PdM Platform, KB Chat, AI Sensor Audits
+That’s 16+ separate pages/tabs touching AI/ML/PdM. A chief engineer trying to understand “is my turbocharger going to fail?” has to know which of these 16 pages has the answer.
+Here’s what I’d consolidate and how. Rather than building a massive page, I’ll design a single Equipment Intelligence view that uses a drawer-based progressive disclosure pattern — you see what matters at the top level, and drill into detail only when you want it.​​​​​​​​​​​​​​​​
+
+Here’s the design philosophy and what you’re seeing in the preview:
+The problem: 16 separate AI/ML/PdM pages. A chief engineer doesn’t think in terms of “PdM Pack”, “PdM Dashboard”, “PdM Platform”, “Digital Twin”, “AI Health”, “Knowledge Base”, “Optimization Tools”, “AI Sensor Audits.” They think: “Is anything about to fail? What should I do about it?”
+The solution: one page, three zones, one drawer.
+Zone 1 — Fleet summary bar. Fleet health ring, critical/warning/healthy counts, vessel filter. Answerable at a glance: “84% fleet health, 1 critical, 2 warnings.” The counts are clickable filters — tap “Critical” to show only critical items.
+Zone 2 — Risk-sorted equipment list. Every piece of equipment across the fleet, sorted by risk. Each row shows: health ring, name, AI prediction (one line), vessel, RUL in days, a sparkline trend, and model confidence. The deck crane at 34% with “Slew bearing wear detected — replace within 14 days” is immediately the most visible item. No tabs, no navigation — the dangerous things are at the top.
+Zone 3 — Detail drawer. Tap any equipment and a right-side drawer slides in with everything you’d previously have needed 5+ pages to find. The drawer has horizontal pills (not tabs) for: Overview (health ring, AI assessment, contributing signals, quick actions), Telemetry (sparkline chart, trend direction), AI Prediction (RUL, confidence, recommended action), Work History (last service, next due, SHIPMATE history), and Ask AI (pre-filled questions about this specific equipment, plus a chat input).
+What this replaces:
+The 16 existing pages collapse into this one view plus one admin toggle. The “System Details” button in the header reveals model status, training info, inference latency, data quality, and sensor health — this is the stuff that was in AI Health, PdM Platform, and AI Sensor Audits. It’s hidden by default because 99% of users don’t need it.
+The key insight: the AI assistant doesn’t need its own page — it lives inside the drawer, scoped to the equipment you’re looking at. “Ask about Deck Crane” with pre-populated questions like “What’s the failure history?” is far more useful than a generic chat page.
+What I’d keep as separate pages: Work Orders (that’s an operational tool, not an intelligence view), Knowledge Base (for browsing documentation when you’re not looking at specific equipment), and the main Dashboard (which serves a different purpose — fleet overview, not equipment intelligence).​​​​​​​​​​​​​​​​
