@@ -56,9 +56,11 @@ Developed with Express.js and TypeScript, offering RESTful APIs with Zod validat
 -   **OSV Role Definitions**: Five OSV-specific personas (Chief Engineer, DP Operator, Deck Officer/Master, Shore Superintendent, System Admin) with tailored quick actions, pinned navigation groups, and bottom nav config. File: `server/services/osv-roles/definitions.ts`.
 -   **Vessel Extensions**: `dp_class`, `vetting_status`, `last_vetting_date`, `charter_status`, `current_charter_id` columns on vessels table; `is_amod_required` and `local_authority` on vessel_certificates for Brunei AMOD requirements. Migration: `008-osv-specific.sql`.
 
+-   **Equipment Intelligence**: Consolidated AI/ML/PdM view replacing 16+ fragmented pages with a single three-zone page: fleet summary bar, risk-sorted equipment list, and detail drawer with five tabs (Overview, Telemetry, AI Prediction, Work History, Ask AI). Admin-only System Details toggle. Hexagonal architecture: domain types/ports in `server/domains/equipment-intelligence/domain/`, use case in `application/`, Postgres repository in `infrastructure/`, Express routes in `interfaces/`. Frontend: `client/src/pages/equipment-intelligence.tsx`. Routes: `/api/equipment-intelligence/overview`, `/api/equipment-intelligence/detail/:equipmentId`. Navigation: Analytics category in sidebar.
+
 ### Hexagonal Architecture (DDD Modular Monolith)
 
-The backend employs a hexagonal architecture for clear separation of concerns, featuring a Domain Layer, Application Layer, Infrastructure Layer, Interfaces Layer, Domain Event Registry, and Cloud-Safe Outbox Processor. Key domains like Maintenance, Crew-Extensions, Inventory, Crew, Work-Orders, Certificates, DP, Charter, Vetting, Offshore-Ops, EFMS, and RMS follow this pattern, with the Fleet Registry being the first fully extracted hexagonal module.
+The backend employs a hexagonal architecture for clear separation of concerns, featuring a Domain Layer, Application Layer, Infrastructure Layer, Interfaces Layer, Domain Event Registry, and Cloud-Safe Outbox Processor. Key domains like Maintenance, Crew-Extensions, Inventory, Crew, Work-Orders, Certificates, DP, Charter, Vetting, Offshore-Ops, EFMS, RMS, and Equipment Intelligence follow this pattern, with the Fleet Registry being the first fully extracted hexagonal module.
 
 ## System Design Choices
 

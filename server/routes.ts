@@ -197,6 +197,11 @@ export async function registerRoutes(
   app.use("/api/pdm/training", requireOrgId, generalApiRateLimit, trainingPipelineRouter);
   console.log("[Training Pipeline] Registered (datasets, runs, promote, artifacts)");
 
+  // Equipment Intelligence consolidated view
+  const equipmentIntelligenceRouter = (await import("./domains/equipment-intelligence/interfaces/routes.js")).default;
+  app.use("/api/equipment-intelligence", requireOrgId, generalApiRateLimit, equipmentIntelligenceRouter);
+  console.log("[Equipment Intelligence] Registered (overview, detail)");
+
   // Prediction Governance routes
   app.use("/api/pdm/governance", requireOrgId, generalApiRateLimit, predictionGovernanceRouter);
   console.log("[Prediction Governance] Registered (list, review, approve, suppress, expire)");

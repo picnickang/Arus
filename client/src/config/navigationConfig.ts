@@ -27,6 +27,7 @@ import {
   Anchor,
   Bot,
   Box,
+  Brain,
   type LucideIcon,
 } from "lucide-react";
 
@@ -112,6 +113,7 @@ export const routeResourceMap: Record<string, string> = {
   "/logs-compliance": "compliance_reports",
   
   // Analytics
+  "/equipment-intelligence": "predictive_maintenance",
   "/analytics": "analytics_dashboard",
   "/ai-health": "predictive_maintenance",
   "/knowledge-base": "ai_reports",
@@ -217,6 +219,7 @@ export const navigationCategories: NavigationCategory[] = [
     hubRoute: "/analytics",
     description: "Reports, AI, and performance tracking",
     children: [
+      { name: "Equipment Intelligence", href: "/equipment-intelligence", icon: Brain, description: "Consolidated AI health, predictions & recommendations" },
       { name: "AI Health", href: "/ai-health", icon: TrendingUp, description: "Fleet AI status and predictions" },
       { name: "Analytics Dashboard", href: "/analytics", icon: BarChart3, description: "Reports and analytics" },
       { name: "Knowledge Base", href: "/knowledge-base", icon: BookOpen, description: "Documentation and RAG" },

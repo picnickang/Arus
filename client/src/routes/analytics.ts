@@ -1,6 +1,7 @@
 import { lazy } from "react";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 
+const EquipmentIntelligence = lazy(() => import("@/pages/equipment-intelligence"));
 const AnalyticsHub = lazy(() => import("@/pages/analytics-hub"));
 const AIHealthDashboard = lazy(() => import("@/pages/ai-health-dashboard"));
 const AIStudioPage = lazy(() => import("@/pages/AIStudioPage"));
@@ -14,6 +15,7 @@ const ScheduledReports = lazy(() => import("@/pages/scheduled-reports"));
 const ScheduledReportsSettings = lazy(() => import("@/pages/scheduled-reports-settings"));
 
 const baseRoutes = [
+  { path: "/equipment-intelligence", component: EquipmentIntelligence },
   { path: "/analytics", component: AnalyticsHub },
   { path: "/ai-health", component: AIHealthDashboard },
   { path: "/knowledge-base", component: KnowledgeBasePage },
