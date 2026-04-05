@@ -17,10 +17,12 @@
  */
 
 import React from "react";
+import { useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResponsiveDialog } from "@/components/ResponsiveDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,7 +30,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   Plus, Package, DollarSign, TrendingDown, Layers, Download,
-  AlertCircle, Filter, PanelLeftClose, PanelLeftOpen, PackageX,
+  AlertCircle, Filter, PanelLeftClose, PanelLeftOpen, PackageX, ClipboardCheck,
 } from "lucide-react";
 import VirtualizedInventoryTable from "@/components/inventory/VirtualizedInventoryTable";
 import InventoryFilterPanel from "@/components/inventory/InventoryFilterPanel";
@@ -36,6 +38,7 @@ import PartDetailDrawer from "@/components/inventory/PartDetailDrawer";
 import { SupplierMultiSelect } from "@/components/inventory/SupplierMultiSelect";
 import { LowStockReplenishmentPanel } from "@/components/inventory/LowStockReplenishmentPanel";
 import { InventoryBatchActions } from "@/components/inventory/InventoryBatchActions";
+import { PurchaseRequestsPage } from "@/features/purchaseRequests";
 import { useInventoryManagementData } from "@/features/inventory";
 import { formatCurrency } from "@/lib/formatters";
 import { PermissionGate } from "@/components/PermissionGate";
@@ -46,6 +49,32 @@ const FALLBACK_CATEGORIES = [
 ];
 
 export default function InventoryManagement() {
+  const [, setLocation] = useLocation();
+  const searchString = useSearch();
+
+  const getTabFromSearch = (search: string): "inventory" | "purchasing" => {
+    const params = new URLSearchParams(search);
+    return params.get("tab") === "purchasing" ? "purchasing" : "inventory";
+  };
+
+  const [activeTab, setActiveTab] = React.useState<"inventory" | "purchasing">(() =>
+    getTabFromSearch(searchString || window.location.search)
+  );
+
+  React.useEffect(() => {
+    setActiveTab(getTabFromSearch(searchString || window.location.search));
+  }, [searchString]);
+
+  const handleTabChange = (value: string) => {
+    const next = value as "inventory" | "purchasing";
+    setActiveTab(next);
+    if (next === "purchasing") {
+      setLocation("/inventory-management?tab=purchasing", { replace: true });
+    } else {
+      setLocation("/inventory-management", { replace: true });
+    }
+  };
+
   const {
     partsInventory, filteredParts, isLoadingInventory, stats, filterOptions,
     activeFilterCount, filters, setFilters, sortField, sortDirection, handleSort,
@@ -68,6 +97,25 @@ export default function InventoryManagement() {
   return (
     <div className="min-h-screen flex flex-col" data-testid="inventory-management-page">
 
+      <div className="flex-none p-4 md:p-6 pb-0 md:pb-0">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-4">
+          <TabsList data-testid="inventory-tabs">
+            <TabsTrigger value="inventory" className="flex items-center gap-2" data-testid="tab-inventory">
+              <Package className="h-4 w-4" />
+              Inventory
+            </TabsTrigger>
+            <TabsTrigger value="purchasing" className="flex items-center gap-2" data-testid="tab-purchasing">
+              <ClipboardCheck className="h-4 w-4" />
+              Purchasing
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      {activeTab === "purchasing" ? (
+        <PurchaseRequestsPage />
+      ) : (
+      <>
       <div className="flex-none p-4 md:p-6 pb-0 md:pb-0">
         <div className="flex flex-wrap items-center justify-end gap-3 mb-4">
           <div className="flex gap-2">
@@ -411,6 +459,8 @@ export default function InventoryManagement() {
           </form>
         </Form>
       </ResponsiveDialog>
+      </>
+      )}
     </div>
   );
 }

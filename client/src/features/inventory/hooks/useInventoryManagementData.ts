@@ -42,9 +42,17 @@ export function useInventoryManagementData() {
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
   useEffect(() => {
-    const queryString = serializeFiltersToUrl(filters);
-    const newPath = queryString ? `${location.split("?")[0]}?${queryString}` : location.split("?")[0];
-    const currentPath = `${location.split("?")[0]}${searchParams ? `?${searchParams}` : ""}`;
+    const basePath = location.split("?")[0];
+    const currentParams = new URLSearchParams(searchParams);
+    const tabParam = currentParams.get("tab");
+
+    const filterQuery = serializeFiltersToUrl(filters);
+    const newParams = new URLSearchParams(filterQuery);
+    if (tabParam) newParams.set("tab", tabParam);
+
+    const newQueryString = newParams.toString();
+    const newPath = newQueryString ? `${basePath}?${newQueryString}` : basePath;
+    const currentPath = `${basePath}${searchParams ? `?${searchParams}` : ""}`;
     if (newPath !== currentPath) { setLocation(newPath, { replace: true }); }
   }, [filters, location, searchParams, setLocation]);
 

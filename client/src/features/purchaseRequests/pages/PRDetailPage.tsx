@@ -93,7 +93,7 @@ export function PRDetailPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={() => setLocation("/purchase-requests")} data-testid="button-back">
+        <Button variant="ghost" onClick={() => setLocation("/inventory-management?tab=purchasing")} data-testid="button-back">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>

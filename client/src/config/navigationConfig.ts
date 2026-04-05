@@ -87,7 +87,7 @@ export const routeResourceMap: Record<string, string> = {
   "/logistics": "inventory",
   "/inventory-management": "inventory",
   "/purchase-orders": "purchase_requests",
-  "/purchase-requests": "purchase_requests",
+  "/purchase-requests": "inventory",
   "/service-orders": "service_orders",
   "/vendors": "suppliers",
   "/suppliers": "suppliers",
@@ -185,8 +185,7 @@ export const navigationCategories: NavigationCategory[] = [
     hubRoute: "/logistics",
     description: "Inventory, purchasing, and suppliers",
     children: [
-      { name: "Inventory", href: "/inventory-management", icon: Boxes, description: "Parts and stock management" },
-      { name: "Purchasing", href: "/purchase-requests", icon: ClipboardCheck, description: "Purchase requests & orders" },
+      { name: "Inventory", href: "/inventory-management", icon: Boxes, description: "Parts, stock management & purchasing" },
       { name: "Service Orders", href: "/service-orders", icon: Wrench, description: "Service order management" },
       { name: "Vendors", href: "/vendors", icon: Building, description: "Suppliers & service providers" },
     ],
