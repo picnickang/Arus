@@ -162,3 +162,9 @@ id = "nGSRzxk3m3VVmaGy_4pvP"
 uri = "file://exports/dashboard-consolidated-files.md"
 type = "text"
 title = "Dashboard Consolidated Files (4 files for Claude evaluation)"
+
+[[outputs]]
+id = "YVmgucxwbM3G_EYWtia47"
+uri = "file://exports/kb-and-copilot-admin-files.md"
+type = "text"
+title = "Knowledge Base & Copilot Admin Files (2 files for Claude evaluation)"
