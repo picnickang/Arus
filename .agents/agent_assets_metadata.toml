@@ -138,3 +138,9 @@ id = "_RizPcdsf4t6swMAaLBsI"
 uri = "file://ARUS_Professional_Evaluation.md"
 type = "text"
 title = "ARUS Maritime Platform — Professional Evaluation Report"
+
+[[outputs]]
+id = "ZXB9jR-dXnYPalYoVHzjA"
+uri = "file://vessels-equipment-code-review.txt"
+type = "text"
+title = "Vessels & Equipment Code — All 20 Files (2,785 lines)"
