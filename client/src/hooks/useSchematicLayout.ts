@@ -95,8 +95,8 @@ export function useSchematicLayout(vesselId: string | undefined) {
   });
 
   const removeSlot = useMutation({
-    mutationFn: (slotId: string) =>
-      apiRequest("DELETE", `/api/vessels/${vesselId}/schematic-layout/slots/${slotId}`),
+    mutationFn: ({ slotId, force = false }: { slotId: string; force?: boolean }) =>
+      apiRequest("DELETE", `/api/vessels/${vesselId}/schematic-layout/slots/${slotId}`, { force }),
     onSuccess: invalidate,
   });
 
