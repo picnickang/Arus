@@ -239,6 +239,10 @@ const domainRouters: DomainRouterConfig[] = [
   { name: "Certificates", importPath: "../domains/certificates/index.js", functionName: "registerCertificateRoutes",
     getDeps: () => ({ generalApiRateLimit, writeOperationRateLimit }) },
 
+  // Schematic Layout (hexagonal - vessel cross-section zone/slot config)
+  { name: "SchematicLayout", importPath: "../domains/schematic-layout/index.js", functionName: "registerSchematicLayoutRoutes",
+    getDeps: () => ({ generalApiRateLimit, writeOperationRateLimit }) },
+
   // Logbook Corrections (correction workflow + immutable audit trail)
   { name: "LogbookCorrections", importPath: "../domains/logbook/index.js", functionName: "registerLogbookCorrectionRoutes",
     getDeps: () => ({}) },

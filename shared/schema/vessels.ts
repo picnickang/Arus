@@ -47,6 +47,7 @@ export const vessels = pgTable("vessels", {
   operationResetAt: timestamp("operation_reset_at", { mode: "date" }),
   lastDailyUpdateDate: text("last_daily_update_date"),
   commissionDate: timestamp("commission_date", { mode: "date" }),
+  schematicLayout: jsonb("schematic_layout"),
   ...timestamps(),
 });
 

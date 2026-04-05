@@ -31,251 +31,28 @@ import type { Part } from "@/features/inventory/types";
 import { useWorkOrders } from "@/features/work-orders";
 import { useCrewList } from "@/features/crew";
 import { useMaintenanceSchedules } from "@/features/maintenance";
+import { useSchematicLayout } from "@/hooks/useSchematicLayout";
+import {
+  VesselSchematic,
+  SchematicConfigPanel,
+  HealthBar,
+  Pulse,
+  StockBadge,
+  statusFill,
+  healthColor,
+  computeLayout,
+  assignEquipmentToSlots,
+  type SlotAssignment,
+} from "@/components/vessel/VesselSchematic";
 
 // ============================================================================
-// Status helpers
+// Local helpers (statusColor is only used in this file)
 // ============================================================================
 
 const statusColor = (s: string) =>
   s === "operational" ? "text-green-500" :
   s === "degraded" || s === "warning" ? "text-yellow-500" :
   s === "critical" ? "text-red-500" : "text-slate-400";
-
-const statusFill = (s: string) =>
-  s === "operational" ? "#22c55e" :
-  s === "degraded" || s === "warning" ? "#f59e0b" :
-  s === "critical" ? "#ef4444" : "#64748b";
-
-const healthColor = (v: number) => v > 70 ? "#22c55e" : v > 40 ? "#f59e0b" : "#ef4444";
-
-// ============================================================================
-// Slot definitions — position equipment on the OSV schematic per-type
-// ============================================================================
-
-interface EquipmentSlot {
-  slotId: string;
-  label: string;
-  category: string;
-  typeMatch: string[];
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
-
-const VESSEL_SLOTS: EquipmentSlot[] = [
-  { slotId: "me", label: "Main Engine", category: "propulsion", typeMatch: ["engine", "main engine", "propulsion"], x: 26, y: 18, w: 20, h: 16 },
-  { slotId: "gen1", label: "Generator #1", category: "power", typeMatch: ["generator"], x: 60, y: 38, w: 16, h: 14 },
-  { slotId: "gen2", label: "Generator #2", category: "power", typeMatch: ["generator"], x: 60, y: 55, w: 16, h: 14 },
-  { slotId: "pump1", label: "Cargo Pump", category: "cargo", typeMatch: ["pump"], x: 38, y: 48, w: 14, h: 13 },
-  { slotId: "bow", label: "Bow Thruster", category: "thrusters", typeMatch: ["thruster", "bow thruster"], x: 78, y: 40, w: 14, h: 16 },
-  { slotId: "crane", label: "Deck Crane", category: "deck", typeMatch: ["crane", "deck crane"], x: 48, y: 20, w: 13, h: 12 },
-  { slotId: "dp", label: "DP System", category: "navigation", typeMatch: ["navigation", "dp", "dynamic positioning"], x: 72, y: 18, w: 14, h: 12 },
-  { slotId: "fuel", label: "Fuel System", category: "fuel", typeMatch: ["tank", "fuel", "boiler"], x: 20, y: 58, w: 16, h: 16 },
-  { slotId: "comp", label: "Compressor", category: "aux", typeMatch: ["compressor", "air compressor"], x: 38, y: 20, w: 14, h: 12 },
-  { slotId: "elec", label: "Switchboard", category: "electrical", typeMatch: ["electrical", "switchboard", "transformer"], x: 26, y: 38, w: 16, h: 14 },
-];
-
-interface SlotAssignment {
-  slot: EquipmentSlot;
-  equipment: Equipment | null;
-}
-
-/**
- * Map actual equipment to predefined vessel slots.
- * Each equipment is matched to the best slot by type.
- * Unmatched equipment gets overflow positions.
- */
-function assignEquipmentToSlots(equipment: Equipment[]): SlotAssignment[] {
-  const assignments: SlotAssignment[] = VESSEL_SLOTS.map((slot) => ({ slot, equipment: null }));
-  const assigned = new Set<string>();
-
-  // First pass: match by type
-  for (const eq of equipment) {
-    const typeLower = (eq.type || "").toLowerCase();
-    const nameLower = (eq.name || "").toLowerCase();
-
-    for (const assignment of assignments) {
-      if (assignment.equipment) continue;
-      const matches = assignment.slot.typeMatch.some(
-        (t) => typeLower.includes(t) || nameLower.includes(t)
-      );
-      if (matches && !assigned.has(eq.id)) {
-        assignment.equipment = eq;
-        assigned.add(eq.id);
-        break;
-      }
-    }
-  }
-
-  // Second pass: unmatched equipment fills empty slots
-  const unmatched = equipment.filter((eq) => !assigned.has(eq.id));
-  const emptySlots = assignments.filter((a) => !a.equipment);
-  for (let i = 0; i < Math.min(unmatched.length, emptySlots.length); i++) {
-    emptySlots[i].equipment = unmatched[i];
-  }
-
-  return assignments;
-}
-
-// ============================================================================
-// Shared sub-components
-// ============================================================================
-
-function HealthBar({ value, width = 100, height = 6 }: { value: number; width?: number; height?: number }) {
-  const color = healthColor(value);
-  return (
-    <svg width={width} height={height} className="rounded overflow-hidden">
-      <rect width={width} height={height} fill="currentColor" className="text-white/5" rx={3} />
-      <rect width={width * value / 100} height={height} fill={color} rx={3}>
-        <animate attributeName="width" from="0" to={String(width * value / 100)} dur="0.8s" fill="freeze" />
-      </rect>
-    </svg>
-  );
-}
-
-function Pulse({ color, size = 8 }: { color: string; size?: number }) {
-  return (
-    <span className="relative inline-block" style={{ width: size, height: size }}>
-      <span className="absolute inset-0 rounded-full animate-ping" style={{ backgroundColor: color, opacity: 0.6 }} />
-      <span className="relative block rounded-full" style={{ width: size, height: size, backgroundColor: color }} />
-    </span>
-  );
-}
-
-function StockBadge({ part }: { part: Part }) {
-  const qty = part.minStockLevel ? (part.reorderPoint || 1) : 1;
-  const min = part.minStockLevel ?? 0;
-  if (qty === 0) return <Badge variant="destructive" className="text-[10px]">Out of Stock</Badge>;
-  if (min > 0 && qty <= min) return <Badge variant="secondary" className="text-[10px] bg-yellow-500/15 text-yellow-500">Low Stock</Badge>;
-  return <Badge variant="secondary" className="text-[10px] bg-green-500/15 text-green-500">In Stock</Badge>;
-}
-
-// ============================================================================
-// Vessel SVG Schematic with slot-based equipment placement
-// ============================================================================
-
-function VesselSchematic({
-  slotAssignments,
-  selectedSlotId,
-  onSelectSlot,
-}: {
-  slotAssignments: SlotAssignment[];
-  selectedSlotId: string | null;
-  onSelectSlot: (slotId: string) => void;
-}) {
-  return (
-    <svg viewBox="0 0 100 80" className="w-full h-full min-h-[240px] sm:min-h-[320px]">
-      <defs>
-        <linearGradient id="hull-grad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#1a2744" />
-          <stop offset="100%" stopColor="#0d1829" />
-        </linearGradient>
-        <linearGradient id="water" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="rgba(56,189,248,0.05)" />
-          <stop offset="50%" stopColor="rgba(56,189,248,0.12)" />
-          <stop offset="100%" stopColor="rgba(56,189,248,0.05)" />
-        </linearGradient>
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="1.5" result="blur" />
-          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
-      </defs>
-
-      {/* Water */}
-      <rect x="0" y="72" width="100" height="8" fill="url(#water)" />
-
-      {/* Hull — OSV profile */}
-      <path
-        d="M 8,68 L 8,35 Q 8,28 15,25 L 30,20 Q 35,18 40,18 L 75,18 Q 82,18 86,22 L 92,28 Q 95,32 95,38 L 95,68 Q 95,72 90,72 L 12,72 Q 8,72 8,68 Z"
-        fill="url(#hull-grad)" stroke="rgba(56,189,248,0.25)" strokeWidth="0.4"
-      />
-
-      {/* Superstructure */}
-      <rect x="65" y="14" width="22" height="18" rx="1.5" fill="#15243d" stroke="rgba(56,189,248,0.2)" strokeWidth="0.3" />
-      {[0,1,2,3,4].map((i) => (
-        <rect key={i} x={67 + i * 3.8} y={15.5} width={2.8} height={2} rx={0.4} fill="rgba(56,189,248,0.35)" />
-      ))}
-
-      {/* Mast with nav light */}
-      <line x1="76" y1="8" x2="76" y2="14" stroke="rgba(148,163,184,0.4)" strokeWidth="0.4" />
-      <circle cx="76" cy="7.5" r="0.8" fill="#f59e0b" opacity={0.8}>
-        <animate attributeName="opacity" values="0.4;1;0.4" dur="2s" repeatCount="indefinite" />
-      </circle>
-
-      {/* Aft deck */}
-      <rect x="10" y="34" width="50" height="34" rx="1" fill="rgba(255,255,255,0.015)" stroke="rgba(148,163,184,0.1)" strokeWidth="0.2" strokeDasharray="1 1" />
-      <text x="35" y="70" textAnchor="middle" fill="rgba(148,163,184,0.25)" fontSize="2" fontFamily="monospace">AFT DECK — 280m²</text>
-
-      {/* Crane boom */}
-      <line x1="52" y1="22" x2="52" y2="16" stroke="rgba(148,163,184,0.3)" strokeWidth="0.5" />
-      <line x1="52" y1="16" x2="40" y2="13" stroke="rgba(148,163,184,0.3)" strokeWidth="0.4" />
-
-      {/* Equipment slots */}
-      {slotAssignments.map(({ slot, equipment: eq }) => {
-        const isSelected = selectedSlotId === slot.slotId;
-        const status = eq?.status || "offline";
-        const sc = eq ? statusFill(status) : "rgba(148,163,184,0.3)";
-        const health = eq?.healthScore ?? 0;
-        const displayName = eq
-          ? (eq.name.length > 16 ? eq.name.slice(0, 14) + "…" : eq.name)
-          : slot.label;
-        const displaySub = eq
-          ? [eq.manufacturer, eq.model].filter(Boolean).join(" ").slice(0, 18)
-          : "EMPTY SLOT";
-
-        return (
-          <g key={slot.slotId} onClick={() => onSelectSlot(slot.slotId)} style={{ cursor: "pointer" }}>
-            {/* Slot background */}
-            <rect
-              x={slot.x} y={slot.y} width={slot.w} height={slot.h} rx={1.5}
-              fill={isSelected ? `${sc}22` : eq ? `${sc}10` : "rgba(148,163,184,0.03)"}
-              stroke={isSelected ? sc : eq ? `${sc}66` : "rgba(148,163,184,0.15)"}
-              strokeWidth={isSelected ? 0.8 : 0.4}
-              strokeDasharray={!eq ? "1.5 1" : "none"}
-              className="transition-all duration-200"
-            />
-
-            {/* Status dot */}
-            {eq && (
-              <circle cx={slot.x + slot.w - 2.5} cy={slot.y + 2.5} r={1.2} fill={sc} filter="url(#glow)">
-                {status === "critical" && (
-                  <animate attributeName="opacity" values="1;0.3;1" dur="1s" repeatCount="indefinite" />
-                )}
-              </circle>
-            )}
-
-            {/* INSTALLED badge */}
-            {eq && (
-              <>
-                <rect x={slot.x + 1} y={slot.y + 1} width={5.5} height={2.2} rx={0.6} fill="rgba(34,197,94,0.2)" stroke="rgba(34,197,94,0.35)" strokeWidth="0.15" />
-                <text x={slot.x + 3.75} y={slot.y + 2.5} textAnchor="middle" fill="#22c55e" fontSize="1.1" fontWeight="700" fontFamily="monospace">OK</text>
-              </>
-            )}
-
-            {/* Name */}
-            <text x={slot.x + slot.w / 2} y={slot.y + slot.h / 2 - (eq ? 0.5 : 0)} textAnchor="middle" fill={eq ? "rgba(226,232,240,0.9)" : "rgba(148,163,184,0.5)"} fontSize="2.2" fontWeight={eq ? "600" : "400"} fontFamily="system-ui">
-              {displayName}
-            </text>
-
-            {/* Sub-label */}
-            <text x={slot.x + slot.w / 2} y={slot.y + slot.h / 2 + 2} textAnchor="middle" fill="rgba(148,163,184,0.5)" fontSize="1.5" fontFamily="monospace">
-              {displaySub}
-            </text>
-
-            {/* Health bar */}
-            {eq && (
-              <>
-                <rect x={slot.x + 1.5} y={slot.y + slot.h - 2.5} width={slot.w - 3} height={1} rx={0.5} fill="rgba(255,255,255,0.06)" />
-                <rect x={slot.x + 1.5} y={slot.y + slot.h - 2.5} width={(slot.w - 3) * health / 100} height={1} rx={0.5} fill={sc} opacity={0.7} />
-              </>
-            )}
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
 
 // ============================================================================
 // Mobile slide panel
@@ -592,6 +369,7 @@ export default function VesselDashboard() {
   const [bottomTab, setBottomTab] = useState("work-orders");
   const [statusDrawerOpen, setStatusDrawerOpen] = useState(false);
   const [inventoryDrawerOpen, setInventoryDrawerOpen] = useState(false);
+  const [configPanelOpen, setConfigPanelOpen] = useState(false);
 
   // Swap confirmation modal
   const [confirmAction, setConfirmAction] = useState<{
@@ -601,8 +379,24 @@ export default function VesselDashboard() {
     slotLabel: string;
   } | null>(null);
 
+  // Schematic layout
+  const {
+    layout, isLoading: layoutLoading,
+    addZone, updateZone, removeZone,
+    addSlot, updateSlot, removeSlot,
+    moveSlot, resetLayout,
+  } = useSchematicLayout(vesselId);
+
+  const { zones: zoneRects, slots: positionedSlots } = useMemo(
+    () => layout ? computeLayout(layout) : { zones: [], slots: [] },
+    [layout]
+  );
+
   // Slot assignments
-  const slotAssignments = useMemo(() => assignEquipmentToSlots(equipment), [equipment]);
+  const slotAssignments = useMemo(
+    () => assignEquipmentToSlots(positionedSlots, equipment),
+    [positionedSlots, equipment]
+  );
 
   const selectedAssignment = useMemo(
     () => slotAssignments.find((a) => a.slot.slotId === selectedSlotId) || null,
@@ -903,32 +697,65 @@ export default function VesselDashboard() {
               <h2 className="text-[13px] font-bold text-slate-200 uppercase tracking-wide">Equipment Schematic</h2>
               <div className="text-[11px] text-slate-500 mt-0.5 hidden sm:block">Select slot → choose part from inventory → install</div>
             </div>
-            <div className="flex gap-1.5 flex-wrap justify-end">
-              {slotAssignments.map(({ slot, equipment: eq }) => (
-                <button
-                  key={slot.slotId}
-                  onClick={() => handleSlotSelect(slot.slotId)}
-                  className="rounded-full p-0 transition-all duration-150"
-                  style={{
-                    width: 12, height: 12, minWidth: 12, minHeight: 12,
-                    background: slot.slotId === selectedSlotId ? "#38bdf8" : eq ? statusFill(eq.status) : "#334155",
-                    border: slot.slotId === selectedSlotId ? "2px solid #38bdf8" : "1px solid transparent",
-                    opacity: slot.slotId === selectedSlotId ? 1 : 0.6,
-                  }}
-                  title={slot.label}
-                />
-              ))}
+            <div className="flex items-center gap-2">
+              <div className="flex gap-1.5 flex-wrap justify-end">
+                {slotAssignments.map(({ slot, equipment: eq }) => (
+                  <button
+                    key={slot.slotId}
+                    onClick={() => handleSlotSelect(slot.slotId)}
+                    className="rounded-full p-0 transition-all duration-150"
+                    style={{
+                      width: 12, height: 12, minWidth: 12, minHeight: 12,
+                      background: slot.slotId === selectedSlotId ? "#38bdf8" : eq ? statusFill(eq.status) : "#334155",
+                      border: slot.slotId === selectedSlotId ? "2px solid #38bdf8" : "1px solid transparent",
+                      opacity: slot.slotId === selectedSlotId ? 1 : 0.6,
+                    }}
+                    title={slot.label}
+                  />
+                ))}
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-slate-400 hover:text-sky-400"
+                onClick={() => setConfigPanelOpen(!configPanelOpen)}
+                data-testid="btn-config-schematic"
+              >
+                <Settings2 className="h-4 w-4" />
+              </Button>
             </div>
           </div>
 
+          {/* Config panel */}
+          {configPanelOpen && layout && (
+            <div className="px-3 sm:px-5 py-3 border-b border-slate-700/10 shrink-0">
+              <SchematicConfigPanel
+                layout={layout}
+                onAddZone={(label) => addZone.mutate({ label })}
+                onUpdateZone={(zoneId, label) => updateZone.mutate({ zoneId, label })}
+                onRemoveZone={(zoneId) => removeZone.mutate(zoneId)}
+                onAddSlot={(label, category, typeMatch, zoneId) => addSlot.mutate({ label, category, typeMatch, zoneId })}
+                onUpdateSlot={(slotId, label) => updateSlot.mutate({ slotId, label })}
+                onRemoveSlot={(slotId) => removeSlot.mutate(slotId)}
+                onMoveSlot={(slotId, targetZoneId) => moveSlot.mutate({ slotId, targetZoneId })}
+                onReset={() => resetLayout.mutate()}
+                onClose={() => setConfigPanelOpen(false)}
+                isPending={addZone.isPending || updateZone.isPending || removeZone.isPending ||
+                  addSlot.isPending || updateSlot.isPending || removeSlot.isPending ||
+                  moveSlot.isPending || resetLayout.isPending}
+              />
+            </div>
+          )}
+
           {/* SVG area */}
           <div className="flex-1 px-3 sm:px-5 py-3 min-h-0 overflow-auto touch-pan-x touch-pan-y">
-            {equipmentLoading ? (
+            {equipmentLoading || layoutLoading ? (
               <Skeleton className="w-full h-full min-h-[240px]" />
             ) : (
               <div className="min-w-[320px]">
                 <VesselSchematic
                   slotAssignments={slotAssignments}
+                  zoneRects={zoneRects}
                   selectedSlotId={selectedSlotId}
                   onSelectSlot={handleSlotSelect}
                 />
@@ -942,7 +769,7 @@ export default function VesselDashboard() {
               [equipment.filter((e) => e.status === "operational").length, "Healthy", "#22c55e"],
               [equipment.filter((e) => e.status === "warning" || e.status === "degraded").length, "Warning", "#f59e0b"],
               [equipment.filter((e) => e.status === "critical").length, "Critical", "#ef4444"],
-              [VESSEL_SLOTS.length - equipment.length, "Empty", "#475569"],
+              [(layout?.slots.length ?? 0) - equipment.length, "Empty", "#475569"],
             ].map(([count, label, color]) => (
               <div key={label as string} className="flex items-center gap-1.5 text-xs">
                 <span className="w-[18px] h-[18px] rounded flex items-center justify-center text-[11px] font-bold" style={{ background: `${color}15`, color: color as string }}>
