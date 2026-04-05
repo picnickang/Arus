@@ -150,3 +150,9 @@ id = "v_vonKLw5EluvFsMBIbec"
 uri = "file://exports/equipment-intelligence-full.txt"
 type = "text"
 title = "Equipment Intelligence — All 6 Files Combined"
+
+[[outputs]]
+id = "Q0maRfVVmNohQKV8WF7yP"
+uri = "file://exports/pdm-pages-for-review.txt"
+type = "text"
+title = "PdM Pages for Claude Evaluation"
