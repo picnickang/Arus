@@ -114,13 +114,18 @@ export class SchematicLayoutService {
     return layout;
   }
 
-  async removeSlot(vesselId: string, orgId: string, slotId: string, force: boolean = false): Promise<SchematicLayout> {
+  async removeSlot(
+    vesselId: string,
+    orgId: string,
+    slotId: string,
+    options: { force?: boolean; hasEquipment?: boolean } = {},
+  ): Promise<SchematicLayout> {
     const layout = await this.getVesselLayout(vesselId, orgId);
     const slotIdx = layout.slots.findIndex(s => s.slotId === slotId);
     if (slotIdx === -1) throw notFound(`Slot "${slotId}" not found`);
-    if (!force) {
+    if (options.hasEquipment && !options.force) {
       const err = new Error(
-        `Slot "${slotId}" removal blocked. Pass force=true to confirm removal after unassigning equipment.`
+        `Slot "${slotId}" has equipment assigned. Unassign equipment first or pass force=true.`
       ) as Error & { statusCode: number };
       err.statusCode = 409;
       throw err;

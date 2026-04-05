@@ -349,6 +349,7 @@ export function SchematicConfigPanel({
   onSave,
   onReset,
   onClose,
+  onDraftChange,
   isPending,
 }: {
   layout: SchematicLayout;
@@ -356,6 +357,7 @@ export function SchematicConfigPanel({
   onSave: (draft: SchematicLayout) => void;
   onReset: () => void;
   onClose: () => void;
+  onDraftChange?: (draft: SchematicLayout) => void;
   isPending: boolean;
 }) {
   const [draft, setDraft] = useState<SchematicLayout>(() => JSON.parse(JSON.stringify(layout)));
@@ -378,6 +380,7 @@ export function SchematicConfigPanel({
     setDraft(prev => {
       const next = JSON.parse(JSON.stringify(prev));
       fn(next);
+      onDraftChange?.(next);
       return next;
     });
   };

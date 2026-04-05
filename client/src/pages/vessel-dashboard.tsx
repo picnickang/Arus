@@ -370,6 +370,7 @@ export default function VesselDashboard() {
   const [statusDrawerOpen, setStatusDrawerOpen] = useState(false);
   const [inventoryDrawerOpen, setInventoryDrawerOpen] = useState(false);
   const [configPanelOpen, setConfigPanelOpen] = useState(false);
+  const [previewLayout, setPreviewLayout] = useState<typeof layout | null>(null);
 
   // Swap confirmation modal
   const [confirmAction, setConfirmAction] = useState<{
@@ -384,9 +385,11 @@ export default function VesselDashboard() {
     saveLayout, resetLayout,
   } = useSchematicLayout(vesselId);
 
+  const activeLayout = (configPanelOpen && previewLayout) || layout;
+
   const { zones: zoneRects, slots: positionedSlots } = useMemo(
-    () => layout ? computeLayout(layout) : { zones: [], slots: [] },
-    [layout]
+    () => activeLayout ? computeLayout(activeLayout) : { zones: [], slots: [] },
+    [activeLayout]
   );
 
   // Slot assignments
@@ -739,7 +742,8 @@ export default function VesselDashboard() {
                 equipmentSlotMap={equipmentSlotMap}
                 onSave={(draft) => saveLayout.mutate(draft)}
                 onReset={() => resetLayout.mutate()}
-                onClose={() => setConfigPanelOpen(false)}
+                onClose={() => { setConfigPanelOpen(false); setPreviewLayout(null); }}
+                onDraftChange={setPreviewLayout}
                 isPending={saveLayout.isPending || resetLayout.isPending}
               />
             </div>
@@ -767,7 +771,7 @@ export default function VesselDashboard() {
               [equipment.filter((e) => e.status === "operational").length, "Healthy", "#22c55e"],
               [equipment.filter((e) => e.status === "warning" || e.status === "degraded").length, "Warning", "#f59e0b"],
               [equipment.filter((e) => e.status === "critical").length, "Critical", "#ef4444"],
-              [(layout?.slots.length ?? 0) - equipment.length, "Empty", "#475569"],
+              [(activeLayout?.slots.length ?? 0) - equipment.length, "Empty", "#475569"],
             ].map(([count, label, color]) => (
               <div key={label as string} className="flex items-center gap-1.5 text-xs">
                 <span className="w-[18px] h-[18px] rounded flex items-center justify-center text-[11px] font-bold" style={{ background: `${color}15`, color: color as string }}>

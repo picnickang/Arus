@@ -35,6 +35,7 @@ const moveSlotSchema = z.object({
 
 const removeSlotBodySchema = z.object({
   force: z.boolean().optional(),
+  hasEquipment: z.boolean().optional(),
 });
 
 const saveLayoutSchema = z.object({
@@ -141,7 +142,10 @@ export function registerSchematicLayoutRoutes(
     withErrorHandling("remove schematic slot", async (req: AuthenticatedRequest, res: Response) => {
       const parsed = removeSlotBodySchema.safeParse(req.body);
       const force = parsed.success ? parsed.data.force === true : false;
-      const layout = await schematicLayoutService.removeSlot(req.params.id, req.orgId, req.params.slotId, force);
+      const hasEquipment = parsed.success ? parsed.data.hasEquipment === true : false;
+      const layout = await schematicLayoutService.removeSlot(
+        req.params.id, req.orgId, req.params.slotId, { force, hasEquipment }
+      );
       res.json(layout);
     })
   );

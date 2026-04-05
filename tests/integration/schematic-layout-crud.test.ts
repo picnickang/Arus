@@ -104,14 +104,20 @@ describe("Schematic Layout CRUD API", () => {
     expect(engineRoom.slotIds).toContain(slot.slotId);
   });
 
-  it("DELETE /slots/:id returns 409 without force, 200 with force", async () => {
-    const { status: noForce } = await api("DELETE", `${layoutUrl}/slots/me`, {});
-    expect(noForce).toBe(409);
-
-    const { status: withForce, data } = await api("DELETE", `${layoutUrl}/slots/me`, { force: true });
-    expect(withForce).toBe(200);
+  it("DELETE /slots/:id succeeds for unassigned slot, 409 when hasEquipment without force", async () => {
+    const { status: ok, data } = await api("DELETE", `${layoutUrl}/slots/me`, {});
+    expect(ok).toBe(200);
     expect(data.slots).toHaveLength(9);
     expect(data.slots.find((s: { slotId: string }) => s.slotId === "me")).toBeUndefined();
+  });
+
+  it("DELETE /slots/:id returns 409 when hasEquipment=true without force, 200 with force", async () => {
+    const { status: blocked } = await api("DELETE", `${layoutUrl}/slots/gen1`, { hasEquipment: true });
+    expect(blocked).toBe(409);
+
+    const { status: forced, data } = await api("DELETE", `${layoutUrl}/slots/gen1`, { hasEquipment: true, force: true });
+    expect(forced).toBe(200);
+    expect(data.slots.find((s: { slotId: string }) => s.slotId === "gen1")).toBeUndefined();
   });
 
   it("PUT /slots/:id/move moves a slot between zones", async () => {
