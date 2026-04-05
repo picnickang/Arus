@@ -1,5 +1,5 @@
 import { IconGridLayout, type GridItem } from "@/components/layouts";
-import { Wrench, Calendar, FileSpreadsheet, Target, Zap, TrendingUp } from "lucide-react";
+import { Wrench, Calendar, FileSpreadsheet, Brain } from "lucide-react";
 
 const maintenanceItems: GridItem[] = [
   {
@@ -30,31 +30,13 @@ const maintenanceItems: GridItem[] = [
     legacyRoutes: ["/maintenance-templates"],
   },
   {
-    id: "optimization",
-    label: "Optimization",
-    icon: Target,
-    description: "Optimize planning",
-    load: () => import("./optimization-tools"),
+    id: "equipment-intelligence",
+    label: "Equipment Intelligence",
+    icon: Brain,
+    description: "AI health, predictions & recommendations",
+    load: () => import("./equipment-intelligence"),
     loaderVariant: "cards",
-    legacyRoutes: ["/optimization-tools"],
-  },
-  {
-    id: "pdm-pack",
-    label: "PdM Pack",
-    icon: Zap,
-    description: "Predictive maintenance tools",
-    load: () => import("./pdm-pack"),
-    loaderVariant: "cards",
-    legacyRoutes: ["/pdm-pack"],
-  },
-  {
-    id: "pdm-dashboard",
-    label: "PdM Dashboard",
-    icon: TrendingUp,
-    description: "Risk queue & fleet health",
-    load: () => import("./pdm-dashboard"),
-    loaderVariant: "cards",
-    legacyRoutes: ["/pdm-dashboard"],
+    legacyRoutes: ["/equipment-intelligence"],
   },
 ];
 

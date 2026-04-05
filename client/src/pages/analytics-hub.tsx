@@ -1,5 +1,5 @@
 import { IconGridLayout, type GridItem } from "@/components/layouts";
-import { Compass, Activity, Wrench, DollarSign, Shield, Brain, BookOpen } from "lucide-react";
+import { Compass, Activity, Wrench, DollarSign, Shield, Brain } from "lucide-react";
 import { PermissionGate, PagePermissionDenied } from "@/components/PermissionGate";
 
 const analyticsItems: GridItem[] = [
@@ -44,22 +44,13 @@ const analyticsItems: GridItem[] = [
     loaderVariant: "cards",
   },
   {
-    id: "ai-health",
-    label: "AI Health",
+    id: "equipment-intelligence",
+    label: "Equipment Intelligence",
     icon: Brain,
-    description: "AI/ML status",
-    load: () => import("@/pages/ai-health-dashboard"),
+    description: "AI health, predictions & recommendations",
+    load: () => import("@/pages/equipment-intelligence"),
     loaderVariant: "cards",
-    legacyRoutes: ["/ai-health"],
-  },
-  {
-    id: "knowledge-base",
-    label: "Knowledge Base",
-    icon: BookOpen,
-    description: "Docs & RAG",
-    load: () => import("@/pages/knowledge-base"),
-    loaderVariant: "cards",
-    legacyRoutes: ["/knowledge-base"],
+    legacyRoutes: ["/equipment-intelligence"],
   },
 ];
 
