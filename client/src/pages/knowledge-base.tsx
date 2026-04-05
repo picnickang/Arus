@@ -1,15 +1,17 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { useSearch, useLocation } from "wouter";
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from '@/hooks/use-toast';
-import { Upload, Search, FileText, Loader2, AlertCircle, Trash2, X, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Upload, Search, FileText, Loader2, AlertCircle, Trash2, X, CheckCircle2, XCircle, Clock, MessageSquare, BookOpen } from 'lucide-react';
 import { useKnowledgeBase, type Document } from "@/features/ml-ai";
 type DocumentWithStatus = Document & { status?: string };
-import { PageHeader } from "@/components/navigation";
 import { DocumentFilters, EmptyState, SupportedFormats } from "@/components/kb";
+import { ChatInterface } from '@/components/rag';
 
 interface UploadJob { id: string; file: File; status: 'queued' | 'uploading' | 'processing' | 'completed' | 'failed'; jobId?: string; progress: number; error?: string; }
 interface JobStatus { id: string; status: 'pending' | 'processing' | 'completed' | 'failed'; progress?: number; error?: string; result?: Record<string, unknown>; }
@@ -177,13 +179,13 @@ function BatchUploadPanel({ onUploadComplete }: { onUploadComplete: () => void }
   );
 }
 
-export default function KnowledgeBasePage() {
+function DocumentsTab() {
   const { stats, documentsData, documentsLoading, searchQuery, setSearchQuery, searchData, searching, handleUploadComplete, handleDelete, deleteMutation } = useKnowledgeBase();
-  
+
   const [docSearch, setDocSearch] = useState("");
   const [fileTypeFilter, setFileTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  
+
   const filteredDocuments = useMemo(() => {
     if (!documentsData?.documents) return [];
     return documentsData.documents.filter((doc: DocumentWithStatus) => {
@@ -193,7 +195,7 @@ export default function KnowledgeBasePage() {
       return matchesSearch && matchesType && matchesStatus;
     });
   }, [documentsData?.documents, docSearch, fileTypeFilter, statusFilter]);
-  
+
   const clearFilters = useCallback(() => {
     setDocSearch("");
     setFileTypeFilter("all");
@@ -201,13 +203,11 @@ export default function KnowledgeBasePage() {
   }, []);
 
   return (
-    <div className="min-h-screen" data-testid="page-knowledge-base">
-      <PageHeader title="Knowledge Base" />
-      <div className="container mx-auto p-6 space-y-6">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <SupportedFormats />
-          {stats && <div className="flex gap-4 text-sm"><div className="text-center"><div className="text-2xl font-bold" data-testid="text-total-documents">{stats.totalDocuments}</div><div className="text-muted-foreground">Documents</div></div><div className="text-center"><div className="text-2xl font-bold" data-testid="text-total-chunks">{stats.totalChunks}</div><div className="text-muted-foreground">Chunks</div></div></div>}
-        </div>
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <SupportedFormats />
+        {stats && <div className="flex gap-4 text-sm"><div className="text-center"><div className="text-2xl font-bold" data-testid="text-total-documents">{stats.totalDocuments}</div><div className="text-muted-foreground">Documents</div></div><div className="text-center"><div className="text-2xl font-bold" data-testid="text-total-chunks">{stats.totalChunks}</div><div className="text-muted-foreground">Chunks</div></div></div>}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="p-6">
@@ -233,7 +233,60 @@ export default function KnowledgeBasePage() {
         </div>
         {documentsLoading ? <div className="flex items-center justify-center py-8"><Loader2 className="h-8 w-8 animate-spin" /></div> : filteredDocuments.length > 0 ? <div className="space-y-2" data-testid="documents-list">{filteredDocuments.map((doc: Document) => <div key={doc.id} className="flex items-center justify-between p-3 border rounded hover:bg-accent/50 transition-colors" data-testid={`document-${doc.id}`}><div className="flex items-center gap-3"><FileText className="h-5 w-5 text-muted-foreground" /><div><div className="font-medium" data-testid={`text-name-${doc.id}`}>{doc.name}</div><div className="text-xs text-muted-foreground">{doc.fileType.toUpperCase()} • {doc.numChunks} chunks • {new Date(doc.createdAt).toLocaleDateString()}</div></div></div><Button variant="ghost" size="sm" onClick={() => handleDelete(doc.id, doc.name)} disabled={deleteMutation.isPending} data-testid={`button-delete-${doc.id}`}><Trash2 className="h-4 w-4 text-destructive" /></Button></div>)}</div> : documentsData?.documents.length === 0 ? <EmptyState type="no-documents" /> : <EmptyState type="no-results" />}
       </Card>
+    </div>
+  );
+}
+
+function ChatTab() {
+  return (
+    <div className="flex-1 p-6">
+      <ChatInterface />
+    </div>
+  );
+}
+
+function getTabFromSearch(search: string): "chat" | "documents" {
+  const params = new URLSearchParams(search.startsWith("?") ? search : search);
+  const tab = params.get("tab");
+  if (tab === "documents") return "documents";
+  return "chat";
+}
+
+export default function KnowledgeBasePage() {
+  const searchString = useSearch();
+  const [, setLocation] = useLocation();
+  const [activeTab, setActiveTab] = useState<"chat" | "documents">(() =>
+    getTabFromSearch(searchString || window.location.search)
+  );
+
+  useEffect(() => {
+    setActiveTab(getTabFromSearch(searchString || ""));
+  }, [searchString]);
+
+  const handleTabChange = (value: string) => {
+    const tab = value as "chat" | "documents";
+    setActiveTab(tab);
+    const url = tab === "chat" ? "/knowledge-base" : "/knowledge-base?tab=documents";
+    setLocation(url, { replace: true });
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col" data-testid="page-knowledge-base">
+      <div className="px-6 pt-4">
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
+          <TabsList data-testid="kb-tabs">
+            <TabsTrigger value="chat" className="flex items-center gap-2" data-testid="tab-chat">
+              <MessageSquare className="h-4 w-4" />
+              Chat
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="flex items-center gap-2" data-testid="tab-documents">
+              <BookOpen className="h-4 w-4" />
+              Documents
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
+      {activeTab === "chat" ? <ChatTab /> : <DocumentsTab />}
     </div>
   );
 }

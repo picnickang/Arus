@@ -36,6 +36,7 @@ const additionalRedirects: Array<{ from: string; to: string }> = [
   { from: "/bridge-view", to: "/fleet" },
   { from: "/alerts", to: "/dashboard" },
   { from: "/governance", to: "/governance-dashboard" },
+  { from: "/kb-chat", to: "/knowledge-base?tab=chat" },
 ];
 
 export const legacyRedirects: Array<{ from: string; to: string }> = [

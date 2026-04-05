@@ -35,7 +35,7 @@ Developed with Express.js and TypeScript, offering RESTful APIs with Zod validat
 -   **Analytics**: Interactive visualizations, multi-format export, and a Real-Time Notification System.
 -   **Simulation**: Physics-Aware Vessel Telemetry Simulator for synthetic data generation.
 -   **AI Copilot Agent**: Natural language chat interface (OpenAI function-calling) for fleet operations queries with tiered permissions, SSE streaming, and conversation persistence.
--   **Knowledge Base**: RAG enrichment for AI-powered report generation, including document ingestion, semantic chunking, and hybrid vector+BM25 search.
+-   **Knowledge Base**: Consolidated single-page with Chat (default) and Documents tabs. RAG enrichment for AI-powered report generation, including document ingestion, semantic chunking, and hybrid vector+BM25 search. `/kb-chat` redirects to `/knowledge-base?tab=chat`.
 -   **Telemetry Resilience Modules**: Circuit breaker for PostgreSQL, graceful shutdown, in-memory dead-letter queue, and equipment heartbeat tracking.
 -   **Unified Domain Event Bus**: Consolidated, strongly-typed event bus with 40+ event types.
 -   **Certificate Registry**: Hexagonal domain for vessel certificates with validity tracking, survey windows, and immutable audit trail.
