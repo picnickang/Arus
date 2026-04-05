@@ -710,6 +710,9 @@ export class DatabaseStorage implements IStorage {
   async updateEquipmentRegistry(id: string, updates: any, orgId: string): Promise<any> { return dbEquipmentStorage.updateEquipmentRegistry(id, updates, orgId); }
   async deleteEquipmentFromRegistry(id: string, orgId: string): Promise<void> { return dbEquipmentStorage.deleteEquipment(id, orgId); }
   async deleteEquipment(id: string, orgId?: string): Promise<void> { return dbEquipmentStorage.deleteEquipment(id, orgId); }
+  async getVesselEquipment(vesselId: string, orgId?: string): Promise<any[]> { return dbEquipmentStorage.getEquipmentByVessel(vesselId, orgId || ''); }
+  async assignEquipmentToVessel(vesselId: string, equipmentId: string, orgId?: string): Promise<any> { return dbEquipmentStorage.associateEquipmentToVessel(equipmentId, vesselId, orgId || ''); }
+  async unassignEquipmentFromVessel(vesselId: string, equipmentId: string, orgId?: string): Promise<void> { return dbEquipmentStorage.disassociateEquipmentFromVessel(equipmentId, orgId || ''); }
 
   // Users & Organizations - delegated to dbUserStorage
   async getOrganizations(): Promise<Organization[]> { return dbUserStorage.getOrganizations(); }

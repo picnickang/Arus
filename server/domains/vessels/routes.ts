@@ -183,6 +183,7 @@ export function registerVesselsRoutes(
   app.post(
     "/api/vessels/:vesselId/equipment/:equipmentId",
     requireOrgIdAndValidateBody,
+    requirePermission("equipment", "edit"),
     writeOperationRateLimit,
     withErrorHandling("assign equipment to vessel", async (req, res) => {
       const orgId = getOrgIdFromRequest(req);
@@ -196,6 +197,7 @@ export function registerVesselsRoutes(
   app.delete(
     "/api/vessels/:vesselId/equipment/:equipmentId",
     requireOrgId,
+    requirePermission("equipment", "edit"),
     writeOperationRateLimit,
     withErrorHandling("unassign equipment from vessel", async (req, res) => {
       const orgId = getOrgIdFromRequest(req);
