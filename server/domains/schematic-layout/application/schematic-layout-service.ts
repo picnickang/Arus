@@ -24,6 +24,9 @@ export class SchematicLayoutService {
 
   async getVesselLayout(vesselId: string, orgId: string): Promise<SchematicLayout> {
     const saved = await this.repo.getLayout(vesselId, orgId);
+    if (saved === undefined) {
+      throw notFound(`Vessel "${vesselId}" not found`);
+    }
     return saved ?? getDefaultLayout();
   }
 

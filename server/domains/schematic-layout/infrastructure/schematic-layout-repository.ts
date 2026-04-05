@@ -15,14 +15,14 @@ export class SchematicLayoutRepositoryAdapter implements ISchematicLayoutReposit
     return !!row;
   }
 
-  async getLayout(vesselId: string, orgId: string): Promise<SchematicLayout | null> {
+  async getLayout(vesselId: string, orgId: string): Promise<SchematicLayout | null | undefined> {
     const [row] = await db
       .select({ schematicLayout: vessels.schematicLayout })
       .from(vessels)
       .where(and(eq(vessels.id, vesselId), eq(vessels.orgId, orgId)))
       .limit(1);
 
-    if (!row) return null;
+    if (!row) return undefined;
     if (!row.schematicLayout) return null;
     return row.schematicLayout as SchematicLayout;
   }
