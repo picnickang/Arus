@@ -379,8 +379,10 @@ export default function VesselDashboard() {
     slotLabel: string;
   } | null>(null);
 
-  const schematicOps = useSchematicLayout(vesselId);
-  const { layout, isLoading: layoutLoading } = schematicOps;
+  const {
+    layout, isLoading: layoutLoading,
+    saveLayout, resetLayout,
+  } = useSchematicLayout(vesselId);
 
   const { zones: zoneRects, slots: positionedSlots } = useMemo(
     () => layout ? computeLayout(layout) : { zones: [], slots: [] },
@@ -735,8 +737,10 @@ export default function VesselDashboard() {
               <SchematicConfigPanel
                 layout={layout}
                 equipmentSlotMap={equipmentSlotMap}
-                mutations={schematicOps}
+                onSave={(draft) => saveLayout.mutate(draft)}
+                onReset={() => resetLayout.mutate()}
                 onClose={() => setConfigPanelOpen(false)}
+                isPending={saveLayout.isPending || resetLayout.isPending}
               />
             </div>
           )}
