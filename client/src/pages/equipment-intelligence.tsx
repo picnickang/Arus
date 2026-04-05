@@ -2,7 +2,8 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, X, Send, AlertTriangle, CheckCircle, AlertCircle, Brain } from "lucide-react";
+import { Loader2, X, Send, AlertTriangle, CheckCircle, AlertCircle, Brain, Wrench, CalendarDays, FlaskConical, Box } from "lucide-react";
+import { Link } from "wouter";
 import { useAdminAccess } from "@/contexts/AdminAccessContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -359,6 +360,46 @@ function DetailDrawer({
                   View History
                 </Button>
               </div>
+
+              <div className="mt-4">
+                <div className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider mb-2">
+                  Advanced Tools
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <Link
+                    href="/digital-twin"
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.015] border border-slate-700/10 text-xs text-slate-400 hover:bg-violet-400/5 hover:border-violet-400/12 hover:text-violet-300 transition-colors no-underline"
+                    data-testid="link-digital-twin"
+                  >
+                    <Box className="h-3.5 w-3.5 shrink-0" />
+                    Digital Twin
+                  </Link>
+                  <Link
+                    href="/pdm-pack"
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.015] border border-slate-700/10 text-xs text-slate-400 hover:bg-orange-400/5 hover:border-orange-400/12 hover:text-orange-300 transition-colors no-underline"
+                    data-testid="link-pdm-pack"
+                  >
+                    <Wrench className="h-3.5 w-3.5 shrink-0" />
+                    Manual Diagnostics
+                  </Link>
+                  <Link
+                    href="/pdm-dashboard"
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.015] border border-slate-700/10 text-xs text-slate-400 hover:bg-blue-400/5 hover:border-blue-400/12 hover:text-blue-300 transition-colors no-underline"
+                    data-testid="link-pdm-dashboard"
+                  >
+                    <CalendarDays className="h-3.5 w-3.5 shrink-0" />
+                    Schedule & KPIs
+                  </Link>
+                  <Link
+                    href="/pdm-platform"
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.015] border border-slate-700/10 text-xs text-slate-400 hover:bg-emerald-400/5 hover:border-emerald-400/12 hover:text-emerald-300 transition-colors no-underline"
+                    data-testid="link-pdm-platform"
+                  >
+                    <FlaskConical className="h-3.5 w-3.5 shrink-0" />
+                    ML Platform
+                  </Link>
+                </div>
+              </div>
             </div>
           )}
 
@@ -429,6 +470,21 @@ function DetailDrawer({
                   : risk === "warning"
                     ? "Monitor closely. Plan maintenance for next scheduled port call. Check parts availability."
                     : "No action required. Continue normal operating schedule."}
+              </div>
+
+              <div className="flex gap-2 mt-4">
+                <Button asChild variant="outline" size="sm" className="text-xs text-violet-300 border-violet-400/20 hover:bg-violet-400/10">
+                  <Link href="/digital-twin" data-testid="link-simulate-digital-twin">
+                    <FlaskConical className="h-3.5 w-3.5 mr-1.5" />
+                    Simulate in Digital Twin
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="sm" className="text-xs text-blue-300 border-blue-400/20 hover:bg-blue-400/10">
+                  <Link href="/pdm-dashboard" data-testid="link-view-schedule">
+                    <CalendarDays className="h-3.5 w-3.5 mr-1.5" />
+                    View Schedule
+                  </Link>
+                </Button>
               </div>
             </div>
           )}
@@ -617,6 +673,32 @@ export default function EquipmentIntelligence() {
           <p className="text-xs text-slate-600 mt-0.5">
             AI health monitoring, predictions, and recommendations — all in one view
           </p>
+        </div>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <Button asChild variant="ghost" size="sm" className="text-[11px] text-slate-500 hover:text-blue-300 gap-1.5 h-7">
+            <Link href="/pdm-dashboard" data-testid="nav-pdm-dashboard">
+              <CalendarDays className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Schedule</span>
+            </Link>
+          </Button>
+          <Button asChild variant="ghost" size="sm" className="text-[11px] text-slate-500 hover:text-orange-300 gap-1.5 h-7">
+            <Link href="/pdm-pack" data-testid="nav-pdm-pack">
+              <Wrench className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Diagnostics</span>
+            </Link>
+          </Button>
+          <Button asChild variant="ghost" size="sm" className="text-[11px] text-slate-500 hover:text-violet-300 gap-1.5 h-7">
+            <Link href="/digital-twin" data-testid="nav-digital-twin">
+              <Box className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Digital Twin</span>
+            </Link>
+          </Button>
+          <Button asChild variant="ghost" size="sm" className="text-[11px] text-slate-500 hover:text-emerald-300 gap-1.5 h-7">
+            <Link href="/pdm-platform" data-testid="nav-pdm-platform">
+              <FlaskConical className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">ML Platform</span>
+            </Link>
+          </Button>
         </div>
         {isAdminUnlocked && (
           <Button
