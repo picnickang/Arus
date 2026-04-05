@@ -139,7 +139,7 @@ function VesselEquipmentSheet({
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="right" className="w-full sm:max-w-2xl lg:max-w-4xl overflow-y-auto" data-testid="vessel-detail-sheet">
+        <SheetContent side="right" className="w-full sm:max-w-[90vw] overflow-y-auto" data-testid="vessel-detail-sheet">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
               <Ship className="h-5 w-5" />
