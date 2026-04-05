@@ -1,5 +1,5 @@
 import { IconGridLayout, type GridItem } from "@/components/layouts";
-import { Compass, Activity, Wrench, DollarSign, Shield, Brain } from "lucide-react";
+import { Compass, Activity, Wrench, DollarSign, Shield, Brain, BookOpen, Bot, Zap } from "lucide-react";
 import { PermissionGate, PagePermissionDenied } from "@/components/PermissionGate";
 
 const analyticsItems: GridItem[] = [
@@ -51,6 +51,33 @@ const analyticsItems: GridItem[] = [
     load: () => import("@/pages/equipment-intelligence"),
     loaderVariant: "cards",
     legacyRoutes: ["/equipment-intelligence"],
+  },
+  {
+    id: "knowledge-base",
+    label: "Knowledge Base",
+    icon: BookOpen,
+    description: "Docs & RAG",
+    load: () => import("@/pages/knowledge-base"),
+    loaderVariant: "cards",
+    legacyRoutes: ["/knowledge-base"],
+  },
+  {
+    id: "kb-chat",
+    label: "KB Assistant",
+    icon: Bot,
+    description: "AI-powered knowledge assistant",
+    load: () => import("@/pages/kb-chat"),
+    loaderVariant: "cards",
+    legacyRoutes: ["/kb-chat"],
+  },
+  {
+    id: "optimizer",
+    label: "Optimizer",
+    icon: Zap,
+    description: "Maintenance optimization tools",
+    load: () => import("@/pages/optimization-tools"),
+    loaderVariant: "cards",
+    legacyRoutes: ["/optimization-tools"],
   },
 ];
 

@@ -18,8 +18,11 @@ import {
   Boxes,
   Database,
   SlidersHorizontal,
+  Zap,
+  BookOpen,
   Clipboard,
   Anchor,
+  Bot,
   Brain,
   type LucideIcon,
 } from "lucide-react";
@@ -211,6 +214,9 @@ export const navigationCategories: NavigationCategory[] = [
     children: [
       { name: "Equipment Intelligence", href: "/equipment-intelligence", icon: Brain, description: "AI health, predictions & recommendations" },
       { name: "Analytics Dashboard", href: "/analytics", icon: BarChart3, description: "Reports and analytics" },
+      { name: "Knowledge Base", href: "/knowledge-base", icon: BookOpen, description: "Documentation and RAG" },
+      { name: "KB Assistant", href: "/kb-chat", icon: Bot, description: "AI-powered knowledge assistant" },
+      { name: "Optimizer", href: "/optimization-tools", icon: Zap, description: "Maintenance optimization tools" },
     ],
   },
   {
