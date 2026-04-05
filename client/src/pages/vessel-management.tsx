@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Equipment, EquipmentHealth, Vessel } from "@shared/schema";
-import { Plus, Pencil, Trash2, Ship, AlertTriangle, Eye, Wifi, WifiOff, RefreshCw, Download, Upload, Wrench, Heart, Activity, CheckCircle, Server, Search, ArchiveX, History, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Ship, AlertTriangle, Eye, Wifi, WifiOff, RefreshCw, Download, Upload, Wrench, Heart, Activity, CheckCircle, Server, Search, ArchiveX, RotateCcw, History, X } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { formatPercent } from "@/lib/formatters";
 import { VESSEL_CLASSES, VESSEL_CONDITIONS, calculateUtilization, useVesselManagementData } from "@/features/vessels";
@@ -22,11 +22,11 @@ import { SensorSetupWizard } from "@/components/sensors/SensorSetupWizard";
 import { EquipmentDecommissionDialog } from "@/components/equipment/EquipmentDecommissionDialog";
 import { EquipmentReinstateDialog } from "@/components/equipment/EquipmentReinstateDialog";
 import { EquipmentHistoryDialog } from "@/components/equipment/EquipmentHistoryDialog";
-import { useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useDeleteMutation } from "@/hooks/useCrudMutations";
-import { equipmentKeys, vesselKeys } from "@/utils/queryKeys";
+import { equipmentKeys } from "@/utils/queryKeys";
 import { useToast } from "@/hooks/use-toast";
+import { useVesselEquipment } from "@/features/vessels";
 
 const vesselClasses = VESSEL_CLASSES;
 const vesselConditions = VESSEL_CONDITIONS;
@@ -73,18 +73,15 @@ function VesselEquipmentSheet({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState<EquipmentWithHealth | null>(null);
 
-  const { data: vesselEquipmentRaw = [], isLoading: eqLoading, refetch: refetchEquipment } = useQuery<Equipment[]>({
-    queryKey: vesselKeys.equipment(vessel?.id || ""),
-    queryFn: () => apiRequest("GET", `/api/vessels/${vessel?.id}/equipment`),
-    enabled: !!vessel?.id && open,
-  });
+  const { data: vesselEquipmentRaw = [], isLoading: eqLoading, refetch: refetchEquipment } = useVesselEquipment(open ? vessel?.id : undefined);
 
   const { data: healthResponse = [] } = useEquipmentHealth();
 
+  interface RawHealthItem { id: string; vesselId?: string; vessel?: string; name: string; type: string; healthIndex?: number; healthScore?: number; predictedDueDays?: number; status?: "healthy" | "warning" | "critical"; condition?: string; }
   const healthMap = useMemo(() => {
     const map = new Map<string, EquipmentHealth>();
     if (Array.isArray(healthResponse)) {
-      (healthResponse as any[]).forEach((item: any) => {
+      (healthResponse as RawHealthItem[]).forEach((item) => {
         if (item.id) {
           map.set(item.id, {
             id: item.id,
@@ -94,8 +91,8 @@ function VesselEquipmentSheet({
             type: item.type,
             healthIndex: item.healthIndex ?? item.healthScore ?? 0,
             predictedDueDays: item.predictedDueDays ?? 30,
-            status: item.status || "healthy",
-          } as EquipmentHealth);
+            status: item.status || (item.condition === "critical" || item.condition === "poor" ? "critical" as const : item.condition === "fair" ? "warning" as const : "healthy" as const),
+          });
         }
       });
     }
@@ -223,7 +220,11 @@ function VesselEquipmentSheet({
                             <div className="flex items-center justify-end gap-1">
                               <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => { setSelectedEquipment(eq); setSensorWizardOpen(true); }} data-testid={`button-vessel-eq-sensors-${eq.id}`}><Wrench className="h-4 w-4" /></Button>
                               <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => { setSelectedEquipment(eq); setEqEditOpen(true); }} data-testid={`button-vessel-eq-edit-${eq.id}`}><Pencil className="h-4 w-4" /></Button>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => { setSelectedEquipment(eq); setDecommissionOpen(true); }} data-testid={`button-vessel-eq-decommission-${eq.id}`}><ArchiveX className="h-4 w-4" /></Button>
+                              {(eq.isActive ?? true) ? (
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => { setSelectedEquipment(eq); setDecommissionOpen(true); }} data-testid={`button-vessel-eq-decommission-${eq.id}`}><ArchiveX className="h-4 w-4" /></Button>
+                              ) : (
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-green-600" onClick={() => { setSelectedEquipment(eq); setReinstateOpen(true); }} data-testid={`button-vessel-eq-reinstate-${eq.id}`}><RotateCcw className="h-4 w-4" /></Button>
+                              )}
                               <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => { setSelectedEquipment(eq); setHistoryOpen(true); }} data-testid={`button-vessel-eq-history-${eq.id}`}><History className="h-4 w-4" /></Button>
                               <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive" onClick={() => handleDeleteEquipment(eq)} data-testid={`button-vessel-eq-delete-${eq.id}`}><Trash2 className="h-4 w-4" /></Button>
                             </div>
