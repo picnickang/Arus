@@ -45,83 +45,86 @@ function generateId(prefix: string): string {
 export class SchematicLayoutService {
   constructor(private readonly repo: ISchematicLayoutRepository) {}
 
-  async getVesselLayout(vesselId: string): Promise<SchematicLayout> {
-    const saved = await this.repo.getLayout(vesselId);
+  async getVesselLayout(vesselId: string, orgId: string): Promise<SchematicLayout> {
+    const saved = await this.repo.getLayout(vesselId, orgId);
     return saved ?? getDefaultLayout();
   }
 
-  async saveVesselLayout(vesselId: string, layout: SchematicLayout): Promise<SchematicLayout> {
-    await this.repo.saveLayout(vesselId, layout);
+  async saveVesselLayout(vesselId: string, orgId: string, layout: SchematicLayout): Promise<SchematicLayout> {
+    await this.repo.saveLayout(vesselId, orgId, layout);
     return layout;
   }
 
-  async addZone(vesselId: string, cmd: CreateZoneCommand): Promise<SchematicLayout> {
-    const layout = await this.getVesselLayout(vesselId);
+  async addZone(vesselId: string, orgId: string, cmd: CreateZoneCommand): Promise<SchematicLayout> {
+    const layout = await this.getVesselLayout(vesselId, orgId);
     const zoneId = generateId("zone");
     const order = cmd.order ?? layout.zones.length;
     layout.zones.push({ zoneId, label: cmd.label, order, slotIds: [] });
     layout.zones.sort((a, b) => a.order - b.order);
-    await this.repo.saveLayout(vesselId, layout);
+    await this.repo.saveLayout(vesselId, orgId, layout);
     return layout;
   }
 
-  async updateZone(vesselId: string, zoneId: string, cmd: UpdateZoneCommand): Promise<SchematicLayout> {
-    const layout = await this.getVesselLayout(vesselId);
+  async updateZone(vesselId: string, orgId: string, zoneId: string, cmd: UpdateZoneCommand): Promise<SchematicLayout> {
+    const layout = await this.getVesselLayout(vesselId, orgId);
     const zone = layout.zones.find(z => z.zoneId === zoneId);
     if (!zone) throw new Error(`Zone "${zoneId}" not found`);
     if (cmd.label !== undefined) zone.label = cmd.label;
     if (cmd.order !== undefined) zone.order = cmd.order;
     layout.zones.sort((a, b) => a.order - b.order);
-    await this.repo.saveLayout(vesselId, layout);
+    await this.repo.saveLayout(vesselId, orgId, layout);
     return layout;
   }
 
-  async removeZone(vesselId: string, zoneId: string): Promise<SchematicLayout> {
-    const layout = await this.getVesselLayout(vesselId);
+  async removeZone(vesselId: string, orgId: string, zoneId: string): Promise<SchematicLayout> {
+    const layout = await this.getVesselLayout(vesselId, orgId);
     const idx = layout.zones.findIndex(z => z.zoneId === zoneId);
     if (idx === -1) throw new Error(`Zone "${zoneId}" not found`);
     layout.zones.splice(idx, 1);
     layout.zones.forEach((z, i) => { z.order = i; });
-    await this.repo.saveLayout(vesselId, layout);
+    await this.repo.saveLayout(vesselId, orgId, layout);
     return layout;
   }
 
-  async addSlot(vesselId: string, cmd: CreateSlotCommand): Promise<SchematicLayout> {
-    const layout = await this.getVesselLayout(vesselId);
+  async addSlot(vesselId: string, orgId: string, cmd: CreateSlotCommand): Promise<SchematicLayout> {
+    const layout = await this.getVesselLayout(vesselId, orgId);
     const zone = layout.zones.find(z => z.zoneId === cmd.zoneId);
     if (!zone) throw new Error(`Zone "${cmd.zoneId}" not found`);
     const slotId = generateId("slot");
     layout.slots.push({ slotId, label: cmd.label, category: cmd.category, typeMatch: cmd.typeMatch });
     zone.slotIds.push(slotId);
-    await this.repo.saveLayout(vesselId, layout);
+    await this.repo.saveLayout(vesselId, orgId, layout);
     return layout;
   }
 
-  async updateSlot(vesselId: string, slotId: string, cmd: UpdateSlotCommand): Promise<SchematicLayout> {
-    const layout = await this.getVesselLayout(vesselId);
+  async updateSlot(vesselId: string, orgId: string, slotId: string, cmd: UpdateSlotCommand): Promise<SchematicLayout> {
+    const layout = await this.getVesselLayout(vesselId, orgId);
     const slot = layout.slots.find(s => s.slotId === slotId);
     if (!slot) throw new Error(`Slot "${slotId}" not found`);
     if (cmd.label !== undefined) slot.label = cmd.label;
     if (cmd.category !== undefined) slot.category = cmd.category;
     if (cmd.typeMatch !== undefined) slot.typeMatch = cmd.typeMatch;
-    await this.repo.saveLayout(vesselId, layout);
+    await this.repo.saveLayout(vesselId, orgId, layout);
     return layout;
   }
 
-  async removeSlot(vesselId: string, slotId: string): Promise<SchematicLayout> {
-    const layout = await this.getVesselLayout(vesselId);
+  async removeSlot(vesselId: string, orgId: string, slotId: string, force: boolean = false): Promise<SchematicLayout> {
+    if (!force) {
+      throw new Error(`Slot "${slotId}" removal requires force=true. Unassign equipment first.`);
+    }
+    const layout = await this.getVesselLayout(vesselId, orgId);
     const slotIdx = layout.slots.findIndex(s => s.slotId === slotId);
     if (slotIdx === -1) throw new Error(`Slot "${slotId}" not found`);
     layout.slots.splice(slotIdx, 1);
     for (const zone of layout.zones) {
       zone.slotIds = zone.slotIds.filter(id => id !== slotId);
     }
-    await this.repo.saveLayout(vesselId, layout);
+    await this.repo.saveLayout(vesselId, orgId, layout);
     return layout;
   }
 
-  async moveSlot(vesselId: string, slotId: string, cmd: MoveSlotCommand): Promise<SchematicLayout> {
-    const layout = await this.getVesselLayout(vesselId);
+  async moveSlot(vesselId: string, orgId: string, slotId: string, cmd: MoveSlotCommand): Promise<SchematicLayout> {
+    const layout = await this.getVesselLayout(vesselId, orgId);
     const slot = layout.slots.find(s => s.slotId === slotId);
     if (!slot) throw new Error(`Slot "${slotId}" not found`);
     const targetZone = layout.zones.find(z => z.zoneId === cmd.targetZoneId);
@@ -130,13 +133,13 @@ export class SchematicLayoutService {
       zone.slotIds = zone.slotIds.filter(id => id !== slotId);
     }
     targetZone.slotIds.push(slotId);
-    await this.repo.saveLayout(vesselId, layout);
+    await this.repo.saveLayout(vesselId, orgId, layout);
     return layout;
   }
 
-  async resetToDefault(vesselId: string): Promise<SchematicLayout> {
+  async resetToDefault(vesselId: string, orgId: string): Promise<SchematicLayout> {
     const layout = getDefaultLayout();
-    await this.repo.saveLayout(vesselId, layout);
+    await this.repo.saveLayout(vesselId, orgId, layout);
     return layout;
   }
 }

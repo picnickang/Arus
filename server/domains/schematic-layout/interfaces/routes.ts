@@ -3,6 +3,10 @@ import { z } from "zod";
 import { schematicLayoutService } from "../service";
 import { withErrorHandling } from "../../../lib/route-utils";
 
+function getOrgId(req: Request): string {
+  return (req as any).orgId || "default-org-id";
+}
+
 const createZoneSchema = z.object({
   label: z.string().min(1).max(100),
   order: z.number().int().min(0).optional(),
@@ -28,6 +32,10 @@ const updateSlotSchema = z.object({
 
 const moveSlotSchema = z.object({
   targetZoneId: z.string().min(1),
+});
+
+const removeSlotSchema = z.object({
+  force: z.boolean().optional(),
 });
 
 const saveLayoutSchema = z.object({
@@ -57,7 +65,8 @@ export function registerSchematicLayoutRoutes(
 
   app.get("/api/vessels/:id/schematic-layout", generalApiRateLimit,
     withErrorHandling("fetch schematic layout", async (req: Request, res: Response) => {
-      const layout = await schematicLayoutService.getVesselLayout(req.params.id);
+      const orgId = getOrgId(req);
+      const layout = await schematicLayoutService.getVesselLayout(req.params.id, orgId);
       res.json(layout);
     })
   );
@@ -68,7 +77,8 @@ export function registerSchematicLayoutRoutes(
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid layout", details: parsed.error.flatten() });
       }
-      const layout = await schematicLayoutService.saveVesselLayout(req.params.id, parsed.data);
+      const orgId = getOrgId(req);
+      const layout = await schematicLayoutService.saveVesselLayout(req.params.id, orgId, parsed.data);
       res.json(layout);
     })
   );
@@ -79,7 +89,8 @@ export function registerSchematicLayoutRoutes(
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid zone data", details: parsed.error.flatten() });
       }
-      const layout = await schematicLayoutService.addZone(req.params.id, parsed.data);
+      const orgId = getOrgId(req);
+      const layout = await schematicLayoutService.addZone(req.params.id, orgId, parsed.data);
       res.status(201).json(layout);
     })
   );
@@ -90,8 +101,9 @@ export function registerSchematicLayoutRoutes(
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid zone data", details: parsed.error.flatten() });
       }
+      const orgId = getOrgId(req);
       try {
-        const layout = await schematicLayoutService.updateZone(req.params.id, req.params.zoneId, parsed.data);
+        const layout = await schematicLayoutService.updateZone(req.params.id, orgId, req.params.zoneId, parsed.data);
         res.json(layout);
       } catch (e: any) {
         if (e.message?.includes("not found")) return res.status(404).json({ error: e.message });
@@ -102,8 +114,9 @@ export function registerSchematicLayoutRoutes(
 
   app.delete("/api/vessels/:id/schematic-layout/zones/:zoneId", writeLimit,
     withErrorHandling("remove schematic zone", async (req: Request, res: Response) => {
+      const orgId = getOrgId(req);
       try {
-        const layout = await schematicLayoutService.removeZone(req.params.id, req.params.zoneId);
+        const layout = await schematicLayoutService.removeZone(req.params.id, orgId, req.params.zoneId);
         res.json(layout);
       } catch (e: any) {
         if (e.message?.includes("not found")) return res.status(404).json({ error: e.message });
@@ -118,8 +131,9 @@ export function registerSchematicLayoutRoutes(
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid slot data", details: parsed.error.flatten() });
       }
+      const orgId = getOrgId(req);
       try {
-        const layout = await schematicLayoutService.addSlot(req.params.id, parsed.data);
+        const layout = await schematicLayoutService.addSlot(req.params.id, orgId, parsed.data);
         res.status(201).json(layout);
       } catch (e: any) {
         if (e.message?.includes("not found")) return res.status(404).json({ error: e.message });
@@ -134,8 +148,9 @@ export function registerSchematicLayoutRoutes(
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid slot data", details: parsed.error.flatten() });
       }
+      const orgId = getOrgId(req);
       try {
-        const layout = await schematicLayoutService.updateSlot(req.params.id, req.params.slotId, parsed.data);
+        const layout = await schematicLayoutService.updateSlot(req.params.id, orgId, req.params.slotId, parsed.data);
         res.json(layout);
       } catch (e: any) {
         if (e.message?.includes("not found")) return res.status(404).json({ error: e.message });
@@ -146,11 +161,15 @@ export function registerSchematicLayoutRoutes(
 
   app.delete("/api/vessels/:id/schematic-layout/slots/:slotId", writeLimit,
     withErrorHandling("remove schematic slot", async (req: Request, res: Response) => {
+      const parsed = removeSlotSchema.safeParse(req.body);
+      const force = parsed.success ? parsed.data.force === true : false;
+      const orgId = getOrgId(req);
       try {
-        const layout = await schematicLayoutService.removeSlot(req.params.id, req.params.slotId);
+        const layout = await schematicLayoutService.removeSlot(req.params.id, orgId, req.params.slotId, force);
         res.json(layout);
       } catch (e: any) {
         if (e.message?.includes("not found")) return res.status(404).json({ error: e.message });
+        if (e.message?.includes("requires force")) return res.status(409).json({ error: e.message });
         throw e;
       }
     })
@@ -162,8 +181,9 @@ export function registerSchematicLayoutRoutes(
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid move data", details: parsed.error.flatten() });
       }
+      const orgId = getOrgId(req);
       try {
-        const layout = await schematicLayoutService.moveSlot(req.params.id, req.params.slotId, parsed.data);
+        const layout = await schematicLayoutService.moveSlot(req.params.id, orgId, req.params.slotId, parsed.data);
         res.json(layout);
       } catch (e: any) {
         if (e.message?.includes("not found")) return res.status(404).json({ error: e.message });
@@ -174,7 +194,8 @@ export function registerSchematicLayoutRoutes(
 
   app.post("/api/vessels/:id/schematic-layout/reset", writeLimit,
     withErrorHandling("reset schematic layout", async (req: Request, res: Response) => {
-      const layout = await schematicLayoutService.resetToDefault(req.params.id);
+      const orgId = getOrgId(req);
+      const layout = await schematicLayoutService.resetToDefault(req.params.id, orgId);
       res.json(layout);
     })
   );
