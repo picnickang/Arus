@@ -86,7 +86,7 @@ export const routeResourceMap: Record<string, string> = {
   // Logistics / Inventory
   "/logistics": "inventory",
   "/inventory-management": "inventory",
-  "/purchase-orders": "purchase_requests",
+  "/purchase-orders": "inventory",
   "/purchase-requests": "inventory",
   "/service-orders": "service_orders",
   "/vendors": "suppliers",
