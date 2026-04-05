@@ -105,16 +105,23 @@ export function computeLayout(layout: SchematicLayout): { zones: ZoneRect[]; slo
 
     const innerPad = 1.5;
     const gutter = 1.5;
-    const MIN_CELL_H = 4;
+    const MIN_CELL_H = 2.5;
+    const MIN_CELL_W = 4;
     const availableH = zh - innerPad * 2;
-    const maxRows = Math.max(1, Math.floor((availableH + gutter) / (MIN_CELL_H + gutter)));
-    const cols = count <= 2 ? 1 : 2;
-    const visibleCount = Math.min(count, maxRows * cols);
-    const rows = Math.ceil(visibleCount / cols);
-    const cellW = Math.max(4, (zoneW - innerPad * 2 - (cols - 1) * gutter) / cols);
-    const cellH = Math.min(Math.max(MIN_CELL_H, (availableH - (rows - 1) * gutter) / rows), 18);
+    const availableW = zoneW - innerPad * 2;
 
-    slotDefs.slice(0, visibleCount).forEach((slot, si) => {
+    const cols = (() => {
+      if (count <= 2) return 1;
+      if (count <= 6) return 2;
+      if (count <= 12) return 3;
+      return Math.min(4, Math.ceil(Math.sqrt(count)));
+    })();
+    const rows = Math.ceil(count / cols);
+    const cellW = Math.max(MIN_CELL_W, (availableW - (cols - 1) * gutter) / cols);
+    const rawCellH = (availableH - (rows - 1) * gutter) / rows;
+    const cellH = Math.min(Math.max(MIN_CELL_H, rawCellH), 18);
+
+    slotDefs.forEach((slot, si) => {
       const col = si % cols;
       const row = Math.floor(si / cols);
       const sx = zx + innerPad + col * (cellW + gutter);
