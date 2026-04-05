@@ -166,10 +166,7 @@ export const navigationCategories: NavigationCategory[] = [
       { name: "Work Orders", href: "/work-orders", icon: ClipboardCheck, description: "Work order management" },
       { name: "Schedules", href: "/maintenance", icon: Wrench, description: "Maintenance schedules" },
       { name: "Templates", href: "/maintenance-templates", icon: Clipboard, description: "Maintenance templates" },
-      { name: "PdM Pack", href: "/pdm-pack", icon: Zap, description: "Predictive maintenance tools" },
-      { name: "PdM Dashboard", href: "/pdm-dashboard", icon: TrendingUp, description: "Risk queue & fleet health" },
-      { name: "PdM Platform", href: "/pdm-platform", icon: Database, description: "Feature store, models, inference & monitoring" },
-      { name: "Digital Twin", href: "/digital-twin", icon: Box, description: "Asset-level digital twins with state, residuals & scenarios" },
+      { name: "Equipment Intelligence", href: "/equipment-intelligence", icon: Brain, description: "AI health, predictions & recommendations" },
     ],
   },
   {
@@ -220,11 +217,9 @@ export const navigationCategories: NavigationCategory[] = [
     description: "Reports, AI, and performance tracking",
     children: [
       { name: "Equipment Intelligence", href: "/equipment-intelligence", icon: Brain, description: "Consolidated AI health, predictions & recommendations" },
-      { name: "AI Health", href: "/ai-health", icon: TrendingUp, description: "Fleet AI status and predictions" },
       { name: "Analytics Dashboard", href: "/analytics", icon: BarChart3, description: "Reports and analytics" },
       { name: "Knowledge Base", href: "/knowledge-base", icon: BookOpen, description: "Documentation and RAG" },
       { name: "KB Assistant", href: "/kb-chat", icon: Bot, description: "AI-powered knowledge assistant" },
-      { name: "AI Sensor Audits", href: "/ai-sensor-audits", icon: Activity, description: "AI sensor analysis" },
       { name: "Optimizer", href: "/optimization-tools", icon: Zap, description: "Maintenance optimization tools" },
     ],
   },
