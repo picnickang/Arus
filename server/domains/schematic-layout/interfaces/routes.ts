@@ -5,6 +5,7 @@ import type { AuthenticatedRequest } from "../../../middleware/auth";
 import { requireOrgId } from "../../../middleware/auth";
 import { schematicLayoutService } from "../service";
 import { withErrorHandling } from "../../../lib/route-utils";
+import { dbEquipmentStorage } from "../../../db/equipment";
 
 const createZoneSchema = z.object({
   label: z.string().min(1).max(100),
@@ -35,7 +36,6 @@ const moveSlotSchema = z.object({
 
 const removeSlotBodySchema = z.object({
   force: z.boolean().optional(),
-  hasEquipment: z.boolean().optional(),
 });
 
 const saveLayoutSchema = z.object({
@@ -142,7 +142,19 @@ export function registerSchematicLayoutRoutes(
     withErrorHandling("remove schematic slot", async (req: AuthenticatedRequest, res: Response) => {
       const parsed = removeSlotBodySchema.safeParse(req.body);
       const force = parsed.success ? parsed.data.force === true : false;
-      const hasEquipment = parsed.success ? parsed.data.hasEquipment === true : false;
+
+      const currentLayout = await schematicLayoutService.getVesselLayout(req.params.id, req.orgId);
+      const slot = currentLayout.slots.find(s => s.slotId === req.params.slotId);
+      let hasEquipment = false;
+      if (slot) {
+        const vesselEquipment = await dbEquipmentStorage.getEquipmentByVessel(req.params.id, req.orgId);
+        hasEquipment = vesselEquipment.some(eq => {
+          const typeLower = (eq.type || "").toLowerCase();
+          const nameLower = (eq.name || "").toLowerCase();
+          return slot.typeMatch.some(t => typeLower.includes(t) || nameLower.includes(t));
+        });
+      }
+
       const layout = await schematicLayoutService.removeSlot(
         req.params.id, req.orgId, req.params.slotId, { force, hasEquipment }
       );

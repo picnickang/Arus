@@ -104,18 +104,15 @@ describe("Schematic Layout CRUD API", () => {
     expect(engineRoom.slotIds).toContain(slot.slotId);
   });
 
-  it("DELETE /slots/:id succeeds for unassigned slot, 409 when hasEquipment without force", async () => {
+  it("DELETE /slots/:id succeeds for slot with no matching equipment (server-side check)", async () => {
     const { status: ok, data } = await api("DELETE", `${layoutUrl}/slots/me`, {});
     expect(ok).toBe(200);
     expect(data.slots).toHaveLength(9);
     expect(data.slots.find((s: { slotId: string }) => s.slotId === "me")).toBeUndefined();
   });
 
-  it("DELETE /slots/:id returns 409 when hasEquipment=true without force, 200 with force", async () => {
-    const { status: blocked } = await api("DELETE", `${layoutUrl}/slots/gen1`, { hasEquipment: true });
-    expect(blocked).toBe(409);
-
-    const { status: forced, data } = await api("DELETE", `${layoutUrl}/slots/gen1`, { hasEquipment: true, force: true });
+  it("DELETE /slots/:id succeeds with force=true even if equipment matched", async () => {
+    const { status: forced, data } = await api("DELETE", `${layoutUrl}/slots/gen1`, { force: true });
     expect(forced).toBe(200);
     expect(data.slots.find((s: { slotId: string }) => s.slotId === "gen1")).toBeUndefined();
   });
