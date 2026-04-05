@@ -1,4 +1,4 @@
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { NavigationCategory as NavigationCategoryType } from "@/config/navigationConfig";
@@ -21,7 +21,40 @@ export function NavigationCategory({
 }: NavigationCategoryProps) {
   const [location] = useLocation();
   const hasActiveItem = category.items.some((item) => location === item.href);
+  const isDirectLink = category.items.length === 0 && category.hubRoute;
+  const isHubActive = location === category.hubRoute || (category.hubRoute !== "/" && location.startsWith(category.hubRoute));
   const Icon = category.icon;
+
+  if (isDirectLink) {
+    const linkClass = mode === "mobile"
+      ? cn(
+          "flex items-center w-full px-4 py-2.5 text-sm font-semibold rounded-md transition-colors touch-manipulation",
+          isHubActive
+            ? "text-foreground bg-accent/50"
+            : "text-muted-foreground hover:bg-accent/30 hover:text-foreground"
+        )
+      : cn(
+          "flex items-center w-full px-4 py-2 text-sm font-semibold rounded-md transition-colors",
+          "mx-3 my-1",
+          isHubActive
+            ? "text-sidebar-accent-foreground bg-sidebar-accent/50"
+            : "text-muted-foreground hover:bg-sidebar-accent/30 hover:text-sidebar-accent-foreground"
+        );
+
+    return (
+      <div className="mb-2">
+        <Link
+          href={category.hubRoute}
+          className={linkClass}
+          onClick={onNavigate}
+          data-testid={`${mode === "mobile" ? "mobile-" : ""}nav-category-${category.name.toLowerCase().replace(/\s+/g, "-")}`}
+        >
+          <Icon className="w-4 h-4 mr-2" />
+          <span>{category.name}</span>
+        </Link>
+      </div>
+    );
+  }
 
   if (mode === "mobile") {
     return (

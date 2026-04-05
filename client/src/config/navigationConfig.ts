@@ -5,7 +5,6 @@ import {
   BarChart3,
   Settings,
   Bell,
-  Server,
   AlertCircle,
   Package,
   Users,
@@ -62,8 +61,8 @@ export const routeResourceMap: Record<string, string> = {
   "/fleet": "vessels",
   "/fleet-overview": "vessels",
   "/vessel-management": "vessels",
-  "/equipment": "equipment",
-  "/health": "equipment",
+  "/equipment": "vessels",
+  "/health": "vessels",
   
   // Maintenance
   "/maint": "work_orders",
@@ -147,10 +146,7 @@ export const navigationCategories: NavigationCategory[] = [
     icon: Ship,
     hubRoute: "/fleet",
     description: "Vessels and equipment management",
-    children: [
-      { name: "Vessels", href: "/vessel-management", icon: Ship, description: "Fleet overview and vessel details" },
-      { name: "Equipment", href: "/equipment", icon: Server, description: "Equipment registry and health" },
-    ],
+    children: [],
   },
   {
     id: "maintenance",
@@ -253,11 +249,11 @@ export const routeMigrations: Record<string, string> = {
   "/fuel-emissions-log": "/logs/engine",
   "/condition-monitoring-log": "/logs/equipment",
   "/decommissioned-equipment-log": "/logs/equipment",
-  "/devices": "/equipment",
-  "/equipment-registry": "/equipment",
-  "/health-monitor": "/equipment",
-  "/health": "/equipment",
-  "/fleet-overview": "/vessel-management",
+  "/devices": "/fleet?tab=equipment",
+  "/equipment-registry": "/fleet?tab=equipment",
+  "/health-monitor": "/fleet?tab=equipment",
+  "/health": "/fleet?tab=equipment",
+  "/fleet-overview": "/fleet",
   "/bridge-view": "/fleet",
   "/settings": "/configuration",
   "/transport-settings": "/configuration",
@@ -295,5 +291,7 @@ export interface HomePageGroup {
 export const homePageGroups: HomePageGroup[] = navigationCategories.map(cat => ({
   id: cat.id,
   name: cat.name,
-  items: cat.children,
+  items: cat.children.length > 0
+    ? cat.children
+    : [{ name: cat.name, href: cat.hubRoute, icon: cat.icon, description: cat.description }],
 }));

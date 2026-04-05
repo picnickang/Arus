@@ -572,7 +572,7 @@ export default function VesselDashboard() {
       <div className="p-6 text-center">
         <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground" />
         <h3 className="mt-4 text-lg font-semibold">Vessel not found</h3>
-        <Button asChild className="mt-4"><Link href="/vessel-management">Back to Vessels</Link></Button>
+        <Button asChild className="mt-4"><Link href="/fleet">Back to Vessels</Link></Button>
       </div>
     );
   }
@@ -621,7 +621,7 @@ export default function VesselDashboard() {
       <header className="flex items-center justify-between px-3 sm:px-5 py-2.5 border-b border-slate-700/20 bg-[#080e1a]/95 backdrop-blur-xl sticky top-0 z-20">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <Button variant="ghost" size="icon" asChild className="h-9 w-9 sm:h-8 sm:w-8 shrink-0" data-testid="btn-back">
-            <Link href="/vessel-management"><ArrowLeft className="h-4 w-4" /></Link>
+            <Link href="/fleet"><ArrowLeft className="h-4 w-4" /></Link>
           </Button>
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-500 to-sky-700 flex items-center justify-center text-white font-bold text-sm shrink-0">
             <Ship className="h-4 w-4" />
