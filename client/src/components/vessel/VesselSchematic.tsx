@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
-import { Settings2, Plus, Trash2, GripVertical, RotateCcw, Save, X, ArrowRight, Pencil } from "lucide-react";
+import { Settings2, Plus, Trash2, GripVertical, RotateCcw, Save, X, ArrowRight, Pencil, ChevronUp, ChevronDown, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -251,7 +251,7 @@ function SlotRect({
   const sc = eq ? statusFill(status) : "rgba(148,163,184,0.3)";
   const health = eq?.healthScore ?? 0;
   const displayName = eq
-    ? (eq.name.length > 14 ? eq.name.slice(0, 12) + "…" : eq.name)
+    ? (eq.name.length > 14 ? eq.name.slice(0, 12) + "\u2026" : eq.name)
     : slot.label;
   const displaySub = eq
     ? [eq.manufacturer, eq.model].filter(Boolean).join(" ").slice(0, 16)
@@ -335,31 +335,31 @@ export function VesselSchematic({
   );
 }
 
+function generateLocalId(prefix: string): string {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+}
+
+function getUnassignedSlots(layout: SchematicLayout): SchematicSlot[] {
+  const assignedIds = new Set(layout.zones.flatMap(z => z.slotIds));
+  return layout.slots.filter(s => !assignedIds.has(s.slotId));
+}
+
 export function SchematicConfigPanel({
   layout,
-  onAddZone,
-  onUpdateZone,
-  onRemoveZone,
-  onAddSlot,
-  onUpdateSlot,
-  onRemoveSlot,
-  onMoveSlot,
+  equipmentSlotMap,
+  onSave,
   onReset,
   onClose,
   isPending,
 }: {
   layout: SchematicLayout;
-  onAddZone: (label: string) => void;
-  onUpdateZone: (zoneId: string, label: string) => void;
-  onRemoveZone: (zoneId: string) => void;
-  onAddSlot: (label: string, category: string, typeMatch: string[], zoneId: string) => void;
-  onUpdateSlot: (slotId: string, label: string) => void;
-  onRemoveSlot: (slotId: string) => void;
-  onMoveSlot: (slotId: string, targetZoneId: string) => void;
+  equipmentSlotMap?: Map<string, string>;
+  onSave: (draft: SchematicLayout) => void;
   onReset: () => void;
   onClose: () => void;
   isPending: boolean;
 }) {
+  const [draft, setDraft] = useState<SchematicLayout>(() => JSON.parse(JSON.stringify(layout)));
   const [newZoneName, setNewZoneName] = useState("");
   const [newSlotName, setNewSlotName] = useState("");
   const [newSlotCategory, setNewSlotCategory] = useState("");
@@ -370,29 +370,124 @@ export function SchematicConfigPanel({
   const [editingSlot, setEditingSlot] = useState<string | null>(null);
   const [editSlotName, setEditSlotName] = useState("");
   const [confirmReset, setConfirmReset] = useState(false);
+  const [confirmDeleteSlot, setConfirmDeleteSlot] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  const sortedZones = [...layout.zones].sort((a, b) => a.order - b.order);
+  const isDirty = JSON.stringify(draft) !== JSON.stringify(layout);
+  const sortedZones = [...draft.zones].sort((a, b) => a.order - b.order);
+  const unassignedSlots = getUnassignedSlots(draft);
+
+  const updateDraft = (fn: (d: SchematicLayout) => void) => {
+    setDraft(prev => {
+      const next = JSON.parse(JSON.stringify(prev));
+      fn(next);
+      return next;
+    });
+  };
 
   const handleAddZone = () => {
     if (!newZoneName.trim()) return;
-    onAddZone(newZoneName.trim());
+    updateDraft(d => {
+      d.zones.push({ zoneId: generateLocalId("zone"), label: newZoneName.trim(), order: d.zones.length, slotIds: [] });
+    });
     setNewZoneName("");
+  };
+
+  const handleRemoveZone = (zoneId: string) => {
+    updateDraft(d => {
+      const idx = d.zones.findIndex(z => z.zoneId === zoneId);
+      if (idx !== -1) {
+        d.zones.splice(idx, 1);
+        d.zones.forEach((z, i) => { z.order = i; });
+      }
+    });
+  };
+
+  const handleMoveZoneUp = (zoneId: string) => {
+    updateDraft(d => {
+      const sorted = d.zones.sort((a, b) => a.order - b.order);
+      const idx = sorted.findIndex(z => z.zoneId === zoneId);
+      if (idx > 0) {
+        const tmp = sorted[idx].order;
+        sorted[idx].order = sorted[idx - 1].order;
+        sorted[idx - 1].order = tmp;
+      }
+    });
+  };
+
+  const handleMoveZoneDown = (zoneId: string) => {
+    updateDraft(d => {
+      const sorted = d.zones.sort((a, b) => a.order - b.order);
+      const idx = sorted.findIndex(z => z.zoneId === zoneId);
+      if (idx < sorted.length - 1) {
+        const tmp = sorted[idx].order;
+        sorted[idx].order = sorted[idx + 1].order;
+        sorted[idx + 1].order = tmp;
+      }
+    });
   };
 
   const handleAddSlot = () => {
     if (!newSlotName.trim() || !newSlotZone) return;
     const tm = newSlotTypeMatch.split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
-    onAddSlot(newSlotName.trim(), newSlotCategory.trim() || "general", tm.length ? tm : [newSlotName.trim().toLowerCase()], newSlotZone);
+    const slotId = generateLocalId("slot");
+    updateDraft(d => {
+      d.slots.push({ slotId, label: newSlotName.trim(), category: newSlotCategory.trim() || "general", typeMatch: tm.length ? tm : [newSlotName.trim().toLowerCase()] });
+      const zone = d.zones.find(z => z.zoneId === newSlotZone);
+      if (zone) zone.slotIds.push(slotId);
+    });
     setNewSlotName("");
     setNewSlotCategory("");
     setNewSlotTypeMatch("");
   };
 
+  const handleRemoveSlot = (slotId: string) => {
+    const hasEquipment = equipmentSlotMap?.has(slotId);
+    if (hasEquipment) {
+      setConfirmDeleteSlot(slotId);
+      return;
+    }
+    doRemoveSlot(slotId);
+  };
+
+  const doRemoveSlot = (slotId: string) => {
+    updateDraft(d => {
+      d.slots = d.slots.filter(s => s.slotId !== slotId);
+      for (const zone of d.zones) {
+        zone.slotIds = zone.slotIds.filter(id => id !== slotId);
+      }
+    });
+    setConfirmDeleteSlot(null);
+  };
+
+  const handleMoveSlot = (slotId: string, targetZoneId: string) => {
+    updateDraft(d => {
+      for (const zone of d.zones) {
+        zone.slotIds = zone.slotIds.filter(id => id !== slotId);
+      }
+      const target = d.zones.find(z => z.zoneId === targetZoneId);
+      if (target) target.slotIds.push(slotId);
+    });
+  };
+
+  const handleSave = () => {
+    onSave(draft);
+    toast({ title: "Layout saved", description: "Schematic configuration updated." });
+  };
+
+  const handleCancel = () => {
+    setDraft(JSON.parse(JSON.stringify(layout)));
+    onClose();
+  };
+
   return (
     <div className="bg-[#0a1328] border border-slate-700/20 rounded-lg p-4 max-h-[70vh] overflow-y-auto">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wide">Schematic Configuration</h3>
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose} data-testid="btn-close-config">
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wide">Schematic Configuration</h3>
+          {isDirty && <Badge variant="secondary" className="text-[9px] bg-amber-500/20 text-amber-400">Unsaved</Badge>}
+        </div>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCancel} data-testid="btn-close-config">
           <X className="h-4 w-4" />
         </Button>
       </div>
@@ -400,9 +495,18 @@ export function SchematicConfigPanel({
       <div className="mb-5">
         <h4 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Zones</h4>
         <div className="space-y-1.5">
-          {sortedZones.map(zone => (
+          {sortedZones.map((zone, zIdx) => (
             <div key={zone.zoneId} className="flex items-center gap-2 p-2 rounded bg-slate-800/40 border border-slate-700/15">
-              <GripVertical className="h-3.5 w-3.5 text-slate-600 shrink-0" />
+              <div className="flex flex-col gap-0.5">
+                <Button size="sm" variant="ghost" className="h-4 w-4 p-0 text-slate-500 hover:text-slate-200" data-testid={`btn-zone-up-${zone.zoneId}`}
+                  disabled={zIdx === 0} onClick={() => handleMoveZoneUp(zone.zoneId)}>
+                  <ChevronUp className="h-3 w-3" />
+                </Button>
+                <Button size="sm" variant="ghost" className="h-4 w-4 p-0 text-slate-500 hover:text-slate-200" data-testid={`btn-zone-down-${zone.zoneId}`}
+                  disabled={zIdx === sortedZones.length - 1} onClick={() => handleMoveZoneDown(zone.zoneId)}>
+                  <ChevronDown className="h-3 w-3" />
+                </Button>
+              </div>
               {editingZone === zone.zoneId ? (
                 <div className="flex items-center gap-1.5 flex-1">
                   <Input
@@ -412,7 +516,13 @@ export function SchematicConfigPanel({
                     data-testid={`input-edit-zone-${zone.zoneId}`}
                   />
                   <Button size="sm" variant="ghost" className="h-7 px-2 text-green-400" data-testid={`btn-save-zone-${zone.zoneId}`}
-                    onClick={() => { onUpdateZone(zone.zoneId, editZoneName); setEditingZone(null); }}>
+                    onClick={() => {
+                      updateDraft(d => {
+                        const z = d.zones.find(z => z.zoneId === zone.zoneId);
+                        if (z) z.label = editZoneName;
+                      });
+                      setEditingZone(null);
+                    }}>
                     <Save className="h-3 w-3" />
                   </Button>
                   <Button size="sm" variant="ghost" className="h-7 px-2 text-slate-400"
@@ -429,7 +539,7 @@ export function SchematicConfigPanel({
                     <Pencil className="h-3 w-3" />
                   </Button>
                   <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-slate-400 hover:text-red-400" data-testid={`btn-remove-zone-${zone.zoneId}`}
-                    disabled={isPending} onClick={() => onRemoveZone(zone.zoneId)}>
+                    onClick={() => handleRemoveZone(zone.zoneId)}>
                     <Trash2 className="h-3 w-3" />
                   </Button>
                 </>
@@ -447,7 +557,7 @@ export function SchematicConfigPanel({
             onKeyDown={e => e.key === "Enter" && handleAddZone()}
           />
           <Button size="sm" variant="outline" className="h-8 gap-1 text-xs border-sky-500/30 text-sky-400"
-            disabled={!newZoneName.trim() || isPending} onClick={handleAddZone} data-testid="btn-add-zone">
+            disabled={!newZoneName.trim()} onClick={handleAddZone} data-testid="btn-add-zone">
             <Plus className="h-3 w-3" /> Add
           </Button>
         </div>
@@ -460,8 +570,9 @@ export function SchematicConfigPanel({
             <div key={zone.zoneId}>
               <div className="text-[10px] text-slate-500 font-semibold uppercase mb-1 ml-1">{zone.label}</div>
               {zone.slotIds.map(sid => {
-                const slot = layout.slots.find(s => s.slotId === sid);
+                const slot = draft.slots.find(s => s.slotId === sid);
                 if (!slot) return null;
+                const hasEq = equipmentSlotMap?.has(sid);
                 return (
                   <div key={sid} className="flex items-center gap-2 p-2 ml-3 rounded bg-slate-800/30 border border-slate-700/10 mb-1">
                     {editingSlot === sid ? (
@@ -473,7 +584,13 @@ export function SchematicConfigPanel({
                           data-testid={`input-edit-slot-${sid}`}
                         />
                         <Button size="sm" variant="ghost" className="h-7 px-2 text-green-400" data-testid={`btn-save-slot-${sid}`}
-                          onClick={() => { onUpdateSlot(sid, editSlotName); setEditingSlot(null); }}>
+                          onClick={() => {
+                            updateDraft(d => {
+                              const s = d.slots.find(s => s.slotId === sid);
+                              if (s) s.label = editSlotName;
+                            });
+                            setEditingSlot(null);
+                          }}>
                           <Save className="h-3 w-3" />
                         </Button>
                         <Button size="sm" variant="ghost" className="h-7 px-2 text-slate-400"
@@ -484,8 +601,9 @@ export function SchematicConfigPanel({
                     ) : (
                       <>
                         <span className="text-xs text-slate-200 flex-1">{slot.label}</span>
+                        {hasEq && <Badge variant="secondary" className="text-[9px] bg-green-500/20 text-green-400">Installed</Badge>}
                         <Badge variant="secondary" className="text-[9px] bg-slate-700/30">{slot.category}</Badge>
-                        <Select onValueChange={val => onMoveSlot(sid, val)}>
+                        <Select onValueChange={val => handleMoveSlot(sid, val)}>
                           <SelectTrigger className="h-6 w-20 text-[10px] bg-slate-900/50 border-slate-700/30" data-testid={`select-move-slot-${sid}`}>
                             <SelectValue placeholder="Move" />
                           </SelectTrigger>
@@ -500,7 +618,7 @@ export function SchematicConfigPanel({
                           <Pencil className="h-3 w-3" />
                         </Button>
                         <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-slate-400 hover:text-red-400" data-testid={`btn-remove-slot-${sid}`}
-                          disabled={isPending} onClick={() => onRemoveSlot(sid)}>
+                          onClick={() => handleRemoveSlot(sid)}>
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </>
@@ -510,6 +628,37 @@ export function SchematicConfigPanel({
               })}
             </div>
           ))}
+
+          {unassignedSlots.length > 0 && (
+            <div>
+              <div className="text-[10px] text-amber-400/80 font-semibold uppercase mb-1 ml-1 flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" /> Unassigned Slots
+              </div>
+              {unassignedSlots.map(slot => {
+                const hasEq = equipmentSlotMap?.has(slot.slotId);
+                return (
+                  <div key={slot.slotId} className="flex items-center gap-2 p-2 ml-3 rounded bg-amber-500/5 border border-amber-500/15 mb-1">
+                    <span className="text-xs text-slate-200 flex-1">{slot.label}</span>
+                    {hasEq && <Badge variant="secondary" className="text-[9px] bg-green-500/20 text-green-400">Installed</Badge>}
+                    <Select onValueChange={val => handleMoveSlot(slot.slotId, val)}>
+                      <SelectTrigger className="h-6 w-24 text-[10px] bg-slate-900/50 border-amber-500/20" data-testid={`select-assign-slot-${slot.slotId}`}>
+                        <SelectValue placeholder="Assign to" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sortedZones.map(z => (
+                          <SelectItem key={z.zoneId} value={z.zoneId}>{z.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-slate-400 hover:text-red-400" data-testid={`btn-remove-slot-${slot.slotId}`}
+                      onClick={() => handleRemoveSlot(slot.slotId)}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
         <div className="flex flex-col gap-1.5 mt-2 p-2 rounded bg-slate-800/20 border border-slate-700/10">
           <div className="flex gap-1.5">
@@ -532,17 +681,26 @@ export function SchematicConfigPanel({
               </SelectContent>
             </Select>
             <Button size="sm" variant="outline" className="h-7 gap-1 text-xs border-sky-500/30 text-sky-400"
-              disabled={!newSlotName.trim() || !newSlotZone || isPending} onClick={handleAddSlot} data-testid="btn-add-slot">
+              disabled={!newSlotName.trim() || !newSlotZone} onClick={handleAddSlot} data-testid="btn-add-slot">
               <Plus className="h-3 w-3" /> Add
             </Button>
           </div>
         </div>
       </div>
 
-      <div className="flex gap-2 pt-3 border-t border-slate-700/15">
+      <div className="flex items-center gap-2 pt-3 border-t border-slate-700/15">
         <Button variant="outline" size="sm" className="gap-1.5 text-xs border-red-500/20 text-red-400 hover:bg-red-500/10"
           onClick={() => setConfirmReset(true)} disabled={isPending} data-testid="btn-reset-layout">
           <RotateCcw className="h-3 w-3" /> Reset to Default
+        </Button>
+        <div className="flex-1" />
+        <Button variant="outline" size="sm" className="text-xs border-slate-700/30 text-slate-300"
+          onClick={handleCancel} data-testid="btn-cancel-config">
+          Cancel
+        </Button>
+        <Button size="sm" className="gap-1.5 text-xs bg-sky-500 hover:bg-sky-600 text-white"
+          onClick={handleSave} disabled={!isDirty || isPending} data-testid="btn-save-config">
+          <Save className="h-3 w-3" /> Save
         </Button>
       </div>
 
@@ -557,6 +715,25 @@ export function SchematicConfigPanel({
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setConfirmReset(false)} className="border-slate-700/30 text-slate-300">Cancel</Button>
             <Button variant="destructive" onClick={() => { onReset(); setConfirmReset(false); }} data-testid="btn-confirm-reset">Reset</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!confirmDeleteSlot} onOpenChange={() => setConfirmDeleteSlot(null)}>
+        <DialogContent className="bg-[#0f1729] border-slate-700/30 max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-slate-100 flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-400" /> Equipment Assigned
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              This slot has equipment installed. Removing the slot will uninstall the equipment from the schematic view. The equipment itself will not be deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setConfirmDeleteSlot(null)} className="border-slate-700/30 text-slate-300">Cancel</Button>
+            <Button variant="destructive" onClick={() => confirmDeleteSlot && doRemoveSlot(confirmDeleteSlot)} data-testid="btn-confirm-delete-slot">
+              Remove Slot
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

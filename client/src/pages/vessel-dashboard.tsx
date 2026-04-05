@@ -382,9 +382,7 @@ export default function VesselDashboard() {
   // Schematic layout
   const {
     layout, isLoading: layoutLoading,
-    addZone, updateZone, removeZone,
-    addSlot, updateSlot, removeSlot,
-    moveSlot, resetLayout,
+    saveLayout, resetLayout,
   } = useSchematicLayout(vesselId);
 
   const { zones: zoneRects, slots: positionedSlots } = useMemo(
@@ -397,6 +395,14 @@ export default function VesselDashboard() {
     () => assignEquipmentToSlots(positionedSlots, equipment),
     [positionedSlots, equipment]
   );
+
+  const equipmentSlotMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const a of slotAssignments) {
+      if (a.equipment) map.set(a.slot.slotId, a.equipment.id);
+    }
+    return map;
+  }, [slotAssignments]);
 
   const selectedAssignment = useMemo(
     () => slotAssignments.find((a) => a.slot.slotId === selectedSlotId) || null,
@@ -731,18 +737,11 @@ export default function VesselDashboard() {
             <div className="px-3 sm:px-5 py-3 border-b border-slate-700/10 shrink-0">
               <SchematicConfigPanel
                 layout={layout}
-                onAddZone={(label) => addZone.mutate({ label })}
-                onUpdateZone={(zoneId, label) => updateZone.mutate({ zoneId, label })}
-                onRemoveZone={(zoneId) => removeZone.mutate(zoneId)}
-                onAddSlot={(label, category, typeMatch, zoneId) => addSlot.mutate({ label, category, typeMatch, zoneId })}
-                onUpdateSlot={(slotId, label) => updateSlot.mutate({ slotId, label })}
-                onRemoveSlot={(slotId) => removeSlot.mutate(slotId)}
-                onMoveSlot={(slotId, targetZoneId) => moveSlot.mutate({ slotId, targetZoneId })}
+                equipmentSlotMap={equipmentSlotMap}
+                onSave={(draft) => saveLayout.mutate(draft)}
                 onReset={() => resetLayout.mutate()}
                 onClose={() => setConfigPanelOpen(false)}
-                isPending={addZone.isPending || updateZone.isPending || removeZone.isPending ||
-                  addSlot.isPending || updateSlot.isPending || removeSlot.isPending ||
-                  moveSlot.isPending || resetLayout.isPending}
+                isPending={saveLayout.isPending || resetLayout.isPending}
               />
             </div>
           )}

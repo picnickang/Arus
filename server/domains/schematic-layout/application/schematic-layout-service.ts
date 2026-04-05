@@ -80,8 +80,6 @@ export class SchematicLayoutService {
     const layout = await this.getVesselLayout(vesselId);
     const idx = layout.zones.findIndex(z => z.zoneId === zoneId);
     if (idx === -1) throw new Error(`Zone "${zoneId}" not found`);
-    const orphanedSlotIds = new Set(layout.zones[idx].slotIds);
-    layout.slots = layout.slots.filter(s => !orphanedSlotIds.has(s.slotId));
     layout.zones.splice(idx, 1);
     layout.zones.forEach((z, i) => { z.order = i; });
     await this.repo.saveLayout(vesselId, layout);
