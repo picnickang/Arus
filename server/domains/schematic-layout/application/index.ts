@@ -1,1 +1,1 @@
-export { SchematicLayoutService, getDefaultLayout } from './schematic-layout-service';
+export { SchematicLayoutService } from './schematic-layout-service';
