@@ -156,3 +156,9 @@ id = "Q0maRfVVmNohQKV8WF7yP"
 uri = "file://exports/pdm-pages-for-review.txt"
 type = "text"
 title = "PdM Pages for Claude Evaluation"
+
+[[outputs]]
+id = "nGSRzxk3m3VVmaGy_4pvP"
+uri = "file://exports/dashboard-consolidated-files.md"
+type = "text"
+title = "Dashboard Consolidated Files (4 files for Claude evaluation)"
