@@ -1,6 +1,7 @@
 import { db } from "../../../db-config.js";
 import { equipment, vessels, failurePredictions, actionableInsights } from "@shared/schema-runtime";
 import { eq, and, sql, desc, inArray } from "drizzle-orm";
+import { logger } from "../../../utils/logger.js";
 import type { EquipmentIntelligenceRepository } from "../domain/ports.js";
 import type {
   FleetSummary,
@@ -450,8 +451,8 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
       for (const [key, values] of result.entries()) {
         result.set(key, values.slice(-9));
       }
-    } catch {
-      // fallback: no telemetry data
+    } catch (error) {
+      logger.warn("[EquipmentIntelligence] Failed to fetch telemetry summaries — sparklines will be empty", { error: String(error) });
     }
 
     return result;

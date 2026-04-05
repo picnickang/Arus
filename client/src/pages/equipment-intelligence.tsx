@@ -556,8 +556,12 @@ export default function EquipmentIntelligence() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [vesselFilter, setVesselFilter] = useState("all");
   const [riskFilter, setRiskFilter] = useState("all");
-  const [showSystem, setShowSystem] = useState(false);
   const { isAdminUnlocked } = useAdminAccess();
+
+  const [showSystem, setShowSystem] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("system") === "true";
+  });
 
   const overviewQuery = useQuery<IntelligenceData>({
     queryKey: ["/api/equipment-intelligence/overview"],
