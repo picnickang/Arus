@@ -195,48 +195,86 @@ export function registerServiceRequestRoutes(
 
       if (!wo) return sendNotFound(res, "Work Order");
 
+      if (wo.status === "completed" || wo.status === "cancelled") {
+        return res.status(400).json({ error: `Cannot create a service request for a ${wo.status} work order` });
+      }
+
+      const [existingActive] = await db.execute(sql`
+        SELECT id, request_number, status
+        FROM service_requests
+        WHERE work_order_id = ${workOrderId} AND org_id = ${orgId}
+          AND status NOT IN ('rejected', 'converted')
+        LIMIT 1
+      `).then((r) => r.rows || r);
+
+      if (existingActive) {
+        return res.status(409).json({
+          error: `This work order already has an active service request (${existingActive.request_number}, status: ${existingActive.status}). Reject or convert it before creating a new one.`,
+        });
+      }
+
       const { title, description, urgency, estimatedCost, serviceDetails, specialRequirements } = req.body;
       if (!title) return res.status(400).json({ error: "title is required" });
 
       const previousWoStatus = wo.status;
 
-      const [seqResult] = await db.execute(sql`
-        SELECT COALESCE(
-          MAX(CAST(SUBSTRING(request_number FROM 'SR-([0-9]+)') AS INTEGER)),
-          0
-        ) + 1 AS next_num
-        FROM service_requests
-        WHERE org_id = ${orgId}
-      `).then((r) => r.rows || r);
-      const requestNumber = `SR-${String(seqResult?.next_num || 1).padStart(4, "0")}`;
+      let newSr: any;
+      const MAX_RETRIES = 3;
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        try {
+          const [seqResult] = await db.execute(sql`
+            SELECT COALESCE(
+              MAX(CAST(SUBSTRING(request_number FROM 'SR-([0-9]+)') AS INTEGER)),
+              0
+            ) + 1 AS next_num
+            FROM service_requests
+            WHERE org_id = ${orgId}
+          `).then((r) => r.rows || r);
+          const requestNumber = `SR-${String(seqResult?.next_num || 1).padStart(4, "0")}`;
 
-      const [newSr] = await db.execute(sql`
-        INSERT INTO service_requests (
-          id, org_id, work_order_id, request_number,
-          title, description, urgency, estimated_cost,
-          service_details, special_requirements,
-          requested_by, status, previous_wo_status,
-          created_at, updated_at
-        )
-        VALUES (
-          gen_random_uuid()::text,
-          ${orgId},
-          ${workOrderId},
-          ${requestNumber},
-          ${title},
-          ${description || null},
-          ${urgency || "medium"},
-          ${estimatedCost ? Number(estimatedCost) : null},
-          ${serviceDetails || null},
-          ${specialRequirements || null},
-          ${userId},
-          'pending_review',
-          ${previousWoStatus},
-          NOW(),
-          NOW()
-        )
-        RETURNING *
-      `).then((r) => r.rows || r);
+          const [inserted] = await db.execute(sql`
+            INSERT INTO service_requests (
+              id, org_id, work_order_id, request_number,
+              title, description, urgency, estimated_cost,
+              service_details, special_requirements,
+              requested_by, status, previous_wo_status,
+              created_at, updated_at
+            )
+            VALUES (
+              gen_random_uuid()::text,
+              ${orgId},
+              ${workOrderId},
+              ${requestNumber},
+              ${title},
+              ${description || null},
+              ${urgency || "medium"},
+              ${estimatedCost ? Number(estimatedCost) : null},
+              ${serviceDetails || null},
+              ${specialRequirements || null},
+              ${userId},
+              'pending_review',
+              ${previousWoStatus},
+              NOW(),
+              NOW()
+            )
+            RETURNING *
+          `).then((r) => r.rows || r);
+          newSr = inserted;
+          break;
+        } catch (err: any) {
+          if (err.code === "23505" && err.constraint?.includes("service_requests") && attempt < MAX_RETRIES - 1) {
+            logger.warn(`SR number collision on attempt ${attempt + 1}, retrying...`);
+            continue;
+          }
+          throw err;
+        }
+      }
+
+      if (!newSr) {
+        return res.status(500).json({ error: "Failed to generate unique request number after retries" });
+      }
+
+      const requestNumber = newSr.request_number;
 
       await db.execute(sql`
         UPDATE work_orders
@@ -370,15 +408,28 @@ export function registerServiceRequestRoutes(
         RETURNING *
       `).then((r) => r.rows || r);
 
-      const restoreStatus = sr.previous_wo_status || "open";
-      await db.execute(sql`
-        UPDATE work_orders
-        SET
-          status = ${restoreStatus},
-          updated_at = NOW()
-        WHERE id = ${sr.work_order_id} AND org_id = ${orgId}
-          AND status = 'awaiting_service'
-      `);
+      const [otherActiveSr] = await db.execute(sql`
+        SELECT id FROM service_requests
+        WHERE work_order_id = ${sr.work_order_id} AND org_id = ${orgId}
+          AND id != ${sr.id}
+          AND status NOT IN ('rejected', 'converted')
+        LIMIT 1
+      `).then((r) => r.rows || r);
+
+      if (!otherActiveSr) {
+        const restoreStatus = sr.previous_wo_status || "open";
+        await db.execute(sql`
+          UPDATE work_orders
+          SET
+            status = ${restoreStatus},
+            updated_at = NOW()
+          WHERE id = ${sr.work_order_id} AND org_id = ${orgId}
+            AND status = 'awaiting_service'
+        `);
+        logger.info(`WO status restored to '${restoreStatus}' (no other active SRs)`);
+      } else {
+        logger.info(`WO status kept as 'awaiting_service' — other active SR ${otherActiveSr.id} remains`);
+      }
 
       domainEventBus.emit(
         "service_request.rejected",
@@ -391,7 +442,7 @@ export function registerServiceRequestRoutes(
         }, { userId, aggregateId: sr.id, aggregateType: "ServiceRequest" })
       );
 
-      logger.info(`Service request ${req.params.id} rejected by ${userId}, WO status restored to '${restoreStatus}'`);
+      logger.info(`Service request ${req.params.id} rejected by ${userId}`);
       res.json(updated);
     })
   );
@@ -421,10 +472,29 @@ export function registerServiceRequestRoutes(
         return res.status(400).json({ error: `Can only convert approved requests. Current status: '${sr.status}'` });
       }
 
+      const [wo] = await db.execute(sql`
+        SELECT id, status FROM work_orders
+        WHERE id = ${sr.work_order_id} AND org_id = ${orgId}
+      `).then((r) => r.rows || r);
+
+      if (!wo) return sendNotFound(res, "Work Order");
+
+      if (wo.status === "completed" || wo.status === "cancelled") {
+        return res.status(400).json({ error: `Cannot convert — the linked work order is already '${wo.status}'` });
+      }
+
       const { serviceProviderId, scope, estimatedCost, scheduledStartDate, scheduledEndDate } = req.body;
 
       if (!serviceProviderId) {
         return res.status(400).json({ error: "serviceProviderId is required for conversion" });
+      }
+
+      if (scheduledStartDate && scheduledEndDate) {
+        const start = new Date(scheduledStartDate);
+        const end = new Date(scheduledEndDate);
+        if (end <= start) {
+          return res.status(400).json({ error: "Scheduled end date must be after start date" });
+        }
       }
 
       const newSo = await createServiceOrderFromWorkOrder(db, {

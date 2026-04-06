@@ -205,6 +205,20 @@ export function registerWoSoBridgeRoutes(
         return sendNotFound(res, "Work Order");
       }
 
+      const [pendingSr] = await defaultDb.execute(sql`
+        SELECT id, request_number, status
+        FROM service_requests
+        WHERE work_order_id = ${workOrderId} AND org_id = ${orgId}
+          AND status NOT IN ('rejected', 'converted')
+        LIMIT 1
+      `).then((r) => r.rows || r);
+
+      if (pendingSr) {
+        return res.status(409).json({
+          error: `This work order has an active service request (${pendingSr.request_number}, status: ${pendingSr.status}). Complete the SR workflow before creating a service order directly.`,
+        });
+      }
+
       const {
         serviceProviderId,
         scope,
