@@ -25,7 +25,7 @@ interface ConvertDialogProps {
   onOpenChange: (open: boolean) => void;
   srId: string | null;
   isPending: boolean;
-  onSubmit: (data: { serviceProviderId: string; scope?: string; estimatedCost?: number; scheduledStartDate?: string }) => void;
+  onSubmit: (data: { serviceProviderId: string; scope?: string; estimatedCost?: number; scheduledStartDate?: string; scheduledEndDate?: string }) => void;
 }
 
 function ConvertToSODialog({ open, onOpenChange, srId: _srId, onSubmit, isPending }: ConvertDialogProps) {
@@ -33,6 +33,7 @@ function ConvertToSODialog({ open, onOpenChange, srId: _srId, onSubmit, isPendin
   const [serviceProviderId, setServiceProviderId] = useState("");
   const [estimatedCost, setEstimatedCost] = useState("");
   const [scheduledStartDate, setScheduledStartDate] = useState("");
+  const [scheduledEndDate, setScheduledEndDate] = useState("");
   const { data: suppliers } = useQuery<{ id: string; name: string }[]>({ queryKey: ["/api/suppliers"], enabled: open });
 
   const handleSubmit = () => {
@@ -42,6 +43,7 @@ function ConvertToSODialog({ open, onOpenChange, srId: _srId, onSubmit, isPendin
       scope: scope || undefined,
       estimatedCost: estimatedCost ? parseFloat(estimatedCost) : undefined,
       scheduledStartDate: scheduledStartDate || undefined,
+      scheduledEndDate: scheduledEndDate || undefined,
     });
   };
 
@@ -66,14 +68,18 @@ function ConvertToSODialog({ open, onOpenChange, srId: _srId, onSubmit, isPendin
             <Label>Scope of Work</Label>
             <Textarea value={scope} onChange={(e) => setScope(e.target.value)} placeholder="Describe the work scope..." data-testid="input-convert-scope" />
           </div>
+          <div>
+            <Label>Estimated Cost</Label>
+            <Input type="number" step="0.01" value={estimatedCost} onChange={(e) => setEstimatedCost(e.target.value)} placeholder="0.00" data-testid="input-convert-cost" />
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Estimated Cost</Label>
-              <Input type="number" step="0.01" value={estimatedCost} onChange={(e) => setEstimatedCost(e.target.value)} placeholder="0.00" data-testid="input-convert-cost" />
+              <Label>Scheduled Start</Label>
+              <Input type="date" value={scheduledStartDate} onChange={(e) => setScheduledStartDate(e.target.value)} data-testid="input-convert-start-date" />
             </div>
             <div>
-              <Label>Scheduled Start</Label>
-              <Input type="date" value={scheduledStartDate} onChange={(e) => setScheduledStartDate(e.target.value)} data-testid="input-convert-date" />
+              <Label>Scheduled End</Label>
+              <Input type="date" value={scheduledEndDate} onChange={(e) => setScheduledEndDate(e.target.value)} data-testid="input-convert-end-date" />
             </div>
           </div>
         </div>

@@ -84,7 +84,8 @@ export function useConvertServiceRequest() {
     mutationFn: ({ id, data }: {
       id: string;
       data: { serviceProviderId: string; scope?: string; estimatedCost?: number; scheduledStartDate?: string; scheduledEndDate?: string };
-    }) => apiRequest("POST", `/api/service-requests/${id}/convert`, data),
+    }) =>
+      apiRequest("POST", `/api/service-requests/${id}/convert`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: srKeys.all });
       queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });

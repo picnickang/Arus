@@ -30,6 +30,7 @@ export function registerServiceRequestRoutes(
   app.get(
     "/api/service-requests",
     requireOrgId,
+    checkPermissionInDev("service_requests", "view"),
     generalApiRateLimit,
     withErrorHandling("list service requests", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
@@ -100,6 +101,7 @@ export function registerServiceRequestRoutes(
   app.get(
     "/api/service-requests/:id",
     requireOrgId,
+    checkPermissionInDev("service_requests", "view"),
     generalApiRateLimit,
     withErrorHandling("get service request", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
