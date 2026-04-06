@@ -303,6 +303,15 @@ export const RESOURCES: ResourceDefinition[] = [
     actions: ["view", "create", "edit", "delete", "approve"],
     sortOrder: 34,
   },
+  {
+    code: "service_requests",
+    name: "Service Requests",
+    description: "Service request workflow for procurement review",
+    category: "inventory",
+    icon: "ClipboardList",
+    actions: ["view", "create", "edit", "delete", "approve"],
+    sortOrder: 35,
+  },
 
   // Compliance
   {

@@ -463,7 +463,18 @@ export function LinkedServiceOrdersPanel({
 
                   {so.serviceProviderName && (
                     <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-                      <Building2 className="h-3 w-3" /> {so.serviceProviderName}
+                      <Building2 className="h-3 w-3" />
+                      {so.supplierProfileId ? (
+                        <Link
+                          href={`/inventory-management?tab=purchasing&supplier=${so.supplierProfileId}`}
+                          className="text-primary hover:underline"
+                          data-testid={`link-supplier-${so.id}`}
+                        >
+                          {so.serviceProviderName}
+                        </Link>
+                      ) : (
+                        so.serviceProviderName
+                      )}
                     </div>
                   )}
 
@@ -478,6 +489,18 @@ export function LinkedServiceOrdersPanel({
 
                   {so.scope && (
                     <p className="text-xs text-muted-foreground line-clamp-2">{so.scope}</p>
+                  )}
+
+                  {so.serviceDetails && (
+                    <div className="text-xs text-muted-foreground" data-testid={`so-service-details-${so.id}`}>
+                      <span className="font-medium">Details:</span> {so.serviceDetails}
+                    </div>
+                  )}
+
+                  {so.specialRequirements && (
+                    <div className="text-xs text-amber-600 dark:text-amber-400" data-testid={`so-special-req-${so.id}`}>
+                      <span className="font-medium">Special Requirements:</span> {so.specialRequirements}
+                    </div>
                   )}
 
                   {so.revisionNotes && (

@@ -8,6 +8,7 @@ export const srKeys = {
     const params = new URLSearchParams();
     if (filters?.status) params.set("status", filters.status);
     if (filters?.workOrderId) params.set("workOrderId", filters.workOrderId);
+    if (filters?.sortBy) params.set("sortBy", filters.sortBy);
     const qs = params.toString();
     return ["/api/service-requests", qs ? `?${qs}` : ""] as const;
   },
@@ -19,6 +20,7 @@ export function useServiceRequests(filters: SRFilters = {}) {
   const params = new URLSearchParams();
   if (filters.status) params.set("status", filters.status);
   if (filters.workOrderId) params.set("workOrderId", filters.workOrderId);
+  if (filters.sortBy) params.set("sortBy", filters.sortBy);
   const qs = params.toString();
 
   return useQuery<ServiceRequest[]>({

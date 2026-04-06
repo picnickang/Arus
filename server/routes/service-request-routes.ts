@@ -2,12 +2,11 @@ import type { Express, Request, Response } from "express";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
 import { requireOrgId, requireOrgIdAndValidateBody } from "../middleware/auth";
-import { requireRole } from "../middleware/role-auth";
+import { checkPermissionInDev } from "../domains/permissions/middleware";
 import { withErrorHandling, sendCreated, sendNotFound } from "../lib/route-utils";
 import { logger } from "../utils/logger";
 import { domainEventBus, createDomainEvent } from "../lib/domain-event-bus";
-
-const PROCUREMENT_ROLES = ["chief_engineer", "second_engineer", "captain", "chief_officer", "admin"] as const;
+import { createServiceOrderFromWorkOrder } from "./wo-so-bridge-routes";
 
 function getOrgId(req: Request): string {
   const orgId = (req as any).orgId || req.headers["x-org-id"];
@@ -36,6 +35,7 @@ export function registerServiceRequestRoutes(
       const orgId = getOrgId(req);
       const status = req.query.status as string | undefined;
       const workOrderId = req.query.workOrderId as string | undefined;
+      const sortBy = req.query.sortBy as string | undefined;
 
       let query = sql`
         SELECT
@@ -74,7 +74,21 @@ export function registerServiceRequestRoutes(
         query = sql`${query} AND sr.work_order_id = ${workOrderId}`;
       }
 
-      query = sql`${query} ORDER BY sr.created_at DESC`;
+      if (sortBy === "vessel") {
+        query = sql`${query} ORDER BY v.name ASC NULLS LAST, sr.created_at DESC`;
+      } else if (sortBy === "urgency") {
+        query = sql`${query} ORDER BY
+          CASE sr.urgency
+            WHEN 'critical' THEN 0
+            WHEN 'high' THEN 1
+            WHEN 'medium' THEN 2
+            WHEN 'low' THEN 3
+            ELSE 4
+          END ASC,
+          sr.created_at DESC`;
+      } else {
+        query = sql`${query} ORDER BY sr.created_at DESC`;
+      }
 
       const rows = await db.execute(query);
       res.json(rows.rows || rows);
@@ -91,9 +105,13 @@ export function registerServiceRequestRoutes(
         SELECT
           sr.*,
           wo.wo_number AS "workOrderNumber",
-          wo.description AS "workOrderDescription"
+          wo.description AS "workOrderDescription",
+          e.name AS "equipmentName",
+          v.name AS "vesselName"
         FROM service_requests sr
         LEFT JOIN work_orders wo ON wo.id = sr.work_order_id AND wo.org_id = ${orgId}
+        LEFT JOIN equipment e ON e.id = wo.equipment_id
+        LEFT JOIN vessels v ON v.id = wo.vessel_id
         WHERE sr.id = ${req.params.id} AND sr.org_id = ${orgId}
       `).then((r) => r.rows || r);
 
@@ -119,7 +137,7 @@ export function registerServiceRequestRoutes(
 
       if (!wo) return sendNotFound(res, "Work Order");
 
-      const { title, description, urgency, estimatedCost } = req.body;
+      const { title, description, urgency, estimatedCost, serviceDetails, specialRequirements } = req.body;
       if (!title) return res.status(400).json({ error: "title is required" });
 
       const previousWoStatus = wo.status;
@@ -138,6 +156,7 @@ export function registerServiceRequestRoutes(
         INSERT INTO service_requests (
           id, org_id, work_order_id, request_number,
           title, description, urgency, estimated_cost,
+          service_details, special_requirements,
           requested_by, status, previous_wo_status,
           created_at, updated_at
         )
@@ -150,6 +169,8 @@ export function registerServiceRequestRoutes(
           ${description || null},
           ${urgency || "medium"},
           ${estimatedCost ? Number(estimatedCost) : null},
+          ${serviceDetails || null},
+          ${specialRequirements || null},
           ${userId},
           'pending_review',
           ${previousWoStatus},
@@ -186,7 +207,7 @@ export function registerServiceRequestRoutes(
   app.post(
     "/api/service-requests/:id/review",
     requireOrgIdAndValidateBody,
-    requireRole(...PROCUREMENT_ROLES),
+    checkPermissionInDev("service_requests", "edit"),
     writeOperationRateLimit,
     withErrorHandling("review service request", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
@@ -217,7 +238,7 @@ export function registerServiceRequestRoutes(
   app.post(
     "/api/service-requests/:id/approve",
     requireOrgIdAndValidateBody,
-    requireRole(...PROCUREMENT_ROLES),
+    checkPermissionInDev("service_requests", "approve"),
     writeOperationRateLimit,
     withErrorHandling("approve service request", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
@@ -259,7 +280,7 @@ export function registerServiceRequestRoutes(
   app.post(
     "/api/service-requests/:id/reject",
     requireOrgIdAndValidateBody,
-    requireRole(...PROCUREMENT_ROLES),
+    checkPermissionInDev("service_requests", "approve"),
     writeOperationRateLimit,
     withErrorHandling("reject service request", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
@@ -320,7 +341,7 @@ export function registerServiceRequestRoutes(
   app.post(
     "/api/service-requests/:id/convert",
     requireOrgIdAndValidateBody,
-    requireRole(...PROCUREMENT_ROLES),
+    checkPermissionInDev("service_requests", "approve"),
     writeOperationRateLimit,
     withErrorHandling("convert service request to service order", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
@@ -328,7 +349,7 @@ export function registerServiceRequestRoutes(
 
       const [sr] = await db.execute(sql`
         SELECT sr.id, sr.status, sr.work_order_id, sr.title, sr.description,
-               sr.estimated_cost, sr.request_number,
+               sr.estimated_cost, sr.request_number, sr.service_details, sr.special_requirements,
                wo.wo_number, wo.description AS wo_description,
                wo.equipment_id, wo.vessel_id
         FROM service_requests sr
@@ -348,49 +369,20 @@ export function registerServiceRequestRoutes(
         return res.status(400).json({ error: "serviceProviderId is required for conversion" });
       }
 
-      const [supplierCheck] = await db.execute(sql`
-        SELECT id FROM suppliers WHERE id = ${serviceProviderId} AND org_id = ${orgId}
-      `).then((r) => r.rows || r);
-      if (!supplierCheck) {
-        return res.status(400).json({ error: "Service provider not found in this organization" });
-      }
-
-      const [seqResult] = await db.execute(sql`
-        SELECT COALESCE(
-          MAX(CAST(SUBSTRING(so_number FROM 'SO-([0-9]+)') AS INTEGER)),
-          0
-        ) + 1 AS next_num
-        FROM service_orders
-        WHERE org_id = ${orgId}
-      `).then((r) => r.rows || r);
-      const soNumber = `SO-${String(seqResult?.next_num || 1).padStart(4, "0")}`;
-
-      const [newSo] = await db.execute(sql`
-        INSERT INTO service_orders (
-          id, org_id, so_number, status,
-          work_order_id, work_order_number,
-          service_provider_id,
-          scope, quoted_amount,
-          scheduled_start_date, scheduled_end_date,
-          created_at, updated_at
-        )
-        VALUES (
-          gen_random_uuid()::text,
-          ${orgId},
-          ${soNumber},
-          'draft',
-          ${sr.work_order_id},
-          ${sr.wo_number},
-          ${serviceProviderId},
-          ${scope || sr.description || sr.wo_description || null},
-          ${estimatedCost ? Number(estimatedCost) : sr.estimated_cost ? Number(sr.estimated_cost) : null},
-          ${scheduledStartDate || null},
-          ${scheduledEndDate || null},
-          NOW(),
-          NOW()
-        )
-        RETURNING *
-      `).then((r) => r.rows || r);
+      const newSo = await createServiceOrderFromWorkOrder(db, {
+        orgId,
+        workOrderId: sr.work_order_id,
+        woNumber: sr.wo_number,
+        woDescription: sr.wo_description,
+        serviceProviderId,
+        scope: scope || sr.description || sr.wo_description || null,
+        estimatedCost: estimatedCost ? Number(estimatedCost) : sr.estimated_cost ? Number(sr.estimated_cost) : null,
+        scheduledStartDate: scheduledStartDate || null,
+        scheduledEndDate: scheduledEndDate || null,
+        serviceDetails: sr.service_details || null,
+        specialRequirements: sr.special_requirements || null,
+        updateWorkOrderStatus: true,
+      });
 
       await db.execute(sql`
         UPDATE service_requests
@@ -404,14 +396,6 @@ export function registerServiceRequestRoutes(
         WHERE id = ${req.params.id} AND org_id = ${orgId}
       `);
 
-      await db.execute(sql`
-        UPDATE work_orders
-        SET
-          status = 'awaiting_service',
-          updated_at = NOW()
-        WHERE id = ${sr.work_order_id} AND org_id = ${orgId}
-      `);
-
       domainEventBus.emit(
         "service_request.converted",
         createDomainEvent("service_request.converted", orgId, {
@@ -419,12 +403,12 @@ export function registerServiceRequestRoutes(
           requestNumber: sr.request_number,
           workOrderId: sr.work_order_id,
           serviceOrderId: newSo.id,
-          soNumber,
+          soNumber: newSo.so_number,
           convertedBy: userId,
         }, { userId, aggregateId: sr.id, aggregateType: "ServiceRequest" })
       );
 
-      logger.info(`Service request ${req.params.id} converted to SO ${soNumber} by ${userId}`);
+      logger.info(`Service request ${req.params.id} converted to SO ${newSo.so_number} by ${userId}`);
       res.json({ serviceRequest: { id: req.params.id, status: "converted", serviceOrderId: newSo.id }, serviceOrder: newSo });
     })
   );

@@ -133,6 +133,22 @@ export async function migrateWorkOrderServiceOrderBridge(db: any) {
         COMMENT ON COLUMN service_requests.previous_wo_status IS
           'Persisted WO status before SR creation, used to restore on rejection';
       END IF;
+
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'service_requests' AND column_name = 'service_details'
+      ) THEN
+        ALTER TABLE service_requests
+          ADD COLUMN service_details TEXT;
+      END IF;
+
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'service_requests' AND column_name = 'special_requirements'
+      ) THEN
+        ALTER TABLE service_requests
+          ADD COLUMN special_requirements TEXT;
+      END IF;
     END $$;
   `);
 }

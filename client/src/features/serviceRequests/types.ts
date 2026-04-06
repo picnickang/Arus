@@ -24,9 +24,12 @@ export interface ServiceRequest {
   updatedAt: string;
 }
 
+export type SRSortBy = "created" | "urgency" | "vessel";
+
 export interface SRFilters {
   status?: SRStatus;
   workOrderId?: string;
+  sortBy?: SRSortBy;
 }
 
 export const SR_STATUS_LABELS: Record<SRStatus, string> = {

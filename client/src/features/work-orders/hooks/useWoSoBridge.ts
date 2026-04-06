@@ -25,7 +25,10 @@ export interface LinkedServiceOrder {
   status: string;
   serviceProviderId: string | null;
   serviceProviderName: string | null;
+  supplierProfileId: string | null;
   scope: string | null;
+  serviceDetails: string | null;
+  specialRequirements: string | null;
   quotedAmount: number | null;
   actualAmount: number | null;
   revisedAmount: number | null;
