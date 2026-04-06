@@ -18,7 +18,7 @@ import {
   useConvertServiceRequest,
 } from "../hooks/useServiceRequests";
 import { SRCard } from "../components/SRCard";
-import type { SRFilters, SRStatus } from "../types";
+import type { SRFilters, SRStatus, SRSortBy } from "../types";
 
 interface ConvertDialogProps {
   open: boolean;
@@ -126,7 +126,7 @@ function RejectDialog({ open, onOpenChange, srId: _srId, onSubmit, isPending }: 
 export function ServiceRequestsPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [filters, setFilters] = useState<SRFilters>({});
+  const [filters, setFilters] = useState<SRFilters>({ status: undefined });
   const [searchInput, setSearchInput] = useState("");
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -156,7 +156,7 @@ export function ServiceRequestsPage() {
   };
 
   const handleStatusChange = (value: string) =>
-    setFilters((prev) => ({ ...prev, status: (value === "all" ? undefined : value) as SRStatus | undefined }));
+    setFilters((prev) => ({ ...prev, status: value === "all" ? undefined : value as SRStatus | "actionable" | undefined }));
 
   const handleReview = (id: string) => {
     reviewMutation.mutate(id, {
@@ -249,6 +249,7 @@ export function ServiceRequestsPage() {
           <SelectTrigger className="w-[180px]" data-testid="select-status-filter-sr"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="actionable">Actionable</SelectItem>
             <SelectItem value="pending_review">Pending Review</SelectItem>
             <SelectItem value="under_review">Under Review</SelectItem>
             <SelectItem value="approved">Approved</SelectItem>
@@ -258,7 +259,7 @@ export function ServiceRequestsPage() {
         </Select>
         <Select
           value={filters.sortBy || "created"}
-          onValueChange={(v) => setFilters((prev) => ({ ...prev, sortBy: v === "created" ? undefined : v as any }))}
+          onValueChange={(v: string) => setFilters((prev) => ({ ...prev, sortBy: v === "created" ? undefined : v as SRSortBy }))}
         >
           <SelectTrigger className="w-[160px]" data-testid="select-sort-sr"><SelectValue placeholder="Sort by" /></SelectTrigger>
           <SelectContent>

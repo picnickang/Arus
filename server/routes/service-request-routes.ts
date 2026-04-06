@@ -67,7 +67,9 @@ export function registerServiceRequestRoutes(
         WHERE sr.org_id = ${orgId}
       `;
 
-      if (status) {
+      if (status === "actionable") {
+        query = sql`${query} AND sr.status IN ('pending_review', 'under_review', 'approved')`;
+      } else if (status) {
         query = sql`${query} AND sr.status = ${status}`;
       }
       if (workOrderId) {

@@ -27,7 +27,7 @@ export interface ServiceRequest {
 export type SRSortBy = "created" | "urgency" | "vessel";
 
 export interface SRFilters {
-  status?: SRStatus;
+  status?: SRStatus | "actionable";
   workOrderId?: string;
   sortBy?: SRSortBy;
 }
