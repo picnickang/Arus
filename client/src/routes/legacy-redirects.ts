@@ -38,7 +38,7 @@ const additionalRedirects: Array<{ from: string; to: string }> = [
   { from: "/active-telemetry", to: "/dashboard?tab=telemetry" },
   { from: "/actionable-insights", to: "/dashboard?tab=insights" },
   { from: "/governance", to: "/governance-dashboard" },
-  { from: "/kb-chat", to: "/knowledge-base?tab=chat" },
+  { from: "/kb-chat", to: "/knowledge-base" },
 ];
 
 export const legacyRedirects: Array<{ from: string; to: string }> = [

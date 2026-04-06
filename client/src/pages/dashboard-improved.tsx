@@ -1,200 +1,515 @@
-import { RefreshCw, Cpu, Heart, Wrench, AlertTriangle, Eye, Plus, Ship, Activity, Target } from "lucide-react";
+import { RefreshCw, Heart, Wrench, AlertTriangle, Ship, ExternalLink } from "lucide-react";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { UnifiedMetricCard, MetricCardGrid } from "@/components/shared";
-import { StatusIndicator } from "@/components/status-indicator";
-import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { DashboardTabs } from "@/components/dashboard-tabs";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
-import { InsightsOverview } from "@/components/InsightsOverview";
-import { OperatingConditionAlertsPanel } from "@/components/OperatingConditionAlertsPanel";
-import { HealthLegend, HealthIndexTooltip } from "@/components/HealthLegend";
-import { FleetRisksCard } from "@/components/dashboard/FleetRisksCard";
-import { STCWComplianceWidget } from "@/components/crew/STCWComplianceWidget";
 import { useDashboardData } from "@/features/analytics";
-import { TelemetryTab } from "@/components/dashboard/TelemetryTab";
-import { InsightsTab } from "@/components/dashboard/InsightsTab";
+import { healthColor } from "@/lib/health-risk";
 
-function DashboardSkeleton() {
-  return (
-    <div className="space-y-6">
-      <header className="bg-card border-b border-border px-4 lg:px-6 py-4">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-48" />
-            <Skeleton className="h-4 w-96" />
+function MetricCard({
+  label, value, icon: Icon, status, href, testId,
+}: {
+  label: string;
+  value: string | number;
+  icon: React.ElementType;
+  status?: "healthy" | "warning" | "critical";
+  href?: string;
+  testId: string;
+}) {
+  const statusColors = {
+    healthy: "border-green-500/20 bg-green-500/5",
+    warning: "border-yellow-500/20 bg-yellow-500/5",
+    critical: "border-red-500/20 bg-red-500/5",
+  };
+  const textColors = {
+    healthy: "text-green-600 dark:text-green-400",
+    warning: "text-yellow-600 dark:text-yellow-400",
+    critical: "text-red-600 dark:text-red-400",
+  };
+
+  const content = (
+    <Card className={`${status ? statusColors[status] : ""} transition-colors hover:bg-accent/50`}>
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs text-muted-foreground font-medium">{label}</p>
+            <p className={`text-2xl font-bold mt-1 ${status ? textColors[status] : "text-foreground"}`} data-testid={testId}>
+              {value}
+            </p>
           </div>
-          <div className="flex items-center space-x-4">
-            <Skeleton className="h-10 w-40" />
-            <Skeleton className="h-10 w-32" />
-          </div>
+          <Icon className={`h-5 w-5 ${status ? textColors[status] : "text-muted-foreground"}`} />
         </div>
-      </header>
-      <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-6">
-          {[...Array(5)].map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-6">
-                <Skeleton className="h-4 w-24 mb-2" />
-                <Skeleton className="h-8 w-16 mb-2" />
-                <Skeleton className="h-3 w-32" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+      </CardContent>
+    </Card>
+  );
+
+  if (href) {
+    return <Link href={href} className="no-underline">{content}</Link>;
+  }
+  return content;
+}
+
+interface AttentionItem {
+  id: string;
+  type: "equipment" | "work-order" | "compliance" | "alert";
+  severity: "critical" | "high" | "warning";
+  title: string;
+  subtitle: string;
+  metric?: string;
+  href: string;
+}
+
+function NeedsAttentionStrip({
+  criticalEquipment,
+  criticalWorkOrders,
+  operatingAlerts,
+  stcwSummary,
+}: {
+  criticalEquipment: any[];
+  criticalWorkOrders: any[];
+  operatingAlerts: any[];
+  stcwSummary: any;
+}) {
+  const items: AttentionItem[] = [];
+
+  for (const eq of (criticalEquipment || []).slice(0, 3)) {
+    items.push({
+      id: `eq-${eq.id}`,
+      type: "equipment",
+      severity: eq.healthIndex < 30 ? "critical" : "high",
+      title: eq.name || eq.id,
+      subtitle: `${eq.healthIndex}% health — ${eq.vessel || "Fleet"}`,
+      metric: `${eq.healthIndex}%`,
+      href: "/equipment-intelligence",
+    });
+  }
+
+  for (const wo of (criticalWorkOrders || []).slice(0, 3)) {
+    items.push({
+      id: `wo-${wo.id}`,
+      type: "work-order",
+      severity: wo.status === "overdue" ? "critical" : "high",
+      title: wo.title || wo.workOrderNumber || wo.id,
+      subtitle: wo.status === "overdue" ? "OVERDUE" : `Priority: ${wo.priority}`,
+      href: `/work-orders?id=${wo.id}`,
+    });
+  }
+
+  for (const alert of (operatingAlerts || []).slice(0, 2)) {
+    items.push({
+      id: `alert-${alert.id}`,
+      type: "alert",
+      severity: alert.severity === "critical" ? "critical" : "warning",
+      title: alert.message || "Operating condition alert",
+      subtitle: alert.equipmentName || alert.equipmentId || "",
+      href: "/equipment-intelligence",
+    });
+  }
+
+  if (stcwSummary?.violationCount > 0) {
+    items.push({
+      id: "stcw",
+      type: "compliance",
+      severity: "warning",
+      title: `${stcwSummary.violationCount} STCW violation${stcwSummary.violationCount > 1 ? "s" : ""}`,
+      subtitle: "Crew rest hour compliance",
+      href: "/hours-of-rest",
+    });
+  }
+
+  const severityOrder = { critical: 0, high: 1, warning: 2 };
+  items.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
+
+  if (items.length === 0) {
+    return (
+      <div className="p-6 text-center text-muted-foreground border rounded-lg bg-green-500/5 border-green-500/20" data-testid="all-clear">
+        <p className="font-medium text-green-600 dark:text-green-400">All Systems Nominal</p>
+        <p className="text-xs mt-1">No critical issues requiring immediate attention.</p>
       </div>
+    );
+  }
+
+  const severityColors = {
+    critical: { border: "border-red-500/30", bg: "bg-red-500/5", text: "text-red-600 dark:text-red-400" },
+    high: { border: "border-orange-500/30", bg: "bg-orange-500/5", text: "text-orange-600 dark:text-orange-400" },
+    warning: { border: "border-yellow-500/20", bg: "bg-yellow-500/5", text: "text-yellow-600 dark:text-yellow-400" },
+  };
+
+  const typeIcons = {
+    equipment: Heart,
+    "work-order": Wrench,
+    compliance: AlertTriangle,
+    alert: AlertTriangle,
+  };
+
+  return (
+    <div data-testid="needs-attention-strip">
+      <div className="flex items-center gap-2 mb-3">
+        <AlertTriangle className="h-4 w-4 text-red-500" />
+        <h2 className="text-sm font-semibold">
+          Needs Attention
+          <Badge variant="destructive" className="ml-2 text-[10px]">{items.length}</Badge>
+        </h2>
+        <div className="flex-1" />
+        <Link href="/equipment-intelligence" className="text-xs text-primary hover:underline" data-testid="link-view-all-issues">
+          View all →
+        </Link>
+      </div>
+
+      <ScrollArea className="w-full">
+        <div className="flex gap-3 pb-2">
+          {items.slice(0, 7).map((item) => {
+            const colors = severityColors[item.severity];
+            const Icon = typeIcons[item.type];
+            return (
+              <Link
+                key={item.id}
+                href={item.href}
+                className={`min-w-[220px] max-w-[260px] p-3.5 rounded-lg border ${colors.border} ${colors.bg} hover:ring-1 hover:ring-primary/30 transition-all shrink-0 no-underline`}
+                data-testid={`attention-item-${item.id}`}
+              >
+                <div className="flex items-start gap-2.5">
+                  <Icon className={`h-4 w-4 mt-0.5 ${colors.text} shrink-0`} />
+                  <div className="flex-1 min-w-0">
+                    <Badge
+                      variant={item.severity === "critical" ? "destructive" : item.severity === "high" ? "default" : "secondary"}
+                      className="text-[9px] px-1 py-0 mb-1"
+                    >
+                      {item.severity}
+                    </Badge>
+                    <div className="text-sm font-medium text-foreground truncate">{item.title}</div>
+                    <div className="text-xs text-muted-foreground truncate">{item.subtitle}</div>
+                    {item.metric && (
+                      <div className={`text-lg font-bold mt-1 ${colors.text}`}>{item.metric}</div>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+        <ScrollBar orientation="horizontal" />
+      </ScrollArea>
     </div>
   );
 }
 
-function CriticalIssuesCard({ criticalEquipmentCount, criticalWorkOrdersCount, criticalEquipment, criticalWorkOrders }: { criticalEquipmentCount: number; criticalWorkOrdersCount: number; criticalEquipment: any[]; criticalWorkOrders: any[] }) {
+function AISummary({
+  insightsSnapshot,
+  criticalEquipmentCount,
+  openWorkOrderCount,
+  fleetHealth,
+}: {
+  insightsSnapshot: any;
+  criticalEquipmentCount: number;
+  openWorkOrderCount: number;
+  fleetHealth: number;
+}) {
+  const parts: string[] = [];
+
+  if (fleetHealth >= 80) {
+    parts.push("Fleet health is stable.");
+  } else if (fleetHealth >= 60) {
+    parts.push("Fleet health is below target — some equipment needs attention.");
+  } else {
+    parts.push("Fleet health is degraded — multiple equipment items require immediate action.");
+  }
+
+  if (criticalEquipmentCount > 0) {
+    parts.push(
+      `${criticalEquipmentCount} equipment item${criticalEquipmentCount > 1 ? "s" : ""} ${criticalEquipmentCount > 1 ? "are" : "is"} in critical condition.`
+    );
+  }
+
+  if (openWorkOrderCount > 0) {
+    parts.push(`${openWorkOrderCount} work order${openWorkOrderCount > 1 ? "s" : ""} open.`);
+  }
+
+  if (insightsSnapshot?.summary) {
+    parts.push(insightsSnapshot.summary);
+  } else if (insightsSnapshot?.criticalCount > 0) {
+    parts.push(`${insightsSnapshot.criticalCount} critical insight${insightsSnapshot.criticalCount > 1 ? "s" : ""} flagged by AI analysis.`);
+  }
+
+  if (parts.length <= 2) {
+    parts.push("No anomalies detected in the last 24 hours.");
+  }
+
   return (
-    <Card className="border-destructive bg-destructive/5">
-      <CardHeader>
-        <CardTitle className="text-destructive flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5" />Critical Issues Requiring Attention
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {criticalEquipmentCount > 0 && (
-          <div>
-            <h3 className="font-semibold mb-2">Critical Equipment ({criticalEquipmentCount})</h3>
-            <div className="space-y-2">
-              {criticalEquipment.slice(0, 5).map((eq) => (
-                <div key={eq.id} className="flex items-center justify-between p-2 bg-background rounded">
-                  <span>{eq.name || eq.id}</span>
-                  <span className="text-destructive font-semibold">Health: {eq.healthIndex}%</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {criticalWorkOrdersCount > 0 && (
-          <div>
-            <h3 className="font-semibold mb-2">High Priority Work Orders ({criticalWorkOrdersCount})</h3>
-            <div className="space-y-2">
-              {criticalWorkOrders.slice(0, 5).map((wo) => (
-                <div key={wo.id} className="flex items-center justify-between p-2 bg-background rounded">
-                  <span>{wo.title}</span>
-                  <span className="text-destructive font-semibold">{wo.status}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <div data-testid="ai-summary">
+      <h2 className="text-sm font-semibold mb-2">AI Summary</h2>
+      <Card className="bg-gradient-to-br from-sky-500/5 to-transparent border-sky-500/15">
+        <CardContent className="p-4">
+          <p className="text-sm text-foreground leading-relaxed" data-testid="ai-summary-text">
+            {parts.join(" ")}
+          </p>
+          <Link href="/equipment-intelligence" className="text-xs text-sky-600 dark:text-sky-400 hover:underline mt-2 inline-flex items-center gap-1" data-testid="link-ai-details">
+            View Equipment Intelligence <ExternalLink className="h-3 w-3" />
+          </Link>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
-function getPriorityClassName(priority: string | number): string {
-  if (priority === "high" || priority === "2" || priority === 2) {
-    return "bg-destructive/20 text-destructive";
+interface ActivityItem {
+  id: string;
+  time: string;
+  message: string;
+  type: "telemetry" | "work-order" | "prediction" | "system";
+  severity?: "critical" | "warning" | "info";
+}
+
+function ActivityFeed({
+  workOrders,
+  equipmentHealth,
+  latestReadings,
+  operatingAlerts,
+}: {
+  workOrders: any[];
+  equipmentHealth: any[];
+  latestReadings: any[];
+  operatingAlerts: any[];
+}) {
+  const items: ActivityItem[] = [];
+
+  for (const wo of (workOrders || []).slice(0, 5)) {
+    if (wo.createdAt) {
+      items.push({
+        id: `wo-${wo.id}`,
+        time: wo.updatedAt || wo.createdAt,
+        message: `${wo.status === "completed" ? "Completed" : wo.status === "in_progress" ? "Started" : "Created"}: ${wo.title || wo.description || wo.workOrderNumber || wo.id}`,
+        type: "work-order",
+        severity: wo.priority === 2 || wo.priority === "high" ? "warning" : "info",
+      });
+    }
   }
-  if (priority === "medium" || priority === "1" || priority === 1) {
-    return "bg-amber-500/20 text-amber-600 dark:text-amber-400";
+
+  for (const alert of (operatingAlerts || []).slice(0, 3)) {
+    if (alert.createdAt) {
+      items.push({
+        id: `alert-${alert.id}`,
+        time: alert.createdAt,
+        message: `Alert: ${alert.message || "Operating condition threshold exceeded"} — ${alert.equipmentName || alert.equipmentId || ""}`,
+        type: "telemetry",
+        severity: alert.severity === "critical" ? "critical" : "warning",
+      });
+    }
   }
-  return "bg-blue-500/20 text-blue-600 dark:text-blue-400";
+
+  for (const eq of (equipmentHealth || []).filter((e: any) => e.healthIndex < 40).slice(0, 3)) {
+    items.push({
+      id: `eq-${eq.id}`,
+      time: eq.updatedAt || new Date().toISOString(),
+      message: `Equipment health: ${eq.name || eq.id} at ${eq.healthIndex}% — ${eq.vessel || ""}`,
+      type: "prediction",
+      severity: eq.healthIndex < 30 ? "critical" : "warning",
+    });
+  }
+
+  items.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+
+  const typeColors = {
+    telemetry: "bg-blue-500",
+    "work-order": "bg-amber-500",
+    prediction: "bg-purple-500",
+    system: "bg-slate-500",
+  };
+
+  const severityTextColors = {
+    critical: "text-red-600 dark:text-red-400",
+    warning: "text-amber-600 dark:text-amber-400",
+    info: "text-muted-foreground",
+  };
+
+  return (
+    <div data-testid="activity-feed">
+      <h2 className="text-sm font-semibold mb-3">Recent Activity</h2>
+      {items.length === 0 ? (
+        <div className="text-center py-6 text-muted-foreground text-xs">
+          No recent activity. Events will appear here as they occur.
+        </div>
+      ) : (
+        <div className="space-y-0">
+          {items.slice(0, 12).map((item) => (
+            <div key={item.id} className="flex items-start gap-3 py-2.5 border-b border-border/40 last:border-0" data-testid={`activity-${item.id}`}>
+              <div className="flex flex-col items-center mt-1.5">
+                <div className={`w-2 h-2 rounded-full ${typeColors[item.type]} shrink-0`} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className={`text-sm ${item.severity ? severityTextColors[item.severity] : "text-foreground"}`}>
+                  {item.message}
+                </p>
+              </div>
+              <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
+                {(() => {
+                  try {
+                    return formatDistanceToNow(new Date(item.time), { addSuffix: true });
+                  } catch {
+                    return "Recently";
+                  }
+                })()}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
-function getReadingStatusClassName(status: string | undefined): string {
-  if (status === "normal") {return "bg-chart-3/20 text-chart-3";}
-  if (status === "warning") {return "bg-chart-2/20 text-chart-2";}
-  if (status === "critical") {return "bg-destructive/20 text-destructive";}
-  return "bg-muted text-muted-foreground";
+function DashboardSkeleton() {
+  return (
+    <div className="p-4 lg:p-6 space-y-6">
+      <div className="grid grid-cols-3 gap-4">
+        {[1, 2, 3].map((i) => <Skeleton key={i} className="h-20" />)}
+      </div>
+      <Skeleton className="h-32" />
+      <Skeleton className="h-24" />
+      <Skeleton className="h-64" />
+    </div>
+  );
 }
 
-function getHealthClassName(healthIndex: number): string {
-  if (healthIndex >= 75) {return "text-chart-3";}
-  if (healthIndex >= 50) {return "text-chart-2";}
-  return "text-destructive";
-}
-
-export default function DashboardImproved() {
-  const { alertBanner, metrics, metricsLoading, devices, devicesLoading, equipmentHealth, equipmentHealthArray, healthLoading, workOrders, ordersLoading, allVessels, latestReadings, latestReadingsLoading, dtcStats, currentTime, preferences, criticalEquipmentCount, criticalWorkOrdersCount, totalCriticalIssues, criticalEquipment, criticalWorkOrders, selectedVessel, setSelectedVessel, isConnected, isFocusMode, toggleFocusMode, deviceStatusExpanded, setDeviceStatusExpanded, telemetryExpanded, setTelemetryExpanded, predictiveMaintenanceExpanded, setPredictiveMaintenanceExpanded, workOrdersExpanded, setWorkOrdersExpanded, getVesselName, getEquipmentName, getPriorityText, shouldShowSection, refreshData, dismissAlert, operatingAlerts, insightsSnapshot, insightsJobStats, stcwSummary, stcwTrends, equipmentRegistry } = useDashboardData();
+export default function BridgeDashboard() {
+  const {
+    alertBanner,
+    metrics,
+    metricsLoading,
+    equipmentHealthArray,
+    workOrders,
+    latestReadings,
+    allVessels,
+    criticalEquipmentCount,
+    criticalWorkOrdersCount,
+    criticalEquipment,
+    criticalWorkOrders,
+    selectedVessel,
+    setSelectedVessel,
+    isConnected,
+    refreshData,
+    dismissAlert,
+    operatingAlerts,
+    insightsSnapshot,
+    stcwSummary,
+    getEquipmentName,
+  } = useDashboardData();
 
   if (metricsLoading) {
     return <DashboardSkeleton />;
   }
 
-  const overviewContent = (
-    <>
-      {shouldShowSection("normal") && <InsightsOverview orgId="default-org-id" scope="fleet" prefetchedSnapshot={insightsSnapshot} prefetchedJobStats={insightsJobStats} />}
-      {shouldShowSection("normal") && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <FleetRisksCard limit={5} showVessel={true} prefetchedHealthData={equipmentHealthArray} data-testid="fleet-risks-dashboard" />
-          <STCWComplianceWidget lookbackDays={30} prefetchedSummary={stcwSummary} prefetchedTrends={stcwTrends} />
-        </div>
-      )}
-      {shouldShowSection("critical") && totalCriticalIssues > 0 && (
-        <CriticalIssuesCard
-          criticalEquipmentCount={criticalEquipmentCount}
-          criticalWorkOrdersCount={criticalWorkOrdersCount}
-          criticalEquipment={criticalEquipment}
-          criticalWorkOrders={criticalWorkOrders}
-        />
-      )}
-      {shouldShowSection("normal") && <OperatingConditionAlertsPanel prefetchedAlerts={operatingAlerts} prefetchedEquipment={equipmentRegistry} />}
-    </>
-  );
-
-  const devicesContent = (
-    <>
-      {shouldShowSection("normal") && (
-        <CollapsibleSection title="Device Status" description="Real-time edge device monitoring" icon={<Cpu className="h-5 w-5" />} expanded={deviceStatusExpanded} onExpandedChange={setDeviceStatusExpanded} summary={`${devices?.filter((d) => d.status === "online").length || 0} online, ${devices?.filter((d) => d.status === "offline").length || 0} offline`} data-testid="collapsible-device-status">
-          <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Device ID</TableHead><TableHead>Vessel</TableHead><TableHead>Status</TableHead><TableHead>CPU</TableHead><TableHead>Memory</TableHead><TableHead>Last Heartbeat</TableHead></TableRow></TableHeader><TableBody>{devicesLoading ? <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Loading devices...</TableCell></TableRow> : devices?.map((device) => <TableRow key={device.id} className="hover:bg-muted"><TableCell className="font-mono text-sm" data-testid={`device-id-${device.id}`}>{device.id}</TableCell><TableCell data-testid={`device-vessel-${device.id}`}>{device.vessel || "Unknown"}</TableCell><TableCell><StatusIndicator status={device.status} showLabel /></TableCell><TableCell data-testid={`device-cpu-${device.id}`}>{device.lastHeartbeat?.cpuPct ? `${device.lastHeartbeat.cpuPct}%` : "–"}</TableCell><TableCell data-testid={`device-memory-${device.id}`}>{device.lastHeartbeat?.memPct ? `${device.lastHeartbeat.memPct}%` : "–"}</TableCell><TableCell data-testid={`device-heartbeat-${device.id}`}>{device.lastHeartbeat?.ts ? formatDistanceToNow(new Date(device.lastHeartbeat.ts), { addSuffix: true }) : "Never"}</TableCell></TableRow>)}</TableBody></Table></div>
-        </CollapsibleSection>
-      )}
-      {shouldShowSection("normal") && (
-        <CollapsibleSection title="Latest Telemetry Readings" description={`Real-time sensor data ${selectedVessel !== "all" ? `from ${getVesselName(selectedVessel)}` : "from all vessels"}`} icon={<Activity className="h-5 w-5" />} expanded={telemetryExpanded} onExpandedChange={setTelemetryExpanded} summary={latestReadings ? `${latestReadings.length} readings available` : "No data"} data-testid="collapsible-telemetry">
-          <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Equipment</TableHead><TableHead>Sensor Type</TableHead><TableHead>Value</TableHead><TableHead>Unit</TableHead><TableHead>Status</TableHead><TableHead>Timestamp</TableHead></TableRow></TableHeader><TableBody>{latestReadingsLoading ? <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Loading latest readings...</TableCell></TableRow> : latestReadings?.length > 0 ? latestReadings.slice(0, 10).map((reading, index) => <TableRow key={`${reading.equipmentId}-${reading.sensorType}-${index}`} className="hover:bg-muted"><TableCell className="font-medium">{getEquipmentName(reading.equipmentId)}</TableCell><TableCell>{reading.sensorType}</TableCell><TableCell className="font-medium">{reading.value?.toFixed(2) || "–"}</TableCell><TableCell>{reading.unit || "–"}</TableCell><TableCell><span className={`px-2 py-1 text-xs rounded-full ${getReadingStatusClassName(reading.status)}`}>{reading.status?.toUpperCase() || "UNKNOWN"}</span></TableCell><TableCell>{reading.ts ? formatDistanceToNow(new Date(reading.ts), { addSuffix: true }) : "Never"}</TableCell></TableRow>) : <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">No telemetry readings available</TableCell></TableRow>}</TableBody></Table></div>
-        </CollapsibleSection>
-      )}
-    </>
-  );
-
-  const maintenanceContent = (
-    <>
-      <CollapsibleSection title="Predictive Maintenance" description="Equipment health and failure predictions" icon={<Heart className="h-5 w-5" />} expanded={predictiveMaintenanceExpanded} onExpandedChange={setPredictiveMaintenanceExpanded} summary={`${criticalEquipmentCount} critical, ${equipmentHealthArray.filter((eq) => eq.healthIndex >= 30 && eq.healthIndex < 70).length} warning`} data-testid="collapsible-predictive-maintenance">
-        <div className="space-y-3"><HealthLegend /><div className="space-y-0">{healthLoading ? <div className="text-center text-muted-foreground py-4">Loading equipment health...</div> : (isFocusMode ? criticalEquipment : equipmentHealth)?.map((equipment, _index) => <div key={equipment.id} className={`flex flex-wrap items-center gap-3 py-2.5 px-1 border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors ${equipment.healthIndex < 50 ? "bg-destructive/5" : ""}`} data-testid={`equipment-${equipment.id}`}><StatusIndicator status={equipment.status} /><div className="flex-1 min-w-0"><span className="font-medium text-foreground truncate">{equipment.name || equipment.id}</span><span className="text-xs text-muted-foreground ml-2 truncate">• {equipment.vessel}</span></div><div className="flex items-center gap-3 sm:gap-4 text-sm flex-shrink-0"><HealthIndexTooltip><div className="text-right cursor-help"><span className={`font-medium ${getHealthClassName(equipment.healthIndex)}`}>{equipment.healthIndex}%</span></div></HealthIndexTooltip><div className="text-right min-w-[50px]"><span className="text-xs text-muted-foreground">{equipment.predictedDueDays}d</span></div></div></div>)}</div></div>
-      </CollapsibleSection>
-      <CollapsibleSection title="Work Orders" description="Latest maintenance requests and updates" icon={<Wrench className="h-5 w-5" />} expanded={workOrdersExpanded} onExpandedChange={setWorkOrdersExpanded} summary={`${workOrders?.filter((wo) => wo.status !== "completed").length || 0} open, ${criticalWorkOrdersCount} high priority`} headerAction={<Button variant="secondary" size="sm" data-testid="button-new-work-order"><Plus className="mr-2 h-4 w-4" />New Order</Button>} data-testid="collapsible-work-orders">
-        <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Order ID</TableHead><TableHead>Equipment</TableHead><TableHead>Priority</TableHead><TableHead>Status</TableHead><TableHead>Created</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader><TableBody>{ordersLoading ? <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Loading work orders...</TableCell></TableRow> : (isFocusMode ? criticalWorkOrders : workOrders?.slice(0, 10))?.map((order) => <TableRow key={order.id} className="hover:bg-muted"><TableCell className="font-mono text-sm" data-testid={`work-order-id-${order.id}`}>{order.workOrderNumber || order.id}</TableCell><TableCell data-testid={`work-order-equipment-${order.id}`}>{getEquipmentName(order.equipmentId)}</TableCell><TableCell><span className={`px-2 py-1 text-xs rounded-full ${getPriorityClassName(order.priority)}`}>{getPriorityText(order.priority)}</span></TableCell><TableCell data-testid={`work-order-status-${order.id}`}>{order.status}</TableCell><TableCell data-testid={`work-order-created-${order.id}`}>{formatDistanceToNow(new Date(order.createdAt), { addSuffix: true })}</TableCell><TableCell><Button variant="ghost" size="sm"><Eye className="h-4 w-4" /></Button></TableCell></TableRow>)}</TableBody></Table></div>
-      </CollapsibleSection>
-    </>
-  );
+  const fleetHealth = metrics?.fleetHealth || 0;
+  const healthStatus = fleetHealth >= 80 ? "healthy" : fleetHealth >= 60 ? "warning" : "critical";
+  const riskAlerts = metrics?.riskAlerts || 0;
+  const openWOs = metrics?.openWorkOrders || 0;
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" data-testid="bridge-dashboard">
       {alertBanner && (
-        <div className={`mx-4 lg:mx-6 mt-4 p-3 lg:p-4 rounded-lg border-l-4 ${alertBanner.alertType === "critical" ? "bg-destructive/10 border-destructive text-destructive-foreground" : "bg-yellow-500/10 border-yellow-500 text-yellow-700 dark:text-yellow-300"}`} data-testid="alert-banner">
-          <div className="flex items-start justify-between space-x-3"><div className="flex items-start space-x-3 flex-1 min-w-0"><AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" /><div className="min-w-0 flex-1"><p className="font-semibold text-sm lg:text-base break-words">{alertBanner.alertType?.toUpperCase()} ALERT - {getEquipmentName(alertBanner.equipmentId)}</p><p className="text-sm opacity-90 break-words">{alertBanner.message}</p><p className="text-xs opacity-75 mt-1">{formatDistanceToNow(new Date(alertBanner.createdAt), { addSuffix: true })}</p></div></div><Button variant="ghost" size="sm" onClick={dismissAlert} data-testid="button-dismiss-alert"><AlertTriangle className="h-4 w-4" /></Button></div>
+        <div
+          className={`mx-4 lg:mx-6 mt-4 p-3 rounded-lg border-l-4 ${
+            alertBanner.alertType === "critical"
+              ? "bg-destructive/10 border-destructive text-destructive-foreground"
+              : "bg-yellow-500/10 border-yellow-500 text-yellow-700 dark:text-yellow-300"
+          }`}
+          data-testid="alert-banner"
+        >
+          <div className="flex items-start justify-between">
+            <div className="flex items-start gap-3 flex-1 min-w-0">
+              <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-sm">
+                  {alertBanner.alertType?.toUpperCase()} — {getEquipmentName(alertBanner.equipmentId)}
+                </p>
+                <p className="text-sm opacity-90">{alertBanner.message}</p>
+              </div>
+            </div>
+            <Button variant="ghost" size="sm" onClick={dismissAlert} data-testid="button-dismiss-alert">
+              ✕
+            </Button>
+          </div>
         </div>
       )}
 
-      <div className="px-4 lg:px-6 py-4">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center space-x-2"><Ship className="h-4 w-4 text-muted-foreground" /><Select value={selectedVessel} onValueChange={setSelectedVessel}><SelectTrigger className="w-32 lg:w-40" data-testid="select-vessel-filter"><SelectValue placeholder="All Vessels" /></SelectTrigger><SelectContent><SelectItem value="all">All Vessels</SelectItem>{allVessels?.map((vessel) => <SelectItem key={vessel.id} value={vessel.id} data-testid={`vessel-option-${vessel.id}`}>{vessel.name}</SelectItem>)}</SelectContent></Select></div>
-            <Button onClick={toggleFocusMode} variant={isFocusMode ? "default" : "outline"} size="sm" data-testid="button-focus-mode"><Target className="mr-2 h-4 w-4" />{isFocusMode ? "Exit Focus" : "Focus Mode"}</Button>
-            <Button onClick={refreshData} size="sm" data-testid="button-refresh"><RefreshCw className="mr-2 h-4 w-4" />Refresh</Button>
+      <div className="px-4 lg:px-6 py-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <Ship className="h-4 w-4 text-muted-foreground" />
+          <Select value={selectedVessel} onValueChange={setSelectedVessel}>
+            <SelectTrigger className="w-36" data-testid="select-vessel-filter">
+              <SelectValue placeholder="All Vessels" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Vessels</SelectItem>
+              {allVessels?.map((vessel: any) => (
+                <SelectItem key={vessel.id} value={vessel.id}>{vessel.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" onClick={refreshData} data-testid="button-refresh">
+            <RefreshCw className="h-4 w-4 mr-1.5" /> Refresh
+          </Button>
+        </div>
+        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <div className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-500" : "bg-red-500"}`} />
+            <span data-testid="text-ws-status">{isConnected ? "Live" : "Offline"}</span>
           </div>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground"><div className="flex items-center space-x-2"><div className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-500" : "bg-red-500"}`} /><span data-testid="text-ws-status">{isConnected ? "Live" : "Offline"}</span></div><span data-testid="text-current-time">{currentTime}</span></div>
         </div>
       </div>
 
-      <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
-        <MetricCardGrid columns={5} className="mobile-scroll-container lg:overflow-visible">
-          <UnifiedMetricCard label="Active Devices" value={metrics?.activeDevices || 0} icon={Cpu} color="blue" variant={preferences.metricsVariant === "minimal" ? "minimal" : "default"} trend={metrics?.trends?.activeDevices ? { value: metrics.trends.activeDevices.value, label: `${metrics.trends.activeDevices.direction === "up" ? "more" : "fewer"} than last week`, direction: metrics.trends.activeDevices.direction, isPositive: metrics.trends.activeDevices.direction === "up" } : undefined} data-testid="metric-active-devices" />
-          <UnifiedMetricCard label="Fleet Health" value={`${metrics?.fleetHealth || 0}%`} icon={Heart} color="green" variant={preferences.metricsVariant === "minimal" ? "minimal" : "default"} progress={metrics?.fleetHealth || 0} status={(metrics?.fleetHealth || 0) >= 80 ? "healthy" : (metrics?.fleetHealth || 0) >= 60 ? "warning" : "critical"} trend={metrics?.trends?.fleetHealth ? { value: `${metrics.trends.fleetHealth.percentChange}%`, label: "from last week", direction: metrics.trends.fleetHealth.direction, isPositive: metrics.trends.fleetHealth.direction === "up" } : undefined} data-testid="metric-fleet-health" />
-          <UnifiedMetricCard label="Open Work Orders" value={metrics?.openWorkOrders || 0} icon={Wrench} color="orange" variant={preferences.metricsVariant === "minimal" ? "minimal" : "default"} trend={metrics?.trends?.openWorkOrders ? { value: metrics.trends.openWorkOrders.value, label: `${metrics.trends.openWorkOrders.direction === "up" ? "more" : "fewer"} than last week`, direction: metrics.trends.openWorkOrders.direction, isPositive: metrics.trends.openWorkOrders.direction !== "up" } : undefined} data-testid="metric-open-work-orders" />
-          <UnifiedMetricCard label="Risk Alerts" value={metrics?.riskAlerts || 0} icon={AlertTriangle} color="red" variant={preferences.metricsVariant === "minimal" ? "minimal" : "default"} status={metrics?.riskAlerts && metrics.riskAlerts > 0 ? "warning" : "healthy"} trend={metrics?.trends?.riskAlerts ? { value: metrics.trends.riskAlerts.value, label: `${metrics.trends.riskAlerts.direction === "up" ? "more" : "fewer"} than last week`, direction: metrics.trends.riskAlerts.direction, isPositive: metrics.trends.riskAlerts.direction !== "up" } : undefined} data-testid="metric-risk-alerts" />
-          <UnifiedMetricCard label="Diagnostic Codes" value={dtcStats?.totalActiveDtcs || 0} icon={Activity} color="purple" variant={preferences.metricsVariant === "minimal" ? "minimal" : "default"} status={dtcStats?.criticalDtcs && dtcStats.criticalDtcs > 0 ? "critical" : "healthy"} trend={dtcStats?.criticalDtcs === undefined ? undefined : { value: dtcStats.criticalDtcs, label: "critical DTCs", direction: dtcStats.criticalDtcs > 0 ? "up" : "neutral", isPositive: dtcStats.criticalDtcs === 0 }} data-testid="metric-diagnostic-codes" />
-        </MetricCardGrid>
-        <DashboardTabs overviewContent={overviewContent} devicesContent={devicesContent} maintenanceContent={maintenanceContent} telemetryContent={<TelemetryTab />} insightsContent={<InsightsTab />} />
+      <div className="px-4 lg:px-6 pb-6 space-y-6">
+        <div className="grid grid-cols-3 gap-4">
+          <MetricCard
+            label="Fleet Health"
+            value={`${fleetHealth}%`}
+            icon={Heart}
+            status={healthStatus}
+            href="/equipment-intelligence"
+            testId="metric-fleet-health"
+          />
+          <MetricCard
+            label="Open Work Orders"
+            value={openWOs}
+            icon={Wrench}
+            status={openWOs > 10 ? "warning" : undefined}
+            href="/work-orders"
+            testId="metric-open-work-orders"
+          />
+          <MetricCard
+            label="Risk Alerts"
+            value={riskAlerts}
+            icon={AlertTriangle}
+            status={riskAlerts > 0 ? "critical" : "healthy"}
+            href="/equipment-intelligence"
+            testId="metric-risk-alerts"
+          />
+        </div>
+
+        <NeedsAttentionStrip
+          criticalEquipment={criticalEquipment}
+          criticalWorkOrders={criticalWorkOrders}
+          operatingAlerts={operatingAlerts}
+          stcwSummary={stcwSummary}
+        />
+
+        <AISummary
+          insightsSnapshot={insightsSnapshot}
+          criticalEquipmentCount={criticalEquipmentCount}
+          openWorkOrderCount={openWOs}
+          fleetHealth={fleetHealth}
+        />
+
+        <ActivityFeed
+          workOrders={workOrders}
+          equipmentHealth={equipmentHealthArray}
+          latestReadings={latestReadings}
+          operatingAlerts={operatingAlerts}
+        />
       </div>
     </div>
   );

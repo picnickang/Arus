@@ -1,190 +1,265 @@
-import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { useSearch, useLocation } from "wouter";
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from '@/hooks/use-toast';
-import { Upload, Search, FileText, Loader2, AlertCircle, Trash2, X, CheckCircle2, XCircle, Clock, MessageSquare, BookOpen } from 'lucide-react';
+import { useState, useCallback, useRef, useMemo } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Upload, Search, FileText, Loader2, Trash2, X,
+  CheckCircle2, XCircle, Clock,
+} from "lucide-react";
 import { useKnowledgeBase, type Document } from "@/features/ml-ai";
+
 type DocumentWithStatus = Document & { status?: string };
-import { DocumentFilters, EmptyState, SupportedFormats } from "@/components/kb";
-import { ChatInterface } from '@/components/rag';
 
-interface UploadJob { id: string; file: File; status: 'queued' | 'uploading' | 'processing' | 'completed' | 'failed'; jobId?: string; progress: number; error?: string; }
-interface JobStatus { id: string; status: 'pending' | 'processing' | 'completed' | 'failed'; progress?: number; error?: string; result?: Record<string, unknown>; }
+interface UploadJob {
+  id: string;
+  file: File;
+  status: "queued" | "uploading" | "processing" | "completed" | "failed";
+  jobId?: string;
+  progress: number;
+  error?: string;
+}
 
-function BatchUploadPanel({ onUploadComplete }: { onUploadComplete: () => void }) {
-  const { toast } = useToast();
-  const [uploadJobs, setUploadJobs] = useState<UploadJob[]>([]);
+function UploadDropZone({
+  onFilesSelected,
+  isOpen,
+  onClose,
+}: {
+  onFilesSelected: (files: File[]) => void;
+  isOpen: boolean;
+  onClose: () => void;
+}) {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const pollingJobsRef = useRef<Map<string, AbortController>>(new Map());
 
-  useEffect(() => { return () => { pollingJobsRef.current.forEach(controller => controller.abort()); pollingJobsRef.current.clear(); }; }, []);
+  if (!isOpen) return null;
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    const files = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf' || f.type.startsWith('image/'));
-    if (files.length > 0) { addFiles(files); } else { toast({ title: 'Invalid files', description: 'Please upload PDF or image files only.', variant: 'destructive' }); }
-  }, [toast]);
-
-  const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); }, []);
-  const handleDragLeave = useCallback(() => { setIsDragging(false); }, []);
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => { const files = Array.from(e.target.files ?? []); if (files.length > 0) { addFiles(files); } if (fileInputRef.current) { fileInputRef.current.value = ''; } };
-
-  const addFiles = (files: File[]) => {
-    const MAX_SIZE = 10 * 1024 * 1024;
-    const oversizedFiles = files.filter(f => f.size > MAX_SIZE);
-    if (oversizedFiles.length > 0) {
-      toast({
-        title: 'Files too large',
-        description: `${oversizedFiles.map(f => f.name).join(', ')} exceed${oversizedFiles.length > 1 ? '' : 's'} the 10MB limit.`,
-        variant: 'destructive',
-      });
-    }
-    const validFiles = files.filter(f => f.size <= MAX_SIZE);
-    if (validFiles.length === 0) return;
-    const newJobs: UploadJob[] = validFiles.map(file => ({ id: crypto.randomUUID().slice(0, 8), file, status: 'queued', progress: 0 }));
-    setUploadJobs(prev => [...prev, ...newJobs]);
-    newJobs.forEach(job => uploadFile(job));
+    const files = Array.from(e.dataTransfer.files).filter(
+      (f) => f.type === "application/pdf" || f.type.startsWith("image/")
+    );
+    if (files.length > 0) onFilesSelected(files);
   };
-
-  const uploadFile = async (job: UploadJob) => {
-    setUploadJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'uploading' as const, progress: 10 } : j));
-    try {
-      const formData = new FormData();
-      formData.append('file', job.file);
-      const res = await fetch('/api/kb/upload', { method: 'POST', body: formData });
-      if (!res.ok) { const error = await res.json(); throw new Error(error.message || 'Upload failed'); }
-      const data = await res.json();
-      const jobId = data.jobId;
-      setUploadJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'processing' as const, jobId, progress: 30 } : j));
-      pollJobStatus(job.id, jobId);
-    } catch (error) {
-      setUploadJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'failed' as const, error: error instanceof Error ? error.message : 'Upload failed' } : j));
-      toast({ title: 'Upload failed', description: error instanceof Error ? error.message : 'Upload failed', variant: 'destructive' });
-    }
-  };
-
-  const pollJobStatus = async (uploadId: string, jobId: string) => {
-    const abortController = new AbortController();
-    pollingJobsRef.current.set(uploadId, abortController);
-    let polling = true;
-    let backoffMs = 1000;
-    try {
-      while (polling && !abortController.signal.aborted) {
-        try {
-          const res = await fetch(`/api/kb/jobs/${jobId}`, { signal: abortController.signal });
-          if (!res.ok) throw new Error('Failed to check job status');
-          const status: JobStatus = await res.json();
-          setUploadJobs(prev => prev.map(j => {
-            if (j.id !== uploadId) return j;
-            if (status.status === 'completed') { polling = false; onUploadComplete(); return { ...j, status: 'completed' as const, progress: 100 }; }
-            if (status.status === 'failed') { polling = false; return { ...j, status: 'failed' as const, error: status.error || 'Processing failed' }; }
-            return { ...j, progress: status.status === 'processing' ? 60 : 40 };
-          }));
-          if (!polling) break;
-          await new Promise((resolve, reject) => {
-            const timeout = setTimeout(resolve, backoffMs);
-            abortController.signal.addEventListener('abort', () => { clearTimeout(timeout); reject(new Error('Aborted')); });
-          });
-          backoffMs = Math.min(backoffMs * 1.5, 5000);
-        } catch (error) {
-          if (error instanceof Error && error.name === 'AbortError') break;
-          console.error('Polling error:', error);
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        }
-      }
-    } finally { pollingJobsRef.current.delete(uploadId); }
-  };
-
-  const removeJob = (jobId: string) => { setUploadJobs(prev => prev.filter(j => j.id !== jobId)); };
-  const clearCompleted = () => { setUploadJobs(prev => prev.filter(j => j.status !== 'completed' && j.status !== 'failed')); };
-
-  const getStatusIcon = (status: UploadJob['status']) => {
-    switch (status) {
-      case 'queued': return <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />;
-      case 'uploading':
-      case 'processing': return <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-500 shrink-0" />;
-      case 'completed': return <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />;
-      case 'failed': return <XCircle className="h-3.5 w-3.5 text-destructive shrink-0" />;
-    }
-  };
-
-  const hasActiveJobs = uploadJobs.some(j => j.status === 'uploading' || j.status === 'processing');
-  const hasCompletedJobs = uploadJobs.some(j => j.status === 'completed' || j.status === 'failed');
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold flex items-center gap-2"><Upload className="h-5 w-5" />Upload Documents</h2>
+    <div className="border rounded-lg p-4 bg-card mb-4 animate-in fade-in-50 duration-200" data-testid="upload-dropzone">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold flex items-center gap-2">
+          <Upload className="h-4 w-4" /> Upload Documents
+        </h3>
+        <Button variant="ghost" size="sm" onClick={onClose} data-testid="button-close-upload">
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
       <div
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInputRef.current?.click(); } }}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") fileInputRef.current?.click(); }}
         onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
+        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+        onDragLeave={() => setIsDragging(false)}
         onClick={() => fileInputRef.current?.click()}
-        className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all ${isDragging ? 'border-primary bg-primary/5 shadow-inner' : 'border-muted-foreground/20 hover:border-primary/40 hover:bg-accent/30'}`}
-        data-testid="dropzone-upload"
+        className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all ${
+          isDragging
+            ? "border-primary bg-primary/5"
+            : "border-muted-foreground/20 hover:border-primary/40 hover:bg-accent/30"
+        }`}
+        data-testid="dropzone-area"
       >
-        <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground/60" />
-        <p className="text-sm font-medium mb-0.5">Drop files here or click to browse</p>
-        <p className="text-xs text-muted-foreground">PDF, PNG, JPEG — max 10MB per file</p>
-        <input ref={fileInputRef} type="file" multiple accept=".pdf,image/png,image/jpeg" onChange={handleFileSelect} className="hidden" data-testid="input-file-multiple" />
+        <Upload className="h-6 w-6 mx-auto mb-2 text-muted-foreground/60" />
+        <p className="text-sm font-medium">Drop files here or click to browse</p>
+        <p className="text-xs text-muted-foreground mt-1">PDF, PNG, JPEG — max 10MB per file</p>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept=".pdf,image/png,image/jpeg"
+          onChange={(e) => {
+            const files = Array.from(e.target.files ?? []);
+            if (files.length > 0) onFilesSelected(files);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+          }}
+          className="hidden"
+          data-testid="input-file"
+        />
       </div>
-      {uploadJobs.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-muted-foreground">
-              {hasActiveJobs ? `Processing ${uploadJobs.filter(j => j.status === 'uploading' || j.status === 'processing').length} of ${uploadJobs.length}` : `${uploadJobs.length} file${uploadJobs.length > 1 ? 's' : ''}`}
-            </p>
-            {hasCompletedJobs && !hasActiveJobs && (
-              <Button variant="ghost" size="sm" onClick={clearCompleted} data-testid="button-clear-completed">
-                Clear all
-              </Button>
+    </div>
+  );
+}
+
+function UploadProgressBar({ jobs, onClear }: { jobs: UploadJob[]; onClear: () => void }) {
+  if (jobs.length === 0) return null;
+
+  const active = jobs.filter((j) => j.status === "uploading" || j.status === "processing").length;
+  const completed = jobs.filter((j) => j.status === "completed").length;
+  const failed = jobs.filter((j) => j.status === "failed").length;
+
+  const statusIcon = (status: UploadJob["status"]) => {
+    switch (status) {
+      case "queued": return <Clock className="h-3 w-3 text-muted-foreground" />;
+      case "uploading":
+      case "processing": return <Loader2 className="h-3 w-3 animate-spin text-blue-500" />;
+      case "completed": return <CheckCircle2 className="h-3 w-3 text-green-500" />;
+      case "failed": return <XCircle className="h-3 w-3 text-destructive" />;
+    }
+  };
+
+  return (
+    <div className="border rounded-lg p-3 mb-4 bg-card" data-testid="upload-progress">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-medium text-muted-foreground">
+          {active > 0 ? `Processing ${active} of ${jobs.length}` : `${completed} completed${failed > 0 ? `, ${failed} failed` : ""}`}
+        </span>
+        {active === 0 && (
+          <Button variant="ghost" size="sm" onClick={onClear} className="h-6 text-xs" data-testid="button-clear-uploads">
+            Clear
+          </Button>
+        )}
+      </div>
+      <div className="space-y-1">
+        {jobs.map((job) => (
+          <div key={job.id} className="flex items-center gap-2 text-xs" data-testid={`upload-job-${job.id}`}>
+            {statusIcon(job.status)}
+            <span className="truncate flex-1">{job.file.name}</span>
+            {(job.status === "uploading" || job.status === "processing") && (
+              <Progress value={job.progress} className="w-16 h-1" />
+            )}
+            {job.status === "failed" && (
+              <span className="text-destructive truncate max-w-[120px]">{job.error}</span>
             )}
           </div>
-          <div className="space-y-1" data-testid="upload-queue">
-            {uploadJobs.map(job => (
-              <div key={job.id} className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-accent/30 transition-colors group" data-testid={`upload-job-${job.id}`}>
-                {getStatusIcon(job.status)}
-                <span className="text-sm truncate flex-1 min-w-0" data-testid={`text-filename-${job.id}`}>{job.file.name}</span>
-                <span className="text-xs text-muted-foreground shrink-0">{(job.file.size / 1024).toFixed(0)} KB</span>
-                {(job.status === 'uploading' || job.status === 'processing') && (
-                  <div className="w-16 shrink-0">
-                    <Progress value={job.progress} className="h-1" data-testid={`progress-${job.id}`} />
-                  </div>
-                )}
-                {job.status === 'failed' && (
-                  <span className="text-xs text-destructive shrink-0 max-w-[120px] truncate" title={job.error} data-testid={`text-error-${job.id}`}>
-                    {job.error}
-                  </span>
-                )}
-                {(job.status === 'completed' || job.status === 'failed') && (
-                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={() => removeJob(job.id)} data-testid={`button-remove-${job.id}`}>
-                    <X className="h-3 w-3" />
-                  </Button>
-                )}
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DocumentFilterBar({
+  search, onSearchChange,
+  fileType, onFileTypeChange,
+  status, onStatusChange,
+  onClear,
+}: {
+  search: string;
+  onSearchChange: (v: string) => void;
+  fileType: string;
+  onFileTypeChange: (v: string) => void;
+  status: string;
+  onStatusChange: (v: string) => void;
+  onClear: () => void;
+}) {
+  const hasFilters = search || fileType !== "all" || status !== "all";
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 mb-4">
+      <div className="relative flex-1 min-w-[200px]">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search documents..."
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          className="pl-9"
+          data-testid="input-doc-search"
+        />
+      </div>
+      <select
+        value={fileType}
+        onChange={(e) => onFileTypeChange(e.target.value)}
+        className="h-10 px-3 rounded-md border text-sm bg-background"
+        data-testid="select-file-type"
+      >
+        <option value="all">All types</option>
+        <option value="pdf">PDF</option>
+        <option value="png">PNG</option>
+        <option value="jpeg">JPEG</option>
+      </select>
+      <select
+        value={status}
+        onChange={(e) => onStatusChange(e.target.value)}
+        className="h-10 px-3 rounded-md border text-sm bg-background"
+        data-testid="select-status"
+      >
+        <option value="all">All status</option>
+        <option value="ready">Ready</option>
+        <option value="processing">Processing</option>
+        <option value="failed">Failed</option>
+      </select>
+      {hasFilters && (
+        <Button variant="ghost" size="sm" onClick={onClear} data-testid="button-clear-filters">
+          <X className="h-3 w-3 mr-1" /> Clear
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function SemanticSearchResults({ query, searchData, searching }: {
+  query: string;
+  searchData: any;
+  searching: boolean;
+}) {
+  const isQuestion = query.length >= 10 && (query.includes("?") || query.split(/\s+/).length > 4);
+  if (!isQuestion || (!searching && !searchData?.results?.length)) return null;
+
+  return (
+    <div className="mb-4 border rounded-lg overflow-hidden" data-testid="semantic-results">
+      <div className="px-4 py-2 bg-sky-500/5 border-b flex items-center gap-2">
+        <Search className="h-3.5 w-3.5 text-sky-500" />
+        <span className="text-xs font-semibold text-sky-600 dark:text-sky-400">AI Search Results</span>
+        {searching && <Loader2 className="h-3 w-3 animate-spin" />}
+      </div>
+      {searchData?.results?.length > 0 && (
+        <div className="p-3 space-y-2 max-h-60 overflow-y-auto">
+          {searchData.results.slice(0, 5).map((result: any) => (
+            <div key={result.chunkId} className="p-3 rounded border-l-2 border-sky-500 bg-card text-sm" data-testid={`search-result-${result.chunkId}`}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-medium text-xs">{result.docName}</span>
+                <Badge variant="outline" className="text-[9px]">
+                  {(result.similarity * 100).toFixed(0)}% match
+                </Badge>
               </div>
-            ))}
-          </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">{result.text?.slice(0, 200)}{result.text?.length > 200 ? "..." : ""}</p>
+            </div>
+          ))}
         </div>
       )}
     </div>
   );
 }
 
-function DocumentsTab() {
-  const { stats, documentsData, documentsLoading, searchQuery, setSearchQuery, searchData, searching, handleUploadComplete, handleDelete, deleteMutation } = useKnowledgeBase();
+export default function KnowledgeBasePage() {
+  const { toast } = useToast();
+  const {
+    stats,
+    documentsData,
+    documentsLoading,
+    searchQuery,
+    setSearchQuery,
+    searchData,
+    searching,
+    handleUploadComplete,
+    handleDelete,
+    deleteMutation,
+  } = useKnowledgeBase();
 
+  const [showUpload, setShowUpload] = useState(false);
+  const [uploadJobs, setUploadJobs] = useState<UploadJob[]>([]);
   const [docSearch, setDocSearch] = useState("");
   const [fileTypeFilter, setFileTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  const handleSearchChange = useCallback((value: string) => {
+    setDocSearch(value);
+    if (value.length >= 10 && (value.includes("?") || value.split(/\s+/).length > 4)) {
+      setSearchQuery(value);
+    } else if (value.length < 3) {
+      setSearchQuery("");
+    }
+  }, [setSearchQuery]);
 
   const filteredDocuments = useMemo(() => {
     if (!documentsData?.documents) return [];
@@ -196,97 +271,178 @@ function DocumentsTab() {
     });
   }, [documentsData?.documents, docSearch, fileTypeFilter, statusFilter]);
 
-  const clearFilters = useCallback(() => {
-    setDocSearch("");
-    setFileTypeFilter("all");
-    setStatusFilter("all");
-  }, []);
+  const handleFilesSelected = useCallback((files: File[]) => {
+    const MAX_SIZE = 10 * 1024 * 1024;
+    const oversized = files.filter((f) => f.size > MAX_SIZE);
+    if (oversized.length > 0) {
+      toast({
+        title: "Files too large",
+        description: `${oversized.map((f) => f.name).join(", ")} exceed the 10MB limit.`,
+        variant: "destructive",
+      });
+    }
+    const valid = files.filter((f) => f.size <= MAX_SIZE);
+    if (valid.length === 0) return;
 
-  return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <SupportedFormats />
-        {stats && <div className="flex gap-4 text-sm"><div className="text-center"><div className="text-2xl font-bold" data-testid="text-total-documents">{stats.totalDocuments}</div><div className="text-muted-foreground">Documents</div></div><div className="text-center"><div className="text-2xl font-bold" data-testid="text-total-chunks">{stats.totalChunks}</div><div className="text-muted-foreground">Chunks</div></div></div>}
-      </div>
+    const newJobs: UploadJob[] = valid.map((file) => ({
+      id: crypto.randomUUID().slice(0, 8),
+      file,
+      status: "queued",
+      progress: 0,
+    }));
+    setUploadJobs((prev) => [...prev, ...newJobs]);
+    newJobs.forEach((job) => uploadFile(job));
+  }, [toast]);
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="p-6">
-          <BatchUploadPanel onUploadComplete={handleUploadComplete} />
-        </Card>
-        <Card className="p-6 lg:col-span-2"><h2 className="text-xl font-semibold mb-4 flex items-center gap-2"><Search className="h-5 w-5" />Search Documents</h2><div className="space-y-4"><div className="flex gap-2"><Input placeholder="Ask a question or search for information..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} data-testid="input-search-query" />{searching && <Loader2 className="h-5 w-5 animate-spin self-center" />}</div>{searchQuery.length > 0 && searchQuery.length < 3 && <div className="text-sm text-muted-foreground flex items-center gap-2"><AlertCircle className="h-4 w-4" />Type at least 3 characters to search</div>}{searchData?.results.length > 0 && <ScrollArea className="h-96"><div className="space-y-4" data-testid="search-results">{searchData.results.map((result) => <Card key={result.chunkId} className="p-4 border-l-4 border-primary"><div className="flex items-start justify-between mb-2"><div><div className="font-medium text-sm" data-testid={`text-doc-name-${result.chunkId}`}>{result.docName}</div><div className="text-xs text-muted-foreground">Similarity: {(result.similarity * 100).toFixed(1)}% • Chunk {result.ord + 1}</div></div></div><p className="text-sm leading-relaxed" data-testid={`text-chunk-${result.chunkId}`}>{result.text}</p></Card>)}</div></ScrollArea>}{!searchQuery && <EmptyState type="no-search" />}{searchData?.results.length === 0 && <EmptyState type="no-results" />}</div></Card>
-      </div>
+  const uploadFile = async (job: UploadJob) => {
+    setUploadJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, status: "uploading" as const, progress: 10 } : j));
+    try {
+      const formData = new FormData();
+      formData.append("file", job.file);
+      const res = await fetch("/api/kb/upload", { method: "POST", body: formData });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Upload failed");
+      }
+      const data = await res.json();
+      setUploadJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, status: "processing" as const, jobId: data.jobId, progress: 30 } : j));
+      pollJobStatus(job.id, data.jobId);
+    } catch (error) {
+      setUploadJobs((prev) => prev.map((j) => j.id === job.id ? { ...j, status: "failed" as const, error: error instanceof Error ? error.message : "Upload failed" } : j));
+    }
+  };
 
-      <Card className="p-6">
-        <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
-          <h2 className="text-xl font-semibold">Uploaded Documents</h2>
-        </div>
-        <div className="mb-4">
-          <DocumentFilters
-            search={docSearch}
-            onSearchChange={setDocSearch}
-            fileTypeFilter={fileTypeFilter}
-            onFileTypeFilterChange={setFileTypeFilter}
-            statusFilter={statusFilter}
-            onStatusFilterChange={setStatusFilter}
-            onClearFilters={clearFilters}
-          />
-        </div>
-        {documentsLoading ? <div className="flex items-center justify-center py-8"><Loader2 className="h-8 w-8 animate-spin" /></div> : filteredDocuments.length > 0 ? <div className="space-y-2" data-testid="documents-list">{filteredDocuments.map((doc: Document) => <div key={doc.id} className="flex items-center justify-between p-3 border rounded hover:bg-accent/50 transition-colors" data-testid={`document-${doc.id}`}><div className="flex items-center gap-3"><FileText className="h-5 w-5 text-muted-foreground" /><div><div className="font-medium" data-testid={`text-name-${doc.id}`}>{doc.name}</div><div className="text-xs text-muted-foreground">{doc.fileType.toUpperCase()} • {doc.numChunks} chunks • {new Date(doc.createdAt).toLocaleDateString()}</div></div></div><Button variant="ghost" size="sm" onClick={() => handleDelete(doc.id, doc.name)} disabled={deleteMutation.isPending} data-testid={`button-delete-${doc.id}`}><Trash2 className="h-4 w-4 text-destructive" /></Button></div>)}</div> : documentsData?.documents.length === 0 ? <EmptyState type="no-documents" /> : <EmptyState type="no-results" />}
-      </Card>
-    </div>
-  );
-}
-
-function ChatTab() {
-  return (
-    <div className="flex-1 p-6">
-      <ChatInterface />
-    </div>
-  );
-}
-
-function getTabFromSearch(search: string): "chat" | "documents" {
-  const params = new URLSearchParams(search.startsWith("?") ? search : search);
-  const tab = params.get("tab");
-  if (tab === "documents") return "documents";
-  return "chat";
-}
-
-export default function KnowledgeBasePage() {
-  const searchString = useSearch();
-  const [, setLocation] = useLocation();
-  const [activeTab, setActiveTab] = useState<"chat" | "documents">(() =>
-    getTabFromSearch(searchString || window.location.search)
-  );
-
-  useEffect(() => {
-    setActiveTab(getTabFromSearch(searchString || ""));
-  }, [searchString]);
-
-  const handleTabChange = (value: string) => {
-    const tab = value as "chat" | "documents";
-    setActiveTab(tab);
-    const url = tab === "chat" ? "/knowledge-base" : "/knowledge-base?tab=documents";
-    setLocation(url, { replace: true });
+  const pollJobStatus = async (uploadId: string, jobId: string) => {
+    let polling = true;
+    let backoffMs = 1000;
+    while (polling) {
+      try {
+        const res = await fetch(`/api/kb/jobs/${jobId}`);
+        if (!res.ok) break;
+        const status = await res.json();
+        if (status.status === "completed") {
+          setUploadJobs((prev) => prev.map((j) => j.id === uploadId ? { ...j, status: "completed" as const, progress: 100 } : j));
+          handleUploadComplete();
+          polling = false;
+        } else if (status.status === "failed") {
+          setUploadJobs((prev) => prev.map((j) => j.id === uploadId ? { ...j, status: "failed" as const, error: status.error || "Processing failed" } : j));
+          polling = false;
+        } else {
+          setUploadJobs((prev) => prev.map((j) => j.id === uploadId ? { ...j, progress: status.status === "processing" ? 60 : 40 } : j));
+        }
+        if (polling) {
+          await new Promise((r) => setTimeout(r, backoffMs));
+          backoffMs = Math.min(backoffMs * 1.5, 5000);
+        }
+      } catch {
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+    }
   };
 
   return (
-    <div className="min-h-screen flex flex-col" data-testid="page-knowledge-base">
-      <div className="px-6 pt-4">
-        <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <TabsList data-testid="kb-tabs">
-            <TabsTrigger value="chat" className="flex items-center gap-2" data-testid="tab-chat">
-              <MessageSquare className="h-4 w-4" />
-              Chat
-            </TabsTrigger>
-            <TabsTrigger value="documents" className="flex items-center gap-2" data-testid="tab-documents">
-              <BookOpen className="h-4 w-4" />
-              Documents
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+    <div className="min-h-screen" data-testid="page-knowledge-base">
+      <div className="px-6 py-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold">Documents</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Manage fleet knowledge base
+            {stats && (
+              <span className="ml-2">
+                · {stats.totalDocuments} documents · {stats.totalChunks} chunks
+              </span>
+            )}
+          </p>
+        </div>
+        <Button onClick={() => setShowUpload(!showUpload)} variant={showUpload ? "secondary" : "default"} data-testid="button-toggle-upload">
+          <Upload className="h-4 w-4 mr-2" />
+          {showUpload ? "Close Upload" : "Upload"}
+        </Button>
       </div>
-      {activeTab === "chat" ? <ChatTab /> : <DocumentsTab />}
+
+      <div className="px-6 pb-6">
+        <UploadDropZone
+          isOpen={showUpload}
+          onClose={() => setShowUpload(false)}
+          onFilesSelected={handleFilesSelected}
+        />
+
+        <UploadProgressBar
+          jobs={uploadJobs}
+          onClear={() => setUploadJobs([])}
+        />
+
+        <DocumentFilterBar
+          search={docSearch}
+          onSearchChange={handleSearchChange}
+          fileType={fileTypeFilter}
+          onFileTypeChange={setFileTypeFilter}
+          status={statusFilter}
+          onStatusChange={setStatusFilter}
+          onClear={() => {
+            setDocSearch("");
+            setFileTypeFilter("all");
+            setStatusFilter("all");
+            setSearchQuery("");
+          }}
+        />
+
+        <SemanticSearchResults
+          query={docSearch}
+          searchData={searchData}
+          searching={searching}
+        />
+
+        {documentsLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        ) : filteredDocuments.length > 0 ? (
+          <div className="space-y-1" data-testid="documents-list">
+            {filteredDocuments.map((doc: Document) => (
+              <div
+                key={doc.id}
+                className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors"
+                data-testid={`document-${doc.id}`}
+              >
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="min-w-0">
+                    <div className="font-medium text-sm truncate" data-testid={`text-name-${doc.id}`}>
+                      {doc.name}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {doc.fileType.toUpperCase()} · {doc.numChunks} chunks · {new Date(doc.createdAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDelete(doc.id, doc.name)}
+                  disabled={deleteMutation.isPending}
+                  data-testid={`button-delete-${doc.id}`}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : documentsData?.documents?.length === 0 ? (
+          <div className="text-center py-16 text-muted-foreground" data-testid="empty-state">
+            <FileText className="h-10 w-10 mx-auto mb-3 opacity-40" />
+            <p className="font-medium">No documents yet</p>
+            <p className="text-sm mt-1">Upload PDF or image files to build your fleet knowledge base.</p>
+            <Button variant="outline" className="mt-4" onClick={() => setShowUpload(true)} data-testid="button-upload-first">
+              <Upload className="h-4 w-4 mr-2" /> Upload First Document
+            </Button>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-muted-foreground text-sm">
+            No documents match your filters.
+          </div>
+        )}
+      </div>
     </div>
   );
 }

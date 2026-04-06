@@ -32,11 +32,12 @@ Developed with Express.js and TypeScript, offering RESTful APIs with Zod validat
 -   **Import Adapters**: Supports CSV/XML imports from AMOS CMMS and SBN SHIPMATE ERP for equipment, work orders, parts, and maintenance plans.
 -   **Equipment Hierarchy**: Manages parent-child equipment relationships with auto-computed hierarchy levels.
 -   **Inventory & Work Orders**: Modernized UIs with virtualized tables, checklists, multi-supplier support, and out-of-stock purchase request workflows.
--   **Dashboard**: Consolidated operations dashboard with five tabs: Overview, Devices, Maintenance, Telemetry (live sensor streams), and Insights (actionable AI recommendations with acknowledge/resolve workflows). Tab selection syncs to URL via `?tab=` parameter. `/active-telemetry` and `/actionable-insights` redirect to `/dashboard?tab=telemetry` and `/dashboard?tab=insights`.
--   **Analytics**: Interactive visualizations, multi-format export, and a Real-Time Notification System.
+-   **Dashboard**: Bridge Dashboard with 3 metric cards (Fleet Health, Open Work Orders, Risk Alerts), Needs Attention strip (scrollable urgent items from equipment/WOs/compliance/alerts), AI Summary paragraph, and Activity Feed (reverse-chronological event stream). Zero tabs, zero collapsibles. `/active-telemetry` and `/actionable-insights` redirect to legacy routes.
+-   **Analytics Hub**: Stacked summary with 5 headline metrics (one per domain), AI Key Findings, and 4 domain strips (Operations, Maintenance, Finance, Data Integrity) with "Open" links to dedicated sub-routes (`/analytics/operations`, `/analytics/maintenance`, `/analytics/finance`, `/analytics/data-integrity`).
 -   **Simulation**: Physics-Aware Vessel Telemetry Simulator for synthetic data generation.
 -   **AI Copilot Agent**: Natural language chat interface (OpenAI function-calling) for fleet operations queries with tiered permissions, SSE streaming, and conversation persistence.
--   **Knowledge Base**: Consolidated single-page with Chat (default) and Documents tabs. RAG enrichment for AI-powered report generation, including document ingestion, semantic chunking, and hybrid vector+BM25 search. `/kb-chat` redirects to `/knowledge-base?tab=chat`.
+-   **Knowledge Base**: Single-purpose document management page with search bar, upload button + drop zone, document filters, and semantic search results for question-like queries. No chat tab — chat is handled by the ARUS Copilot floating button. `/kb-chat` redirects to `/knowledge-base`.
+-   **Copilot Admin**: Two-zone monitoring dashboard (usage stats + schedules list) with configuration in a Dialog. Status sidebar shows model, permission tier, token usage, active schedules, and estimated cost. Data management collapsed at bottom.
 -   **Telemetry Resilience Modules**: Circuit breaker for PostgreSQL, graceful shutdown, in-memory dead-letter queue, and equipment heartbeat tracking.
 -   **Unified Domain Event Bus**: Consolidated, strongly-typed event bus with 40+ event types.
 -   **Certificate Registry**: Hexagonal domain for vessel certificates with validity tracking, survey windows, and immutable audit trail.
