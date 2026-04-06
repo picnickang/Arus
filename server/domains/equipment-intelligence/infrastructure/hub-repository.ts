@@ -301,27 +301,92 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
 
     try {
       const { diagnosticRuns } = await import("@shared/schema-runtime");
-      const diagRows = await db
-        .select({
-          id: diagnosticRuns.id,
-          analysisType: diagnosticRuns.analysisType,
-          summary: diagnosticRuns.summary,
-          createdAt: diagnosticRuns.createdAt,
-        })
-        .from(diagnosticRuns)
-        .where(and(eq(diagnosticRuns.equipmentId, equipmentId), eq(diagnosticRuns.orgId, orgId)))
-        .orderBy(desc(diagnosticRuns.createdAt))
-        .limit(5);
+      if (diagnosticRuns) {
+        const diagRows = await db
+          .select({
+            id: diagnosticRuns.id,
+            analysisType: diagnosticRuns.analysisType,
+            summary: diagnosticRuns.summary,
+            createdAt: diagnosticRuns.createdAt,
+          })
+          .from(diagnosticRuns)
+          .where(and(eq(diagnosticRuns.equipmentId, equipmentId), eq(diagnosticRuns.orgId, orgId)))
+          .orderBy(desc(diagnosticRuns.createdAt))
+          .limit(5);
 
-      for (const diag of diagRows) {
-        events.push({
-          id: `diag-${diag.id}`,
-          type: "diagnostic",
-          title: `Diagnostic: ${diag.analysisType}`,
-          description: diag.summary,
-          timestamp: diag.createdAt ? new Date(diag.createdAt).toISOString() : new Date().toISOString(),
-          severity: "info",
-        });
+        for (const diag of diagRows) {
+          events.push({
+            id: `diag-${diag.id}`,
+            type: "diagnostic",
+            title: `Diagnostic: ${diag.analysisType}`,
+            description: diag.summary,
+            timestamp: diag.createdAt ? new Date(diag.createdAt).toISOString() : new Date().toISOString(),
+            severity: "info",
+          });
+        }
+      }
+    } catch { /* ignore */ }
+
+    try {
+      const { anomalyDetections } = await import("@shared/schema-runtime");
+      if (anomalyDetections) {
+        const anomalyRows = await db
+          .select({
+            id: anomalyDetections.id,
+            sensorType: anomalyDetections.sensorType,
+            anomalyType: anomalyDetections.anomalyType,
+            severity: anomalyDetections.severity,
+            detectedValue: anomalyDetections.detectedValue,
+            expectedValue: anomalyDetections.expectedValue,
+            detectionTimestamp: anomalyDetections.detectionTimestamp,
+          })
+          .from(anomalyDetections)
+          .where(and(eq(anomalyDetections.equipmentId, equipmentId), eq(anomalyDetections.orgId, orgId)))
+          .orderBy(desc(anomalyDetections.detectionTimestamp))
+          .limit(5);
+
+        for (const anomaly of anomalyRows) {
+          const deviation = anomaly.detectedValue && anomaly.expectedValue
+            ? `Detected: ${anomaly.detectedValue}, Expected: ${anomaly.expectedValue}`
+            : null;
+          events.push({
+            id: `anomaly-${anomaly.id}`,
+            type: "anomaly",
+            title: `Anomaly: ${anomaly.anomalyType || anomaly.sensorType}`,
+            description: deviation,
+            timestamp: anomaly.detectionTimestamp ? new Date(anomaly.detectionTimestamp).toISOString() : new Date().toISOString(),
+            severity: anomaly.severity === "high" ? "critical" : anomaly.severity === "medium" ? "warning" : "info",
+          });
+        }
+      }
+    } catch { /* ignore */ }
+
+    try {
+      const { serviceOrders, workOrders: woTable } = await import("@shared/schema-runtime");
+      if (serviceOrders && woTable) {
+        const soRows = await db
+          .select({
+            id: serviceOrders.id,
+            soNumber: serviceOrders.soNumber,
+            status: serviceOrders.status,
+            createdAt: serviceOrders.createdAt,
+          })
+          .from(serviceOrders)
+          .innerJoin(woTable, eq(serviceOrders.workOrderId, woTable.id))
+          .where(and(eq(woTable.equipmentId, equipmentId), eq(serviceOrders.orgId, orgId)))
+          .orderBy(desc(serviceOrders.createdAt))
+          .limit(5);
+
+        for (const so of soRows) {
+          events.push({
+            id: `so-${so.id}`,
+            type: "procurement",
+            title: `Service Order: SO ${so.soNumber}`,
+            description: `Status: ${so.status}`,
+            timestamp: so.createdAt ? new Date(so.createdAt).toISOString() : new Date().toISOString(),
+            severity: so.status === "draft" ? "info" : so.status === "sent" ? "warning" : "info",
+          });
+        }
       }
     } catch { /* ignore */ }
 

@@ -4,7 +4,7 @@ import { IntelligenceLayout } from "@/components/intelligence/IntelligenceLayout
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, AlertTriangle, ChevronRight, Clock, Wrench, FileText, Activity, Box, BarChart3, Cpu, ShieldCheck, Play, ArrowRight, Ship, MapPin, Package, Calendar } from "lucide-react";
+import { Loader2, AlertTriangle, ChevronRight, Clock, Wrench, FileText, Activity, Box, BarChart3, Cpu, ShieldCheck, Play, ArrowRight, Ship, MapPin, Package, Calendar, GitCompareArrows } from "lucide-react";
 import { useEquipmentHub } from "@/hooks/useEquipmentHub";
 
 function riskColor(r: string) {
@@ -365,7 +365,7 @@ export default function EquipmentHub() {
         </Card>
 
         {/* Section 10: Related Tools */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2" data-testid="related-tools">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2" data-testid="related-tools">
           <Link href={`/digital-twin?equipmentId=${data.id}`}>
             <div className="p-3 rounded-lg bg-white/[0.015] border border-slate-700/10 text-xs text-slate-400 hover:bg-violet-400/5 hover:border-violet-400/12 hover:text-violet-300 transition-colors cursor-pointer flex items-center gap-2" data-testid="link-digital-twin">
               <Box className="h-4 w-4" /> Digital Twin
@@ -379,6 +379,11 @@ export default function EquipmentHub() {
           <Link href={`/pdm-platform?equipmentId=${data.id}`}>
             <div className="p-3 rounded-lg bg-white/[0.015] border border-slate-700/10 text-xs text-slate-400 hover:bg-emerald-400/5 hover:border-emerald-400/12 hover:text-emerald-300 transition-colors cursor-pointer flex items-center gap-2" data-testid="link-ml-platform">
               <Cpu className="h-4 w-4" /> ML Platform
+            </div>
+          </Link>
+          <Link href={`/equipment-intelligence?compare=${data.id}`}>
+            <div className="p-3 rounded-lg bg-white/[0.015] border border-slate-700/10 text-xs text-slate-400 hover:bg-amber-400/5 hover:border-amber-400/12 hover:text-amber-300 transition-colors cursor-pointer flex items-center gap-2" data-testid="link-fleet-comparison">
+              <GitCompareArrows className="h-4 w-4" /> Fleet Comparison
             </div>
           </Link>
         </div>
