@@ -50,6 +50,19 @@ export function useCreateServiceRequest() {
   });
 }
 
+export function useUpdateServiceRequest() {
+  return useMutation({
+    mutationFn: ({ id, data }: {
+      id: string;
+      data: { title?: string; description?: string; urgency?: string; estimatedCost?: number; serviceDetails?: string; specialRequirements?: string };
+    }) =>
+      apiRequest("PATCH", `/api/service-requests/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: srKeys.all });
+    },
+  });
+}
+
 export function useReviewServiceRequest() {
   return useMutation({
     mutationFn: (id: string) => apiRequest("POST", `/api/service-requests/${id}/review`, {}),
