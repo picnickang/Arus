@@ -1,62 +1,58 @@
-export type SRStatus = "pending" | "in_progress" | "completed" | "cancelled";
+export type SRStatus = "pending_review" | "under_review" | "approved" | "converted" | "rejected";
 
 export interface ServiceRequest {
   id: string;
-  orgId: string;
-  vesselId?: string;
-  equipmentId?: string;
+  orgId?: string;
+  workOrderId: string;
+  serviceOrderId?: string | null;
+  requestNumber: string;
   title: string;
-  description?: string;
+  description?: string | null;
+  urgency: "low" | "medium" | "high" | "critical";
+  estimatedCost?: number | null;
+  requestedBy: string;
   status: SRStatus;
-  priority: "low" | "medium" | "high" | "critical";
-  workOrderType: "service_request";
-  probableCause?: string;
-  actionTaken?: string;
-  recurringDefect?: boolean;
-  diagnosticDescription?: string;
-  assistanceRequired?: string[];
-  mocRequired?: boolean;
-  mocApproved?: boolean;
-  mocApprovedBy?: string;
-  mocApprovedAt?: string;
-  equipmentStatus?: string;
-  certificateItems?: string[];
+  rejectionReason?: string | null;
+  reviewedBy?: string | null;
+  reviewedAt?: string | null;
+  convertedAt?: string | null;
+  workOrderNumber?: string | null;
+  workOrderDescription?: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface SRFilters {
   status?: SRStatus;
-  priority?: string;
-  vesselId?: string;
-  equipmentId?: string;
-  search?: string;
+  workOrderId?: string;
 }
 
 export const SR_STATUS_LABELS: Record<SRStatus, string> = {
-  pending: "Pending",
-  in_progress: "In Progress",
-  completed: "Completed",
-  cancelled: "Cancelled",
+  pending_review: "Pending Review",
+  under_review: "Under Review",
+  approved: "Approved",
+  converted: "Converted to SO",
+  rejected: "Rejected",
 };
 
 export const SR_STATUS_COLORS: Record<SRStatus, string> = {
-  pending: "bg-yellow-100 text-yellow-800",
-  in_progress: "bg-blue-100 text-blue-800",
-  completed: "bg-green-100 text-green-800",
-  cancelled: "bg-gray-100 text-gray-800",
+  pending_review: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+  under_review: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  approved: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  converted: "bg-primary/20 text-primary",
+  rejected: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
 };
 
-export const SR_PRIORITY_LABELS: Record<string, string> = {
+export const SR_URGENCY_LABELS: Record<string, string> = {
   low: "Low",
   medium: "Medium",
   high: "High",
   critical: "Critical",
 };
 
-export const SR_PRIORITY_COLORS: Record<string, string> = {
-  low: "bg-slate-100 text-slate-700",
-  medium: "bg-blue-100 text-blue-700",
-  high: "bg-orange-100 text-orange-700",
-  critical: "bg-red-100 text-red-700",
+export const SR_URGENCY_COLORS: Record<string, string> = {
+  low: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+  medium: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  high: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+  critical: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
 };

@@ -279,6 +279,44 @@ export const itemSuppliers = pgTable(
 );
 
 // ============================================================================
+// SERVICE REQUESTS (Lightweight intake before formal Service Orders)
+// ============================================================================
+
+export const serviceRequests = pgTable(
+  "service_requests",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    workOrderId: varchar("work_order_id")
+      .notNull()
+      .references(() => workOrders.id),
+    serviceOrderId: varchar("service_order_id"),
+    requestNumber: text("request_number").notNull(),
+    title: text("title").notNull(),
+    description: text("description"),
+    urgency: text("urgency").notNull().default("medium"),
+    estimatedCost: real("estimated_cost"),
+    requestedBy: text("requested_by").notNull(),
+    status: text("status").notNull().default("pending_review"),
+    rejectionReason: text("rejection_reason"),
+    reviewedBy: text("reviewed_by"),
+    reviewedAt: timestamp("reviewed_at", { mode: "date" }),
+    convertedAt: timestamp("converted_at", { mode: "date" }),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
+  },
+  (table) => ({
+    orgStatusIdx: sql`CREATE INDEX IF NOT EXISTS idx_service_requests_org_status ON service_requests (org_id, status)`,
+    workOrderIdx: sql`CREATE INDEX IF NOT EXISTS idx_service_requests_work_order ON service_requests (work_order_id)`,
+    orgRequestNumberIdx: unique("uq_service_requests_org_request_number").on(table.orgId, table.requestNumber),
+  })
+);
+
+// ============================================================================
 // SERVICE ORDERS
 // ============================================================================
 
@@ -382,6 +420,9 @@ export const insertPurchaseRequestEventSchema = createInsertSchema(purchaseReque
 export const insertItemSupplierSchema = createInsertSchema(itemSuppliers)
   .omit({ id: true, createdAt: true, updatedAt: true });
 
+export const insertServiceRequestSchema = createInsertSchema(serviceRequests)
+  .omit({ id: true, createdAt: true, updatedAt: true });
+
 export const insertServiceOrderSchema = createInsertSchema(serviceOrders)
   .omit({ id: true, createdAt: true, updatedAt: true });
 
@@ -415,6 +456,9 @@ export type InsertPurchaseRequestEvent = z.infer<typeof insertPurchaseRequestEve
 
 export type ItemSupplier = typeof itemSuppliers.$inferSelect;
 export type InsertItemSupplier = z.infer<typeof insertItemSupplierSchema>;
+
+export type ServiceRequest = typeof serviceRequests.$inferSelect;
+export type InsertServiceRequest = z.infer<typeof insertServiceRequestSchema>;
 
 export type ServiceOrder = typeof serviceOrders.$inferSelect;
 export type InsertServiceOrder = z.infer<typeof insertServiceOrderSchema>;

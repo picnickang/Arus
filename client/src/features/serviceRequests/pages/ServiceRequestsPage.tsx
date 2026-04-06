@@ -5,42 +5,58 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Plus, ClipboardList, AlertCircle, Clock, CheckCircle, Loader2 } from "lucide-react";
-import { useServiceRequests, useCreateServiceRequest, useCreateServiceOrderFromSR, useCreatePRFromSR } from "../hooks/useServiceRequests";
+import { Search, ClipboardList, AlertCircle, Clock, CheckCircle, Loader2, XCircle, ArrowRightCircle } from "lucide-react";
+import {
+  useServiceRequests,
+  useReviewServiceRequest,
+  useApproveServiceRequest,
+  useRejectServiceRequest,
+  useConvertServiceRequest,
+} from "../hooks/useServiceRequests";
 import { SRCard } from "../components/SRCard";
 import type { SRFilters, SRStatus } from "../types";
 
-interface CreateSODialogProps {
+interface ConvertDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   srId: string | null;
-  onSubmit: (data: { serviceProviderId: string; scope: string }) => void;
   isPending: boolean;
+  onSubmit: (data: { serviceProviderId: string; scope?: string; estimatedCost?: number; scheduledStartDate?: string }) => void;
 }
 
-function CreateSODialog({ open, onOpenChange, srId: _srId, onSubmit, isPending }: CreateSODialogProps) {
+function ConvertToSODialog({ open, onOpenChange, srId: _srId, onSubmit, isPending }: ConvertDialogProps) {
   const [scope, setScope] = useState("");
   const [serviceProviderId, setServiceProviderId] = useState("");
-  const { data: suppliers } = useQuery<{ id: string; name: string }[]>({ queryKey: ["/api/suppliers"] });
+  const [estimatedCost, setEstimatedCost] = useState("");
+  const [scheduledStartDate, setScheduledStartDate] = useState("");
+  const { data: suppliers } = useQuery<{ id: string; name: string }[]>({ queryKey: ["/api/suppliers"], enabled: open });
 
   const handleSubmit = () => {
-    if (!serviceProviderId) {return;}
-    onSubmit({ serviceProviderId, scope });
+    if (!serviceProviderId) return;
+    onSubmit({
+      serviceProviderId,
+      scope: scope || undefined,
+      estimatedCost: estimatedCost ? parseFloat(estimatedCost) : undefined,
+      scheduledStartDate: scheduledStartDate || undefined,
+    });
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Create Service Order</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Convert to Service Order</DialogTitle>
+          <DialogDescription>Create a formal service order from this approved request.</DialogDescription>
+        </DialogHeader>
         <div className="space-y-4">
           <div>
             <Label>Service Provider *</Label>
             <Select value={serviceProviderId} onValueChange={setServiceProviderId}>
-              <SelectTrigger data-testid="select-provider"><SelectValue placeholder="Select provider" /></SelectTrigger>
+              <SelectTrigger data-testid="select-convert-provider"><SelectValue placeholder="Select provider" /></SelectTrigger>
               <SelectContent>
                 {suppliers?.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
               </SelectContent>
@@ -48,14 +64,24 @@ function CreateSODialog({ open, onOpenChange, srId: _srId, onSubmit, isPending }
           </div>
           <div>
             <Label>Scope of Work</Label>
-            <Textarea value={scope} onChange={(e) => setScope(e.target.value)} placeholder="Describe the work scope..." data-testid="input-scope" />
+            <Textarea value={scope} onChange={(e) => setScope(e.target.value)} placeholder="Describe the work scope..." data-testid="input-convert-scope" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Estimated Cost</Label>
+              <Input type="number" step="0.01" value={estimatedCost} onChange={(e) => setEstimatedCost(e.target.value)} placeholder="0.00" data-testid="input-convert-cost" />
+            </div>
+            <div>
+              <Label>Scheduled Start</Label>
+              <Input type="date" value={scheduledStartDate} onChange={(e) => setScheduledStartDate(e.target.value)} data-testid="input-convert-date" />
+            </div>
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="btn-cancel-create-so">Cancel</Button>
-          <Button onClick={handleSubmit} disabled={!serviceProviderId || isPending} data-testid="btn-submit-so">
+          <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="btn-cancel-convert">Cancel</Button>
+          <Button onClick={handleSubmit} disabled={!serviceProviderId || isPending} data-testid="btn-submit-convert">
             {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Create Service Order
+            <ArrowRightCircle className="h-4 w-4 mr-2" /> Convert to SO
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -63,57 +89,33 @@ function CreateSODialog({ open, onOpenChange, srId: _srId, onSubmit, isPending }
   );
 }
 
-interface CreateSRDialogProps {
+interface RejectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: { title: string; description: string; priority: string }) => void;
+  srId: string | null;
   isPending: boolean;
+  onSubmit: (reason: string) => void;
 }
 
-function CreateSRDialog({ open, onOpenChange, onSubmit, isPending }: CreateSRDialogProps) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState("medium");
-
-  const handleSubmit = () => {
-    if (!title.trim()) {return;}
-    onSubmit({ title: title.trim(), description: description.trim(), priority });
-    setTitle("");
-    setDescription("");
-    setPriority("medium");
-  };
+function RejectDialog({ open, onOpenChange, srId: _srId, onSubmit, isPending }: RejectDialogProps) {
+  const [reason, setReason] = useState("");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader><DialogTitle>New Service Request</DialogTitle></DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <Label>Title *</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Brief description of the issue..." data-testid="input-sr-title" />
-          </div>
-          <div>
-            <Label>Description</Label>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Detailed description..." data-testid="input-sr-description" />
-          </div>
-          <div>
-            <Label>Priority</Label>
-            <Select value={priority} onValueChange={setPriority}>
-              <SelectTrigger data-testid="select-priority"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="critical">Critical</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <DialogHeader>
+          <DialogTitle>Reject Service Request</DialogTitle>
+          <DialogDescription>Provide a reason for rejecting this request. The work order status will be restored.</DialogDescription>
+        </DialogHeader>
+        <div>
+          <Label>Reason</Label>
+          <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Explain why this request is being rejected..." data-testid="input-reject-reason" />
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="btn-cancel-create-sr">Cancel</Button>
-          <Button onClick={handleSubmit} disabled={!title.trim() || isPending} data-testid="btn-submit-sr">
+          <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="btn-cancel-reject">Cancel</Button>
+          <Button variant="destructive" onClick={() => onSubmit(reason)} disabled={isPending} data-testid="btn-submit-reject">
             {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Create Request
+            <XCircle className="h-4 w-4 mr-2" /> Reject
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -126,58 +128,96 @@ export function ServiceRequestsPage() {
   const { toast } = useToast();
   const [filters, setFilters] = useState<SRFilters>({});
   const [searchInput, setSearchInput] = useState("");
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isCreateSOOpen, setIsCreateSOOpen] = useState(false);
+  const [convertDialogOpen, setConvertDialogOpen] = useState(false);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [selectedSRId, setSelectedSRId] = useState<string | null>(null);
 
   const { data: requests = [], isLoading } = useServiceRequests(filters);
-  const createMutation = useCreateServiceRequest();
-  const createSOMutation = useCreateServiceOrderFromSR();
-  const createPRMutation = useCreatePRFromSR();
+  const reviewMutation = useReviewServiceRequest();
+  const approveMutation = useApproveServiceRequest();
+  const rejectMutation = useRejectServiceRequest();
+  const convertMutation = useConvertServiceRequest();
+
+  const filteredRequests = searchInput
+    ? requests.filter((r) =>
+        r.title.toLowerCase().includes(searchInput.toLowerCase()) ||
+        r.requestNumber.toLowerCase().includes(searchInput.toLowerCase()) ||
+        (r.workOrderNumber && r.workOrderNumber.toLowerCase().includes(searchInput.toLowerCase()))
+      )
+    : requests;
 
   const stats = {
     total: requests.length,
-    pending: requests.filter((r) => r.status === "pending").length,
-    inProgress: requests.filter((r) => r.status === "in_progress").length,
-    completed: requests.filter((r) => r.status === "completed").length,
+    pendingReview: requests.filter((r) => r.status === "pending_review" || r.status === "under_review").length,
+    approved: requests.filter((r) => r.status === "approved").length,
+    converted: requests.filter((r) => r.status === "converted").length,
   };
 
-  const handleSearch = () => setFilters((prev) => ({ ...prev, search: searchInput || undefined }));
-  const handleStatusChange = (value: string) => setFilters((prev) => ({ ...prev, status: (value === "all" ? undefined : value) as SRStatus | undefined }));
-  const handlePriorityChange = (value: string) => setFilters((prev) => ({ ...prev, priority: value === "all" ? undefined : value }));
+  const handleStatusChange = (value: string) =>
+    setFilters((prev) => ({ ...prev, status: (value === "all" ? undefined : value) as SRStatus | undefined }));
 
-  const handleCreateSR = (data: { title: string; description: string; priority: string }) => {
-    createMutation.mutate({ title: data.title, description: data.description, priority: data.priority as "low" | "medium" | "high" | "critical", status: "pending" }, {
-      onSuccess: () => { toast({ title: "Service Request created" }); setIsCreateOpen(false); },
+  const handleReview = (id: string) => {
+    reviewMutation.mutate(id, {
+      onSuccess: () => toast({ title: "Request marked as under review" }),
       onError: (err) => toast({ title: "Error", description: String(err), variant: "destructive" }),
     });
   };
 
-  const handleCreateSO = (id: string) => { setSelectedSRId(id); setIsCreateSOOpen(true); };
-
-  const handleSubmitSO = (data: { serviceProviderId: string; scope: string }) => {
-    if (!selectedSRId) {return;}
-    createSOMutation.mutate({ workOrderId: selectedSRId, data }, {
-      onSuccess: () => { toast({ title: "Service Order created" }); setIsCreateSOOpen(false); setSelectedSRId(null); },
+  const handleApprove = (id: string) => {
+    approveMutation.mutate(id, {
+      onSuccess: () => toast({ title: "Request approved", description: "You can now convert it to a Service Order." }),
       onError: (err) => toast({ title: "Error", description: String(err), variant: "destructive" }),
     });
   };
 
-  const handleCreatePR = (id: string) => {
-    createPRMutation.mutate({ workOrderId: id, data: { requestedBy: "Service Request" } }, {
-      onSuccess: (pr: { id: string }) => { toast({ title: "Purchase Request created" }); setLocation(`/purchase-requests/${pr.id}`); },
+  const handleReject = (id: string) => {
+    setSelectedSRId(id);
+    setRejectDialogOpen(true);
+  };
+
+  const handleRejectSubmit = (reason: string) => {
+    if (!selectedSRId) return;
+    rejectMutation.mutate({ id: selectedSRId, reason }, {
+      onSuccess: () => {
+        toast({ title: "Request rejected", description: "Work order status has been restored." });
+        setRejectDialogOpen(false);
+        setSelectedSRId(null);
+      },
       onError: (err) => toast({ title: "Error", description: String(err), variant: "destructive" }),
     });
   };
 
-  const handleViewDetails = (id: string) => setLocation(`/work-orders?id=${id}`);
+  const handleConvert = (id: string) => {
+    setSelectedSRId(id);
+    setConvertDialogOpen(true);
+  };
+
+  const handleConvertSubmit = (data: { serviceProviderId: string; scope?: string; estimatedCost?: number; scheduledStartDate?: string }) => {
+    if (!selectedSRId) return;
+    convertMutation.mutate({ id: selectedSRId, data }, {
+      onSuccess: () => {
+        toast({ title: "Service Order created", description: "Request has been converted to a formal Service Order." });
+        setConvertDialogOpen(false);
+        setSelectedSRId(null);
+      },
+      onError: (err) => toast({ title: "Error", description: String(err), variant: "destructive" }),
+    });
+  };
+
+  const handleViewDetails = (id: string) => {
+    const sr = requests.find((r) => r.id === id);
+    if (sr?.workOrderId) {
+      setLocation(`/work-orders?id=${sr.workOrderId}`);
+    }
+  };
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-end">
-        <Button onClick={() => setIsCreateOpen(true)} data-testid="btn-new-sr">
-          <Plus className="h-4 w-4 mr-2" /> New Service Request
-        </Button>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold" data-testid="text-page-title">Service Requests</h1>
+          <p className="text-sm text-muted-foreground">Procurement queue — review, approve, and convert service requests to formal orders.</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -186,60 +226,76 @@ export function ServiceRequestsPage() {
           <CardContent><div className="flex items-center gap-2"><ClipboardList className="h-5 w-5 text-primary" /><span className="text-2xl font-bold">{stats.total}</span></div></CardContent>
         </Card>
         <Card data-testid="stat-pending-sr">
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Pending</CardTitle></CardHeader>
-          <CardContent><div className="flex items-center gap-2"><AlertCircle className="h-5 w-5 text-yellow-500" /><span className="text-2xl font-bold">{stats.pending}</span></div></CardContent>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Pending Review</CardTitle></CardHeader>
+          <CardContent><div className="flex items-center gap-2"><AlertCircle className="h-5 w-5 text-yellow-500" /><span className="text-2xl font-bold">{stats.pendingReview}</span></div></CardContent>
         </Card>
-        <Card data-testid="stat-in-progress-sr">
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">In Progress</CardTitle></CardHeader>
-          <CardContent><div className="flex items-center gap-2"><Clock className="h-5 w-5 text-blue-500" /><span className="text-2xl font-bold">{stats.inProgress}</span></div></CardContent>
+        <Card data-testid="stat-approved-sr">
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Approved</CardTitle></CardHeader>
+          <CardContent><div className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-green-500" /><span className="text-2xl font-bold">{stats.approved}</span></div></CardContent>
         </Card>
-        <Card data-testid="stat-completed-sr">
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle></CardHeader>
-          <CardContent><div className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-green-500" /><span className="text-2xl font-bold">{stats.completed}</span></div></CardContent>
+        <Card data-testid="stat-converted-sr">
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Converted</CardTitle></CardHeader>
+          <CardContent><div className="flex items-center gap-2"><ArrowRightCircle className="h-5 w-5 text-primary" /><span className="text-2xl font-bold">{stats.converted}</span></div></CardContent>
         </Card>
       </div>
 
       <div className="flex flex-wrap gap-4">
         <div className="flex gap-2 flex-1 min-w-[250px]">
-          <Input placeholder="Search requests..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()} data-testid="input-search-sr" />
-          <Button variant="outline" onClick={handleSearch} data-testid="btn-search-sr"><Search className="h-4 w-4" /></Button>
+          <Input placeholder="Search by title, number, or WO..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} data-testid="input-search-sr" />
         </div>
         <Select value={filters.status || "all"} onValueChange={handleStatusChange}>
-          <SelectTrigger className="w-[150px]" data-testid="select-status-filter-sr"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger className="w-[180px]" data-testid="select-status-filter-sr"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="in_progress">In Progress</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-            <SelectItem value="cancelled">Cancelled</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={filters.priority || "all"} onValueChange={handlePriorityChange}>
-          <SelectTrigger className="w-[150px]" data-testid="select-priority-filter-sr"><SelectValue placeholder="Priority" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Priorities</SelectItem>
-            <SelectItem value="low">Low</SelectItem>
-            <SelectItem value="medium">Medium</SelectItem>
-            <SelectItem value="high">High</SelectItem>
-            <SelectItem value="critical">Critical</SelectItem>
+            <SelectItem value="pending_review">Pending Review</SelectItem>
+            <SelectItem value="under_review">Under Review</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
+            <SelectItem value="converted">Converted</SelectItem>
+            <SelectItem value="rejected">Rejected</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {isLoading ? (
-        <div className="text-center py-12 text-muted-foreground">Loading service requests...</div>
-      ) : requests.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground" data-testid="text-no-requests">No service requests found. Create a new request to get started.</div>
+        <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
+          <Loader2 className="h-5 w-5 animate-spin" /> Loading service requests...
+        </div>
+      ) : filteredRequests.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground" data-testid="text-no-requests">
+          {requests.length === 0
+            ? "No service requests yet. Engineers create requests from Work Order detail drawers."
+            : "No requests match your filters."}
+        </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {requests.map((sr) => (
-            <SRCard key={sr.id} sr={sr} onCreateSO={handleCreateSO} onCreatePR={handleCreatePR} onViewDetails={handleViewDetails} />
+          {filteredRequests.map((sr) => (
+            <SRCard
+              key={sr.id}
+              sr={sr}
+              onReview={handleReview}
+              onApprove={handleApprove}
+              onReject={handleReject}
+              onConvert={handleConvert}
+              onViewDetails={handleViewDetails}
+            />
           ))}
         </div>
       )}
 
-      <CreateSRDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} onSubmit={handleCreateSR} isPending={createMutation.isPending} />
-      <CreateSODialog open={isCreateSOOpen} onOpenChange={setIsCreateSOOpen} srId={selectedSRId} onSubmit={handleSubmitSO} isPending={createSOMutation.isPending} />
+      <ConvertToSODialog
+        open={convertDialogOpen}
+        onOpenChange={setConvertDialogOpen}
+        srId={selectedSRId}
+        onSubmit={handleConvertSubmit}
+        isPending={convertMutation.isPending}
+      />
+      <RejectDialog
+        open={rejectDialogOpen}
+        onOpenChange={setRejectDialogOpen}
+        srId={selectedSRId}
+        onSubmit={handleRejectSubmit}
+        isPending={rejectMutation.isPending}
+      />
     </div>
   );
 }

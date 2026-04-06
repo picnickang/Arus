@@ -48,6 +48,7 @@ import { purchasingRouter } from "./purchasing";
 import { suppliersRouter } from "./suppliers";
 import { serviceOrderRoutes } from "./service-orders";
 import { registerWoSoBridgeRoutes } from "./routes/wo-so-bridge-routes";
+import { registerServiceRequestRoutes } from "./routes/service-request-routes";
 import agentRoutes from "./routes/agent-routes";
 import { pdmRouter } from "./pdm/routes";
 import { featureStoreRouter } from "./domains/pdm-platform/feature-store/routes";
@@ -166,6 +167,9 @@ export async function registerRoutes(
   // WO ↔ SO Bridge (cross-entity linking)
   registerWoSoBridgeRoutes(app, { writeOperationRateLimit, generalApiRateLimit });
   console.log("[WO-SO Bridge] Registered (link, create-from-WO, sync-status)");
+
+  registerServiceRequestRoutes(app, { writeOperationRateLimit, generalApiRateLimit });
+  console.log("[Service Requests] Registered (CRUD, review, approve, reject, convert)");
 
   // Diagnostics & Health Check Routes
   const diagnosticsRouter = (await import("./routes/diagnostics")).default;

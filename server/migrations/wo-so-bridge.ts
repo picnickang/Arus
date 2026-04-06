@@ -86,4 +86,38 @@ export async function migrateWorkOrderServiceOrderBridge(db: any) {
       AND so.work_order_number IS NULL
       AND so.work_order_id IS NOT NULL;
   `);
+
+  // 5. Create service_requests table for lightweight intake before formal SOs
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS service_requests (
+      id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      org_id VARCHAR NOT NULL REFERENCES organizations(id),
+      work_order_id VARCHAR NOT NULL REFERENCES work_orders(id),
+      service_order_id VARCHAR,
+      request_number TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      urgency TEXT NOT NULL DEFAULT 'medium',
+      estimated_cost REAL,
+      requested_by TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending_review',
+      rejection_reason TEXT,
+      reviewed_by TEXT,
+      reviewed_at TIMESTAMPTZ,
+      converted_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW(),
+      CONSTRAINT uq_service_requests_org_request_number UNIQUE (org_id, request_number)
+    );
+  `);
+
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS idx_service_requests_org_status
+      ON service_requests (org_id, status);
+  `);
+
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS idx_service_requests_work_order
+      ON service_requests (work_order_id);
+  `);
 }

@@ -13,14 +13,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Building2, ExternalLink, Plus, Loader2, Calendar, DollarSign,
   CheckCircle2, Clock, Send, AlertTriangle, XCircle, TrendingUp, TrendingDown,
+  FileText, ArrowRight,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import {
   useWorkOrderServiceOrders,
-  useCreateServiceOrderFromWO,
   type LinkedServiceOrder,
 } from "@/features/work-orders/hooks/useWoSoBridge";
+import {
+  useWorkOrderServiceRequests,
+  useCreateServiceRequest,
+} from "@/features/serviceRequests/hooks/useServiceRequests";
+import { SRStatusBadge } from "@/features/serviceRequests/components/SRStatusBadge";
+import { SRPriorityBadge } from "@/features/serviceRequests/components/SRPriorityBadge";
+import type { ServiceRequest, SRStatus } from "@/features/serviceRequests/types";
 import { cn } from "@/lib/utils";
 
 function soStatusVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
@@ -54,13 +60,7 @@ const TIMELINE_STEPS = [
 ] as const;
 
 function getTimelineIndex(status: string): number {
-  const map: Record<string, number> = {
-    draft: 0,
-    sent: 1,
-    confirmed: 2,
-    in_progress: 3,
-    completed: 4,
-  };
+  const map: Record<string, number> = { draft: 0, sent: 1, confirmed: 2, in_progress: 3, completed: 4 };
   return map[status] ?? -1;
 }
 
@@ -88,20 +88,13 @@ function MiniTimeline({ so }: { so: LinkedServiceOrder }) {
               className={cn(
                 "h-2 w-2 rounded-full border transition-colors",
                 isDone
-                  ? isCurrent
-                    ? "bg-primary border-primary"
-                    : "bg-primary/60 border-primary/60"
+                  ? isCurrent ? "bg-primary border-primary" : "bg-primary/60 border-primary/60"
                   : "bg-muted border-muted-foreground/30"
               )}
               title={step.label}
             />
             {i < TIMELINE_STEPS.length - 1 && (
-              <div
-                className={cn(
-                  "h-0.5 w-3 transition-colors",
-                  i < currentIdx ? "bg-primary/60" : "bg-muted-foreground/20"
-                )}
-              />
+              <div className={cn("h-0.5 w-3 transition-colors", i < currentIdx ? "bg-primary/60" : "bg-muted-foreground/20")} />
             )}
           </div>
         );
@@ -114,43 +107,31 @@ function MiniTimeline({ so }: { so: LinkedServiceOrder }) {
 }
 
 function OnTrackIndicator({ so }: { so: LinkedServiceOrder }) {
-  if (so.status === "completed" || so.status === "cancelled" || so.status === "draft") {
-    return null;
-  }
+  if (so.status === "completed" || so.status === "cancelled" || so.status === "draft") return null;
+  const scheduledEnd = so.scheduledEndDate ? new Date(so.scheduledEndDate) : null;
+  if (!scheduledEnd) return null;
 
   const now = new Date();
-  const scheduledEnd = so.scheduledEndDate ? new Date(so.scheduledEndDate) : null;
-
-  if (!scheduledEnd) {
-    return null;
-  }
-
-  const isOverdue = now > scheduledEnd;
   const daysLeft = Math.ceil((scheduledEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  const isOverdue = now > scheduledEnd;
 
   if (isOverdue) {
-    const overdueDays = Math.abs(daysLeft);
     return (
       <div className="flex items-center gap-1 text-[10px] text-destructive font-medium" data-testid={`indicator-overdue-${so.id}`}>
-        <AlertTriangle className="h-3 w-3" />
-        {overdueDays}d overdue
+        <AlertTriangle className="h-3 w-3" /> {Math.abs(daysLeft)}d overdue
       </div>
     );
   }
-
   if (daysLeft <= 3) {
     return (
       <div className="flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400 font-medium" data-testid={`indicator-due-soon-${so.id}`}>
-        <Clock className="h-3 w-3" />
-        {daysLeft}d left
+        <Clock className="h-3 w-3" /> {daysLeft}d left
       </div>
     );
   }
-
   return (
     <div className="flex items-center gap-1 text-[10px] text-green-600 dark:text-green-400" data-testid={`indicator-on-track-${so.id}`}>
-      <CheckCircle2 className="h-3 w-3" />
-      On track
+      <CheckCircle2 className="h-3 w-3" /> On track
     </div>
   );
 }
@@ -159,10 +140,7 @@ function CostVariance({ so }: { so: LinkedServiceOrder }) {
   const quoted = so.quotedAmount;
   const actual = so.actualAmount;
   const currency = so.currency || "USD";
-
-  if (quoted == null && actual == null) {
-    return null;
-  }
+  if (quoted == null && actual == null) return null;
 
   const fmt = (v: number) => {
     try {
@@ -176,8 +154,6 @@ function CostVariance({ so }: { so: LinkedServiceOrder }) {
     const variance = actual - quoted;
     const pct = ((variance / quoted) * 100).toFixed(1);
     const isOver = variance > 0;
-    const isUnder = variance < 0;
-
     return (
       <div className="space-y-0.5" data-testid={`cost-variance-${so.id}`}>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -216,7 +192,37 @@ function DateRange({ label, start, end }: { label: string; start: string | null;
   );
 }
 
-function CreateSOFromWODialog({
+function ServiceRequestCard({ sr }: { sr: ServiceRequest }) {
+  return (
+    <div
+      className="p-3 rounded-lg border border-dashed hover:bg-accent/30 transition-colors space-y-1.5"
+      data-testid={`linked-sr-${sr.id}`}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-sm font-medium">{sr.requestNumber}</span>
+          <SRStatusBadge status={sr.status as SRStatus} />
+          <SRPriorityBadge priority={sr.urgency} />
+        </div>
+        {sr.serviceOrderId && (
+          <Link href={`/service-orders?id=${sr.serviceOrderId}`} className="text-xs text-primary hover:underline flex items-center gap-1" data-testid={`link-sr-so-${sr.id}`}>
+            <ArrowRight className="h-3 w-3" /> View SO
+          </Link>
+        )}
+      </div>
+      <p className="text-xs text-muted-foreground line-clamp-1">{sr.title}</p>
+      {sr.rejectionReason && (
+        <p className="text-xs text-destructive line-clamp-1">Rejected: {sr.rejectionReason}</p>
+      )}
+      <div className="text-[10px] text-muted-foreground">
+        Requested by {sr.requestedBy} on {new Date(sr.createdAt).toLocaleDateString()}
+      </div>
+    </div>
+  );
+}
+
+function CreateServiceRequestDialog({
   open,
   onClose,
   workOrderId,
@@ -228,40 +234,32 @@ function CreateSOFromWODialog({
   workOrderNumber: string;
 }) {
   const { toast } = useToast();
-  const createMutation = useCreateServiceOrderFromWO();
-
-  const { data: suppliers } = useQuery<Array<{ id: string; name: string; qualityRating?: number }>>({
-    queryKey: ["/api/suppliers"],
-    enabled: open,
-  });
+  const createMutation = useCreateServiceRequest();
 
   const [form, setForm] = useState({
-    serviceProviderId: "",
-    serviceProviderName: "",
-    scope: "",
+    title: "",
+    description: "",
+    urgency: "medium",
     estimatedCost: "",
-    scheduledStartDate: "",
-    notes: "",
   });
 
   const handleSubmit = async () => {
     try {
       await createMutation.mutateAsync({
         workOrderId,
-        serviceProviderId: form.serviceProviderId || undefined,
-        serviceProviderName: form.serviceProviderName || suppliers?.find((s) => s.id === form.serviceProviderId)?.name || undefined,
-        scope: form.scope || undefined,
-        estimatedCost: form.estimatedCost ? parseFloat(form.estimatedCost) : undefined,
-        scheduledStartDate: form.scheduledStartDate || undefined,
-        notes: form.notes || undefined,
-        updateWorkOrderStatus: true,
+        data: {
+          title: form.title,
+          description: form.description || undefined,
+          urgency: form.urgency,
+          estimatedCost: form.estimatedCost ? parseFloat(form.estimatedCost) : undefined,
+        },
       });
-      toast({ title: "Service order created", description: `Linked to ${workOrderNumber}` });
+      toast({ title: "Service request submitted", description: `Linked to ${workOrderNumber}. Procurement will review.` });
       onClose();
-      setForm({ serviceProviderId: "", serviceProviderName: "", scope: "", estimatedCost: "", scheduledStartDate: "", notes: "" });
+      setForm({ title: "", description: "", urgency: "medium", estimatedCost: "" });
     } catch (err) {
       toast({
-        title: "Failed to create service order",
+        title: "Failed to create service request",
         description: err instanceof Error ? err.message : "An error occurred",
         variant: "destructive",
       });
@@ -274,40 +272,45 @@ function CreateSOFromWODialog({
         <DialogHeader>
           <DialogTitle>Request External Service</DialogTitle>
           <DialogDescription>
-            Create a service order linked to {workOrderNumber}. The work order status will be updated to "Awaiting Service."
+            Submit a service request for {workOrderNumber}. Procurement will review and convert it to a formal Service Order if approved.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-1">
-            <Label className="text-xs">Service Provider</Label>
-            <Select value={form.serviceProviderId} onValueChange={(v) => setForm((p) => ({ ...p, serviceProviderId: v }))}>
-              <SelectTrigger data-testid="select-so-provider"><SelectValue placeholder="Select provider..." /></SelectTrigger>
-              <SelectContent>
-                {suppliers?.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    <span className="flex items-center gap-2">
-                      {s.name}
-                      {s.qualityRating != null && <span className="text-[10px] text-muted-foreground">{s.qualityRating.toFixed(1)}</span>}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label className="text-xs">Title *</Label>
+            <Input
+              value={form.title}
+              onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+              placeholder="Brief description of the service needed..."
+              data-testid="input-sr-title"
+            />
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs">Scope of Work</Label>
+            <Label className="text-xs">Description</Label>
             <Textarea
-              value={form.scope}
-              onChange={(e) => setForm((p) => ({ ...p, scope: e.target.value }))}
-              placeholder="Describe the external service needed..."
+              value={form.description}
+              onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+              placeholder="Detailed description of the external service needed..."
               rows={3}
-              data-testid="input-so-scope"
+              data-testid="input-sr-description"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Urgency</Label>
+              <Select value={form.urgency} onValueChange={(v) => setForm((p) => ({ ...p, urgency: v }))}>
+                <SelectTrigger data-testid="select-sr-urgency"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="critical">Critical</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-1">
               <Label className="text-xs">Estimated Cost</Label>
               <Input
@@ -316,28 +319,9 @@ function CreateSOFromWODialog({
                 value={form.estimatedCost}
                 onChange={(e) => setForm((p) => ({ ...p, estimatedCost: e.target.value }))}
                 placeholder="0.00"
-                data-testid="input-so-cost"
+                data-testid="input-sr-cost"
               />
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Scheduled Start</Label>
-              <Input
-                type="date"
-                value={form.scheduledStartDate}
-                onChange={(e) => setForm((p) => ({ ...p, scheduledStartDate: e.target.value }))}
-                data-testid="input-so-date"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <Label className="text-xs">Notes</Label>
-            <Input
-              value={form.notes}
-              onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
-              placeholder="Optional notes..."
-              data-testid="input-so-notes"
-            />
           </div>
         </div>
 
@@ -345,11 +329,11 @@ function CreateSOFromWODialog({
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button
             onClick={handleSubmit}
-            disabled={createMutation.isPending || !form.scope || !form.serviceProviderId}
-            data-testid="button-create-so-from-wo"
+            disabled={createMutation.isPending || !form.title.trim()}
+            data-testid="button-submit-service-request"
           >
             {createMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
-            Create Service Order
+            Submit Request
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -369,12 +353,14 @@ export function LinkedServiceOrdersPanel({
   workOrderStatus,
 }: LinkedServiceOrdersPanelProps) {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const { data, isLoading } = useWorkOrderServiceOrders(workOrderId);
+  const { data: soData, isLoading: soLoading } = useWorkOrderServiceOrders(workOrderId);
+  const { data: srData, isLoading: srLoading } = useWorkOrderServiceRequests(workOrderId);
 
-  const serviceOrders = data?.serviceOrders || [];
-  const hasActiveServiceOrders = serviceOrders.some(
-    (so) => !["completed", "cancelled"].includes(so.status)
-  );
+  const serviceOrders = soData?.serviceOrders || [];
+  const serviceRequests = srData?.serviceRequests || [];
+  const hasActiveServiceOrders = serviceOrders.some((so) => !["completed", "cancelled"].includes(so.status));
+  const hasPendingRequests = serviceRequests.some((sr) => ["pending_review", "under_review", "approved"].includes(sr.status));
+  const isLoading = soLoading || srLoading;
 
   return (
     <div data-testid="linked-service-orders-panel">
@@ -382,8 +368,12 @@ export function LinkedServiceOrdersPanel({
         <div className="flex items-center gap-2">
           <Building2 className="h-4 w-4 text-muted-foreground" />
           <h3 className="text-sm font-semibold">External Service</h3>
-          {serviceOrders.length > 0 && (
-            <Badge variant="outline" className="text-[10px]">{serviceOrders.length}</Badge>
+          {(serviceOrders.length > 0 || serviceRequests.length > 0) && (
+            <Badge variant="outline" className="text-[10px]">
+              {serviceRequests.length > 0 && `${serviceRequests.length} req`}
+              {serviceRequests.length > 0 && serviceOrders.length > 0 && " / "}
+              {serviceOrders.length > 0 && `${serviceOrders.length} SO`}
+            </Badge>
           )}
         </div>
         <Button
@@ -397,70 +387,88 @@ export function LinkedServiceOrdersPanel({
         </Button>
       </div>
 
-      {(workOrderStatus === "awaiting_service" || hasActiveServiceOrders) && (
+      {(workOrderStatus === "awaiting_service" || hasActiveServiceOrders || hasPendingRequests) && (
         <div className="p-2 rounded-md bg-amber-500/10 border border-amber-500/20 text-xs text-amber-600 dark:text-amber-400 mb-3" data-testid="awaiting-service-banner">
-          This work order is awaiting external service completion.
+          {hasPendingRequests && !hasActiveServiceOrders
+            ? "Service request submitted — awaiting procurement review."
+            : "This work order is awaiting external service completion."}
         </div>
       )}
 
       {isLoading ? (
         <div className="space-y-2">
-          <Skeleton className="h-24" />
-          <Skeleton className="h-24" />
+          <Skeleton className="h-16" />
+          <Skeleton className="h-16" />
         </div>
-      ) : serviceOrders.length === 0 ? (
+      ) : serviceRequests.length === 0 && serviceOrders.length === 0 ? (
         <div className="text-center py-4 text-muted-foreground text-xs border rounded-lg" data-testid="no-linked-sos">
-          No external service orders linked.
+          No service requests or orders linked.
           <br />
-          <span className="text-[11px]">Click "Request Service" to engage a vendor.</span>
+          <span className="text-[11px]">Click "Request Service" to submit a request to procurement.</span>
         </div>
       ) : (
         <div className="space-y-3">
-          {serviceOrders.map((so) => (
-            <div
-              key={so.id}
-              className="p-3 rounded-lg border hover:bg-accent/30 transition-colors space-y-2"
-              data-testid={`linked-so-${so.id}`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">{so.soNumber}</span>
-                  <Badge variant={soStatusVariant(so.status)} className="text-[10px]">
-                    {soStatusLabel(so.status)}
-                  </Badge>
-                  <OnTrackIndicator so={so} />
-                </div>
-                <Link href={`/service-orders?id=${so.id}`} className="text-xs text-primary hover:underline flex items-center gap-1" data-testid={`link-so-${so.id}`}>
-                  Open <ExternalLink className="h-3 w-3" />
-                </Link>
-              </div>
-
-              {so.serviceProviderName && (
-                <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-                  <Building2 className="h-3 w-3" /> {so.serviceProviderName}
-                </div>
-              )}
-
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                <DateRange label="Scheduled" start={so.scheduledStartDate} end={so.scheduledEndDate} />
-                {(so.actualStartDate || so.actualEndDate) && (
-                  <DateRange label="Actual" start={so.actualStartDate} end={so.actualEndDate} />
-                )}
-              </div>
-
-              <CostVariance so={so} />
-
-              {so.scope && (
-                <p className="text-xs text-muted-foreground line-clamp-2">{so.scope}</p>
-              )}
-
-              <MiniTimeline so={so} />
+          {serviceRequests.length > 0 && (
+            <div className="space-y-2">
+              <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Service Requests</div>
+              {serviceRequests.map((sr) => (
+                <ServiceRequestCard key={sr.id} sr={sr} />
+              ))}
             </div>
-          ))}
+          )}
+
+          {serviceOrders.length > 0 && (
+            <div className="space-y-2">
+              {serviceRequests.length > 0 && (
+                <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mt-3">Service Orders</div>
+              )}
+              {serviceOrders.map((so) => (
+                <div
+                  key={so.id}
+                  className="p-3 rounded-lg border hover:bg-accent/30 transition-colors space-y-2"
+                  data-testid={`linked-so-${so.id}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{so.soNumber}</span>
+                      <Badge variant={soStatusVariant(so.status)} className="text-[10px]">
+                        {soStatusLabel(so.status)}
+                      </Badge>
+                      <OnTrackIndicator so={so} />
+                    </div>
+                    <Link href={`/service-orders?id=${so.id}`} className="text-xs text-primary hover:underline flex items-center gap-1" data-testid={`link-so-${so.id}`}>
+                      Open <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  </div>
+
+                  {so.serviceProviderName && (
+                    <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <Building2 className="h-3 w-3" /> {so.serviceProviderName}
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                    <DateRange label="Scheduled" start={so.scheduledStartDate} end={so.scheduledEndDate} />
+                    {(so.actualStartDate || so.actualEndDate) && (
+                      <DateRange label="Actual" start={so.actualStartDate} end={so.actualEndDate} />
+                    )}
+                  </div>
+
+                  <CostVariance so={so} />
+
+                  {so.scope && (
+                    <p className="text-xs text-muted-foreground line-clamp-2">{so.scope}</p>
+                  )}
+
+                  <MiniTimeline so={so} />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      <CreateSOFromWODialog
+      <CreateServiceRequestDialog
         open={createDialogOpen}
         onClose={() => setCreateDialogOpen(false)}
         workOrderId={workOrderId}
