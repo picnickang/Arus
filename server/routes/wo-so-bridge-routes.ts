@@ -22,6 +22,7 @@ import { sql } from "drizzle-orm";
 import { requireOrgId, requireOrgIdAndValidateBody } from "../middleware/auth";
 import { withErrorHandling, sendCreated, sendNotFound } from "../lib/route-utils";
 import { logger } from "../utils/logger";
+import { checkPermissionInDev } from "../domains/permissions/middleware";
 
 function getOrgId(req: any): string {
   const orgId = req.orgId || req.headers["x-org-id"];
@@ -188,6 +189,7 @@ export function registerWoSoBridgeRoutes(
   app.post(
     "/api/work-orders/:id/service-orders",
     requireOrgIdAndValidateBody,
+    checkPermissionInDev("service_orders", "create"),
     writeOperationRateLimit,
     withErrorHandling("create service order from work order", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
@@ -277,6 +279,7 @@ export function registerWoSoBridgeRoutes(
   app.patch(
     "/api/service-orders/:id/link-work-order",
     requireOrgIdAndValidateBody,
+    checkPermissionInDev("service_orders", "edit"),
     writeOperationRateLimit,
     withErrorHandling("link service order to work order", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
@@ -318,6 +321,7 @@ export function registerWoSoBridgeRoutes(
   app.post(
     "/api/service-orders/:id/sync-work-order-status",
     requireOrgIdAndValidateBody,
+    checkPermissionInDev("service_orders", "edit"),
     writeOperationRateLimit,
     withErrorHandling("sync work order status from service order", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);

@@ -461,6 +461,13 @@ export function LinkedServiceOrdersPanel({
                     </Link>
                   </div>
 
+                  {so.createdAt && (
+                    <div className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      Created {new Date(so.createdAt).toLocaleDateString()}
+                    </div>
+                  )}
+
                   {so.serviceProviderName && (
                     <div className="text-xs text-muted-foreground flex items-center gap-1.5">
                       <Building2 className="h-3 w-3" />
