@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SOStatusBadge } from "./SOStatusBadge";
 import { SOProgressBar } from "./SOProgressBar";
+import { LinkedWorkOrderBadge } from "@/components/service-orders/LinkedWorkOrderBadge";
 import { Calendar, Clock, DollarSign, Building2, Ship } from "lucide-react";
 import { format } from "date-fns";
 import type { ServiceOrder } from "../types";
@@ -36,7 +37,13 @@ export function SOCard({ order, onView, onEdit, onSend, onConfirm, onStart, onCo
         <div className="flex justify-between items-start">
           <div>
             <CardTitle className="text-lg">{order.soNumber}</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">{order.workOrderNumber || "—"}</p>
+            <div className="flex items-center gap-2 mt-1">
+              {order.workOrderId ? (
+                <LinkedWorkOrderBadge workOrderId={order.workOrderId} workOrderNumber={order.workOrderNumber} />
+              ) : (
+                <p className="text-sm text-muted-foreground">{order.workOrderNumber || "—"}</p>
+              )}
+            </div>
           </div>
           <SOStatusBadge status={order.status} />
         </div>

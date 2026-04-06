@@ -86,46 +86,6 @@ export function registerExtendedRoutes(app: Express, rateLimit: RateLimitMiddlew
     })
   );
 
-  app.post("/api/work-orders/:id/service-orders", requireOrgId, writeOperationRateLimit,
-    withErrorHandling("create service order", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
-      const workOrderId = req.params.id;
-      const workOrder = await workOrderService.getWorkOrderById(workOrderId, orgId);
-      if (!workOrder) { return sendNotFound(res, "Work order"); }
-
-      const { serviceProviderId, scheduledStartDate, scheduledEndDate, scope, serviceDetails, estimatedDurationHours, quotedAmount, currency, specialRequirements } = req.body;
-      if (!serviceProviderId) { return sendBadRequest(res, "serviceProviderId is required"); }
-
-      const { serviceOrderRepo } = await import("../../../service-orders");
-      const soNumber = await serviceOrderRepo.generateSoNumber(orgId);
-      const so = await serviceOrderRepo.createServiceOrder({
-        orgId,
-        workOrderId,
-        serviceProviderId,
-        soNumber,
-        scheduledStartDate: scheduledStartDate ? new Date(scheduledStartDate) : undefined,
-        scheduledEndDate: scheduledEndDate ? new Date(scheduledEndDate) : undefined,
-        scope,
-        serviceDetails,
-        estimatedDurationHours,
-        quotedAmount,
-        currency,
-        specialRequirements,
-      });
-
-      sendCreated(res, so);
-    })
-  );
-
-  app.get("/api/work-orders/:id/service-orders", requireOrgId,
-    withErrorHandling("fetch service orders", async (req: Request, res: Response) => {
-      const orgId = (req as AuthenticatedRequest).orgId;
-      const { serviceOrderRepo } = await import("../../../service-orders");
-      const orders = await serviceOrderRepo.listServiceOrders(orgId, { workOrderId: req.params.id });
-      res.json(orders);
-    })
-  );
-
   app.post("/api/work-orders/:id/purchase-requests", requireOrgId, writeOperationRateLimit,
     withErrorHandling("create purchase request", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;

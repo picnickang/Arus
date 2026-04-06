@@ -1,4 +1,4 @@
-import { Clock, User, Ship, Wrench, Calendar, DollarSign, FileText, Package, ClipboardList, History, Copy, Link2, Send, Trash2 } from "lucide-react";
+import { Clock, User, Ship, Wrench, Calendar, DollarSign, FileText, Package, ClipboardList, History, Copy, Link2, Send, Trash2, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -10,6 +10,7 @@ import { WorkOrderTasksTab } from "./WorkOrderTasksTab";
 import { WorkOrderHistoryTab } from "./WorkOrderHistoryTab";
 import { WorkOrderRequestsTab } from "./WorkOrderRequestsTab";
 import { LinkTemplateDialog } from "./LinkTemplateDialog";
+import { LinkedServiceOrdersPanel } from "./LinkedServiceOrdersPanel";
 import { cn } from "@/lib/utils";
 import { useWorkOrderDetailData } from "@/features/work-orders";
 import type { WorkOrder } from "@shared/schema";
@@ -36,6 +37,7 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   in_progress: { label: "In Progress", className: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-300" },
   completed: { label: "Completed", className: "bg-green-500/20 text-green-700 dark:text-green-300" },
   cancelled: { label: "Cancelled", className: "bg-gray-500/20 text-gray-700 dark:text-gray-300" },
+  awaiting_service: { label: "Awaiting Service", className: "bg-amber-500/20 text-amber-700 dark:text-amber-300" },
   deferred: { label: "Deferred", className: "bg-orange-500/20 text-orange-700 dark:text-orange-300" },
 };
 
@@ -146,6 +148,12 @@ export function WorkOrderDetailDrawer({ workOrder, open, onClose, equipment, ves
                   <div><span className="text-muted-foreground block">Last Updated</span><span>{workOrder.updatedAt ? formatDistanceToNow(new Date(workOrder.updatedAt), { addSuffix: true }) : "Unknown"}</span></div>
                 </div>
               </div>
+              <Separator />
+              <LinkedServiceOrdersPanel
+                workOrderId={workOrder.id}
+                workOrderNumber={workOrder.woNumber || workOrder.id.slice(0, 8)}
+                workOrderStatus={workOrder.status}
+              />
             </TabsContent>
 
             <TabsContent value="parts" className="mt-0 p-4 sm:p-6">

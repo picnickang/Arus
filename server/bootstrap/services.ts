@@ -21,6 +21,15 @@ export async function initializeDatabase(): Promise<void> {
   const { initializeDatabase: initDb } = await import("../storage");
   await initDb();
   console.log("✓ Database initialized successfully");
+
+  try {
+    const { db } = await import("../db");
+    const { migrateWorkOrderServiceOrderBridge } = await import("../migrations/wo-so-bridge");
+    await migrateWorkOrderServiceOrderBridge(db);
+    console.log("✓ WO ↔ SO bridge migration applied");
+  } catch (err) {
+    console.warn("[WO-SO Bridge] Migration skipped or already applied:", (err as Error).message);
+  }
 }
 
 export async function seedDevelopmentUser(): Promise<void> {

@@ -6,7 +6,7 @@ export interface WorkOrder {
   title: string;
   description?: string;
   priority: "low" | "medium" | "high" | "critical";
-  status: "open" | "in_progress" | "on_hold" | "completed" | "cancelled";
+  status: "open" | "in_progress" | "on_hold" | "awaiting_service" | "completed" | "cancelled";
   type: "corrective" | "preventive" | "predictive" | "emergency";
   assignedTo?: string;
   dueDate?: Date;
@@ -56,7 +56,7 @@ export interface WorkOrderWorklog {
 }
 
 export const WORK_ORDER_PRIORITIES = ["low", "medium", "high", "critical"] as const;
-export const WORK_ORDER_STATUSES = ["open", "in_progress", "on_hold", "completed", "cancelled"] as const;
+export const WORK_ORDER_STATUSES = ["open", "in_progress", "on_hold", "awaiting_service", "completed", "cancelled"] as const;
 export const WORK_ORDER_TYPES = ["corrective", "preventive", "predictive", "emergency"] as const;
 
 export type WorkOrderPriority = typeof WORK_ORDER_PRIORITIES[number];

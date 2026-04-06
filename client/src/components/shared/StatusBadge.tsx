@@ -16,6 +16,7 @@ export type StatusType =
   | "failed"
   | "completed"
   | "in_progress"
+  | "awaiting_service"
   | "pending";
 
 interface StatusBadgeProps {
@@ -86,6 +87,11 @@ const statusConfig: Record<
     variant: "secondary",
     label: "In Progress",
     className: "bg-blue-500/20 text-blue-700 dark:text-blue-400 border-blue-500/50",
+  },
+  awaiting_service: {
+    variant: "secondary",
+    label: "Awaiting Service",
+    className: "bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/50",
   },
   pending: { variant: "outline", label: "Pending", className: "text-muted-foreground" },
 };

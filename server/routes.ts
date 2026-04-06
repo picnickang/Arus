@@ -47,6 +47,7 @@ import { mlRouter } from "./ml-routes";
 import { purchasingRouter } from "./purchasing";
 import { suppliersRouter } from "./suppliers";
 import { serviceOrderRoutes } from "./service-orders";
+import { registerWoSoBridgeRoutes } from "./routes/wo-so-bridge-routes";
 import agentRoutes from "./routes/agent-routes";
 import { pdmRouter } from "./pdm/routes";
 import { featureStoreRouter } from "./domains/pdm-platform/feature-store/routes";
@@ -161,6 +162,10 @@ export async function registerRoutes(
   // Service Orders (SR → SO workflow)
   app.use("/api/service-orders", requireOrgId, generalApiRateLimit, serviceOrderRoutes);
   console.log("[Service Orders Routes] Registered (CRUD, status transitions)");
+
+  // WO ↔ SO Bridge (cross-entity linking)
+  registerWoSoBridgeRoutes(app, { writeOperationRateLimit, generalApiRateLimit });
+  console.log("[WO-SO Bridge] Registered (link, create-from-WO, sync-status)");
 
   // Diagnostics & Health Check Routes
   const diagnosticsRouter = (await import("./routes/diagnostics")).default;

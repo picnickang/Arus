@@ -4,6 +4,7 @@ export const WORK_ORDER_FILTER_STATUS_OPTIONS = [
   { value: "in_progress", label: "In Progress" },
   { value: "completed", label: "Completed" },
   { value: "cancelled", label: "Cancelled" },
+  { value: "awaiting_service", label: "Awaiting Service" },
   { value: "deferred", label: "Deferred" },
 ] as const;
 

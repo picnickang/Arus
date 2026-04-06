@@ -1,4 +1,4 @@
-import { Clock, CheckCircle2, XCircle, Pause, Wrench } from "lucide-react";
+import { Clock, CheckCircle2, XCircle, Pause, Wrench, Building2 } from "lucide-react";
 
 export const COLUMNS = [
   { key: "woNumber", label: "WO #", width: 120 },
@@ -35,6 +35,11 @@ export const STATUS_CONFIG: Record<string, { label: string; icon: typeof Clock; 
     label: "Cancelled",
     icon: XCircle,
     className: "bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-200 border-gray-200 dark:border-gray-700",
+  },
+  awaiting_service: {
+    label: "Awaiting Service",
+    icon: Building2,
+    className: "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200 border-amber-200 dark:border-amber-800",
   },
   deferred: {
     label: "Deferred",
