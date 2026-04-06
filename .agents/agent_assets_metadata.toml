@@ -174,3 +174,9 @@ id = "JlvLY9e6fWsw3sz7fPEBo"
 uri = "file://exports/equipment-intelligence-file.md"
 type = "text"
 title = "Equipment Intelligence File (for Claude evaluation)"
+
+[[outputs]]
+id = "wpa14bP76p244MpPjgo5c"
+uri = "file://exports/analytics-dashboard-files.md"
+type = "text"
+title = "Analytics Dashboard Files (10 files for Claude evaluation)"
