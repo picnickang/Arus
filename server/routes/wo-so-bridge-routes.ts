@@ -52,14 +52,28 @@ export function registerWoSoBridgeRoutes(
           so.so_number AS "soNumber",
           so.status,
           so.service_provider_id AS "serviceProviderId",
+          s.name AS "serviceProviderName",
           so.scope,
-          so.quoted_amount AS "estimatedCost",
-          so.actual_amount AS "actualCost",
+          so.quoted_amount AS "quotedAmount",
+          so.actual_amount AS "actualAmount",
+          so.revised_amount AS "revisedAmount",
+          so.revision_notes AS "revisionNotes",
+          so.currency,
           so.scheduled_start_date AS "scheduledStartDate",
           so.scheduled_end_date AS "scheduledEndDate",
+          so.actual_start_date AS "actualStartDate",
+          so.actual_end_date AS "actualEndDate",
+          so.estimated_duration_hours AS "estimatedDurationHours",
+          so.actual_duration_hours AS "actualDurationHours",
+          so.sent_at AS "sentAt",
+          so.confirmed_at AS "confirmedAt",
+          so.completed_at AS "completedAt",
+          so.cancelled_at AS "cancelledAt",
+          so.cancellation_reason AS "cancellationReason",
           so.created_at AS "createdAt",
           so.updated_at AS "updatedAt"
         FROM service_orders so
+        LEFT JOIN suppliers s ON s.id = so.service_provider_id AND s.org_id = ${orgId}
         WHERE so.work_order_id = ${workOrderId}
           AND so.org_id = ${orgId}
         ORDER BY so.created_at DESC
