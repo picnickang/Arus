@@ -1,30 +1,11 @@
-import { useEffect, useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { useParams, useLocation, Link } from "wouter";
-import { queryClient, apiRequest } from "@/lib/queryClient";
 import { IntelligenceLayout } from "@/components/intelligence/IntelligenceLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, AlertTriangle, ChevronRight, Clock, Wrench, FileText, Activity, Box, BarChart3, Cpu, ShieldCheck, Play, ArrowRight, Ship, MapPin, Package, Calendar } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-
-interface WorkOrderSummary { id: string; title: string; status: string; createdAt: string; completedAt: string | null; }
-interface ServiceOrderSummary { id: string; title: string; status: string; vendorName: string | null; eta: string | null; createdAt: string; }
-interface DiagnosticRunSummary { id: string; analysisType: string; status: string; summary: string | null; createdAt: string; }
-interface ActivityTimelineEvent { id: string; type: string; title: string; description: string | null; timestamp: string; severity?: string; }
-interface NeedsActionItem { id: string; type: string; title: string; urgency: string; link: string; }
-interface OperationalContext { vesselStatus: string; nextPort: string | null; nextPortEta: string | null; partsAvailability: string; maintenanceWindow: string | null; }
-interface EquipmentHubData {
-  id: string; name: string; vessel: string; vesselId: string; type: string;
-  health: number; rul: number; risk: "critical" | "warning" | "low";
-  confidence: number; prediction: string; trend: string;
-  signals: string[]; telemetry: number[]; lastService: string | null; nextDue: string | null;
-  dataAvailability: string; assessment: string; recommendedAction: string;
-  operationalContext: OperationalContext; needsAction: NeedsActionItem[];
-  workOrders: WorkOrderSummary[]; serviceOrders: ServiceOrderSummary[];
-  diagnosticRuns: DiagnosticRunSummary[]; activityTimeline: ActivityTimelineEvent[];
-}
+import { useEquipmentHub } from "@/hooks/useEquipmentHub";
 
 function riskColor(r: string) {
   if (r === "critical") return "text-red-500";
@@ -108,24 +89,7 @@ export default function EquipmentHub() {
     document.title = "Equipment Hub | ARUS";
   }, []);
 
-  const { data, isLoading, error } = useQuery<EquipmentHubData>({
-    queryKey: ["/api/equipment-intelligence/hub", equipmentId],
-    enabled: !!equipmentId,
-  });
-
-  const { toast } = useToast();
-  const diagnosticMutation = useMutation({
-    mutationFn: async (analysisType: string) => {
-      return apiRequest("POST", `/api/equipment-intelligence/diagnostics/${equipmentId}/run`, { analysisType });
-    },
-    onSuccess: () => {
-      toast({ title: "Diagnostic complete" });
-      queryClient.invalidateQueries({ queryKey: ["/api/equipment-intelligence/hub", equipmentId] });
-    },
-    onError: () => {
-      toast({ title: "Diagnostic failed", variant: "destructive" });
-    },
-  });
+  const { data, isLoading, error, runDiagnostic, isDiagnosticPending } = useEquipmentHub(equipmentId);
 
   if (isLoading) {
     return (
@@ -333,19 +297,19 @@ export default function EquipmentHub() {
               <Activity className="h-3.5 w-3.5" /> Diagnostics
             </CardTitle>
             <div className="flex gap-1.5">
-              <Button size="sm" variant="outline" className="text-[11px] h-7" onClick={() => diagnosticMutation.mutate("bearing")} disabled={diagnosticMutation.isPending} data-testid="button-run-bearing">
+              <Button size="sm" variant="outline" className="text-[11px] h-7" onClick={() => runDiagnostic("bearing")} disabled={isDiagnosticPending} data-testid="button-run-bearing">
                 <Play className="h-3 w-3 mr-1" /> Bearing Analysis
               </Button>
-              <Button size="sm" variant="outline" className="text-[11px] h-7" onClick={() => diagnosticMutation.mutate("pump")} disabled={diagnosticMutation.isPending} data-testid="button-run-pump">
+              <Button size="sm" variant="outline" className="text-[11px] h-7" onClick={() => runDiagnostic("pump")} disabled={isDiagnosticPending} data-testid="button-run-pump">
                 <Play className="h-3 w-3 mr-1" /> Pump Analysis
               </Button>
-              <Button size="sm" variant="outline" className="text-[11px] h-7" onClick={() => diagnosticMutation.mutate("general")} disabled={diagnosticMutation.isPending} data-testid="button-run-general">
+              <Button size="sm" variant="outline" className="text-[11px] h-7" onClick={() => runDiagnostic("general")} disabled={isDiagnosticPending} data-testid="button-run-general">
                 <Play className="h-3 w-3 mr-1" /> General
               </Button>
             </div>
           </CardHeader>
           <CardContent>
-            {diagnosticMutation.isPending && (
+            {isDiagnosticPending && (
               <div className="flex items-center gap-2 py-3 text-xs text-slate-400">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" /> Running analysis...
               </div>
