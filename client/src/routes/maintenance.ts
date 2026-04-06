@@ -10,6 +10,7 @@ const PdmPack = lazy(() => import("@/pages/pdm-pack"));
 const PdmDashboard = lazy(() => import("@/pages/pdm-dashboard"));
 const PdmPlatform = lazy(() => import("@/pages/pdm-platform"));
 const DigitalTwin = lazy(() => import("@/pages/digital-twin"));
+const EquipmentHub = lazy(() => import("@/pages/equipment-hub"));
 
 export const maintenanceRoutes = [
   { path: "/maint", component: MaintenanceHub },
@@ -22,4 +23,5 @@ export const maintenanceRoutes = [
   { path: "/pdm-dashboard", component: PdmDashboard },
   { path: "/pdm-platform", component: PdmPlatform },
   { path: "/digital-twin", component: DigitalTwin },
+  { path: "/equipment/:equipmentId", component: EquipmentHub },
 ];

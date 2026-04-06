@@ -1,12 +1,16 @@
 import { Router } from "express";
 import { z } from "zod";
 import { PostgresEquipmentIntelligenceRepository } from "../infrastructure/postgres-repository.js";
+import { PostgresEquipmentHubRepository } from "../infrastructure/hub-repository.js";
 import { createGetIntelligenceUseCase } from "../application/get-intelligence.use-case.js";
+import { createGetEquipmentHubUseCase } from "../application/get-equipment-hub.use-case.js";
 import { logger } from "../../../utils/logger.js";
 import { createAdminMiddleware } from "../../../shared/middleware.js";
 
 const repository = new PostgresEquipmentIntelligenceRepository();
 const useCase = createGetIntelligenceUseCase(repository);
+const hubRepository = new PostgresEquipmentHubRepository();
+const hubUseCase = createGetEquipmentHubUseCase(hubRepository);
 
 const equipmentIdSchema = z.object({
   equipmentId: z.string().min(1).max(255),
@@ -64,6 +68,55 @@ router.get("/detail/:equipmentId", async (req, res) => {
   } catch (error) {
     logger.error("Error fetching equipment detail:", error);
     res.status(500).json({ error: "Failed to fetch equipment detail" });
+  }
+});
+
+const analysisTypeSchema = z.object({
+  analysisType: z.enum(["bearing", "pump", "general"]),
+});
+
+router.get("/hub/:equipmentId", async (req, res) => {
+  try {
+    const orgId = resolveOrgId(req, res);
+    if (!orgId) return;
+    const parseResult = equipmentIdSchema.safeParse(req.params);
+    if (!parseResult.success) {
+      return res.status(400).json({ error: "Invalid equipment ID" });
+    }
+    const { equipmentId } = parseResult.data;
+    const data = await hubUseCase.getHub(orgId, equipmentId);
+    if (!data) {
+      return res.status(404).json({ error: "Equipment not found" });
+    }
+    res.json(data);
+  } catch (error: any) {
+    logger.error("Error fetching equipment hub: " + (error?.message || String(error)), error?.stack);
+    res.status(500).json({ error: "Failed to fetch equipment hub data" });
+  }
+});
+
+router.post("/diagnostics/:equipmentId/run", async (req, res) => {
+  try {
+    const orgId = resolveOrgId(req, res);
+    if (!orgId) return;
+    const parseResult = equipmentIdSchema.safeParse(req.params);
+    if (!parseResult.success) {
+      return res.status(400).json({ error: "Invalid equipment ID" });
+    }
+    const bodyResult = analysisTypeSchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return res.status(400).json({ error: "Invalid analysis type. Must be 'bearing', 'pump', or 'general'." });
+    }
+    const { equipmentId } = parseResult.data;
+    const { analysisType } = bodyResult.data;
+    const result = await hubUseCase.runDiagnostic(orgId, equipmentId, analysisType);
+    if (!result) {
+      return res.status(404).json({ error: "Equipment not found" });
+    }
+    res.json(result);
+  } catch (error) {
+    logger.error("Error running diagnostic:", error);
+    res.status(500).json({ error: "Failed to run diagnostic" });
   }
 });
 

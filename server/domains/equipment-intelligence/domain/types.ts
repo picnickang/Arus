@@ -79,3 +79,72 @@ export interface WorkOrderSummary {
   createdAt: string;
   completedAt: string | null;
 }
+
+export interface ServiceOrderSummary {
+  id: string;
+  title: string;
+  status: string;
+  vendorName: string | null;
+  eta: string | null;
+  createdAt: string;
+}
+
+export interface DiagnosticRunSummary {
+  id: string;
+  analysisType: string;
+  status: string;
+  summary: string | null;
+  createdAt: string;
+}
+
+export interface ActivityTimelineEvent {
+  id: string;
+  type: "work_order" | "prediction" | "telemetry_anomaly" | "procurement" | "diagnostic";
+  title: string;
+  description: string | null;
+  timestamp: string;
+  severity?: "critical" | "warning" | "info";
+}
+
+export interface OperationalContext {
+  vesselStatus: string;
+  nextPort: string | null;
+  nextPortEta: string | null;
+  partsAvailability: "in_stock" | "low_stock" | "out_of_stock" | "unknown";
+  maintenanceWindow: string | null;
+}
+
+export interface NeedsActionItem {
+  id: string;
+  type: "work_order" | "prediction" | "parts" | "compliance" | "alert";
+  title: string;
+  urgency: "high" | "medium" | "low";
+  link: string;
+}
+
+export interface EquipmentHubAggregate {
+  id: string;
+  name: string;
+  vessel: string;
+  vesselId: string;
+  type: string;
+  health: number;
+  rul: number;
+  risk: "critical" | "warning" | "low";
+  confidence: number;
+  prediction: string;
+  trend: "declining" | "stable" | "improving";
+  signals: string[];
+  telemetry: number[];
+  lastService: string | null;
+  nextDue: string | null;
+  dataAvailability: "full" | "partial" | "unavailable";
+  assessment: string;
+  recommendedAction: string;
+  operationalContext: OperationalContext;
+  needsAction: NeedsActionItem[];
+  workOrders: WorkOrderSummary[];
+  serviceOrders: ServiceOrderSummary[];
+  diagnosticRuns: DiagnosticRunSummary[];
+  activityTimeline: ActivityTimelineEvent[];
+}

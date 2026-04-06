@@ -37,6 +37,7 @@ export * from './digital-twin';
 export * from './agent';
 export * from './external-data-cache';
 export * from './certificates';
+export * from './diagnostic-runs';
 
 import * as core from './core';
 import * as purchasing from './purchasing';

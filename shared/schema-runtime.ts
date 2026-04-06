@@ -131,6 +131,8 @@ export const pdmAlerts = isLocalMode ? sqliteVessel.pdmAlertsSqlite : pgSchema.p
 export const pdmScoreLogs = isLocalMode ? sqliteVessel.pdmScoreLogsSqlite : pgSchema.pdmScoreLogs;
 export const pdmBaseline = isLocalMode ? sqliteVessel.pdmBaselineSqlite : pgSchema.pdmBaseline;
 
+export const diagnosticRuns = IS_POSTGRES ? pgSchema.diagnosticRuns : undefined as any;
+
 // ML & Predictive Maintenance
 export const mlModels = isLocalMode ? sqliteVessel.mlModelsSqlite : pgSchema.mlModels;
 export const mlModelAccuracyHistory = isLocalMode ? sqliteVessel.mlModelAccuracyHistorySqlite : (pgSchema.mlModelAccuracyHistory || sqliteVessel.mlModelAccuracyHistorySqlite);
