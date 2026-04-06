@@ -152,6 +152,7 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
   async getServiceOrdersForEquipment(orgId: string, equipmentId: string): Promise<ServiceOrderSummary[]> {
     try {
       const { serviceOrders, workOrders, suppliers } = await import("@shared/schema-runtime");
+      if (!serviceOrders) return [];
       const rows = await db
         .select({
           soId: serviceOrders.id,

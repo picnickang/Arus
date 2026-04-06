@@ -91,6 +91,7 @@ export const inventoryParts = isLocalMode ? sqliteVessel.inventoryPartsSqlite : 
 export const stock = isLocalMode ? sqliteVessel.stockSqlite : pgSchema.stock;
 export const inventoryMovements = isLocalMode ? sqliteVessel.inventoryMovementsSqlite : pgSchema.inventoryMovements;
 export const suppliers = isLocalMode ? sqliteVessel.suppliersSqlite : pgSchema.suppliers;
+export const serviceOrders = IS_POSTGRES ? pgSchema.serviceOrders : null;
 export const purchaseOrders = isLocalMode ? sqliteVessel.purchaseOrdersSqlite : pgSchema.purchaseOrders;
 export const purchaseOrderItems = isLocalMode ? sqliteVessel.purchaseOrderItemsSqlite : pgSchema.purchaseOrderItems;
 export const partSubstitutions = isLocalMode ? sqliteVessel.partSubstitutionsSqlite : pgSchema.partSubstitutions;
