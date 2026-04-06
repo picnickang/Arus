@@ -153,7 +153,7 @@ export default function EquipmentHub() {
         </div>
 
         {/* Section 2: Sticky Action Bar */}
-        <div className="flex items-center gap-2 flex-wrap" data-testid="action-bar">
+        <div className="flex items-center gap-2 flex-wrap sticky top-0 z-10 py-2 bg-[#080e1a]/95 backdrop-blur-sm -mx-4 px-4 md:-mx-6 md:px-6" data-testid="action-bar">
           <Button size="sm" className="text-xs bg-sky-500/15 text-sky-400 border border-sky-500/25 hover:bg-sky-500/25" onClick={() => navigate(`/work-orders?action=create&equipmentId=${data.id}`)} data-testid="button-create-work-order">
             <FileText className="h-3.5 w-3.5 mr-1.5" />
             Create Work Order
@@ -210,7 +210,7 @@ export default function EquipmentHub() {
           <div className="flex gap-2 overflow-x-auto pb-1" data-testid="needs-action-strip">
             {data.needsAction.map((item) => (
               <Link key={item.id} href={item.link}>
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border whitespace-nowrap text-xs cursor-pointer transition-colors ${item.urgency === "high" ? "bg-red-500/5 border-red-500/15 text-red-400 hover:bg-red-500/10" : "bg-yellow-500/5 border-yellow-500/15 text-yellow-400 hover:bg-yellow-500/10"}`} data-testid={`needs-action-${item.id}`}>
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border whitespace-nowrap text-xs cursor-pointer transition-colors ${item.urgency === "high" ? "bg-red-500/5 border-red-500/15 text-red-400 hover:bg-red-500/10" : item.urgency === "medium" ? "bg-yellow-500/5 border-yellow-500/15 text-yellow-400 hover:bg-yellow-500/10" : "bg-slate-500/5 border-slate-500/15 text-slate-400 hover:bg-slate-500/10"}`} data-testid={`needs-action-${item.id}`}>
                   <SeverityDot severity={item.urgency} />
                   {item.title}
                   <ArrowRight className="h-3 w-3" />

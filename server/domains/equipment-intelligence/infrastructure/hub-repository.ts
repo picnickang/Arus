@@ -351,7 +351,7 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
             : null;
           events.push({
             id: `anomaly-${anomaly.id}`,
-            type: "anomaly",
+            type: "telemetry_anomaly",
             title: `Anomaly: ${anomaly.anomalyType || anomaly.sensorType}`,
             description: deviation,
             timestamp: anomaly.detectionTimestamp ? new Date(anomaly.detectionTimestamp).toISOString() : new Date().toISOString(),
@@ -454,6 +454,18 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
         urgency: "medium",
         link: `/service-orders`,
       });
+    }
+
+    if (items.length < 3) {
+      const defaults: NeedsActionItem[] = [
+        { id: `na-review-${equipmentId}`, type: "work_order", title: "Review maintenance history", urgency: "low", link: `/equipment/${equipmentId}#work-orders` },
+        { id: `na-parts-${equipmentId}`, type: "parts", title: "Verify spare parts inventory", urgency: "low", link: `/inventory?equipmentId=${equipmentId}` },
+        { id: `na-schedule-${equipmentId}`, type: "prediction", title: "Check next scheduled maintenance", urgency: "low", link: `/pdm-dashboard?equipmentId=${equipmentId}` },
+      ];
+      for (const d of defaults) {
+        if (items.length >= 3) break;
+        if (!items.some((i) => i.id === d.id)) items.push(d);
+      }
     }
 
     return items.slice(0, 5);
