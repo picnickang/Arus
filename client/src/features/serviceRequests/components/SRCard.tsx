@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Wrench, ExternalLink, CheckCircle, XCircle, Eye, ArrowRightCircle } from "lucide-react";
+import { ExternalLink, CheckCircle, XCircle, Eye, ArrowRightCircle, Ship, Wrench } from "lucide-react";
 import { SRStatusBadge } from "./SRStatusBadge";
 import { SRPriorityBadge } from "./SRPriorityBadge";
 import type { ServiceRequest } from "../types";
@@ -37,11 +37,17 @@ export function SRCard({ sr, onReview, onApprove, onReject, onConvert, onViewDet
         {sr.description && (
           <p className="text-sm text-muted-foreground line-clamp-2">{sr.description}</p>
         )}
-        {sr.workOrderNumber && (
-          <div className="text-xs text-muted-foreground">
-            <span className="font-medium">WO:</span> {sr.workOrderNumber}
-          </div>
-        )}
+        <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+          {sr.workOrderNumber && (
+            <span><span className="font-medium">WO:</span> {sr.workOrderNumber}</span>
+          )}
+          {sr.vesselName && (
+            <span className="flex items-center gap-1"><Ship className="h-3 w-3" />{sr.vesselName}</span>
+          )}
+          {sr.equipmentName && (
+            <span className="flex items-center gap-1"><Wrench className="h-3 w-3" />{sr.equipmentName}</span>
+          )}
+        </div>
         {sr.estimatedCost != null && (
           <div className="text-xs text-muted-foreground">
             <span className="font-medium">Est. Cost:</span> ${Number(sr.estimatedCost).toLocaleString()}

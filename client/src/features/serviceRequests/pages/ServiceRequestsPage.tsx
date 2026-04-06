@@ -138,13 +138,18 @@ export function ServiceRequestsPage() {
   const rejectMutation = useRejectServiceRequest();
   const convertMutation = useConvertServiceRequest();
 
-  const filteredRequests = searchInput
+  const urgencyOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+
+  const filteredRequests = (searchInput
     ? requests.filter((r) =>
         r.title.toLowerCase().includes(searchInput.toLowerCase()) ||
         r.requestNumber.toLowerCase().includes(searchInput.toLowerCase()) ||
-        (r.workOrderNumber && r.workOrderNumber.toLowerCase().includes(searchInput.toLowerCase()))
+        (r.workOrderNumber && r.workOrderNumber.toLowerCase().includes(searchInput.toLowerCase())) ||
+        (r.vesselName && r.vesselName.toLowerCase().includes(searchInput.toLowerCase())) ||
+        (r.equipmentName && r.equipmentName.toLowerCase().includes(searchInput.toLowerCase()))
       )
-    : requests;
+    : requests
+  ).sort((a, b) => (urgencyOrder[a.urgency] ?? 99) - (urgencyOrder[b.urgency] ?? 99));
 
   const stats = {
     total: requests.length,

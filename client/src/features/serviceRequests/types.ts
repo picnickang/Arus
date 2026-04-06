@@ -18,6 +18,8 @@ export interface ServiceRequest {
   convertedAt?: string | null;
   workOrderNumber?: string | null;
   workOrderDescription?: string | null;
+  equipmentName?: string | null;
+  vesselName?: string | null;
   createdAt: string;
   updatedAt: string;
 }

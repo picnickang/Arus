@@ -39,6 +39,7 @@ import { SupplierMultiSelect } from "@/components/inventory/SupplierMultiSelect"
 import { LowStockReplenishmentPanel } from "@/components/inventory/LowStockReplenishmentPanel";
 import { InventoryBatchActions } from "@/components/inventory/InventoryBatchActions";
 import { PurchaseRequestsPage } from "@/features/purchaseRequests";
+import { ServiceRequestsPage } from "@/features/serviceRequests";
 import { useInventoryManagementData } from "@/features/inventory";
 import { formatCurrency } from "@/lib/formatters";
 import { PermissionGate } from "@/components/PermissionGate";
@@ -52,12 +53,17 @@ export default function InventoryManagement() {
   const [, setLocation] = useLocation();
   const searchString = useSearch();
 
-  const getTabFromSearch = (search: string): "inventory" | "purchasing" => {
+  type TabValue = "inventory" | "purchasing" | "service-requests";
+
+  const getTabFromSearch = (search: string): TabValue => {
     const params = new URLSearchParams(search);
-    return params.get("tab") === "purchasing" ? "purchasing" : "inventory";
+    const tab = params.get("tab");
+    if (tab === "purchasing") return "purchasing";
+    if (tab === "service-requests") return "service-requests";
+    return "inventory";
   };
 
-  const [activeTab, setActiveTab] = React.useState<"inventory" | "purchasing">(() =>
+  const [activeTab, setActiveTab] = React.useState<TabValue>(() =>
     getTabFromSearch(searchString || window.location.search)
   );
 
@@ -66,10 +72,12 @@ export default function InventoryManagement() {
   }, [searchString]);
 
   const handleTabChange = (value: string) => {
-    const next = value as "inventory" | "purchasing";
+    const next = value as TabValue;
     setActiveTab(next);
     if (next === "purchasing") {
       setLocation("/inventory-management?tab=purchasing", { replace: true });
+    } else if (next === "service-requests") {
+      setLocation("/inventory-management?tab=service-requests", { replace: true });
     } else {
       setLocation("/inventory-management", { replace: true });
     }
@@ -108,12 +116,18 @@ export default function InventoryManagement() {
               <ClipboardCheck className="h-4 w-4" />
               Purchasing
             </TabsTrigger>
+            <TabsTrigger value="service-requests" className="flex items-center gap-2" data-testid="tab-service-requests">
+              <Layers className="h-4 w-4" />
+              Service Requests
+            </TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
 
       {activeTab === "purchasing" ? (
         <PurchaseRequestsPage />
+      ) : activeTab === "service-requests" ? (
+        <ServiceRequestsPage />
       ) : (
       <>
       <div className="flex-none p-4 md:p-6 pb-0 md:pb-0">

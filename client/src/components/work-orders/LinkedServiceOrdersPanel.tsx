@@ -64,6 +64,16 @@ function getTimelineIndex(status: string): number {
   return map[status] ?? -1;
 }
 
+function getTimestampForStep(so: LinkedServiceOrder, stepKey: string): string | null {
+  switch (stepKey) {
+    case "created": return so.createdAt;
+    case "sent": return so.sentAt;
+    case "confirmed": return so.confirmedAt;
+    case "completed": return so.completedAt;
+    default: return null;
+  }
+}
+
 function MiniTimeline({ so }: { so: LinkedServiceOrder }) {
   const currentIdx = getTimelineIndex(so.status);
   const isCancelled = so.status === "cancelled";
@@ -78,30 +88,40 @@ function MiniTimeline({ so }: { so: LinkedServiceOrder }) {
   }
 
   return (
-    <div className="flex items-center gap-0.5 mt-2" data-testid={`timeline-${so.id}`}>
-      {TIMELINE_STEPS.map((step, i) => {
-        const isDone = i <= currentIdx;
-        const isCurrent = i === currentIdx;
-        return (
-          <div key={step.key} className="flex items-center gap-0.5">
-            <div
-              className={cn(
-                "h-2 w-2 rounded-full border transition-colors",
-                isDone
-                  ? isCurrent ? "bg-primary border-primary" : "bg-primary/60 border-primary/60"
-                  : "bg-muted border-muted-foreground/30"
+    <div className="space-y-1 mt-2" data-testid={`timeline-${so.id}`}>
+      <div className="flex items-center gap-0.5">
+        {TIMELINE_STEPS.map((step, i) => {
+          const isDone = i <= currentIdx;
+          const isCurrent = i === currentIdx;
+          const ts = getTimestampForStep(so, step.key);
+          return (
+            <div key={step.key} className="flex items-center gap-0.5">
+              <div
+                className={cn(
+                  "h-2 w-2 rounded-full border transition-colors",
+                  isDone
+                    ? isCurrent ? "bg-primary border-primary" : "bg-primary/60 border-primary/60"
+                    : "bg-muted border-muted-foreground/30"
+                )}
+                title={ts ? `${step.label}: ${new Date(ts).toLocaleDateString()}` : step.label}
+              />
+              {i < TIMELINE_STEPS.length - 1 && (
+                <div className={cn("h-0.5 w-3 transition-colors", i < currentIdx ? "bg-primary/60" : "bg-muted-foreground/20")} />
               )}
-              title={step.label}
-            />
-            {i < TIMELINE_STEPS.length - 1 && (
-              <div className={cn("h-0.5 w-3 transition-colors", i < currentIdx ? "bg-primary/60" : "bg-muted-foreground/20")} />
-            )}
-          </div>
-        );
-      })}
-      <span className="text-[10px] text-muted-foreground ml-1.5">
-        {TIMELINE_STEPS[currentIdx]?.label || so.status}
-      </span>
+            </div>
+          );
+        })}
+        <span className="text-[10px] text-muted-foreground ml-1.5">
+          {TIMELINE_STEPS[currentIdx]?.label || so.status}
+        </span>
+      </div>
+      {(so.sentAt || so.confirmedAt || so.completedAt) && (
+        <div className="flex gap-3 text-[10px] text-muted-foreground">
+          {so.sentAt && <span>Sent: {new Date(so.sentAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
+          {so.confirmedAt && <span>Confirmed: {new Date(so.confirmedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
+          {so.completedAt && <span>Completed: {new Date(so.completedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
+        </div>
+      )}
     </div>
   );
 }
@@ -458,6 +478,24 @@ export function LinkedServiceOrdersPanel({
 
                   {so.scope && (
                     <p className="text-xs text-muted-foreground line-clamp-2">{so.scope}</p>
+                  )}
+
+                  {so.revisionNotes && (
+                    <div className="text-[10px] text-amber-600 dark:text-amber-400 border-l-2 border-amber-400 pl-2">
+                      <span className="font-medium">Revision:</span> {so.revisionNotes}
+                    </div>
+                  )}
+
+                  {(so.estimatedDurationHours != null || so.actualDurationHours != null) && (
+                    <div className="flex gap-3 text-xs text-muted-foreground">
+                      {so.estimatedDurationHours != null && <span>Est. Duration: {so.estimatedDurationHours}h</span>}
+                      {so.actualDurationHours != null && <span>Actual: {so.actualDurationHours}h</span>}
+                      {so.estimatedDurationHours != null && so.actualDurationHours != null && (
+                        <span className={so.actualDurationHours > so.estimatedDurationHours ? "text-destructive" : "text-green-600 dark:text-green-400"}>
+                          ({so.actualDurationHours > so.estimatedDurationHours ? "+" : ""}{(so.actualDurationHours - so.estimatedDurationHours).toFixed(1)}h)
+                        </span>
+                      )}
+                    </div>
                   )}
 
                   <MiniTimeline so={so} />
