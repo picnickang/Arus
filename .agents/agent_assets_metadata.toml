@@ -168,3 +168,9 @@ id = "YVmgucxwbM3G_EYWtia47"
 uri = "file://exports/kb-and-copilot-admin-files.md"
 type = "text"
 title = "Knowledge Base & Copilot Admin Files (2 files for Claude evaluation)"
+
+[[outputs]]
+id = "JlvLY9e6fWsw3sz7fPEBo"
+uri = "file://exports/equipment-intelligence-file.md"
+type = "text"
+title = "Equipment Intelligence File (for Claude evaluation)"
