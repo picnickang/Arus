@@ -8,6 +8,7 @@ import { useAdminAccess } from "@/contexts/AdminAccessContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { IntelligenceLayout } from "@/components/intelligence/IntelligenceLayout";
 
 function PageTitle({ title }: { title: string }) {
   useEffect(() => {
@@ -646,42 +647,28 @@ export default function EquipmentIntelligence() {
 
   if (overviewQuery.isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" data-testid="loading-state">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-8 w-8 animate-spin text-sky-400" />
-          <p className="text-sm text-slate-500">Loading Equipment Intelligence...</p>
+      <IntelligenceLayout>
+        <div className="min-h-screen flex items-center justify-center" data-testid="loading-state">
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 className="h-8 w-8 animate-spin text-sky-400" />
+            <p className="text-sm text-slate-500">Loading Equipment Intelligence...</p>
+          </div>
         </div>
-      </div>
+      </IntelligenceLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#080e1a] text-slate-200" data-testid="equipment-intelligence-page">
+    <IntelligenceLayout>
+      <div data-testid="equipment-intelligence-page">
       <PageTitle title="Equipment Intelligence | ARUS" />
 
       <DetailDrawer item={selected} open={!!selectedId} onClose={() => setSelectedId(null)} />
 
-      <div className="px-6 py-4 border-b border-slate-700/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-        <div>
-          <h1 className="text-lg font-bold text-slate-100" data-testid="page-title">Equipment Intelligence</h1>
-          <p className="text-xs text-slate-600 mt-0.5">
-            AI health monitoring, predictions, and recommendations — all in one view
-          </p>
-        </div>
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <Button asChild variant="ghost" size="sm" className="text-[11px] text-slate-500 hover:text-blue-300 h-7">
-            <Link href="/pdm-dashboard" data-testid="nav-pdm-dashboard">Schedule</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm" className="text-[11px] text-slate-500 hover:text-orange-300 h-7">
-            <Link href="/pdm-pack" data-testid="nav-pdm-pack">Diagnostics</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm" className="text-[11px] text-slate-500 hover:text-violet-300 h-7">
-            <Link href="/digital-twin" data-testid="nav-digital-twin">Digital Twin</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm" className="text-[11px] text-slate-500 hover:text-emerald-300 h-7">
-            <Link href="/pdm-platform" data-testid="nav-pdm-platform">ML Platform</Link>
-          </Button>
-        </div>
+      <div className="px-6 py-3 flex items-center justify-between">
+        <p className="text-xs text-slate-500">
+          AI health monitoring, predictions, and recommendations — all in one view
+        </p>
         {isAdminUnlocked && (
           <Button
             variant={showSystem ? "secondary" : "outline"}
@@ -829,6 +816,7 @@ export default function EquipmentIntelligence() {
           </div>
         ))}
       </div>
-    </div>
+      </div>
+    </IntelligenceLayout>
   );
 }

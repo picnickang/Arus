@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { IntelligenceLayout } from "@/components/intelligence/IntelligenceLayout";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Loader2, Database, BarChart3, Box, Zap, AlertTriangle, TrendingUp, TrendingDown, Minus, RefreshCw, ArrowUp, ArrowDown, CheckCircle2, Play, Upload, FlaskConical, FileBox, Shield, Eye, CheckCheck, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -1087,11 +1088,9 @@ function GovernanceTab() {
 
 export default function PdmPlatformPage() {
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold" data-testid="text-pdm-platform-title">PdM Platform</h1>
-        <p className="text-muted-foreground">Feature Store, Fleet Analytics, Model Registry, Training Pipeline, Inference, Monitoring, and Governance</p>
-      </div>
+    <IntelligenceLayout>
+      <div className="container mx-auto p-6 space-y-6">
+      <p className="text-xs text-slate-500">Feature Store, Fleet Analytics, Model Registry, Training Pipeline, Inference, Monitoring, and Governance</p>
 
       <Tabs defaultValue="features" className="w-full">
         <TabsList className="grid w-full grid-cols-7">
@@ -1112,6 +1111,7 @@ export default function PdmPlatformPage() {
         <TabsContent value="drift" className="mt-4"><DriftMonitoringTab /></TabsContent>
         <TabsContent value="governance" className="mt-4"><GovernanceTab /></TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </IntelligenceLayout>
   );
 }

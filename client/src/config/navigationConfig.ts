@@ -201,7 +201,6 @@ export const navigationCategories: NavigationCategory[] = [
     hubRoute: "/analytics",
     description: "Reports, AI, and performance tracking",
     children: [
-      { name: "Equipment Intelligence", href: "/equipment-intelligence", icon: Brain, description: "AI health, predictions & recommendations" },
       { name: "Analytics Dashboard", href: "/analytics", icon: BarChart3, description: "Reports and analytics" },
       { name: "Knowledge Base", href: "/knowledge-base", icon: BookOpen, description: "Documentation and RAG" },
       { name: "Optimizer", href: "/optimization-tools", icon: Zap, description: "Maintenance optimization tools" },
@@ -221,7 +220,7 @@ export const navigationCategories: NavigationCategory[] = [
       { name: "Sensors", href: "/sensors", icon: Activity, description: "Sensor management" },
       { name: "StormGeo", href: "/stormgeo-settings", icon: Database, description: "Weather integration" },
       { name: "System Admin", href: "/system-administration", icon: Shield, description: "Admin tools" },
-      { name: "Diagnostics", href: "/diagnostics", icon: AlertCircle, description: "System diagnostics" },
+      { name: "System Health", href: "/diagnostics", icon: AlertCircle, description: "System health & diagnostics" },
     ],
   },
 ];

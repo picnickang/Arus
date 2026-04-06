@@ -14,6 +14,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import { IntelligenceLayout } from "@/components/intelligence/IntelligenceLayout";
 import {
   Loader2,
   Box,
@@ -1061,15 +1062,11 @@ function ReplayTab() {
 
 export default function DigitalTwinPage() {
   return (
-    <div className="p-4 md:p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold" data-testid="text-digital-twin-title">
-          Digital Twin
-        </h1>
-        <p className="text-muted-foreground">
-          Asset-level digital twins for predictive maintenance
-        </p>
-      </div>
+    <IntelligenceLayout>
+      <div className="p-4 md:p-6 space-y-6">
+      <p className="text-xs text-slate-500">
+        Asset-level digital twins for predictive maintenance
+      </p>
 
       <Tabs defaultValue="overview">
         <TabsList className="grid w-full grid-cols-5" data-testid="tabs-digital-twin">
@@ -1111,6 +1108,7 @@ export default function DigitalTwinPage() {
           <ReplayTab />
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </IntelligenceLayout>
   );
 }

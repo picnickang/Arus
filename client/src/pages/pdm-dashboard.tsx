@@ -23,6 +23,7 @@ import {
   ChevronLeft
 } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
+import { IntelligenceLayout } from '@/components/intelligence/IntelligenceLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -1237,35 +1238,27 @@ export default function PdmDashboard() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <AlertTriangle className="h-8 w-8 text-red-500 mx-auto mb-2" />
-          <p className="text-red-500">Failed to load PdM Dashboard</p>
-          <p className="text-sm text-muted-foreground mt-1">Please check your connection and try again</p>
+      <IntelligenceLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <AlertTriangle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+            <p className="text-red-500">Failed to load PdM Dashboard</p>
+            <p className="text-sm text-muted-foreground mt-1">Please check your connection and try again</p>
+          </div>
         </div>
-      </div>
+      </IntelligenceLayout>
     );
   }
 
   const currentItems = data?.riskQueue[activeTab] || [];
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 bg-slate-800 dark:bg-slate-900 text-white">
+    <IntelligenceLayout>
+      <div className="bg-[#080e1a]">
+      <header className="bg-slate-800 dark:bg-slate-900 text-white">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1">
-                <Link href="/">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:text-white" data-testid="button-home">
-                    <Home className="h-4 w-4" />
-                  </Button>
-                </Link>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:text-white" onClick={() => { window.history.length > 1 ? window.history.back() : setLocation("/"); }} data-testid="button-back">
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-              </div>
-              <h1 className="text-lg font-semibold whitespace-nowrap">Predictive Maintenance</h1>
               
               <div className="hidden md:flex items-center gap-1 bg-slate-700/50 rounded-lg p-1">
                 <Button
@@ -1622,6 +1615,7 @@ export default function PdmDashboard() {
       />
       </>
       )}
-    </div>
+      </div>
+    </IntelligenceLayout>
   );
 }

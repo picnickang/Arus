@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { type AnalysisResult, usePdmPackData } from "@/features/maintenance";
 import { formatDate } from "@/lib/formatters";
-import { PageHeader } from "@/components/navigation";
+import { IntelligenceLayout } from "@/components/intelligence/IntelligenceLayout";
 
 const AnalysisResultsCard = ({ result, title, isLoading }: { result: AnalysisResult | null; title: string; isLoading: boolean }) => {
   if (isLoading) {return <Card><CardHeader><CardTitle>{title} Results</CardTitle></CardHeader><CardContent><div className="flex items-center justify-center py-8"><div className="text-muted-foreground">Analyzing...</div></div></CardContent></Card>;}
@@ -29,12 +29,12 @@ const AnalysisResultsCard = ({ result, title, isLoading }: { result: AnalysisRes
 export default function PdmPack() {
   const p = usePdmPackData();
 
-  if (p.alertsLoading || p.healthLoading) {return <div className="flex items-center justify-center min-h-screen"><div className="text-muted-foreground">Loading PdM Pack...</div></div>;}
-  if (p.alerts === undefined) {return <div className="flex items-center justify-center min-h-screen"><div className="text-red-500">Failed to load PdM alerts. Please check your connection.</div></div>;}
+  if (p.alertsLoading || p.healthLoading) {return <IntelligenceLayout><div className="flex items-center justify-center min-h-screen"><div className="text-muted-foreground">Loading PdM Pack...</div></div></IntelligenceLayout>;}
+  if (p.alerts === undefined) {return <IntelligenceLayout><div className="flex items-center justify-center min-h-screen"><div className="text-red-500">Failed to load PdM alerts. Please check your connection.</div></div></IntelligenceLayout>;}
 
   return (
-    <div className="min-h-screen">
-      <PageHeader title="PdM Pack" />
+    <IntelligenceLayout>
+      <div className="min-h-screen">
       <div className="space-y-6">
         <div className="flex items-center justify-end px-6 py-2"><Badge variant={p.serviceStatus ? "outline" : "destructive"} className={p.serviceStatus ? "border-green-500 text-green-500" : ""} data-testid="service-status">{p.serviceStatus ? "Operational" : "Service Issue"}</Badge></div>
 
@@ -106,6 +106,7 @@ export default function PdmPack() {
         </Tabs>
       </div>
       </div>
-    </div>
+      </div>
+    </IntelligenceLayout>
   );
 }
