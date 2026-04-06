@@ -4,7 +4,7 @@ const additionalRedirects: Array<{ from: string; to: string }> = [
   { from: "/cost-savings", to: "/analytics?tab=financial-reports" },
   { from: "/reports", to: "/analytics?tab=financial-reports" },
   { from: "/llm-costs", to: "/analytics?tab=financial-reports" },
-  { from: "/ai-health", to: "/equipment-intelligence?system=true" },
+  { from: "/ai-health", to: "/equipment-intelligence" },
   { from: "/ai-health-dashboard", to: "/equipment-intelligence" },
   { from: "/ai-sensor-audits", to: "/equipment-intelligence?system=true" },
   { from: "/model-performance", to: "/equipment-intelligence?system=true" },
