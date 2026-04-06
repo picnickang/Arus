@@ -2,8 +2,12 @@ import type { Express, Request, Response } from "express";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
 import { requireOrgId, requireOrgIdAndValidateBody } from "../middleware/auth";
+import { requireRole } from "../middleware/role-auth";
 import { withErrorHandling, sendCreated, sendNotFound } from "../lib/route-utils";
 import { logger } from "../utils/logger";
+import { domainEventBus, createDomainEvent } from "../lib/domain-event-bus";
+
+const PROCUREMENT_ROLES = ["chief_engineer", "second_engineer", "captain", "chief_officer", "admin"] as const;
 
 function getOrgId(req: Request): string {
   const orgId = (req as any).orgId || req.headers["x-org-id"];
@@ -49,6 +53,7 @@ export function registerServiceRequestRoutes(
           sr.converted_at AS "convertedAt",
           sr.work_order_id AS "workOrderId",
           sr.service_order_id AS "serviceOrderId",
+          sr.previous_wo_status AS "previousWoStatus",
           wo.wo_number AS "workOrderNumber",
           wo.description AS "workOrderDescription",
           sr.created_at AS "createdAt",
@@ -103,7 +108,7 @@ export function registerServiceRequestRoutes(
       const userId = getUserId(req);
 
       const [wo] = await db.execute(sql`
-        SELECT id, wo_number, description, vessel_id
+        SELECT id, wo_number, description, vessel_id, status
         FROM work_orders
         WHERE id = ${workOrderId} AND org_id = ${orgId}
       `).then((r) => r.rows || r);
@@ -112,6 +117,8 @@ export function registerServiceRequestRoutes(
 
       const { title, description, urgency, estimatedCost } = req.body;
       if (!title) return res.status(400).json({ error: "title is required" });
+
+      const previousWoStatus = wo.status;
 
       const [seqResult] = await db.execute(sql`
         SELECT COALESCE(
@@ -127,7 +134,7 @@ export function registerServiceRequestRoutes(
         INSERT INTO service_requests (
           id, org_id, work_order_id, request_number,
           title, description, urgency, estimated_cost,
-          requested_by, status,
+          requested_by, status, previous_wo_status,
           created_at, updated_at
         )
         VALUES (
@@ -141,13 +148,33 @@ export function registerServiceRequestRoutes(
           ${estimatedCost ? Number(estimatedCost) : null},
           ${userId},
           'pending_review',
+          ${previousWoStatus},
           NOW(),
           NOW()
         )
         RETURNING *
       `).then((r) => r.rows || r);
 
-      logger.info(`Created service request ${requestNumber} from work order ${workOrderId}`);
+      await db.execute(sql`
+        UPDATE work_orders
+        SET status = 'awaiting_service', updated_at = NOW()
+        WHERE id = ${workOrderId} AND org_id = ${orgId}
+          AND status NOT IN ('completed', 'cancelled', 'awaiting_service')
+      `);
+
+      domainEventBus.emit(
+        "service_request.created",
+        createDomainEvent("service_request.created", orgId, {
+          serviceRequestId: newSr.id,
+          requestNumber,
+          workOrderId,
+          title,
+          urgency: urgency || "medium",
+          requestedBy: userId,
+        }, { userId, aggregateId: newSr.id, aggregateType: "ServiceRequest" })
+      );
+
+      logger.info(`Created service request ${requestNumber} from work order ${workOrderId}, WO status changed to awaiting_service (was: ${previousWoStatus})`);
       sendCreated(res, newSr);
     })
   );
@@ -155,13 +182,14 @@ export function registerServiceRequestRoutes(
   app.post(
     "/api/service-requests/:id/review",
     requireOrgIdAndValidateBody,
+    requireRole(...PROCUREMENT_ROLES),
     writeOperationRateLimit,
     withErrorHandling("review service request", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
       const userId = getUserId(req);
 
       const [sr] = await db.execute(sql`
-        SELECT id, status, work_order_id FROM service_requests
+        SELECT id, status, work_order_id, request_number FROM service_requests
         WHERE id = ${req.params.id} AND org_id = ${orgId}
       `).then((r) => r.rows || r);
 
@@ -185,13 +213,14 @@ export function registerServiceRequestRoutes(
   app.post(
     "/api/service-requests/:id/approve",
     requireOrgIdAndValidateBody,
+    requireRole(...PROCUREMENT_ROLES),
     writeOperationRateLimit,
     withErrorHandling("approve service request", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
       const userId = getUserId(req);
 
       const [sr] = await db.execute(sql`
-        SELECT id, status, work_order_id, title, description, estimated_cost
+        SELECT id, status, work_order_id, title, description, estimated_cost, request_number
         FROM service_requests
         WHERE id = ${req.params.id} AND org_id = ${orgId}
       `).then((r) => r.rows || r);
@@ -209,6 +238,16 @@ export function registerServiceRequestRoutes(
         RETURNING *
       `).then((r) => r.rows || r);
 
+      domainEventBus.emit(
+        "service_request.approved",
+        createDomainEvent("service_request.approved", orgId, {
+          serviceRequestId: sr.id,
+          requestNumber: sr.request_number,
+          workOrderId: sr.work_order_id,
+          approvedBy: userId,
+        }, { userId, aggregateId: sr.id, aggregateType: "ServiceRequest" })
+      );
+
       res.json(updated);
     })
   );
@@ -216,13 +255,14 @@ export function registerServiceRequestRoutes(
   app.post(
     "/api/service-requests/:id/reject",
     requireOrgIdAndValidateBody,
+    requireRole(...PROCUREMENT_ROLES),
     writeOperationRateLimit,
     withErrorHandling("reject service request", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
       const userId = getUserId(req);
 
       const [sr] = await db.execute(sql`
-        SELECT id, status, work_order_id
+        SELECT id, status, work_order_id, request_number, previous_wo_status
         FROM service_requests
         WHERE id = ${req.params.id} AND org_id = ${orgId}
       `).then((r) => r.rows || r);
@@ -247,18 +287,28 @@ export function registerServiceRequestRoutes(
         RETURNING *
       `).then((r) => r.rows || r);
 
+      const restoreStatus = sr.previous_wo_status || "open";
       await db.execute(sql`
         UPDATE work_orders
         SET
-          status = CASE
-            WHEN status = 'awaiting_service' THEN 'open'
-            ELSE status
-          END,
+          status = ${restoreStatus},
           updated_at = NOW()
         WHERE id = ${sr.work_order_id} AND org_id = ${orgId}
+          AND status = 'awaiting_service'
       `);
 
-      logger.info(`Service request ${req.params.id} rejected by ${userId}`);
+      domainEventBus.emit(
+        "service_request.rejected",
+        createDomainEvent("service_request.rejected", orgId, {
+          serviceRequestId: sr.id,
+          requestNumber: sr.request_number,
+          workOrderId: sr.work_order_id,
+          rejectedBy: userId,
+          reason: reason || undefined,
+        }, { userId, aggregateId: sr.id, aggregateType: "ServiceRequest" })
+      );
+
+      logger.info(`Service request ${req.params.id} rejected by ${userId}, WO status restored to '${restoreStatus}'`);
       res.json(updated);
     })
   );
@@ -266,6 +316,7 @@ export function registerServiceRequestRoutes(
   app.post(
     "/api/service-requests/:id/convert",
     requireOrgIdAndValidateBody,
+    requireRole(...PROCUREMENT_ROLES),
     writeOperationRateLimit,
     withErrorHandling("convert service request to service order", async (req: Request, res: Response) => {
       const orgId = getOrgId(req);
@@ -273,7 +324,8 @@ export function registerServiceRequestRoutes(
 
       const [sr] = await db.execute(sql`
         SELECT sr.id, sr.status, sr.work_order_id, sr.title, sr.description,
-               sr.estimated_cost, wo.wo_number, wo.description AS wo_description,
+               sr.estimated_cost, sr.request_number,
+               wo.wo_number, wo.description AS wo_description,
                wo.equipment_id, wo.vessel_id
         FROM service_requests sr
         JOIN work_orders wo ON wo.id = sr.work_order_id AND wo.org_id = ${orgId}
@@ -351,13 +403,22 @@ export function registerServiceRequestRoutes(
       await db.execute(sql`
         UPDATE work_orders
         SET
-          status = CASE
-            WHEN status IN ('open', 'in_progress') THEN 'awaiting_service'
-            ELSE status
-          END,
+          status = 'awaiting_service',
           updated_at = NOW()
         WHERE id = ${sr.work_order_id} AND org_id = ${orgId}
       `);
+
+      domainEventBus.emit(
+        "service_request.converted",
+        createDomainEvent("service_request.converted", orgId, {
+          serviceRequestId: sr.id,
+          requestNumber: sr.request_number,
+          workOrderId: sr.work_order_id,
+          serviceOrderId: newSo.id,
+          soNumber,
+          convertedBy: userId,
+        }, { userId, aggregateId: sr.id, aggregateType: "ServiceRequest" })
+      );
 
       logger.info(`Service request ${req.params.id} converted to SO ${soNumber} by ${userId}`);
       res.json({ serviceRequest: { id: req.params.id, status: "converted", serviceOrderId: newSo.id }, serviceOrder: newSo });
@@ -387,6 +448,7 @@ export function registerServiceRequestRoutes(
           sr.reviewed_by AS "reviewedBy",
           sr.reviewed_at AS "reviewedAt",
           sr.converted_at AS "convertedAt",
+          sr.previous_wo_status AS "previousWoStatus",
           sr.created_at AS "createdAt",
           sr.updated_at AS "updatedAt"
         FROM service_requests sr

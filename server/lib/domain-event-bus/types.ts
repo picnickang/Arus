@@ -375,6 +375,39 @@ export interface RmsAlertTriggeredPayload {
   message: string;
 }
 
+export interface ServiceRequestCreatedPayload {
+  serviceRequestId: string;
+  requestNumber: string;
+  workOrderId: string;
+  title: string;
+  urgency: string;
+  requestedBy: string;
+}
+
+export interface ServiceRequestApprovedPayload {
+  serviceRequestId: string;
+  requestNumber: string;
+  workOrderId: string;
+  approvedBy: string;
+}
+
+export interface ServiceRequestRejectedPayload {
+  serviceRequestId: string;
+  requestNumber: string;
+  workOrderId: string;
+  rejectedBy: string;
+  reason?: string;
+}
+
+export interface ServiceRequestConvertedPayload {
+  serviceRequestId: string;
+  requestNumber: string;
+  workOrderId: string;
+  serviceOrderId: string;
+  soNumber: string;
+  convertedBy: string;
+}
+
 export interface DomainEventMap {
   "pdm.rul.updated": DomainEventEnvelope<"pdm.rul.updated", PdmRulUpdatedPayload>;
   "pdm.anomaly.created": DomainEventEnvelope<"pdm.anomaly.created", PdmAnomalyCreatedPayload>;
@@ -437,6 +470,11 @@ export interface DomainEventMap {
   "bunkering.started": DomainEventEnvelope<"bunkering.started", BunkeringStartedPayload>;
   "bunkering.completed": DomainEventEnvelope<"bunkering.completed", BunkeringCompletedPayload>;
   "rms.alert_triggered": DomainEventEnvelope<"rms.alert_triggered", RmsAlertTriggeredPayload>;
+
+  "service_request.created": DomainEventEnvelope<"service_request.created", ServiceRequestCreatedPayload>;
+  "service_request.approved": DomainEventEnvelope<"service_request.approved", ServiceRequestApprovedPayload>;
+  "service_request.rejected": DomainEventEnvelope<"service_request.rejected", ServiceRequestRejectedPayload>;
+  "service_request.converted": DomainEventEnvelope<"service_request.converted", ServiceRequestConvertedPayload>;
 }
 
 export type DomainEventName = keyof DomainEventMap;

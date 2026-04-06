@@ -120,4 +120,19 @@ export async function migrateWorkOrderServiceOrderBridge(db: any) {
     CREATE INDEX IF NOT EXISTS idx_service_requests_work_order
       ON service_requests (work_order_id);
   `);
+
+  await db.execute(sql`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'service_requests' AND column_name = 'previous_wo_status'
+      ) THEN
+        ALTER TABLE service_requests
+          ADD COLUMN previous_wo_status TEXT;
+        COMMENT ON COLUMN service_requests.previous_wo_status IS
+          'Persisted WO status before SR creation, used to restore on rejection';
+      END IF;
+    END $$;
+  `);
 }
