@@ -88,10 +88,18 @@ function SummaryDashboard() {
   const deployedCount = modelsList.filter((m: any) => m.status === "deployed").length;
   const totalModels = modelsList.length;
   const pendingCount = Array.isArray(pendingPredictions) ? pendingPredictions.length : 0;
-  const totalPredictions = Array.isArray(allPredictions) ? allPredictions.length : 0;
-  const criticalPredictions = Array.isArray(allPredictions)
-    ? allPredictions.filter((p: any) => p.riskLevel === "critical" || p.riskLevel === "high").length
-    : 0;
+  const allPredictionsList = Array.isArray(allPredictions) ? allPredictions : [];
+  const totalPredictions = allPredictionsList.length;
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const recentPredictions = allPredictionsList.filter((p: any) => {
+    const ts = p.predictionTimestamp || p.createdAt;
+    return ts && new Date(ts) >= sevenDaysAgo;
+  }).length;
+
+  const driftAlertCount = modelsList.filter((m: any) =>
+    m.status === "deployed" && m.driftDetected
+  ).length;
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -104,11 +112,11 @@ function SummaryDashboard() {
       </Card>
       <Card>
         <CardContent className="p-4">
-          <div className="text-xs text-muted-foreground">High-Risk Predictions</div>
-          <div className="text-2xl font-bold" data-testid="text-summary-high-risk">
-            {criticalPredictions}
+          <div className="text-xs text-muted-foreground">Drift Alerts</div>
+          <div className="text-2xl font-bold" data-testid="text-summary-drift-alerts">
+            {driftAlertCount}
           </div>
-          <div className="text-xs text-muted-foreground">{totalPredictions} total predictions</div>
+          <div className="text-xs text-muted-foreground">{deployedCount} deployed monitored</div>
         </CardContent>
       </Card>
       <Card>
@@ -120,9 +128,9 @@ function SummaryDashboard() {
       </Card>
       <Card>
         <CardContent className="p-4">
-          <div className="text-xs text-muted-foreground">Registered Models</div>
-          <div className="text-2xl font-bold" data-testid="text-summary-total-models">{totalModels}</div>
-          <div className="text-xs text-muted-foreground">{modelsList.filter((m: any) => m.type).map((m: any) => m.type).filter((v: string, i: number, a: string[]) => a.indexOf(v) === i).join(", ") || "none"}</div>
+          <div className="text-xs text-muted-foreground">Recent Predictions</div>
+          <div className="text-2xl font-bold" data-testid="text-summary-recent-predictions">{recentPredictions}</div>
+          <div className="text-xs text-muted-foreground">{totalPredictions} total (last 7 days)</div>
         </CardContent>
       </Card>
     </div>
@@ -328,8 +336,19 @@ function FleetAnalyticsTab() {
 function ModelRegistryTab({ highlightedVersionId }: { highlightedVersionId?: string | null }) {
   const { data: models, isLoading } = useModels();
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
+  const [lastHighlighted, setLastHighlighted] = useState<string | null>(null);
+
+  const modelsList = Array.isArray(models) ? models : [];
+
   const { data: versions } = useModelVersions(selectedModelId ?? "");
   const { data: deployment } = useActiveDeployment(selectedModelId ?? "");
+
+  if (highlightedVersionId && highlightedVersionId !== lastHighlighted && modelsList.length > 0) {
+    setLastHighlighted(highlightedVersionId);
+    if (!selectedModelId) {
+      setSelectedModelId(modelsList[0].id);
+    }
+  }
 
   return (
     <div className="space-y-4">
