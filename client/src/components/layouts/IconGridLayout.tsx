@@ -80,15 +80,15 @@ function GridItemCard({
         className={cn(
           "mt-2 font-medium text-center line-clamp-1",
           compact
-            ? "text-[10px] sm:text-xs max-w-[60px] sm:max-w-[70px]"
-            : "text-xs sm:text-sm max-w-[80px] sm:max-w-[100px]",
+            ? "text-[10px] sm:text-xs max-w-[70px] sm:max-w-[90px]"
+            : "text-xs sm:text-sm max-w-[100px] sm:max-w-[120px]",
           isSelected ? "text-primary" : "text-foreground"
         )}
       >
         {item.label}
       </span>
       {!compact && item.description && (
-        <span className="text-[10px] text-muted-foreground text-center line-clamp-1 max-w-[80px] sm:max-w-[100px] hidden sm:block">
+        <span className="text-[10px] text-muted-foreground text-center line-clamp-1 max-w-[100px] sm:max-w-[120px] hidden sm:block">
           {item.description}
         </span>
       )}

@@ -28,8 +28,9 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
   app.post("/api/crew", requireOrgIdAndValidateBody, writeOperationRateLimit,
     withErrorHandling("create crew member", async (req, res) => {
       const body = { ...req.body };
-      if (typeof body.startDate === "string" && body.startDate) body.startDate = new Date(body.startDate);
-      if (typeof body.contractEndDate === "string" && body.contractEndDate) body.contractEndDate = new Date(body.contractEndDate);
+      if (typeof body.startDate === "string") body.startDate = body.startDate ? new Date(body.startDate) : undefined;
+      if (typeof body.contractEndDate === "string") body.contractEndDate = body.contractEndDate ? new Date(body.contractEndDate) : undefined;
+      if (typeof body.terminationDate === "string") body.terminationDate = body.terminationDate ? new Date(body.terminationDate) : undefined;
       const crewData = insertCrewSchema.parse(body);
       const crew = await crewService.createCrew(crewData, req.user?.id);
       sendCreated(res, crew);
@@ -81,8 +82,9 @@ export function registerCrewMemberRoutes({ app, rateLimit }: CrewRouteDeps): voi
   app.put("/api/crew/:id", requireOrgIdAndValidateBody, writeOperationRateLimit,
     withErrorHandling("update crew member", async (req, res) => {
       const body = { ...req.body };
-      if (typeof body.startDate === "string" && body.startDate) body.startDate = new Date(body.startDate);
-      if (typeof body.contractEndDate === "string" && body.contractEndDate) body.contractEndDate = new Date(body.contractEndDate);
+      if (typeof body.startDate === "string") body.startDate = body.startDate ? new Date(body.startDate) : undefined;
+      if (typeof body.contractEndDate === "string") body.contractEndDate = body.contractEndDate ? new Date(body.contractEndDate) : undefined;
+      if (typeof body.terminationDate === "string") body.terminationDate = body.terminationDate ? new Date(body.terminationDate) : undefined;
       const crewData = insertCrewSchema.partial().parse(body);
       const orgId = (req as AuthenticatedRequest).orgId;
       const crew = await crewService.updateCrew(req.params.id, crewData, req.user?.id, orgId);

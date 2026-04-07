@@ -34,6 +34,38 @@ export interface VesselListItem {
 export type SortField = "name" | "rank" | "vessel" | "status" | "duty";
 export type SortDirection = "asc" | "desc";
 
+const RANK_DISPLAY_MAP: Record<string, string> = {
+  captain: "Captain",
+  chief_officer: "Chief Officer",
+  first_officer: "First Officer",
+  second_officer: "Second Officer",
+  third_officer: "Third Officer",
+  chief_engineer: "Chief Engineer",
+  senior_engineer: "Senior Engineer",
+  second_engineer: "Second Engineer",
+  third_engineer: "Third Engineer",
+  fourth_engineer: "Fourth Engineer",
+  bosun: "Bosun",
+  able_seaman: "Able Seaman",
+  ordinary_seaman: "Ordinary Seaman",
+  chief_cook: "Chief Cook",
+  engine_fitter: "Engine Fitter",
+  oiler: "Oiler",
+  wiper: "Wiper",
+  navigator: "Navigator",
+  engineer: "Engineer",
+};
+
+export function formatRank(rank: string): string {
+  if (!rank) return "Unassigned";
+  const mapped = RANK_DISPLAY_MAP[rank.toLowerCase()];
+  if (mapped) return mapped;
+  if (MARITIME_RANKS.includes(rank as any)) return rank;
+  return rank
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export const MARITIME_RANKS = [
   "Captain",
   "Chief Officer",
@@ -143,7 +175,7 @@ export function calculateCrewStats(crew: CrewListItem[]): CrewStats {
   const activeCrew = crew.filter((c) => c.active).length;
   const onDutyCrew = crew.filter((c) => c.onDuty).length;
   const uniqueVessels = new Set(crew.map((c) => c.vesselId)).size;
-  const uniqueSkills = new Set(crew.flatMap((c) => c.skills)).size;
+  const uniqueSkills = new Set(crew.flatMap((c) => c.skills ?? [])).size;
 
   return {
     totalCrew,
@@ -172,9 +204,9 @@ export function filterCrew(
     const search = filters.searchTerm.toLowerCase();
     filtered = filtered.filter(
       (c) =>
-        c.name.toLowerCase().includes(search) ||
-        c.rank.toLowerCase().includes(search) ||
-        c.skills.some((skill) => skill.toLowerCase().includes(search))
+        c.name?.toLowerCase().includes(search) ||
+        c.rank?.toLowerCase().includes(search) ||
+        (c.skills ?? []).some((skill) => skill.toLowerCase().includes(search))
     );
   }
 
@@ -183,7 +215,7 @@ export function filterCrew(
   }
 
   if (filters.selectedRank !== "all") {
-    filtered = filtered.filter((c) => c.rank === filters.selectedRank);
+    filtered = filtered.filter((c) => c.rank.toLowerCase() === filters.selectedRank.toLowerCase() || formatRank(c.rank) === filters.selectedRank);
   }
 
   if (filters.selectedStatus !== "all") {
@@ -199,7 +231,7 @@ export function filterCrew(
   }
 
   if (filters.selectedSkill !== "all") {
-    filtered = filtered.filter((c) => c.skills?.includes(filters.selectedSkill));
+    filtered = filtered.filter((c) => (c.skills ?? []).includes(filters.selectedSkill));
   }
 
   return filtered;
@@ -225,8 +257,8 @@ export function sortCrew(
         compareB = MARITIME_RANKS.indexOf(b.rank);
         break;
       case "vessel":
-        compareA = getVesselName(a.vesselId).toLowerCase();
-        compareB = getVesselName(b.vesselId).toLowerCase();
+        compareA = getVesselName(a.vesselId ?? "").toLowerCase();
+        compareB = getVesselName(b.vesselId ?? "").toLowerCase();
         break;
       case "status":
         compareA = a.active ? 1 : 0;
@@ -274,7 +306,7 @@ export function prepareCrewExportData(
   return crew.map((c) => ({
     name: c.name,
     rank: c.rank,
-    vessel: getVesselName(c.vesselId),
+    vessel: getVesselName(c.vesselId ?? ""),
     status: c.active ? "Active" : "Inactive",
     dutyStatus: c.onDuty ? "On Duty" : "Off Duty",
     maxHoursWeek: c.maxHours7d,

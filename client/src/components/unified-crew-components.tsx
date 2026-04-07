@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, Ship, Power, Edit, Trash2, UserCheck, Award, UserX, User, Bell, History, FileText } from "lucide-react";
 import { CrewDocumentsTab } from "@/components/CrewDocumentsTab";
 import { CrewNotificationSettingsTab } from "@/components/CrewNotificationSettingsTab";
-import { useEmploymentHistory, useUpdateEmploymentHistory, useDeleteEmploymentHistory, type EmploymentHistoryRecord, type UpdateEmploymentHistoryInput } from "@/features/crew";
+import { useEmploymentHistory, useUpdateEmploymentHistory, useDeleteEmploymentHistory, formatRank, type EmploymentHistoryRecord, type UpdateEmploymentHistoryInput } from "@/features/crew";
 import { format } from "date-fns";
 
 interface EmploymentHistoryPanelProps {
@@ -86,7 +86,7 @@ export function EmploymentHistoryPanel({ crewId }: EmploymentHistoryPanelProps) 
                     <Badge variant={record.terminationType === "retired" ? "secondary" : "destructive"}>
                       {record.terminationType === "retired" ? "Retired" : "Contract Cancelled"}
                     </Badge>
-                    {record.rank && <Badge variant="outline">{record.rank}</Badge>}
+                    {record.rank && <Badge variant="outline">{formatRank(record.rank)}</Badge>}
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {format(new Date(record.startDate), "MMM d, yyyy")} - {record.endDate ? format(new Date(record.endDate), "MMM d, yyyy") : "Present"}
@@ -255,7 +255,7 @@ export function CrewViewDialogContent({ crew, vessels }: CrewViewDialogContentPr
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">Rank</p>
-            <p className="font-medium">{crew.rank}</p>
+            <p className="font-medium">{formatRank(crew.rank)}</p>
           </div>
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">Vessel</p>

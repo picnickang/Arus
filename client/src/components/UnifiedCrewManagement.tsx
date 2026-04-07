@@ -16,7 +16,7 @@ import { CertificationExpiryAlertBanner } from "@/components/CertificationExpiry
 import { DocumentExpiryAlertBanner } from "@/components/DocumentExpiryAlerts";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ActiveCrewStats, FormerCrewStats, CrewViewDialogContent } from "@/components/unified-crew-components";
-import { MARITIME_RANKS, COMMON_SKILLS, capitalizeNames, type SortField, useUnifiedCrewData, useFormerCrew, useRetireCrew, useCancelContract, useReinstateCrew, useDeleteFormerCrew, type EmploymentHistoryRecord } from "@/features/crew";
+import { MARITIME_RANKS, COMMON_SKILLS, capitalizeNames, formatRank, type SortField, useUnifiedCrewData, useFormerCrew, useRetireCrew, useCancelContract, useReinstateCrew, useDeleteFormerCrew, type EmploymentHistoryRecord } from "@/features/crew";
 import { format } from "date-fns";
 
 export function UnifiedCrewManagement() {
@@ -278,7 +278,7 @@ export function UnifiedCrewManagement() {
                         {member.name}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{member.rank}</Badge>
+                        <Badge variant="outline">{formatRank(member.rank)}</Badge>
                       </TableCell>
                       {!isFormerView && (
                         <>
@@ -786,7 +786,7 @@ export function UnifiedCrewManagement() {
                       </FormControl>
                       <SelectContent>
                         {d.crew.map((member) => (
-                          <SelectItem key={member.id} value={member.id}>{member.name} ({member.rank})</SelectItem>
+                          <SelectItem key={member.id} value={member.id}>{member.name} ({formatRank(member.rank)})</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -851,7 +851,7 @@ export function UnifiedCrewManagement() {
         open={d.isViewProfileDialogOpen}
         onOpenChange={(open) => { if (!open) d.closeProfileDialog(); }}
         title={d.viewingCrew ? `${d.viewingCrew.name}` : "Crew Profile"}
-        description={d.viewingCrew ? `${d.viewingCrew.rank} - View and manage crew member details` : ""}
+        description={d.viewingCrew ? `${formatRank(d.viewingCrew.rank)} - View and manage crew member details` : ""}
         className="max-w-2xl"
       >
         {d.viewingCrew && <CrewViewDialogContent crew={d.viewingCrew} vessels={d.vessels} />}

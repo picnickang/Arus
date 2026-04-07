@@ -67,6 +67,7 @@ export interface UseShiftPlanningReturn {
   handleAddDrydock: () => void;
   getShiftTime: (start: string, end: string) => string;
   getCrewName: (crewId: string) => string;
+  getVesselName: (vesselId: string) => string;
   clearFilters: () => void;
 }
 
@@ -170,7 +171,8 @@ export function useShiftPlanning(): UseShiftPlanningReturn {
   };
 
   const getShiftTime = (start: string, end: string) => getShiftTimeRange(start, end);
-  const getCrewName = (crewId: string) => { const member = crew.find((c: Crew) => c.id === crewId); return member ? `${member.name} (${member.rank})` : crewId; };
+  const getCrewName = (crewId: string) => { const member = crew.find((c: Crew) => c.id === crewId); return member ? `${member.name} (${member.rank})` : "Unknown Crew"; };
+  const getVesselName = (vesselId: string) => { const vessel = vessels.find((v: VesselData) => v.id === vesselId); return vessel ? vessel.name : "Fleet"; };
   const clearFilters = () => { setFilterVessel("all"); setFilterCrew("all"); setSearchQuery(""); };
 
   return {
@@ -184,6 +186,6 @@ export function useShiftPlanning(): UseShiftPlanningReturn {
     certifications, leaves, isLoadingLeaves, createShiftMutation, updateShiftMutation, deleteShiftMutation,
     planScheduleMutation, enhancedScheduleMutation, addPortCallMutation, addDrydockMutation,
     onSubmitShift, handleEditShift, handleCancelShiftEdit, handlePlanSchedule, handleEnhancedPlanSchedule,
-    handleAddPortCall, handleAddDrydock, getShiftTime, getCrewName, clearFilters,
+    handleAddPortCall, handleAddDrydock, getShiftTime, getCrewName, getVesselName, clearFilters,
   };
 }

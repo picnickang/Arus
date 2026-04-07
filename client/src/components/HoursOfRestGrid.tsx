@@ -410,8 +410,8 @@ return (
          <Input
               type="number"
               placeholder="Year"
-              value={meta.year || 2025}
-              onChange={(e) => setMeta({ ...meta, year: Number(e.target.value) || 2025 })}
+              value={meta.year || new Date().getFullYear()}
+              onChange={(e) => setMeta({ ...meta, year: Number(e.target.value) || new Date().getFullYear() })}
               data-testid="input-year-grid"
          />
        </div>
@@ -426,7 +426,7 @@ return (
               <span className="text-lg">✓</span>
               <span>
                 Ready to edit hours of rest for{" "}
-                         <strong>{selectedCrewName ?? meta.crew_id}</strong>{" "}
+                         <strong>{selectedCrewName ?? "Selected Crew Member"}</strong>{" "}
                          ({meta.month} {meta.year})
                     </span>
                </p>

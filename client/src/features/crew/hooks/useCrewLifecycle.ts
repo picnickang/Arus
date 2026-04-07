@@ -65,6 +65,7 @@ export function useRetireCrew() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: crewKeys.all });
+      queryClient.refetchQueries({ queryKey: crewKeys.all });
       queryClient.invalidateQueries({ queryKey: lifecycleKeys.former() });
       queryClient.invalidateQueries({ queryKey: lifecycleKeys.history(variables.crewId) });
       toast({ title: "Crew member retired", description: "Employment record has been updated" });
@@ -85,6 +86,7 @@ export function useCancelContract() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: crewKeys.all });
+      queryClient.refetchQueries({ queryKey: crewKeys.all });
       queryClient.invalidateQueries({ queryKey: lifecycleKeys.former() });
       queryClient.invalidateQueries({ queryKey: lifecycleKeys.history(variables.crewId) });
       toast({ title: "Contract cancelled", description: "Employment record has been updated" });
@@ -105,6 +107,7 @@ export function useReinstateCrew() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: crewKeys.all });
+      queryClient.refetchQueries({ queryKey: crewKeys.all });
       queryClient.invalidateQueries({ queryKey: lifecycleKeys.former() });
       queryClient.invalidateQueries({ queryKey: lifecycleKeys.history(variables.crewId) });
       toast({ title: "Crew member reinstated", description: "They are now back on the active roster" });
