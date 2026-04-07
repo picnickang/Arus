@@ -1,11 +1,13 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { IntelligenceLayout } from "@/components/intelligence/IntelligenceLayout";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, Database, BarChart3, Box, Zap, AlertTriangle, TrendingUp, TrendingDown, Minus, RefreshCw, ArrowUp, ArrowDown, CheckCircle2, Play, Upload, FlaskConical, FileBox, Shield, Eye, CheckCheck, XCircle } from "lucide-react";
+import { Loader2, Database, BarChart3, Box, Zap, AlertTriangle, TrendingUp, TrendingDown, Minus, RefreshCw, ArrowUp, ArrowDown, CheckCircle2, Play, Upload, FlaskConical, FileBox, Shield, Eye, CheckCheck, XCircle, Wrench, ExternalLink, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLatestFeatures, useComputeFeatures } from "@/features/pdm/hooks/use-feature-store";
 import { useFleetBaselines, useFleetComparison, useComputeBaselines } from "@/features/pdm/hooks/use-fleet-analytics";
@@ -16,12 +18,123 @@ import { useTrainingDatasets, useTrainingRuns, useCreateDataset, useStartTrainin
 import { usePredictionGovernance, useGovernanceDetail, useReviewPrediction, useApprovePrediction, useSuppressPrediction } from "@/features/pdm/hooks/usePredictionGovernance";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { EquipmentSelector } from "@/components/shared/EquipmentSelector";
+
+interface Equipment {
+  id: string;
+  name?: string;
+  type?: string;
+  vesselId?: string;
+}
+
+function useEquipmentName(equipmentId: string) {
+  const { data: equipment = [] } = useQuery<Equipment[]>({ queryKey: ["/api/equipment"] });
+  if (!equipmentId) return "";
+  const eq = equipment.find((e) => e.id === equipmentId);
+  return eq?.name || equipmentId;
+}
+
+function useEquipmentTypes() {
+  const { data: equipment = [] } = useQuery<Equipment[]>({ queryKey: ["/api/equipment"] });
+  const types = Array.from(new Set(equipment.map((e) => e.type).filter(Boolean))) as string[];
+  return types.length > 0 ? types : ["engine", "pump", "compressor", "generator", "bearing", "turbine"];
+}
+
+function EquipmentLink({ equipmentId }: { equipmentId: string }) {
+  const [, navigate] = useLocation();
+  const name = useEquipmentName(equipmentId);
+  return (
+    <button
+      data-testid={`link-equipment-${equipmentId}`}
+      onClick={() => navigate(`/equipment/${equipmentId}`)}
+      className="inline-flex items-center gap-1 text-primary hover:underline font-medium"
+    >
+      {name}
+      <ExternalLink className="w-3 h-3" />
+    </button>
+  );
+}
+
+function TimestampBadge({ label, timestamp }: { label: string; timestamp?: string | Date | null }) {
+  if (!timestamp) return null;
+  const d = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
+  const relative = getRelativeTime(d);
+  return (
+    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+      <Clock className="w-3 h-3" />
+      {label}: {relative}
+    </span>
+  );
+}
+
+function getRelativeTime(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return "just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHrs = Math.floor(diffMin / 60);
+  if (diffHrs < 24) return `${diffHrs}h ago`;
+  const diffDays = Math.floor(diffHrs / 24);
+  return `${diffDays}d ago`;
+}
+
+function SummaryDashboard() {
+  const { data: models } = useModels();
+  const { data: pendingPredictions } = usePredictionGovernance("pending");
+  const { data: allPredictions } = usePredictionGovernance();
+
+  const modelsList = Array.isArray(models) ? models : [];
+  const deployedCount = modelsList.filter((m: any) => m.status === "deployed").length;
+  const totalModels = modelsList.length;
+  const pendingCount = Array.isArray(pendingPredictions) ? pendingPredictions.length : 0;
+  const totalPredictions = Array.isArray(allPredictions) ? allPredictions.length : 0;
+  const criticalPredictions = Array.isArray(allPredictions)
+    ? allPredictions.filter((p: any) => p.riskLevel === "critical" || p.riskLevel === "high").length
+    : 0;
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <Card>
+        <CardContent className="p-4">
+          <div className="text-xs text-muted-foreground">Deployed Models</div>
+          <div className="text-2xl font-bold" data-testid="text-summary-deployed">{deployedCount}</div>
+          <div className="text-xs text-muted-foreground">{totalModels} total registered</div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent className="p-4">
+          <div className="text-xs text-muted-foreground">High-Risk Predictions</div>
+          <div className="text-2xl font-bold" data-testid="text-summary-high-risk">
+            {criticalPredictions}
+          </div>
+          <div className="text-xs text-muted-foreground">{totalPredictions} total predictions</div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent className="p-4">
+          <div className="text-xs text-muted-foreground">Pending Reviews</div>
+          <div className="text-2xl font-bold" data-testid="text-summary-pending">{pendingCount}</div>
+          <div className="text-xs text-muted-foreground">governance queue</div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent className="p-4">
+          <div className="text-xs text-muted-foreground">Registered Models</div>
+          <div className="text-2xl font-bold" data-testid="text-summary-total-models">{totalModels}</div>
+          <div className="text-xs text-muted-foreground">{modelsList.filter((m: any) => m.type).map((m: any) => m.type).filter((v: string, i: number, a: string[]) => a.indexOf(v) === i).join(", ") || "none"}</div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 function FeatureStoreTab() {
   const [equipmentId, setEquipmentId] = useState("");
   const { data: features, isLoading, refetch } = useLatestFeatures(equipmentId);
   const computeMutation = useComputeFeatures();
   const { toast } = useToast();
+  const equipmentName = useEquipmentName(equipmentId);
 
   const handleCompute = async () => {
     if (!equipmentId) return;
@@ -54,14 +167,14 @@ function FeatureStoreTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <input
-          data-testid="input-equipment-id-features"
-          type="text"
-          placeholder="Enter equipment ID"
-          value={equipmentId}
-          onChange={(e) => setEquipmentId(e.target.value)}
-          className="flex h-10 w-72 rounded-md border border-input bg-background px-3 py-2 text-sm"
-        />
+        <div className="w-72">
+          <EquipmentSelector
+            value={equipmentId}
+            onValueChange={setEquipmentId}
+            placeholder="Select equipment"
+            data-testid="input-equipment-id-features"
+          />
+        </div>
         <Button data-testid="button-compute-features" onClick={handleCompute} disabled={!equipmentId || computeMutation.isPending}>
           {computeMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
           Compute Features
@@ -75,8 +188,13 @@ function FeatureStoreTab() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle data-testid="text-features-title" className="text-lg">Latest Equipment Features</CardTitle>
-                <CardDescription>Window: {features.windowMinutes ?? 60} min | Samples: {sampleCount}</CardDescription>
+                <CardTitle data-testid="text-features-title" className="text-lg flex items-center gap-2">
+                  Features: <EquipmentLink equipmentId={equipmentId} />
+                </CardTitle>
+                <CardDescription className="flex items-center gap-3">
+                  <span>Window: {features.windowMinutes ?? 60} min | Samples: {sampleCount}</span>
+                  <TimestampBadge label="Computed" timestamp={features.computedAt || features.createdAt} />
+                </CardDescription>
               </div>
               <Badge
                 data-testid="badge-data-source"
@@ -102,7 +220,7 @@ function FeatureStoreTab() {
       )}
 
       {equipmentId && !isLoading && featureEntries.length === 0 && (
-        <Card><CardContent className="py-8 text-center text-muted-foreground">No features computed yet. Click "Compute Features" to start.</CardContent></Card>
+        <Card><CardContent className="py-8 text-center text-muted-foreground">No features computed yet for {equipmentName}. Click "Compute Features" to start.</CardContent></Card>
       )}
     </div>
   );
@@ -112,28 +230,47 @@ function FleetAnalyticsTab() {
   const [equipmentType, setEquipmentType] = useState("engine");
   const [equipmentId, setEquipmentId] = useState("");
   const { data: baselines, isLoading: baselinesLoading } = useFleetBaselines(equipmentType);
-  const { data: comparison, isLoading: comparisonLoading } = useFleetComparison(equipmentId, equipmentType);
+  const { data: comparison } = useFleetComparison(equipmentId, equipmentType);
   const computeMutation = useComputeBaselines();
   const { toast } = useToast();
+  const equipmentTypes = useEquipmentTypes();
 
   const statusColor = (status: string) => status === "critical" ? "destructive" : status === "warning" ? "secondary" : "default";
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3 flex-wrap">
-        <input data-testid="input-equipment-type" type="text" placeholder="Equipment type" value={equipmentType} onChange={(e) => setEquipmentType(e.target.value)} className="flex h-10 w-48 rounded-md border border-input bg-background px-3 py-2 text-sm" />
+        <div className="w-48">
+          <Select value={equipmentType} onValueChange={setEquipmentType}>
+            <SelectTrigger data-testid="input-equipment-type">
+              <SelectValue placeholder="Equipment type" />
+            </SelectTrigger>
+            <SelectContent>
+              {equipmentTypes.map((t) => (
+                <SelectItem key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <Button data-testid="button-compute-baselines" onClick={() => computeMutation.mutateAsync(equipmentType).then(() => toast({ title: "Baselines computed from feature records" })).catch(() => toast({ title: "Failed to compute baselines", variant: "destructive" }))} disabled={!equipmentType || computeMutation.isPending}>
           {computeMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
           Compute Baselines
         </Button>
-        <input data-testid="input-equipment-id-compare" type="text" placeholder="Equipment ID for comparison" value={equipmentId} onChange={(e) => setEquipmentId(e.target.value)} className="flex h-10 w-72 rounded-md border border-input bg-background px-3 py-2 text-sm" />
+        <div className="w-72">
+          <EquipmentSelector
+            value={equipmentId}
+            onValueChange={setEquipmentId}
+            placeholder="Select equipment to compare"
+            data-testid="input-equipment-id-compare"
+          />
+        </div>
       </div>
 
       {baselinesLoading && <div className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Loading baselines...</div>}
 
       {Array.isArray(baselines) && baselines.length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="text-lg">Fleet Baselines: {equipmentType}</CardTitle><CardDescription>{baselines[0]?.sampleSize ?? 0} source records</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="text-lg">Fleet Baselines: {equipmentType.charAt(0).toUpperCase() + equipmentType.slice(1)}</CardTitle><CardDescription>{baselines[0]?.sampleSize ?? 0} source records</CardDescription></CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -154,9 +291,14 @@ function FleetAnalyticsTab() {
         </Card>
       )}
 
-      {Array.isArray(comparison) && comparison.length > 0 && (
+      {equipmentId && Array.isArray(comparison) && comparison.length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="text-lg">Fleet Comparison</CardTitle><CardDescription>Equipment vs fleet average with z-scores and percentiles</CardDescription></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              Fleet Comparison: <EquipmentLink equipmentId={equipmentId} />
+            </CardTitle>
+            <CardDescription>Equipment vs fleet average with z-scores and percentiles</CardDescription>
+          </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {comparison.map((c: any) => (
@@ -183,7 +325,7 @@ function FleetAnalyticsTab() {
   );
 }
 
-function ModelRegistryTab() {
+function ModelRegistryTab({ highlightedVersionId }: { highlightedVersionId?: string | null }) {
   const { data: models, isLoading } = useModels();
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
   const { data: versions } = useModelVersions(selectedModelId ?? "");
@@ -220,7 +362,7 @@ function ModelRegistryTab() {
           <CardContent>
             <div className="space-y-2">
               {versions.map((v: any) => (
-                <div key={v.id} className="flex items-center justify-between p-3 rounded-lg border" data-testid={`row-version-${v.id}`}>
+                <div key={v.id} className={`flex items-center justify-between p-3 rounded-lg border ${highlightedVersionId === v.id ? 'ring-2 ring-primary bg-primary/5' : ''}`} data-testid={`row-version-${v.id}`}>
                   <div>
                     <span className="font-medium">v{v.version}</span>
                     <span className="text-sm text-muted-foreground ml-2">{v.artifactPath || "no artifact"}</span>
@@ -255,15 +397,20 @@ function InferenceTab() {
   const [equipmentId, setEquipmentId] = useState("");
   const [lastPredictionId, setLastPredictionId] = useState<number | null>(null);
   const [lastResult, setLastResult] = useState<any>(null);
+  const [lastInferredEquipmentId, setLastInferredEquipmentId] = useState("");
+  const [inferenceTime, setInferenceTime] = useState<Date | null>(null);
   const inferenceMutation = useRunInference();
   const { data: explanations } = usePredictionExplanations(lastPredictionId);
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   const handleInference = async () => {
     if (!equipmentId) return;
     try {
       const result = await inferenceMutation.mutateAsync({ equipmentId });
       setLastResult(result);
+      setLastInferredEquipmentId(equipmentId);
+      setInferenceTime(new Date());
       if (result.inferenceRun?.predictionId) setLastPredictionId(result.inferenceRun.predictionId);
       toast({ title: "Inference completed" });
     } catch {
@@ -276,7 +423,14 @@ function InferenceTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <input data-testid="input-equipment-id-inference" type="text" placeholder="Equipment ID" value={equipmentId} onChange={(e) => setEquipmentId(e.target.value)} className="flex h-10 w-72 rounded-md border border-input bg-background px-3 py-2 text-sm" />
+        <div className="w-72">
+          <EquipmentSelector
+            value={equipmentId}
+            onValueChange={setEquipmentId}
+            placeholder="Select equipment"
+            data-testid="input-equipment-id-inference"
+          />
+        </div>
         <Button data-testid="button-run-inference" onClick={handleInference} disabled={!equipmentId || inferenceMutation.isPending}>
           {inferenceMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap className="w-4 h-4 mr-2" />}
           Run Inference
@@ -287,11 +441,20 @@ function InferenceTab() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Prediction Result</CardTitle>
-              <Badge variant="outline" className="text-xs">
-                {lastResult.inferenceRun?.status === "completed" ? <CheckCircle2 className="w-3 h-3 mr-1" /> : null}
-                {lastResult.inferenceRun?.status}
-              </Badge>
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  Prediction: <EquipmentLink equipmentId={lastInferredEquipmentId} />
+                </CardTitle>
+                <CardDescription className="flex items-center gap-2">
+                  <TimestampBadge label="Ran" timestamp={inferenceTime} />
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">
+                  {lastResult.inferenceRun?.status === "completed" ? <CheckCircle2 className="w-3 h-3 mr-1" /> : null}
+                  {lastResult.inferenceRun?.status}
+                </Badge>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -313,6 +476,18 @@ function InferenceTab() {
                 <div className="text-2xl font-bold">{lastResult.inferenceRun?.latencyMs}ms</div>
               </div>
             </div>
+
+            <div className="mt-4 flex items-center gap-3">
+              <Button
+                data-testid="button-create-wo-inference"
+                variant="outline"
+                onClick={() => navigate(`/work-orders?action=create&equipmentId=${lastInferredEquipmentId}`)}
+              >
+                <Wrench className="w-4 h-4 mr-2" />
+                Create Work Order
+              </Button>
+            </div>
+
             {lastResult.prediction.recommendations?.length > 0 && (
               <div className="mt-4">
                 <div className="text-sm font-medium mb-2">Recommendations:</div>
@@ -352,19 +527,50 @@ function InferenceTab() {
 }
 
 function DriftMonitoringTab() {
-  const [modelVersionId, setModelVersionId] = useState("");
-  const { data: driftMetrics, isLoading } = useModelDrift(modelVersionId);
+  const { data: models } = useModels();
+  const [selectedModelId, setSelectedModelId] = useState("");
+  const { data: versions } = useModelVersions(selectedModelId);
+  const [selectedVersionId, setSelectedVersionId] = useState("");
+  const { data: driftMetrics, isLoading } = useModelDrift(selectedVersionId);
   const computeMutation = useComputeDrift();
   const { toast } = useToast();
+
+  const modelsList = Array.isArray(models) ? models : [];
+  const versionsList = Array.isArray(versions) ? versions : [];
 
   const driftedCount = Array.isArray(driftMetrics) ? driftMetrics.filter((d: any) => d.driftDetected).length : 0;
   const totalCount = Array.isArray(driftMetrics) ? driftMetrics.length : 0;
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <input data-testid="input-model-version-id" type="text" placeholder="Model Version ID" value={modelVersionId} onChange={(e) => setModelVersionId(e.target.value)} className="flex h-10 w-72 rounded-md border border-input bg-background px-3 py-2 text-sm" />
-        <Button data-testid="button-compute-drift" onClick={() => computeMutation.mutateAsync({ modelVersionId }).then(() => toast({ title: "Drift computed (normalized mean shift)" })).catch(() => toast({ title: "Failed to compute drift", variant: "destructive" }))} disabled={!modelVersionId || computeMutation.isPending}>
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="w-64">
+          <Select value={selectedModelId} onValueChange={(v) => { setSelectedModelId(v); setSelectedVersionId(""); }}>
+            <SelectTrigger data-testid="select-drift-model">
+              <SelectValue placeholder="Select model" />
+            </SelectTrigger>
+            <SelectContent>
+              {modelsList.map((m: any) => (
+                <SelectItem key={m.id} value={m.id}>{m.name} ({m.type})</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {selectedModelId && (
+          <div className="w-64">
+            <Select value={selectedVersionId} onValueChange={setSelectedVersionId}>
+              <SelectTrigger data-testid="input-model-version-id">
+                <SelectValue placeholder="Select version" />
+              </SelectTrigger>
+              <SelectContent>
+                {versionsList.map((v: any) => (
+                  <SelectItem key={v.id} value={v.id}>v{v.version} — {v.status}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        <Button data-testid="button-compute-drift" onClick={() => computeMutation.mutateAsync({ modelVersionId: selectedVersionId }).then(() => toast({ title: "Drift computed (normalized mean shift)" })).catch(() => toast({ title: "Failed to compute drift", variant: "destructive" }))} disabled={!selectedVersionId || computeMutation.isPending}>
           {computeMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
           Compute Drift
         </Button>
@@ -426,9 +632,9 @@ function ArtifactsViewer({ modelVersionId }: { modelVersionId: string }) {
               <div className="text-xs text-muted-foreground">{a.framework} / {a.format}</div>
             </div>
           </div>
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            {a.sizeBytes && <span>{(a.sizeBytes / 1024).toFixed(1)} KB</span>}
-            {a.checksum && <span className="font-mono text-xs">{a.checksum.substring(0, 12)}...</span>}
+          <div className="flex items-center gap-2">
+            {a.sizeBytes && <span className="text-xs text-muted-foreground">{(a.sizeBytes / 1024 / 1024).toFixed(1)} MB</span>}
+            <Badge variant="outline">{a.status || "stored"}</Badge>
           </div>
         </div>
       ))}
@@ -443,37 +649,37 @@ function TrainingPipelineTab() {
   const startRunMutation = useStartTrainingRun();
   const promoteMutation = usePromoteRun();
   const { toast } = useToast();
+  const { data: models } = useModels();
 
   const [showCreateDataset, setShowCreateDataset] = useState(false);
   const [showStartRun, setShowStartRun] = useState(false);
   const [showPromote, setShowPromote] = useState<string | null>(null);
   const [expandedRunArtifact, setExpandedRunArtifact] = useState<string | null>(null);
 
-  const [datasetForm, setDatasetForm] = useState({ name: "", sourceType: "telemetry", description: "", labelColumn: "", targetType: "failure_prediction", rowCount: "" });
-  const [runForm, setRunForm] = useState({ datasetId: "", learningRate: "0.001", epochs: "100", batchSize: "32" });
+  const [datasetForm, setDatasetForm] = useState({ name: "", sourceType: "telemetry", description: "", labelColumn: "failure", rowCount: "" });
+  const [runForm, setRunForm] = useState({ datasetId: "", learningRate: "0.001", epochs: "50", batchSize: "32" });
   const [promoteForm, setPromoteForm] = useState({ modelId: "", version: "", changelog: "" });
 
+  const modelsList = Array.isArray(models) ? models : [];
+
   const handleCreateDataset = async () => {
-    if (!datasetForm.name || !datasetForm.sourceType) return;
     try {
       await createDatasetMutation.mutateAsync({
         name: datasetForm.name,
         sourceType: datasetForm.sourceType,
         description: datasetForm.description || undefined,
         labelColumn: datasetForm.labelColumn || undefined,
-        targetType: datasetForm.targetType || undefined,
         rowCount: datasetForm.rowCount ? parseInt(datasetForm.rowCount) : undefined,
       });
       toast({ title: "Dataset created successfully" });
       setShowCreateDataset(false);
-      setDatasetForm({ name: "", sourceType: "telemetry", description: "", labelColumn: "", targetType: "failure_prediction", rowCount: "" });
+      setDatasetForm({ name: "", sourceType: "telemetry", description: "", labelColumn: "failure", rowCount: "" });
     } catch {
       toast({ title: "Failed to create dataset", variant: "destructive" });
     }
   };
 
   const handleStartRun = async () => {
-    if (!runForm.datasetId) return;
     try {
       await startRunMutation.mutateAsync({
         datasetId: runForm.datasetId,
@@ -485,14 +691,13 @@ function TrainingPipelineTab() {
       });
       toast({ title: "Training run started" });
       setShowStartRun(false);
-      setRunForm({ datasetId: "", learningRate: "0.001", epochs: "100", batchSize: "32" });
+      setRunForm({ datasetId: "", learningRate: "0.001", epochs: "50", batchSize: "32" });
     } catch {
       toast({ title: "Failed to start training run", variant: "destructive" });
     }
   };
 
   const handlePromote = async (runId: string) => {
-    if (!promoteForm.modelId || !promoteForm.version) return;
     try {
       await promoteMutation.mutateAsync({
         runId,
@@ -732,7 +937,7 @@ function TrainingPipelineTab() {
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <label className="text-sm font-medium">Dataset ID</label>
+              <label className="text-sm font-medium">Dataset</label>
               {Array.isArray(datasets) && datasets.length > 0 ? (
                 <select
                   data-testid="select-run-dataset"
@@ -806,15 +1011,28 @@ function TrainingPipelineTab() {
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <label className="text-sm font-medium">Model ID</label>
-              <input
-                data-testid="input-promote-model-id"
-                type="text"
-                value={promoteForm.modelId}
-                onChange={(e) => setPromoteForm({ ...promoteForm, modelId: e.target.value })}
-                placeholder="Target model ID"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-1"
-              />
+              <label className="text-sm font-medium">Target Model</label>
+              {modelsList.length > 0 ? (
+                <Select value={promoteForm.modelId} onValueChange={(v) => setPromoteForm({ ...promoteForm, modelId: v })}>
+                  <SelectTrigger data-testid="input-promote-model-id" className="mt-1">
+                    <SelectValue placeholder="Select model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {modelsList.map((m: any) => (
+                      <SelectItem key={m.id} value={m.id}>{m.name} ({m.type})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <input
+                  data-testid="input-promote-model-id"
+                  type="text"
+                  value={promoteForm.modelId}
+                  onChange={(e) => setPromoteForm({ ...promoteForm, modelId: e.target.value })}
+                  placeholder="Target model ID"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-1"
+                />
+              )}
             </div>
             <div>
               <label className="text-sm font-medium">Version</label>
@@ -852,13 +1070,14 @@ function TrainingPipelineTab() {
   );
 }
 
-function GovernanceTab() {
+function GovernanceTab({ onSwitchToModels }: { onSwitchToModels: (modelId: string) => void }) {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedPredictionId, setSelectedPredictionId] = useState<number | null>(null);
   const [suppressDialogOpen, setSuppressDialogOpen] = useState(false);
   const [suppressTargetId, setSuppressTargetId] = useState<number | null>(null);
   const [suppressReason, setSuppressReason] = useState("");
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   const queryStatus = statusFilter === "all" ? undefined : statusFilter;
   const { data: predictions, isLoading } = usePredictionGovernance(queryStatus);
@@ -954,7 +1173,7 @@ function GovernanceTab() {
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold" data-testid={`text-equipment-${p.id}`}>{p.equipmentId}</span>
+                    <EquipmentLink equipmentId={p.equipmentId} />
                     <Badge variant={riskBadgeVariant(p.riskLevel)} data-testid={`badge-risk-${p.id}`}>{p.riskLevel}</Badge>
                     <Badge variant={statusBadgeVariant(p.reviewStatus || "pending")} data-testid={`badge-status-${p.id}`}>{p.reviewStatus || "pending"}</Badge>
                   </div>
@@ -962,7 +1181,16 @@ function GovernanceTab() {
                     <span>Probability: {((p.failureProbability ?? 0) * 100).toFixed(1)}%</span>
                     {p.remainingUsefulLife != null && <span>RUL: {p.remainingUsefulLife}d</span>}
                     {p.predictionValidUntil && <span>Valid until: {new Date(p.predictionValidUntil).toLocaleDateString()}</span>}
-                    {p.modelVersionId && <span>Model: {p.modelVersionId.slice(0, 8)}</span>}
+                    {p.modelVersionId && (
+                      <button
+                        className="text-primary hover:underline inline-flex items-center gap-1"
+                        data-testid={`link-model-${p.id}`}
+                        onClick={(e) => { e.stopPropagation(); onSwitchToModels(p.modelVersionId); }}
+                      >
+                        Model: {p.modelVersionId.slice(0, 8)}
+                        <ExternalLink className="w-3 h-3" />
+                      </button>
+                    )}
                     {p.featureSetVersion && <span>Features: {p.featureSetVersion}</span>}
                   </div>
                 </div>
@@ -982,6 +1210,14 @@ function GovernanceTab() {
                       <XCircle className="w-4 h-4 mr-1" /> Suppress
                     </Button>
                   )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    data-testid={`button-create-wo-governance-${p.id}`}
+                    onClick={(e) => { e.stopPropagation(); navigate(`/work-orders?action=create&equipmentId=${p.equipmentId}`); }}
+                  >
+                    <Wrench className="w-4 h-4 mr-1" /> Work Order
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -992,15 +1228,13 @@ function GovernanceTab() {
       {selectedPredictionId && detail && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg" data-testid="text-provenance-title">Provenance Details</CardTitle>
-            <CardDescription>Full governance and provenance information for prediction #{selectedPredictionId}</CardDescription>
+            <CardTitle className="text-lg flex items-center gap-2">
+              Prediction Detail: <EquipmentLink equipmentId={detail.equipmentId} />
+            </CardTitle>
+            <CardDescription>Full provenance and audit trail</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-              <div>
-                <div className="text-muted-foreground">Equipment</div>
-                <div className="font-medium" data-testid="text-provenance-equipment">{detail.equipmentId}</div>
-              </div>
               <div>
                 <div className="text-muted-foreground">Risk Level</div>
                 <Badge variant={riskBadgeVariant(detail.riskLevel)} data-testid="text-provenance-risk">{detail.riskLevel}</Badge>
@@ -1027,7 +1261,18 @@ function GovernanceTab() {
               </div>
               <div>
                 <div className="text-muted-foreground">Model Version</div>
-                <div className="font-medium" data-testid="text-provenance-model-version">{detail.modelVersionId || "N/A"}</div>
+                <div className="font-medium" data-testid="text-provenance-model-version">
+                  {detail.modelVersionId ? (
+                    <button
+                      data-testid="link-detail-model-version"
+                      className="text-primary hover:underline inline-flex items-center gap-1"
+                      onClick={() => onSwitchToModels(detail.modelVersionId)}
+                    >
+                      {detail.modelVersionId.slice(0, 12)}
+                      <ExternalLink className="w-3 h-3" />
+                    </button>
+                  ) : "N/A"}
+                </div>
               </div>
               <div>
                 <div className="text-muted-foreground">Feature Set Version</div>
@@ -1087,12 +1332,22 @@ function GovernanceTab() {
 }
 
 export default function PdmPlatformPage() {
+  const [activeTab, setActiveTab] = useState("features");
+  const [highlightedModelVersionId, setHighlightedModelVersionId] = useState<string | null>(null);
+
+  const handleSwitchToModels = (modelVersionId: string) => {
+    setHighlightedModelVersionId(modelVersionId);
+    setActiveTab("models");
+  };
+
   return (
     <IntelligenceLayout>
       <div className="container mx-auto p-6 space-y-6">
       <p className="text-xs text-slate-500">Feature Store, Fleet Analytics, Model Registry, Training Pipeline, Inference, Monitoring, and Governance</p>
 
-      <Tabs defaultValue="features" className="w-full">
+      <SummaryDashboard />
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="features" data-testid="tab-features"><Database className="w-4 h-4 mr-1" /> Features</TabsTrigger>
           <TabsTrigger value="fleet" data-testid="tab-fleet"><BarChart3 className="w-4 h-4 mr-1" /> Fleet</TabsTrigger>
@@ -1105,11 +1360,11 @@ export default function PdmPlatformPage() {
 
         <TabsContent value="features" className="mt-4"><FeatureStoreTab /></TabsContent>
         <TabsContent value="fleet" className="mt-4"><FleetAnalyticsTab /></TabsContent>
-        <TabsContent value="models" className="mt-4"><ModelRegistryTab /></TabsContent>
+        <TabsContent value="models" className="mt-4"><ModelRegistryTab highlightedVersionId={highlightedModelVersionId} /></TabsContent>
         <TabsContent value="training" className="mt-4"><TrainingPipelineTab /></TabsContent>
         <TabsContent value="inference" className="mt-4"><InferenceTab /></TabsContent>
         <TabsContent value="drift" className="mt-4"><DriftMonitoringTab /></TabsContent>
-        <TabsContent value="governance" className="mt-4"><GovernanceTab /></TabsContent>
+        <TabsContent value="governance" className="mt-4"><GovernanceTab onSwitchToModels={handleSwitchToModels} /></TabsContent>
       </Tabs>
       </div>
     </IntelligenceLayout>
