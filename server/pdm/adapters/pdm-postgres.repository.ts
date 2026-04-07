@@ -91,7 +91,8 @@ export class PdmPostgresRepository implements PdmRepositoryPort {
       db.select().from(failurePredictions).where(
         and(
           eq(failurePredictions.orgId, orgId),
-          eq(failurePredictions.riskLevel, 'critical')
+          eq(failurePredictions.riskLevel, 'critical'),
+          gte(failurePredictions.predictionTimestamp, thirtyDaysAgo)
         )
       ),
       db.select({ id: equipment.id }).from(equipment).where(eq(equipment.orgId, orgId)),

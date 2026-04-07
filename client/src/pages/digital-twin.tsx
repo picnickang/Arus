@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -15,6 +16,8 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { IntelligenceLayout } from "@/components/intelligence/IntelligenceLayout";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { useEquipmentName, useEquipmentVesselName } from "@/hooks/use-equipment-lookup";
 import {
   Loader2,
   Box,
@@ -231,7 +234,7 @@ function OverviewTab() {
                 <CardDescription>{t.equipmentType}</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-xs text-muted-foreground">ID: {t.id.slice(0, 8)}...</p>
+                <p className="text-xs text-muted-foreground">{t.description || `${t.equipmentType || "General"} template`}</p>
               </CardContent>
             </Card>
           ))}
@@ -379,6 +382,8 @@ function TwinOverviewCard({
   const isStale = freshness?.isStale ?? true;
   const lastUpdated = freshness?.lastStateUpdate;
   const lastResidual = freshness?.lastResidualUpdate;
+  const equipmentName = useEquipmentName(twin.equipmentId || "");
+  const vesselName = useEquipmentVesselName(twin.equipmentId || "");
 
   return (
     <Card data-testid={`card-twin-${twin.id}`}>
@@ -386,12 +391,25 @@ function TwinOverviewCard({
         <div className="flex items-center justify-between gap-1">
           <CardTitle className="text-base">{twin.name}</CardTitle>
           <div className="flex items-center gap-1 flex-wrap">
-            <Badge
-              variant={isStale ? "destructive" : "default"}
-              data-testid={`badge-freshness-${twin.id}`}
-            >
-              {isStale ? "Stale" : "Fresh"}
-            </Badge>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="cursor-help">
+                    <Badge
+                      variant={isStale ? "destructive" : "default"}
+                      data-testid={`badge-freshness-${twin.id}`}
+                    >
+                      {isStale ? "Stale" : "Fresh"}
+                    </Badge>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isStale
+                    ? "State data is more than 24h old — click Refresh to update"
+                    : "State data is up to date"}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <Badge
               variant={twin.status === "active" ? "default" : "secondary"}
               data-testid={`badge-twin-status-${twin.id}`}
@@ -400,7 +418,9 @@ function TwinOverviewCard({
             </Badge>
           </div>
         </div>
-        <CardDescription>Equipment: {twin.equipmentId?.slice(0, 12)}...</CardDescription>
+        <CardDescription>
+          {equipmentName}{vesselName ? ` — ${vesselName}` : ""}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {state && !state.error ? (

@@ -21,6 +21,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { EquipmentSelector } from "@/components/shared/EquipmentSelector";
 import { useOrganization } from "@/contexts/OrganizationContext";
 
+import { useEquipmentName, useEquipmentVesselName } from "@/hooks/use-equipment-lookup";
+
 interface Equipment {
   id: string;
   name?: string;
@@ -29,23 +31,6 @@ interface Equipment {
 }
 
 interface Vessel { id: string; name: string; }
-
-function useEquipmentName(equipmentId: string) {
-  const { data: equipment = [] } = useQuery<Equipment[]>({ queryKey: ["/api/equipment"] });
-  if (!equipmentId) return "";
-  const eq = equipment.find((e) => e.id === equipmentId);
-  return eq?.name || equipmentId;
-}
-
-function useEquipmentVesselName(equipmentId: string) {
-  const { data: equipment = [] } = useQuery<Equipment[]>({ queryKey: ["/api/equipment"] });
-  const { data: vessels = [] } = useQuery<Vessel[]>({ queryKey: ["/api/vessels"] });
-  if (!equipmentId) return null;
-  const eq = equipment.find((e) => e.id === equipmentId);
-  if (!eq?.vesselId) return null;
-  const v = vessels.find((vessel) => vessel.id === eq.vesselId);
-  return v?.name || null;
-}
 
 function useEquipmentTypes() {
   const { data: equipment = [] } = useQuery<Equipment[]>({ queryKey: ["/api/equipment"] });
@@ -1407,7 +1392,7 @@ export default function PdmPlatformPage() {
   return (
     <IntelligenceLayout>
       <div className="container mx-auto p-6 space-y-6">
-      <p className="text-xs text-slate-500">Feature Store, Fleet Analytics, Model Registry, Training Pipeline, Inference, Monitoring, and Governance</p>
+      <p className="text-xs text-slate-500">Manage predictive models, monitor fleet equipment health, review inference results, and govern maintenance decisions</p>
 
       <SummaryDashboard />
 

@@ -13,34 +13,72 @@ import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { type AnalysisResult, usePdmPackData } from "@/features/maintenance";
 import { formatDate } from "@/lib/formatters";
 import { IntelligenceLayout } from "@/components/intelligence/IntelligenceLayout";
+import { useEquipmentLookup } from "@/hooks/use-equipment-lookup";
 
 const AnalysisResultsCard = ({ result, title, isLoading }: { result: AnalysisResult | null; title: string; isLoading: boolean }) => {
   if (isLoading) {return <Card><CardHeader><CardTitle>{title} Results</CardTitle></CardHeader><CardContent><div className="flex items-center justify-center py-8"><div className="text-muted-foreground">Analyzing...</div></div></CardContent></Card>;}
   if (!result) {return <Card><CardHeader><CardTitle>{title} Results</CardTitle></CardHeader><CardContent><div className="text-center py-8"><p className="text-muted-foreground">Run analysis to see results</p></div></CardContent></Card>;}
   return (
     <Card><CardHeader><CardTitle className="flex items-center gap-2">{title} Results<Badge variant={result.severity === "high" ? "destructive" : result.severity === "warn" ? "secondary" : "outline"} className={result.severity === "high" ? "" : result.severity === "warn" ? "" : "border-green-500 text-green-500"}>{result.severity.toUpperCase()}</Badge></CardTitle></CardHeader><CardContent><div className="space-y-4">
-      <div><Label className="text-sm font-medium">Worst Z-Score</Label><p className="text-2xl font-bold mt-1" data-testid={`worst-z-${title.toLowerCase().replace(" ", "-")}`}>{Number.isFinite(result.worstZ) ? result.worstZ.toFixed(2) : "—"}</p></div>
+      <div><Label className="text-sm font-medium">Highest Deviation</Label><p className="text-2xl font-bold mt-1" data-testid={`worst-z-${title.toLowerCase().replace(" ", "-")}`}>{Number.isFinite(result.worstZ) ? result.worstZ.toFixed(2) : "—"}</p></div>
       <div><Label className="text-sm font-medium">Feature Scores</Label><div className="space-y-2 mt-2">{Object.entries(result.scores).map(([feature, score]) => <div key={feature} className="flex justify-between items-center p-2 border rounded"><span className="text-sm font-mono">{feature}</span><div className="text-right"><div className="text-sm font-medium">Z: {Number.isFinite(score) ? score.toFixed(2) : "—"}</div><div className="text-xs text-muted-foreground">Value: {Number.isFinite(result.features[feature]) ? result.features[feature].toFixed(4) : "—"}</div></div></div>)}</div></div>
       {result.explanation && <div><Label className="text-sm font-medium">Analysis Details</Label><div className="mt-2 p-3 bg-muted rounded text-xs font-mono max-h-96 overflow-auto"><pre>{JSON.stringify(result.explanation, null, 2).slice(0, 4000)}</pre>{JSON.stringify(result.explanation).length > 4000 && <p className="text-yellow-500 mt-2">... (truncated, showing first 4000 chars)</p>}</div></div>}
     </div></CardContent></Card>
   );
 };
 
+function RecentAlertsPanel({ recentAlerts, getSeverityBadgeColor }: { recentAlerts: any[]; getSeverityBadgeColor: (s: string) => string }) {
+  const { resolve } = useEquipmentLookup();
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <AlertCircle className="w-5 h-5" />Recent Alerts
+          <InfoTooltip content="Deviation score shows how unusual a reading is. Values above 2 indicate the measurement is significantly different from normal and may signal a problem." />
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3 max-h-96 overflow-y-auto">
+          {recentAlerts.length === 0 ? (
+            <p className="text-muted-foreground text-center py-4">No recent alerts</p>
+          ) : (
+            recentAlerts.map((alert) => {
+              const resolved = resolve(alert.assetId);
+              return (
+                <div key={alert.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge variant={getSeverityBadgeColor(alert.severity) as "default" | "secondary" | "destructive" | "outline"} className="text-xs">{alert.severity.toUpperCase()}</Badge>
+                      <span className="font-medium text-sm">{resolved.name}{resolved.vessel ? ` — ${resolved.vessel}` : ""}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{alert.feature}: {alert.value.toFixed(2)} (Deviation: {alert.scoreZ.toFixed(1)})</p>
+                    <p className="text-xs text-muted-foreground">{formatDate(alert.at)}</p>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function PdmPack() {
   const p = usePdmPackData();
 
-  if (p.alertsLoading || p.healthLoading) {return <IntelligenceLayout><div className="flex items-center justify-center min-h-screen"><div className="text-muted-foreground">Loading PdM Pack...</div></div></IntelligenceLayout>;}
+  if (p.alertsLoading || p.healthLoading) {return <IntelligenceLayout><div className="flex items-center justify-center min-h-screen"><div className="text-muted-foreground">Loading diagnostics...</div></div></IntelligenceLayout>;}
   if (p.alerts === undefined) {return <IntelligenceLayout><div className="flex items-center justify-center min-h-screen"><div className="text-red-500">Failed to load PdM alerts. Please check your connection.</div></div></IntelligenceLayout>;}
 
   return (
     <IntelligenceLayout>
       <div className="min-h-screen">
       <div className="space-y-6">
-        <div className="flex items-center justify-end px-6 py-2"><Badge variant={p.serviceStatus ? "outline" : "destructive"} className={p.serviceStatus ? "border-green-500 text-green-500" : ""} data-testid="service-status">{p.serviceStatus ? "Operational" : "Service Issue"}</Badge></div>
+        <div className="flex items-center justify-end px-6 py-2"><Badge variant={p.serviceStatus ? "outline" : "destructive"} className={p.serviceStatus ? "border-green-500 text-green-500" : ""} data-testid="service-status">{p.serviceStatus ? "Monitoring Active" : "Monitoring Issue"}</Badge></div>
 
       <div className="p-6 space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-sm">Service Status</p><p className="text-2xl font-bold text-foreground mt-1" data-testid="metric-service-status">{p.serviceStatus ? "Online" : "Offline"}</p></div><div className={`${p.serviceStatus ? "bg-green-500/20" : "bg-red-500/20"} p-3 rounded-lg`}><Activity className={p.serviceStatus ? "text-green-500" : "text-red-500"} size={20} /></div></div></CardContent></Card>
+          <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-sm">Monitoring Status</p><p className="text-2xl font-bold text-foreground mt-1" data-testid="metric-service-status">{p.serviceStatus ? "Active" : "Offline"}</p></div><div className={`${p.serviceStatus ? "bg-green-500/20" : "bg-red-500/20"} p-3 rounded-lg`}><Activity className={p.serviceStatus ? "text-green-500" : "text-red-500"} size={20} /></div></div></CardContent></Card>
           <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-sm">Critical Alerts (24h)</p><p className="text-2xl font-bold text-red-500 mt-1" data-testid="metric-critical-alerts">{p.criticalCount}</p></div><div className="bg-red-500/20 p-3 rounded-lg"><AlertCircle className="text-red-500" size={20} /></div></div></CardContent></Card>
           <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-sm">Warning Alerts (24h)</p><p className="text-2xl font-bold text-yellow-500 mt-1" data-testid="metric-warning-alerts">{p.warningCount}</p></div><div className="bg-yellow-500/20 p-3 rounded-lg"><TrendingUp className="text-yellow-500" size={20} /></div></div></CardContent></Card>
           <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-sm">Total Alerts (24h)</p><p className="text-2xl font-bold text-foreground mt-1" data-testid="metric-total-alerts">{p.recentAlerts.length}</p></div><div className="bg-blue-500/20 p-3 rounded-lg"><BarChart3 className="text-blue-500" size={20} /></div></div></CardContent></Card>
@@ -55,9 +93,9 @@ export default function PdmPack() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
+            <RecentAlertsPanel recentAlerts={p.recentAlerts} getSeverityBadgeColor={p.getSeverityBadgeColor} />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card><CardHeader><CardTitle className="flex items-center gap-2"><AlertCircle className="w-5 h-5" />Recent Alerts<InfoTooltip content="Z-score shows how unusual a reading is. Values above 2 indicate the measurement is significantly different from normal and may signal a problem." /></CardTitle></CardHeader><CardContent><div className="space-y-3 max-h-96 overflow-y-auto">{p.recentAlerts.length === 0 ? <p className="text-muted-foreground text-center py-4">No recent alerts</p> : p.recentAlerts.map((alert) => <div key={alert.id} className="flex items-center justify-between p-3 border rounded-lg"><div className="flex-1"><div className="flex items-center gap-2 mb-1"><Badge variant={p.getSeverityBadgeColor(alert.severity) as "default" | "secondary" | "destructive" | "outline"} className="text-xs">{alert.severity.toUpperCase()}</Badge><span className="font-medium text-sm">{alert.assetId}</span></div><p className="text-xs text-muted-foreground">{alert.feature}: {alert.value.toFixed(2)} (Z-score: {alert.scoreZ.toFixed(1)})</p><p className="text-xs text-muted-foreground">{formatDate(alert.at)}</p></div></div>)}</div></CardContent></Card>
-              <Card><CardHeader><CardTitle className="flex items-center gap-2"><Settings className="w-5 h-5" />Service Information</CardTitle></CardHeader><CardContent><div className="space-y-4"><div><Label className="text-sm font-medium">Service Version</Label><p className="text-sm text-muted-foreground mt-1">PdM Pack v1</p></div><div><Label className="text-sm font-medium">Features</Label><div className="flex flex-wrap gap-2 mt-2">{p.healthData?.features?.map((feature: string) => <Badge key={feature} variant="outline" className="text-xs">{feature.replaceAll('_', " ")}</Badge>)}</div></div><div><Label className="text-sm font-medium">Last Health Check</Label><p className="text-sm text-muted-foreground mt-1">{p.healthData?.timestamp ? formatDate(p.healthData.timestamp) : "Unknown"}</p></div></div></CardContent></Card>
+              <Card><CardHeader><CardTitle className="flex items-center gap-2"><Settings className="w-5 h-5" />Monitoring Configuration</CardTitle></CardHeader><CardContent><div className="space-y-4"><div><Label className="text-sm font-medium">Engine Version</Label><p className="text-sm text-muted-foreground mt-1">Diagnostic Engine v1</p></div><div><Label className="text-sm font-medium">Monitored Parameters</Label><div className="flex flex-wrap gap-2 mt-2">{p.healthData?.features?.map((feature: string) => <Badge key={feature} variant="outline" className="text-xs">{feature.replaceAll('_', " ")}</Badge>)}</div></div><div><Label className="text-sm font-medium">Last Health Check</Label><p className="text-sm text-muted-foreground mt-1">{p.healthData?.timestamp ? formatDate(p.healthData.timestamp) : "Unknown"}</p></div></div></CardContent></Card>
             </div>
           </TabsContent>
 
