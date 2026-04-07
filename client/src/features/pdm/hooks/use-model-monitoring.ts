@@ -15,6 +15,19 @@ export function useModelDrift(modelVersionId: string) {
   });
 }
 
+export function useDriftSummary() {
+  const { currentOrgId } = useOrganization();
+  return useQuery<{ alertCount: number; monitoredVersions: number }>({
+    queryKey: ["/api/pdm/drift", "summary", currentOrgId],
+    queryFn: async () => {
+      const res = await fetch("/api/pdm/drift", { headers: { "x-org-id": currentOrgId } });
+      if (!res.ok) throw new Error("Failed to fetch drift summary");
+      return res.json();
+    },
+    enabled: !!currentOrgId,
+  });
+}
+
 export function useComputeDrift() {
   return useMutation({
     mutationFn: async ({ modelVersionId, windowDays }: { modelVersionId: string; windowDays?: number }) => {

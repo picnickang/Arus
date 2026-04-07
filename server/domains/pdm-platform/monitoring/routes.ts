@@ -5,6 +5,16 @@ import { ModelMonitoringAdapter } from "./adapter";
 const router = Router();
 const monitoring = new ModelMonitoringAdapter();
 
+router.get("/", async (req: Request, res: Response) => {
+  try {
+    const orgId = req.headers["x-org-id"] as string;
+    const summary = await monitoring.getDriftSummary(orgId);
+    res.json(summary);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 const computeDriftSchema = z.object({
   windowDays: z.number().int().positive().optional(),
 });

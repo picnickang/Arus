@@ -157,4 +157,20 @@ export class ModelMonitoringAdapter implements ModelMonitoringPort {
       ))
       .orderBy(desc(modelDriftMetrics.computedAt));
   }
+
+  async getDriftSummary(orgId: string): Promise<{ alertCount: number; monitoredVersions: number }> {
+    const allMetrics = await db.select()
+      .from(modelDriftMetrics)
+      .where(eq(modelDriftMetrics.orgId, orgId));
+
+    const versionIds = new Set(allMetrics.map(m => m.modelVersionId));
+    const alertVersions = new Set(
+      allMetrics.filter(m => m.driftDetected).map(m => m.modelVersionId)
+    );
+
+    return {
+      alertCount: alertVersions.size,
+      monitoredVersions: versionIds.size,
+    };
+  }
 }

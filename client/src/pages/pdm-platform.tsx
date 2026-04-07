@@ -13,12 +13,13 @@ import { useLatestFeatures, useComputeFeatures } from "@/features/pdm/hooks/use-
 import { useFleetBaselines, useFleetComparison, useComputeBaselines } from "@/features/pdm/hooks/use-fleet-analytics";
 import { useModels, useModelVersions, useActiveDeployment } from "@/features/pdm/hooks/use-model-registry";
 import { useRunInference, usePredictionExplanations } from "@/features/pdm/hooks/use-inference";
-import { useModelDrift, useComputeDrift } from "@/features/pdm/hooks/use-model-monitoring";
+import { useModelDrift, useComputeDrift, useDriftSummary } from "@/features/pdm/hooks/use-model-monitoring";
 import { useTrainingDatasets, useTrainingRuns, useCreateDataset, useStartTrainingRun, usePromoteRun, useTrainingArtifacts } from "@/features/ml-ai/hooks/useTrainingPipeline";
 import { usePredictionGovernance, useGovernanceDetail, useReviewPrediction, useApprovePrediction, useSuppressPrediction } from "@/features/pdm/hooks/usePredictionGovernance";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { EquipmentSelector } from "@/components/shared/EquipmentSelector";
+import { useOrganization } from "@/contexts/OrganizationContext";
 
 interface Equipment {
   id: string;
@@ -83,6 +84,7 @@ function SummaryDashboard() {
   const { data: models } = useModels();
   const { data: pendingPredictions } = usePredictionGovernance("pending");
   const { data: allPredictions } = usePredictionGovernance();
+  const { data: driftSummary } = useDriftSummary();
 
   const modelsList = Array.isArray(models) ? models : [];
   const deployedCount = modelsList.filter((m: any) => m.status === "deployed").length;
@@ -97,9 +99,8 @@ function SummaryDashboard() {
     return ts && new Date(ts) >= sevenDaysAgo;
   }).length;
 
-  const driftAlertCount = modelsList.filter((m: any) =>
-    m.status === "deployed" && m.driftDetected
-  ).length;
+  const driftAlertCount = driftSummary?.alertCount ?? 0;
+  const monitoredVersions = driftSummary?.monitoredVersions ?? 0;
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -116,7 +117,7 @@ function SummaryDashboard() {
           <div className="text-2xl font-bold" data-testid="text-summary-drift-alerts">
             {driftAlertCount}
           </div>
-          <div className="text-xs text-muted-foreground">{deployedCount} deployed monitored</div>
+          <div className="text-xs text-muted-foreground">{monitoredVersions} versions monitored</div>
         </CardContent>
       </Card>
       <Card>
@@ -335,6 +336,7 @@ function FleetAnalyticsTab() {
 
 function ModelRegistryTab({ highlightedVersionId }: { highlightedVersionId?: string | null }) {
   const { data: models, isLoading } = useModels();
+  const { currentOrgId } = useOrganization();
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
   const resolvedRef = useRef<string | null>(null);
 
@@ -349,7 +351,9 @@ function ModelRegistryTab({ highlightedVersionId }: { highlightedVersionId?: str
     const resolveParentModel = async () => {
       for (const m of modelsList) {
         try {
-          const res = await fetch(`/api/pdm/models/${m.id}/versions`);
+          const res = await fetch(`/api/pdm/models/${m.id}/versions`, {
+            headers: { "x-org-id": currentOrgId },
+          });
           if (!res.ok) continue;
           const versionsList = await res.json();
           if (Array.isArray(versionsList) && versionsList.some((v: any) => v.id === highlightedVersionId)) {
@@ -363,7 +367,7 @@ function ModelRegistryTab({ highlightedVersionId }: { highlightedVersionId?: str
       }
     };
     resolveParentModel();
-  }, [highlightedVersionId, modelsList]);
+  }, [highlightedVersionId, modelsList, currentOrgId]);
 
   return (
     <div className="space-y-4">
@@ -1331,6 +1335,18 @@ function GovernanceTab({ onSwitchToModels }: { onSwitchToModels: (modelId: strin
                 </div>
               )}
             </div>
+            {detail.equipmentId && (
+              <div className="mt-4 pt-4 border-t">
+                <Button
+                  variant="default"
+                  data-testid="button-create-wo-detail"
+                  onClick={() => navigate(`/work-orders?action=create&equipmentId=${detail.equipmentId}`)}
+                >
+                  <Wrench className="w-4 h-4 mr-2" />
+                  Create Work Order
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
