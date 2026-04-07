@@ -15,6 +15,7 @@ interface Equipment {
   vesselId?: string;
 }
 interface EquipmentHealthItem { id: string; name?: string; }
+interface Vessel { id: string; name: string; }
 
 interface EquipmentSelectorProps {
   value: string;
@@ -43,12 +44,21 @@ export function EquipmentSelector({
     queryKey: ["/api/equipment/health"],
   });
 
-  const getEquipmentName = (equipmentId: string): string => {
-    const healthItem = equipmentHealth?.find((eq) => eq.id === equipmentId);
-    if (healthItem?.name) {return healthItem.name;}
-    const eq = equipment?.find((e) => e.id === equipmentId);
-    if (eq?.name) {return eq.name;}
-    return equipmentId;
+  const { data: vessels = [] } = useQuery<Vessel[]>({
+    queryKey: ["/api/vessels"],
+  });
+
+  const getVesselName = (vId?: string): string | null => {
+    if (!vId) return null;
+    const v = vessels?.find((vessel) => vessel.id === vId);
+    return v?.name || null;
+  };
+
+  const getEquipmentLabel = (eq: Equipment): string => {
+    const healthItem = equipmentHealth?.find((h) => h.id === eq.id);
+    const name = healthItem?.name || eq.name || eq.id;
+    const vesselName = getVesselName(eq.vesselId);
+    return vesselName ? `${name} — ${vesselName}` : name;
   };
 
   const filteredEquipment =
@@ -70,7 +80,7 @@ export function EquipmentSelector({
       <SelectContent>
         {validEquipment.map((eq) => (
           <SelectItem key={eq.id} value={eq.id}>
-            {getEquipmentName(eq.id)}
+            {getEquipmentLabel(eq)}
           </SelectItem>
         ))}
       </SelectContent>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -336,19 +336,34 @@ function FleetAnalyticsTab() {
 function ModelRegistryTab({ highlightedVersionId }: { highlightedVersionId?: string | null }) {
   const { data: models, isLoading } = useModels();
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
-  const [lastHighlighted, setLastHighlighted] = useState<string | null>(null);
+  const resolvedRef = useRef<string | null>(null);
 
   const modelsList = Array.isArray(models) ? models : [];
 
   const { data: versions } = useModelVersions(selectedModelId ?? "");
   const { data: deployment } = useActiveDeployment(selectedModelId ?? "");
 
-  if (highlightedVersionId && highlightedVersionId !== lastHighlighted && modelsList.length > 0) {
-    setLastHighlighted(highlightedVersionId);
-    if (!selectedModelId) {
-      setSelectedModelId(modelsList[0].id);
-    }
-  }
+  useEffect(() => {
+    if (!highlightedVersionId || highlightedVersionId === resolvedRef.current || modelsList.length === 0) return;
+    resolvedRef.current = highlightedVersionId;
+    const resolveParentModel = async () => {
+      for (const m of modelsList) {
+        try {
+          const res = await fetch(`/api/pdm/models/${m.id}/versions`);
+          if (!res.ok) continue;
+          const versionsList = await res.json();
+          if (Array.isArray(versionsList) && versionsList.some((v: any) => v.id === highlightedVersionId)) {
+            setSelectedModelId(m.id);
+            return;
+          }
+        } catch { continue; }
+      }
+      if (!selectedModelId && modelsList.length > 0) {
+        setSelectedModelId(modelsList[0].id);
+      }
+    };
+    resolveParentModel();
+  }, [highlightedVersionId, modelsList]);
 
   return (
     <div className="space-y-4">
