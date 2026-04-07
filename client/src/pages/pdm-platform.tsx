@@ -28,11 +28,23 @@ interface Equipment {
   vesselId?: string;
 }
 
+interface Vessel { id: string; name: string; }
+
 function useEquipmentName(equipmentId: string) {
   const { data: equipment = [] } = useQuery<Equipment[]>({ queryKey: ["/api/equipment"] });
   if (!equipmentId) return "";
   const eq = equipment.find((e) => e.id === equipmentId);
   return eq?.name || equipmentId;
+}
+
+function useEquipmentVesselName(equipmentId: string) {
+  const { data: equipment = [] } = useQuery<Equipment[]>({ queryKey: ["/api/equipment"] });
+  const { data: vessels = [] } = useQuery<Vessel[]>({ queryKey: ["/api/vessels"] });
+  if (!equipmentId) return null;
+  const eq = equipment.find((e) => e.id === equipmentId);
+  if (!eq?.vesselId) return null;
+  const v = vessels.find((vessel) => vessel.id === eq.vesselId);
+  return v?.name || null;
 }
 
 function useEquipmentTypes() {
@@ -243,6 +255,7 @@ function FleetAnalyticsTab() {
   const computeMutation = useComputeBaselines();
   const { toast } = useToast();
   const equipmentTypes = useEquipmentTypes();
+  const vesselName = useEquipmentVesselName(equipmentId);
 
   const statusColor = (status: string) => status === "critical" ? "destructive" : status === "warning" ? "secondary" : "default";
 
@@ -305,6 +318,7 @@ function FleetAnalyticsTab() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               Fleet Comparison: <EquipmentLink equipmentId={equipmentId} />
+              {vesselName && <span className="text-sm font-normal text-muted-foreground">— {vesselName}</span>}
             </CardTitle>
             <CardDescription>Equipment vs fleet average with z-scores and percentiles</CardDescription>
           </CardHeader>
