@@ -1,0 +1,50 @@
+Let me evaluate the UX/UI across all the screens where this certification ↔ equipment relationship surfaces for the user.
+Now let me look at the equipment side — vessel certificates and the shift template configuration:
+Now let me look at the actual crew member profile and the crew documents tab to see how certifications look there:
+Now let me look at the vessel dashboard to see how equipment and its certificates are shown there:
+Interesting — the vessel certificate API exists but there's no frontend page for it. Let me check shift template UI:
+Now I have a complete picture. Here's my UX/UI evaluation of the certification ↔ equipment relationship:
+
+UX/UI Evaluation: Certification ↔ Equipment Relationship
+What exists today
+1. Crew Certifications (via crew profile → Documents tab)
+
+Accessed from: Crew Management roster → click a crew member → "Documents" tab
+Has: full CRUD form, expiry status badges (color-coded), table view
+Good: clean form, expiry alerts with urgency levels, inline edit/delete
+2. Shift Templates (via Scheduling tab → Generator sidebar)
+
+The "certRequired" field is a free-text input on the shift template form
+Displayed as a small badge ("Cert: STCW") on each shift card
+Good: it's there and visible
+3. Vessel Certificates (API only — no UI page)
+
+The backend has full CRUD (/api/certificates), including equipment linking, summary, and filtering
+But there's no frontend page to manage vessel/equipment certificates — /certificates is a 404
+4. Compliance Dashboard (Crew & Compliance → Compliance tab)
+
+Shows STCW compliance %, cert expiry status, and trends
+Good aggregated view, but only covers crew certs
+Key UX gaps
+Gap 1: Vessel/equipment certificates are invisible. There's no UI to create, view, or manage the statutory certificates tied to equipment. A user can't see whether their main engine's classification certificate is valid or expired. The whole API exists but is completely unreachable from the UI.
+
+Gap 2: No cross-referencing. When you view equipment, there's no indication of its certification status. When you view a vessel certificate (if you could), there's no easy way to see which equipment it covers. These are siloed views.
+
+Gap 3: Shift template "certRequired" is free text. Anyone can type anything — "STCW", "stcw", "S.T.C.W." — and the scheduling engine would treat them as different certifications. There's no dropdown or validation against actual certification types. Similarly, the crew Documents tab uses a fixed set of "document types" but those don't align with what can be typed in the shift certRequired field.
+
+Gap 4: No visibility into the scheduling bridge. There's no screen where a manager can ask "which crew are qualified for this shift on this equipment?" or "which shifts require certifications that are about to expire?" The relationship between crew certs, shift requirements, and equipment exists in the scheduling logic but isn't visible to the user.
+
+Gap 5: Two separate "documents" concepts. Crew certifications are managed through a "Documents" tab (passports, visas, medical certs) and separately through the /api/crew-certifications endpoint. These appear to be two different systems for overlapping concepts — one handles travel documents, the other handles STCW-type professional certifications.
+
+What's working well
+The Compliance Dashboard gives a good high-level view of crew cert health
+Expiry alerting with urgency levels (critical/warning/notice) is solid
+The crew Documents tab form is clean and well-structured
+Shift template badges clearly show what certification is required
+Recommendations (prioritized)
+Build a Vessel Certificate Registry page — the API is ready, just needs a frontend
+Add a certification status indicator on equipment rows in the Equipment Registry (a badge or icon showing if the equipment's certs are current/expiring/expired)
+Standardize certRequired into a dropdown on the shift template form, populated from a known set of certification types
+Add a "Certifications" section to the equipment detail view showing linked vessel certificates
+Consider unifying crew documents and crew certifications into a single concept, or at least clearly label the distinction in the UI
+Would you like me to work on any of these improvements?
