@@ -1,0 +1,139 @@
+Use this prompt in Replit:
+
+Audit the ARUS codebase and tell me whether it already has, partially has, or does not have the same capabilities as this kind of autonomous agent system:
+
+Target capabilities to compare against:
+1. Multiple specialized AI agents with distinct roles
+2. Persistent memory across sessions
+3. Episodic memory or task history
+4. Knowledge graph or entity-relationship memory
+5. Autonomous background execution / always-on workflows
+6. Scheduled jobs / sleep cycles / recurring runs
+7. Human approval before taking important actions
+8. Email drafting or outbound communication automation
+9. Morning briefing / digest / review queue
+10. Agent dashboard showing status, runs, findings, health
+11. Tool use across the product (DB, APIs, reports, scheduling, inventory, crew, maintenance, etc.)
+12. Containerized or isolated agent services
+13. Orchestration layer that coordinates agents
+14. Ability to surface findings, recommendations, or actions for approval
+15. Long-horizon task execution rather than one-shot chat
+
+Your task:
+- Inspect the entire ARUS codebase.
+- Do not assume features exist just because there are OpenAI calls.
+- Trace the actual implementation.
+- For each capability, classify it as:
+  - Fully implemented
+  - Partially implemented
+  - Not implemented
+  - Unclear / needs runtime verification
+
+For each item, provide:
+- Evidence from the codebase
+- Relevant files and functions
+- Why it qualifies or does not qualify
+- Gaps between ARUS and the target system
+
+Then produce these sections:
+
+SECTION 1: Executive summary
+- In 5-10 bullets, explain whether ARUS is already an agentic system, partially agentic, or still a standard app with AI features.
+
+SECTION 2: Capability comparison table
+Columns:
+- Capability
+- Status
+- Evidence
+- Key files
+- Gap
+
+SECTION 3: Existing AI architecture in ARUS
+Describe:
+- Where LLM calls are made
+- What triggers them
+- Whether they are synchronous or background
+- Whether outputs are persisted
+- Whether there is any approval loop
+- Whether there is memory beyond the current task
+- Whether there are agent-like abstractions already present
+
+SECTION 4: Hidden building blocks already in ARUS
+Identify anything that could be reused to build this:
+- Job queues
+- Cron jobs
+- Report generation
+- Notifications
+- Audit logs
+- User approval flows
+- Maintenance workflows
+- Crew scheduling workflows
+- Inventory workflows
+- Existing DB entities that could serve as memory or tasks
+
+SECTION 5: Missing pieces
+List the exact missing technical pieces needed for ARUS to match the posted system.
+
+SECTION 6: Fastest upgrade path
+Propose the smallest practical path to evolve ARUS toward:
+- agentic maintenance ops
+- agentic crew scheduling support
+- agentic inventory support
+without overengineering.
+
+SECTION 7: Runtime verification checklist
+List what cannot be proven statically and what I should test manually.
+
+Important instructions:
+- Be brutally honest.
+- If ARUS is just a normal SaaS app with AI helpers, say that clearly.
+- Only count a feature if there is real code implementing it.
+- Distinguish between “LLM integration” and “true agentic workflow”.
+- Cite exact files, classes, functions, routes, DB tables, background jobs, and UI screens when possible.
+- If something looks close but incomplete, mark it partially implemented.
+
+At the end, give a final verdict in this exact format:
+
+FINAL VERDICT
+ARUS today is: [standard app with AI features / partially agentic app / agentic multi-system platform]
+
+Confidence: [low/medium/high]
+
+Top 5 reasons for this verdict:
+1.
+2.
+3.
+4.
+5.
+
+If you want a sharper version, use this one too:
+
+I want you to perform an “agentic systems audit” of ARUS.
+
+Compare ARUS against an autonomous multi-agent operating system with:
+- persistent memory
+- knowledge graph memory
+- recurring background jobs
+- agent roles
+- approval queues
+- briefings/digests
+- dashboarded agent health
+- long-running task orchestration
+
+Search the backend, frontend, database schema, jobs, schedulers, AI integrations, notifications, and any infra/config files.
+
+Deliver:
+1. A feature-by-feature comparison
+2. A list of proof files
+3. A list of missing primitives
+4. A practical roadmap to get ARUS there
+
+Be precise and skeptical. Only mark something as present if there is direct code evidence.
+
+Best move is to run that first, then ask Replit this follow-up:
+
+Now convert your findings into a gap-closing implementation plan. Prioritize the smallest set of changes that would make ARUS meaningfully agentic in production.
+
+And after that:
+
+Now generate a phased technical design for Phase 1 only, including DB schema changes, backend services, worker jobs, approval flow, and UI changes.
