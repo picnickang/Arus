@@ -24,6 +24,7 @@ export interface IconGridLayoutProps {
   defaultItemId?: string;
   baseRoute?: string;
   headerAction?: ReactNode;
+  badgeRenderer?: (itemId: string) => ReactNode | null;
 }
 
 function GridItemCard({
@@ -31,11 +32,13 @@ function GridItemCard({
   isSelected,
   onClick,
   compact = false,
+  badge,
 }: {
   item: GridItem;
   isSelected: boolean;
   onClick: () => void;
   compact?: boolean;
+  badge?: ReactNode | null;
 }) {
   const Icon = item.icon;
 
@@ -60,7 +63,7 @@ function GridItemCard({
     >
       <div
         className={cn(
-          "rounded-2xl flex items-center justify-center",
+          "rounded-2xl flex items-center justify-center relative",
           "shadow-lg transition-all duration-200",
           compact ? "w-12 h-12 sm:w-14 sm:h-14" : "w-16 h-16 sm:w-20 sm:h-20",
           isSelected
@@ -75,6 +78,7 @@ function GridItemCard({
           )}
           strokeWidth={2}
         />
+        {badge}
       </div>
       <span
         className={cn(
@@ -122,6 +126,7 @@ export function IconGridLayout({
   defaultItemId,
   baseRoute = "",
   headerAction,
+  badgeRenderer,
 }: IconGridLayoutProps) {
   const [location, navigate] = useLocation();
   const searchString = useSearch();
@@ -234,6 +239,7 @@ export function IconGridLayout({
                 isSelected={item.id === selectedId}
                 onClick={() => handleSelectItem(item.id)}
                 compact
+                badge={badgeRenderer?.(item.id)}
               />
             ))}
           </div>

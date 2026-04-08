@@ -4,13 +4,21 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Bot, AlertTriangle, Clock, Shield, Package, Wrench, Users,
   Lightbulb, CheckCircle, XCircle, Eye, ChevronRight,
   FileText, Play, Filter, Inbox, BarChart3, RefreshCw,
-  Loader2, X,
+  Loader2, X, ExternalLink, Calendar, Terminal,
 } from "lucide-react";
+import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -90,6 +98,95 @@ const TRIGGER_ICONS: Record<string, typeof AlertTriangle> = {
   ai_summary: Bot,
 };
 
+const ENTITY_ROUTES: Record<string, string> = {
+  equipment: "/maintenance?tab=equipment-intelligence",
+  work_order: "/maintenance?tab=work-orders",
+  vessel: "/fleet?tab=vessels",
+  part: "/inventory?tab=parts",
+  schedule: "/operations?tab=findings",
+};
+
+const ENTITY_LABELS: Record<string, string> = {
+  equipment: "Equipment",
+  work_order: "Work Order",
+  vessel: "Vessel",
+  part: "Part",
+  schedule: "Schedule",
+};
+
+function EntityLink({ entityType, entityId }: { entityType?: string | null; entityId?: string | null }) {
+  if (!entityType || !entityId) return null;
+  const route = ENTITY_ROUTES[entityType];
+  const label = ENTITY_LABELS[entityType] || entityType;
+  if (!route) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+        <ExternalLink className="h-2.5 w-2.5" />
+        {label}: {entityId.slice(0, 8)}
+      </span>
+    );
+  }
+  return (
+    <Link href={route}>
+      <span
+        className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline cursor-pointer"
+        data-testid={`entity-link-${entityType}-${entityId}`}
+      >
+        <ExternalLink className="h-2.5 w-2.5" />
+        {label}: {entityId.slice(0, 8)}…
+      </span>
+    </Link>
+  );
+}
+
+function RunOutputDialog({ item, open, onClose }: { item: UnifiedFindingItem | null; open: boolean; onClose: () => void }) {
+  if (!item) return null;
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[70vh] overflow-y-auto" data-testid="dialog-run-output">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Terminal className="h-5 w-5" />
+            Run Output — {item.scheduleName || item.title}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <span className="text-xs font-medium text-muted-foreground">Status</span>
+            <Badge variant="outline" className={cn("ml-2 text-xs", STATUS_STYLES[item.status] || "")}>
+              {item.status}
+            </Badge>
+          </div>
+          {item.scheduleName && (
+            <div>
+              <span className="text-xs font-medium text-muted-foreground">Schedule</span>
+              <span className="ml-2 text-sm">{item.scheduleName}</span>
+            </div>
+          )}
+          <div>
+            <span className="text-xs font-medium text-muted-foreground">Created</span>
+            <span className="ml-2 text-sm">{new Date(item.createdAt).toLocaleString()}</span>
+          </div>
+          <div>
+            <span className="text-xs font-medium text-muted-foreground block mb-1">Summary</span>
+            <div className="bg-muted/50 rounded-md p-3 text-sm whitespace-pre-wrap font-mono">
+              {item.summary || "No output available"}
+            </div>
+          </div>
+          {item.context && Object.keys(item.context).length > 0 && (
+            <div>
+              <span className="text-xs font-medium text-muted-foreground block mb-1">Context</span>
+              <pre className="bg-muted/50 rounded-md p-3 text-xs overflow-x-auto font-mono">
+                {JSON.stringify(item.context, null, 2)}
+              </pre>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
@@ -167,20 +264,28 @@ function FilterBar({
   source,
   severity,
   status,
+  dateFrom,
+  dateTo,
   onSourceChange,
   onSeverityChange,
   onStatusChange,
+  onDateFromChange,
+  onDateToChange,
   onReset,
 }: {
   source: string;
   severity: string;
   status: string;
+  dateFrom: string;
+  dateTo: string;
   onSourceChange: (v: string) => void;
   onSeverityChange: (v: string) => void;
   onStatusChange: (v: string) => void;
+  onDateFromChange: (v: string) => void;
+  onDateToChange: (v: string) => void;
   onReset: () => void;
 }) {
-  const hasFilters = source !== "all" || severity !== "all" || status !== "all";
+  const hasFilters = source !== "all" || severity !== "all" || status !== "all" || dateFrom !== "" || dateTo !== "";
 
   return (
     <div className="flex flex-wrap items-center gap-2 mb-4" data-testid="filter-bar">
@@ -223,6 +328,26 @@ function FilterBar({
           <SelectItem value="running">Running</SelectItem>
         </SelectContent>
       </Select>
+      <div className="flex items-center gap-1">
+        <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+        <Input
+          type="date"
+          value={dateFrom}
+          onChange={(e) => onDateFromChange(e.target.value)}
+          className="w-[130px] h-8 text-xs"
+          placeholder="From"
+          data-testid="filter-date-from"
+        />
+        <span className="text-xs text-muted-foreground">to</span>
+        <Input
+          type="date"
+          value={dateTo}
+          onChange={(e) => onDateToChange(e.target.value)}
+          className="w-[130px] h-8 text-xs"
+          placeholder="To"
+          data-testid="filter-date-to"
+        />
+      </div>
       {hasFilters && (
         <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={onReset} data-testid="button-reset-filters">
           <X className="h-3 w-3" /> Clear
@@ -238,6 +363,7 @@ function FindingCard({
   onReject,
   onDismiss,
   onAct,
+  onViewOutput,
   onOpenAssistant,
 }: {
   item: UnifiedFindingItem;
@@ -245,6 +371,7 @@ function FindingCard({
   onReject?: (id: string) => void;
   onDismiss?: (id: string) => void;
   onAct?: (id: string) => void;
+  onViewOutput?: (item: UnifiedFindingItem) => void;
   onOpenAssistant: (item: UnifiedFindingItem) => void;
 }) {
   const SourceIcon = SOURCE_ICONS[item.source];
@@ -295,68 +422,78 @@ function FindingCard({
                 {item.triggerType.replace(/_/g, " ")}
               </Badge>
             )}
+            <EntityLink entityType={item.entityType} entityId={item.entityId} />
             <span className="text-[10px] text-muted-foreground flex items-center gap-0.5 ml-auto">
               <Clock className="h-2.5 w-2.5" />
               {timeAgo(item.createdAt)}
             </span>
           </div>
 
-          {item.requiresAction && (
-            <div className="flex items-center gap-1.5 mt-3">
-              {item.source === "draft" && item.status === "pending" && (
-                <>
-                  <Button
-                    size="sm"
-                    className="h-7 text-xs gap-1"
-                    onClick={() => onApprove?.(item.sourceId)}
-                    data-testid={`button-approve-${item.id}`}
-                  >
-                    <CheckCircle className="h-3 w-3" /> Approve
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    className="h-7 text-xs gap-1"
-                    onClick={() => onReject?.(item.sourceId)}
-                    data-testid={`button-reject-${item.id}`}
-                  >
-                    <XCircle className="h-3 w-3" /> Reject
-                  </Button>
-                </>
-              )}
-              {item.source === "suggestion" && item.status === "pending" && (
-                <>
-                  <Button
-                    size="sm"
-                    className="h-7 text-xs gap-1"
-                    onClick={() => onAct?.(item.sourceId)}
-                    data-testid={`button-act-${item.id}`}
-                  >
-                    <CheckCircle className="h-3 w-3" /> Act On
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-xs gap-1"
-                    onClick={() => onDismiss?.(item.sourceId)}
-                    data-testid={`button-dismiss-${item.id}`}
-                  >
-                    <X className="h-3 w-3" /> Dismiss
-                  </Button>
-                </>
-              )}
+          <div className="flex items-center gap-1.5 mt-3">
+            {item.source === "draft" && item.status === "pending" && (
+              <>
+                <Button
+                  size="sm"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => onApprove?.(item.sourceId)}
+                  data-testid={`button-approve-${item.id}`}
+                >
+                  <CheckCircle className="h-3 w-3" /> Approve
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => onReject?.(item.sourceId)}
+                  data-testid={`button-reject-${item.id}`}
+                >
+                  <XCircle className="h-3 w-3" /> Reject
+                </Button>
+              </>
+            )}
+            {item.source === "suggestion" && item.status === "pending" && (
+              <>
+                <Button
+                  size="sm"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => onAct?.(item.sourceId)}
+                  data-testid={`button-act-${item.id}`}
+                >
+                  <CheckCircle className="h-3 w-3" /> Act On
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => onDismiss?.(item.sourceId)}
+                  data-testid={`button-dismiss-${item.id}`}
+                >
+                  <X className="h-3 w-3" /> Dismiss
+                </Button>
+              </>
+            )}
+            {item.source === "schedule_run" && (
               <Button
                 size="sm"
                 variant="outline"
-                className="h-7 text-xs gap-1 ml-auto"
-                onClick={() => onOpenAssistant(item)}
-                data-testid={`button-assistant-${item.id}`}
+                className="h-7 text-xs gap-1"
+                onClick={() => onViewOutput?.(item)}
+                data-testid={`button-view-output-${item.id}`}
               >
-                <Bot className="h-3 w-3" /> Ask Copilot
-                <ChevronRight className="h-3 w-3" />
+                <Terminal className="h-3 w-3" /> View Output
               </Button>
-            </div>
-          )}
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs gap-1 ml-auto"
+              onClick={() => onOpenAssistant(item)}
+              data-testid={`button-assistant-${item.id}`}
+            >
+              <Bot className="h-3 w-3" /> Ask Copilot
+              <ChevronRight className="h-3 w-3" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>
@@ -369,8 +506,11 @@ export default function FindingsPage() {
   const [sourceFilter, setSourceFilter] = useState("all");
   const [severityFilter, setSeverityFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFromFilter, setDateFromFilter] = useState("");
+  const [dateToFilter, setDateToFilter] = useState("");
   const [chatOpen, setChatOpen] = useState(false);
   const [chatMessage, setChatMessage] = useState<string | null>(null);
+  const [runOutputItem, setRunOutputItem] = useState<UnifiedFindingItem | null>(null);
   const [offset, setOffset] = useState(0);
   const limit = 50;
 
@@ -378,6 +518,8 @@ export default function FindingsPage() {
   if (sourceFilter !== "all") queryParams.set("source", sourceFilter);
   if (severityFilter !== "all") queryParams.set("severity", severityFilter);
   if (statusFilter !== "all") queryParams.set("status", statusFilter);
+  if (dateFromFilter) queryParams.set("dateFrom", new Date(dateFromFilter).toISOString());
+  if (dateToFilter) queryParams.set("dateTo", new Date(dateToFilter + "T23:59:59").toISOString());
   queryParams.set("limit", String(limit));
   queryParams.set("offset", String(offset));
   const queryString = queryParams.toString();
@@ -447,6 +589,8 @@ export default function FindingsPage() {
     setSourceFilter("all");
     setSeverityFilter("all");
     setStatusFilter("all");
+    setDateFromFilter("");
+    setDateToFilter("");
     setOffset(0);
   }, []);
 
@@ -489,9 +633,13 @@ export default function FindingsPage() {
           source={sourceFilter}
           severity={severityFilter}
           status={statusFilter}
+          dateFrom={dateFromFilter}
+          dateTo={dateToFilter}
           onSourceChange={(v) => { setSourceFilter(v); setOffset(0); }}
           onSeverityChange={(v) => { setSeverityFilter(v); setOffset(0); }}
           onStatusChange={(v) => { setStatusFilter(v); setOffset(0); }}
+          onDateFromChange={(v) => { setDateFromFilter(v); setOffset(0); }}
+          onDateToChange={(v) => { setDateToFilter(v); setOffset(0); }}
           onReset={resetFilters}
         />
 
@@ -524,6 +672,7 @@ export default function FindingsPage() {
                       onReject={id => rejectMutation.mutate(id)}
                       onDismiss={id => dismissMutation.mutate(id)}
                       onAct={id => actMutation.mutate(id)}
+                      onViewOutput={setRunOutputItem}
                       onOpenAssistant={openAssistant}
                     />
                   ))}
@@ -541,6 +690,7 @@ export default function FindingsPage() {
                     <FindingCard
                       key={item.id}
                       item={item}
+                      onViewOutput={setRunOutputItem}
                       onOpenAssistant={openAssistant}
                     />
                   ))}
@@ -583,6 +733,12 @@ export default function FindingsPage() {
         open={chatOpen}
         onClose={() => { setChatOpen(false); setChatMessage(null); }}
         initialMessage={chatMessage}
+      />
+
+      <RunOutputDialog
+        item={runOutputItem}
+        open={!!runOutputItem}
+        onClose={() => setRunOutputItem(null)}
       />
     </div>
   );
