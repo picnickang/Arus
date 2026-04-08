@@ -638,7 +638,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         return res.status(400).json({ error: `Invalid outcome. Valid: ${OUTCOME_CATEGORIES.join(", ")}` });
       }
       const suggestion = await outcomeService.recordOutcome(
-        { suggestionId: req.params.id, orgId, outcome: outcome || "not_relevant", outcomeReason, outcomeBy: userId },
+        { suggestionId: req.params.id, orgId, outcome: outcome || null, outcomeReason: outcomeReason || null, outcomeBy: userId },
         "dismissed",
       );
       res.json(suggestion);
@@ -659,7 +659,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         return res.status(400).json({ error: `Invalid outcome. Valid: ${OUTCOME_CATEGORIES.join(", ")}` });
       }
       const suggestion = await outcomeService.recordOutcome(
-        { suggestionId: req.params.id, orgId, outcome: outcome || "useful", outcomeReason, outcomeBy: userId },
+        { suggestionId: req.params.id, orgId, outcome: outcome || null, outcomeReason: outcomeReason || null, outcomeBy: userId },
         "acted",
       );
       res.json(suggestion);
@@ -680,7 +680,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         return res.status(400).json({ error: `Invalid outcome. Valid: ${OUTCOME_CATEGORIES.join(", ")}` });
       }
       const suggestion = await outcomeService.recordOutcome(
-        { suggestionId: req.params.id, orgId, outcome: outcome || "not_relevant", outcomeReason: outcomeReason || "Deferred for later review", outcomeBy: userId },
+        { suggestionId: req.params.id, orgId, outcome: outcome || null, outcomeReason: outcomeReason || null, outcomeBy: userId },
         "deferred",
       );
       res.json(suggestion);

@@ -89,13 +89,14 @@ describe("Outcome Tracking API", () => {
       expect(data.outcomeReason).toBe("Sensor was miscalibrated");
     });
 
-    it("defaults outcome when none provided", async () => {
+    it("allows skip without outcome when none provided", async () => {
       const fresh = await createSuggestion();
       const { status, data } = await api("POST", `/api/agent/suggestions/${fresh.id}/dismiss`);
 
       expect(status).toBe(200);
       expect(data.status).toBe("dismissed");
-      expect(data.outcome).toBe("not_relevant");
+      expect(data.outcome).toBeNull();
+      expect(data.outcomeReason).toBeNull();
     });
   });
 

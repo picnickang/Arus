@@ -191,8 +191,8 @@ export type OutcomeCategory = typeof OUTCOME_CATEGORIES[number];
 export interface OutcomeRecordInput {
   suggestionId: string;
   orgId: string;
-  outcome: OutcomeCategory;
-  outcomeReason?: string;
+  outcome: OutcomeCategory | null;
+  outcomeReason?: string | null;
   outcomeBy: string;
 }
 
@@ -221,7 +221,7 @@ export interface PredictionFeedbackPort {
   recordFeedback(input: PredictionFeedbackInput): Promise<void>;
 }
 
-export interface OutcomeTrackingPort {
+export interface OutcomeRecordPort {
   recordOutcome(input: OutcomeRecordInput, newStatus: "acted" | "dismissed" | "deferred"): Promise<import("@shared/schema").AgentSuggestion>;
   getEffectiveness(orgId: string, days?: number): Promise<EffectivenessSummary>;
 }

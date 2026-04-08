@@ -2,7 +2,7 @@ import type { AgentSuggestion } from "@shared/schema";
 import type {
   OutcomeRecordInput,
   EffectivenessSummary,
-  OutcomeTrackingPort,
+  OutcomeRecordPort,
   OutcomeCategory,
   PredictionFeedbackPort,
 } from "../domain/ports";
@@ -12,7 +12,7 @@ import { logger } from "../../../utils/logger";
 
 const LOG_CTX = "OutcomeTrackingService";
 
-export class OutcomeTrackingService implements OutcomeTrackingPort {
+export class OutcomeTrackingService implements OutcomeRecordPort {
   constructor(
     private repo: AgentRepositoryPort,
     private predictionFeedback?: PredictionFeedbackPort,
@@ -22,7 +22,7 @@ export class OutcomeTrackingService implements OutcomeTrackingPort {
     input: OutcomeRecordInput,
     newStatus: "acted" | "dismissed" | "deferred",
   ): Promise<AgentSuggestion> {
-    if (!OUTCOME_CATEGORIES.includes(input.outcome as OutcomeCategory)) {
+    if (input.outcome !== null && !OUTCOME_CATEGORIES.includes(input.outcome as OutcomeCategory)) {
       throw new Error(`Invalid outcome category: ${input.outcome}. Valid values: ${OUTCOME_CATEGORIES.join(", ")}`);
     }
 
@@ -37,8 +37,8 @@ export class OutcomeTrackingService implements OutcomeTrackingPort {
     const updateData: Partial<AgentSuggestion> = {
       status: newStatus,
       actedOn: newStatus === "acted",
-      outcome: input.outcome,
-      outcomeReason: input.outcomeReason || null,
+      outcome: input.outcome ?? null,
+      outcomeReason: input.outcomeReason ?? null,
       outcomeAt: new Date(),
       outcomeBy: input.outcomeBy,
     };
