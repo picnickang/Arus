@@ -49,6 +49,7 @@ export interface NavigationCategory {
 export const routeResourceMap: Record<string, string> = {
   // Operations
   "/dashboard": "dashboard",
+  "/findings": "dashboard",
   "/alerts": "alerts",
   "/governance-dashboard": "compliance_reports",
   "/diagnostics": "system_settings",
@@ -133,6 +134,7 @@ export const navigationCategories: NavigationCategory[] = [
     description: "Dashboard, telemetry, and insights",
     children: [
       { name: "Dashboard", href: "/dashboard", icon: Gauge, description: "Overview, metrics, alerts, telemetry & insights" },
+      { name: "Agent Findings", href: "/findings", icon: Brain, description: "Unified AI agent activity feed" },
     ],
   },
   {

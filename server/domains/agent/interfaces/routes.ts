@@ -21,6 +21,9 @@ import { getOrgUploadDir, registerFile, listConversationFiles } from "../infrast
 import { knowledgeBaseAdapter } from "../infrastructure/kb-adapter";
 import { ingestFilesToKB, buildIngestionSystemMessage } from "../infrastructure/kb-ingestion-helper";
 import { buildSystemPrompt } from "../domain/system-prompt";
+import { createFindingsAdapter } from "../infrastructure/findings-adapter";
+import { FindingsAggregatorService } from "../application/findings-service";
+import type { FindingsFilter, FindingsPagination } from "../domain/findings-types";
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -898,6 +901,40 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
+  const findingsService = new FindingsAggregatorService(createFindingsAdapter());
+
+  app.get("/api/agent/findings", rateLimit.generalApiRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const filter: FindingsFilter = {};
+      if (req.query.source) filter.source = req.query.source as FindingsFilter["source"];
+      if (req.query.severity) filter.severity = req.query.severity as FindingsFilter["severity"];
+      if (req.query.status) filter.status = req.query.status as FindingsFilter["status"];
+      if (req.query.dateFrom) filter.dateFrom = req.query.dateFrom as string;
+      if (req.query.dateTo) filter.dateTo = req.query.dateTo as string;
+
+      const pagination: FindingsPagination = {
+        limit: Math.min(parseInt(req.query.limit as string) || 50, 200),
+        offset: parseInt(req.query.offset as string) || 0,
+      };
+
+      const result = await findingsService.getFindings(orgId, filter, pagination);
+      res.json(result);
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  app.get("/api/agent/findings/summary", rateLimit.generalApiRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const summary = await findingsService.getSummary(orgId);
+      res.json(summary);
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
   (async () => {
     try {
       const { organizations } = await import("@shared/schema/core");
@@ -913,5 +950,5 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   })();
 
-  console.log("[Agent Domain] Routes registered (chat, conversations, drafts, config, usage, suggestions, schedules, tools, reports, admin)");
+  console.log("[Agent Domain] Routes registered (chat, conversations, drafts, config, usage, suggestions, schedules, tools, reports, admin, findings)");
 }
