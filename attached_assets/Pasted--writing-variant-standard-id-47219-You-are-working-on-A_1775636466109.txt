@@ -1,0 +1,355 @@
+:::writing{variant=“standard” id=“47219”}
+You are working on ARUS, a React + TypeScript fleet operations platform.
+
+Your task is to fix the certification ↔ equipment UX/data gaps across Crew, Equipment, Scheduling, and Compliance.
+
+This is not a discovery task.
+This is an implementation task.
+
+Be practical, ship sensible defaults, reuse existing APIs where possible, and add TODO comments where backend changes are still needed.
+
+After implementation, perform a full CRUD test of the new certification flows and report the results.
+
+⸻
+
+GOAL
+
+Make certifications a first-class operational concept in the UI.
+
+Users should be able to answer these questions easily:
+	•	Does this equipment have valid vessel/equipment certificates?
+	•	Which certificates cover this equipment?
+	•	Which crew are qualified for a shift on this equipment?
+	•	Are any required certifications expiring soon?
+	•	Are shift certification requirements standardized and trustworthy?
+
+⸻
+
+CURRENT PROBLEMS TO FIX
+	1.	Vessel/equipment certificates exist in the backend API but there is no frontend page
+	2.	Equipment screens do not show certification status
+	3.	Shift template certRequired is free text and causes inconsistent data
+	4.	There is no visible bridge between:
+	•	crew certifications
+	•	shift requirements
+	•	equipment certification requirements
+	5.	Crew “Documents” and crew certifications feel like overlapping concepts
+
+⸻
+
+IMPLEMENTATION TASKS
+
+1. Build a Vessel Certificate Registry page
+
+Create a new page/route for vessel/equipment certificates using the existing certificates API.
+
+Route
+
+/certificates
+
+Required features
+	•	Table/list view
+	•	Search
+	•	Filters:
+	•	vessel
+	•	equipment
+	•	certificate type
+	•	status
+	•	expiry window
+	•	Status badges:
+	•	current
+	•	expiring soon
+	•	expired
+	•	Create / edit / delete
+	•	Detail drawer or detail panel
+	•	Show linked equipment clearly
+	•	Show vessel clearly
+	•	Show expiry / issue dates
+	•	Show certificate number / issuer if available
+
+Notes
+	•	Reuse the expiry badge language/pattern from crew certifications if possible
+	•	Make this feel like a real operational registry, not a raw admin page
+
+⸻
+
+2. Add certification status to Equipment UI
+
+Where equipment is listed or viewed in detail, surface certificate status.
+
+In Equipment list/registry rows
+
+Add a badge or icon for certification status:
+	•	Current
+	•	Expiring
+	•	Expired
+	•	Missing
+
+In Equipment detail view/page
+
+Add a Certifications section that shows:
+	•	linked certificates
+	•	expiry dates
+	•	status badges
+	•	quick link to open full certificate record
+	•	quick link to /certificates filtered to this equipment
+
+Goal
+
+A user viewing equipment should immediately know if certification is healthy or at risk.
+
+⸻
+
+3. Replace free-text certRequired in shift templates
+
+This is a data integrity fix.
+
+Replace:
+
+<Input value={certRequired} />
+
+With:
+	•	searchable dropdown / select
+	•	populated from a controlled certification type list
+
+Rules
+	•	no free text for primary certification requirement
+	•	store standardized values
+	•	display human-readable labels
+
+If backend does not yet expose certification types:
+	•	create a frontend config or mock source first
+	•	add TODO for proper backend source-of-truth endpoint
+
+⸻
+
+4. Build the scheduling qualification bridge
+
+Add a visible UI that connects:
+	•	shift requirement
+	•	equipment
+	•	crew qualifications
+
+At minimum implement one of these:
+
+Option A: Shift detail panel
+When viewing a shift/template, show:
+	•	required certification(s)
+	•	matching eligible crew
+	•	crew with expiring certs
+	•	crew missing required certs
+
+Option B: Qualification preview in shift template form
+When configuring a shift template:
+	•	show required cert
+	•	preview how many crew currently match it
+	•	warn if requirement is rare / expiring / unmatched
+
+Goal
+
+Managers should be able to ask:
+	•	who is qualified for this shift?
+	•	is this shift at risk because of certification gaps?
+
+⸻
+
+5. Clarify Crew Documents vs Certifications
+
+Do not leave the overlap confusing.
+
+Preferred solution
+
+In crew profile, rename / restructure the tab or section to:
+
+Documents & Certifications
+
+Then split content into sub-sections:
+	•	Travel / Identity Documents
+	•	Medical Documents
+	•	Professional Certifications
+
+Minimum acceptable solution
+
+If structural unification is too large right now, rename labels so the distinction is obvious:
+	•	Documents → Travel & Identity Documents
+	•	Certifications → Professional Certifications
+
+Goal
+
+Users should not wonder whether STCW belongs under “Documents” or somewhere else.
+
+⸻
+
+DATA / API EXPECTATIONS
+
+Existing APIs likely available
+	•	crew certifications
+	•	vessel/equipment certificates
+	•	equipment registry
+	•	shift templates / scheduling
+
+Reuse existing APIs if possible.
+
+If missing, add or stub sensible endpoints
+
+Examples:
+
+GET /api/certificates
+GET /api/certificates/summary
+GET /api/certification-types
+GET /api/equipment/:id/certificates
+GET /api/shifts/:id/qualified-crew
+
+If a backend endpoint is missing, scaffold frontend around a mock adapter and add TODO comments.
+
+⸻
+
+UX REQUIREMENTS
+
+Use consistent status language everywhere
+
+Preferred statuses:
+	•	Current
+	•	Expiring Soon
+	•	Expired
+	•	Missing
+
+Avoid inconsistent labels across pages.
+
+Show relationship both ways
+
+Users should be able to navigate:
+	•	equipment → certificates
+	•	certificate → covered equipment
+	•	shift → required certification
+	•	certification → eligible crew (or at least matched crew count)
+
+No hidden relationship
+
+If the system knows a certification relationship, the user should be able to see it.
+
+Keep forms clean
+
+Do not create giant forms.
+Use sections, clear labels, and controlled inputs.
+
+⸻
+
+CRUD TEST REQUIREMENT (MANDATORY AFTER BUILD)
+
+After implementation, perform a full CRUD test across the new certification flows and report the results clearly.
+
+CRUD objects to test
+	1.	Vessel/equipment certificates
+	2.	Equipment certification status display
+	3.	Shift template certification requirement
+	4.	Scheduling qualification bridge
+	5.	Crew Documents vs Certifications labeling / organization
+
+CREATE tests
+
+Verify that a user can:
+	•	create a vessel/equipment certificate
+	•	link it to vessel and equipment
+	•	create/edit a shift template with standardized certification requirement
+	•	create a valid relationship that appears in equipment and scheduling views
+
+READ tests
+
+Verify that a user can:
+	•	see certificates in /certificates
+	•	filter/search by vessel, equipment, type, status
+	•	see certification badges in equipment list/detail
+	•	see the required certification in shift UI
+	•	see qualified or missing crew in the scheduling bridge
+	•	distinguish crew documents from professional certifications clearly
+
+UPDATE tests
+
+Verify that a user can:
+	•	edit certificate details (type, expiry, linked equipment, status-driving fields)
+	•	update shift template certification requirement using standardized values
+	•	see updated status reflected in equipment and scheduling views
+	•	verify consistency across all linked surfaces after edits
+
+DELETE tests
+
+Verify that a user can:
+	•	delete a certificate safely
+	•	see equipment certification state update correctly afterward
+	•	see scheduling / qualification surfaces react correctly if a required certificate relationship disappears
+	•	avoid broken links, stale badges, or orphaned references
+
+Edge cases
+
+Test at least:
+	•	expired certificate
+	•	expiring soon certificate
+	•	missing certificate
+	•	inconsistent old free-text value migrated or handled gracefully
+	•	equipment with multiple linked certificates
+	•	shift requiring a certification with no matching crew
+
+CRUD REPORT FORMAT
+
+At the end, provide:
+
+CRUD Test Report
+	•	Passed
+	•	Failed
+	•	Partial
+	•	Known limitations / TODOs
+
+For each failed or partial case:
+	•	explain exactly what broke
+	•	whether it is frontend-only, backend-only, or data-model related
+	•	propose the smallest fix
+
+⸻
+
+DELIVERABLES
+
+Frontend
+	1.	New /certificates page
+	2.	Equipment certification badges/status
+	3.	Equipment detail “Certifications” section
+	4.	Shift template certification dropdown
+	5.	Qualification bridge UI in scheduling
+	6.	Crew wording cleanup for Documents vs Certifications
+
+Backend / integration
+	7.	Wire to existing certificate APIs where available
+	8.	Add mock/stub support for certification type source if needed
+	9.	Add TODOs for any missing backend support
+
+Validation
+	10.	Run and document the CRUD test
+
+⸻
+
+SUCCESS CRITERIA
+
+After this work, a user should be able to:
+	1.	Open a certificate registry page and manage vessel/equipment certificates
+	2.	See certificate health directly from equipment
+	3.	Configure shift certification requirements using standardized values
+	4.	Understand whether a shift has qualified crew coverage
+	5.	Understand the difference between crew documents and certifications
+	6.	Confirm through CRUD testing that the feature actually works end-to-end
+
+⸻
+
+IMPORTANT RULES
+	•	Do not leave certRequired as free text
+	•	Do not build this as a hidden admin-only feature unless permissions require it
+	•	Do not create duplicate certification concepts if existing ones can be unified
+	•	Prefer operational clarity over clever architecture
+	•	Reuse existing UI patterns for expiry/status where possible
+	•	The CRUD test is mandatory, not optional
+
+At the end, summarize:
+	•	what you built
+	•	what gaps were fixed
+	•	CRUD test results
+	•	what still needs backend support
+:::

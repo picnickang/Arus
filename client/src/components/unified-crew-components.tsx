@@ -245,7 +245,7 @@ export function CrewViewDialogContent({ crew, vessels }: CrewViewDialogContentPr
           <History className="h-4 w-4 mr-2" />History
         </TabsTrigger>
         <TabsTrigger value="documents" data-testid="tab-crew-documents">
-          <FileText className="h-4 w-4 mr-2" />Documents
+          <FileText className="h-4 w-4 mr-2" />Docs & Certs
         </TabsTrigger>
         <TabsTrigger value="notifications" data-testid="tab-crew-notifications">
           <Bell className="h-4 w-4 mr-2" />Alerts

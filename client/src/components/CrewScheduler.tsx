@@ -11,13 +11,75 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Slider } from "@/components/ui/slider";
-import { Calendar, ChevronDown, Clock, AlertTriangle, CheckCircle, Ship, Plus, Edit, Trash2, Settings2, Filter } from "lucide-react";
+import { Calendar, ChevronDown, Clock, AlertTriangle, CheckCircle, Ship, Plus, Edit, Trash2, Settings2, Filter, Users, ShieldAlert, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import FairnessViz from "./FairnessViz";
 import type { SelectShiftTemplate } from "@shared/schema";
 
+export const CREW_CERTIFICATION_TYPES = [
+  { value: "STCW", label: "STCW Basic Safety Training" },
+  { value: "STCW_ADV", label: "STCW Advanced Fire Fighting" },
+  { value: "STCW_MED", label: "STCW Medical First Aid" },
+  { value: "STCW_SURV", label: "STCW Proficiency in Survival Craft" },
+  { value: "STCW_CROWD", label: "STCW Crowd Management" },
+  { value: "BOSIET", label: "BOSIET (Offshore Safety)" },
+  { value: "HUET", label: "HUET (Helicopter Underwater Escape)" },
+  { value: "DP_BASIC", label: "DP Basic Operator" },
+  { value: "DP_ADV", label: "DP Advanced Operator" },
+  { value: "GMDSS_GOC", label: "GMDSS GOC (Radio Operator)" },
+  { value: "GMDSS_ROC", label: "GMDSS ROC (Restricted)" },
+  { value: "OOW_DECK", label: "OOW Deck (Officer of the Watch)" },
+  { value: "OOW_ENGINE", label: "OOW Engine (Engineer)" },
+  { value: "CHIEF_MATE", label: "Chief Mate CoC" },
+  { value: "MASTER", label: "Master CoC" },
+  { value: "CHIEF_ENGINEER", label: "Chief Engineer CoC" },
+  { value: "2ND_ENGINEER", label: "Second Engineer CoC" },
+  { value: "SSO", label: "SSO (Ship Security Officer)" },
+  { value: "DPA", label: "DPA (Designated Person Ashore)" },
+  { value: "EFA", label: "Elementary First Aid" },
+  { value: "MEDICAL_CARE", label: "Medical Care (Ship's Doctor)" },
+  { value: "HAZMAT", label: "Hazardous Materials Handling" },
+  { value: "IGS", label: "IGS (Inert Gas Systems)" },
+  { value: "CRANE_OP", label: "Crane Operator Certificate" },
+  { value: "OTHER", label: "Other Certification" },
+] as const;
+
+export function getCertLabel(value: string): string {
+  return CREW_CERTIFICATION_TYPES.find((ct) => ct.value === value)?.label || value;
+}
+
+interface CrewCert { id: string; crewId: string; cert: string; expiresAt: string; issuedBy?: string; }
 interface Crew { id: string; name: string; rank: string; vesselId?: string; maxHours7d: number; minRestH: number; active: boolean; skills: string[]; }
+
+function QualificationBridge({ certRequired, crew, certifications }: { certRequired: string; crew: Crew[]; certifications: CrewCert[] }) {
+  const now = new Date();
+  const in90Days = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+  const matchingCerts = certifications.filter((c) => c.cert === certRequired || c.cert.toUpperCase().includes(certRequired.toUpperCase()));
+  const qualifiedCrewIds = new Set(matchingCerts.filter((c) => !c.expiresAt || new Date(c.expiresAt) > now).map((c) => c.crewId));
+  const expiringCrewIds = new Set(matchingCerts.filter((c) => c.expiresAt && new Date(c.expiresAt) > now && new Date(c.expiresAt) <= in90Days).map((c) => c.crewId));
+  const expiredCrewIds = new Set(matchingCerts.filter((c) => c.expiresAt && new Date(c.expiresAt) <= now).map((c) => c.crewId));
+  const activeCount = crew.filter((c) => c.active).length;
+  const missingCount = activeCount - qualifiedCrewIds.size - expiredCrewIds.size;
+
+  if (qualifiedCrewIds.size === 0 && expiredCrewIds.size === 0) {
+    return (
+      <div className="flex items-center gap-1.5 mt-1.5 text-xs" data-testid="qualification-bridge">
+        <ShieldAlert className="h-3 w-3 text-amber-500" />
+        <span className="text-amber-500">No crew hold this certification — {missingCount > 0 ? `${missingCount} crew without` : "check crew certifications"}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-3 mt-1.5 text-xs" data-testid="qualification-bridge">
+      <span className="flex items-center gap-1"><ShieldCheck className="h-3 w-3 text-green-500" /><span className="text-green-600">{qualifiedCrewIds.size} qualified</span></span>
+      {expiringCrewIds.size > 0 && <span className="flex items-center gap-1"><AlertTriangle className="h-3 w-3 text-amber-500" /><span className="text-amber-500">{expiringCrewIds.size} expiring</span></span>}
+      {expiredCrewIds.size > 0 && <span className="flex items-center gap-1"><ShieldAlert className="h-3 w-3 text-red-500" /><span className="text-red-500">{expiredCrewIds.size} expired</span></span>}
+      {missingCount > 0 && <span className="text-muted-foreground">{missingCount} without</span>}
+    </div>
+  );
+}
 
 function calcDuration(start: string, end: string): number {
   if (!start || !end) return 0;
@@ -174,7 +236,7 @@ export function CrewScheduler() {
                             <FormField control={p.shiftForm.control} name="requiredSkills" render={({ field }) => (<FormItem><FormLabel>Required Skills (Optional)</FormLabel><FormControl><Input {...field} data-testid="input-shift-skills" placeholder="e.g. watchkeeping, navigation" /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={p.shiftForm.control} name="rankMin" render={({ field }) => (<FormItem><FormLabel>Minimum Rank (Optional)</FormLabel><FormControl><Input {...field} data-testid="input-shift-rank" placeholder="e.g. Second Officer" /></FormControl><FormMessage /></FormItem>)} />
                           </div>
-                          <FormField control={p.shiftForm.control} name="certRequired" render={({ field }) => (<FormItem><FormLabel>Required Certification (Optional)</FormLabel><FormControl><Input {...field} data-testid="input-shift-cert" placeholder="e.g. STCW, BOSIET" /></FormControl><FormMessage /></FormItem>)} />
+                          <FormField control={p.shiftForm.control} name="certRequired" render={({ field }) => (<FormItem><FormLabel>Required Certification (Optional)</FormLabel><Select value={field.value || "none"} onValueChange={(val) => field.onChange(val === "none" ? "" : val)}><FormControl><SelectTrigger data-testid="select-shift-cert"><SelectValue placeholder="No certification required" /></SelectTrigger></FormControl><SelectContent><SelectItem value="none">No certification required</SelectItem>{CREW_CERTIFICATION_TYPES.map((ct) => <SelectItem key={ct.value} value={ct.value}>{ct.label}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                           <div className="flex justify-end gap-2">
                             <Button type="button" variant="outline" onClick={p.handleCancelShiftEdit} data-testid="button-cancel-shift">Cancel</Button>
                             <Button type="submit" disabled={p.createShiftMutation.isPending || p.updateShiftMutation.isPending} data-testid="button-save-shift">{p.editingShiftId ? "Update" : "Create"} Shift</Button>
@@ -192,7 +254,8 @@ export function CrewScheduler() {
                           <div className="flex items-center gap-2 mb-2"><h4 className="font-medium">{shift.role}</h4>{shift.vesselId && <Badge variant="outline" className="text-xs"><Ship className="h-3 w-3 mr-1" />{shift.vesselId}</Badge>}</div>
                           <div className="text-sm text-muted-foreground space-y-1">
                             <div className="flex items-center gap-4"><span className="flex items-center gap-1"><Clock className="h-3 w-3" />{shift.start} - {shift.end} ({shift.durationH}h)</span></div>
-                            {(shift.requiredSkills || shift.rankMin || shift.certRequired) && <div className="flex flex-wrap gap-1 mt-2">{shift.requiredSkills && <Badge variant="secondary" className="text-xs">Skills: {shift.requiredSkills}</Badge>}{shift.rankMin && <Badge variant="secondary" className="text-xs">Rank: {shift.rankMin}</Badge>}{shift.certRequired && <Badge variant="secondary" className="text-xs">Cert: {shift.certRequired}</Badge>}</div>}
+                            {(shift.requiredSkills || shift.rankMin || shift.certRequired) && <div className="flex flex-wrap gap-1 mt-2">{shift.requiredSkills && <Badge variant="secondary" className="text-xs">Skills: {shift.requiredSkills}</Badge>}{shift.rankMin && <Badge variant="secondary" className="text-xs">Rank: {shift.rankMin}</Badge>}{shift.certRequired && <Badge variant="secondary" className="text-xs">Cert: {getCertLabel(shift.certRequired)}</Badge>}</div>}
+                            {shift.certRequired && <QualificationBridge certRequired={shift.certRequired} crew={p.crew} certifications={p.certifications} />}
                           </div>
                         </div>
                         <div className="flex gap-2"><Button size="sm" variant="outline" onClick={() => p.handleEditShift(shift)} data-testid={`button-edit-shift-${shift.id}`}><Edit className="h-4 w-4" /></Button><Button size="sm" variant="destructive" onClick={() => p.deleteShiftMutation.mutate(shift.id)} disabled={p.deleteShiftMutation.isPending} data-testid={`button-delete-shift-${shift.id}`}><Trash2 className="h-4 w-4" /></Button></div>

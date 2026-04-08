@@ -58,6 +58,7 @@ export const routeResourceMap: Record<string, string> = {
   "/fleet-overview": "vessels",
   "/vessel-management": "vessels",
   "/equipment": "vessels",
+  "/certificates": "vessels",
   "/health": "vessels",
   
   // Maintenance
@@ -140,7 +141,9 @@ export const navigationCategories: NavigationCategory[] = [
     icon: Ship,
     hubRoute: "/fleet",
     description: "Vessels and equipment management",
-    children: [],
+    children: [
+      { name: "Certificates", href: "/certificates", icon: Shield, description: "Vessel & equipment certificate registry" },
+    ],
   },
   {
     id: "maintenance",

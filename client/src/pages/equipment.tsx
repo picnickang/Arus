@@ -9,7 +9,8 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Equipment, EquipmentHealth } from "@shared/schema";
-import { Server, Ship, CheckCircle, Heart, Activity, AlertTriangle, Eye, Pencil, Trash2, Wrench, Plus, Search, X, TrendingUp, Clock, ChevronLeft, ChevronRight, FileText, ArchiveX, RefreshCw, History } from "lucide-react";
+import { Server, Ship, CheckCircle, Heart, Activity, AlertTriangle, Eye, Pencil, Trash2, Wrench, Plus, Search, X, TrendingUp, Clock, ChevronLeft, ChevronRight, FileText, ArchiveX, RefreshCw, History, Shield, ExternalLink } from "lucide-react";
+import { CERT_TYPE_LABELS, getCertExpiryStatus } from "@/pages/certificate-registry";
 import { EquipmentCreateDialog, EquipmentEditDialog } from "@/components/equipment/EquipmentFormDialog";
 import { SensorSetupWizard } from "@/components/sensors/SensorSetupWizard";
 import { DecommissionedEquipmentTable } from "@/components/equipment/DecommissionedEquipmentTable";
@@ -40,14 +41,79 @@ function StatusBadge({ isActive }: { isActive: boolean }) {
   return <Badge variant="secondary" className="text-muted-foreground">Inactive</Badge>;
 }
 
-function EquipmentTableRow({ item, getVesselName, handleView, handleEdit, handleDelete, handleSetupSensors }: { item: EquipmentItem; getVesselName: (id: string | null | undefined) => string; handleView: (item: EquipmentItem) => void; handleEdit: (item: EquipmentItem) => void; handleDelete: (item: EquipmentItem) => void; handleSetupSensors: (item: EquipmentItem) => void }) {
+function CertStatusBadge({ equipmentId, allCerts }: { equipmentId: string; allCerts: Array<{ equipmentId?: string | null; status?: string; expiryDate?: string | Date | null }> }) {
+  const eqCerts = allCerts.filter((c) => c.equipmentId === equipmentId);
+  if (eqCerts.length === 0) return <Badge variant="outline" className="text-muted-foreground text-xs"><Shield className="h-3 w-3 mr-1" />No certs</Badge>;
+  const now = new Date();
+  const in90 = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+  const nonValidStatuses = ["expired", "suspended", "withdrawn"];
+  const hasNonValid = eqCerts.some((c) => nonValidStatuses.includes(c.status || "") || (c.expiryDate && new Date(c.expiryDate) <= now));
+  const hasPendingRenewal = eqCerts.some((c) => c.status === "pending_renewal");
+  const hasExpiring = eqCerts.some((c) => c.expiryDate && new Date(c.expiryDate) > now && new Date(c.expiryDate) <= in90);
+  if (hasNonValid) return <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-xs"><Shield className="h-3 w-3 mr-1" />Non-compliant</Badge>;
+  if (hasPendingRenewal || hasExpiring) return <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-xs"><Shield className="h-3 w-3 mr-1" />Expiring</Badge>;
+  return <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs"><Shield className="h-3 w-3 mr-1" />Current</Badge>;
+}
+
+function EquipmentCertificationsTab({ equipmentId, equipmentName, allCerts, setLocation }: { equipmentId: string; equipmentName: string; allCerts: Array<{ id: string; equipmentId?: string | null; certificateName?: string; certificateType?: string; status?: string; expiryDate?: string | Date | null; issuingAuthority?: string; certificateNumber?: string }>; setLocation: (path: string) => void }) {
+  const eqCerts = allCerts.filter((c) => c.equipmentId === equipmentId);
+  return (
+    <TabsContent value="certs" className="space-y-4 mt-4">
+      {eqCerts.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
+          <p>No certificates linked to this equipment</p>
+          <p className="text-sm mt-1">Add certificates from the Certificate Registry</p>
+          <Button variant="outline" className="mt-4" onClick={() => setLocation("/certificates")} data-testid="link-cert-registry">
+            <ExternalLink className="h-4 w-4 mr-2" />Open Certificate Registry
+          </Button>
+        </div>
+      ) : (
+        <>
+          <div className="space-y-2">
+            {eqCerts.map((cert) => {
+              const expiryStatus = getCertExpiryStatus(cert.expiryDate);
+              return (
+                <div key={cert.id} className="border rounded-lg p-3 hover:bg-muted/50 transition-colors" data-testid={`cert-row-${cert.id}`}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium text-sm">{cert.certificateName}</p>
+                      <p className="text-xs text-muted-foreground">{CERT_TYPE_LABELS[cert.certificateType || ""] || cert.certificateType}{cert.certificateNumber && ` • ${cert.certificateNumber}`}</p>
+                      {cert.issuingAuthority && <p className="text-xs text-muted-foreground">Issued by: {cert.issuingAuthority}</p>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {expiryStatus && (
+                        <Badge variant="secondary" className={`text-xs ${expiryStatus.badgeClass}`}>
+                          {expiryStatus.label}
+                        </Badge>
+                      )}
+                      {cert.status && cert.status !== "valid" && (
+                        <Badge variant="outline" className="text-xs capitalize">{cert.status}</Badge>
+                      )}
+                    </div>
+                  </div>
+                  {cert.expiryDate && <p className="text-xs text-muted-foreground mt-1">Expires: {new Date(cert.expiryDate).toLocaleDateString()}</p>}
+                </div>
+              );
+            })}
+          </div>
+          <Button variant="outline" className="w-full" onClick={() => setLocation(`/certificates?equipmentId=${equipmentId}`)} data-testid="link-cert-registry-filtered">
+            <ExternalLink className="h-4 w-4 mr-2" />View in Certificate Registry
+          </Button>
+        </>
+      )}
+    </TabsContent>
+  );
+}
+
+function EquipmentTableRow({ item, getVesselName, handleView, handleEdit, handleDelete, handleSetupSensors, allCerts }: { item: EquipmentItem; getVesselName: (id: string | null | undefined) => string; handleView: (item: EquipmentItem) => void; handleEdit: (item: EquipmentItem) => void; handleDelete: (item: EquipmentItem) => void; handleSetupSensors: (item: EquipmentItem) => void; allCerts: Array<{ equipmentId?: string | null; status?: string; expiryDate?: string | Date | null }> }) {
   return (
     <TableRow className="cursor-pointer hover:bg-accent/50" onClick={() => handleView(item)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleView(item); } }} tabIndex={0} data-testid={`row-equipment-${item.id}`}>
       <TableCell><div><div className="font-medium">{item.name}</div>{(item.manufacturer || item.model) && <div className="text-xs text-muted-foreground">{item.manufacturer}{item.model && ` • ${item.model}`}</div>}</div></TableCell>
       <TableCell><Badge variant="outline">{item.type || "Unknown"}</Badge></TableCell>
       <TableCell>{item.vesselId ? <div className="flex items-center gap-1.5"><Ship className="h-3.5 w-3.5 text-blue-600" /><span className="text-sm">{getVesselName(item.vesselId)}</span></div> : <span className="text-muted-foreground text-sm">—</span>}</TableCell>
       <TableCell><HealthBadge health={item.health} /></TableCell>
-      <TableCell><StatusBadge isActive={item.isActive ?? true} /></TableCell>
+      <TableCell><div className="flex flex-col gap-1"><StatusBadge isActive={item.isActive ?? true} /><CertStatusBadge equipmentId={item.id} allCerts={allCerts} /></div></TableCell>
       <TableCell className="text-right"><div className="flex items-center justify-end gap-1" onMouseDown={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} role="presentation">
         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); handleView(item); }} data-testid={`button-view-${item.id}`}><Eye className="h-4 w-4" /></Button>
         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); handleSetupSensors(item); }} data-testid={`button-sensors-${item.id}`}><Wrench className="h-4 w-4" /></Button>
@@ -114,6 +180,10 @@ export default function EquipmentPage() {
   const [isReinstateDialogOpen, setIsReinstateDialogOpen] = useState(false);
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   const [lifecycleEquipment, setLifecycleEquipment] = useState<Equipment | null>(null);
+
+  const { data: allCerts = [] } = useQuery<Array<{ id: string; equipmentId?: string | null; certificateName?: string; certificateType?: string; status?: string; expiryDate?: string | Date | null; issuingAuthority?: string; certificateNumber?: string }>>({
+    queryKey: ["/api/certificates"],
+  });
 
   const { data: decommissionedEquipment = [], isLoading: isLoadingDecommissioned, refetch: refetchDecommissioned } = useQuery<Equipment[]>({
     queryKey: equipmentKeys.decommissioned(),
@@ -191,7 +261,7 @@ export default function EquipmentPage() {
         <div className="p-0">
           <Table data-testid="table-equipment"><TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead>Vessel</TableHead><TableHead>Health</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader><TableBody>
             {paginatedEquipment.length === 0 ? <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">{hasActiveFilters ? "No equipment matches your filters" : "No equipment found"}</TableCell></TableRow> : paginatedEquipment.map((item) => (
-              <EquipmentTableRow key={item.id} item={item} getVesselName={getVesselName} handleView={handleView} handleEdit={handleEdit} handleDelete={handleDelete} handleSetupSensors={handleSetupSensors} />
+              <EquipmentTableRow key={item.id} item={item} getVesselName={getVesselName} handleView={handleView} handleEdit={handleEdit} handleDelete={handleDelete} handleSetupSensors={handleSetupSensors} allCerts={allCerts} />
             ))}
           </TableBody></Table>
           {totalPages > 1 && <div className="flex items-center justify-between px-4 py-3 border-t"><p className="text-sm text-muted-foreground">Showing {(page - 1) * pageSize + 1}-{Math.min(page * pageSize, filteredEquipment.length)} of {filteredEquipment.length}</p><div className="flex items-center gap-2"><Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} data-testid="button-prev-page"><ChevronLeft className="h-4 w-4" /></Button><span className="text-sm">Page {page} of {totalPages}</span><Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} data-testid="button-next-page"><ChevronRight className="h-4 w-4" /></Button></div></div>}
@@ -226,9 +296,10 @@ export default function EquipmentPage() {
           <div className="mt-6 space-y-6">
             <div className="flex items-center justify-between"><HealthBadge health={selectedEquipment.health} /><StatusBadge isActive={selectedEquipment.isActive ?? true} /></div>
             <Tabs defaultValue="details">
-              <TabsList className="w-full grid grid-cols-3"><TabsTrigger value="details">Details</TabsTrigger><TabsTrigger value="health">Health</TabsTrigger><TabsTrigger value="actions">Actions</TabsTrigger></TabsList>
+              <TabsList className="w-full grid grid-cols-4"><TabsTrigger value="details">Details</TabsTrigger><TabsTrigger value="health">Health</TabsTrigger><TabsTrigger value="certs" data-testid="tab-equipment-certs">Certs</TabsTrigger><TabsTrigger value="actions">Actions</TabsTrigger></TabsList>
               <EquipmentDetailsTab equipment={selectedEquipment} getVesselName={getVesselName} />
               <EquipmentHealthTab equipment={selectedEquipment} setLocation={setLocation} />
+              <EquipmentCertificationsTab equipmentId={selectedEquipment.id} equipmentName={selectedEquipment.name} allCerts={allCerts} setLocation={setLocation} />
               <EquipmentActionsTab equipment={selectedEquipment} setLocation={setLocation} handleEdit={handleEdit} handleSetupSensors={handleSetupSensors} setIsDetailDrawerOpen={setIsDetailDrawerOpen} />
             </Tabs>
           </div>
