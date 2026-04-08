@@ -25,7 +25,7 @@ export class BriefingGeneratorService {
       generatedAt: now,
       periodStart,
       periodEnd,
-      sections: [] as unknown as BriefingSection[],
+      sections: [],
       status: "generating",
       scheduleRunId: scheduleRunId || null,
     });
@@ -35,7 +35,7 @@ export class BriefingGeneratorService {
       const aiSummary = await this.generateAISummary(sections);
 
       const updated = await this.briefingRepo.update(briefing.id, {
-        sections: sections as unknown as BriefingSection[],
+        sections,
         aiSummary,
         status: "ready",
       });

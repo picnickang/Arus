@@ -248,7 +248,7 @@ export const agentBriefings = pgTable("agent_briefings", {
   generatedAt: timestamp("generated_at", { mode: "date" }).defaultNow(),
   periodStart: timestamp("period_start", { mode: "date" }).notNull(),
   periodEnd: timestamp("period_end", { mode: "date" }).notNull(),
-  sections: jsonb("sections").notNull().default([]),
+  sections: jsonb("sections").$type<Array<{ key: string; title: string; icon?: string; items: Array<{ id: string; title: string; description: string; severity?: string; entityType?: string; entityId?: string; linkTo?: string; metadata?: Record<string, unknown> }>; emptyMessage?: string }>>().notNull().default([]),
   aiSummary: text("ai_summary"),
   status: text("status").notNull().default("generating"),
   scheduleRunId: varchar("schedule_run_id"),

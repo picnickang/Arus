@@ -1105,7 +1105,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
           orgId,
           name: "Daily Operations Briefing",
           prompt: "__briefing__",
-          cronExpression: "0 6 * * *",
+          cronExpression: process.env.BRIEFING_CRON || "0 6 * * *",
           allowedTools: [],
           outputDestination: "notification",
           allowWriteTools: false,
