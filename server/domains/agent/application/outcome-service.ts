@@ -7,6 +7,9 @@ import type {
 } from "../domain/ports";
 import { OUTCOME_CATEGORIES } from "../domain/ports";
 import type { AgentRepositoryPort } from "../domain/ports";
+import { logger } from "../../../utils/logger";
+
+const LOG_CTX = "OutcomeTrackingService";
 
 export class OutcomeTrackingService implements OutcomeTrackingPort {
   constructor(private repo: AgentRepositoryPort) {}
@@ -48,7 +51,53 @@ export class OutcomeTrackingService implements OutcomeTrackingPort {
       }
     }
 
-    return this.repo.suggestions.update(input.suggestionId, updateData);
+    const result = await this.repo.suggestions.update(input.suggestionId, updateData);
+
+    if (updateData.linkedPredictionId) {
+      await this.recordPredictionFeedback(existing, input, newStatus);
+    }
+
+    return result;
+  }
+
+  private async recordPredictionFeedback(
+    suggestion: AgentSuggestion,
+    input: OutcomeRecordInput,
+    status: "acted" | "dismissed" | "deferred",
+  ): Promise<void> {
+    try {
+      const { predictionFeedback: predictionFeedbackTable } = await import("@shared/schema");
+      const { db } = await import("../../../db");
+
+      const ctx = suggestion.context as Record<string, unknown> | null;
+      const prediction = (ctx?.prediction as Record<string, unknown>) || {};
+      const predictionId = prediction.id ? parseInt(String(prediction.id), 10) : 0;
+      if (!predictionId || isNaN(predictionId)) return;
+
+      const equipmentId = (suggestion.entityId || prediction.equipmentId || "") as string;
+      if (!equipmentId) return;
+
+      const isAccurate = status === "acted" && input.outcome === "useful";
+      const feedbackType = `suggestion_${status}`;
+
+      await db.insert(predictionFeedbackTable).values({
+        orgId: suggestion.orgId,
+        predictionId,
+        predictionType: "failure",
+        equipmentId,
+        userId: input.outcomeBy || "system",
+        feedbackType,
+        isAccurate,
+        rating: isAccurate ? 1 : 0,
+        comments: input.outcomeReason || `Suggestion ${status} with outcome: ${input.outcome}`,
+        useForRetraining: true,
+        feedbackStatus: "pending",
+      });
+
+      logger.info(LOG_CTX, `Recorded prediction feedback for prediction ${predictionId} (${feedbackType}, accurate=${isAccurate})`);
+    } catch (error: unknown) {
+      logger.warn(LOG_CTX, `Failed to record prediction feedback: ${error instanceof Error ? error.message : "unknown"}`);
+    }
   }
 
   async getEffectiveness(orgId: string, days = 30): Promise<EffectivenessSummary> {

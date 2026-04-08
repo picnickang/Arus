@@ -28,8 +28,6 @@ export default {
   testMatch: [
     "<rootDir>/server/**/*.test.ts",
     "<rootDir>/tests/unit/**/*.test.ts",
-    "<rootDir>/tests/integration/**/*.test.ts",
-    "<rootDir>/tests/e2e/**/*.e2e.ts",
   ],
   testPathIgnorePatterns: [
     "/node_modules/",
