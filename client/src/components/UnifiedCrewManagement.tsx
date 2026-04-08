@@ -11,7 +11,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Edit, Trash2, Search, X, Download, UserCheck, ArrowUpDown, ArrowUp, ArrowDown, ShipWheel, Eye, MoreHorizontal, UserX, UserPlus, Calendar, Power } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Plus, Edit, Trash2, Search, X, Download, UserCheck, ArrowUpDown, ArrowUp, ArrowDown, ShipWheel, Eye, MoreHorizontal, UserX, UserPlus, Calendar, Power, ChevronDown, ChevronRight, User, DollarSign, Phone, FileText } from "lucide-react";
 import { CertificationExpiryAlertBanner } from "@/components/CertificationExpiryAlerts";
 import { DocumentExpiryAlertBanner } from "@/components/DocumentExpiryAlerts";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,6 +24,7 @@ export function UnifiedCrewManagement() {
   const d = useUnifiedCrewData();
   const [rosterView, setRosterView] = useState<"active" | "former">("active");
   const [lifecycleDialogOpen, setLifecycleDialogOpen] = useState(false);
+  const [contactSectionOpen, setContactSectionOpen] = useState(false);
   const [lifecycleAction, setLifecycleAction] = useState<"retire" | "cancel" | "reinstate" | "delete" | null>(null);
   const [lifecycleCrewId, setLifecycleCrewId] = useState<string | null>(null);
   const [lifecycleCrewName, setLifecycleCrewName] = useState<string>("");
@@ -471,153 +473,24 @@ export function UnifiedCrewManagement() {
         }
       >
         <Form {...d.crewForm}>
-          <form className="space-y-4">
-            <FormField
-              control={d.crewForm.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="Full name"
-                      onChange={(e) => field.onChange(capitalizeNames(e.target.value))}
-                      data-testid="input-crew-name"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={d.crewForm.control}
-                name="rank"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Rank</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger data-testid="select-crew-rank">
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {MARITIME_RANKS.map((rank) => (
-                          <SelectItem key={rank} value={rank}>{rank}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={d.crewForm.control}
-                name="vesselId"
-                render={({ field }) => {
-                  const activeVessels = d.vessels.filter((v) => v.active);
-                  return (
-                    <FormItem>
-                      <FormLabel>Vessel (Optional)</FormLabel>
-                      <Select
-                        value={field.value || "_unassigned"}
-                        onValueChange={(v) => field.onChange(v === "_unassigned" ? "" : v)}
-                        disabled={d.vesselsLoading}
-                      >
-                        <FormControl>
-                          <SelectTrigger data-testid="select-crew-vessel">
-                            <SelectValue placeholder={d.vesselsLoading ? "Loading vessels..." : "Select vessel"} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="_unassigned">Unassigned</SelectItem>
-                          {activeVessels.map((v) => (
-                            <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
-            </div>
-            <FormField
-              control={d.crewForm.control}
-              name="hourlyRate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Hourly Salary (SGD)</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="e.g. 45.00"
-                      data-testid="input-hourly-rate"
-                      value={field.value ?? ""}
-                      onChange={(e) => field.onChange(e.target.value ? Number.parseFloat(e.target.value) : undefined)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={d.crewForm.control}
-                name="maxHours7d"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Max Hours/Week</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="number"
-                        data-testid="input-max-hours"
-                        onChange={(e) => field.onChange(Number.parseInt(e.target.value) || 72)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={d.crewForm.control}
-                name="minRestH"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Min Rest Hours</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="number"
-                        data-testid="input-min-rest"
-                        onChange={(e) => field.onChange(Number.parseInt(e.target.value) || 10)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="border-t pt-4 mt-4">
-              <h4 className="text-sm font-medium mb-3">Contact Information</h4>
+          <form className="space-y-5">
+            <div>
+              <h4 className="text-sm font-semibold mb-3 flex items-center gap-2"><User className="h-4 w-4" />Personal Information</h4>
               <div className="space-y-4">
                 <FormField
                   control={d.crewForm.control}
-                  name="email"
+                  name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email (for alert notifications)</FormLabel>
+                      <FormLabel>Name</FormLabel>
                       <FormControl>
-                        <Input {...field} type="email" placeholder="email@example.com" data-testid="input-crew-email" />
+                        <Input
+                          {...field}
+                          placeholder="Full name"
+                          onChange={(e) => field.onChange(capitalizeNames(e.target.value))}
+                          data-testid="input-crew-name"
+                        />
                       </FormControl>
-                      <p className="text-xs text-muted-foreground mt-1">Used for certification and document expiry alerts</p>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -625,12 +498,99 @@ export function UnifiedCrewManagement() {
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={d.crewForm.control}
-                    name="phone"
+                    name="rank"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Phone</FormLabel>
+                        <FormLabel>Rank</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-crew-rank">
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {MARITIME_RANKS.map((rank) => (
+                              <SelectItem key={rank} value={rank}>{rank}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={d.crewForm.control}
+                    name="vesselId"
+                    render={({ field }) => {
+                      const activeVessels = d.vessels.filter((v) => v.active);
+                      return (
+                        <FormItem>
+                          <FormLabel>Vessel (Optional)</FormLabel>
+                          <Select
+                            value={field.value || "_unassigned"}
+                            onValueChange={(v) => field.onChange(v === "_unassigned" ? "" : v)}
+                            disabled={d.vesselsLoading}
+                          >
+                            <FormControl>
+                              <SelectTrigger data-testid="select-crew-vessel">
+                                <SelectValue placeholder={d.vesselsLoading ? "Loading vessels..." : "Select vessel"} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="_unassigned">Unassigned</SelectItem>
+                              {activeVessels.map((v) => (
+                                <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <h4 className="text-sm font-semibold mb-3 flex items-center gap-2"><DollarSign className="h-4 w-4" />Assignment & Pay</h4>
+              <div className="space-y-4">
+                <FormField
+                  control={d.crewForm.control}
+                  name="hourlyRate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Hourly Salary (SGD)</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="e.g. 45.00"
+                          data-testid="input-hourly-rate"
+                          value={field.value ?? ""}
+                          onChange={(e) => field.onChange(e.target.value ? Number.parseFloat(e.target.value) : undefined)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={d.crewForm.control}
+                    name="maxHours7d"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Max Hours/Week</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="+65 9123 4567" data-testid="input-crew-phone" />
+                          <Input
+                            {...field}
+                            type="number"
+                            data-testid="input-max-hours"
+                            onChange={(e) => field.onChange(Number.parseInt(e.target.value) || 72)}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -638,12 +598,17 @@ export function UnifiedCrewManagement() {
                   />
                   <FormField
                     control={d.crewForm.control}
-                    name="address"
+                    name="minRestH"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Address</FormLabel>
+                        <FormLabel>Min Rest Hours</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="Home address" data-testid="input-crew-address" />
+                          <Input
+                            {...field}
+                            type="number"
+                            data-testid="input-min-rest"
+                            onChange={(e) => field.onChange(Number.parseInt(e.target.value) || 10)}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -653,40 +618,95 @@ export function UnifiedCrewManagement() {
               </div>
             </div>
 
-            <div className="border-t pt-4 mt-2">
-              <h4 className="text-sm font-medium mb-3">Emergency Contact</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={d.crewForm.control}
-                  name="emergencyContactName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Name</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Emergency contact name" data-testid="input-emergency-name" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={d.crewForm.control}
-                  name="emergencyContactPhone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="+65 9123 4567" data-testid="input-emergency-phone" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+            <div className="border-t pt-4">
+              <Collapsible open={contactSectionOpen} onOpenChange={setContactSectionOpen}>
+                <CollapsibleTrigger className="w-full flex items-center justify-between" data-testid="toggle-contact-section">
+                  <h4 className="text-sm font-semibold flex items-center gap-2"><Phone className="h-4 w-4" />Contact & Emergency</h4>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <span>{contactSectionOpen ? "Hide" : "Show"}</span>
+                    {contactSectionOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-3 space-y-4">
+                  <FormField
+                    control={d.crewForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email (for alert notifications)</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="email" placeholder="email@example.com" data-testid="input-crew-email" />
+                        </FormControl>
+                        <p className="text-xs text-muted-foreground mt-1">Used for certification and document expiry alerts</p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={d.crewForm.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="+65 9123 4567" data-testid="input-crew-phone" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={d.crewForm.control}
+                      name="address"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Address</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="Home address" data-testid="input-crew-address" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="border-t pt-3 mt-2">
+                    <h5 className="text-xs font-medium text-muted-foreground mb-3">Emergency Contact</h5>
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={d.crewForm.control}
+                        name="emergencyContactName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Name</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="Emergency contact name" data-testid="input-emergency-name" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={d.crewForm.control}
+                        name="emergencyContactPhone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Phone</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="+65 9123 4567" data-testid="input-emergency-phone" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             </div>
 
-            <div className="border-t pt-4 mt-2">
-              <h4 className="text-sm font-medium mb-3">Contract Details</h4>
+            <div className="border-t pt-4">
+              <h4 className="text-sm font-semibold mb-3 flex items-center gap-2"><FileText className="h-4 w-4" />Contract Dates</h4>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField

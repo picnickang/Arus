@@ -1,30 +1,14 @@
 import { Suspense, lazy } from "react";
 import { IconGridLayout, type GridItem } from "@/components/layouts";
 import { Users, CalendarCheck, Clock, Shield } from "lucide-react";
-import { featureFlags } from "@/lib/feature-flags";
 
-const CrewScheduler = lazy(() => import("./crew-scheduler"));
 const SchedulePlanner = lazy(() => import("./schedule-planner"));
-
-function ComplianceOverview() {
-  return (
-    <div className="p-6">
-      <div className="text-center text-muted-foreground py-12">
-        <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
-        <h3 className="text-lg font-medium mb-2">Compliance Overview</h3>
-        <p className="text-sm">
-          View STCW/MLC compliance status, certification expiries, and crew qualification alerts.
-        </p>
-        <p className="text-sm mt-2">Coming soon - use Hours of Rest tab for STCW compliance tracking.</p>
-      </div>
-    </div>
-  );
-}
+const ComplianceDashboard = lazy(() => import("@/components/crew/CrewComplianceDashboard"));
 
 const crewItems: GridItem[] = [
   {
     id: "roster",
-    label: "Crew Roster",
+    label: "Roster",
     icon: Users,
     description: "Manage crew",
     load: () => import("./crew-management"),
@@ -33,12 +17,12 @@ const crewItems: GridItem[] = [
   },
   {
     id: "schedule",
-    label: "Schedule Planner",
+    label: "Scheduling",
     icon: CalendarCheck,
-    description: "SmartPAL scheduling",
+    description: "Plan assignments",
     component: (
       <Suspense fallback={<div className="p-6 text-muted-foreground">Loading scheduler...</div>}>
-        {featureFlags.newSchedulerEnabled ? <SchedulePlanner /> : <CrewScheduler />}
+        <SchedulePlanner />
       </Suspense>
     ),
     legacyRoutes: ["/crew-scheduler", "/schedule-planner"],
@@ -57,7 +41,11 @@ const crewItems: GridItem[] = [
     label: "Compliance",
     icon: Shield,
     description: "STCW/MLC status",
-    component: <ComplianceOverview />,
+    component: (
+      <Suspense fallback={<div className="p-6 text-muted-foreground">Loading compliance data...</div>}>
+        <ComplianceDashboard />
+      </Suspense>
+    ),
   },
 ];
 
