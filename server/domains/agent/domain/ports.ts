@@ -176,3 +176,6 @@ export interface AgentRepositoryPort {
   suggestions: AgentSuggestionPort;
   schedules: AgentSchedulePort;
 }
+
+export type { FindingsAggregatorPort, UnifiedFindingItem, FindingsSummary, FindingsFilter, FindingsPagination, FindingsResponse } from "./findings-types";
+

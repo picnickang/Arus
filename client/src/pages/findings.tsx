@@ -550,7 +550,7 @@ export default function FindingsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/agent/findings/summary"] });
       toast({ title: "Draft approved" });
     },
-    onError: (err: any) => toast({ title: "Failed to approve", description: err.message, variant: "destructive" }),
+    onError: (err: unknown) => toast({ title: "Failed to approve", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" }),
   });
 
   const rejectMutation = useMutation({
@@ -560,7 +560,7 @@ export default function FindingsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/agent/findings/summary"] });
       toast({ title: "Draft rejected" });
     },
-    onError: (err: any) => toast({ title: "Failed to reject", description: err.message, variant: "destructive" }),
+    onError: (err: unknown) => toast({ title: "Failed to reject", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" }),
   });
 
   const dismissMutation = useMutation({
@@ -570,7 +570,7 @@ export default function FindingsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/agent/findings/summary"] });
       toast({ title: "Suggestion dismissed" });
     },
-    onError: (err: any) => toast({ title: "Failed to dismiss", description: err.message, variant: "destructive" }),
+    onError: (err: unknown) => toast({ title: "Failed to dismiss", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" }),
   });
 
   const actMutation = useMutation({
@@ -580,7 +580,7 @@ export default function FindingsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/agent/findings/summary"] });
       toast({ title: "Marked as acted on" });
     },
-    onError: (err: any) => toast({ title: "Failed to act", description: err.message, variant: "destructive" }),
+    onError: (err: unknown) => toast({ title: "Failed to act", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" }),
   });
 
   const openAssistant = useCallback((item: UnifiedFindingItem) => {
