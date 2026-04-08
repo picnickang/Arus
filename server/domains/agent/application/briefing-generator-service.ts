@@ -1,10 +1,8 @@
-import { db } from "../../../db";
-import { eq, desc, and, gte, lte, sql } from "drizzle-orm";
-import {
-  alertNotifications, maintenanceSchedules, crewCertification, crew,
-} from "@shared/schema";
 import type { AgentBriefing } from "@shared/schema";
-import type { BriefingRepositoryPort, BriefingSection, BriefingSectionItem } from "../domain/briefing-types";
+import type {
+  BriefingRepositoryPort, BriefingSection, BriefingSectionItem,
+  BriefingDataPort,
+} from "../domain/briefing-types";
 import type { AgentRepositoryPort } from "../domain/ports";
 import { logger } from "../../../utils/logger";
 
@@ -14,6 +12,7 @@ export class BriefingGeneratorService {
   constructor(
     private briefingRepo: BriefingRepositoryPort,
     private agentRepo: AgentRepositoryPort,
+    private dataPort: BriefingDataPort,
   ) {}
 
   async generate(orgId: string, scheduleRunId?: string): Promise<AgentBriefing> {
@@ -26,7 +25,7 @@ export class BriefingGeneratorService {
       generatedAt: now,
       periodStart,
       periodEnd,
-      sections: [],
+      sections: [] as unknown as BriefingSection[],
       status: "generating",
       scheduleRunId: scheduleRunId || null,
     });
@@ -36,7 +35,7 @@ export class BriefingGeneratorService {
       const aiSummary = await this.generateAISummary(sections);
 
       const updated = await this.briefingRepo.update(briefing.id, {
-        sections: sections as unknown as Record<string, unknown>,
+        sections: sections as unknown as BriefingSection[],
         aiSummary,
         status: "ready",
       });
@@ -54,8 +53,8 @@ export class BriefingGeneratorService {
     }
   }
 
-  async getLatest(orgId: string): Promise<AgentBriefing | null> {
-    return this.briefingRepo.getLatest(orgId);
+  async getLatestForToday(orgId: string): Promise<AgentBriefing | null> {
+    return this.briefingRepo.getLatestForToday(orgId);
   }
 
   async list(orgId: string, limit?: number): Promise<AgentBriefing[]> {
@@ -83,37 +82,13 @@ export class BriefingGeneratorService {
       this.collectEquipmentHealth(orgId, periodStart),
     ]);
 
-    return [
-      overnightAlerts,
-      pendingApprovals,
-      maintenanceDue,
-      expiringCerts,
-      lowStock,
-      equipmentHealth,
-    ];
+    return [overnightAlerts, pendingApprovals, maintenanceDue, expiringCerts, lowStock, equipmentHealth];
   }
 
   private async collectOvernightAlerts(orgId: string, periodStart: Date, periodEnd: Date): Promise<BriefingSection> {
     const items: BriefingSectionItem[] = [];
     try {
-      const alerts = await db.select({
-        id: alertNotifications.id,
-        equipmentId: alertNotifications.equipmentId,
-        sensorType: alertNotifications.sensorType,
-        alertType: alertNotifications.alertType,
-        message: alertNotifications.message,
-        value: alertNotifications.value,
-        threshold: alertNotifications.threshold,
-        createdAt: alertNotifications.createdAt,
-      }).from(alertNotifications)
-        .where(and(
-          eq(alertNotifications.orgId, orgId),
-          gte(alertNotifications.createdAt, periodStart),
-          lte(alertNotifications.createdAt, periodEnd),
-        ))
-        .orderBy(desc(alertNotifications.createdAt))
-        .limit(20);
-
+      const alerts = await this.dataPort.getOvernightAlerts(orgId, periodStart, periodEnd);
       for (const alert of alerts) {
         items.push({
           id: String(alert.id),
@@ -128,7 +103,6 @@ export class BriefingGeneratorService {
     } catch (err) {
       logger.warn(LOG_CTX, `Failed to collect overnight alerts: ${err instanceof Error ? err.message : "unknown"}`);
     }
-
     return {
       key: "overnight_alerts",
       title: "Overnight Alerts",
@@ -169,7 +143,6 @@ export class BriefingGeneratorService {
     } catch (err) {
       logger.warn(LOG_CTX, `Failed to collect pending approvals: ${err instanceof Error ? err.message : "unknown"}`);
     }
-
     return {
       key: "pending_approvals",
       title: "Pending Approvals",
@@ -182,27 +155,11 @@ export class BriefingGeneratorService {
   private async collectMaintenanceDue(orgId: string): Promise<BriefingSection> {
     const items: BriefingSectionItem[] = [];
     try {
-      const today = new Date();
-      const todayEnd = new Date(today);
-      todayEnd.setHours(23, 59, 59, 999);
-
-      const dueMaint = await db.select({
-        id: maintenanceSchedules.id,
-        equipmentId: maintenanceSchedules.equipmentId,
-        scheduledDate: maintenanceSchedules.scheduledDate,
-        maintenanceType: maintenanceSchedules.maintenanceType,
-        description: maintenanceSchedules.description,
-      }).from(maintenanceSchedules)
-        .where(and(
-          eq(maintenanceSchedules.orgId, orgId),
-          eq(maintenanceSchedules.status, "scheduled"),
-          lte(maintenanceSchedules.scheduledDate, todayEnd),
-        ))
-        .orderBy(maintenanceSchedules.scheduledDate)
-        .limit(15);
-
-      for (const maint of dueMaint) {
-        const isOverdue = new Date(maint.scheduledDate) < new Date(today.setHours(0, 0, 0, 0));
+      const records = await this.dataPort.getMaintenanceDueToday(orgId);
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      for (const maint of records) {
+        const isOverdue = new Date(maint.scheduledDate) < todayStart;
         items.push({
           id: maint.id,
           title: `${maint.maintenanceType} — ${maint.equipmentId}`,
@@ -217,7 +174,6 @@ export class BriefingGeneratorService {
     } catch (err) {
       logger.warn(LOG_CTX, `Failed to collect maintenance due: ${err instanceof Error ? err.message : "unknown"}`);
     }
-
     return {
       key: "maintenance_due",
       title: "Maintenance Due Today",
@@ -230,24 +186,8 @@ export class BriefingGeneratorService {
   private async collectExpiringCertifications(orgId: string): Promise<BriefingSection> {
     const items: BriefingSectionItem[] = [];
     try {
-      const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-      const expiringCerts = await db.select({
-        certId: crewCertification.id,
-        crewId: crewCertification.crewId,
-        cert: crewCertification.cert,
-        expiresAt: crewCertification.expiresAt,
-        crewName: crew.name,
-      }).from(crewCertification)
-        .innerJoin(crew, eq(crewCertification.crewId, crew.id))
-        .where(and(
-          eq(crewCertification.orgId, orgId),
-          lte(crewCertification.expiresAt, thirtyDaysFromNow),
-          gte(crewCertification.expiresAt, new Date()),
-        ))
-        .orderBy(crewCertification.expiresAt)
-        .limit(10);
-
-      for (const cert of expiringCerts) {
+      const certs = await this.dataPort.getExpiringCertifications(orgId, 30);
+      for (const cert of certs) {
         const daysUntil = Math.ceil((new Date(cert.expiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000));
         items.push({
           id: String(cert.certId),
@@ -263,7 +203,6 @@ export class BriefingGeneratorService {
     } catch (err) {
       logger.warn(LOG_CTX, `Failed to collect expiring certs: ${err instanceof Error ? err.message : "unknown"}`);
     }
-
     return {
       key: "expiring_certifications",
       title: "Expiring Certifications",
@@ -276,30 +215,21 @@ export class BriefingGeneratorService {
   private async collectLowStock(orgId: string): Promise<BriefingSection> {
     const items: BriefingSectionItem[] = [];
     try {
-      const lowStockResult = await db.execute(sql`
-        SELECT id, part_name, quantity_on_hand, min_stock_level
-        FROM parts_inventory
-        WHERE org_id = ${orgId} AND quantity_on_hand <= min_stock_level
-        ORDER BY quantity_on_hand ASC
-        LIMIT 10
-      `);
-      const rows = (lowStockResult as { rows?: Array<Record<string, unknown>> }).rows || [];
-
-      for (const part of rows) {
+      const parts = await this.dataPort.getLowStockParts(orgId, 10);
+      for (const part of parts) {
         items.push({
-          id: String(part.id),
-          title: String(part.part_name),
-          description: `Stock: ${part.quantity_on_hand} / Min: ${part.min_stock_level}`,
-          severity: Number(part.quantity_on_hand) === 0 ? "critical" : "warning",
+          id: part.id,
+          title: part.partName,
+          description: `Stock: ${part.quantityOnHand} / Min: ${part.minStockLevel}`,
+          severity: part.quantityOnHand === 0 ? "critical" : "warning",
           entityType: "inventory",
-          entityId: String(part.id),
+          entityId: part.id,
           linkTo: "/inventory-management",
         });
       }
     } catch (err) {
       logger.warn(LOG_CTX, `Failed to collect low stock: ${err instanceof Error ? err.message : "unknown"}`);
     }
-
     return {
       key: "low_stock",
       title: "Low Stock Items",
@@ -332,7 +262,6 @@ export class BriefingGeneratorService {
     } catch (err) {
       logger.warn(LOG_CTX, `Failed to collect equipment health: ${err instanceof Error ? err.message : "unknown"}`);
     }
-
     return {
       key: "equipment_health",
       title: "Equipment Health Changes",

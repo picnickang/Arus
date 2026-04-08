@@ -16,9 +16,19 @@ export class BriefingRepositoryAdapter implements BriefingRepositoryPort {
     return briefing || null;
   }
 
-  async getLatest(orgId: string): Promise<AgentBriefing | null> {
+  async getLatestForToday(orgId: string): Promise<AgentBriefing | null> {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
     const [briefing] = await db.select().from(agentBriefings)
-      .where(and(eq(agentBriefings.orgId, orgId), eq(agentBriefings.status, "ready")))
+      .where(and(
+        eq(agentBriefings.orgId, orgId),
+        eq(agentBriefings.status, "ready"),
+        gte(agentBriefings.generatedAt, todayStart),
+        lte(agentBriefings.generatedAt, todayEnd),
+      ))
       .orderBy(desc(agentBriefings.generatedAt))
       .limit(1);
     return briefing || null;

@@ -26,8 +26,11 @@ async function resolveAdminEmails(orgId: string): Promise<string[]> {
   }
 }
 
+export type BriefingHandler = (orgId: string, scheduleRunId: string) => Promise<{ briefingId: string }>;
+
 export class SchedulerService {
   private cronJobs: Map<string, cron.ScheduledTask> = new Map();
+  private briefingHandler: BriefingHandler | null = null;
 
   constructor(
     private repo: AgentRepositoryPort,
@@ -40,6 +43,10 @@ export class SchedulerService {
       options?: { toolAllowlist?: string[] | null; maxTokenBudget?: number },
     ) => Promise<any>,
   ) {}
+
+  registerBriefingHandler(handler: BriefingHandler): void {
+    this.briefingHandler = handler;
+  }
 
   async initialize(orgId: string): Promise<void> {
     const schedules = await this.repo.schedules.list(orgId);
@@ -84,6 +91,25 @@ export class SchedulerService {
   }
 
   async executeSchedule(schedule: AgentSchedule): Promise<void> {
+    if (schedule.prompt === "__briefing__" && this.briefingHandler) {
+      const run = await this.repo.schedules.createRun({ scheduleId: schedule.id, status: "running" });
+      try {
+        const result = await this.briefingHandler(schedule.orgId, run.id);
+        await this.repo.schedules.updateRun(run.id, {
+          status: "completed",
+          output: { briefingId: result.briefingId },
+          completedAt: new Date(),
+        });
+        await this.repo.schedules.update(schedule.id, { lastRunAt: new Date(), consecutiveFailures: 0 });
+        console.log(`[SchedulerService] Daily briefing generated: ${result.briefingId}`);
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : "unknown";
+        await this.repo.schedules.updateRun(run.id, { status: "failed", error: errMsg, completedAt: new Date() });
+        console.error(`[SchedulerService] Briefing generation failed: ${errMsg}`);
+      }
+      return;
+    }
+
     const run = await this.repo.schedules.createRun({
       scheduleId: schedule.id,
       status: "running",

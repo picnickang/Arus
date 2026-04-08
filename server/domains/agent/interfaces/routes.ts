@@ -28,6 +28,7 @@ import { OutcomeTrackingService } from "../application/outcome-service";
 import { PredictionFeedbackAdapter } from "../infrastructure/prediction-feedback-adapter";
 import { OUTCOME_CATEGORIES } from "../domain/ports";
 import { BriefingRepositoryAdapter } from "../infrastructure/briefing-repository-adapter";
+import { BriefingDataAdapter } from "../infrastructure/briefing-data-adapter";
 import { BriefingGeneratorService } from "../application/briefing-generator-service";
 
 const upload = multer({
@@ -1047,12 +1048,13 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
   });
 
   const briefingRepo = new BriefingRepositoryAdapter();
-  const briefingService = new BriefingGeneratorService(briefingRepo, agentRepo);
+  const briefingDataAdapter = new BriefingDataAdapter();
+  const briefingService = new BriefingGeneratorService(briefingRepo, agentRepo, briefingDataAdapter);
 
   app.get("/api/agent/briefings/latest", rateLimit.generalApiRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const briefing = await briefingService.getLatest(orgId);
+      const briefing = await briefingService.getLatestForToday(orgId);
       if (!briefing) {
         return res.json(null);
       }
@@ -1094,17 +1096,49 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
+  async function seedBriefingSchedule(orgId: string): Promise<void> {
+    try {
+      const schedules = await agentRepo.schedules.list(orgId);
+      const hasBriefing = schedules.some(s => s.name === "Daily Operations Briefing");
+      if (!hasBriefing) {
+        await agentRepo.schedules.create({
+          orgId,
+          name: "Daily Operations Briefing",
+          prompt: "__briefing__",
+          cronExpression: "0 6 * * *",
+          allowedTools: [],
+          outputDestination: "notification",
+          allowWriteTools: false,
+          maxTokenBudget: 4000,
+          enabled: true,
+          consecutiveFailures: 0,
+        });
+        console.log(`[BriefingSeed] Created Daily Operations Briefing schedule for org ${orgId}`);
+      }
+    } catch (err) {
+      console.warn(`[BriefingSeed] Failed to seed briefing schedule: ${err instanceof Error ? err.message : "unknown"}`);
+    }
+  }
+
+  globalScheduler.registerBriefingHandler(async (orgId: string, scheduleRunId: string) => {
+    const result = await briefingService.generate(orgId, scheduleRunId);
+    return { briefingId: result.id };
+  });
+
   (async () => {
     try {
       const { organizations } = await import("@shared/schema/core");
       const orgs = await db.select({ id: organizations.id }).from(organizations);
       for (const org of orgs) {
+        await seedBriefingSchedule(org.id);
         await globalScheduler.initialize(org.id);
       }
       if (orgs.length === 0) {
+        await seedBriefingSchedule("default-org-id");
         await globalScheduler.initialize("default-org-id");
       }
     } catch {
+      await seedBriefingSchedule("default-org-id");
       await globalScheduler.initialize("default-org-id");
     }
   })();
