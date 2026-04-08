@@ -16,6 +16,12 @@ interface ToolCallEntry {
   error?: string | null;
 }
 
+interface TriggerContext {
+  scheduleName?: string | null;
+  scheduleId?: string | null;
+  conversationId?: string | null;
+}
+
 interface ActivityItem {
   id: string;
   triggerType: "scheduled" | "user";
@@ -32,6 +38,7 @@ interface ActivityItem {
   toolCalls: ToolCallEntry[];
   response?: string | null;
   error?: string | null;
+  triggerContext?: TriggerContext | null;
 }
 
 interface ActivitySummary {
@@ -194,6 +201,21 @@ describe("Agent Activity API", () => {
     it("ignores unknown triggerType values gracefully", async () => {
       const { body } = await get<ActivityItem[]>("/api/agent/activity?triggerType=invalid");
       expect(Array.isArray(body)).toBe(true);
+    });
+
+    it("items include triggerContext with relevant fields", async () => {
+      const { body } = await get<ActivityItem[]>("/api/agent/activity");
+      for (const item of body) {
+        expect(item).toHaveProperty("triggerContext");
+        if (item.triggerContext) {
+          if (item.triggerType === "user") {
+            expect(item.triggerContext.conversationId).toBe(item.id);
+          }
+          if (item.triggerType === "scheduled") {
+            expect(item.triggerContext.scheduleId).toBeTruthy();
+          }
+        }
+      }
     });
   });
 

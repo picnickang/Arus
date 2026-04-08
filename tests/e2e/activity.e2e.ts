@@ -31,6 +31,7 @@ interface ActivityItem {
   toolCalls: Array<{ toolName: string; inputSummary?: string | null; status: string }>;
   response?: string | null;
   error?: string | null;
+  triggerContext?: { scheduleName?: string | null; scheduleId?: string | null; conversationId?: string | null } | null;
 }
 
 interface ActivitySummary {
@@ -146,6 +147,18 @@ describe("Agent Activity E2E", () => {
         expect(page2.length).toBeLessThanOrEqual(1);
         if (page2.length > 0) {
           expect(page2[0].id).toBe(all[1].id);
+        }
+      }
+    });
+  });
+
+  describe("Trigger context", () => {
+    it("items include triggerContext field", async () => {
+      const { data } = await fetchJson<ActivityItem[]>("/api/agent/activity");
+      for (const item of data) {
+        expect(item).toHaveProperty("triggerContext");
+        if (item.triggerType === "user" && item.triggerContext) {
+          expect(item.triggerContext.conversationId).toBeTruthy();
         }
       }
     });

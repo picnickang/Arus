@@ -6,6 +6,12 @@ export interface ToolCallEntry {
   error?: string | null;
 }
 
+export interface TriggerContext {
+  scheduleName?: string | null;
+  scheduleId?: string | null;
+  conversationId?: string | null;
+}
+
 export interface AgentActivityItem {
   id: string;
   triggerType: "scheduled" | "user";
@@ -22,6 +28,7 @@ export interface AgentActivityItem {
   toolCalls: ToolCallEntry[];
   response?: string | null;
   error?: string | null;
+  triggerContext?: TriggerContext | null;
 }
 
 export interface ActivitySummary {

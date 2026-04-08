@@ -21,6 +21,12 @@ interface ToolCallEntry {
   error?: string | null;
 }
 
+interface TriggerContext {
+  scheduleName?: string | null;
+  scheduleId?: string | null;
+  conversationId?: string | null;
+}
+
 interface AgentActivityItem {
   id: string;
   triggerType: "scheduled" | "user";
@@ -37,6 +43,7 @@ interface AgentActivityItem {
   toolCalls: ToolCallEntry[];
   response?: string | null;
   error?: string | null;
+  triggerContext?: TriggerContext | null;
 }
 
 interface ActivitySummary {
@@ -215,9 +222,26 @@ function ActivityRow({ item }: { item: AgentActivityItem }) {
             </div>
           )}
 
+          {item.triggerContext && (
+            <div data-testid={`trigger-context-${item.id}`}>
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Trigger Context</div>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                {item.triggerContext.scheduleName && (
+                  <span><Clock className="h-3 w-3 inline mr-0.5" />Schedule: <span className="font-medium text-foreground">{item.triggerContext.scheduleName}</span></span>
+                )}
+                {item.triggerContext.scheduleId && (
+                  <span className="text-[10px] font-mono">ID: {item.triggerContext.scheduleId.slice(0, 8)}…</span>
+                )}
+                {item.triggerContext.conversationId && (
+                  <span className="text-[10px] font-mono">Conv: {item.triggerContext.conversationId.slice(0, 8)}…</span>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1 border-t">
             <span><Calendar className="h-3 w-3 inline mr-1" />{new Date(item.startedAt).toLocaleString()}</span>
-            {item.conversationId && (
+            {item.conversationId && !item.triggerContext?.conversationId && (
               <span className="text-[10px] font-mono">{item.conversationId.slice(0, 8)}…</span>
             )}
           </div>

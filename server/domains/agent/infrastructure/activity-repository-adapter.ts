@@ -13,6 +13,7 @@ import type {
   ActivityRawMetrics,
   ActivityFilter,
   ToolCallEntry,
+  TriggerContext,
 } from "../domain/activity-types";
 
 export class ActivityRepositoryAdapter implements ActivityPort {
@@ -175,6 +176,10 @@ export class ActivityRepositoryAdapter implements ActivityPort {
           ? output.response
           : null;
 
+      const linkedConversationId = typeof output?.conversationId === "string"
+        ? output.conversationId
+        : null;
+
       const rawToolCalls = Array.isArray(output?.toolCalls) ? output.toolCalls : [];
       const toolEntries: ToolCallEntry[] = rawToolCalls.map((tc: Record<string, unknown>) => {
         let inputSummary: string | null = null;
@@ -191,12 +196,19 @@ export class ActivityRepositoryAdapter implements ActivityPort {
         };
       });
 
+      const schedName = schedMap.get(r.scheduleId) ?? null;
+      const triggerContext: TriggerContext = {
+        scheduleName: schedName,
+        scheduleId: r.scheduleId,
+        conversationId: linkedConversationId,
+      };
+
       return {
         id: r.id,
         triggerType: "scheduled" as const,
-        scheduleName: schedMap.get(r.scheduleId) ?? null,
+        scheduleName: schedName,
         scheduleId: r.scheduleId,
-        conversationId: null,
+        conversationId: linkedConversationId,
         userId: null,
         status: r.status === "completed" ? "completed" as const
           : r.status === "failed" ? "failed" as const
@@ -211,6 +223,7 @@ export class ActivityRepositoryAdapter implements ActivityPort {
         toolCalls: toolEntries,
         response,
         error: r.error,
+        triggerContext,
       };
     });
   }
@@ -288,6 +301,10 @@ export class ActivityRepositoryAdapter implements ActivityPort {
         ? (errorMsgs[0]?.content ?? "Conversation ended with error status")
         : null;
 
+      const triggerContext: TriggerContext = {
+        conversationId: conv.id,
+      };
+
       items.push({
         id: conv.id,
         triggerType: "user",
@@ -308,6 +325,7 @@ export class ActivityRepositoryAdapter implements ActivityPort {
         toolCalls: toolEntries,
         response: lastResponse ?? conv.title ?? null,
         error: errorDetail,
+        triggerContext,
       });
     }
 

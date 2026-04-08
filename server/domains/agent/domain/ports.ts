@@ -234,6 +234,7 @@ export type {
   ActivitySummary,
   ActivityFilter,
   ToolCallEntry,
+  TriggerContext,
 } from "./activity-types";
 
 export type {
