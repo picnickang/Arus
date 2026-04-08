@@ -907,15 +907,41 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const filter: FindingsFilter = {};
-      if (req.query.source) filter.source = req.query.source as FindingsFilter["source"];
-      if (req.query.severity) filter.severity = req.query.severity as FindingsFilter["severity"];
-      if (req.query.status) filter.status = req.query.status as FindingsFilter["status"];
-      if (req.query.dateFrom) filter.dateFrom = req.query.dateFrom as string;
-      if (req.query.dateTo) filter.dateTo = req.query.dateTo as string;
 
+      const validSources = ["suggestion", "draft", "schedule_run"];
+      const validSeverities = ["info", "warning", "critical"];
+      const validStatuses = ["pending", "acted", "dismissed", "approved", "rejected", "completed", "failed", "running"];
+
+      if (req.query.source) {
+        const src = req.query.source as string;
+        if (!validSources.includes(src)) return res.status(400).json({ error: `Invalid source: ${src}` });
+        filter.source = src as FindingsFilter["source"];
+      }
+      if (req.query.severity) {
+        const sev = req.query.severity as string;
+        if (!validSeverities.includes(sev)) return res.status(400).json({ error: `Invalid severity: ${sev}` });
+        filter.severity = sev as FindingsFilter["severity"];
+      }
+      if (req.query.status) {
+        const st = req.query.status as string;
+        if (!validStatuses.includes(st)) return res.status(400).json({ error: `Invalid status: ${st}` });
+        filter.status = st as FindingsFilter["status"];
+      }
+      if (req.query.dateFrom) {
+        const d = new Date(req.query.dateFrom as string);
+        if (isNaN(d.getTime())) return res.status(400).json({ error: "Invalid dateFrom" });
+        filter.dateFrom = req.query.dateFrom as string;
+      }
+      if (req.query.dateTo) {
+        const d = new Date(req.query.dateTo as string);
+        if (isNaN(d.getTime())) return res.status(400).json({ error: "Invalid dateTo" });
+        filter.dateTo = req.query.dateTo as string;
+      }
+
+      const rawOffset = parseInt(req.query.offset as string);
       const pagination: FindingsPagination = {
-        limit: Math.min(parseInt(req.query.limit as string) || 50, 200),
-        offset: parseInt(req.query.offset as string) || 0,
+        limit: Math.min(Math.max(parseInt(req.query.limit as string) || 50, 1), 200),
+        offset: isNaN(rawOffset) || rawOffset < 0 ? 0 : rawOffset,
       };
 
       const result = await findingsService.getFindings(orgId, filter, pagination);
