@@ -10,12 +10,10 @@ import {
 import type {
   ActivityPort,
   AgentActivityItem,
-  ActivitySummary,
+  ActivityRawMetrics,
   ActivityFilter,
   ToolCallEntry,
 } from "../domain/activity-types";
-
-const COST_PER_1K_TOKENS = 0.002;
 
 export class ActivityRepositoryAdapter implements ActivityPort {
   async list(orgId: string, filter?: ActivityFilter): Promise<AgentActivityItem[]> {
@@ -42,7 +40,7 @@ export class ActivityRepositoryAdapter implements ActivityPort {
     return items.slice(offset, offset + limit);
   }
 
-  async summary(orgId: string): Promise<ActivitySummary> {
+  async getRawMetrics(orgId: string): Promise<ActivityRawMetrics> {
     const now = new Date();
     const todayStart = new Date(now);
     todayStart.setHours(0, 0, 0, 0);
@@ -134,22 +132,14 @@ export class ActivityRepositoryAdapter implements ActivityPort {
     totalRuns30d += convTokens30d[0]?.cnt ?? 0;
     tokenRunCount += convTokens30d[0]?.tokenRunCount ?? 0;
 
-    const successRate7d = totalRuns7d > 0
-      ? Math.round((successCount7d / totalRuns7d) * 100)
-      : 100;
-    const avgTokensPerRun = tokenRunCount > 0
-      ? Math.round(totalTokens30d / tokenRunCount)
-      : 0;
-    const estimatedCost30d = Math.round((totalTokens30d / 1000) * COST_PER_1K_TOKENS * 100) / 100;
-
     return {
       runsToday,
-      successRate7d,
-      avgTokensPerRun,
-      estimatedCost30d,
-      failureCount7d,
       totalRuns7d,
+      successCount7d,
+      failureCount7d,
+      totalTokens30d,
       totalRuns30d,
+      tokenRunCount,
     };
   }
 
@@ -200,7 +190,7 @@ export class ActivityRepositoryAdapter implements ActivityPort {
           tokenUsage: r.tokenUsage,
           toolCallCount,
           toolCalls: [],
-          summary: response ? (response.length > 200 ? response.slice(0, 197) + "..." : response) : null,
+          response,
           error: r.error,
         };
       });
@@ -227,12 +217,20 @@ export class ActivityRepositoryAdapter implements ActivityPort {
         .where(eq(agentToolCalls.conversationId, conv.id))
         .orderBy(agentToolCalls.createdAt);
 
-      const toolEntries: ToolCallEntry[] = toolCalls.map(tc => ({
-        toolName: tc.toolName,
-        durationMs: tc.durationMs,
-        status: tc.status,
-        error: tc.error,
-      }));
+      const toolEntries: ToolCallEntry[] = toolCalls.map(tc => {
+        let inputSummary: string | null = null;
+        if (tc.input) {
+          const inputStr = typeof tc.input === "string" ? tc.input : JSON.stringify(tc.input);
+          inputSummary = inputStr.length > 120 ? inputStr.slice(0, 117) + "..." : inputStr;
+        }
+        return {
+          toolName: tc.toolName,
+          inputSummary,
+          durationMs: tc.durationMs,
+          status: tc.status,
+          error: tc.error,
+        };
+      });
 
       const lastMsg = await db
         .select({ content: agentMessages.content })
@@ -244,7 +242,21 @@ export class ActivityRepositoryAdapter implements ActivityPort {
         .orderBy(desc(agentMessages.createdAt))
         .limit(1);
 
-      const lastResponse = lastMsg[0]?.content;
+      const lastResponse = lastMsg[0]?.content ?? null;
+
+      const errorMsgs = await db
+        .select({ content: agentMessages.content })
+        .from(agentMessages)
+        .where(and(
+          eq(agentMessages.conversationId, conv.id),
+          eq(agentMessages.role, "system"),
+        ))
+        .orderBy(desc(agentMessages.createdAt))
+        .limit(1);
+
+      const errorDetail = conv.status === "error"
+        ? (errorMsgs[0]?.content ?? "Conversation ended with error status")
+        : null;
 
       items.push({
         id: conv.id,
@@ -262,10 +274,8 @@ export class ActivityRepositoryAdapter implements ActivityPort {
         tokenUsage: conv.totalTokensUsed,
         toolCallCount: toolCalls.length,
         toolCalls: toolEntries,
-        summary: lastResponse
-          ? (lastResponse.length > 200 ? lastResponse.slice(0, 197) + "..." : lastResponse)
-          : conv.title,
-        error: null,
+        response: lastResponse ?? conv.title ?? null,
+        error: errorDetail,
       });
     }
 

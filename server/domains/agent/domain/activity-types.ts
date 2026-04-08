@@ -1,5 +1,6 @@
 export interface ToolCallEntry {
   toolName: string;
+  inputSummary?: string | null;
   durationMs?: number | null;
   status: string;
   error?: string | null;
@@ -19,7 +20,7 @@ export interface AgentActivityItem {
   tokenUsage?: number | null;
   toolCallCount: number;
   toolCalls: ToolCallEntry[];
-  summary?: string | null;
+  response?: string | null;
   error?: string | null;
 }
 
@@ -33,6 +34,16 @@ export interface ActivitySummary {
   totalRuns30d: number;
 }
 
+export interface ActivityRawMetrics {
+  runsToday: number;
+  totalRuns7d: number;
+  successCount7d: number;
+  failureCount7d: number;
+  totalTokens30d: number;
+  totalRuns30d: number;
+  tokenRunCount: number;
+}
+
 export interface ActivityFilter {
   triggerType?: "scheduled" | "user";
   status?: "completed" | "failed" | "running";
@@ -44,5 +55,5 @@ export interface ActivityFilter {
 
 export interface ActivityPort {
   list(orgId: string, filter?: ActivityFilter): Promise<AgentActivityItem[]>;
-  summary(orgId: string): Promise<ActivitySummary>;
+  getRawMetrics(orgId: string): Promise<ActivityRawMetrics>;
 }

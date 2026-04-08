@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Activity, Clock, CheckCircle, XCircle, Loader2,
@@ -14,6 +15,7 @@ import { Link } from "wouter";
 
 interface ToolCallEntry {
   toolName: string;
+  inputSummary?: string | null;
   durationMs?: number | null;
   status: string;
   error?: string | null;
@@ -33,7 +35,7 @@ interface AgentActivityItem {
   tokenUsage?: number | null;
   toolCallCount: number;
   toolCalls: ToolCallEntry[];
-  summary?: string | null;
+  response?: string | null;
   error?: string | null;
 }
 
@@ -172,17 +174,17 @@ function ActivityRow({ item }: { item: AgentActivityItem }) {
             </div>
           )}
 
-          {item.summary && (
+          {item.response && (
             <div>
               <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Response</div>
-              <p className="text-sm text-muted-foreground leading-relaxed" data-testid={`summary-${item.id}`}>{item.summary}</p>
+              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap" data-testid={`response-${item.id}`}>{item.response}</p>
             </div>
           )}
 
           {item.toolCalls.length > 0 && (
             <div>
               <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Tool Call Timeline</div>
-              <div className="space-y-1 ml-2 border-l-2 border-border pl-3">
+              <div className="space-y-1.5 ml-2 border-l-2 border-border pl-3">
                 {item.toolCalls.map((tc, i) => (
                   <div key={i} className="flex items-start gap-2 text-xs" data-testid={`tool-call-${item.id}-${i}`}>
                     {tc.status === "completed" || tc.status === "success" ? (
@@ -192,10 +194,13 @@ function ActivityRow({ item }: { item: AgentActivityItem }) {
                     ) : (
                       <Loader2 className="h-3.5 w-3.5 text-muted-foreground animate-spin mt-0.5 shrink-0" />
                     )}
-                    <div>
+                    <div className="min-w-0">
                       <span className="font-medium">{tc.toolName}</span>
                       {tc.durationMs != null && (
                         <span className="text-muted-foreground ml-1">({tc.durationMs}ms)</span>
+                      )}
+                      {tc.inputSummary && (
+                        <p className="text-muted-foreground/70 truncate mt-0.5 font-mono text-[10px]" data-testid={`tool-input-${item.id}-${i}`}>{tc.inputSummary}</p>
                       )}
                       {tc.error && <p className="text-red-500 mt-0.5">{tc.error}</p>}
                     </div>
@@ -220,10 +225,14 @@ function ActivityRow({ item }: { item: AgentActivityItem }) {
 export default function AgentActivityPage() {
   const [triggerFilter, setTriggerFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
 
   const queryParams = new URLSearchParams();
   if (triggerFilter !== "all") queryParams.set("triggerType", triggerFilter);
   if (statusFilter !== "all") queryParams.set("status", statusFilter);
+  if (startDate) queryParams.set("startDate", new Date(startDate).toISOString());
+  if (endDate) queryParams.set("endDate", new Date(endDate + "T23:59:59").toISOString());
   queryParams.set("limit", "50");
 
   const { data: summary, isLoading: summaryLoading } = useQuery<ActivitySummary>({
@@ -231,15 +240,13 @@ export default function AgentActivityPage() {
   });
 
   const { data: items = [], isLoading: itemsLoading } = useQuery<AgentActivityItem[]>({
-    queryKey: ["/api/agent/activity", triggerFilter, statusFilter],
+    queryKey: ["/api/agent/activity", triggerFilter, statusFilter, startDate, endDate],
     queryFn: async () => {
       const res = await fetch(`/api/agent/activity?${queryParams.toString()}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch activity");
       return res.json();
     },
   });
-
-  const failedItems = items.filter(i => i.status === "failed");
 
   return (
     <div className="min-h-screen p-6 max-w-5xl mx-auto" data-testid="agent-activity-page">
@@ -267,7 +274,7 @@ export default function AgentActivityPage() {
         <SummaryMetrics summary={summary} />
       )}
 
-      <div className="flex items-center gap-3 mb-4" data-testid="activity-filters">
+      <div className="flex items-center gap-3 mb-4 flex-wrap" data-testid="activity-filters">
         <Select value={triggerFilter} onValueChange={setTriggerFilter}>
           <SelectTrigger className="w-[160px]" data-testid="select-trigger-filter">
             <SelectValue placeholder="Trigger Type" />
@@ -290,6 +297,40 @@ export default function AgentActivityPage() {
             <SelectItem value="running">Running</SelectItem>
           </SelectContent>
         </Select>
+
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground">From</span>
+          <Input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="w-[140px] h-9 text-xs"
+            data-testid="input-start-date"
+          />
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground">To</span>
+          <Input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="w-[140px] h-9 text-xs"
+            data-testid="input-end-date"
+          />
+        </div>
+
+        {(startDate || endDate) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs h-8"
+            onClick={() => { setStartDate(""); setEndDate(""); }}
+            data-testid="button-clear-dates"
+          >
+            Clear dates
+          </Button>
+        )}
 
         {items.length > 0 && (
           <span className="text-xs text-muted-foreground ml-auto" data-testid="text-result-count">
