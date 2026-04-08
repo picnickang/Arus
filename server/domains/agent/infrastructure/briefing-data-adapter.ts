@@ -1,7 +1,4 @@
 import { storage } from "../../../storage";
-import { db } from "../../../db";
-import { eq, and, lte, desc } from "drizzle-orm";
-import { maintenanceSchedules } from "@shared/schema";
 import type {
   BriefingDataPort,
   AlertRecord,
@@ -33,22 +30,13 @@ export class BriefingDataAdapter implements BriefingDataPort {
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    const records = await db.select({
-      id: maintenanceSchedules.id,
-      equipmentId: maintenanceSchedules.equipmentId,
-      scheduledDate: maintenanceSchedules.scheduledDate,
-      maintenanceType: maintenanceSchedules.maintenanceType,
-      description: maintenanceSchedules.description,
-    }).from(maintenanceSchedules)
-      .where(and(
-        eq(maintenanceSchedules.orgId, orgId),
-        eq(maintenanceSchedules.status, "scheduled"),
-        lte(maintenanceSchedules.scheduledDate, todayEnd),
-      ))
-      .orderBy(maintenanceSchedules.scheduledDate)
-      .limit(15);
+    const scheduled = await storage.getMaintenanceSchedules(undefined, "scheduled");
+    const orgFiltered = scheduled.filter(s =>
+      (s as { orgId?: string }).orgId === orgId &&
+      new Date(s.scheduledDate) <= todayEnd
+    );
 
-    return records.map(r => ({
+    return orgFiltered.slice(0, 15).map(r => ({
       id: r.id,
       equipmentId: r.equipmentId,
       scheduledDate: new Date(r.scheduledDate),

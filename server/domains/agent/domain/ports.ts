@@ -228,3 +228,15 @@ export interface OutcomeRecordPort {
 
 export type { FindingsAggregatorPort, UnifiedFindingItem, FindingsSummary, FindingsFilter, FindingsPagination, FindingsResponse } from "./findings-types";
 
+export type {
+  BriefingRepositoryPort,
+  BriefingDataPort,
+  BriefingSection,
+  BriefingSectionItem,
+  BriefingSectionKey,
+  AlertRecord,
+  MaintenanceDueRecord,
+  ExpiringCertRecord,
+  LowStockRecord,
+} from "./briefing-types";
+
