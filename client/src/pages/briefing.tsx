@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -153,7 +153,10 @@ export default function BriefingPage() {
 
   const dateQuery = useQuery<Briefing[]>({
     queryKey: ["/api/agent/briefings", selectedDate],
-    queryFn: () => fetch(`/api/agent/briefings?date=${selectedDate}`).then(r => r.json()),
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/agent/briefings?date=${selectedDate}`);
+      return res.json();
+    },
     enabled: !isToday,
   });
 
@@ -172,6 +175,12 @@ export default function BriefingPage() {
   const briefing: Briefing | null = isToday
     ? (latestQuery.data ?? null)
     : (dateQuery.data?.[0] ?? null);
+
+  useEffect(() => {
+    if (briefing?.id && isToday) {
+      localStorage.setItem("briefing-viewed-id", briefing.id);
+    }
+  }, [briefing?.id, isToday]);
 
   const isLoading = isToday ? latestQuery.isLoading : dateQuery.isLoading;
 

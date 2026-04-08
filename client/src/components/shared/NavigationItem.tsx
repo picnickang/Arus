@@ -11,6 +11,11 @@ interface FindingsSummary {
   totalFindings: number;
 }
 
+interface BriefingLatest {
+  id: string;
+  generatedAt: string;
+}
+
 function NavBadge({ badgeKey }: { badgeKey: string }) {
   const { data: summary } = useQuery<FindingsSummary>({
     queryKey: ["/api/agent/findings/summary"],
@@ -18,18 +23,40 @@ function NavBadge({ badgeKey }: { badgeKey: string }) {
     enabled: badgeKey === "findings-pending",
   });
 
-  if (badgeKey !== "findings-pending") return null;
-  const count = (summary?.pendingApprovals ?? 0) + (summary?.pendingSuggestions ?? 0);
-  if (count === 0) return null;
+  const { data: latestBriefing } = useQuery<BriefingLatest | null>({
+    queryKey: ["/api/agent/briefings/latest"],
+    refetchInterval: 120000,
+    enabled: badgeKey === "briefing-new",
+  });
 
-  return (
-    <span
-      className="ml-auto inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full text-[10px] font-medium bg-amber-500 text-white"
-      data-testid="nav-badge-findings"
-    >
-      {count > 99 ? "99+" : count}
-    </span>
-  );
+  if (badgeKey === "findings-pending") {
+    const count = (summary?.pendingApprovals ?? 0) + (summary?.pendingSuggestions ?? 0);
+    if (count === 0) return null;
+    return (
+      <span
+        className="ml-auto inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full text-[10px] font-medium bg-amber-500 text-white"
+        data-testid="nav-badge-findings"
+      >
+        {count > 99 ? "99+" : count}
+      </span>
+    );
+  }
+
+  if (badgeKey === "briefing-new") {
+    if (!latestBriefing?.id) return null;
+    const viewedId = localStorage.getItem("briefing-viewed-id");
+    if (viewedId === latestBriefing.id) return null;
+    return (
+      <span
+        className="ml-auto inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full text-[10px] font-medium bg-blue-500 text-white"
+        data-testid="nav-badge-briefing"
+      >
+        New
+      </span>
+    );
+  }
+
+  return null;
 }
 
 interface NavigationItemProps {

@@ -1,4 +1,7 @@
 import { storage } from "../../../storage";
+import { db } from "../../../db";
+import { eq, and, lte, desc } from "drizzle-orm";
+import { maintenanceSchedules } from "@shared/schema";
 import type {
   BriefingDataPort,
   AlertRecord,
@@ -27,20 +30,31 @@ export class BriefingDataAdapter implements BriefingDataPort {
   }
 
   async getMaintenanceDueToday(orgId: string): Promise<MaintenanceDueRecord[]> {
-    const scheduled = await storage.getMaintenanceSchedules(undefined, "scheduled");
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    return scheduled
-      .filter(s => new Date(s.scheduledDate) <= todayEnd)
-      .slice(0, 15)
-      .map(r => ({
-        id: r.id,
-        equipmentId: r.equipmentId,
-        scheduledDate: new Date(r.scheduledDate),
-        maintenanceType: r.maintenanceType,
-        description: r.description,
-      }));
+    const records = await db.select({
+      id: maintenanceSchedules.id,
+      equipmentId: maintenanceSchedules.equipmentId,
+      scheduledDate: maintenanceSchedules.scheduledDate,
+      maintenanceType: maintenanceSchedules.maintenanceType,
+      description: maintenanceSchedules.description,
+    }).from(maintenanceSchedules)
+      .where(and(
+        eq(maintenanceSchedules.orgId, orgId),
+        eq(maintenanceSchedules.status, "scheduled"),
+        lte(maintenanceSchedules.scheduledDate, todayEnd),
+      ))
+      .orderBy(maintenanceSchedules.scheduledDate)
+      .limit(15);
+
+    return records.map(r => ({
+      id: r.id,
+      equipmentId: r.equipmentId,
+      scheduledDate: new Date(r.scheduledDate),
+      maintenanceType: r.maintenanceType,
+      description: r.description,
+    }));
   }
 
   async getExpiringCertifications(orgId: string, withinDays: number): Promise<ExpiringCertRecord[]> {
