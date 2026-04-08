@@ -161,6 +161,11 @@ function ActivityRow({ item }: { item: AgentActivityItem }) {
               </span>
             )}
           </div>
+          {item.response && (
+            <p className="text-xs text-muted-foreground/70 mt-1 truncate max-w-[600px]" data-testid={`snippet-${item.id}`}>
+              {item.response.length > 120 ? item.response.slice(0, 117) + "..." : item.response}
+            </p>
+          )}
         </div>
 
         {expanded ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}

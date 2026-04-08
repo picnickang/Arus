@@ -111,7 +111,7 @@ export class ActivityRepositoryAdapter implements ActivityPort {
     const conv7d = await db
       .select({
         cnt: count(),
-        completed: sql<number>`COUNT(*) FILTER (WHERE ${agentConversations.status} != 'error')::int`,
+        completed: sql<number>`COUNT(*) FILTER (WHERE ${agentConversations.status} NOT IN ('error', 'active'))::int`,
         failed: sql<number>`COUNT(*) FILTER (WHERE ${agentConversations.status} = 'error')::int`,
       })
       .from(agentConversations)
@@ -265,7 +265,9 @@ export class ActivityRepositoryAdapter implements ActivityPort {
         scheduleId: null,
         conversationId: conv.id,
         userId: conv.userId,
-        status: conv.status === "error" ? "failed" : "completed",
+        status: conv.status === "error" ? "failed"
+          : conv.status === "active" ? "running"
+          : "completed",
         startedAt: conv.createdAt ? new Date(conv.createdAt) : new Date(),
         completedAt: conv.lastMessageAt ? new Date(conv.lastMessageAt) : null,
         durationMs: conv.createdAt && conv.lastMessageAt
