@@ -144,6 +144,24 @@ describe("Outcome Tracking API", () => {
     });
   });
 
+  describe("Transition guards", () => {
+    it("rejects re-acting on already acted suggestion", async () => {
+      const fresh = await createSuggestion();
+      await api("POST", `/api/agent/suggestions/${fresh.id}/act`, { outcome: "useful" });
+      const { status, data } = await api("POST", `/api/agent/suggestions/${fresh.id}/act`, { outcome: "useful" });
+      expect(status).toBe(500);
+      expect(data.error).toContain("Cannot transition");
+    });
+
+    it("rejects dismissing already dismissed suggestion", async () => {
+      const fresh = await createSuggestion();
+      await api("POST", `/api/agent/suggestions/${fresh.id}/dismiss`, { outcome: "not_relevant" });
+      const { status, data } = await api("POST", `/api/agent/suggestions/${fresh.id}/dismiss`, { outcome: "not_relevant" });
+      expect(status).toBe(500);
+      expect(data.error).toContain("Cannot transition");
+    });
+  });
+
   describe("Findings integration", () => {
     it("findings API returns outcome fields for resolved suggestions", async () => {
       const { status, data } = await api("GET", "/api/agent/findings?source=suggestion");

@@ -34,6 +34,11 @@ export class OutcomeTrackingService implements OutcomeRecordPort {
       throw new Error("Suggestion not found");
     }
 
+    const ALLOWED_FROM = ["pending", "new"];
+    if (!ALLOWED_FROM.includes(existing.status)) {
+      throw new Error(`Cannot transition from '${existing.status}' to '${newStatus}'. Only pending/new suggestions can be acted on.`);
+    }
+
     const updateData: Partial<AgentSuggestion> = {
       status: newStatus,
       actedOn: newStatus === "acted",
