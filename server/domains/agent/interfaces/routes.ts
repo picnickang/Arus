@@ -1178,7 +1178,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         if (!isNaN(d.getTime())) filter.endDate = d;
       }
       filter.limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
-      filter.offset = parseInt(req.query.offset as string) || 0;
+      filter.offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
 
       const items = await activityService.list(orgId, filter);
       res.json(items);
