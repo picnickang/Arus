@@ -134,13 +134,13 @@ export class SchedulerService {
           toolCallCount: result.toolCallCount,
           tokensUsed: result.totalTokens,
           conversationId: result.conversationId,
-          toolCalls: result.toolCalls.map(tc => ({
+          toolCalls: Array.isArray(result.toolCalls) ? result.toolCalls.map((tc: { toolName: string; input: unknown; durationMs: number; status: string; error?: string }) => ({
             toolName: tc.toolName,
             input: tc.input,
             durationMs: tc.durationMs,
             status: tc.status,
             error: tc.error,
-          })),
+          })) : [],
         },
         tokenUsage: result.totalTokens,
         completedAt: new Date(),
@@ -197,13 +197,13 @@ export class SchedulerService {
             toolCallCount: retryResult.toolCallCount,
             tokensUsed: retryResult.totalTokens,
             conversationId: retryResult.conversationId,
-            toolCalls: retryResult.toolCalls.map(tc => ({
+            toolCalls: Array.isArray(retryResult.toolCalls) ? retryResult.toolCalls.map((tc: { toolName: string; input: unknown; durationMs: number; status: string; error?: string }) => ({
               toolName: tc.toolName,
               input: tc.input,
               durationMs: tc.durationMs,
               status: tc.status,
               error: tc.error,
-            })),
+            })) : [],
             retried: true,
           },
           tokenUsage: retryResult.totalTokens,
