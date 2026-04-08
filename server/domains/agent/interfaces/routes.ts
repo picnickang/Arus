@@ -25,6 +25,7 @@ import { createFindingsAdapter } from "../infrastructure/findings-adapter";
 import { FindingsAggregatorService } from "../application/findings-service";
 import type { FindingsFilter, FindingsPagination } from "../domain/findings-types";
 import { OutcomeTrackingService } from "../application/outcome-service";
+import { PredictionFeedbackAdapter } from "../infrastructure/prediction-feedback-adapter";
 import { OUTCOME_CATEGORIES } from "../domain/ports";
 
 const upload = multer({
@@ -625,7 +626,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
-  const outcomeService = new OutcomeTrackingService(agentRepo);
+  const predictionFeedbackAdapter = new PredictionFeedbackAdapter();
+  const outcomeService = new OutcomeTrackingService(agentRepo, predictionFeedbackAdapter);
 
   app.post("/api/agent/suggestions/:id/dismiss", rateLimit.writeOperationRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
     try {

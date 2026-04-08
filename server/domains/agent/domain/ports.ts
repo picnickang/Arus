@@ -207,6 +207,20 @@ export interface EffectivenessSummary {
   outcomeCounts: Record<string, number>;
 }
 
+export interface PredictionFeedbackInput {
+  orgId: string;
+  predictionId: number;
+  equipmentId: string;
+  userId: string;
+  feedbackType: string;
+  isAccurate: boolean;
+  comments?: string;
+}
+
+export interface PredictionFeedbackPort {
+  recordFeedback(input: PredictionFeedbackInput): Promise<void>;
+}
+
 export interface OutcomeTrackingPort {
   recordOutcome(input: OutcomeRecordInput, newStatus: "acted" | "dismissed" | "deferred"): Promise<import("@shared/schema").AgentSuggestion>;
   getEffectiveness(orgId: string, days?: number): Promise<EffectivenessSummary>;
