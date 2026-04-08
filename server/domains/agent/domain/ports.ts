@@ -238,6 +238,35 @@ export type {
 } from "./activity-types";
 
 export type {
+  AgentTaskRepositoryPort,
+  AgentTaskFilter,
+  TaskStatus,
+  TaskPriority,
+  TaskSource,
+} from "./task-types";
+
+export {
+  TASK_STATUSES,
+  TASK_PRIORITIES,
+  TASK_SOURCES,
+  isValidStatusTransition,
+} from "./task-types";
+
+export type {
+  AgentFindingRepositoryPort,
+  AgentFindingFilter,
+  FindingType,
+  FindingSeverityLevel,
+  FindingStatus as AgentFindingStatus,
+} from "./finding-domain-types";
+
+export {
+  FINDING_TYPES,
+  FINDING_SEVERITIES,
+  FINDING_STATUSES,
+} from "./finding-domain-types";
+
+export type {
   BriefingRepositoryPort,
   BriefingDataPort,
   BriefingSection,

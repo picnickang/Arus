@@ -264,3 +264,68 @@ export const insertAgentBriefingSchema = createInsertSchema(agentBriefings)
 
 export type AgentBriefing = typeof agentBriefings.$inferSelect;
 export type InsertAgentBriefing = z.infer<typeof insertAgentBriefingSchema>;
+
+export const agentTasks = pgTable("agent_tasks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orgId: varchar("org_id").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  status: text("status").notNull().default("open"),
+  priority: text("priority").notNull().default("medium"),
+  source: text("source").notNull().default("user"),
+  parentTaskId: varchar("parent_task_id"),
+  equipmentId: varchar("equipment_id"),
+  vesselId: varchar("vessel_id"),
+  predictionId: varchar("prediction_id"),
+  conversationId: varchar("conversation_id"),
+  outcome: text("outcome"),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
+  completedAt: timestamp("completed_at", { mode: "date" }),
+}, (table) => [
+  index("idx_agent_tasks_org").on(table.orgId),
+  index("idx_agent_tasks_status").on(table.status),
+  index("idx_agent_tasks_source").on(table.source),
+  index("idx_agent_tasks_parent").on(table.parentTaskId),
+  index("idx_agent_tasks_equipment").on(table.equipmentId),
+  index("idx_agent_tasks_vessel").on(table.vesselId),
+]);
+
+export const insertAgentTaskSchema = createInsertSchema(agentTasks)
+  .omit({ id: true, createdAt: true, updatedAt: true, completedAt: true });
+
+export type AgentTask = typeof agentTasks.$inferSelect;
+export type InsertAgentTask = z.infer<typeof insertAgentTaskSchema>;
+
+export const agentFindings = pgTable("agent_findings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orgId: varchar("org_id").notNull(),
+  findingType: text("finding_type").notNull().default("recommendation"),
+  severity: text("severity").notNull().default("info"),
+  title: text("title").notNull(),
+  evidenceSummary: text("evidence_summary"),
+  recommendedAction: text("recommended_action"),
+  status: text("status").notNull().default("new"),
+  taskId: varchar("task_id"),
+  equipmentId: varchar("equipment_id"),
+  vesselId: varchar("vessel_id"),
+  entityType: text("entity_type"),
+  entityId: varchar("entity_id"),
+  conversationId: varchar("conversation_id"),
+  metadata: jsonb("metadata").default({}),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
+}, (table) => [
+  index("idx_agent_findings_org").on(table.orgId),
+  index("idx_agent_findings_type").on(table.findingType),
+  index("idx_agent_findings_severity").on(table.severity),
+  index("idx_agent_findings_status").on(table.status),
+  index("idx_agent_findings_task").on(table.taskId),
+  index("idx_agent_findings_equipment").on(table.equipmentId),
+]);
+
+export const insertAgentFindingSchema = createInsertSchema(agentFindings)
+  .omit({ id: true, createdAt: true, updatedAt: true });
+
+export type AgentFinding = typeof agentFindings.$inferSelect;
+export type InsertAgentFinding = z.infer<typeof insertAgentFindingSchema>;

@@ -27,7 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { AgentChatPanel } from "@/components/agent/AgentChatPanel";
 
-type FindingSource = "suggestion" | "draft" | "schedule_run";
+type FindingSource = "suggestion" | "draft" | "schedule_run" | "agent_finding";
 type FindingSeverity = "info" | "warning" | "critical";
 type FindingStatus = "pending" | "acted" | "dismissed" | "deferred" | "approved" | "rejected" | "completed" | "failed" | "running";
 
@@ -68,6 +68,7 @@ interface FindingsSummary {
   pendingSuggestions: number;
   recentFailures: number;
   totalFindings: number;
+  agentFindings: number;
 }
 
 interface FindingsResponse {
@@ -79,12 +80,14 @@ const SOURCE_LABELS: Record<FindingSource, string> = {
   suggestion: "Suggestion",
   draft: "Draft",
   schedule_run: "Scheduled Run",
+  agent_finding: "Agent Finding",
 };
 
 const SOURCE_ICONS: Record<FindingSource, typeof Lightbulb> = {
   suggestion: Lightbulb,
   draft: FileText,
   schedule_run: Play,
+  agent_finding: Eye,
 };
 
 const SEVERITY_STYLES: Record<FindingSeverity, string> = {
@@ -112,6 +115,10 @@ const TRIGGER_ICONS: Record<string, typeof AlertTriangle> = {
   critical_alert: Shield,
   expiring_certification: Users,
   ai_summary: Bot,
+  anomaly: AlertTriangle,
+  recommendation: Lightbulb,
+  risk: Shield,
+  compliance_gap: FileText,
 };
 
 const ENTITY_ROUTES: Record<string, string> = {
@@ -400,6 +407,7 @@ function FilterBar({
           <SelectItem value="suggestion">Suggestions</SelectItem>
           <SelectItem value="draft">Drafts</SelectItem>
           <SelectItem value="schedule_run">Scheduled Runs</SelectItem>
+          <SelectItem value="agent_finding">Agent Findings</SelectItem>
         </SelectContent>
       </Select>
       <Select value={severity} onValueChange={onSeverityChange}>
@@ -477,6 +485,8 @@ function FindingCard({
   onDefer?: (id: string) => void;
   onViewOutput?: (item: UnifiedFindingItem) => void;
   onOpenAssistant: (item: UnifiedFindingItem) => void;
+  onAcknowledge?: (id: string) => void;
+  onArchive?: (id: string) => void;
 }) {
   const SourceIcon = SOURCE_ICONS[item.source];
   const TriggerIcon = item.triggerType ? TRIGGER_ICONS[item.triggerType] || Lightbulb : SourceIcon;
@@ -593,6 +603,27 @@ function FindingCard({
                   data-testid={`button-dismiss-${item.id}`}
                 >
                   <X className="h-3 w-3" /> Dismiss
+                </Button>
+              </>
+            )}
+            {item.source === "agent_finding" && item.status === "pending" && (
+              <>
+                <Button
+                  size="sm"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => onAcknowledge?.(item.sourceId)}
+                  data-testid={`button-acknowledge-${item.id}`}
+                >
+                  <CheckCircle className="h-3 w-3" /> Acknowledge
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => onArchive?.(item.sourceId)}
+                  data-testid={`button-archive-${item.id}`}
+                >
+                  <X className="h-3 w-3" /> Archive
                 </Button>
               </>
             )}
@@ -714,6 +745,26 @@ export default function FindingsPage() {
     onError: (err: unknown) => toast({ title: "Failed to defer", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" }),
   });
 
+  const acknowledgeFindingMutation = useMutation({
+    mutationFn: (findingId: string) => apiRequest("PATCH", `/api/agent/finding-records/${findingId}`, { status: "acknowledged" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/agent/findings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/agent/findings/summary"] });
+      toast({ title: "Finding acknowledged" });
+    },
+    onError: (err: unknown) => toast({ title: "Failed to acknowledge", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" }),
+  });
+
+  const archiveFindingMutation = useMutation({
+    mutationFn: (findingId: string) => apiRequest("PATCH", `/api/agent/finding-records/${findingId}`, { status: "archived" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/agent/findings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/agent/findings/summary"] });
+      toast({ title: "Finding archived" });
+    },
+    onError: (err: unknown) => toast({ title: "Failed to archive", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" }),
+  });
+
   const openOutcomeDialog = useCallback((action: "act" | "dismiss" | "defer", sugId: string) => {
     setOutcomeAction(action);
     setOutcomeSuggestionId(sugId);
@@ -775,7 +826,7 @@ export default function FindingsPage() {
             <div>
               <h1 className="text-xl font-bold" data-testid="text-page-title">Agent Findings</h1>
               <p className="text-sm text-muted-foreground">
-                Unified view of all AI agent activity — suggestions, drafts, and scheduled runs
+                Unified view of all AI agent activity — suggestions, drafts, scheduled runs, and agent findings
               </p>
             </div>
           </div>
@@ -842,6 +893,8 @@ export default function FindingsPage() {
                       onDefer={id => openOutcomeDialog("defer", id)}
                       onViewOutput={setRunOutputItem}
                       onOpenAssistant={openAssistant}
+                      onAcknowledge={id => acknowledgeFindingMutation.mutate(id)}
+                      onArchive={id => archiveFindingMutation.mutate(id)}
                     />
                   ))}
                 </div>
@@ -860,6 +913,8 @@ export default function FindingsPage() {
                       item={item}
                       onViewOutput={setRunOutputItem}
                       onOpenAssistant={openAssistant}
+                      onAcknowledge={id => acknowledgeFindingMutation.mutate(id)}
+                      onArchive={id => archiveFindingMutation.mutate(id)}
                     />
                   ))}
                 </div>

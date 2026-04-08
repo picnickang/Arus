@@ -5,6 +5,7 @@ import {
   agentDrafts,
   agentScheduleRuns,
   agentSchedules,
+  agentFindings,
 } from "@shared/schema";
 import type {
   FindingsAggregatorPort,
@@ -171,6 +172,59 @@ export function createFindingsAdapter(): FindingsAggregatorPort {
         }
       }
 
+      if (shouldInclude("agent_finding")) {
+        const conditions = [eq(agentFindings.orgId, orgId)];
+        if (filter?.severity) conditions.push(eq(agentFindings.severity, filter.severity));
+        if (filter?.status) {
+          const statusMap: Record<string, string[]> = {
+            pending: ["new"],
+            acted: ["acknowledged", "actioned"],
+            dismissed: ["archived"],
+          };
+          const mappedStatuses = statusMap[filter.status] || [filter.status];
+          if (mappedStatuses.length === 1) {
+            conditions.push(eq(agentFindings.status, mappedStatuses[0]));
+          } else {
+            conditions.push(sql`${agentFindings.status} IN (${sql.join(mappedStatuses.map(s => sql`${s}`), sql`, `)})`);
+          }
+        }
+        if (filter?.dateFrom) conditions.push(gte(agentFindings.createdAt, new Date(filter.dateFrom)));
+        if (filter?.dateTo) conditions.push(lte(agentFindings.createdAt, new Date(filter.dateTo)));
+
+        const agentFindingRows = await db.select().from(agentFindings)
+          .where(and(...conditions))
+          .orderBy(desc(agentFindings.createdAt));
+
+        for (const f of agentFindingRows) {
+          const statusMap: Record<string, FindingStatus> = {
+            new: "pending",
+            acknowledged: "acted",
+            actioned: "acted",
+            archived: "dismissed",
+          };
+
+          items.push({
+            id: `af_${f.id}`,
+            source: "agent_finding",
+            sourceId: f.id,
+            title: f.title,
+            summary: f.evidenceSummary || f.recommendedAction || `${f.findingType} finding`,
+            severity: normalizeSeverity(f.severity),
+            status: statusMap[f.status] || normalizeStatus(f.status),
+            entityType: f.entityType,
+            entityId: f.entityId,
+            triggerType: f.findingType,
+            draftType: null,
+            scheduleName: null,
+            scheduleId: null,
+            requiresAction: f.status === "new",
+            createdAt: (f.createdAt ?? new Date()).toISOString(),
+            updatedAt: f.updatedAt?.toISOString() ?? null,
+            context: f.metadata as Record<string, unknown> | null,
+          });
+        }
+      }
+
       items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
       const total = items.length;
@@ -234,11 +288,18 @@ export function createFindingsAdapter(): FindingsAggregatorPort {
       const sugCount = pendingSuggestions?.count ?? 0;
       const draftCount = pendingDrafts?.count ?? 0;
 
+      const [totalAgentFindings] = await db
+        .select({ count: count() })
+        .from(agentFindings)
+        .where(eq(agentFindings.orgId, orgId));
+      const agentFindingsCount = totalAgentFindings?.count ?? 0;
+
       return {
         pendingApprovals: draftCount,
         pendingSuggestions: sugCount,
         recentFailures,
-        totalFindings: (totalSuggestions?.count ?? 0) + (totalDrafts?.count ?? 0) + totalRuns,
+        totalFindings: (totalSuggestions?.count ?? 0) + (totalDrafts?.count ?? 0) + totalRuns + agentFindingsCount,
+        agentFindings: agentFindingsCount,
       };
     },
   };

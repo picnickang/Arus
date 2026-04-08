@@ -33,6 +33,14 @@ import { BriefingGeneratorService } from "../application/briefing-generator-serv
 import { ActivityRepositoryAdapter } from "../infrastructure/activity-repository-adapter";
 import { AgentActivityService } from "../application/activity-service";
 import type { ActivityFilter } from "../domain/activity-types";
+import { AgentTaskRepositoryAdapter } from "../infrastructure/task-repository-adapter";
+import { AgentFindingRepositoryAdapter } from "../infrastructure/finding-repository-adapter";
+import { AgentTaskService } from "../application/task-service";
+import { AgentFindingService } from "../application/finding-service";
+import { TASK_STATUSES, TASK_PRIORITIES, TASK_SOURCES } from "../domain/task-types";
+import type { AgentTaskFilter } from "../domain/task-types";
+import { FINDING_TYPES, FINDING_SEVERITIES, FINDING_STATUSES } from "../domain/finding-domain-types";
+import type { AgentFindingFilter } from "../domain/finding-domain-types";
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -997,7 +1005,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       const orgId = (req as AuthenticatedRequest).orgId;
       const filter: FindingsFilter = {};
 
-      const validSources = ["suggestion", "draft", "schedule_run"];
+      const validSources = ["suggestion", "draft", "schedule_run", "agent_finding"];
       const validSeverities = ["info", "warning", "critical"];
       const validStatuses = ["pending", "acted", "dismissed", "deferred", "approved", "rejected", "completed", "failed", "running"];
 
@@ -1187,5 +1195,171 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
-  console.log("[Agent Domain] Routes registered (chat, conversations, drafts, config, usage, suggestions, schedules, tools, reports, admin, findings, briefings, activity)");
+  const taskAdapter = new AgentTaskRepositoryAdapter();
+  const taskService = new AgentTaskService(taskAdapter);
+  const findingAdapter = new AgentFindingRepositoryAdapter();
+  const findingService = new AgentFindingService(findingAdapter);
+
+  const taskCreateSchema = z.object({
+    title: z.string().min(1).max(500),
+    description: z.string().max(5000).optional().nullable(),
+    priority: z.enum(["low", "medium", "high", "critical"]).optional(),
+    source: z.enum(["suggestion", "signal", "user", "scheduled"]).optional(),
+    parentTaskId: z.string().optional().nullable(),
+    equipmentId: z.string().optional().nullable(),
+    vesselId: z.string().optional().nullable(),
+    predictionId: z.string().optional().nullable(),
+    conversationId: z.string().optional().nullable(),
+  });
+
+  app.get("/api/agent/tasks", rateLimit.generalApiRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const filter: AgentTaskFilter = {};
+      if (req.query.status && TASK_STATUSES.includes(req.query.status as any)) filter.status = req.query.status as any;
+      if (req.query.priority && TASK_PRIORITIES.includes(req.query.priority as any)) filter.priority = req.query.priority as any;
+      if (req.query.source && TASK_SOURCES.includes(req.query.source as any)) filter.source = req.query.source as any;
+      if (req.query.equipmentId) filter.equipmentId = req.query.equipmentId as string;
+      if (req.query.vesselId) filter.vesselId = req.query.vesselId as string;
+      filter.limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+      filter.offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
+      const tasks = await taskService.list(orgId, filter);
+      res.json(tasks);
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  app.post("/api/agent/tasks", rateLimit.writeOperationRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const parsed = taskCreateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid task data", details: parsed.error.flatten().fieldErrors });
+      }
+      const task = await taskService.create({ ...parsed.data, orgId });
+      res.status(201).json(task);
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  app.get("/api/agent/tasks/:id", rateLimit.generalApiRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const task = await taskService.getById(req.params.id, orgId);
+      if (!task) return res.status(404).json({ error: "Task not found" });
+      res.json(task);
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  app.patch("/api/agent/tasks/:id", rateLimit.writeOperationRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const { status, outcome, title, description, priority } = req.body;
+      if (status && TASK_STATUSES.includes(status)) {
+        const task = await taskService.updateStatus(req.params.id, orgId, status, outcome);
+        return res.json(task);
+      }
+      const updateData: Record<string, unknown> = {};
+      if (title) updateData.title = title;
+      if (description !== undefined) updateData.description = description;
+      if (priority && TASK_PRIORITIES.includes(priority)) updateData.priority = priority;
+      if (outcome) updateData.outcome = outcome;
+      const task = await taskService.update(req.params.id, orgId, updateData);
+      res.json(task);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "Unknown error";
+      const statusCode = msg.includes("not found") ? 404 : msg.includes("Cannot transition") ? 400 : 500;
+      res.status(statusCode).json({ error: msg });
+    }
+  });
+
+  app.get("/api/agent/tasks/summary/counts", rateLimit.generalApiRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const counts = await taskService.countByStatus(orgId);
+      res.json(counts);
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  const findingCreateSchema = z.object({
+    findingType: z.enum(["anomaly", "recommendation", "risk", "compliance_gap"]).optional(),
+    severity: z.enum(["info", "warning", "critical"]).optional(),
+    title: z.string().min(1).max(500),
+    evidenceSummary: z.string().max(5000).optional().nullable(),
+    recommendedAction: z.string().max(2000).optional().nullable(),
+    taskId: z.string().optional().nullable(),
+    equipmentId: z.string().optional().nullable(),
+    vesselId: z.string().optional().nullable(),
+    entityType: z.string().optional().nullable(),
+    entityId: z.string().optional().nullable(),
+    conversationId: z.string().optional().nullable(),
+    metadata: z.record(z.unknown()).optional().nullable(),
+  });
+
+  app.get("/api/agent/finding-records", rateLimit.generalApiRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const filter: AgentFindingFilter = {};
+      if (req.query.findingType && FINDING_TYPES.includes(req.query.findingType as any)) filter.findingType = req.query.findingType as any;
+      if (req.query.severity && FINDING_SEVERITIES.includes(req.query.severity as any)) filter.severity = req.query.severity as any;
+      if (req.query.status && FINDING_STATUSES.includes(req.query.status as any)) filter.status = req.query.status as any;
+      if (req.query.taskId) filter.taskId = req.query.taskId as string;
+      if (req.query.equipmentId) filter.equipmentId = req.query.equipmentId as string;
+      filter.limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+      filter.offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
+      const findings = await findingService.list(orgId, filter);
+      res.json(findings);
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  app.post("/api/agent/finding-records", rateLimit.writeOperationRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const parsed = findingCreateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid finding data", details: parsed.error.flatten().fieldErrors });
+      }
+      const finding = await findingService.create({ ...parsed.data, orgId });
+      res.status(201).json(finding);
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  app.get("/api/agent/finding-records/:id", rateLimit.generalApiRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const finding = await findingService.getById(req.params.id, orgId);
+      if (!finding) return res.status(404).json({ error: "Finding not found" });
+      res.json(finding);
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  app.patch("/api/agent/finding-records/:id", rateLimit.writeOperationRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const { status, severity, recommendedAction } = req.body;
+      const updateData: Record<string, unknown> = {};
+      if (status && FINDING_STATUSES.includes(status)) updateData.status = status;
+      if (severity && FINDING_SEVERITIES.includes(severity)) updateData.severity = severity;
+      if (recommendedAction !== undefined) updateData.recommendedAction = recommendedAction;
+      const finding = await findingService.update(req.params.id, orgId, updateData);
+      res.json(finding);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "Unknown error";
+      res.status(msg.includes("not found") ? 404 : 500).json({ error: msg });
+    }
+  });
+
+  console.log("[Agent Domain] Routes registered (chat, conversations, drafts, config, usage, suggestions, schedules, tools, reports, admin, findings, briefings, activity, tasks, agent-findings)");
 }

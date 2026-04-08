@@ -1,4 +1,4 @@
-export type FindingSource = "suggestion" | "draft" | "schedule_run";
+export type FindingSource = "suggestion" | "draft" | "schedule_run" | "agent_finding";
 
 export type FindingSeverity = "info" | "warning" | "critical";
 
@@ -42,6 +42,7 @@ export interface FindingsSummary {
   pendingSuggestions: number;
   recentFailures: number;
   totalFindings: number;
+  agentFindings: number;
 }
 
 export interface FindingsFilter {
