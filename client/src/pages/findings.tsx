@@ -217,11 +217,13 @@ function OutcomeDialog({
   onClose,
   action,
   onSubmit,
+  onSkip,
 }: {
   open: boolean;
   onClose: () => void;
   action: "act" | "dismiss" | "defer";
   onSubmit: (outcome: string, reason: string) => void;
+  onSkip: () => void;
 }) {
   const [outcome, setOutcome] = useState(action === "act" ? "useful" : "not_relevant");
   const [reason, setReason] = useState("");
@@ -261,7 +263,7 @@ function OutcomeDialog({
           </div>
         </div>
         <DialogFooter className="gap-2">
-          <Button variant="outline" size="sm" onClick={onClose}>Skip</Button>
+          <Button variant="outline" size="sm" onClick={() => { onSkip(); setOutcome(action === "act" ? "useful" : "not_relevant"); setReason(""); }} data-testid="button-skip-outcome">Skip</Button>
           <Button
             size="sm"
             onClick={() => {
@@ -695,8 +697,8 @@ export default function FindingsPage() {
   });
 
   const deferMutation = useMutation({
-    mutationFn: ({ id, outcomeReason }: { id: string; outcomeReason?: string }) =>
-      apiRequest("POST", `/api/agent/suggestions/${id}/defer`, { outcomeReason }),
+    mutationFn: ({ id, outcome, outcomeReason }: { id: string; outcome?: string; outcomeReason?: string }) =>
+      apiRequest("POST", `/api/agent/suggestions/${id}/defer`, { outcome, outcomeReason }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agent/findings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/agent/findings/summary"] });
@@ -718,7 +720,20 @@ export default function FindingsPage() {
     } else if (outcomeAction === "dismiss") {
       dismissMutation.mutate({ id: outcomeSuggestionId, outcome, outcomeReason: reason || undefined });
     } else {
-      deferMutation.mutate({ id: outcomeSuggestionId, outcomeReason: reason || undefined });
+      deferMutation.mutate({ id: outcomeSuggestionId, outcome, outcomeReason: reason || undefined });
+    }
+    setOutcomeDialogOpen(false);
+    setOutcomeSuggestionId(null);
+  }, [outcomeSuggestionId, outcomeAction, actMutation, dismissMutation, deferMutation]);
+
+  const handleOutcomeSkip = useCallback(() => {
+    if (!outcomeSuggestionId) return;
+    if (outcomeAction === "act") {
+      actMutation.mutate({ id: outcomeSuggestionId });
+    } else if (outcomeAction === "dismiss") {
+      dismissMutation.mutate({ id: outcomeSuggestionId });
+    } else {
+      deferMutation.mutate({ id: outcomeSuggestionId });
     }
     setOutcomeDialogOpen(false);
     setOutcomeSuggestionId(null);
@@ -892,6 +907,7 @@ export default function FindingsPage() {
         onClose={() => { setOutcomeDialogOpen(false); setOutcomeSuggestionId(null); }}
         action={outcomeAction}
         onSubmit={handleOutcomeSubmit}
+        onSkip={handleOutcomeSkip}
       />
     </div>
   );

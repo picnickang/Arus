@@ -673,9 +673,12 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const userId = (req as AuthenticatedRequest).user?.id || "unknown";
-      const { outcomeReason } = req.body || {};
+      const { outcome, outcomeReason } = req.body || {};
+      if (outcome && !OUTCOME_CATEGORIES.includes(outcome)) {
+        return res.status(400).json({ error: `Invalid outcome. Valid: ${OUTCOME_CATEGORIES.join(", ")}` });
+      }
       const suggestion = await outcomeService.recordOutcome(
-        { suggestionId: req.params.id, orgId, outcome: "not_relevant", outcomeReason: outcomeReason || "Deferred for later review", outcomeBy: userId },
+        { suggestionId: req.params.id, orgId, outcome: outcome || "not_relevant", outcomeReason: outcomeReason || "Deferred for later review", outcomeBy: userId },
         "deferred",
       );
       res.json(suggestion);

@@ -9,6 +9,12 @@ import {
 } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
   Lightbulb, X, Bot, AlertTriangle, Clock,
   Shield, Package, Wrench, Users, ChevronRight,
 } from "lucide-react";
@@ -16,6 +22,14 @@ import { apiRequest } from "@/lib/queryClient";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { cn } from "@/lib/utils";
 import { AgentChatPanel } from "./AgentChatPanel";
+
+const OUTCOME_CATEGORIES = [
+  { value: "useful", label: "Useful" },
+  { value: "already_handled", label: "Already Handled" },
+  { value: "not_relevant", label: "Not Relevant" },
+  { value: "too_late", label: "Too Late" },
+  { value: "false_alarm", label: "False Alarm" },
+];
 
 interface Suggestion {
   id: string;
@@ -65,6 +79,10 @@ export function SuggestionBell() {
   const [chatOpen, setChatOpen] = useState(false);
   const [chatMessage, setChatMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("pending");
+  const [dismissDialogOpen, setDismissDialogOpen] = useState(false);
+  const [dismissTargetId, setDismissTargetId] = useState<string | null>(null);
+  const [dismissOutcome, setDismissOutcome] = useState("not_relevant");
+  const [dismissReason, setDismissReason] = useState("");
   const queryClient = useQueryClient();
   const { roles } = useUserPermissions();
   const canMutate = roles.some(r => MAINTENANCE_ROLES.includes(r));
@@ -78,11 +96,35 @@ export function SuggestionBell() {
   const historySuggestions = suggestions.filter(s => s.status !== "pending");
 
   const dismissMutation = useMutation({
-    mutationFn: (id: string) => apiRequest("POST", `/api/agent/suggestions/${id}/dismiss`, { outcome: "not_relevant" }),
+    mutationFn: ({ id, outcome, outcomeReason }: { id: string; outcome?: string; outcomeReason?: string }) =>
+      apiRequest("POST", `/api/agent/suggestions/${id}/dismiss`, { outcome, outcomeReason }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agent/suggestions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/agent/findings"] });
     },
   });
+
+  const openDismissDialog = useCallback((id: string) => {
+    setDismissTargetId(id);
+    setDismissOutcome("not_relevant");
+    setDismissReason("");
+    setPopoverOpen(false);
+    setDismissDialogOpen(true);
+  }, []);
+
+  const handleDismissSubmit = useCallback(() => {
+    if (!dismissTargetId) return;
+    dismissMutation.mutate({ id: dismissTargetId, outcome: dismissOutcome, outcomeReason: dismissReason || undefined });
+    setDismissDialogOpen(false);
+    setDismissTargetId(null);
+  }, [dismissTargetId, dismissOutcome, dismissReason, dismissMutation]);
+
+  const handleDismissSkip = useCallback(() => {
+    if (!dismissTargetId) return;
+    dismissMutation.mutate({ id: dismissTargetId });
+    setDismissDialogOpen(false);
+    setDismissTargetId(null);
+  }, [dismissTargetId, dismissMutation]);
 
   const openInAssistant = useCallback((suggestion: Suggestion) => {
     const prompt = `I'd like help with this suggestion: "${suggestion.title}". ${suggestion.summary}. What actions should I take?`;
@@ -145,7 +187,7 @@ export function SuggestionBell() {
                       <SuggestionCard
                         key={suggestion.id}
                         suggestion={suggestion}
-                        onDismiss={canMutate ? () => dismissMutation.mutate(suggestion.id) : undefined}
+                        onDismiss={canMutate ? () => openDismissDialog(suggestion.id) : undefined}
                         onOpenInAssistant={() => openInAssistant(suggestion)}
                       />
                     ))}
@@ -177,6 +219,43 @@ export function SuggestionBell() {
         onClose={() => { setChatOpen(false); setChatMessage(null); }}
         initialMessage={chatMessage}
       />
+      <Dialog open={dismissDialogOpen} onOpenChange={(v) => !v && setDismissDialogOpen(false)}>
+        <DialogContent className="max-w-md" data-testid="dialog-bell-dismiss-outcome">
+          <DialogHeader>
+            <DialogTitle className="text-base">Dismiss — Outcome Feedback</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-xs">Category (optional)</Label>
+              <Select value={dismissOutcome} onValueChange={setDismissOutcome}>
+                <SelectTrigger className="h-8 text-xs" data-testid="select-bell-dismiss-outcome">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {OUTCOME_CATEGORIES.map((cat) => (
+                    <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">Reason (optional)</Label>
+              <Textarea
+                value={dismissReason}
+                onChange={(e) => setDismissReason(e.target.value)}
+                placeholder="Why are you dismissing this?"
+                rows={2}
+                className="text-xs"
+                data-testid="input-bell-dismiss-reason"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" onClick={handleDismissSkip} data-testid="button-bell-dismiss-skip">Skip</Button>
+            <Button size="sm" onClick={handleDismissSubmit} data-testid="button-bell-dismiss-submit">Submit</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

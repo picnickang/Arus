@@ -68,13 +68,15 @@ describe("Outcome Tracking E2E", () => {
     expect(data.outcome).toBe("already_handled");
   });
 
-  it("complete defer flow: pending → deferred", async () => {
+  it("complete defer flow: pending → deferred with outcome category", async () => {
     const { status, data } = await api("POST", `/api/agent/suggestions/${pendingIds[2]}/defer`, {
+      outcome: "too_late",
       outcomeReason: "Deferring to next port call",
     });
 
     expect(status).toBe(200);
     expect(data.status).toBe("deferred");
+    expect(data.outcome).toBe("too_late");
     expect(data.outcomeReason).toBe("Deferring to next port call");
   });
 
