@@ -169,7 +169,27 @@ export class ActivityRepositoryAdapter implements ActivityPort {
     return runs.map(r => {
       const output = r.output as Record<string, unknown> | null;
       const toolCallCount = typeof output?.toolCallCount === "number" ? output.toolCallCount : 0;
-      const response = typeof output?.response === "string" ? output.response : null;
+      const response = typeof output?.finalResponse === "string"
+        ? output.finalResponse
+        : typeof output?.response === "string"
+          ? output.response
+          : null;
+
+      const rawToolCalls = Array.isArray(output?.toolCalls) ? output.toolCalls : [];
+      const toolEntries: ToolCallEntry[] = rawToolCalls.map((tc: Record<string, unknown>) => {
+        let inputSummary: string | null = null;
+        if (tc.input) {
+          const inputStr = typeof tc.input === "string" ? tc.input : JSON.stringify(tc.input);
+          inputSummary = inputStr.length > 120 ? inputStr.slice(0, 117) + "..." : inputStr;
+        }
+        return {
+          toolName: typeof tc.toolName === "string" ? tc.toolName : "unknown",
+          inputSummary,
+          durationMs: typeof tc.durationMs === "number" ? tc.durationMs : null,
+          status: typeof tc.status === "string" ? tc.status : "unknown",
+          error: typeof tc.error === "string" ? tc.error : null,
+        };
+      });
 
       return {
         id: r.id,
@@ -187,8 +207,8 @@ export class ActivityRepositoryAdapter implements ActivityPort {
           ? new Date(r.completedAt).getTime() - new Date(r.startedAt).getTime()
           : null,
         tokenUsage: r.tokenUsage,
-        toolCallCount,
-        toolCalls: [],
+        toolCallCount: toolEntries.length || toolCallCount,
+        toolCalls: toolEntries,
         response,
         error: r.error,
       };
