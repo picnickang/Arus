@@ -7,6 +7,17 @@ export type FindingSeverityLevel = typeof FINDING_SEVERITIES[number];
 export const FINDING_STATUSES = ["new", "acknowledged", "actioned", "archived"] as const;
 export type FindingStatus = typeof FINDING_STATUSES[number];
 
+const VALID_FINDING_TRANSITIONS: Record<FindingStatus, readonly FindingStatus[]> = {
+  new: ["acknowledged", "actioned", "archived"],
+  acknowledged: ["actioned", "archived"],
+  actioned: ["archived"],
+  archived: [],
+};
+
+export function isValidFindingStatusTransition(from: FindingStatus, to: FindingStatus): boolean {
+  return VALID_FINDING_TRANSITIONS[from]?.includes(to) ?? false;
+}
+
 export interface AgentFindingFilter {
   findingType?: FindingType;
   severity?: FindingSeverityLevel;

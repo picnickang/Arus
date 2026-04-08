@@ -1216,9 +1216,18 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const filter: AgentTaskFilter = {};
-      if (req.query.status && TASK_STATUSES.includes(req.query.status as any)) filter.status = req.query.status as any;
-      if (req.query.priority && TASK_PRIORITIES.includes(req.query.priority as any)) filter.priority = req.query.priority as any;
-      if (req.query.source && TASK_SOURCES.includes(req.query.source as any)) filter.source = req.query.source as any;
+      const qStatus = req.query.status as string | undefined;
+      if (qStatus && (TASK_STATUSES as readonly string[]).includes(qStatus)) {
+        filter.status = qStatus as AgentTaskFilter["status"];
+      }
+      const qPriority = req.query.priority as string | undefined;
+      if (qPriority && (TASK_PRIORITIES as readonly string[]).includes(qPriority)) {
+        filter.priority = qPriority as AgentTaskFilter["priority"];
+      }
+      const qSource = req.query.source as string | undefined;
+      if (qSource && (TASK_SOURCES as readonly string[]).includes(qSource)) {
+        filter.source = qSource as AgentTaskFilter["source"];
+      }
       if (req.query.equipmentId) filter.equipmentId = req.query.equipmentId as string;
       if (req.query.vesselId) filter.vesselId = req.query.vesselId as string;
       filter.limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
@@ -1239,6 +1248,16 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       }
       const task = await taskService.create({ ...parsed.data, orgId });
       res.status(201).json(task);
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  app.get("/api/agent/tasks/summary/counts", rateLimit.generalApiRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const counts = await taskService.countByStatus(orgId);
+      res.json(counts);
     } catch (error: unknown) {
       res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
@@ -1277,16 +1296,6 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
-  app.get("/api/agent/tasks/summary/counts", rateLimit.generalApiRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
-    try {
-      const orgId = (req as AuthenticatedRequest).orgId;
-      const counts = await taskService.countByStatus(orgId);
-      res.json(counts);
-    } catch (error: unknown) {
-      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
-    }
-  });
-
   const findingCreateSchema = z.object({
     findingType: z.enum(["anomaly", "recommendation", "risk", "compliance_gap"]).optional(),
     severity: z.enum(["info", "warning", "critical"]).optional(),
@@ -1306,9 +1315,18 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const filter: AgentFindingFilter = {};
-      if (req.query.findingType && FINDING_TYPES.includes(req.query.findingType as any)) filter.findingType = req.query.findingType as any;
-      if (req.query.severity && FINDING_SEVERITIES.includes(req.query.severity as any)) filter.severity = req.query.severity as any;
-      if (req.query.status && FINDING_STATUSES.includes(req.query.status as any)) filter.status = req.query.status as any;
+      const qFindingType = req.query.findingType as string | undefined;
+      if (qFindingType && (FINDING_TYPES as readonly string[]).includes(qFindingType)) {
+        filter.findingType = qFindingType as AgentFindingFilter["findingType"];
+      }
+      const qSeverity = req.query.severity as string | undefined;
+      if (qSeverity && (FINDING_SEVERITIES as readonly string[]).includes(qSeverity)) {
+        filter.severity = qSeverity as AgentFindingFilter["severity"];
+      }
+      const qFindingStatus = req.query.status as string | undefined;
+      if (qFindingStatus && (FINDING_STATUSES as readonly string[]).includes(qFindingStatus)) {
+        filter.status = qFindingStatus as AgentFindingFilter["status"];
+      }
       if (req.query.taskId) filter.taskId = req.query.taskId as string;
       if (req.query.equipmentId) filter.equipmentId = req.query.equipmentId as string;
       filter.limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
@@ -1357,7 +1375,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       res.json(finding);
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : "Unknown error";
-      res.status(msg.includes("not found") ? 404 : 500).json({ error: msg });
+      const statusCode = msg.includes("not found") ? 404 : msg.includes("Cannot transition") ? 400 : 500;
+      res.status(statusCode).json({ error: msg });
     }
   });
 
