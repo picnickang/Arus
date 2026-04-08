@@ -52,12 +52,17 @@ export interface FindingsPagination {
   offset: number;
 }
 
+export interface FindingsResponse {
+  items: UnifiedFindingItem[];
+  total: number;
+}
+
 export interface FindingsAggregatorPort {
   getFindings(
     orgId: string,
     filter?: FindingsFilter,
     pagination?: FindingsPagination,
-  ): Promise<{ items: UnifiedFindingItem[]; total: number }>;
+  ): Promise<FindingsResponse>;
 
   getSummary(orgId: string): Promise<FindingsSummary>;
 }
