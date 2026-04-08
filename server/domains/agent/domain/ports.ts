@@ -229,6 +229,14 @@ export interface OutcomeRecordPort {
 export type { FindingsAggregatorPort, UnifiedFindingItem, FindingsSummary, FindingsFilter, FindingsPagination, FindingsResponse } from "./findings-types";
 
 export type {
+  ActivityPort,
+  AgentActivityItem,
+  ActivitySummary,
+  ActivityFilter,
+  ToolCallEntry,
+} from "./activity-types";
+
+export type {
   BriefingRepositoryPort,
   BriefingDataPort,
   BriefingSection,

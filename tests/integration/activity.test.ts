@@ -1,0 +1,135 @@
+import { describe, it, expect, beforeAll } from "@jest/globals";
+
+const BASE = process.env.TEST_BASE_URL || "http://localhost:5000";
+const HEADERS = {
+  "Content-Type": "application/json",
+  "X-Org-Id": "default-org-id",
+  "X-User-Id": "dev-admin-user",
+  "X-User-Role": "admin",
+};
+
+async function get(path: string) {
+  const res = await fetch(`${BASE}${path}`, { headers: HEADERS });
+  return { status: res.status, body: await res.json() };
+}
+
+describe("Agent Activity API", () => {
+  describe("GET /api/agent/activity/summary", () => {
+    it("returns summary metrics with correct shape", async () => {
+      const { status, body } = await get("/api/agent/activity/summary");
+      expect(status).toBe(200);
+      expect(body).toHaveProperty("runsToday");
+      expect(body).toHaveProperty("successRate7d");
+      expect(body).toHaveProperty("avgTokensPerRun");
+      expect(body).toHaveProperty("estimatedCost30d");
+      expect(body).toHaveProperty("failureCount7d");
+      expect(body).toHaveProperty("totalRuns7d");
+      expect(body).toHaveProperty("totalRuns30d");
+      expect(typeof body.runsToday).toBe("number");
+      expect(typeof body.successRate7d).toBe("number");
+      expect(typeof body.avgTokensPerRun).toBe("number");
+      expect(typeof body.estimatedCost30d).toBe("number");
+      expect(typeof body.failureCount7d).toBe("number");
+    });
+  });
+
+  describe("GET /api/agent/activity", () => {
+    it("returns activity items array", async () => {
+      const { status, body } = await get("/api/agent/activity");
+      expect(status).toBe(200);
+      expect(Array.isArray(body)).toBe(true);
+    });
+
+    it("items have correct shape", async () => {
+      const { body } = await get("/api/agent/activity");
+      if (body.length > 0) {
+        const item = body[0];
+        expect(item).toHaveProperty("id");
+        expect(item).toHaveProperty("triggerType");
+        expect(item).toHaveProperty("status");
+        expect(item).toHaveProperty("startedAt");
+        expect(item).toHaveProperty("toolCallCount");
+        expect(item).toHaveProperty("toolCalls");
+        expect(["scheduled", "user"]).toContain(item.triggerType);
+        expect(["completed", "failed", "running"]).toContain(item.status);
+      }
+    });
+
+    it("filters by triggerType=user", async () => {
+      const { status, body } = await get("/api/agent/activity?triggerType=user");
+      expect(status).toBe(200);
+      expect(Array.isArray(body)).toBe(true);
+      for (const item of body) {
+        expect(item.triggerType).toBe("user");
+      }
+    });
+
+    it("filters by triggerType=scheduled", async () => {
+      const { status, body } = await get("/api/agent/activity?triggerType=scheduled");
+      expect(status).toBe(200);
+      expect(Array.isArray(body)).toBe(true);
+      for (const item of body) {
+        expect(item.triggerType).toBe("scheduled");
+      }
+    });
+
+    it("filters by status=completed", async () => {
+      const { status, body } = await get("/api/agent/activity?status=completed");
+      expect(status).toBe(200);
+      expect(Array.isArray(body)).toBe(true);
+      for (const item of body) {
+        expect(item.status).toBe("completed");
+      }
+    });
+
+    it("filters by status=failed returns only failures", async () => {
+      const { status, body } = await get("/api/agent/activity?status=failed");
+      expect(status).toBe(200);
+      expect(Array.isArray(body)).toBe(true);
+      for (const item of body) {
+        expect(item.status).toBe("failed");
+      }
+    });
+
+    it("respects limit parameter", async () => {
+      const { body } = await get("/api/agent/activity?limit=2");
+      expect(body.length).toBeLessThanOrEqual(2);
+    });
+
+    it("filters by date range", async () => {
+      const futureDate = new Date(Date.now() + 86400000).toISOString();
+      const { body } = await get(`/api/agent/activity?startDate=${futureDate}`);
+      expect(body.length).toBe(0);
+    });
+
+    it("items are sorted by startedAt descending", async () => {
+      const { body } = await get("/api/agent/activity");
+      for (let i = 1; i < body.length; i++) {
+        const prev = new Date(body[i - 1].startedAt).getTime();
+        const curr = new Date(body[i].startedAt).getTime();
+        expect(prev).toBeGreaterThanOrEqual(curr);
+      }
+    });
+
+    it("user runs include tool call entries", async () => {
+      const { body } = await get("/api/agent/activity?triggerType=user");
+      const withTools = body.filter((i: any) => i.toolCallCount > 0);
+      if (withTools.length > 0) {
+        const item = withTools[0];
+        expect(Array.isArray(item.toolCalls)).toBe(true);
+        if (item.toolCalls.length > 0) {
+          expect(item.toolCalls[0]).toHaveProperty("toolName");
+          expect(item.toolCalls[0]).toHaveProperty("status");
+        }
+      }
+    });
+  });
+
+  describe("Role enforcement", () => {
+    it("accepts requests from maintenance roles", async () => {
+      const headers = { ...HEADERS, "X-User-Role": "admin" };
+      const res = await fetch(`${BASE}/api/agent/activity/summary`, { headers });
+      expect(res.status).toBe(200);
+    });
+  });
+});

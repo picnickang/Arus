@@ -1,0 +1,320 @@
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Activity, Clock, CheckCircle, XCircle, Loader2,
+  Calendar, Zap, DollarSign, TrendingUp,
+  ChevronDown, ChevronRight, Wrench, AlertTriangle,
+  Bot, User,
+} from "lucide-react";
+import { Link } from "wouter";
+
+interface ToolCallEntry {
+  toolName: string;
+  durationMs?: number | null;
+  status: string;
+  error?: string | null;
+}
+
+interface AgentActivityItem {
+  id: string;
+  triggerType: "scheduled" | "user";
+  scheduleName?: string | null;
+  scheduleId?: string | null;
+  conversationId?: string | null;
+  userId?: string | null;
+  status: "completed" | "failed" | "running";
+  startedAt: string;
+  completedAt?: string | null;
+  durationMs?: number | null;
+  tokenUsage?: number | null;
+  toolCallCount: number;
+  toolCalls: ToolCallEntry[];
+  summary?: string | null;
+  error?: string | null;
+}
+
+interface ActivitySummary {
+  runsToday: number;
+  successRate7d: number;
+  avgTokensPerRun: number;
+  estimatedCost30d: number;
+  failureCount7d: number;
+  totalRuns7d: number;
+  totalRuns30d: number;
+}
+
+function formatDuration(ms: number | null | undefined): string {
+  if (ms == null) return "—";
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  return `${Math.floor(ms / 60000)}m ${Math.round((ms % 60000) / 1000)}s`;
+}
+
+function formatRelativeTime(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  if (diff < 60000) return "Just now";
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+  return new Date(dateStr).toLocaleDateString();
+}
+
+function StatusBadge({ status }: { status: string }) {
+  if (status === "completed") {
+    return (
+      <Badge className="text-[9px] bg-green-500/10 text-green-600 border-green-500/20" data-testid={`badge-status-${status}`}>
+        <CheckCircle className="h-2.5 w-2.5 mr-0.5" /> Completed
+      </Badge>
+    );
+  }
+  if (status === "failed") {
+    return (
+      <Badge variant="destructive" className="text-[9px]" data-testid={`badge-status-${status}`}>
+        <XCircle className="h-2.5 w-2.5 mr-0.5" /> Failed
+      </Badge>
+    );
+  }
+  return (
+    <Badge className="text-[9px] bg-blue-500/10 text-blue-600 border-blue-500/20" data-testid={`badge-status-${status}`}>
+      <Loader2 className="h-2.5 w-2.5 mr-0.5 animate-spin" /> Running
+    </Badge>
+  );
+}
+
+function TriggerIcon({ type }: { type: string }) {
+  if (type === "scheduled") return <Clock className="h-3.5 w-3.5 text-blue-500" />;
+  return <User className="h-3.5 w-3.5 text-green-500" />;
+}
+
+function SummaryMetrics({ summary }: { summary: ActivitySummary | undefined }) {
+  if (!summary) return null;
+
+  const metrics = [
+    { label: "Runs Today", value: summary.runsToday, icon: Activity, color: "text-blue-600" },
+    { label: "Success Rate (7d)", value: `${summary.successRate7d}%`, icon: TrendingUp, color: summary.successRate7d >= 90 ? "text-green-600" : summary.successRate7d >= 70 ? "text-amber-600" : "text-red-600" },
+    { label: "Avg Tokens/Run", value: summary.avgTokensPerRun > 0 ? `${(summary.avgTokensPerRun / 1000).toFixed(1)}k` : "—", icon: Zap, color: "text-purple-600" },
+    { label: "Est. Cost (30d)", value: `$${summary.estimatedCost30d.toFixed(2)}`, icon: DollarSign, color: "text-emerald-600" },
+    { label: "Failures (7d)", value: summary.failureCount7d, icon: AlertTriangle, color: summary.failureCount7d > 0 ? "text-red-600" : "text-green-600" },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6" data-testid="activity-summary-metrics">
+      {metrics.map(({ label, value, icon: Icon, color }) => (
+        <Card key={label}>
+          <CardContent className="p-3">
+            <div className="flex items-center gap-1.5 text-muted-foreground text-[10px] uppercase tracking-wider">
+              <Icon className={`h-3.5 w-3.5 ${color}`} /> {label}
+            </div>
+            <p className={`text-xl font-bold mt-1 ${color}`} data-testid={`metric-${label.toLowerCase().replace(/[^a-z0-9]/g, "-")}`}>
+              {value}
+            </p>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function ActivityRow({ item }: { item: AgentActivityItem }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div
+      className={`border rounded-lg transition-colors ${item.status === "failed" ? "border-red-500/30 bg-red-500/5" : "hover:bg-accent/30"}`}
+      data-testid={`activity-row-${item.id}`}
+    >
+      <button
+        className="w-full text-left p-3 flex items-center gap-3"
+        onClick={() => setExpanded(!expanded)}
+        data-testid={`button-expand-${item.id}`}
+      >
+        <TriggerIcon type={item.triggerType} />
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-medium truncate">
+              {item.triggerType === "scheduled"
+                ? item.scheduleName || "Scheduled Run"
+                : "User Conversation"}
+            </span>
+            <StatusBadge status={item.status} />
+            <Badge variant="outline" className="text-[9px]">
+              {item.triggerType}
+            </Badge>
+          </div>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+            <span>{formatRelativeTime(item.startedAt)}</span>
+            {item.durationMs != null && <span>{formatDuration(item.durationMs)}</span>}
+            {item.toolCallCount > 0 && (
+              <span className="flex items-center gap-0.5">
+                <Wrench className="h-3 w-3" /> {item.toolCallCount} tools
+              </span>
+            )}
+            {item.tokenUsage != null && item.tokenUsage > 0 && (
+              <span className="flex items-center gap-0.5">
+                <Zap className="h-3 w-3" /> {(item.tokenUsage / 1000).toFixed(1)}k tokens
+              </span>
+            )}
+          </div>
+        </div>
+
+        {expanded ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+      </button>
+
+      {expanded && (
+        <div className="px-3 pb-3 border-t pt-3 space-y-3" data-testid={`activity-detail-${item.id}`}>
+          {item.error && (
+            <div className="p-2 rounded bg-red-500/10 border border-red-500/20 text-sm text-red-600" data-testid={`error-${item.id}`}>
+              <span className="font-medium">Error: </span>{item.error}
+            </div>
+          )}
+
+          {item.summary && (
+            <div>
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Response</div>
+              <p className="text-sm text-muted-foreground leading-relaxed" data-testid={`summary-${item.id}`}>{item.summary}</p>
+            </div>
+          )}
+
+          {item.toolCalls.length > 0 && (
+            <div>
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Tool Call Timeline</div>
+              <div className="space-y-1 ml-2 border-l-2 border-border pl-3">
+                {item.toolCalls.map((tc, i) => (
+                  <div key={i} className="flex items-start gap-2 text-xs" data-testid={`tool-call-${item.id}-${i}`}>
+                    {tc.status === "completed" || tc.status === "success" ? (
+                      <CheckCircle className="h-3.5 w-3.5 text-green-500 mt-0.5 shrink-0" />
+                    ) : tc.status === "failed" || tc.status === "error" ? (
+                      <XCircle className="h-3.5 w-3.5 text-red-500 mt-0.5 shrink-0" />
+                    ) : (
+                      <Loader2 className="h-3.5 w-3.5 text-muted-foreground animate-spin mt-0.5 shrink-0" />
+                    )}
+                    <div>
+                      <span className="font-medium">{tc.toolName}</span>
+                      {tc.durationMs != null && (
+                        <span className="text-muted-foreground ml-1">({tc.durationMs}ms)</span>
+                      )}
+                      {tc.error && <p className="text-red-500 mt-0.5">{tc.error}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1 border-t">
+            <span><Calendar className="h-3 w-3 inline mr-1" />{new Date(item.startedAt).toLocaleString()}</span>
+            {item.conversationId && (
+              <span className="text-[10px] font-mono">{item.conversationId.slice(0, 8)}…</span>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function AgentActivityPage() {
+  const [triggerFilter, setTriggerFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  const queryParams = new URLSearchParams();
+  if (triggerFilter !== "all") queryParams.set("triggerType", triggerFilter);
+  if (statusFilter !== "all") queryParams.set("status", statusFilter);
+  queryParams.set("limit", "50");
+
+  const { data: summary, isLoading: summaryLoading } = useQuery<ActivitySummary>({
+    queryKey: ["/api/agent/activity/summary"],
+  });
+
+  const { data: items = [], isLoading: itemsLoading } = useQuery<AgentActivityItem[]>({
+    queryKey: ["/api/agent/activity", triggerFilter, statusFilter],
+    queryFn: async () => {
+      const res = await fetch(`/api/agent/activity?${queryParams.toString()}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch activity");
+      return res.json();
+    },
+  });
+
+  const failedItems = items.filter(i => i.status === "failed");
+
+  return (
+    <div className="min-h-screen p-6 max-w-5xl mx-auto" data-testid="agent-activity-page">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2" data-testid="heading-agent-activity">
+            <Activity className="h-6 w-6" /> Agent Activity
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            All agent runs — scheduled and user-initiated
+          </p>
+        </div>
+        <Link href="/copilot-admin">
+          <Button variant="outline" size="sm" data-testid="link-copilot-admin">
+            <Bot className="h-4 w-4 mr-1" /> Copilot Admin
+          </Button>
+        </Link>
+      </div>
+
+      {summaryLoading ? (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <SummaryMetrics summary={summary} />
+      )}
+
+      <div className="flex items-center gap-3 mb-4" data-testid="activity-filters">
+        <Select value={triggerFilter} onValueChange={setTriggerFilter}>
+          <SelectTrigger className="w-[160px]" data-testid="select-trigger-filter">
+            <SelectValue placeholder="Trigger Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Triggers</SelectItem>
+            <SelectItem value="scheduled">Scheduled</SelectItem>
+            <SelectItem value="user">User</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[160px]" data-testid="select-status-filter">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="failed">Failed</SelectItem>
+            <SelectItem value="running">Running</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {items.length > 0 && (
+          <span className="text-xs text-muted-foreground ml-auto" data-testid="text-result-count">
+            {items.length} result{items.length !== 1 ? "s" : ""}
+          </span>
+        )}
+      </div>
+
+      {itemsLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : items.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground border rounded-lg" data-testid="empty-activity">
+          <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
+          <p className="text-sm">No agent activity found</p>
+          <p className="text-xs mt-1">Activity will appear here as the Copilot processes requests and scheduled runs.</p>
+        </div>
+      ) : (
+        <div className="space-y-2" data-testid="activity-list">
+          {items.map((item) => (
+            <ActivityRow key={item.id} item={item} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

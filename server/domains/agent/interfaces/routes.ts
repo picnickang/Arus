@@ -30,6 +30,9 @@ import { OUTCOME_CATEGORIES } from "../domain/ports";
 import { BriefingRepositoryAdapter } from "../infrastructure/briefing-repository-adapter";
 import { BriefingDataAdapter } from "../infrastructure/briefing-data-adapter";
 import { BriefingGeneratorService } from "../application/briefing-generator-service";
+import { ActivityRepositoryAdapter } from "../infrastructure/activity-repository-adapter";
+import { AgentActivityService } from "../application/activity-service";
+import type { ActivityFilter } from "../domain/activity-types";
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -1143,5 +1146,46 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   })();
 
-  console.log("[Agent Domain] Routes registered (chat, conversations, drafts, config, usage, suggestions, schedules, tools, reports, admin, findings, briefings)");
+  const activityAdapter = new ActivityRepositoryAdapter();
+  const activityService = new AgentActivityService(activityAdapter);
+
+  app.get("/api/agent/activity/summary", rateLimit.generalApiRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const summary = await activityService.summary(orgId);
+      res.json(summary);
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  app.get("/api/agent/activity", rateLimit.generalApiRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const filter: ActivityFilter = {};
+      if (req.query.triggerType && ["scheduled", "user"].includes(req.query.triggerType as string)) {
+        filter.triggerType = req.query.triggerType as "scheduled" | "user";
+      }
+      if (req.query.status && ["completed", "failed", "running"].includes(req.query.status as string)) {
+        filter.status = req.query.status as "completed" | "failed" | "running";
+      }
+      if (req.query.startDate) {
+        const d = new Date(req.query.startDate as string);
+        if (!isNaN(d.getTime())) filter.startDate = d;
+      }
+      if (req.query.endDate) {
+        const d = new Date(req.query.endDate as string);
+        if (!isNaN(d.getTime())) filter.endDate = d;
+      }
+      filter.limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+      filter.offset = parseInt(req.query.offset as string) || 0;
+
+      const items = await activityService.list(orgId, filter);
+      res.json(items);
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  console.log("[Agent Domain] Routes registered (chat, conversations, drafts, config, usage, suggestions, schedules, tools, reports, admin, findings, briefings, activity)");
 }

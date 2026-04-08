@@ -13,9 +13,11 @@ import {
   Bot, Settings, BarChart3, Clock, Save, RefreshCw, Loader2,
   Trash2, Play, Pause, Zap, MessageSquare,
   Wrench, Shield, Database, Download, RotateCcw, ChevronDown,
+  Activity,
 } from "lucide-react";
 import { apiRequest, queryClient as qc, resolveUrl, createHeaders } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
 
 interface AgentConfig {
   defaultModel: string;
@@ -552,9 +554,16 @@ export default function CopilotAdminPage() {
             <p className="text-sm text-muted-foreground">Monitor and configure the ARUS Copilot</p>
           </div>
         </div>
-        <Button onClick={() => setConfigOpen(true)} data-testid="button-open-config">
-          <Settings className="h-4 w-4 mr-2" /> Edit Configuration
-        </Button>
+        <div className="flex items-center gap-2">
+          <Link href="/agent/activity">
+            <Button variant="outline" data-testid="link-agent-activity">
+              <Activity className="h-4 w-4 mr-2" /> Activity Log
+            </Button>
+          </Link>
+          <Button onClick={() => setConfigOpen(true)} data-testid="button-open-config">
+            <Settings className="h-4 w-4 mr-2" /> Edit Configuration
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[200px_1fr] gap-6 p-6">
