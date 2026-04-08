@@ -5,5 +5,6 @@ export default {
   testMatch: [
     "<rootDir>/tests/integration/**/*.test.ts",
     "<rootDir>/tests/e2e/briefing.e2e.ts",
+    "<rootDir>/tests/e2e/activity.e2e.ts",
   ],
 };

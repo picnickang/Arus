@@ -32,11 +32,6 @@ export class ActivityRepositoryAdapter implements ActivityPort {
 
     items.sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
 
-    if (filter?.status) {
-      const filtered = items.filter(i => i.status === filter.status);
-      return filtered.slice(offset, offset + limit);
-    }
-
     return items.slice(offset, offset + limit);
   }
 
@@ -154,59 +149,74 @@ export class ActivityRepositoryAdapter implements ActivityPort {
     const schedMap = new Map(schedules.map(s => [s.id, s.name]));
     const schedIds = schedules.map(s => s.id);
 
+    const conditions = [inArray(agentScheduleRuns.scheduleId, schedIds)];
+    if (filter?.startDate) conditions.push(gte(agentScheduleRuns.startedAt, filter.startDate));
+    if (filter?.endDate) conditions.push(lte(agentScheduleRuns.startedAt, filter.endDate));
+    if (filter?.status) {
+      const dbStatus = filter.status === "running" ? "running" : filter.status;
+      conditions.push(eq(agentScheduleRuns.status, dbStatus));
+    }
+
+    const fetchLimit = (filter?.limit ?? 50) + (filter?.offset ?? 0);
+
     const runs = await db
       .select()
       .from(agentScheduleRuns)
-      .where(inArray(agentScheduleRuns.scheduleId, schedIds))
+      .where(and(...conditions))
       .orderBy(desc(agentScheduleRuns.startedAt))
-      .limit(100);
+      .limit(fetchLimit);
 
-    return runs
-      .filter(r => {
-        if (filter?.startDate && r.startedAt && new Date(r.startedAt) < filter.startDate) return false;
-        if (filter?.endDate && r.startedAt && new Date(r.startedAt) > filter.endDate) return false;
-        return true;
-      })
-      .map(r => {
-        const output = r.output as Record<string, unknown> | null;
-        const toolCallCount = typeof output?.toolCallCount === "number" ? output.toolCallCount : 0;
-        const response = typeof output?.response === "string" ? output.response : null;
+    return runs.map(r => {
+      const output = r.output as Record<string, unknown> | null;
+      const toolCallCount = typeof output?.toolCallCount === "number" ? output.toolCallCount : 0;
+      const response = typeof output?.response === "string" ? output.response : null;
 
-        return {
-          id: r.id,
-          triggerType: "scheduled" as const,
-          scheduleName: schedMap.get(r.scheduleId) ?? null,
-          scheduleId: r.scheduleId,
-          conversationId: null,
-          userId: null,
-          status: r.status === "completed" ? "completed" as const
-            : r.status === "failed" ? "failed" as const
-            : "running" as const,
-          startedAt: r.startedAt ? new Date(r.startedAt) : new Date(),
-          completedAt: r.completedAt ? new Date(r.completedAt) : null,
-          durationMs: r.startedAt && r.completedAt
-            ? new Date(r.completedAt).getTime() - new Date(r.startedAt).getTime()
-            : null,
-          tokenUsage: r.tokenUsage,
-          toolCallCount,
-          toolCalls: [],
-          response,
-          error: r.error,
-        };
-      });
+      return {
+        id: r.id,
+        triggerType: "scheduled" as const,
+        scheduleName: schedMap.get(r.scheduleId) ?? null,
+        scheduleId: r.scheduleId,
+        conversationId: null,
+        userId: null,
+        status: r.status === "completed" ? "completed" as const
+          : r.status === "failed" ? "failed" as const
+          : "running" as const,
+        startedAt: r.startedAt ? new Date(r.startedAt) : new Date(),
+        completedAt: r.completedAt ? new Date(r.completedAt) : null,
+        durationMs: r.startedAt && r.completedAt
+          ? new Date(r.completedAt).getTime() - new Date(r.startedAt).getTime()
+          : null,
+        tokenUsage: r.tokenUsage,
+        toolCallCount,
+        toolCalls: [],
+        response,
+        error: r.error,
+      };
+    });
   }
 
   private async getUserRuns(orgId: string, filter?: ActivityFilter): Promise<AgentActivityItem[]> {
-    let conditions = [eq(agentConversations.orgId, orgId)];
+    const conditions = [eq(agentConversations.orgId, orgId)];
     if (filter?.startDate) conditions.push(gte(agentConversations.createdAt, filter.startDate));
     if (filter?.endDate) conditions.push(lte(agentConversations.createdAt, filter.endDate));
+    if (filter?.status) {
+      if (filter.status === "failed") {
+        conditions.push(eq(agentConversations.status, "error"));
+      } else if (filter.status === "running") {
+        conditions.push(eq(agentConversations.status, "active"));
+      } else {
+        conditions.push(sql`${agentConversations.status} NOT IN ('error', 'active')`);
+      }
+    }
+
+    const fetchLimit = (filter?.limit ?? 50) + (filter?.offset ?? 0);
 
     const conversations = await db
       .select()
       .from(agentConversations)
       .where(and(...conditions))
       .orderBy(desc(agentConversations.updatedAt))
-      .limit(100);
+      .limit(fetchLimit);
 
     const items: AgentActivityItem[] = [];
 
