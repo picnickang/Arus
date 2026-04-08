@@ -179,7 +179,7 @@ function SinceLastVisit({ data }: { data: { newAlerts: number; newWorkOrders: nu
         <History className="h-4 w-4 text-muted-foreground" />
         <h3 className="text-sm font-semibold text-foreground">Since Your Last Visit</h3>
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {data.newAlerts > 0 && (
           <div className="text-center p-2 rounded bg-yellow-500/10">
             <div className="text-lg font-bold text-yellow-600" data-testid="text-new-alerts">{data.newAlerts}</div>

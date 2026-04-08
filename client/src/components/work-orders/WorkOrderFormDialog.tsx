@@ -24,7 +24,7 @@ export function WorkOrderFormDialog({ open, onOpenChange, mode, workOrder, onSub
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="work-order-form-dialog">
+      <DialogContent className="max-w-2xl w-[95vw] md:w-auto max-h-[90vh] overflow-y-auto" data-testid="work-order-form-dialog">
         <DialogHeader><DialogTitle className="flex items-center gap-2"><Wrench className="h-5 w-5" />{isEditMode ? "Edit Work Order" : "Create Work Order"}</DialogTitle><DialogDescription>{isEditMode ? `Update work order ${workOrder?.woNumber || workOrder?.id || ""}` : "Create a new maintenance work order for equipment"}</DialogDescription></DialogHeader>
         <Form {...form}><form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

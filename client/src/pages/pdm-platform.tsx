@@ -1391,13 +1391,13 @@ export default function PdmPlatformPage() {
 
   return (
     <IntelligenceLayout>
-      <div className="container mx-auto p-6 space-y-6">
+      <div className="container mx-auto p-4 md:p-6 space-y-6">
       <p className="text-xs text-slate-500">Manage predictive models, monitor fleet equipment health, review inference results, and govern maintenance decisions</p>
 
       <SummaryDashboard />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="flex w-full overflow-x-auto">
           <TabsTrigger value="features" data-testid="tab-features"><Database className="w-4 h-4 mr-1" /> Features</TabsTrigger>
           <TabsTrigger value="fleet" data-testid="tab-fleet"><BarChart3 className="w-4 h-4 mr-1" /> Fleet</TabsTrigger>
           <TabsTrigger value="models" data-testid="tab-models"><Box className="w-4 h-4 mr-1" /> Models</TabsTrigger>

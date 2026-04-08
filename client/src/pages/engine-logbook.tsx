@@ -134,7 +134,7 @@ export default function EngineLogbookPage() {
         <div className="space-y-4"><Skeleton className="h-12 w-full" /><Skeleton className="h-64 w-full" /></div>
       ) : (
         <Tabs value={e.activeTab} onValueChange={e.setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="flex w-full overflow-x-auto">
             <TabsTrigger value="hourly" data-testid="tab-hourly"><Clock className="h-4 w-4 mr-2" />Hourly Log</TabsTrigger>
             <TabsTrigger value="generators" data-testid="tab-generators"><Zap className="h-4 w-4 mr-2" />Generators</TabsTrigger>
             <TabsTrigger value="events" data-testid="tab-events"><Activity className="h-4 w-4 mr-2" />Events</TabsTrigger>

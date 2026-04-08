@@ -160,7 +160,7 @@ export function MultiLinePartsRequestDialog({ open, onOpenChange, onSubmit, isPe
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl w-[95vw] md:w-auto max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><Package className="h-5 w-5" />Create Purchase Request</DialogTitle>
           <DialogDescription>Add parts from inventory or enter custom items. You can add multiple items in a single request.</DialogDescription>

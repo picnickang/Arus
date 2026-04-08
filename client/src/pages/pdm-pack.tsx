@@ -76,7 +76,7 @@ export default function PdmPack() {
       <div className="space-y-6">
         <div className="flex items-center justify-end px-6 py-2"><Badge variant={p.serviceStatus ? "outline" : "destructive"} className={p.serviceStatus ? "border-green-500 text-green-500" : ""} data-testid="service-status">{p.serviceStatus ? "Monitoring Active" : "Monitoring Issue"}</Badge></div>
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-sm">Monitoring Status</p><p className="text-2xl font-bold text-foreground mt-1" data-testid="metric-service-status">{p.serviceStatus ? "Active" : "Offline"}</p></div><div className={`${p.serviceStatus ? "bg-green-500/20" : "bg-red-500/20"} p-3 rounded-lg`}><Activity className={p.serviceStatus ? "text-green-500" : "text-red-500"} size={20} /></div></div></CardContent></Card>
           <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-sm">Critical Alerts (24h)</p><p className="text-2xl font-bold text-red-500 mt-1" data-testid="metric-critical-alerts">{p.criticalCount}</p></div><div className="bg-red-500/20 p-3 rounded-lg"><AlertCircle className="text-red-500" size={20} /></div></div></CardContent></Card>

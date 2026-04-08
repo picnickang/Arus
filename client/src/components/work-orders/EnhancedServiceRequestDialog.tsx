@@ -199,7 +199,7 @@ export function EnhancedServiceRequestDialog({ open, onOpenChange, onSubmit, isP
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl w-[95vw] md:w-auto max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><Wrench className="h-5 w-5" />{isEditing ? "Edit Service Order" : "Quick Service Request"}</DialogTitle>
           <DialogDescription>{isEditing ? "Update the service order details." : "Fill in the basics, or expand advanced options for full details."}</DialogDescription>

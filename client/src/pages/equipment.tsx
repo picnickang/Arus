@@ -212,11 +212,11 @@ export default function EquipmentPage() {
     refetchEquipment();
   };
 
-  if (isLoading) { return <div className="min-h-screen"><div className="p-6 space-y-6"><div className="flex items-center justify-between"><Skeleton className="h-10 w-48" /><Skeleton className="h-10 w-32" /></div><div className="grid grid-cols-2 md:grid-cols-5 gap-4">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-24" />)}</div><div className="space-y-2">{[...Array(10)].map((_, i) => <Skeleton key={i} className="h-16" />)}</div></div></div>; }
+  if (isLoading) { return <div className="min-h-screen"><div className="p-4 md:p-6 space-y-6"><div className="flex items-center justify-between"><Skeleton className="h-10 w-48" /><Skeleton className="h-10 w-32" /></div><div className="grid grid-cols-2 md:grid-cols-5 gap-4">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-24" />)}</div><div className="space-y-2">{[...Array(10)].map((_, i) => <Skeleton key={i} className="h-16" />)}</div></div></div>; }
 
   return (
     <div className="min-h-screen">
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">Equipment Registry</h1>
           <PermissionGate resource="equipment" action="create">

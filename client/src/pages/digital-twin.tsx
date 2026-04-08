@@ -1089,7 +1089,7 @@ export default function DigitalTwinPage() {
       </p>
 
       <Tabs defaultValue="overview">
-        <TabsList className="grid w-full grid-cols-5" data-testid="tabs-digital-twin">
+        <TabsList className="flex w-full overflow-x-auto" data-testid="tabs-digital-twin">
           <TabsTrigger value="overview" data-testid="tab-overview">
             <Box className="w-4 h-4 mr-2" />
             Overview

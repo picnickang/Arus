@@ -342,7 +342,7 @@ export default function KnowledgeBasePage() {
 
   return (
     <div className="min-h-screen" data-testid="page-knowledge-base">
-      <div className="px-6 py-4 flex items-center justify-between">
+      <div className="px-4 md:px-6 py-4 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold">Documents</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
@@ -360,7 +360,7 @@ export default function KnowledgeBasePage() {
         </Button>
       </div>
 
-      <div className="px-6 pb-6">
+      <div className="px-4 md:px-6 pb-6">
         <UploadDropZone
           isOpen={showUpload}
           onClose={() => setShowUpload(false)}
