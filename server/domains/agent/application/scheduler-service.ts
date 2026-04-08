@@ -105,6 +105,7 @@ export class SchedulerService {
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : "unknown";
         await this.repo.schedules.updateRun(run.id, { status: "failed", error: errMsg, completedAt: new Date() });
+        await this.handleConsecutiveFailure(schedule, errMsg);
         console.error(`[SchedulerService] Briefing generation failed: ${errMsg}`);
       }
       return;
