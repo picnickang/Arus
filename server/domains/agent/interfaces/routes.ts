@@ -27,6 +27,8 @@ import type { FindingsFilter, FindingsPagination } from "../domain/findings-type
 import { OutcomeTrackingService } from "../application/outcome-service";
 import { PredictionFeedbackAdapter } from "../infrastructure/prediction-feedback-adapter";
 import { OUTCOME_CATEGORIES } from "../domain/ports";
+import { BriefingRepositoryAdapter } from "../infrastructure/briefing-repository-adapter";
+import { BriefingGeneratorService } from "../application/briefing-generator-service";
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -1044,6 +1046,54 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
+  const briefingRepo = new BriefingRepositoryAdapter();
+  const briefingService = new BriefingGeneratorService(briefingRepo, agentRepo);
+
+  app.get("/api/agent/briefings/latest", rateLimit.generalApiRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const briefing = await briefingService.getLatest(orgId);
+      if (!briefing) {
+        return res.json(null);
+      }
+      res.json(briefing);
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  app.get("/api/agent/briefings", rateLimit.generalApiRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const dateStr = req.query.date as string | undefined;
+      const limit = parseInt(req.query.limit as string) || 30;
+
+      if (dateStr) {
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) {
+          return res.status(400).json({ error: "Invalid date format" });
+        }
+        const briefings = await briefingService.getByDate(orgId, date);
+        return res.json(briefings);
+      }
+
+      const briefings = await briefingService.list(orgId, limit);
+      res.json(briefings);
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  app.post("/api/agent/briefings/generate", rateLimit.writeOperationRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const briefing = await briefingService.generate(orgId);
+      res.json(briefing);
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
   (async () => {
     try {
       const { organizations } = await import("@shared/schema/core");
@@ -1059,5 +1109,5 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   })();
 
-  console.log("[Agent Domain] Routes registered (chat, conversations, drafts, config, usage, suggestions, schedules, tools, reports, admin, findings)");
+  console.log("[Agent Domain] Routes registered (chat, conversations, drafts, config, usage, suggestions, schedules, tools, reports, admin, findings, briefings)");
 }

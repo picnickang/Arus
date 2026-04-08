@@ -241,3 +241,26 @@ export const agentFiles = pgTable("agent_files", {
 ]);
 
 export type AgentFile = typeof agentFiles.$inferSelect;
+
+export const agentBriefings = pgTable("agent_briefings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orgId: varchar("org_id").notNull(),
+  generatedAt: timestamp("generated_at", { mode: "date" }).defaultNow(),
+  periodStart: timestamp("period_start", { mode: "date" }).notNull(),
+  periodEnd: timestamp("period_end", { mode: "date" }).notNull(),
+  sections: jsonb("sections").notNull().default([]),
+  aiSummary: text("ai_summary"),
+  status: text("status").notNull().default("generating"),
+  scheduleRunId: varchar("schedule_run_id"),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
+}, (table) => [
+  index("idx_agent_briefings_org").on(table.orgId),
+  index("idx_agent_briefings_generated").on(table.generatedAt),
+  index("idx_agent_briefings_status").on(table.status),
+]);
+
+export const insertAgentBriefingSchema = createInsertSchema(agentBriefings)
+  .omit({ id: true, createdAt: true });
+
+export type AgentBriefing = typeof agentBriefings.$inferSelect;
+export type InsertAgentBriefing = z.infer<typeof insertAgentBriefingSchema>;

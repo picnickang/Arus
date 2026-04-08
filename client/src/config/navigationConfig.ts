@@ -21,6 +21,7 @@ import {
   Clipboard,
   Anchor,
   Brain,
+  FileText,
   type LucideIcon,
 } from "lucide-react";
 
@@ -51,6 +52,7 @@ export const routeResourceMap: Record<string, string> = {
   // Operations
   "/dashboard": "dashboard",
   "/findings": "dashboard",
+  "/briefing": "dashboard",
   "/alerts": "alerts",
   "/governance-dashboard": "compliance_reports",
   "/diagnostics": "system_settings",
@@ -136,6 +138,7 @@ export const navigationCategories: NavigationCategory[] = [
     children: [
       { name: "Dashboard", href: "/dashboard", icon: Gauge, description: "Overview, metrics, alerts, telemetry & insights" },
       { name: "Agent Findings", href: "/findings", icon: Brain, description: "Unified AI agent activity feed", badgeKey: "findings-pending" },
+      { name: "Daily Briefing", href: "/briefing", icon: FileText, description: "Automated shift-start summary", badgeKey: "briefing-new" },
     ],
   },
   {
