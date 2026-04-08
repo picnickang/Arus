@@ -63,6 +63,17 @@ interface ToolInfo {
   requiresApproval: boolean;
 }
 
+interface EffectivenessSummary {
+  totalResolved: number;
+  actedCount: number;
+  dismissedCount: number;
+  deferredCount: number;
+  acceptanceRate: number;
+  dismissalRate: number;
+  topDismissalReasons: { reason: string; count: number }[];
+  outcomeCounts: Record<string, number>;
+}
+
 function StatusSidebar({ config, usage, schedules }: {
   config: AgentConfig | undefined;
   usage: UsageStats | undefined;
@@ -110,6 +121,51 @@ function StatusSidebar({ config, usage, schedules }: {
           ${usage ? usage.estimatedCost.toFixed(2) : "—"}
         </div>
       </div>
+    </div>
+  );
+}
+
+function EffectivenessCard({ effectiveness }: { effectiveness: EffectivenessSummary | undefined }) {
+  if (!effectiveness || effectiveness.totalResolved === 0) {
+    return (
+      <div className="p-3 rounded-lg border bg-card" data-testid="effectiveness-empty">
+        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Suggestion Effectiveness</div>
+        <div className="text-xs text-muted-foreground mt-1">No outcome data yet</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-3 rounded-lg border bg-card space-y-2" data-testid="effectiveness-card">
+      <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Suggestion Effectiveness</div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <div className="text-lg font-bold text-green-600" data-testid="text-acceptance-rate">
+            {effectiveness.acceptanceRate}%
+          </div>
+          <div className="text-[10px] text-muted-foreground">Accepted</div>
+        </div>
+        <div>
+          <div className="text-lg font-bold text-gray-500" data-testid="text-dismissal-rate">
+            {effectiveness.dismissalRate}%
+          </div>
+          <div className="text-[10px] text-muted-foreground">Dismissed</div>
+        </div>
+      </div>
+      <div className="text-[10px] text-muted-foreground">
+        {effectiveness.totalResolved} resolved (30d)
+      </div>
+      {effectiveness.topDismissalReasons.length > 0 && (
+        <div className="space-y-1 pt-1 border-t">
+          <div className="text-[10px] text-muted-foreground">Top dismissal reasons</div>
+          {effectiveness.topDismissalReasons.map((r) => (
+            <div key={r.reason} className="flex items-center justify-between text-[10px]">
+              <span className="truncate">{r.reason}</span>
+              <span className="text-muted-foreground ml-1">{r.count}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -450,6 +506,9 @@ export default function CopilotAdminPage() {
   const { data: availableTools = [] } = useQuery<ToolInfo[]>({
     queryKey: ["/api/agent/tools"],
   });
+  const { data: effectiveness } = useQuery<EffectivenessSummary>({
+    queryKey: ["/api/agent/suggestions/effectiveness", { days: 30 }],
+  });
 
   const toggleMutation = useMutation({
     mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
@@ -499,8 +558,9 @@ export default function CopilotAdminPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[200px_1fr] gap-6 p-6">
-        <div className="hidden lg:block">
+        <div className="hidden lg:block space-y-4">
           <StatusSidebar config={config} usage={usage} schedules={schedules} />
+          <EffectivenessCard effectiveness={effectiveness} />
         </div>
 
         <div className="space-y-8">

@@ -24,6 +24,8 @@ import { buildSystemPrompt } from "../domain/system-prompt";
 import { createFindingsAdapter } from "../infrastructure/findings-adapter";
 import { FindingsAggregatorService } from "../application/findings-service";
 import type { FindingsFilter, FindingsPagination } from "../domain/findings-types";
+import { OutcomeTrackingService } from "../application/outcome-service";
+import { OUTCOME_CATEGORIES } from "../domain/ports";
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -528,6 +530,35 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
+  app.post("/api/agent/suggestions", rateLimit.writeOperationRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const { triggerType, title, summary, severity, entityType, entityId, context } = req.body;
+      if (!triggerType || !title || !summary) {
+        return res.status(400).json({ error: "triggerType, title, and summary are required" });
+      }
+      const validSeverities = ["info", "warning", "critical"];
+      const sev = severity || "info";
+      if (!validSeverities.includes(sev)) {
+        return res.status(400).json({ error: `Invalid severity. Valid: ${validSeverities.join(", ")}` });
+      }
+      const suggestion = await agentRepo.suggestions.create({
+        orgId,
+        triggerType,
+        title,
+        summary,
+        severity: sev,
+        status: "pending",
+        entityType: entityType || null,
+        entityId: entityId || null,
+        context: context || null,
+      });
+      res.status(201).json(suggestion);
+    } catch (error: unknown) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
   app.get("/api/agent/suggestions", rateLimit.generalApiRateLimit, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
@@ -594,15 +625,25 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     }
   });
 
+  const outcomeService = new OutcomeTrackingService(agentRepo);
+
   app.post("/api/agent/suggestions/:id/dismiss", rateLimit.writeOperationRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const existing = await agentRepo.suggestions.list(orgId, undefined, 1000);
-      const match = existing.find(s => s.id === req.params.id);
-      if (!match) return res.status(404).json({ error: "Suggestion not found" });
-      const suggestion = await agentRepo.suggestions.update(req.params.id, { status: "dismissed" });
+      const userId = (req as AuthenticatedRequest).user?.id || "unknown";
+      const { outcome, outcomeReason } = req.body || {};
+      if (outcome && !OUTCOME_CATEGORIES.includes(outcome)) {
+        return res.status(400).json({ error: `Invalid outcome. Valid: ${OUTCOME_CATEGORIES.join(", ")}` });
+      }
+      const suggestion = await outcomeService.recordOutcome(
+        { suggestionId: req.params.id, orgId, outcome: outcome || "not_relevant", outcomeReason, outcomeBy: userId },
+        "dismissed",
+      );
       res.json(suggestion);
     } catch (error: unknown) {
+      if (error instanceof Error && error.message.includes("not found")) {
+        return res.status(404).json({ error: error.message });
+      }
       res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
@@ -610,11 +651,48 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
   app.post("/api/agent/suggestions/:id/act", rateLimit.writeOperationRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const existing = await agentRepo.suggestions.list(orgId, undefined, 1000);
-      const match = existing.find(s => s.id === req.params.id);
-      if (!match) return res.status(404).json({ error: "Suggestion not found" });
-      const suggestion = await agentRepo.suggestions.update(req.params.id, { actedOn: true, status: "acted" });
+      const userId = (req as AuthenticatedRequest).user?.id || "unknown";
+      const { outcome, outcomeReason } = req.body || {};
+      if (outcome && !OUTCOME_CATEGORIES.includes(outcome)) {
+        return res.status(400).json({ error: `Invalid outcome. Valid: ${OUTCOME_CATEGORIES.join(", ")}` });
+      }
+      const suggestion = await outcomeService.recordOutcome(
+        { suggestionId: req.params.id, orgId, outcome: outcome || "useful", outcomeReason, outcomeBy: userId },
+        "acted",
+      );
       res.json(suggestion);
+    } catch (error: unknown) {
+      if (error instanceof Error && error.message.includes("not found")) {
+        return res.status(404).json({ error: error.message });
+      }
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  app.post("/api/agent/suggestions/:id/defer", rateLimit.writeOperationRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const userId = (req as AuthenticatedRequest).user?.id || "unknown";
+      const { outcomeReason } = req.body || {};
+      const suggestion = await outcomeService.recordOutcome(
+        { suggestionId: req.params.id, orgId, outcome: "not_relevant", outcomeReason: outcomeReason || "Deferred for later review", outcomeBy: userId },
+        "deferred",
+      );
+      res.json(suggestion);
+    } catch (error: unknown) {
+      if (error instanceof Error && error.message.includes("not found")) {
+        return res.status(404).json({ error: error.message });
+      }
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  app.get("/api/agent/suggestions/effectiveness", rateLimit.generalApiRateLimit, async (req: Request, res: Response) => {
+    try {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const days = parseInt(req.query.days as string) || 30;
+      const summary = await outcomeService.getEffectiveness(orgId, Math.min(days, 365));
+      res.json(summary);
     } catch (error: unknown) {
       res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
@@ -910,7 +988,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
 
       const validSources = ["suggestion", "draft", "schedule_run"];
       const validSeverities = ["info", "warning", "critical"];
-      const validStatuses = ["pending", "acted", "dismissed", "approved", "rejected", "completed", "failed", "running"];
+      const validStatuses = ["pending", "acted", "dismissed", "deferred", "approved", "rejected", "completed", "failed", "running"];
 
       if (req.query.source) {
         const src = req.query.source as string;

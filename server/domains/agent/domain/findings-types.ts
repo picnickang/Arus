@@ -6,6 +6,7 @@ export type FindingStatus =
   | "pending"
   | "acted"
   | "dismissed"
+  | "deferred"
   | "approved"
   | "rejected"
   | "completed"
@@ -30,6 +31,10 @@ export interface UnifiedFindingItem {
   createdAt: string;
   updatedAt?: string | null;
   context?: Record<string, unknown> | null;
+  outcome?: string | null;
+  outcomeReason?: string | null;
+  outcomeAt?: string | null;
+  outcomeBy?: string | null;
 }
 
 export interface FindingsSummary {

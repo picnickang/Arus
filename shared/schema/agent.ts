@@ -140,12 +140,18 @@ export const agentSuggestions = pgTable("agent_suggestions", {
   status: text("status").notNull().default("pending"),
   context: jsonb("context"),
   actedOn: boolean("acted_on").default(false),
+  outcome: text("outcome"),
+  outcomeReason: text("outcome_reason"),
+  outcomeAt: timestamp("outcome_at", { mode: "date" }),
+  outcomeBy: varchar("outcome_by"),
+  linkedPredictionId: varchar("linked_prediction_id"),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
 }, (table) => [
   index("idx_agent_sug_org").on(table.orgId),
   index("idx_agent_sug_status").on(table.status),
   index("idx_agent_sug_trigger").on(table.triggerType),
   index("idx_agent_sug_created").on(table.createdAt),
+  index("idx_agent_sug_outcome").on(table.outcome),
 ]);
 
 export const agentSchedules = pgTable("agent_schedules", {

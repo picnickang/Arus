@@ -1,5 +1,5 @@
 import { db } from "../../../db";
-import { eq, desc, and, sql, count, sum } from "drizzle-orm";
+import { eq, desc, and, sql, count, sum, gte } from "drizzle-orm";
 import {
   agentConversations,
   agentMessages,
@@ -195,6 +195,16 @@ export function createAgentRepository(): AgentRepositoryPort {
           .where(eq(agentSuggestions.id, id))
           .returning();
         return sug;
+      },
+      async listResolved(orgId: string, since: Date): Promise<AgentSuggestion[]> {
+        return db.select().from(agentSuggestions)
+          .where(
+            and(
+              eq(agentSuggestions.orgId, orgId),
+              sql`${agentSuggestions.status} IN ('acted', 'dismissed', 'deferred')`,
+              gte(sql`COALESCE(${agentSuggestions.outcomeAt}, ${agentSuggestions.createdAt})`, since),
+            ),
+          );
       },
       async getPreferences(orgId: string, userId?: string): Promise<SuggestionPreferences | null> {
         const config = await db.select().from(agentConfig)

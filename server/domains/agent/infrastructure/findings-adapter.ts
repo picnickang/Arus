@@ -23,7 +23,7 @@ function normalizeSeverity(val: string | null | undefined): FindingSeverity {
 
 function normalizeStatus(val: string | null | undefined): FindingStatus {
   const valid: FindingStatus[] = [
-    "pending", "acted", "dismissed", "approved", "rejected",
+    "pending", "acted", "dismissed", "deferred", "approved", "rejected",
     "completed", "failed", "running",
   ];
   if (val && valid.includes(val as FindingStatus)) return val as FindingStatus;
@@ -74,6 +74,10 @@ export function createFindingsAdapter(): FindingsAggregatorPort {
             createdAt: (s.createdAt ?? new Date()).toISOString(),
             updatedAt: null,
             context: s.context as Record<string, unknown> | null,
+            outcome: s.outcome ?? null,
+            outcomeReason: s.outcomeReason ?? null,
+            outcomeAt: s.outcomeAt?.toISOString() ?? null,
+            outcomeBy: s.outcomeBy ?? null,
           });
         }
       }

@@ -78,7 +78,7 @@ export function SuggestionBell() {
   const historySuggestions = suggestions.filter(s => s.status !== "pending");
 
   const dismissMutation = useMutation({
-    mutationFn: (id: string) => apiRequest("POST", `/api/agent/suggestions/${id}/dismiss`),
+    mutationFn: (id: string) => apiRequest("POST", `/api/agent/suggestions/${id}/dismiss`, { outcome: "not_relevant" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agent/suggestions"] });
     },

@@ -1,0 +1,100 @@
+import type { AgentSuggestion } from "@shared/schema";
+import type {
+  OutcomeRecordInput,
+  EffectivenessSummary,
+  OutcomeTrackingPort,
+  OutcomeCategory,
+} from "../domain/ports";
+import { OUTCOME_CATEGORIES } from "../domain/ports";
+import type { AgentRepositoryPort } from "../domain/ports";
+
+export class OutcomeTrackingService implements OutcomeTrackingPort {
+  constructor(private repo: AgentRepositoryPort) {}
+
+  async recordOutcome(
+    input: OutcomeRecordInput,
+    newStatus: "acted" | "dismissed" | "deferred",
+  ): Promise<AgentSuggestion> {
+    if (!OUTCOME_CATEGORIES.includes(input.outcome as OutcomeCategory)) {
+      throw new Error(`Invalid outcome category: ${input.outcome}. Valid values: ${OUTCOME_CATEGORIES.join(", ")}`);
+    }
+
+    const existing = await this.repo.suggestions.getById(input.suggestionId);
+    if (!existing) {
+      throw new Error("Suggestion not found");
+    }
+    if (existing.orgId !== input.orgId) {
+      throw new Error("Suggestion not found");
+    }
+
+    const updateData: Partial<AgentSuggestion> = {
+      status: newStatus,
+      actedOn: newStatus === "acted",
+      outcome: input.outcome,
+      outcomeReason: input.outcomeReason || null,
+      outcomeAt: new Date(),
+      outcomeBy: input.outcomeBy,
+    };
+
+    if (
+      existing.triggerType === "high_risk_prediction" &&
+      existing.context &&
+      typeof existing.context === "object"
+    ) {
+      const ctx = existing.context as Record<string, unknown>;
+      const prediction = ctx.prediction as Record<string, unknown> | undefined;
+      if (prediction?.id) {
+        updateData.linkedPredictionId = prediction.id as string;
+      }
+    }
+
+    return this.repo.suggestions.update(input.suggestionId, updateData);
+  }
+
+  async getEffectiveness(orgId: string, days = 30): Promise<EffectivenessSummary> {
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const resolved = await this.repo.suggestions.listResolved(orgId, since);
+
+    const actedCount = resolved.filter((s) => s.status === "acted").length;
+    const dismissedCount = resolved.filter((s) => s.status === "dismissed").length;
+    const deferredCount = resolved.filter((s) => s.status === "deferred").length;
+    const totalResolved = resolved.length;
+
+    const acceptanceRate =
+      totalResolved > 0 ? Math.round((actedCount / totalResolved) * 100) : 0;
+    const dismissalRate =
+      totalResolved > 0 ? Math.round((dismissedCount / totalResolved) * 100) : 0;
+
+    const reasonCounts = new Map<string, number>();
+    for (const s of resolved) {
+      if (s.status === "dismissed" && s.outcomeReason) {
+        reasonCounts.set(
+          s.outcomeReason,
+          (reasonCounts.get(s.outcomeReason) || 0) + 1,
+        );
+      }
+    }
+    const topDismissalReasons = Array.from(reasonCounts.entries())
+      .map(([reason, count]) => ({ reason, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3);
+
+    const outcomeCounts: Record<string, number> = {};
+    for (const s of resolved) {
+      if (s.outcome) {
+        outcomeCounts[s.outcome] = (outcomeCounts[s.outcome] || 0) + 1;
+      }
+    }
+
+    return {
+      totalResolved,
+      actedCount,
+      dismissedCount,
+      deferredCount,
+      acceptanceRate,
+      dismissalRate,
+      topDismissalReasons,
+      outcomeCounts,
+    };
+  }
+}

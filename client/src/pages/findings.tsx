@@ -11,12 +11,15 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Bot, AlertTriangle, Clock, Shield, Package, Wrench, Users,
   Lightbulb, CheckCircle, XCircle, Eye, ChevronRight,
   FileText, Play, Filter, Inbox, BarChart3, RefreshCw,
-  Loader2, X, ExternalLink, Calendar, Terminal,
+  Loader2, X, ExternalLink, Calendar, Terminal, PauseCircle,
 } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
@@ -26,7 +29,7 @@ import { AgentChatPanel } from "@/components/agent/AgentChatPanel";
 
 type FindingSource = "suggestion" | "draft" | "schedule_run";
 type FindingSeverity = "info" | "warning" | "critical";
-type FindingStatus = "pending" | "acted" | "dismissed" | "approved" | "rejected" | "completed" | "failed" | "running";
+type FindingStatus = "pending" | "acted" | "dismissed" | "deferred" | "approved" | "rejected" | "completed" | "failed" | "running";
 
 interface UnifiedFindingItem {
   id: string;
@@ -46,7 +49,19 @@ interface UnifiedFindingItem {
   createdAt: string;
   updatedAt?: string | null;
   context?: Record<string, unknown> | null;
+  outcome?: string | null;
+  outcomeReason?: string | null;
+  outcomeAt?: string | null;
+  outcomeBy?: string | null;
 }
+
+const OUTCOME_CATEGORIES = [
+  { value: "useful", label: "Useful" },
+  { value: "already_handled", label: "Already Handled" },
+  { value: "not_relevant", label: "Not Relevant" },
+  { value: "too_late", label: "Too Late" },
+  { value: "false_alarm", label: "False Alarm" },
+] as const;
 
 interface FindingsSummary {
   pendingApprovals: number;
@@ -84,6 +99,7 @@ const STATUS_STYLES: Record<string, string> = {
   approved: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
   completed: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
   dismissed: "bg-gray-100 text-gray-600 dark:bg-gray-800/30 dark:text-gray-400",
+  deferred: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
   rejected: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
   failed: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
   running: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
@@ -191,6 +207,73 @@ function RunOutputDialog({ item, open, onClose }: { item: UnifiedFindingItem | n
             </div>
           )}
         </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function OutcomeDialog({
+  open,
+  onClose,
+  action,
+  onSubmit,
+}: {
+  open: boolean;
+  onClose: () => void;
+  action: "act" | "dismiss" | "defer";
+  onSubmit: (outcome: string, reason: string) => void;
+}) {
+  const [outcome, setOutcome] = useState(action === "act" ? "useful" : "not_relevant");
+  const [reason, setReason] = useState("");
+
+  const actionLabels = { act: "Act On", dismiss: "Dismiss", defer: "Defer" };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-md" data-testid="dialog-outcome">
+        <DialogHeader>
+          <DialogTitle className="text-base">{actionLabels[action]} — Outcome Feedback</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label className="text-xs">Category (optional)</Label>
+            <Select value={outcome} onValueChange={setOutcome}>
+              <SelectTrigger className="h-8 text-xs" data-testid="select-outcome">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {OUTCOME_CATEGORIES.map((cat) => (
+                  <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs">Reason (optional)</Label>
+            <Textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Why did you make this decision?"
+              rows={2}
+              className="text-xs"
+              data-testid="input-outcome-reason"
+            />
+          </div>
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" size="sm" onClick={onClose}>Skip</Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              onSubmit(outcome, reason);
+              setOutcome(action === "act" ? "useful" : "not_relevant");
+              setReason("");
+            }}
+            data-testid="button-submit-outcome"
+          >
+            Submit
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -332,6 +415,7 @@ function FilterBar({
           <SelectItem value="approved">Approved</SelectItem>
           <SelectItem value="rejected">Rejected</SelectItem>
           <SelectItem value="dismissed">Dismissed</SelectItem>
+          <SelectItem value="deferred">Deferred</SelectItem>
           <SelectItem value="completed">Completed</SelectItem>
           <SelectItem value="failed">Failed</SelectItem>
           <SelectItem value="running">Running</SelectItem>
@@ -372,6 +456,7 @@ function FindingCard({
   onReject,
   onDismiss,
   onAct,
+  onDefer,
   onViewOutput,
   onOpenAssistant,
 }: {
@@ -380,6 +465,7 @@ function FindingCard({
   onReject?: (id: string) => void;
   onDismiss?: (id: string) => void;
   onAct?: (id: string) => void;
+  onDefer?: (id: string) => void;
   onViewOutput?: (item: UnifiedFindingItem) => void;
   onOpenAssistant: (item: UnifiedFindingItem) => void;
 }) {
@@ -438,6 +524,17 @@ function FindingCard({
             </span>
           </div>
 
+          {item.outcome && (
+            <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground" data-testid={`outcome-info-${item.id}`}>
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                {item.outcome.replace(/_/g, " ")}
+              </Badge>
+              {item.outcomeReason && (
+                <span className="truncate italic">"{item.outcomeReason}"</span>
+              )}
+            </div>
+          )}
+
           <div className="flex items-center gap-1.5 mt-3">
             {item.source === "draft" && item.status === "pending" && (
               <>
@@ -469,6 +566,15 @@ function FindingCard({
                   data-testid={`button-act-${item.id}`}
                 >
                   <CheckCircle className="h-3 w-3" /> Act On
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => onDefer?.(item.sourceId)}
+                  data-testid={`button-defer-${item.id}`}
+                >
+                  <PauseCircle className="h-3 w-3" /> Defer
                 </Button>
                 <Button
                   size="sm"
@@ -522,6 +628,9 @@ export default function FindingsPage() {
   const [runOutputItem, setRunOutputItem] = useState<UnifiedFindingItem | null>(null);
   const [offset, setOffset] = useState(0);
   const limit = 50;
+  const [outcomeDialogOpen, setOutcomeDialogOpen] = useState(false);
+  const [outcomeAction, setOutcomeAction] = useState<"act" | "dismiss" | "defer">("act");
+  const [outcomeSuggestionId, setOutcomeSuggestionId] = useState<string | null>(null);
 
   const queryFilterParams: Record<string, string | number | null> = {
     limit,
@@ -564,7 +673,8 @@ export default function FindingsPage() {
   });
 
   const dismissMutation = useMutation({
-    mutationFn: (sugId: string) => apiRequest("POST", `/api/agent/suggestions/${sugId}/dismiss`),
+    mutationFn: ({ id, outcome, outcomeReason }: { id: string; outcome?: string; outcomeReason?: string }) =>
+      apiRequest("POST", `/api/agent/suggestions/${id}/dismiss`, { outcome, outcomeReason }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agent/findings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/agent/findings/summary"] });
@@ -574,7 +684,8 @@ export default function FindingsPage() {
   });
 
   const actMutation = useMutation({
-    mutationFn: (sugId: string) => apiRequest("POST", `/api/agent/suggestions/${sugId}/act`),
+    mutationFn: ({ id, outcome, outcomeReason }: { id: string; outcome?: string; outcomeReason?: string }) =>
+      apiRequest("POST", `/api/agent/suggestions/${id}/act`, { outcome, outcomeReason }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agent/findings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/agent/findings/summary"] });
@@ -582,6 +693,36 @@ export default function FindingsPage() {
     },
     onError: (err: unknown) => toast({ title: "Failed to act", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" }),
   });
+
+  const deferMutation = useMutation({
+    mutationFn: ({ id, outcomeReason }: { id: string; outcomeReason?: string }) =>
+      apiRequest("POST", `/api/agent/suggestions/${id}/defer`, { outcomeReason }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/agent/findings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/agent/findings/summary"] });
+      toast({ title: "Suggestion deferred" });
+    },
+    onError: (err: unknown) => toast({ title: "Failed to defer", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" }),
+  });
+
+  const openOutcomeDialog = useCallback((action: "act" | "dismiss" | "defer", sugId: string) => {
+    setOutcomeAction(action);
+    setOutcomeSuggestionId(sugId);
+    setOutcomeDialogOpen(true);
+  }, []);
+
+  const handleOutcomeSubmit = useCallback((outcome: string, reason: string) => {
+    if (!outcomeSuggestionId) return;
+    if (outcomeAction === "act") {
+      actMutation.mutate({ id: outcomeSuggestionId, outcome, outcomeReason: reason || undefined });
+    } else if (outcomeAction === "dismiss") {
+      dismissMutation.mutate({ id: outcomeSuggestionId, outcome, outcomeReason: reason || undefined });
+    } else {
+      deferMutation.mutate({ id: outcomeSuggestionId, outcomeReason: reason || undefined });
+    }
+    setOutcomeDialogOpen(false);
+    setOutcomeSuggestionId(null);
+  }, [outcomeSuggestionId, outcomeAction, actMutation, dismissMutation, deferMutation]);
 
   const openAssistant = useCallback((item: UnifiedFindingItem) => {
     const prompt = `I'd like help with this finding: "${item.title}". ${item.summary}. What should I do?`;
@@ -674,8 +815,9 @@ export default function FindingsPage() {
                       item={item}
                       onApprove={id => approveMutation.mutate(id)}
                       onReject={id => rejectMutation.mutate(id)}
-                      onDismiss={id => dismissMutation.mutate(id)}
-                      onAct={id => actMutation.mutate(id)}
+                      onDismiss={id => openOutcomeDialog("dismiss", id)}
+                      onAct={id => openOutcomeDialog("act", id)}
+                      onDefer={id => openOutcomeDialog("defer", id)}
                       onViewOutput={setRunOutputItem}
                       onOpenAssistant={openAssistant}
                     />
@@ -743,6 +885,13 @@ export default function FindingsPage() {
         item={runOutputItem}
         open={!!runOutputItem}
         onClose={() => setRunOutputItem(null)}
+      />
+
+      <OutcomeDialog
+        open={outcomeDialogOpen}
+        onClose={() => { setOutcomeDialogOpen(false); setOutcomeSuggestionId(null); }}
+        action={outcomeAction}
+        onSubmit={handleOutcomeSubmit}
       />
     </div>
   );

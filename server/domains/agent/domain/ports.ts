@@ -71,6 +71,7 @@ export interface AgentSuggestionPort {
   create(data: InsertAgentSuggestion): Promise<AgentSuggestion>;
   getById(id: string): Promise<AgentSuggestion | null>;
   list(orgId: string, status?: string, limit?: number): Promise<AgentSuggestion[]>;
+  listResolved(orgId: string, since: Date): Promise<AgentSuggestion[]>;
   update(id: string, data: Partial<AgentSuggestion>): Promise<AgentSuggestion>;
   getPreferences(orgId: string, userId?: string): Promise<SuggestionPreferences | null>;
   savePreferences(orgId: string, prefs: Partial<SuggestionPreferences>, userId?: string): Promise<SuggestionPreferences>;
@@ -175,6 +176,40 @@ export interface AgentRepositoryPort {
   config: AgentConfigPort;
   suggestions: AgentSuggestionPort;
   schedules: AgentSchedulePort;
+}
+
+export const OUTCOME_CATEGORIES = [
+  "useful",
+  "already_handled",
+  "not_relevant",
+  "too_late",
+  "false_alarm",
+] as const;
+
+export type OutcomeCategory = typeof OUTCOME_CATEGORIES[number];
+
+export interface OutcomeRecordInput {
+  suggestionId: string;
+  orgId: string;
+  outcome: OutcomeCategory;
+  outcomeReason?: string;
+  outcomeBy: string;
+}
+
+export interface EffectivenessSummary {
+  totalResolved: number;
+  actedCount: number;
+  dismissedCount: number;
+  deferredCount: number;
+  acceptanceRate: number;
+  dismissalRate: number;
+  topDismissalReasons: { reason: string; count: number }[];
+  outcomeCounts: Record<string, number>;
+}
+
+export interface OutcomeTrackingPort {
+  recordOutcome(input: OutcomeRecordInput, newStatus: "acted" | "dismissed" | "deferred"): Promise<import("@shared/schema").AgentSuggestion>;
+  getEffectiveness(orgId: string, days?: number): Promise<EffectivenessSummary>;
 }
 
 export type { FindingsAggregatorPort, UnifiedFindingItem, FindingsSummary, FindingsFilter, FindingsPagination, FindingsResponse } from "./findings-types";
