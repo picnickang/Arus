@@ -11,7 +11,7 @@ import { getToolSummaries, getRegisteredToolNames } from "../tools";
 import { getReportArtifact } from "../tools/enhanced-report-tools";
 import { executeDraftAction } from "../application/draft-executor";
 import { MAINTENANCE_ROLES } from "../domain/types";
-import { storage } from "../../../storage";
+import { storage as storageRef } from "../../../storage";
 import { db } from "../../../db";
 import type { AuthenticatedRequest } from "../../../middleware/auth";
 import { auditAction } from "../../../utils/audit-helpers";
@@ -1048,7 +1048,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
   });
 
   const briefingRepo = new BriefingRepositoryAdapter();
-  const briefingDataAdapter = new BriefingDataAdapter();
+  const briefingDataAdapter = new BriefingDataAdapter(storageRef);
   const briefingService = new BriefingGeneratorService(briefingRepo, agentRepo, briefingDataAdapter);
 
   app.get("/api/agent/briefings/latest", rateLimit.generalApiRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {

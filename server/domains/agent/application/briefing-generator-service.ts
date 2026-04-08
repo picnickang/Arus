@@ -124,7 +124,7 @@ export class BriefingGeneratorService {
           severity: "warning",
           entityType: "agent_draft",
           entityId: draft.id,
-          linkTo: "/findings?source=draft&status=pending",
+          linkTo: `/findings?source=draft&status=pending&id=${draft.id}`,
         });
       }
 
@@ -137,7 +137,7 @@ export class BriefingGeneratorService {
           severity: (sug.severity as "info" | "warning" | "critical") || "info",
           entityType: sug.entityType || "suggestion",
           entityId: sug.entityId || sug.id,
-          linkTo: "/findings?source=suggestion&status=pending",
+          linkTo: `/findings?source=suggestion&status=pending&id=${sug.id}`,
         });
       }
     } catch (err) {
@@ -167,7 +167,7 @@ export class BriefingGeneratorService {
           severity: isOverdue ? "critical" : "warning",
           entityType: "maintenance_schedule",
           entityId: maint.id,
-          linkTo: "/maintenance",
+          linkTo: `/maintenance?highlight=${maint.id}`,
           metadata: { isOverdue },
         });
       }
@@ -196,7 +196,7 @@ export class BriefingGeneratorService {
           severity: daysUntil <= 7 ? "critical" : "warning",
           entityType: "crew",
           entityId: cert.crewId,
-          linkTo: "/crew-management",
+          linkTo: `/crew-management?highlight=${cert.crewId}`,
           metadata: { daysUntilExpiry: daysUntil },
         });
       }
@@ -224,7 +224,7 @@ export class BriefingGeneratorService {
           severity: part.quantityOnHand === 0 ? "critical" : "warning",
           entityType: "inventory",
           entityId: part.id,
-          linkTo: "/inventory-management",
+          linkTo: `/inventory-management?part=${part.id}`,
         });
       }
     } catch (err) {
@@ -256,7 +256,9 @@ export class BriefingGeneratorService {
           severity: (sug.severity as "info" | "warning" | "critical") || "warning",
           entityType: sug.entityType || "equipment",
           entityId: sug.entityId || sug.id,
-          linkTo: sug.entityType === "equipment" ? `/fleet?equipment=${sug.entityId}` : "/equipment-intelligence",
+          linkTo: sug.entityType === "equipment" && sug.entityId
+            ? `/fleet?equipment=${sug.entityId}`
+            : `/findings?id=${sug.id}`,
         });
       }
     } catch (err) {
