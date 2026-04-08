@@ -31,6 +31,7 @@ export interface NavigationItem {
   icon: LucideIcon;
   description?: string;
   resource?: string;
+  badgeKey?: string;
 }
 
 // Category with hub route and child pages
@@ -134,7 +135,7 @@ export const navigationCategories: NavigationCategory[] = [
     description: "Dashboard, telemetry, and insights",
     children: [
       { name: "Dashboard", href: "/dashboard", icon: Gauge, description: "Overview, metrics, alerts, telemetry & insights" },
-      { name: "Agent Findings", href: "/findings", icon: Brain, description: "Unified AI agent activity feed" },
+      { name: "Agent Findings", href: "/findings", icon: Brain, description: "Unified AI agent activity feed", badgeKey: "findings-pending" },
     ],
   },
   {

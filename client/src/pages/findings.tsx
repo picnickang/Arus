@@ -103,6 +103,8 @@ const ENTITY_ROUTES: Record<string, string> = {
   work_order: "/maintenance?tab=work-orders",
   vessel: "/fleet?tab=vessels",
   part: "/inventory?tab=parts",
+  inventory: "/logistics?tab=inventory",
+  maintenance_schedule: "/maintenance?tab=schedules",
   schedule: "/operations?tab=findings",
 };
 
@@ -111,18 +113,25 @@ const ENTITY_LABELS: Record<string, string> = {
   work_order: "Work Order",
   vessel: "Vessel",
   part: "Part",
+  inventory: "Inventory",
+  maintenance_schedule: "Maintenance Schedule",
   schedule: "Schedule",
 };
 
 function EntityLink({ entityType, entityId }: { entityType?: string | null; entityId?: string | null }) {
   if (!entityType || !entityId) return null;
   const route = ENTITY_ROUTES[entityType];
-  const label = ENTITY_LABELS[entityType] || entityType;
+  const label = ENTITY_LABELS[entityType] || entityType.replace(/_/g, " ");
+  const shortId = entityId.length > 8 ? `${entityId.slice(0, 8)}…` : entityId;
+
   if (!route) {
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+      <span
+        className="inline-flex items-center gap-1 text-[10px] text-muted-foreground"
+        data-testid={`entity-link-${entityType}-${entityId}`}
+      >
         <ExternalLink className="h-2.5 w-2.5" />
-        {label}: {entityId.slice(0, 8)}
+        {label}: {shortId}
       </span>
     );
   }
@@ -133,7 +142,7 @@ function EntityLink({ entityType, entityId }: { entityType?: string | null; enti
         data-testid={`entity-link-${entityType}-${entityId}`}
       >
         <ExternalLink className="h-2.5 w-2.5" />
-        {label}: {entityId.slice(0, 8)}…
+        {label}: {shortId}
       </span>
     </Link>
   );
@@ -514,23 +523,18 @@ export default function FindingsPage() {
   const [offset, setOffset] = useState(0);
   const limit = 50;
 
-  const queryParams = new URLSearchParams();
-  if (sourceFilter !== "all") queryParams.set("source", sourceFilter);
-  if (severityFilter !== "all") queryParams.set("severity", severityFilter);
-  if (statusFilter !== "all") queryParams.set("status", statusFilter);
-  if (dateFromFilter) queryParams.set("dateFrom", new Date(dateFromFilter).toISOString());
-  if (dateToFilter) queryParams.set("dateTo", new Date(dateToFilter + "T23:59:59").toISOString());
-  queryParams.set("limit", String(limit));
-  queryParams.set("offset", String(offset));
-  const queryString = queryParams.toString();
+  const queryFilterParams: Record<string, string | number | null> = {
+    limit,
+    offset,
+    source: sourceFilter !== "all" ? sourceFilter : null,
+    severity: severityFilter !== "all" ? severityFilter : null,
+    status: statusFilter !== "all" ? statusFilter : null,
+    dateFrom: dateFromFilter ? new Date(dateFromFilter).toISOString() : null,
+    dateTo: dateToFilter ? new Date(dateToFilter + "T23:59:59").toISOString() : null,
+  };
 
   const { data: findings, isLoading: findingsLoading } = useQuery<FindingsResponse>({
-    queryKey: ["/api/agent/findings", queryString],
-    queryFn: async () => {
-      const res = await fetch(`/api/agent/findings?${queryString}`);
-      if (!res.ok) throw new Error("Failed to load findings");
-      return res.json();
-    },
+    queryKey: ["/api/agent/findings", queryFilterParams],
     refetchInterval: 30000,
   });
 

@@ -1,7 +1,36 @@
 import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { NavigationItem as NavigationItemType } from "@/config/navigationConfig";
+
+interface FindingsSummary {
+  pendingApprovals: number;
+  pendingSuggestions: number;
+  recentFailures: number;
+  totalFindings: number;
+}
+
+function NavBadge({ badgeKey }: { badgeKey: string }) {
+  const { data: summary } = useQuery<FindingsSummary>({
+    queryKey: ["/api/agent/findings/summary"],
+    refetchInterval: 60000,
+    enabled: badgeKey === "findings-pending",
+  });
+
+  if (badgeKey !== "findings-pending") return null;
+  const count = (summary?.pendingApprovals ?? 0) + (summary?.pendingSuggestions ?? 0);
+  if (count === 0) return null;
+
+  return (
+    <span
+      className="ml-auto inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full text-[10px] font-medium bg-amber-500 text-white"
+      data-testid="nav-badge-findings"
+    >
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
 
 interface NavigationItemProps {
   item: NavigationItemType;
@@ -27,6 +56,7 @@ export function NavigationItem({ item, mode = "desktop", onNavigate }: Navigatio
           >
             <Icon className="h-4 w-4 mr-3" />
             <span className="text-sm">{item.name}</span>
+            {item.badgeKey && <NavBadge badgeKey={item.badgeKey} />}
           </Button>
         </Link>
       </>
@@ -49,6 +79,7 @@ export function NavigationItem({ item, mode = "desktop", onNavigate }: Navigatio
       >
         <Icon className="w-4 h-4 mr-3" />
         {item.name}
+        {item.badgeKey && <NavBadge badgeKey={item.badgeKey} />}
       </Link>
     </>
   );

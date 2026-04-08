@@ -161,7 +161,7 @@ export function createFindingsAdapter(): FindingsAggregatorPort {
               requiresAction: false,
               createdAt: (r.startedAt ?? new Date()).toISOString(),
               updatedAt: r.completedAt?.toISOString() ?? null,
-              context: null,
+              context: r.output ? { output: r.output } as Record<string, unknown> : null,
             });
           }
         }
