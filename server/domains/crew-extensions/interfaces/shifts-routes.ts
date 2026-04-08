@@ -30,14 +30,16 @@ export function registerShiftsRoutes(app: Express, config: CrewExtensionsRoutesC
   app.put("/api/shifts/:id",
     withErrorHandling("update shift template", async (req: Request, res: Response) => {
       const shiftData = insertShiftTemplateSchema.partial().parse(req.body);
-      const shift = await storage.updateShiftTemplate(req.params.id, shiftData);
+      const { orgId, ...updates } = shiftData;
+      const shift = await storage.updateShiftTemplate(req.params.id, updates, orgId);
       res.json(shift);
     })
   );
 
   app.delete("/api/shifts/:id",
     withErrorHandling("delete shift template", async (req: Request, res: Response) => {
-      await storage.deleteShiftTemplate(req.params.id);
+      const orgId = req.query.orgId as string | undefined ?? req.body?.orgId;
+      await storage.deleteShiftTemplate(req.params.id, orgId);
       res.json({ success: true });
     })
   );

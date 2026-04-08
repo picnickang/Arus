@@ -11,6 +11,16 @@ import { withErrorHandling, sendCreated, sendDeleted } from "../../../lib/route-
 import type { CrewRouteDeps } from "./types.js";
 import { getExpiryUrgencyLevel } from "./types.js";
 
+function coerceDates(body: Record<string, unknown>): Record<string, unknown> {
+  const result = { ...body };
+  for (const key of ["expiresAt", "issuedAt"] as const) {
+    if (typeof result[key] === "string") {
+      result[key] = new Date(result[key] as string);
+    }
+  }
+  return result;
+}
+
 export function registerCertificationRoutes({ app, rateLimit }: CrewRouteDeps): void {
   const { writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit } = rateLimit;
 
@@ -25,7 +35,7 @@ export function registerCertificationRoutes({ app, rateLimit }: CrewRouteDeps): 
 
   app.post("/api/crew-certifications", requireOrgIdAndValidateBody, writeOperationRateLimit,
     withErrorHandling("create certification", async (req, res) => {
-      const certData = insertCrewCertificationSchema.parse({ ...req.body, orgId: req.orgId });
+      const certData = insertCrewCertificationSchema.parse(coerceDates({ ...req.body, orgId: req.orgId }));
       const cert = await crewService.createCertification(certData, req.user?.id);
       sendCreated(res, cert);
     })
@@ -33,7 +43,7 @@ export function registerCertificationRoutes({ app, rateLimit }: CrewRouteDeps): 
 
   app.put("/api/crew-certifications/:id", requireOrgIdAndValidateBody, writeOperationRateLimit,
     withErrorHandling("update certification", async (req, res) => {
-      const certData = insertCrewCertificationSchema.partial().parse(req.body);
+      const certData = insertCrewCertificationSchema.partial().parse(coerceDates(req.body));
       const cert = await crewService.updateCertification(req.params.id, certData, req.user?.id, req.orgId);
       res.json(cert);
     })
