@@ -454,7 +454,7 @@ export function UnifiedCrewManagement() {
 
       <ResponsiveDialog
         open={d.isAddCrewDialogOpen || d.isEditCrewDialogOpen}
-        onOpenChange={(open) => { if (!open) d.closeCrewDialog(); }}
+        onOpenChange={(open) => { if (!open) { setContactSectionOpen(false); d.closeCrewDialog(); } }}
         title={d.editingCrew ? "Edit Crew Member" : "Add New Crew Member"}
         description={d.editingCrew ? "Update crew member information" : "Register a new crew member with maritime qualifications"}
         footer={
