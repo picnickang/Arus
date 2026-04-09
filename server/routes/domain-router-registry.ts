@@ -107,6 +107,8 @@ const domainRouters: DomainRouterConfig[] = [
     getDeps: () => ({ writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit, telemetryRateLimit }) },
   { name: "TelemetryIngestion", importPath: "../domains/telemetry/ingestion-routes.js", functionName: "registerTelemetryIngestionRoutes",
     getDeps: () => ({ writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit, telemetryRateLimit, requireValidOrgId, validateHMAC }) },
+  { name: "TelemetryHealth", importPath: "../domains/telemetry/lib/health-controller.js", functionName: "registerTelemetryHealthRoutes",
+    getDeps: () => ({}) },
 
   // Compliance & Notifications
   { name: "Compliance", importPath: "../domains/compliance/index.js", functionName: "registerComplianceRoutes",
