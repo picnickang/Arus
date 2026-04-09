@@ -258,12 +258,13 @@ export async function planAndMaybeExecute({
 // Helper functions
 async function loadShiftTemplates(orgId: string, vessels?: string[]) {
   const allShifts = await storage.getShiftTemplates();
-  if (!vessels || vessels.length === 0) { return allShifts; }
-  return allShifts.filter((s) => !s.vesselId || vessels.includes(s.vesselId));
+  const orgShifts = allShifts.filter((s: any) => !s.orgId || s.orgId === orgId);
+  if (!vessels || vessels.length === 0) { return orgShifts; }
+  return orgShifts.filter((s) => !s.vesselId || vessels.includes(s.vesselId));
 }
 
 async function loadCrewWithSkills(orgId: string) {
-  const crew = await storage.getCrew();
+  const crew = await storage.getCrew(orgId);
   return Promise.all(
     crew.map(async (c) => {
       const skills = await storage.getCrewSkills(c.id);
@@ -273,26 +274,25 @@ async function loadCrewWithSkills(orgId: string) {
 }
 
 async function loadCrewLeaves(orgId: string) {
-  // Get all crew, then get their leaves
-  const crew = await storage.getCrew();
+  const crew = await storage.getCrew(orgId);
   const allLeaves = await Promise.all(crew.map((c) => storage.getCrewLeave(c.id)));
   return allLeaves.flat();
 }
 
 async function loadPortCalls(orgId: string, vessels?: string[]) {
-  const allPortCalls = await storage.getPortCalls();
+  const allPortCalls = await storage.getPortCalls(undefined, orgId);
   if (!vessels || vessels.length === 0) { return allPortCalls; }
   return allPortCalls.filter((pc) => vessels.includes(pc.vesselId));
 }
 
 async function loadDrydocks(orgId: string, vessels?: string[]) {
-  const allDrydocks = await storage.getDrydockWindows();
+  const allDrydocks = await storage.getDrydockWindows(orgId);
   if (!vessels || vessels.length === 0) { return allDrydocks; }
   return allDrydocks.filter((d) => vessels.includes(d.vesselId));
 }
 
 async function loadCertifications(orgId: string) {
-  const certsList = await storage.getCrewCertifications();
+  const certsList = await storage.getCrewCertifications(undefined, orgId);
   const certsMap: { [crewId: string]: any[] } = {};
   for (const cert of certsList) {
     (certsMap[cert.crewId] ||= []).push(cert);
@@ -341,7 +341,7 @@ export async function simulateSchedule({
   const shifts = await loadShiftTemplates(orgId, vessels);
   const crewList = await loadCrewWithSkills(orgId);
   const leaves = await loadCrewLeaves(orgId);
-  const vesselsList = await storage.getVessels();
+  const vesselsList = await storage.getVessels(orgId);
   const existing = await loadExistingAssignments(orgId, since, daysArr[daysArr.length - 1]);
 
   // Build lookup maps

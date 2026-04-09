@@ -63,6 +63,7 @@ import { dbVesselStorage } from "../db/vessels/index.js";
 import { dbAlertStorage } from "../db/alerts/index.js";
 import { dbInventoryStorage } from "../db/inventory/index.js";
 import { dbDtcStorage } from "../db/dtc/index.js";
+import { dbNotificationsStorage } from "../db/notifications/index.js";
 import { dbCrewExtensionsStorage } from "../db/crew-extensions/index.js";
 import { dbChecklistsStorage } from "../db/checklists/index.js";
 import { dbSensorsStorage } from "../db/sensors/index.js";
@@ -811,6 +812,55 @@ export class DatabaseStorage implements IStorage {
     } else {
       await db.delete(errorLogs);
     }
+  }
+
+  async getDtcDefinitions(spn?: number, fmi?: number, manufacturer?: string): Promise<any[]> {
+    return dbDtcStorage.getDtcDefinitions(spn, fmi, manufacturer);
+  }
+
+  async getDtcHistory(equipmentId: string, orgId?: string, filters?: any): Promise<any[]> {
+    return dbDtcStorage.getDtcHistory(equipmentId, orgId, filters);
+  }
+
+  async upsertDtcFault(fault: any): Promise<any> {
+    return dbDtcStorage.upsertDtcFault(fault);
+  }
+
+  async clearDtcFault(equipmentId: string, spn: number, fmi: number, orgId?: string): Promise<void> {
+    return dbDtcStorage.clearDtcFault(equipmentId, spn, fmi, orgId);
+  }
+
+  async clearAllDtcFaults(equipmentId: string, orgId?: string): Promise<number> {
+    return dbDtcStorage.clearAllDtcFaults(equipmentId, orgId);
+  }
+
+  async getNotificationSettings(orgId?: string, filters?: any): Promise<any[]> {
+    return dbNotificationsStorage.getNotificationSettings(orgId, filters?.userId);
+  }
+
+  async getNotificationSettingById(id: string, orgId?: string): Promise<any> {
+    const all = await dbNotificationsStorage.getNotificationSettings(orgId);
+    return all.find((s: any) => s.id === id);
+  }
+
+  async createNotificationSetting(data: any): Promise<any> {
+    return dbNotificationsStorage.createNotificationSettings(data);
+  }
+
+  async updateNotificationSetting(id: string, updates: any, orgId?: string): Promise<any> {
+    return dbNotificationsStorage.updateNotificationSettings(id, updates);
+  }
+
+  async deleteNotificationSetting(id: string, orgId?: string): Promise<void> {
+    return dbNotificationsStorage.deleteNotificationSettings(id);
+  }
+
+  async getNotificationQueue(orgId?: string, filters?: any): Promise<any[]> {
+    return dbNotificationsStorage.getEmailQueue(filters?.status);
+  }
+
+  async getNotificationQueueById(id: string, orgId?: string): Promise<any> {
+    return dbNotificationsStorage.getEmailQueueItem(id);
   }
 
   [key: string]: any;
