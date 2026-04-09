@@ -128,6 +128,14 @@ function ViewOrderTabs({ order, getEquipmentName, getVesselName, onComplete, isC
           <div><Label className="text-sm font-medium">Status</Label><Badge className={getStatusColor(order.status)}>{order.status.replace("_", " ").replace(/\b\w/g, (l: string) => l.toUpperCase())}</Badge></div>
           <div className="col-span-2"><Label className="text-sm font-medium">Reason</Label><p className="text-sm text-muted-foreground">{order.reason || "No reason provided"}</p></div>
           <div className="col-span-2"><Label className="text-sm font-medium">Description</Label><p className="text-sm text-muted-foreground" data-testid="text-order-description">{order.description || "No description provided"}</p></div>
+          {order.costJustification && (
+            <div className="col-span-2" data-testid="text-cost-justification">
+              <Label className="text-sm font-medium flex items-center gap-1.5"><AlertTriangle className="h-3.5 w-3.5 text-amber-600" />Cost Justification</Label>
+              <div className="mt-1 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-md p-3">
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{order.costJustification}</p>
+              </div>
+            </div>
+          )}
           <div><Label className="text-sm font-medium">Created</Label><p className="text-sm text-muted-foreground">{order.createdAt ? formatDistanceToNow(new Date(order.createdAt), { addSuffix: true }) : "Unknown"}</p></div>
           {order.actualDowntimeHours && <div><Label className="text-sm font-medium">Actual Downtime</Label><p className="text-sm text-muted-foreground">{order.actualDowntimeHours}h</p></div>}
         </div>

@@ -137,6 +137,7 @@ export class SuggestionEngine {
       predictedFailureDate: failurePredictions.predictedFailureDate,
       modelId: failurePredictions.modelId,
       confidenceInterval: failurePredictions.confidenceInterval,
+      costImpact: failurePredictions.costImpact,
     }).from(failurePredictions)
       .where(and(
         eq(failurePredictions.orgId, orgId),
@@ -161,16 +162,35 @@ export class SuggestionEngine {
         if (pendingKeys.has(dedupKey)) continue;
         const severity = pred.failureProbability >= 0.9 ? "critical" : "warning";
         if (!meetsMinSeverity(severity, minSeverity)) continue;
+
+        const costImpact = pred.costImpact as { estimatedRepairCost?: number; estimatedDowntime?: number; revenueImpact?: number } | null;
+        let costLine = "";
+        if (costImpact && (costImpact.estimatedRepairCost || costImpact.revenueImpact)) {
+          const repairCost = costImpact.estimatedRepairCost ?? 0;
+          const failureCost = costImpact.revenueImpact ?? 0;
+          const savings = failureCost - repairCost;
+          const fmt = (v: number) => v >= 1000 ? `~$${(v / 1000).toFixed(0)}K` : `~$${v.toFixed(0)}`;
+          let savingsText = "";
+          if (savings > 0) {
+            savingsText = ` Potential savings: ${fmt(savings)}.`;
+          } else if (savings === 0) {
+            savingsText = ` Net cost variance: $0.`;
+          } else {
+            savingsText = ` Net cost: repair exceeds failure impact by ${fmt(Math.abs(savings))}.`;
+          }
+          costLine = ` Estimated repair: ${fmt(repairCost)}. Estimated failure impact: ${fmt(failureCost)}.${savingsText}`;
+        }
+
         const sug = await this.repo.suggestions.create({
           orgId,
           triggerType: "high_risk_prediction",
           title: `High failure risk: ${pred.failureMode || "Unknown"} on ${pred.equipmentId}`,
-          summary: `Failure probability ${(pred.failureProbability * 100).toFixed(0)}% (${pred.riskLevel}). Predicted failure: ${pred.predictedFailureDate ? new Date(pred.predictedFailureDate).toLocaleDateString() : "Unknown"}.`,
+          summary: `Failure probability ${(pred.failureProbability * 100).toFixed(0)}% (${pred.riskLevel}). Predicted failure: ${pred.predictedFailureDate ? new Date(pred.predictedFailureDate).toLocaleDateString() : "Unknown"}.${costLine}`,
           entityType: "equipment",
           entityId: pred.equipmentId,
           severity,
           status: "pending",
-          context: { prediction: pred },
+          context: { prediction: pred, costImpact: costImpact || undefined },
         });
         results.push(sug);
 
@@ -198,6 +218,7 @@ export class SuggestionEngine {
                 ? new Date(pred.predictedFailureDate).toISOString()
                 : null,
               suggestionId: sug.id,
+              costImpact: costImpact || null,
             };
             this.dispatchSignal(signal);
           }

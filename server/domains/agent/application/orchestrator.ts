@@ -210,10 +210,21 @@ export class AgentOrchestrator {
     const dateStr = signal.predictedFailureDate
       ? ` Predicted failure date: ${signal.predictedFailureDate}.`
       : "";
+
+    let costContext = "";
+    if (signal.costImpact) {
+      const ci = signal.costImpact as { estimatedRepairCost?: number; revenueImpact?: number; estimatedDowntime?: number };
+      if (ci.estimatedRepairCost || ci.revenueImpact) {
+        const fmt = (v: number) => v >= 1000 ? `~$${(v / 1000).toFixed(0)}K` : `~$${v.toFixed(0)}`;
+        costContext = ` Estimated repair cost: ${fmt(ci.estimatedRepairCost ?? 0)}. Estimated failure impact: ${fmt(ci.revenueImpact ?? 0)}.`;
+        costContext += ` When drafting a work order, include a costJustification summarizing these costs and the prediction confidence.`;
+      }
+    }
+
     return (
       `AUTOMATED SIGNAL: A high-risk failure prediction has been detected. ` +
       `Equipment ${signal.equipmentId} has a ${pct}% probability of ${signal.failureMode} failure ` +
-      `(risk level: ${signal.riskLevel}).${dateStr} ` +
+      `(risk level: ${signal.riskLevel}).${dateStr}${costContext} ` +
       `Please investigate this equipment, check its recent maintenance history, review any related alerts, ` +
       `and recommend immediate actions to prevent the predicted failure. ` +
       `If appropriate, draft a preventive maintenance work order.`

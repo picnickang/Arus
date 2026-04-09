@@ -119,6 +119,17 @@ export function WorkOrderDetailDrawer({ workOrder, open, onClose, equipment, ves
               <Separator />
               <div><h4 className="font-medium mb-2">Reason</h4><p className="text-sm text-muted-foreground">{workOrder.reason || "No reason provided"}</p></div>
               {workOrder.description && <div><h4 className="font-medium mb-2">Description</h4><p className="text-sm text-muted-foreground whitespace-pre-wrap">{workOrder.description}</p></div>}
+              {workOrder.costJustification && (
+                <div data-testid="cost-justification-section">
+                  <h4 className="font-medium mb-2 flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-amber-600" />
+                    Cost Justification
+                  </h4>
+                  <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-md p-3">
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{workOrder.costJustification}</p>
+                  </div>
+                </div>
+              )}
               <Separator />
               <div>
                 <h4 className="font-medium mb-3 flex items-center gap-2"><DollarSign className="h-4 w-4" />Cost Breakdown</h4>

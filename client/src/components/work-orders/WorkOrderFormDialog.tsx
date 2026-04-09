@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2, Wrench, FileText, Clock } from "lucide-react";
+import { CalendarIcon, Loader2, Wrench, FileText, Clock, DollarSign } from "lucide-react";
 import type { WorkOrder } from "@shared/schema";
 import { useWorkOrderFormDialogData, MAINTENANCE_TYPES, PRIORITY_OPTIONS, STATUS_OPTIONS, type WorkOrderFormData } from "@/features/work-orders";
 
@@ -57,6 +57,21 @@ export function WorkOrderFormDialog({ open, onOpenChange, mode, workOrder, onSub
           </div>
 
           <FormField control={form.control} name="affectsVesselDowntime" render={({ field }) => (<FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} data-testid="checkbox-affects-downtime" /></FormControl><div className="space-y-1 leading-none"><FormLabel>Affects Vessel Downtime</FormLabel><FormDescription>Track this work order as impacting vessel operational availability</FormDescription></div></FormItem>)} />
+
+          {workOrder?.costJustification && (
+            <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-4 space-y-2" data-testid="form-cost-justification">
+              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-medium text-sm">
+                <DollarSign className="h-4 w-4" />
+                Cost Justification
+              </div>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap" data-testid="text-cost-justification">{workOrder.costJustification}</p>
+              {workOrder.laborCost != null && (
+                <div className="flex gap-4 text-xs text-muted-foreground pt-1">
+                  <span data-testid="text-labor-cost">Estimated Labor Cost: ${workOrder.laborCost.toLocaleString()}</span>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-4"><Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting} data-testid="button-cancel">Cancel</Button><Button type="submit" disabled={isSubmitting} data-testid="button-submit">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{isEditMode ? "Update Work Order" : "Create Work Order"}</Button></div>
         </form></Form>

@@ -582,6 +582,21 @@ function FindingCard({
                 {item.triggerType.replace(/_/g, " ")}
               </Badge>
             )}
+            {item.source === "suggestion" && item.context?.costImpact && (() => {
+              const ci = item.context.costImpact as { revenueImpact?: number; estimatedRepairCost?: number };
+              const atRisk = ci.revenueImpact ?? 0;
+              if (atRisk <= 0) return null;
+              const fmt = atRisk >= 1000 ? `~$${(atRisk / 1000).toFixed(0)}K` : `~$${atRisk.toFixed(0)}`;
+              return (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] px-1.5 py-0 bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"
+                  data-testid={`badge-cost-impact-${item.id}`}
+                >
+                  {fmt} at risk
+                </Badge>
+              );
+            })()}
             <EntityLink entityType={item.entityType} entityId={item.entityId} />
             <span className="text-[10px] text-muted-foreground flex items-center gap-0.5 ml-auto">
               <Clock className="h-2.5 w-2.5" />

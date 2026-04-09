@@ -63,6 +63,7 @@ export const workOrders = pgTable(
     portCallId: varchar("port_call_id"),
     drydockWindowId: varchar("drydock_window_id"),
     maintenanceWindow: jsonb("maintenance_window"),
+    costJustification: text("cost_justification"),
     maintenanceTemplateId: varchar("maintenance_template_id"),
     scheduleId: varchar("schedule_id"),
     plannedStartDate: timestamp("planned_start_date", { mode: "date" }),

@@ -38,6 +38,7 @@ export const workOrdersSqlite = sqliteTable(
     portCallId: text("port_call_id"),
     drydockWindowId: text("drydock_window_id"),
     maintenanceWindow: text("maintenance_window"),
+    costJustification: text("cost_justification"),
     maintenanceTemplateId: text("maintenance_template_id"),
     scheduleId: text("schedule_id"),
     plannedStartDate: integer("planned_start_date", { mode: "timestamp" }),

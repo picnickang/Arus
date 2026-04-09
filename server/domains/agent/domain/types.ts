@@ -103,6 +103,7 @@ export interface AgentSignal {
   confidenceInterval?: unknown;
   predictedFailureDate?: string | null;
   suggestionId?: string;
+  costImpact?: { estimatedRepairCost?: number; estimatedDowntime?: number; revenueImpact?: number } | null;
 }
 
 export const DEFAULT_CONFIG = {
