@@ -186,3 +186,21 @@ id = "R3Wll47g6pGH5h5_baVrr"
 uri = "file://exports/full-codebase.txt"
 type = "text"
 title = "ARUS Full Codebase Export"
+
+[[outputs]]
+id = "n_MRS4tSF_h4Ffi7VgrUk"
+uri = "file://exports/1-server-code.txt"
+type = "text"
+title = "1. Server-Side Code (6.6 MB — routes, storage, services, domains)"
+
+[[outputs]]
+id = "zMxGPL4xUkV20NBxGUG4E"
+uri = "file://exports/2-shared-schema.txt"
+type = "text"
+title = "2. Shared Schema (884 KB — data models, types, validation)"
+
+[[outputs]]
+id = "JP82sXWFQZ1E2-FOvUGV_"
+uri = "file://exports/3-client-frontend.txt"
+type = "text"
+title = "3. Client/Frontend Code (4.4 MB — pages, components, hooks)"
