@@ -9,7 +9,7 @@ import {
   Package,
   Users,
   ClipboardCheck,
-  LayoutDashboard,
+
   Shield,
   Activity,
   Building,
@@ -81,7 +81,6 @@ export const routeResourceMap: Record<string, string> = {
   "/crew-scheduler": "crew_schedules",
   "/schedule-planner": "crew_schedules",
   "/hours-of-rest": "rest_hours",
-  "/ops/schedule": "crew_schedules",
   
   // Logistics / Inventory
   "/logistics": "inventory",
@@ -174,7 +173,6 @@ export const navigationCategories: NavigationCategory[] = [
       { name: "Crew Management", href: "/crew-management", icon: Users, description: "Crew roster and details" },
       { name: "Schedule Planner", href: "/schedule-planner", icon: ClipboardCheck, description: "SmartPAL crew scheduling" },
       { name: "Hours of Rest", href: "/hours-of-rest", icon: Activity, description: "STCW compliance tracking" },
-      { name: "Schedule Board", href: "/ops/schedule", icon: LayoutDashboard, description: "Visual schedule board" },
     ],
   },
   {
