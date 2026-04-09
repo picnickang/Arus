@@ -49,6 +49,7 @@ export const equipment = pgTable(
     emergencyLaborMultiplier: real("emergency_labor_multiplier"),
     emergencyPartsMultiplier: real("emergency_parts_multiplier"),
     emergencyDowntimeMultiplier: real("emergency_downtime_multiplier"),
+    downtimeCostPerHour: real("downtime_cost_per_hour"),
     plainLanguageName: varchar("plain_language_name"),
     systemType: varchar("system_type"),
     componentType: varchar("component_type"),

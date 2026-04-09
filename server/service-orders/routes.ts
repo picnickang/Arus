@@ -22,6 +22,26 @@ import { z } from "zod";
 
 const router = Router();
 
+const FINALIZED_SO_STATUSES = ["completed", "invoiced"];
+
+async function triggerProcurementAggregation(
+  workOrderId: string | null | undefined,
+  orgId: string,
+  previousStatus: string,
+  newStatus: string
+): Promise<void> {
+  if (!workOrderId) return;
+  const wasFinalized = FINALIZED_SO_STATUSES.includes(previousStatus);
+  const isFinalized = FINALIZED_SO_STATUSES.includes(newStatus);
+  if (!wasFinalized && !isFinalized) return;
+  try {
+    const { aggregateProcurementCostsToWorkOrder } = await import("../cost-savings-engine");
+    await aggregateProcurementCostsToWorkOrder(workOrderId, orgId);
+  } catch (err) {
+    console.error("[ServiceOrder] Failed to aggregate procurement costs:", err);
+  }
+}
+
 /**
  * Improvement #20: maps empty strings to null (not undefined).
  * Previously empty strings became undefined, which Drizzle ORM treats as
@@ -96,9 +116,17 @@ router.patch("/:id", async (req: Request, res: Response) => {
     }
   }
 
-  // Improvement #20: empty strings → null so fields can actually be cleared
   const data    = sanitize(req.body);
   const updated = await repo.updateServiceOrder(req.params.id, orgId, data);
+
+  const newStatus = data.status ?? existing.status;
+  if (existing.workOrderId && (
+    (data.actualAmount !== undefined && FINALIZED_SO_STATUSES.includes(existing.status)) ||
+    (data.status !== undefined && data.status !== existing.status)
+  )) {
+    await triggerProcurementAggregation(existing.workOrderId, orgId, existing.status, newStatus);
+  }
+
   res.json(updated);
 });
 
@@ -255,6 +283,7 @@ router.post("/:id/complete", async (req: Request, res: Response) => {
   }
 
   const updated = await repo.updateServiceOrderStatus(req.params.id, orgId, "completed", req.body.userId);
+  await triggerProcurementAggregation(existing.workOrderId, orgId, existing.status, "completed");
   res.json(updated);
 });
 
@@ -273,6 +302,7 @@ router.post("/:id/cancel", async (req: Request, res: Response) => {
   const updated = await repo.updateServiceOrderStatus(
     req.params.id, orgId, "cancelled", req.body.userId, { reason: req.body.reason }
   );
+  await triggerProcurementAggregation(existing.workOrderId, orgId, existing.status, "cancelled");
   res.json(updated);
 });
 

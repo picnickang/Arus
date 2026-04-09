@@ -64,7 +64,7 @@ function InfoCard({ icon: Icon, label, value, subValue }: { icon: React.Componen
 export function WorkOrderDetailDrawer({ workOrder, open, onClose, equipment, vessels, crew, onComplete, onEdit, onClone, onDelete, isCompleting = false }: WorkOrderDetailDrawerProps) {
   const {
     activeTab, setActiveTab, linkTemplateDialogOpen, setLinkTemplateDialogOpen,
-    workOrderParts, totalPartsCost, totalOtherCosts, grandTotal, invalidateParts, invalidateChecklist,
+    workOrderParts, totalPartsCost, totalLaborCost, totalProcurementCost, downtimeCost, procurementCosts, grandTotal, invalidateParts, invalidateChecklist,
   } = useWorkOrderDetailData({ workOrder });
 
   if (!workOrder) {return null;}
@@ -121,21 +121,40 @@ export function WorkOrderDetailDrawer({ workOrder, open, onClose, equipment, ves
               {workOrder.description && <div><h4 className="font-medium mb-2">Description</h4><p className="text-sm text-muted-foreground whitespace-pre-wrap">{workOrder.description}</p></div>}
               <Separator />
               <div>
-                <h4 className="font-medium mb-3 flex items-center gap-2"><DollarSign className="h-4 w-4" />Cost Summary</h4>
+                <h4 className="font-medium mb-3 flex items-center gap-2"><DollarSign className="h-4 w-4" />Cost Breakdown</h4>
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between"><span className="text-muted-foreground">Parts Cost</span><span>${totalPartsCost.toFixed(2)}</span></div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Labor Cost</span>
+                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mt-1">Internal Costs</div>
+                  <div className="flex justify-between" data-testid="cost-internal-parts"><span className="text-muted-foreground">Internal Parts</span><span>${totalPartsCost.toFixed(2)}</span></div>
+                  <div className="flex justify-between items-center" data-testid="cost-internal-labor">
+                    <span className="text-muted-foreground">Internal Labor</span>
                     <div className="text-right">
-                      <span>${(workOrder.laborCost || 0).toFixed(2)}</span>
-                      {calculatedLaborCost !== null && calculatedLaborCost !== workOrder.laborCost && (
+                      <span>${totalLaborCost.toFixed(2)}</span>
+                      {calculatedLaborCost !== null && calculatedLaborCost !== totalLaborCost && (
                         <span className="text-xs text-muted-foreground block">Est: ${calculatedLaborCost.toFixed(2)} ({workOrder.laborHours}h x ${assignedCrewRate?.toFixed(2)}/hr)</span>
                       )}
                     </div>
                   </div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Other Costs</span><span>${totalOtherCosts.toFixed(2)}</span></div>
+                  {downtimeCost > 0 && (
+                    <div className="flex justify-between" data-testid="cost-downtime"><span className="text-muted-foreground">Downtime</span><span>${downtimeCost.toFixed(2)}</span></div>
+                  )}
+                  {totalProcurementCost > 0 && (
+                    <>
+                      <Separator className="my-1" />
+                      <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">External Procurement</div>
+                      {procurementCosts && procurementCosts.serviceOrderCosts > 0 && (
+                        <div className="flex justify-between" data-testid="cost-service-orders">
+                          <span className="text-muted-foreground">Service Orders ({procurementCosts.serviceOrderDetails.length})</span>
+                          <span>${procurementCosts.serviceOrderCosts.toFixed(2)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between font-medium text-muted-foreground" data-testid="cost-procurement-subtotal">
+                        <span>Procurement Subtotal</span>
+                        <span>${totalProcurementCost.toFixed(2)}</span>
+                      </div>
+                    </>
+                  )}
                   <Separator />
-                  <div className="flex justify-between font-medium"><span>Total Cost</span><span>${grandTotal.toFixed(2)}</span></div>
+                  <div className="flex justify-between font-medium" data-testid="cost-grand-total"><span>Total Cost</span><span>${grandTotal.toFixed(2)}</span></div>
                 </div>
               </div>
               <Separator />

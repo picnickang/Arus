@@ -64,6 +64,13 @@ export function registerCompletionRoutes(app: Express, rateLimit: RateLimitMiddl
         orgId
       );
 
+      try {
+        const { aggregateProcurementCostsToWorkOrder } = await import("../../../cost-savings-engine");
+        await aggregateProcurementCostsToWorkOrder(workOrderId, orgId);
+      } catch (err) {
+        console.error("[WorkOrder] Failed to aggregate procurement costs on completion:", err);
+      }
+
       sendCreated(res, completion);
     })
   );

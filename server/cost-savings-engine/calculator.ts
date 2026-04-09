@@ -3,7 +3,7 @@
  */
 
 import { db } from "../db";
-import { workOrders, failurePredictions, equipment, organizations } from "@shared/schema-runtime";
+import { workOrders, failurePredictions, equipment, organizations, costModel } from "@shared/schema-runtime";
 import { eq, and } from "drizzle-orm";
 import type { SavingsCalculation } from "./types";
 
@@ -31,7 +31,7 @@ export async function calculateWorkOrderSavings(
   const [equipmentDetails] = await db
     .select()
     .from(equipment)
-    .where(eq(equipment.id, workOrder.equipmentId))
+    .where(and(eq(equipment.id, workOrder.equipmentId), eq(equipment.orgId, orgId)))
     .limit(1);
 
   if (workOrder.status !== "completed") {
@@ -71,7 +71,20 @@ export async function calculateWorkOrderSavings(
   const actualLaborCost = workOrder.totalLaborCost ?? 0;
   const actualPartsCost = workOrder.totalPartsCost ?? 0;
   const actualDowntimeHours = workOrder.actualDowntimeHours ?? 0;
-  const downtimeCostPerHour = workOrder.downtimeCostPerHour ?? 1000;
+
+  const [activeCostModel] = await db
+    .select()
+    .from(costModel)
+    .where(and(
+      eq(costModel.orgId, orgId),
+      eq(costModel.isActive, true)
+    ))
+    .limit(1);
+
+  const downtimeCostPerHour = workOrder.downtimeCostPerHour
+    ?? equipmentDetails?.downtimeCostPerHour
+    ?? activeCostModel?.downtimePerHour
+    ?? 1000;
   const actualDowntimeCost = actualDowntimeHours * downtimeCostPerHour;
   const actualCost = actualLaborCost + actualPartsCost + actualDowntimeCost;
 

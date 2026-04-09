@@ -6,3 +6,4 @@ export * from "./types";
 export { calculateWorkOrderSavings } from "./calculator";
 export { saveCostSavings, processWorkOrderCompletion } from "./persistence";
 export { getSavingsSummary, getMonthlySavingsTrend } from "./reporting";
+export { getWorkOrderProcurementCosts, aggregateProcurementCostsToWorkOrder } from "./procurement-costs";

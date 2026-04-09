@@ -21,6 +21,20 @@ export interface WorkOrderCost {
   amount: number;
 }
 
+export interface ProcurementCosts {
+  serviceOrderCosts: number;
+  totalProcurementCost: number;
+  resolvedDowntimeCostPerHour: number;
+  serviceOrderDetails: Array<{
+    id: string;
+    soNumber: string;
+    status: string;
+    actualAmount: number | null;
+    quotedAmount: number | null;
+    serviceProviderId: string;
+  }>;
+}
+
 export interface UseWorkOrderDetailDataProps {
   workOrder: WorkOrder | null;
 }
@@ -32,10 +46,14 @@ export interface UseWorkOrderDetailDataReturn {
   setLinkTemplateDialogOpen: (open: boolean) => void;
   workOrderParts: WorkOrderPart[];
   workOrderCosts: WorkOrderCost[];
+  procurementCosts: ProcurementCosts | null;
   isLoadingParts: boolean;
   isLoadingCosts: boolean;
+  isLoadingProcurement: boolean;
   totalPartsCost: number;
-  totalOtherCosts: number;
+  totalLaborCost: number;
+  totalProcurementCost: number;
+  downtimeCost: number;
   grandTotal: number;
   invalidateParts: () => void;
   invalidateChecklist: () => void;
@@ -56,17 +74,32 @@ export function useWorkOrderDetailData({ workOrder }: UseWorkOrderDetailDataProp
     enabled: !!workOrder?.id,
   });
 
+  const { data: procurementCosts = null, isLoading: isLoadingProcurement } = useQuery<ProcurementCosts>({
+    queryKey: ["/api/work-orders", workOrder?.id, "procurement-costs"],
+    enabled: !!workOrder?.id,
+  });
+
   const totalPartsCost = useMemo(() => {
     return workOrderParts.reduce((sum, part) => sum + (part.totalCost || 0), 0);
   }, [workOrderParts]);
 
-  const totalOtherCosts = useMemo(() => {
-    return workOrderCosts.reduce((sum, cost) => sum + (cost.amount || 0), 0);
-  }, [workOrderCosts]);
+  const totalLaborCost = useMemo(() => {
+    return workOrder?.totalLaborCost ?? workOrder?.laborCost ?? 0;
+  }, [workOrder?.totalLaborCost, workOrder?.laborCost]);
+
+  const totalProcurementCost = useMemo(() => {
+    return procurementCosts?.totalProcurementCost ?? 0;
+  }, [procurementCosts]);
+
+  const downtimeCost = useMemo(() => {
+    const hours = workOrder?.actualDowntimeHours ?? 0;
+    const rate = procurementCosts?.resolvedDowntimeCostPerHour ?? workOrder?.downtimeCostPerHour ?? 0;
+    return hours * rate;
+  }, [workOrder?.actualDowntimeHours, workOrder?.downtimeCostPerHour, procurementCosts?.resolvedDowntimeCostPerHour]);
 
   const grandTotal = useMemo(() => {
-    return totalPartsCost + totalOtherCosts + (workOrder?.laborCost || 0);
-  }, [totalPartsCost, totalOtherCosts, workOrder?.laborCost]);
+    return totalLaborCost + totalPartsCost + totalProcurementCost + downtimeCost;
+  }, [totalPartsCost, totalLaborCost, totalProcurementCost, downtimeCost]);
 
   const invalidateParts = useCallback(() => {
     if (workOrder?.id) {
@@ -89,10 +122,14 @@ export function useWorkOrderDetailData({ workOrder }: UseWorkOrderDetailDataProp
     setLinkTemplateDialogOpen,
     workOrderParts,
     workOrderCosts,
+    procurementCosts,
     isLoadingParts,
     isLoadingCosts,
+    isLoadingProcurement,
     totalPartsCost,
-    totalOtherCosts,
+    totalLaborCost,
+    totalProcurementCost,
+    downtimeCost,
     grandTotal,
     invalidateParts,
     invalidateChecklist,

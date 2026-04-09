@@ -94,6 +94,7 @@ export const suppliers = isLocalMode ? sqliteVessel.suppliersSqlite : pgSchema.s
 export const serviceOrders = IS_POSTGRES ? pgSchema.serviceOrders : null;
 export const purchaseOrders = isLocalMode ? sqliteVessel.purchaseOrdersSqlite : pgSchema.purchaseOrders;
 export const purchaseOrderItems = isLocalMode ? sqliteVessel.purchaseOrderItemsSqlite : pgSchema.purchaseOrderItems;
+export const purchaseRequests = IS_POSTGRES ? pgSchema.purchaseRequests : null;
 export const partSubstitutions = isLocalMode ? sqliteVessel.partSubstitutionsSqlite : pgSchema.partSubstitutions;
 export const partFailureHistory = isLocalMode ? sqliteVessel.partFailureHistorySqlite : pgSchema.partFailureHistory;
 export const reservations = isLocalMode ? sqliteVessel.reservationsSqlite : pgSchema.reservations;

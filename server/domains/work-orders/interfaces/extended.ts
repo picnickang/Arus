@@ -149,4 +149,26 @@ export function registerExtendedRoutes(app: Express, rateLimit: RateLimitMiddlew
       res.json(prs);
     })
   );
+
+  app.get("/api/work-orders/:id/procurement-costs", requireOrgId,
+    withErrorHandling("fetch procurement costs", async (req: Request, res: Response) => {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const workOrderId = req.params.id;
+
+      const { getWorkOrderProcurementCosts } = await import("../../../cost-savings-engine");
+      const costs = await getWorkOrderProcurementCosts(workOrderId, orgId);
+      res.json(costs);
+    })
+  );
+
+  app.post("/api/work-orders/:id/aggregate-procurement-costs", requireOrgId, writeOperationRateLimit,
+    withErrorHandling("aggregate procurement costs", async (req: Request, res: Response) => {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const workOrderId = req.params.id;
+
+      const { aggregateProcurementCostsToWorkOrder } = await import("../../../cost-savings-engine");
+      const result = await aggregateProcurementCostsToWorkOrder(workOrderId, orgId);
+      res.json(result);
+    })
+  );
 }

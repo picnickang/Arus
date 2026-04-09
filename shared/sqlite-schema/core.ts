@@ -61,6 +61,7 @@ export const equipmentSqlite = sqliteTable(
     emergencyLaborMultiplier: real("emergency_labor_multiplier"),
     emergencyPartsMultiplier: real("emergency_parts_multiplier"),
     emergencyDowntimeMultiplier: real("emergency_downtime_multiplier"),
+    downtimeCostPerHour: real("downtime_cost_per_hour"),
     createdAt: integer("created_at", { mode: "timestamp" }),
     updatedAt: integer("updated_at", { mode: "timestamp" }),
     version: integer("version").default(1),
