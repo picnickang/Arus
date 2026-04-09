@@ -1,0 +1,298 @@
+You are a senior product/UX/operations analyst evaluating the financial system design for ARUS, a fleet operations and predictive maintenance platform.
+
+Your job is to evaluate whether the current or proposed financial layer is:
+- credible
+- useful for operators and managers
+- sufficient to prove ROI
+- integrated correctly with maintenance workflows
+- not turning into a bloated accounting/ERP system
+
+Be direct, critical, and practical.
+
+---
+
+# CONTEXT
+
+ARUS is not meant to be a full accounting platform.
+
+It is a fleet operations / predictive maintenance system with:
+- Equipment-centric workflows
+- Work Orders (engineer-owned)
+- Service Orders / Procurement records (procurement-owned, but linked to Work Orders)
+- AI predictions, RUL, telemetry, diagnostics, maintenance scheduling
+- Decision support that should recommend actions such as:
+  - repair now
+  - repair at port
+  - request parts
+  - create work order
+
+The financial layer is intended to support:
+- decision-making
+- cost comparison
+- ROI proof
+- avoided-failure calculations
+- maintenance optimization
+
+NOT:
+- general ledger
+- invoicing
+- payroll
+- tax/accounting compliance
+- full ERP replacement
+
+---
+
+# CORE QUESTION
+
+Evaluate whether ARUS should include a financial layer, and whether the proposed financial model is the right kind of finance:
+
+- embedded operational finance
+- not standalone accounting
+- connected to Work Orders, Procurement, Equipment, and Decisions
+
+---
+
+# EVALUATION AREAS
+
+## 1. Does the financial system belong in ARUS?
+Evaluate whether this product should include:
+- repair cost estimation
+- failure cost estimation
+- downtime cost
+- avoided failure cost
+- ROI tracking
+- estimated vs actual cost
+
+Explain what absolutely belongs here and what should stay outside the system.
+
+---
+
+## 2. Is the object model correct?
+Evaluate whether the following structure makes sense:
+
+### Equipment
+May contain:
+- daily operating value
+- estimated failure cost
+- downtime cost estimate
+- asset criticality
+
+### Work Order
+May contain:
+- estimated cost
+- actual cost
+- avoided failure cost
+- cost justification / decision rationale
+
+### Service Order / Procurement
+May contain:
+- parts cost
+- vendor labor cost
+- logistics cost
+- ETA / sourcing status
+
+Assess whether this is the right separation of concerns.
+
+---
+
+## 3. How should cost actually be determined?
+Critique and improve this financial logic:
+
+### Repair Cost
+Repair Cost = parts + labor + logistics
+
+### Failure Cost
+Failure Cost = downtime cost + expected damage + disruption cost
+
+### Savings
+Savings = failure cost - repair cost
+
+Questions to answer:
+- Is this credible enough for operational decisions?
+- What assumptions are too weak?
+- What data would be required to make this trustworthy?
+- What should be estimated vs measured vs learned over time?
+
+---
+
+## 4. Evaluate from 3 user perspectives
+
+### Chief Engineer
+- Does this help them decide what to do?
+- Is the financial information operationally useful or just management fluff?
+
+### Fleet Superintendent / Technical Superintendent
+- Does this help prioritize work and justify scheduling decisions?
+
+### Technical Manager / Budget Holder
+- Does this provide enough proof of ROI to justify predictive maintenance investment?
+
+---
+
+## 5. Evaluate the biggest risks
+Identify risks such as:
+- fake precision
+- weak assumptions
+- misleading ROI
+- trying to become an accounting system
+- finance disconnected from workflow
+- cost estimates not tied to real procurement/work order data
+
+Be specific.
+
+---
+
+## 6. Evaluate where finance should appear in the product
+For each area below, say whether finance should appear there and in what form:
+
+- Equipment Page
+- Decision UI
+- Work Order detail
+- Procurement / Service Order
+- Dashboard
+- Analytics
+- Copilot / AI recommendations
+
+Distinguish between:
+- operational finance
+- management reporting
+- data that should remain hidden or secondary
+
+---
+
+## 7. Evaluate whether the system can truly prove ROI
+Assess whether the product can legitimately claim:
+- avoided failures
+- cost savings
+- ROI from predictive maintenance
+- improved timing of repair
+- reduced downtime
+
+What evidence chain is required?
+
+For example:
+AI prediction → work order → service/procurement → completed work → cost captured → failure avoided estimate
+
+Explain where this chain is weak and how to strengthen it.
+
+---
+
+## 8. Perform a CRUD Test on the financial system
+This is critical.
+
+Test whether the financial model actually works operationally by evaluating Create, Read, Update, Delete behavior across:
+
+- Equipment financial fields
+- Work Order financial fields
+- Service Order / Procurement financial fields
+- Decision / recommendation cost outputs
+- ROI / avoided-failure records
+
+### A. CREATE
+Can the system cleanly create:
+- estimated repair cost
+- procurement cost lines
+- actual cost records
+- avoided failure estimates
+- ROI events tied to completed work
+
+Questions:
+- Who creates each record?
+- At what step in the workflow?
+- Is record creation manual, automatic, or hybrid?
+- Are there duplicate-entry risks?
+
+### B. READ
+Can the right users read the right financial information in the right place?
+
+Questions:
+- Can engineers see enough cost context without being overloaded?
+- Can procurement see cost lines in their workflow?
+- Can management see rolled-up ROI?
+- Is the same financial truth visible consistently across Equipment, Work Orders, Procurement, and Analytics?
+
+### C. UPDATE
+Can estimates evolve into actuals without breaking trust?
+
+Questions:
+- Can estimated repair cost be updated after vendor quote?
+- Can actual cost replace or coexist with estimate?
+- Can avoided-failure assumptions be revised later?
+- Is there versioning or auditability for changed cost assumptions?
+
+### D. DELETE / VOID / SUPERSEDE
+This is often ignored. Evaluate it explicitly.
+
+Questions:
+- What happens if a work order is cancelled?
+- What happens if a service order is duplicated?
+- What happens if a vendor quote was wrong?
+- What happens if an avoided-failure estimate was based on a bad assumption?
+- Should records be hard-deleted, soft-deleted, voided, or superseded?
+
+### CRUD stress questions
+Also evaluate:
+- Which financial objects are sources of truth?
+- Which are derived?
+- Which should be immutable after completion?
+- Where will reconciliation problems appear?
+
+Do not treat CRUD as a database exercise only — evaluate it as a real operational workflow test.
+
+---
+
+# OUTPUT FORMAT (STRICT)
+
+## 1. Overall Verdict
+One paragraph:
+- should ARUS have this financial layer or not?
+- what kind of financial layer should it be?
+
+## 2. What Definitely Belongs
+Bullet list of financial capabilities that belong inside ARUS
+
+## 3. What Should Stay Out
+Bullet list of accounting/ERP capabilities that should NOT be built here
+
+## 4. Object Model Review
+Evaluate Equipment, Work Order, and Service Order / Procurement financial fields
+
+## 5. Cost Model Review
+Evaluate:
+- repair cost
+- failure cost
+- savings
+- ROI
+
+## 6. User Perspective Review
+Chief Engineer / Superintendent / Technical Manager
+
+## 7. Product Placement Review
+Where finance should show up in the UX
+
+## 8. CRUD Test Review
+Evaluate:
+- Create
+- Read
+- Update
+- Delete / Void / Supersede
+
+Be specific about workflow breakdowns.
+
+## 9. Biggest Risks
+Top 5 risks
+
+## 10. Final Recommendation
+A blunt recommendation for how to implement finance in ARUS without overbuilding it
+
+---
+
+# IMPORTANT RULES
+
+- Be opinionated
+- Do not be vague
+- Do not turn this into generic SaaS finance advice
+- Evaluate it specifically as a maritime / fleet / predictive maintenance product
+- Focus on operational credibility
+- Assume this system must support real maintenance decisions, not just executive dashboards
+- Treat CRUD as both a data-model test and a workflow-integrity test
