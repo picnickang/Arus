@@ -288,7 +288,7 @@ export function useSchedulePlannerData() {
     };
     ruleEnforcement: Record<string, "HARD" | "SOFT">;
   }>({
-    queryKey: ["/api/crew-extensions/scheduling-settings"],
+    queryKey: ["/api/scheduling-settings"],
     staleTime: 5 * 60 * 1000,
   });
 

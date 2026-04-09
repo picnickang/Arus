@@ -153,8 +153,7 @@ export function registerAssignmentsRoutes(app: Express, config: CrewExtensionsRo
       if (validated.crewId) storageUpdates.crewId = validated.crewId;
       if (validated.vesselId !== undefined) storageUpdates.vesselId = validated.vesselId;
       
-      // Pass string id (UUID), not number
-      const assignment = await storage.updateCrewAssignment(id, storageUpdates);
+      const assignment = await storage.updateCrewAssignment(id, storageUpdates, orgId);
       
       res.json({
         id: assignment.id,
@@ -174,7 +173,7 @@ export function registerAssignmentsRoutes(app: Express, config: CrewExtensionsRo
       const orgId = req.orgId!;
       const { id } = req.params;
       
-      await storage.deleteCrewAssignment(id);
+      await storage.deleteCrewAssignment(id, orgId);
       res.json({ success: true });
     })
   );

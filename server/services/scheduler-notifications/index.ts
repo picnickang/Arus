@@ -4,7 +4,7 @@
  */
 
 import { emailSender } from "../email-notification/email-sender.js";
-import { storage } from "../../storage/index.js";
+import { storage } from "../../storage.js";
 import type { NotificationSettings, NotificationRecipient } from "../../../shared/schema/scheduling-settings.js";
 import { DEFAULT_NOTIFICATION_SETTINGS } from "../../../shared/schema/scheduling-settings.js";
 

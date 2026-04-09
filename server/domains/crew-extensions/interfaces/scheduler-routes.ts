@@ -175,8 +175,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       // Get leave records and crew members with org scoping
       const allLeaves = await storage.getCrewLeaves?.() || [];
       const leaves = allLeaves.filter((l: any) => !l.orgId || l.orgId === orgId);
-      const allCrew = await storage.getCrewMembers();
-      const crewList = allCrew.filter((c: any) => !c.orgId || c.orgId === orgId);
+      const crewList = await storage.getCrew(orgId);
       const crewMember = crewList.find((c: any) => c.id === assignment.crewId);
       
       // Calculate weekly hours from existing assignments
@@ -264,9 +263,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
         return res.json([]);
       }
 
-      // Get crew members and leaves with org scoping
-      const allCrew = await storage.getCrewMembers();
-      const crewList = allCrew.filter((c: any) => !c.orgId || c.orgId === orgId);
+      const crewList = await storage.getCrew(orgId);
       const allLeaves = await storage.getCrewLeaves?.() || [];
       const leaves = allLeaves.filter((l: any) => !l.orgId || l.orgId === orgId);
       
@@ -386,20 +383,17 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
         return res.status(404).json({ error: "Assignment not found" });
       }
 
-      // Get crew member details and verify org ownership
-      const crewList = await storage.getCrewMembers();
-      const orgCrewList = crewList.filter((c: any) => !c.orgId || c.orgId === orgId);
-      const crewMember = orgCrewList.find((c: any) => c.id === suggestedCrewId);
+      const crewList = await storage.getCrew(orgId);
+      const crewMember = crewList.find((c: any) => c.id === suggestedCrewId);
       
       if (!crewMember) {
         return res.status(404).json({ error: "Crew member not found" });
       }
 
-      // Update the assignment with the suggested crew member
       const updated = await storage.updateCrewAssignment(assignmentId, {
         crewId: suggestedCrewId,
         status: "scheduled",
-      });
+      }, orgId);
 
       res.json({
         success: true,
@@ -449,38 +443,41 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       // Update all matching assignments to published status
       let publishedCount = 0;
       for (const assignment of assignmentsToPublish) {
-        await storage.updateCrewAssignment(assignment.id, { status: "scheduled" });
+        await storage.updateCrewAssignment(assignment.id, { status: "scheduled" }, orgId);
         publishedCount++;
       }
 
       // Send notifications (async, don't block response)
       if (publishedCount > 0) {
-        const { sendSchedulePublishedNotification } = await import("../../../services/scheduler-notifications/index.js");
-        
-        // Get crew info for notifications
-        const crewMembers = await storage.getCrewMembers();
-        const vessels = await storage.getVessels();
-        
-        const assignmentInfos = assignmentsToPublish.map((a: any) => {
-          const crew = crewMembers.find((c: any) => c.id === a.crewId);
-          const vessel = vessels.find((v: any) => v.id === a.vesselId);
-          return {
-            id: a.id,
-            crewId: a.crewId,
-            crewName: crew?.name || "Unknown Crew",
-            vesselId: a.vesselId,
-            vesselName: vessel?.name,
-            startDate: a.start || a.date,
-            endDate: a.end || a.date,
-            role: a.role,
-          };
-        });
+        try {
+          const { sendSchedulePublishedNotification } = await import("../../../services/scheduler-notifications/index.js");
+          
+          const crewMembers = await storage.getCrew(orgId);
+          const vessels = await storage.getVessels();
+          
+          const assignmentInfos = assignmentsToPublish.map((a: any) => {
+            const crew = crewMembers.find((c: any) => c.id === a.crewId);
+            const vessel = vessels.find((v: any) => v.id === a.vesselId);
+            return {
+              id: a.id,
+              crewId: a.crewId,
+              crewName: crew?.name || "Unknown Crew",
+              vesselId: a.vesselId,
+              vesselName: vessel?.name,
+              startDate: a.start || a.date,
+              endDate: a.end || a.date,
+              role: a.role,
+            };
+          });
 
-        sendSchedulePublishedNotification(
-          { orgId, vesselId },
-          assignmentInfos,
-          { from, to }
-        ).catch((err: any) => console.error("Failed to send publish notifications:", err));
+          sendSchedulePublishedNotification(
+            { orgId, vesselId },
+            assignmentInfos,
+            { from, to }
+          ).catch((err: any) => console.error("Failed to send publish notifications:", err));
+        } catch (notifyErr) {
+          console.error("Failed to prepare publish notifications:", notifyErr);
+        }
       }
 
       res.json({
