@@ -180,3 +180,9 @@ id = "wpa14bP76p244MpPjgo5c"
 uri = "file://exports/analytics-dashboard-files.md"
 type = "text"
 title = "Analytics Dashboard Files (10 files for Claude evaluation)"
+
+[[outputs]]
+id = "R3Wll47g6pGH5h5_baVrr"
+uri = "file://exports/full-codebase.txt"
+type = "text"
+title = "ARUS Full Codebase Export"
