@@ -511,6 +511,8 @@ export {
   costSavingsListQuerySchema,
   costSavingsSummaryQuerySchema,
   costSavingsTrendQuerySchema,
+  updateValidationStatusSchema,
+  validationStatusEnum,
   crewIdSchema,
   crewQuerySchema,
   downtimeCostValidationSchema,

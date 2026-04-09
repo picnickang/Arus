@@ -1,15 +1,102 @@
-import { TrendingUp, TrendingDown, PieChart, Target, Users } from "lucide-react";
+import { useState } from "react";
+import { TrendingUp, TrendingDown, PieChart, Target, Users, ShieldCheck, AlertTriangle, XCircle, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { ExportButton } from "@/components/ui/export-button";
 import { ScenarioBanner } from "./ScenarioBanner";
-import { CollapsibleSection } from "./CollapsibleSection";
+import { CollapsibleSection } from "@/components/shared/CollapsibleSection";
 import { ContextHelp } from "./ContextHelp";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart as RechartsPieChart, Pie, Cell, BarChart, Bar } from "recharts";
 import { formatDate } from "@/lib/formatters";
 import { useFinanceModeData } from "@/features/analytics";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+
+interface SavingsRecord {
+  id: string;
+  workOrderId: string | null;
+  equipmentId: string;
+  maintenanceType: string;
+  totalSavings: number;
+  validationStatus: string;
+  validationReason: string | null;
+  validationChangedBy: string | null;
+  validationChangedAt: string | null;
+  calculatedAt: string;
+}
+
+function ValidationStatusBadge({ status }: { status: string }) {
+  if (status === "valid") return <Badge variant="outline" className="border-green-500 text-green-600" data-testid={`badge-status-${status}`}><CheckCircle className="h-3 w-3 mr-1" />Valid</Badge>;
+  if (status === "disputed") return <Badge variant="outline" className="border-amber-500 text-amber-600" data-testid={`badge-status-${status}`}><AlertTriangle className="h-3 w-3 mr-1" />Disputed</Badge>;
+  if (status === "voided") return <Badge variant="outline" className="border-red-500 text-red-600" data-testid={`badge-status-${status}`}><XCircle className="h-3 w-3 mr-1" />Voided</Badge>;
+  return <Badge variant="outline">{status}</Badge>;
+}
+
+function SavingsClaimActions({ savingsId, currentStatus }: { savingsId: string; currentStatus: string }) {
+  const [showForm, setShowForm] = useState<"disputed" | "voided" | null>(null);
+  const [reason, setReason] = useState("");
+  const { toast } = useToast();
+
+  const mutation = useMutation({
+    mutationFn: async ({ status, reason }: { status: string; reason: string }) => {
+      return apiRequest("PATCH", `/api/cost-savings/${savingsId}/validation`, { validationStatus: status, reason });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cost-savings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cost-savings/summary"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cost-savings/trend"] });
+      toast({ title: "Validation status updated", description: `Savings claim has been ${showForm === "disputed" ? "disputed" : "voided"}.` });
+      setShowForm(null);
+      setReason("");
+    },
+    onError: () => {
+      toast({ title: "Failed to update", description: "Could not update the validation status.", variant: "destructive" });
+    },
+  });
+
+  if (currentStatus === "voided") return null;
+
+  return (
+    <div className="flex flex-col gap-2">
+      {!showForm && (
+        <div className="flex gap-2">
+          {currentStatus === "valid" && (
+            <>
+              <Button size="sm" variant="outline" className="text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950" onClick={() => setShowForm("disputed")} data-testid={`button-dispute-${savingsId}`}>Dispute</Button>
+              <Button size="sm" variant="outline" className="text-red-600 border-red-300 hover:bg-red-50 dark:hover:bg-red-950" onClick={() => setShowForm("voided")} data-testid={`button-void-${savingsId}`}>Void</Button>
+            </>
+          )}
+          {currentStatus === "disputed" && (
+            <>
+              <Button size="sm" variant="outline" className="text-green-600 border-green-300 hover:bg-green-50 dark:hover:bg-green-950" onClick={() => { setShowForm("disputed"); setReason(""); }} data-testid={`button-revalidate-${savingsId}`}>Re-validate</Button>
+              <Button size="sm" variant="outline" className="text-red-600 border-red-300 hover:bg-red-50 dark:hover:bg-red-950" onClick={() => setShowForm("voided")} data-testid={`button-void-${savingsId}`}>Void</Button>
+            </>
+          )}
+        </div>
+      )}
+      {showForm && (
+        <div className="space-y-2 p-3 border rounded-lg bg-muted/50">
+          <p className="text-sm font-medium">{showForm === "disputed" ? (currentStatus === "disputed" ? "Re-validate this claim" : "Dispute this savings claim") : "Void this savings claim"}</p>
+          <Textarea placeholder="Enter reason..." value={reason} onChange={(e) => setReason(e.target.value)} className="text-sm" data-testid={`input-reason-${savingsId}`} />
+          <div className="flex gap-2">
+            <Button size="sm" disabled={!reason.trim() || mutation.isPending} onClick={() => mutation.mutate({ status: currentStatus === "disputed" && showForm === "disputed" ? "valid" : showForm, reason })} data-testid={`button-confirm-${savingsId}`}>
+              {mutation.isPending ? "Updating..." : "Confirm"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => { setShowForm(null); setReason(""); }} data-testid={`button-cancel-${savingsId}`}>Cancel</Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function FinanceMode() {
-  const { latestMonth, monthlyChange, totalSavings, predictiveSavings, completedInsights, estimatedLLMCost, avgCostPerInsight, openWorkOrders, estimatedFutureDowntime, projectedDowntimeCost, preventiveCost, reactiveCost, preventiveRatio, totalLaborCost, totalLaborHours, avgLaborCostPerHour, workOrdersWithLabor, pendingLaborHours, estimatedPendingLaborCost, roiAnalysis, costBreakdownData, roiTrendData, costTrendsData, exportPDFSections, exportCostTrendsData, COLORS } = useFinanceModeData();
+  const { latestMonth, monthlyChange, totalSavings, predictiveSavings, completedInsights, estimatedLLMCost, avgCostPerInsight, openWorkOrders, estimatedFutureDowntime, projectedDowntimeCost, preventiveCost, reactiveCost, preventiveRatio, totalLaborCost, totalLaborHours, avgLaborCostPerHour, workOrdersWithLabor, pendingLaborHours, estimatedPendingLaborCost, roiAnalysis, costBreakdownData, roiTrendData, costTrendsData, exportPDFSections, exportCostTrendsData, COLORS, disputedCount, voidedCount, disputedAmount, voidedAmount, confidenceRange } = useFinanceModeData();
+
+  const { data: savingsRecords = [] } = useQuery<SavingsRecord[]>({ queryKey: ["/api/cost-savings"], refetchInterval: 60000, staleTime: 30000 });
 
   return (
     <div className="space-y-6">
@@ -25,8 +112,14 @@ export function FinanceMode() {
 
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <Card data-testid="card-total-savings">
-          <CardHeader className="pb-2"><div className="flex items-center justify-between"><CardTitle className="text-sm font-medium">Total Savings</CardTitle><ContextHelp title="Total Savings" description="Cumulative cost savings from predictive and preventive maintenance interventions vs. reactive repairs." /></div></CardHeader>
-          <CardContent><div className="text-3xl font-bold text-green-600" data-testid="text-total-savings">${(totalSavings / 1000).toFixed(0)}k</div></CardContent>
+          <CardHeader className="pb-2"><div className="flex items-center justify-between"><CardTitle className="text-sm font-medium">Total Savings</CardTitle><ContextHelp title="Total Savings" description="Cumulative cost savings from predictive and preventive maintenance interventions vs. reactive repairs. Only validated claims are included. Range is based on average prediction confidence." /></div></CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-green-600" data-testid="text-total-savings">${(totalSavings / 1000).toFixed(0)}k</div>
+            <div className="text-xs text-muted-foreground mt-1" data-testid="text-savings-confidence-range">
+              Range: ${(confidenceRange.low / 1000).toFixed(0)}k – ${(confidenceRange.high / 1000).toFixed(0)}k
+              <span className="ml-1">({(confidenceRange.avgConfidence * 100).toFixed(0)}% avg confidence)</span>
+            </div>
+          </CardContent>
         </Card>
         <Card data-testid="card-monthly-spend">
           <CardHeader className="pb-2"><div className="flex items-center justify-between"><CardTitle className="text-sm font-medium">Monthly Spend</CardTitle><ContextHelp title="Monthly Maintenance Spend" description="Total maintenance costs for the most recent month including labor, parts, and downtime." /></div></CardHeader>
@@ -44,6 +137,44 @@ export function FinanceMode() {
           <CardContent><div className="text-3xl font-bold text-purple-600" data-testid="text-roi">{roiAnalysis?.overallRoi ? `${roiAnalysis.overallRoi.toFixed(0)}%` : "N/A"}</div></CardContent>
         </Card>
       </div>
+
+      {(disputedCount > 0 || voidedCount > 0) && (
+        <Card data-testid="card-savings-integrity">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4" />
+                Savings Claim Integrity
+              </CardTitle>
+              <ContextHelp title="Savings Integrity" description="Tracks disputed and voided savings claims. Only validated claims are included in totals. Disputed claims are under review; voided claims have been invalidated (e.g., cancelled work orders)." />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-1.5">
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+                  <span className="text-sm text-muted-foreground">Disputed</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="border-amber-500 text-amber-600" data-testid="badge-disputed-count">{disputedCount}</Badge>
+                  <span className="text-sm font-medium" data-testid="text-disputed-amount">${(disputedAmount / 1000).toFixed(0)}k</span>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-1.5">
+                  <XCircle className="h-3.5 w-3.5 text-red-500" />
+                  <span className="text-sm text-muted-foreground">Voided</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="border-red-500 text-red-600" data-testid="badge-voided-count">{voidedCount}</Badge>
+                  <span className="text-sm font-medium" data-testid="text-voided-amount">${(voidedAmount / 1000).toFixed(0)}k</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card data-testid="card-llm-cost">
@@ -92,6 +223,40 @@ export function FinanceMode() {
           {preventiveRatio < 40 && <div className="p-4 border rounded-lg bg-blue-500/5"><div className="flex items-start gap-3"><Target className="h-5 w-5 text-blue-600 mt-0.5" /><div><h4 className="font-semibold text-sm">Shift to Preventive Maintenance</h4><p className="text-sm text-muted-foreground mt-1">Your preventive ratio is {preventiveRatio.toFixed(0)}%. Increasing to 60% could save ${((reactiveCost * 0.3) / 1000).toFixed(0)}k/year by preventing costly failures</p></div></div></div>}
           {projectedDowntimeCost > 10000 && <div className="p-4 border rounded-lg bg-amber-500/5"><div className="flex items-start gap-3"><TrendingDown className="h-5 w-5 text-amber-600 mt-0.5" /><div><h4 className="font-semibold text-sm">Reduce Projected Downtime</h4><p className="text-sm text-muted-foreground mt-1">${(projectedDowntimeCost / 1000).toFixed(0)}k in downtime costs projected. Act on {openWorkOrders.length} open work orders earlier to reduce impact</p></div></div></div>}
         </div>
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Savings Claims" summary={`${savingsRecords.length} savings records`}>
+        {savingsRecords.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4" data-testid="text-no-savings-claims">No savings claims recorded yet</p>
+        ) : (
+          <div className="space-y-3" data-testid="savings-claims-list">
+            {savingsRecords.map((record) => (
+              <div key={record.id} className="p-4 border rounded-lg" data-testid={`savings-claim-${record.id}`}>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm" data-testid={`text-savings-amount-${record.id}`}>${((record.totalSavings ?? 0) / 1000).toFixed(1)}k savings</span>
+                      <ValidationStatusBadge status={record.validationStatus ?? "valid"} />
+                      <Badge variant="secondary" className="text-xs">{record.maintenanceType}</Badge>
+                    </div>
+                    <div className="text-xs text-muted-foreground space-x-3">
+                      {record.workOrderId && <span>WO: {record.workOrderId.slice(0, 8)}...</span>}
+                      <span>Equipment: {record.equipmentId?.slice(0, 8)}...</span>
+                      {record.calculatedAt && <span>{formatDate(new Date(record.calculatedAt))}</span>}
+                    </div>
+                    {record.validationReason && (
+                      <p className="text-xs text-muted-foreground italic mt-1" data-testid={`text-validation-reason-${record.id}`}>Reason: {record.validationReason}</p>
+                    )}
+                    {record.validationChangedBy && record.validationChangedAt && (
+                      <p className="text-xs text-muted-foreground">Changed by {record.validationChangedBy} on {formatDate(new Date(record.validationChangedAt))}</p>
+                    )}
+                  </div>
+                  <SavingsClaimActions savingsId={record.id} currentStatus={record.validationStatus ?? "valid"} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </CollapsibleSection>
     </div>
   );

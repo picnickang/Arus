@@ -72,6 +72,14 @@ export class WorkOrderApplicationService {
         changedBy: userId,
         timestamp: new Date(),
       });
+
+      if (data.status === "cancelled") {
+        const { voidSavingsForWorkOrder } = await import("../../../cost-savings-engine");
+        await voidSavingsForWorkOrder(workOrder.id, resolvedOrgId, "Work order cancelled.", userId);
+      } else if (previous.status === "completed" && data.status !== "completed") {
+        const { voidSavingsForWorkOrder } = await import("../../../cost-savings-engine");
+        await voidSavingsForWorkOrder(workOrder.id, resolvedOrgId, "Work order reopened after completion.", userId);
+      }
     } else {
       await this.deps.eventPublisher.publish({
         type: "WORK_ORDER_UPDATED",

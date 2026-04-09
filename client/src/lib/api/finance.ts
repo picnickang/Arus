@@ -48,12 +48,32 @@ export interface CostSavingsSummary {
   preventedFailures: number;
   roi: number;
   period: string;
+  savingsByType?: { labor?: number; parts?: number; downtime?: number; predictive?: number; preventive?: number };
+  savingsCount?: number;
+  disputedCount?: number;
+  voidedCount?: number;
+  disputedAmount?: number;
+  voidedAmount?: number;
+  confidenceRange?: {
+    low: number;
+    high: number;
+    avgConfidence: number;
+  };
 }
 
 export async function fetchCostSavingsSummary(): Promise<CostSavingsSummary> {
   const url = `/api/cost-savings/summary`;
   const response = await apiRequest("GET", url);
   return response as CostSavingsSummary;
+}
+
+export async function updateSavingsValidation(
+  id: string,
+  validationStatus: "valid" | "disputed" | "voided",
+  reason: string
+): Promise<any> {
+  const url = `/api/cost-savings/${id}/validation`;
+  return apiRequest("PATCH", url, { validationStatus, reason });
 }
 
 export interface CostSummaryItem {

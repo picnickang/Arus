@@ -48,5 +48,15 @@ export interface SavingsSummary {
     equipmentName: string;
     savings: number;
     downtimePrevented: number;
+    validationStatus: string;
   }>;
+  disputedCount: number;
+  voidedCount: number;
+  disputedAmount: number;
+  voidedAmount: number;
+  confidenceRange: {
+    low: number;
+    high: number;
+    avgConfidence: number;
+  };
 }

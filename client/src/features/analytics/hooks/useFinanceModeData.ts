@@ -25,6 +25,11 @@ export function useFinanceModeData() {
     const totalSavings = costSavingsSummary?.totalSavings || 0;
     const predictiveSavings = costSavingsSummary?.savingsByType?.predictive || 0;
     const preventiveSavings = costSavingsSummary?.savingsByType?.preventive || 0;
+    const disputedCount = costSavingsSummary?.disputedCount || 0;
+    const voidedCount = costSavingsSummary?.voidedCount || 0;
+    const disputedAmount = costSavingsSummary?.disputedAmount || 0;
+    const voidedAmount = costSavingsSummary?.voidedAmount || 0;
+    const confidenceRange = costSavingsSummary?.confidenceRange || { low: totalSavings * 0.5, high: totalSavings * 1.5, avgConfidence: 0.5 };
     const completedInsights = insightJobsStats?.completed || 0;
     const avgCostPerInsight = 0.15;
     const estimatedLLMCost = completedInsights * avgCostPerInsight;
@@ -44,7 +49,7 @@ export function useFinanceModeData() {
     const workOrdersWithLabor = completedWorkOrders.filter((wo) => (wo.laborCost ?? 0) > 0).length;
     const pendingLaborHours = openWorkOrders.reduce((sum, wo) => sum + (wo.laborHours ?? 0), 0);
     const estimatedPendingLaborCost = pendingLaborHours * (avgLaborCostPerHour > 0 ? avgLaborCostPerHour : 75);
-    return { latestMonth, monthlyChange, totalSavings, predictiveSavings, preventiveSavings, completedInsights, avgCostPerInsight, estimatedLLMCost, openWorkOrders, estimatedFutureDowntime, projectedDowntimeCost, actualDowntimeHours, actualDowntimeCost, preventiveCost, reactiveCost, preventiveRatio, totalLaborCost, totalLaborHours, avgLaborCostPerHour, workOrdersWithLabor, pendingLaborHours, estimatedPendingLaborCost };
+    return { latestMonth, monthlyChange, totalSavings, predictiveSavings, preventiveSavings, completedInsights, avgCostPerInsight, estimatedLLMCost, openWorkOrders, estimatedFutureDowntime, projectedDowntimeCost, actualDowntimeHours, actualDowntimeCost, preventiveCost, reactiveCost, preventiveRatio, totalLaborCost, totalLaborHours, avgLaborCostPerHour, workOrdersWithLabor, pendingLaborHours, estimatedPendingLaborCost, disputedCount, voidedCount, disputedAmount, voidedAmount, confidenceRange };
   }, [costTrends, costSavingsSummary, insightJobsStats, workOrders, costSummary]);
 
   const costBreakdownData = useMemo(() => costSummary.reduce((acc: CostBreakdownItem[], summary) => { Object.entries(summary.costByType ?? {}).forEach(([type, amount]) => { const existing = acc.find((item) => item.name === type); if (existing) {existing.value += amount;} else {acc.push({ name: type, value: amount });} }); return acc; }, []), [costSummary]);

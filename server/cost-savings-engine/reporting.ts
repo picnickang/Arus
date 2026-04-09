@@ -19,7 +19,7 @@ export async function getSavingsSummary(
     ? endDate 
     : new Date();
 
-  const savings = await db
+  const allSavings = await db
     .select()
     .from(costSavings)
     .where(
@@ -31,30 +31,54 @@ export async function getSavingsSummary(
     )
     .orderBy(sql`${costSavings.totalSavings} DESC`);
 
-  const totalSavings = savings.reduce((sum, s) => sum + (s.totalSavings ?? 0), 0);
-  const totalDowntimePrevented = savings.reduce((sum, s) => sum + (s.estimatedDowntimePrevented ?? 0), 0);
+  const validSavings = allSavings.filter((s) => s.validationStatus === "valid");
+  const disputedSavings = allSavings.filter((s) => s.validationStatus === "disputed");
+  const voidedSavings = allSavings.filter((s) => s.validationStatus === "voided");
+
+  const totalSavings = validSavings.reduce((sum, s) => sum + (s.totalSavings ?? 0), 0);
+  const totalDowntimePrevented = validSavings.reduce((sum, s) => sum + (s.estimatedDowntimePrevented ?? 0), 0);
 
   const savingsByType = {
-    labor: savings.reduce((sum, s) => sum + (s.laborSavings ?? 0), 0),
-    parts: savings.reduce((sum, s) => sum + (s.partsSavings ?? 0), 0),
-    downtime: savings.reduce((sum, s) => sum + (s.downtimeSavings ?? 0), 0),
+    labor: validSavings.reduce((sum, s) => sum + (s.laborSavings ?? 0), 0),
+    parts: validSavings.reduce((sum, s) => sum + (s.partsSavings ?? 0), 0),
+    downtime: validSavings.reduce((sum, s) => sum + (s.downtimeSavings ?? 0), 0),
   };
 
-  const savingsCount = savings.length;
+  const savingsCount = validSavings.length;
   const avgSavingsPerIncident = savingsCount > 0 ? totalSavings / savingsCount : 0;
 
-  const equipmentIds = [...new Set(savings.slice(0, 5).map((s) => s.equipmentId))];
+  const disputedCount = disputedSavings.length;
+  const voidedCount = voidedSavings.length;
+  const disputedAmount = disputedSavings.reduce((sum, s) => sum + (s.totalSavings ?? 0), 0);
+  const voidedAmount = voidedSavings.reduce((sum, s) => sum + (s.totalSavings ?? 0), 0);
+
+  const confidenceScores = validSavings
+    .map((s) => s.confidenceScore)
+    .filter((c): c is number => c !== null && c !== undefined);
+  const avgConfidence = confidenceScores.length > 0
+    ? confidenceScores.reduce((sum, c) => sum + c, 0) / confidenceScores.length
+    : 0.5;
+  const clampedConfidence = Math.max(0, Math.min(1, avgConfidence));
+  const uncertaintyMargin = 1 - clampedConfidence;
+  const confidenceRange = {
+    low: totalSavings * (1 - uncertaintyMargin),
+    high: totalSavings * (1 + uncertaintyMargin),
+    avgConfidence: clampedConfidence,
+  };
+
+  const equipmentIds = [...new Set(validSavings.slice(0, 5).map((s) => s.equipmentId))];
   const equipmentData = equipmentIds.length > 0
     ? await db.select().from(equipment).where(sql`${equipment.id} IN (${sql.join(equipmentIds.map((id) => sql`${id}`), sql`, `)})`)
     : [];
 
   const equipmentMap = new Map(equipmentData.map((e) => [e.id, e.name]));
 
-  const topSavings = savings.slice(0, 5).map((s) => ({
+  const topSavings = validSavings.slice(0, 5).map((s) => ({
     workOrderId: s.workOrderId ?? "",
     equipmentName: equipmentMap.get(s.equipmentId) ?? s.equipmentId,
     savings: s.totalSavings ?? 0,
     downtimePrevented: s.estimatedDowntimePrevented ?? 0,
+    validationStatus: s.validationStatus,
   }));
 
   return {
@@ -64,6 +88,11 @@ export async function getSavingsSummary(
     savingsCount,
     avgSavingsPerIncident,
     topSavings,
+    disputedCount,
+    voidedCount,
+    disputedAmount,
+    voidedAmount,
+    confidenceRange,
   };
 }
 
@@ -82,10 +111,12 @@ export async function getMonthlySavingsTrend(
   const cutoffDate = new Date();
   cutoffDate.setMonth(cutoffDate.getMonth() - months);
 
-  const savings = await db
+  const allRecords = await db
     .select()
     .from(costSavings)
     .where(and(eq(costSavings.orgId, orgId), gte(costSavings.calculatedAt, cutoffDate)));
+
+  const savings = allRecords.filter((s) => s.validationStatus === "valid");
 
   const monthlyData: Record<string, any> = {};
 

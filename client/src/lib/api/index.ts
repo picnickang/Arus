@@ -52,6 +52,7 @@ export {
   fetchMaintenanceRecords,
   fetchFailurePatterns,
   fetchCostSavingsSummary,
+  updateSavingsValidation,
   fetchCostSummary,
   fetchRoiAnalysis,
   type CostTrendData,

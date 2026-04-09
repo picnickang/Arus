@@ -29,6 +29,13 @@
       "when": 1775865600000,
       "tag": "0009_agent_briefings",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1775952000000,
+      "tag": "0010_cost_savings_validation_status",
+      "breakpoints": true
     }
   ]
 }

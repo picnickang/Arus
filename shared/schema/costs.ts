@@ -187,6 +187,10 @@ export const costSavings = pgTable(
     confidenceScore: real("confidence_score"),
     emergencyLaborMultiplier: real("emergency_labor_multiplier").default(3),
     emergencyPartsMultiplier: real("emergency_parts_multiplier").default(1.5),
+    validationStatus: varchar("validation_status", { length: 20 }).default("valid").notNull(),
+    validationChangedBy: text("validation_changed_by"),
+    validationChangedAt: timestamp("validation_changed_at", { mode: "date" }),
+    validationReason: text("validation_reason"),
     notes: text("notes"),
     calculatedAt: timestamp("calculated_at", { mode: "date" }).defaultNow().notNull(),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
@@ -198,6 +202,8 @@ export const costSavings = pgTable(
     workOrderIdx: index("idx_cost_savings_work_order").on(table.workOrderId),
   })
 );
+
+export const validationStatusEnum = z.enum(["valid", "disputed", "voided"]);
 
 export const insertCostSavingsSchema = createInsertSchema(costSavings)
   .omit({
@@ -212,7 +218,13 @@ export const insertCostSavingsSchema = createInsertSchema(costSavings)
     actualCost: z.number().min(0),
     avoidedCost: z.number().min(0),
     totalSavings: z.number(),
+    validationStatus: validationStatusEnum.default("valid"),
   });
+
+export const updateValidationStatusSchema = z.object({
+  validationStatus: validationStatusEnum,
+  reason: z.string().min(1, "Reason is required").max(500),
+});
 
 export type CostSavings = typeof costSavings.$inferSelect;
 export type InsertCostSavings = z.infer<typeof insertCostSavingsSchema>;

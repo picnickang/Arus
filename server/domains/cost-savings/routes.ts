@@ -6,6 +6,7 @@ import {
   costSavingsCalculateOptionsSchema,
   costSavingsListQuerySchema,
   costSavings,
+  updateValidationStatusSchema,
 } from "@shared/schema-runtime";
 import { requireOrgId, AuthenticatedRequest } from "../../middleware/auth";
 import { withErrorHandling } from "../../lib/route-utils";
@@ -142,5 +143,38 @@ export function registerCostSavingsRoutes(
     })
   );
 
-  logger.info("CostSavingsRoutes", "Registered: summary, trend, calculate, process, list, equipment-financials");
+  app.patch("/api/cost-savings/:id/validation", requireOrgId, writeOperationRateLimit,
+    withErrorHandling("update savings validation status", async (req, res) => {
+      const orgId = (req as AuthenticatedRequest).orgId;
+      const userId = (req as AuthenticatedRequest).user?.id ?? "unknown";
+      const { id } = req.params;
+      const body = updateValidationStatusSchema.parse(req.body);
+
+      const { db } = await import("../../db");
+      const { eq, and } = await import("drizzle-orm");
+
+      const [existing] = await db
+        .select()
+        .from(costSavings)
+        .where(and(eq(costSavings.id, id), eq(costSavings.orgId, orgId)))
+        .limit(1);
+
+      if (!existing) {
+        return res.status(404).json({ message: "Savings record not found" });
+      }
+
+      const { updateSavingsValidationStatus } = await import("../../cost-savings-engine");
+      await updateSavingsValidationStatus(id, orgId, body.validationStatus, body.reason, userId);
+
+      const [updated] = await db
+        .select()
+        .from(costSavings)
+        .where(and(eq(costSavings.id, id), eq(costSavings.orgId, orgId)))
+        .limit(1);
+
+      res.json(updated);
+    })
+  );
+
+  logger.info("CostSavingsRoutes", "Registered: summary, trend, calculate, process, list, equipment-financials, validation");
 }
