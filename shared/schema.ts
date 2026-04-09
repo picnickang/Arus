@@ -506,6 +506,12 @@ export const updateWorkOrderSchema = z.object({
   estimatedHours: z.number().nullable().optional(),
   estimatedDowntimeHours: z.number().nullable().optional(),
   affectsVesselDowntime: z.boolean().optional(),
+  costJustification: z.string().nullable().optional(),
+  actualHours: z.number().nullable().optional(),
+  totalLaborCost: z.number().nullable().optional(),
+  totalPartsCost: z.number().nullable().optional(),
+  actualEndDate: z.union([z.string(), z.date()]).nullable().optional(),
+  actualDowntimeHours: z.number().nullable().optional(),
 });
 
 export const updatePartSchema = z.object({

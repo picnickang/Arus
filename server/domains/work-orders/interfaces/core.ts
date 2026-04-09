@@ -138,10 +138,17 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
 
   app.put("/api/work-orders/:id", requireOrgIdAndValidateBody, writeOperationRateLimit,
     withErrorHandling("update work order", async (req: Request, res: Response) => {
-      const orderData = updateWorkOrderSchema.parse(req.body);
+      const parsed = updateWorkOrderSchema.parse(req.body);
+      const orderData: Record<string, any> = { ...parsed };
+      const dateFields = ["plannedStartDate", "plannedEndDate", "actualStartDate", "actualEndDate"] as const;
+      for (const f of dateFields) {
+        if (orderData[f] != null) orderData[f] = new Date(orderData[f]);
+      }
+      const orgId = (req as AuthenticatedRequest).orgId;
       const workOrder = await workOrderService.updateWorkOrder(
         req.params.id,
         orderData,
+        orgId,
         (req as AuthenticatedRequest).user?.id
       );
 
