@@ -24,6 +24,11 @@ export class DbCrewExtended {
   async updateCrewAssignment(id: string, updates: Partial<InsertCrewAssignment>, orgId?: string): Promise<CrewAssignment> { this.validateOrgId(orgId, "updateCrewAssignment"); const conditions = orgId ? and(eq(crewAssignmentTable.id, id), eq(crewAssignmentTable.orgId, orgId)) : eq(crewAssignmentTable.id, id); const [updated] = await db.update(crewAssignmentTable).set({ ...updates, updatedAt: new Date() }).where(conditions).returning(); if (!updated) {throw new Error(`Crew assignment ${id} not found`);} return updated; }
   async deleteCrewAssignment(id: string, orgId?: string): Promise<void> { this.validateOrgId(orgId, "deleteCrewAssignment"); const conditions = orgId ? and(eq(crewAssignmentTable.id, id), eq(crewAssignmentTable.orgId, orgId)) : eq(crewAssignmentTable.id, id); await db.delete(crewAssignmentTable).where(conditions); }
 
+  async createBulkCrewAssignments(assignments: InsertCrewAssignment[]): Promise<CrewAssignment[]> {
+    if (assignments.length === 0) return [];
+    return db.insert(crewAssignmentTable).values(assignments.map(a => ({ id: randomUUID(), ...a, createdAt: new Date(), updatedAt: new Date() }))).returning();
+  }
+
   async getCrewAssignmentsByDateRange(from: Date, to: Date, orgId?: string): Promise<CrewAssignment[]> {
     const fromStr = from.toISOString().slice(0, 10);
     const toStr = to.toISOString().slice(0, 10);

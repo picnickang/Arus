@@ -16,6 +16,7 @@ export class DatabaseCrewStorage extends DbCrewMembers {
   async createCrewAssignment(assignment: any) { return this.extended.createCrewAssignment(assignment); }
   async updateCrewAssignment(id: string, updates: any, orgId?: string) { return this.extended.updateCrewAssignment(id, updates, orgId); }
   async deleteCrewAssignment(id: string, orgId?: string) { return this.extended.deleteCrewAssignment(id, orgId); }
+  async createBulkCrewAssignments(assignments: any[]) { return this.extended.createBulkCrewAssignments(assignments); }
   async getCrewAssignmentsByDateRange(from: Date, to: Date, orgId?: string) { return this.extended.getCrewAssignmentsByDateRange(from, to, orgId); }
   async deleteCrewAssignmentsByRunId(orgId: string, runId: string) { return this.extended.deleteCrewAssignmentsByRunId(orgId, runId); }
   async getCrewCertifications(crewId?: string, orgId?: string) { return this.extended.getCrewCertifications(crewId, orgId); }

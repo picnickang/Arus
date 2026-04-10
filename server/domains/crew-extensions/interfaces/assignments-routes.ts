@@ -45,16 +45,14 @@ export function registerAssignmentsRoutes(app: Express, config: CrewExtensionsRo
       const orgId = req.orgId!;
       const { from, to, vesselId } = req.query;
       
-      // Get assignments from storage with org isolation
       const allAssignments = await dbCrewStorage.getCrewAssignments(
-        undefined, // date - we'll filter by range instead
-        undefined, // crew_id
-        vesselId as string | undefined
+        orgId,
+        { vesselId: vesselId as string | undefined }
       );
       
       const [crewMembers, vessels] = await Promise.all([
-        dbCrewStorage.getCrew(),
-        vesselService.getVessels(),
+        dbCrewStorage.getCrew(orgId),
+        vesselService.getVessels(orgId),
       ]);
       
       // Create lookup maps
@@ -181,11 +179,10 @@ export function registerAssignmentsRoutes(app: Express, config: CrewExtensionsRo
 
   app.get("/api/crew/assignments",
     withErrorHandling("fetch crew assignments", async (req: Request, res: Response) => {
-      const { date, crew_id, vessel_id } = req.query;
+      const { crew_id, vessel_id } = req.query;
       const assignments = await dbCrewStorage.getCrewAssignments(
-        date as string | undefined,
-        crew_id as string | undefined,
-        vessel_id as string | undefined
+        undefined,
+        { crewId: crew_id as string | undefined, vesselId: vessel_id as string | undefined }
       );
       res.json(assignments);
     })

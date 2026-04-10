@@ -17,11 +17,12 @@ export function registerDutyRoutes(app: Express, config: CrewExtensionsRoutesCon
   app.get("/api/crew/:id/toggle-duty",
     withErrorHandling("toggle duty status", async (req: Request, res: Response) => {
       const { id } = crewIdSchema.parse(req.params);
-      const crew = await dbCrewStorage.getCrewMember(id);
+      const orgId = (req as any).orgId;
+      const crew = await dbCrewStorage.getCrewMember(id, orgId);
       if (!crew) {
         return sendNotFound(res, "Crew member");
       }
-      const updatedCrew = await dbCrewStorage.updateCrewMember(id, { onDuty: !crew.onDuty });
+      const updatedCrew = await dbCrewStorage.updateCrewMember(id, { onDuty: !crew.onDuty }, orgId);
       res.json(updatedCrew);
     })
   );
@@ -29,12 +30,13 @@ export function registerDutyRoutes(app: Express, config: CrewExtensionsRoutesCon
   app.post("/api/crew/:id/toggle-duty", crewOperationRateLimit,
     withErrorHandling("toggle duty status", async (req: Request, res: Response) => {
       const { id } = crewIdSchema.parse(req.params);
-      const crew = await dbCrewStorage.getCrewMember(id);
+      const orgId = (req as any).orgId;
+      const crew = await dbCrewStorage.getCrewMember(id, orgId);
       if (!crew) {
         return sendNotFound(res, "Crew member");
       }
       const newDutyStatus = !crew.onDuty;
-      const updatedCrew = await dbCrewStorage.updateCrewMember(id, { onDuty: newDutyStatus });
+      const updatedCrew = await dbCrewStorage.updateCrewMember(id, { onDuty: newDutyStatus }, orgId);
       res.json({
         success: true,
         crew: updatedCrew,

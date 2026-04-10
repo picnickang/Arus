@@ -10,7 +10,6 @@ import { analyzeFleetHealth } from "../../../openai";
 import { withErrorHandling } from "../../../lib/route-utils";
 import { logger } from "../../../utils/logger.js";
 import { dbEquipmentStorage, dbTelemetryStorage, dbAlertStorage, workOrderService } from "../../../repositories";
-import { storage } from "../../../storage";
 
 export function registerHealthReportRoutes(
   app: Express,
@@ -37,7 +36,7 @@ export function registerHealthReportRoutes(
 
       let fleetAnalysis: any;
       try {
-        const analysisPromise = analyzeFleetHealth(filteredEquipmentHealth, telemetryData, storage);
+        const analysisPromise = analyzeFleetHealth(filteredEquipmentHealth, telemetryData);
         fleetAnalysis = await Promise.race([
           analysisPromise,
           new Promise((_, reject) =>

@@ -10,7 +10,6 @@ import { RateLimitRequestHandler } from "express-rate-limit";
 import { withErrorHandling } from "../../../lib/route-utils";
 import { logger } from "../../../utils/logger.js";
 import { dbEquipmentStorage, dbTelemetryStorage, dbDevicesStorage, dbAlertStorage, vesselService } from "../../../repositories";
-import { storage } from "../../../storage";
 
 export function registerLlmAnalysisRoutes(
   app: Express,
@@ -63,7 +62,7 @@ export function registerLlmAnalysisRoutes(
         });
       }
 
-      const fleetAnalysis = await analyzeFleetHealth(equipmentHealth, telemetryTrends, storage);
+      const fleetAnalysis = await analyzeFleetHealth(equipmentHealth, telemetryTrends);
       res.json(fleetAnalysis);
     })
   );

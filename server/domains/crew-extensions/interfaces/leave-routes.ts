@@ -13,11 +13,11 @@ export function registerLeaveRoutes(app: Express, config: CrewExtensionsRoutesCo
 
   app.get("/api/crew/leave",
     withErrorHandling("fetch crew leave", async (req: Request, res: Response) => {
-      const { crew_id, start_date, end_date } = req.query;
+      const { crew_id } = req.query;
+      const orgId = (req as any).orgId;
       const leaves = await dbCrewStorage.getCrewLeave(
         crew_id as string | undefined,
-        start_date ? new Date(start_date as string) : undefined,
-        end_date ? new Date(end_date as string) : undefined
+        orgId
       );
       res.json(leaves);
     })
@@ -33,15 +33,17 @@ export function registerLeaveRoutes(app: Express, config: CrewExtensionsRoutesCo
 
   app.put("/api/crew/leave/:id",
     withErrorHandling("update crew leave", async (req: Request, res: Response) => {
+      const orgId = (req as any).orgId;
       const leaveData = insertCrewLeaveSchema.partial().parse(req.body);
-      const leave = await dbCrewStorage.updateCrewLeave(req.params.id, leaveData);
+      const leave = await dbCrewStorage.updateCrewLeave(req.params.id, leaveData, orgId);
       res.json(leave);
     })
   );
 
   app.delete("/api/crew/leave/:id",
     withErrorHandling("delete crew leave", async (req: Request, res: Response) => {
-      await dbCrewStorage.deleteCrewLeave(req.params.id);
+      const orgId = (req as any).orgId;
+      await dbCrewStorage.deleteCrewLeave(req.params.id, orgId);
       res.json({ success: true });
     })
   );
