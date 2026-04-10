@@ -30,7 +30,7 @@ export class BriefingDataAdapter implements BriefingDataPort {
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    const scheduled = await dbMaintenanceStorage.getMaintenanceSchedules(undefined, orgId as any);
+    const scheduled = await dbMaintenanceStorage.getMaintenanceSchedules(undefined, orgId);
     const orgFiltered = scheduled.filter(s =>
       (s as { orgId?: string }).orgId === orgId &&
       new Date(s.scheduledDate) <= todayEnd

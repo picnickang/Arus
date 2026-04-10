@@ -89,6 +89,16 @@ export const hubSyncService = {
   async setSheetVersion(data: Record<string, unknown>) {
     const sheetKey = data.sheetId as string || data.sheetKey as string;
     const modifiedBy = data.lastModifiedBy as string || data.modifiedBy as string || '';
+    const version = data.version as number | undefined;
+    if (version !== undefined) {
+      const result = await db.execute(
+        sql`INSERT INTO sheet_version (sheet_key, version, last_modified, last_modified_by)
+            VALUES (${sheetKey}, ${version}, NOW(), ${modifiedBy})
+            ON CONFLICT (sheet_key) DO UPDATE SET version = ${version}, last_modified = NOW(), last_modified_by = ${modifiedBy}
+            RETURNING *`
+      );
+      return result.rows?.[0];
+    }
     return this.incrementSheetVersion(sheetKey, modifiedBy);
   },
 
