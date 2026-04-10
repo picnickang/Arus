@@ -127,13 +127,16 @@ export class DatabaseSchedulerStorage {
     return u;
   }
 
-  async deleteScheduleAssignmentsByDateRange(orgId: string, from: Date, to: Date): Promise<void> {
+  async deleteScheduleAssignmentsByDateRange(orgId: string, from: Date, to: Date): Promise<number> {
     const runs = await this.getSchedulerRuns(orgId);
     const runIds = runs.map(r => r.id);
-    if (runIds.length === 0) return;
+    if (runIds.length === 0) return 0;
+    let deletedCount = 0;
     for (const runId of runIds) {
-      await db.delete(scheduleAssignments).where(and(eq(scheduleAssignments.runId, runId), gte(scheduleAssignments.date, from), lte(scheduleAssignments.date, to)));
+      const deleted = await db.delete(scheduleAssignments).where(and(eq(scheduleAssignments.runId, runId), gte(scheduleAssignments.date, from), lte(scheduleAssignments.date, to))).returning();
+      deletedCount += deleted.length;
     }
+    return deletedCount;
   }
 
   async getSchedulerRunsByStatus(orgId: string, status: string, limit?: number): Promise<SchedulerRun[]> {
@@ -170,8 +173,13 @@ export class DatabaseSchedulerStorage {
     return allAssignments;
   }
 
-  async findRecentSchedulerRunByHash(orgId: string, hash: string): Promise<SchedulerRun | null> {
-    const [result] = await db.select().from(schedulerRuns).where(and(eq(schedulerRuns.orgId, orgId), eq(schedulerRuns.inputHash, hash))).orderBy(desc(schedulerRuns.createdAt)).limit(1);
+  async findRecentSchedulerRunByHash(orgId: string, hash: string, hoursBack?: number): Promise<SchedulerRun | null> {
+    const conditions = [eq(schedulerRuns.orgId, orgId), eq(schedulerRuns.inputHash, hash)];
+    if (hoursBack) {
+      const cutoff = new Date(Date.now() - hoursBack * 60 * 60 * 1000);
+      conditions.push(gte(schedulerRuns.createdAt, cutoff));
+    }
+    const [result] = await db.select().from(schedulerRuns).where(and(...conditions)).orderBy(desc(schedulerRuns.createdAt)).limit(1);
     return result ?? null;
   }
 

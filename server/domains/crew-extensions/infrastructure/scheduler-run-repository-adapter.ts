@@ -63,7 +63,7 @@ export class SchedulerRunRepositoryAdapter implements ISchedulerRunRepository {
   }
 
   async update(id: string, updates: Partial<SchedulerRunEntity>): Promise<SchedulerRunEntity> {
-    const run = await dbSchedulerStorage.updateSchedulerRun(id, updates as any);
+    const run = await dbSchedulerStorage.updateSchedulerRun(id, updates as Partial<import("@shared/schema-runtime").InsertSchedulerRun>);
     return mapToEntity(run);
   }
 
