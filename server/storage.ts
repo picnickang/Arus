@@ -46,9 +46,9 @@ function createStorageFacade() {
     createTelemetryReading: (reading: any) => dbTelemetryStorage.createTelemetryReading(reading),
     getTelemetryHistory: (arg1: string, arg2: string, arg3?: any, arg4?: any, arg5?: any) => dbTelemetryStorage.getTelemetryHistory(arg1, arg2, arg3, arg4, arg5),
     getTelemetryByEquipmentAndDateRange: (equipmentId: string, startDate: Date, endDate: Date, orgId?: string) => dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(equipmentId, startDate, endDate, orgId),
-    getLatestTelemetryReadings: (vesselId?: string, equipmentId?: string, sensorType?: string, limit?: number, orgId?: string) => dbTelemetryStorage.getLatestTelemetryReadings(vesselId, equipmentId, sensorType, limit || 500, orgId),
+    getLatestTelemetryReadings: (vesselId?: string, equipmentId?: string, sensorType?: string, limit?: number, _orgId?: string) => dbTelemetryStorage.getLatestTelemetryReadings(equipmentId, limit || 500, vesselId, sensorType),
     upsertTelemetry: (reading: any) => dbTelemetryStorage.createTelemetryReading(reading),
-    getTelemetry: (eqId: string, orgId?: string) => dbTelemetryStorage.getLatestTelemetryReadings(undefined, eqId, undefined, 500, orgId),
+    getTelemetry: (eqId: string, _orgId?: string) => dbTelemetryStorage.getLatestTelemetryReadings(eqId, 500),
 
     getSensorConfigurations: (orgId?: string, equipmentId?: string, sensorType?: string) => dbSensorsStorage.getSensorConfigurations(orgId, equipmentId, sensorType),
     getSensorConfiguration: (equipmentId: string, sensorType: string, orgId?: string) => dbSensorsStorage.getSensorConfiguration(equipmentId, sensorType, orgId),

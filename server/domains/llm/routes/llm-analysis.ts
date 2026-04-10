@@ -181,7 +181,7 @@ export function registerLlmAnalysisRoutes(
         dbAlertStorage
           .getAlertNotifications()
           .then((all) => all.filter((a) => a.vesselId === vesselId).slice(0, 20)),
-        dbTelemetryStorage.getLatestTelemetryReadings(vesselId).catch(() => []),
+        dbTelemetryStorage.getLatestTelemetryReadings(undefined, 500, vesselId).catch(() => []),
         dbDevicesStorage.getPdmScores().then((scores) => scores.filter((s) => s.vessel === vesselId)),
       ]);
 

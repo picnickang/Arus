@@ -84,8 +84,8 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
       const end = endDate ? new Date(endDate as string) : new Date();
 
       const telemetry = equipmentId
-        ? await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(equipmentId as string, start, end, orgId as string)
-        : await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange("", start, end, orgId as string);
+        ? await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(equipmentId as string, start, end)
+        : [];
 
       const exportData = {
         format: "Telemetry Export v1.0",

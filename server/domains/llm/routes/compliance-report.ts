@@ -34,7 +34,7 @@ export function registerComplianceReportRoutes(
 
       const orgId = req.orgId!;
       const [maintenanceSchedules, alerts] = await Promise.all([
-        dbMaintenanceStorage.getMaintenanceSchedules(equipmentFilter),
+        dbMaintenanceStorage.getMaintenanceSchedules(equipmentFilter, orgId),
         dbAlertStorage.getAlertNotifications(false, orgId),
       ]);
 
