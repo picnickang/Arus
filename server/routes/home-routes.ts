@@ -1,14 +1,16 @@
 import type { Express, Request, Response } from "express";
 import { withErrorHandling } from "../lib/route-utils";
 import { logger } from "../utils/logger";
-import { storage } from "../storage";
+import { dbAlertStorage } from "../db/alerts/index.js";
+import { dbWorkOrderStorage } from "../db/workorders/index.js";
+import { dbEquipmentStorage } from "../db/equipment/index.js";
 
-function safeCall(fn: ((...args: any[]) => any) | undefined, ...args: any[]): Promise<any> {
+function safeCall<T>(fn: (() => Promise<T>) | undefined): Promise<T | null> {
   if (typeof fn !== "function") return Promise.resolve(null);
   try {
-    const result = fn(...args);
-    if (result && typeof result.catch === "function") {
-      return result.catch(() => null);
+    const result = fn();
+    if (result && typeof (result as any).catch === "function") {
+      return (result as any).catch(() => null);
     }
     return Promise.resolve(result);
   } catch {
@@ -16,60 +18,36 @@ function safeCall(fn: ((...args: any[]) => any) | undefined, ...args: any[]): Pr
   }
 }
 
-export function registerHomeRoutes(app: Express, deps: { generalApiRateLimit: any }) {
-  const { generalApiRateLimit } = deps;
+export function registerHomeRoutes(app: Express, deps: { generalApiRateLimit: any; requireOrgId: any }) {
+  const { generalApiRateLimit, requireOrgId } = deps;
 
-  app.get("/api/home/attention-summary", generalApiRateLimit,
+  app.get("/api/home/attention-summary", generalApiRateLimit, requireOrgId,
     withErrorHandling("get home attention summary", async (req: Request, res: Response) => {
       const orgId = (req as any).orgId || req.headers["x-org-id"] as string;
 
-      const sinceParam = (req.query.since as string) || (req.headers["x-last-visit"] as string);
-      const lastVisitTime = sinceParam ? new Date(sinceParam) : null;
-
-      const [workOrderSummary, alerts, pdmRiskQueue] = await Promise.allSettled([
-        safeCall((storage as any).getWorkOrderSummary?.bind(storage), orgId),
-        safeCall((storage as any).getAlertNotifications?.bind(storage), false, orgId),
-        safeCall((storage as any).getPdmRiskQueue?.bind(storage), orgId),
+      const [alerts, workOrders, equipment] = await Promise.allSettled([
+        safeCall(() => dbAlertStorage.getAlertNotifications(false, orgId)),
+        safeCall(() => dbWorkOrderStorage.getWorkOrders(undefined, orgId)),
+        safeCall(() => dbEquipmentStorage.getEquipment(orgId)),
       ]);
 
-      const woData = workOrderSummary.status === "fulfilled" ? workOrderSummary.value : null;
       const alertData = alerts.status === "fulfilled" ? alerts.value : [];
-      const pdmData = pdmRiskQueue.status === "fulfilled" ? pdmRiskQueue.value : [];
+      const woData = workOrders.status === "fulfilled" ? workOrders.value : [];
+      const equipData = equipment.status === "fulfilled" ? equipment.value : [];
 
-      const overdueWorkOrders = woData?.overdue ?? woData?.overdueCount ?? 0;
-      const unacknowledgedAlerts = Array.isArray(alertData) ? alertData.length : 0;
-      const highRiskEquipment = Array.isArray(pdmData)
-        ? pdmData.filter((e: any) => e.riskLevel === "high" || e.riskLevel === "critical").length
+      const now = new Date();
+      const overdueWorkOrders = Array.isArray(woData)
+        ? woData.filter((wo: any) => wo.status === "open" && wo.dueDate && new Date(wo.dueDate) < now).length
         : 0;
-
-      let newSinceLastVisit = undefined;
-
-      if (lastVisitTime && !isNaN(lastVisitTime.getTime())) {
-        try {
-          const [recentAlerts, recentWOs, completedWOs] = await Promise.allSettled([
-            safeCall((storage as any).getAlertNotificationsSince?.bind(storage), orgId, lastVisitTime),
-            safeCall((storage as any).getWorkOrdersSince?.bind(storage), orgId, lastVisitTime, "created"),
-            safeCall((storage as any).getWorkOrdersSince?.bind(storage), orgId, lastVisitTime, "completed"),
-          ]);
-
-          const recentAlertsVal = recentAlerts.status === "fulfilled" ? recentAlerts.value : null;
-          const recentWOsVal = recentWOs.status === "fulfilled" ? recentWOs.value : null;
-          const completedWOsVal = completedWOs.status === "fulfilled" ? completedWOs.value : null;
-
-          newSinceLastVisit = {
-            newAlerts: Array.isArray(recentAlertsVal) ? recentAlertsVal.length : 0,
-            newWorkOrders: Array.isArray(recentWOsVal) ? recentWOsVal.length : 0,
-            completedWorkOrders: Array.isArray(completedWOsVal) ? completedWOsVal.length : 0,
-          };
-        } catch {
-        }
-      }
+      const unacknowledgedAlerts = Array.isArray(alertData) ? alertData.length : 0;
+      const highRiskEquipment = Array.isArray(equipData)
+        ? equipData.filter((eq: any) => eq.riskLevel === "high" || eq.riskLevel === "critical").length
+        : 0;
 
       res.json({
         overdueWorkOrders,
         unacknowledgedAlerts,
         highRiskEquipment,
-        newSinceLastVisit,
       });
     })
   );

@@ -81,18 +81,18 @@ function createStorageFacade() {
 
     getAlertConfigurations: (equipmentId?: string) => dbAlertStorage.getAlertConfigurations(equipmentId),
     createAlertConfiguration: (config: any) => dbAlertStorage.createAlertConfiguration(config),
-    updateAlertConfiguration: (id: string, config: any) => dbAlertStorage.updateAlertConfiguration(id, config),
-    deleteAlertConfiguration: (id: string) => dbAlertStorage.deleteAlertConfiguration(id),
+    updateAlertConfiguration: (id: string, config: any, orgId?: string) => dbAlertStorage.updateAlertConfiguration(id, config, orgId),
+    deleteAlertConfiguration: (id: string, orgId?: string) => dbAlertStorage.deleteAlertConfiguration(id, orgId),
     getAlertNotifications: (acknowledged?: boolean, orgId?: string) => dbAlertStorage.getAlertNotifications(acknowledged, orgId),
     getAlertNotificationsPaginated: (acknowledged: any, orgId: any, limit: number, offset: number) => dbAlertStorage.getAlertNotificationsPaginated(acknowledged, orgId, limit, offset),
     createAlertNotification: (notification: any) => dbAlertStorage.createAlertNotification(notification),
-    acknowledgeAlert: (id: string, acknowledgedBy: string) => dbAlertStorage.acknowledgeAlert(id, acknowledgedBy),
+    acknowledgeAlert: (id: string, acknowledgedBy: string, orgId?: string) => dbAlertStorage.acknowledgeAlert(id, acknowledgedBy, orgId),
     hasRecentAlert: (equipmentId: string, sensorType: string, alertType: string, minutesBack?: number) => dbAlertStorage.hasRecentAlert(equipmentId, sensorType, alertType, minutesBack),
     addAlertComment: (commentData: any) => dbAlertStorage.addAlertComment(commentData),
     getAlertComments: (alertId: string) => dbAlertStorage.getAlertComments(alertId),
     createAlertSuppression: (suppressionData: any) => dbAlertStorage.createAlertSuppression(suppressionData),
     getActiveSuppressions: (orgId?: string) => dbAlertStorage.getActiveSuppressions(orgId),
-    removeAlertSuppression: (id: string) => dbAlertStorage.removeAlertSuppression(id),
+    removeAlertSuppression: (id: string, orgId?: string) => dbAlertStorage.removeAlertSuppression(id, orgId),
     isAlertSuppressed: (equipmentId: string, sensorType: string, alertType: string) => dbAlertStorage.isAlertSuppressed(equipmentId, sensorType, alertType),
     clearAllAlerts: () => dbAlertStorage.clearAllAlerts(),
 
@@ -191,12 +191,12 @@ function createStorageFacade() {
     deleteMaintenanceTemplate: (id: string, orgId?: string) => dbMaintenanceTemplatesStorage.deleteMaintenanceTemplate(id, orgId),
     cloneMaintenanceTemplate: (id: string, newName: string, orgId?: string) => dbMaintenanceTemplatesStorage.cloneMaintenanceTemplate(id, newName, orgId),
 
-    getMaintenanceSchedules: (equipmentId?: string, status?: string) => dbMaintenanceStorage.getMaintenanceSchedules(equipmentId, status),
+    getMaintenanceSchedules: (equipmentId?: string, orgId?: string, filters?: any) => dbMaintenanceStorage.getMaintenanceSchedules(equipmentId, orgId, filters),
     getMaintenanceSchedule: (id: string) => dbMaintenanceStorage.getMaintenanceSchedule?.(id),
     createMaintenanceSchedule: (schedule: any) => dbMaintenanceStorage.createMaintenanceSchedule(schedule),
     updateMaintenanceSchedule: (id: string, updates: any) => dbMaintenanceStorage.updateMaintenanceSchedule(id, updates),
     deleteMaintenanceSchedule: (id: string) => dbMaintenanceStorage.deleteMaintenanceSchedule(id),
-    getMaintenanceRecords: (equipmentId?: string, fromDate?: Date, toDate?: Date) => dbMaintenanceStorage.getMaintenanceRecords(equipmentId, fromDate, toDate),
+    getMaintenanceRecords: (equipmentId?: string, orgId?: string, filters?: any) => dbMaintenanceStorage.getMaintenanceRecords(equipmentId, orgId, filters),
     createMaintenanceRecord: (record: any) => dbMaintenanceStorage.createMaintenanceRecord(record),
     processCompletedMaintenance: async (scheduleId: string, record: any) => { const schedule = await dbMaintenanceStorage.updateMaintenanceSchedule(scheduleId, { status: "completed" }); const newRecord = await dbMaintenanceStorage.createMaintenanceRecord(record); return { schedule, record: newRecord }; },
     getMaintenanceCosts: (equipmentId?: string) => dbMaintenanceStorage.getMaintenanceCosts(equipmentId),
@@ -533,10 +533,6 @@ function createStorageFacade() {
     createErrorLog: (log: any) => dbSystemAdminStorage.createErrorLog(log),
     deleteErrorLog: (id: string) => dbSystemAdminStorage.deleteErrorLog(id),
     clearErrorLogs: (olderThan?: Date) => dbSystemAdminStorage.clearErrorLogs(olderThan),
-
-    getTransportSettings: async () => undefined,
-    createTransportSettings: async (settings: any) => ({ id: `ts-${Date.now()}`, ...settings, createdAt: new Date() }),
-    updateTransportSettings: async (id: string, settings: any) => ({ id, ...settings, updatedAt: new Date() }),
 
     getKbDocs: (orgId?: string) => analyticsInsightsAdapter.getKbDocs?.(orgId) ?? Promise.resolve([]),
 

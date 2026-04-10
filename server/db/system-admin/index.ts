@@ -63,9 +63,10 @@ export class DatabaseSystemAdminStorage extends DbAuditStorage {
   }
 
   async createErrorLog(log: any): Promise<any> {
+    if (!log.orgId) { throw new Error("orgId is required for createErrorLog"); }
     const { errorLogs } = await import("@shared/schema-runtime");
     const { db: database } = await import("../../db-config");
-    const [newLog] = await database.insert(errorLogs).values({ ...log, orgId: log.orgId || "default-org-id", timestamp: new Date() }).returning();
+    const [newLog] = await database.insert(errorLogs).values({ ...log, timestamp: new Date() }).returning();
     return newLog;
   }
 
@@ -76,12 +77,15 @@ export class DatabaseSystemAdminStorage extends DbAuditStorage {
     await database.delete(errorLogs).where(eq(errorLogs.id, id));
   }
 
-  async clearErrorLogs(olderThan?: Date): Promise<void> {
+  async clearErrorLogs(olderThan?: Date, orgId?: string): Promise<void> {
     const { errorLogs } = await import("@shared/schema-runtime");
-    const { sql: sqlFn } = await import("drizzle-orm");
+    const { sql: sqlFn, eq, and } = await import("drizzle-orm");
     const { db: database } = await import("../../db-config");
-    if (olderThan) {
-      await database.delete(errorLogs).where(sqlFn`${errorLogs.timestamp} < ${olderThan}`);
+    const conditions: any[] = [];
+    if (orgId) { conditions.push(eq(errorLogs.orgId, orgId)); }
+    if (olderThan) { conditions.push(sqlFn`${errorLogs.timestamp} < ${olderThan}`); }
+    if (conditions.length > 0) {
+      await database.delete(errorLogs).where(and(...conditions));
     } else {
       await database.delete(errorLogs);
     }

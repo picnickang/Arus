@@ -17,6 +17,8 @@ export class DbMaintenanceSchedules {
     if (equipmentId) { conditions.push(eq(maintenanceSchedules.equipmentId, equipmentId)); }
     if (filters?.vesselId) { conditions.push(eq(maintenanceSchedules.vesselId, filters.vesselId)); }
     if (filters?.status) { conditions.push(eq(maintenanceSchedules.status, filters.status)); }
+    if (filters?.startDate) { conditions.push(gte(maintenanceSchedules.scheduledDate, filters.startDate)); }
+    if (filters?.endDate) { conditions.push(lte(maintenanceSchedules.scheduledDate, filters.endDate)); }
     if (conditions.length > 0) { return db.select().from(maintenanceSchedules).where(and(...conditions)).orderBy(maintenanceSchedules.scheduledDate); }
     return db.select().from(maintenanceSchedules).orderBy(maintenanceSchedules.scheduledDate);
   }

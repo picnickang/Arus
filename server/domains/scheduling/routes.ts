@@ -24,6 +24,8 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
         {
           vesselId: vesselId as string | undefined,
           status: status as string | undefined,
+          startDate: dateFrom ? new Date(dateFrom as string) : undefined,
+          endDate: dateTo ? new Date(dateTo as string) : undefined,
         },
       );
       res.json(schedules);
@@ -37,7 +39,11 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(
         undefined,
         orgId,
-        { vesselId: vesselId as string | undefined },
+        {
+          vesselId: vesselId as string | undefined,
+          startDate: dateFrom ? new Date(dateFrom as string) : undefined,
+          endDate: dateTo ? new Date(dateTo as string) : undefined,
+        },
       );
 
       const conflicts: any[] = [];
@@ -75,7 +81,11 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(
         undefined,
         orgId,
-        { vesselId: vesselId as string | undefined },
+        {
+          vesselId: vesselId as string | undefined,
+          startDate: startDate,
+          endDate: endDate,
+        },
       );
 
       const calendarData: Record<string, any[]> = {};
@@ -103,7 +113,10 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(
         undefined,
         orgId,
-        { vesselId: vesselId as string | undefined },
+        {
+          vesselId: vesselId as string | undefined,
+          startDate: cutoffDate,
+        },
       );
 
       const stats = {
@@ -145,6 +158,8 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
         {
           vesselId: vesselId as string | undefined,
           status: "pending",
+          startDate: new Date(),
+          endDate: endDate,
         },
       );
 
@@ -249,7 +264,14 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
       const { configId, targetDate } = req.body;
       const orgId = req.headers["x-org-id"] as string;
 
-      const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(undefined, orgId);
+      const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(
+        undefined,
+        orgId,
+        {
+          startDate: new Date(),
+          endDate: targetDate ? new Date(targetDate) : undefined,
+        },
+      );
 
       const optimizedSchedules = schedules.map((s: any, index: number) => ({
         ...s,

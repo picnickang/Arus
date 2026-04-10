@@ -223,7 +223,7 @@ const domainRouters: DomainRouterConfig[] = [
 
   // Home Attention Summary
   { name: "Home", importPath: "../routes/home-routes.js", functionName: "registerHomeRoutes",
-    getDeps: () => ({ generalApiRateLimit }) },
+    getDeps: () => ({ generalApiRateLimit, requireOrgId }) },
 
   // KB Ask (unified search + analyze)
   { name: "KbAsk", importPath: "../routes/kb-ask-route.js", functionName: "registerKbAskRoute",
