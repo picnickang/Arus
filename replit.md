@@ -66,6 +66,7 @@ Developed with Express.js and TypeScript, offering RESTful APIs with Zod validat
 -   **RBAC**: Comprehensive Role-Based Access Control system.
 -   **Performance Optimizations**: Redis circuit breaker, Vite code splitting, API caching, lazy-loaded pages, memoized context providers, and optimized TanStack Query defaults.
 -   **Hexagonal Architecture (DDD Modular Monolith)**: Clear separation of concerns into Domain, Application, Infrastructure, and Interfaces layers, with a Domain Event Registry and Cloud-Safe Outbox Processor.
+-   **Storage Architecture**: Domain-specific repositories in `server/db/` (workorders, equipment, vessels, alerts, inventory, crew, sensors, telemetry, etc.) with a composed facade in `server/storage.ts` that delegates to repos. `server/repositories.ts` barrel file exports all repos, services, and adapters. New code should import from `server/repositories.ts` directly rather than using the `storage` facade. The old `DatabaseStorage` class in `server/storage/db-storage.ts` is legacy dead code.
 
 # External Dependencies
 

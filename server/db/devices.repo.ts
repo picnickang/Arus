@@ -20,6 +20,26 @@ export class DatabaseDevicesStorage {
   async createHeartbeat(data: InsertHeartbeat): Promise<EdgeHeartbeat> { const r = await db.insert(edgeHeartbeatsTable).values(data).returning(); return r[0]; }
   async getPdmScores(equipmentId?: string, orgId?: string): Promise<PdmScoreLog[]> { if (equipmentId) { return db.select().from(pdmScoreLogsTable).where(eq(pdmScoreLogsTable.equipmentId, equipmentId)).orderBy(sql`ts DESC`); } return db.select().from(pdmScoreLogsTable).orderBy(sql`ts DESC`); }
   async createPdmScore(data: InsertPdmScore): Promise<PdmScoreLog> { const r = await db.insert(pdmScoreLogsTable).values(data).returning(); return r[0]; }
+  async getLatestPdmScore(equipmentId: string): Promise<PdmScoreLog | undefined> { const r = await db.select().from(pdmScoreLogsTable).where(eq(pdmScoreLogsTable.equipmentId, equipmentId)).orderBy(sql`ts DESC`).limit(1); return r[0]; }
+  async getHeartbeat(deviceId: string): Promise<EdgeHeartbeat | undefined> { const r = await db.select().from(edgeHeartbeatsTable).where(eq(edgeHeartbeatsTable.deviceId, deviceId)).orderBy(sql`ts DESC`).limit(1); return r[0]; }
+  async upsertHeartbeat(heartbeat: InsertHeartbeat): Promise<EdgeHeartbeat> { const r = await db.insert(edgeHeartbeatsTable).values(heartbeat).onConflictDoUpdate({ target: [edgeHeartbeatsTable.deviceId], set: { ...heartbeat, ts: new Date() } }).returning(); return r[0]; }
+  async getDevicesWithStatus(orgId?: string): Promise<any[]> {
+    const deviceList = await this.getDevices(orgId);
+    const heartbeats = await this.getHeartbeatsByOrg(orgId);
+    return deviceList.map((device) => {
+      const hb = heartbeats.find((x) => x.deviceId === device.id);
+      let status = "Offline";
+      if (hb) {
+        const timeDiff = Date.now() - (hb.ts?.getTime() || 0);
+        if (timeDiff < 5 * 60 * 1000) {
+          if ((hb.cpuPct || 0) > 90 || (hb.memPct || 0) > 90 || (hb.diskFreeGb || 0) < 5) { status = "Critical"; }
+          else if ((hb.cpuPct || 0) > 80 || (hb.memPct || 0) > 80 || (hb.diskFreeGb || 0) < 10) { status = "Warning"; }
+          else { status = "Online"; }
+        }
+      }
+      return { ...device, status, lastHeartbeat: hb };
+    });
+  }
 }
 
 export class MemDevicesStorage {

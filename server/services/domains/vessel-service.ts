@@ -60,6 +60,10 @@ class VesselService {
   async deleteDrydockWindow(id: string, orgId: string): Promise<void> {
     return dbVesselStorage.deleteDrydockWindow(id, orgId);
   }
+  async getVesselFleetOverview(orgId?: string): Promise<{ vessels: number; signalsMapped: number; signalsDiscovered: number; latestPerVessel: Array<{ vesselId: string; lastTs: string }>; dq7d: Record<string, number> }> {
+    const v = await this.getVessels(orgId);
+    return { vessels: v.length, signalsMapped: 0, signalsDiscovered: 0, latestPerVessel: v.map(x => ({ vesselId: x.id, lastTs: new Date().toISOString() })), dq7d: {} };
+  }
 }
 
 export const vesselService = new VesselService();

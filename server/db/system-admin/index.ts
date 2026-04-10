@@ -46,6 +46,46 @@ export class DatabaseSystemAdminStorage extends DbAuditStorage {
   async getFailingHealthChecks(orgId?: string) { return this.s.getFailingHealthChecks(orgId); }
   async getMetricTrends(orgId: string, metricName: string, hours: number) { return this.s.getMetricTrends(orgId, metricName, hours); }
   async getSystemHealth(orgId?: string) { return this.s.getSystemHealth(orgId); }
+
+  async getErrorLogs(filters?: { orgId?: string; level?: string; source?: string; dateFrom?: Date; dateTo?: Date; limit?: number }): Promise<any[]> {
+    const { errorLogs } = await import("@shared/schema-runtime");
+    const { eq, and, sql: sqlFn } = await import("drizzle-orm");
+    const { db: database } = await import("../../db-config");
+    const conditions: any[] = [];
+    if (filters?.orgId) conditions.push(eq(errorLogs.orgId, filters.orgId));
+    if (filters?.level) conditions.push(eq(errorLogs.severity, filters.level));
+    if (filters?.source) conditions.push(eq(errorLogs.category, filters.source));
+    let query = database.select().from(errorLogs);
+    if (conditions.length > 0) query = query.where(and(...conditions));
+    query = query.orderBy(sqlFn`${errorLogs.timestamp} DESC`);
+    if (filters?.limit) query = query.limit(filters.limit);
+    return query;
+  }
+
+  async createErrorLog(log: any): Promise<any> {
+    const { errorLogs } = await import("@shared/schema-runtime");
+    const { db: database } = await import("../../db-config");
+    const [newLog] = await database.insert(errorLogs).values({ ...log, orgId: log.orgId || "default-org-id", timestamp: new Date() }).returning();
+    return newLog;
+  }
+
+  async deleteErrorLog(id: string): Promise<void> {
+    const { errorLogs } = await import("@shared/schema-runtime");
+    const { eq } = await import("drizzle-orm");
+    const { db: database } = await import("../../db-config");
+    await database.delete(errorLogs).where(eq(errorLogs.id, id));
+  }
+
+  async clearErrorLogs(olderThan?: Date): Promise<void> {
+    const { errorLogs } = await import("@shared/schema-runtime");
+    const { sql: sqlFn } = await import("drizzle-orm");
+    const { db: database } = await import("../../db-config");
+    if (olderThan) {
+      await database.delete(errorLogs).where(sqlFn`${errorLogs.timestamp} < ${olderThan}`);
+    } else {
+      await database.delete(errorLogs);
+    }
+  }
 }
 
 export const dbSystemAdminStorage = new DatabaseSystemAdminStorage();
