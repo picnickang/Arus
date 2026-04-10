@@ -54,7 +54,6 @@ function createStorageFacade() {
     getSensorConfiguration: (equipmentId: string, sensorType: string, orgId?: string) => dbSensorsStorage.getSensorConfiguration(equipmentId, sensorType, orgId),
     createSensorConfiguration: (config: any) => dbSensorsStorage.createSensorConfiguration(config),
     updateSensorConfiguration: (equipmentId: string, sensorType: string, config: any, orgId?: string) => dbSensorsStorage.updateSensorConfiguration(equipmentId, sensorType, config, orgId),
-    getSensorMappings: (orgId?: string) => dbSensorsStorage.getSensorConfigurations(orgId),
 
     getAlertConfigurations: (equipmentId?: string) => dbAlertStorage.getAlertConfigurations(equipmentId),
     createAlertConfiguration: (config: any) => dbAlertStorage.createAlertConfiguration(config),
@@ -72,8 +71,6 @@ function createStorageFacade() {
     isAlertSuppressed: (equipmentId: string, sensorType: string, alertType: string) => dbAlertStorage.isAlertSuppressed(equipmentId, sensorType, alertType),
     clearAllAlerts: () => dbAlertStorage.clearAllAlerts(),
 
-    logComplianceAction: (data: any) => { console.warn("[storage.logComplianceAction] Not implemented - no compliance repo"); return Promise.resolve(data); },
-    getComplianceAuditLog: (filters?: any) => { console.warn("[storage.getComplianceAuditLog] Not implemented - no compliance repo"); return Promise.resolve([]); },
 
     getSettings: () => dbSystemAdminStorage.getSettings(),
     getSystemSettings: () => dbSystemAdminStorage.getSettings(),
@@ -116,7 +113,6 @@ function createStorageFacade() {
     getPartsCostForWorkOrder: (workOrderId: string) => dbInventoryStorage.getPartsCostForWorkOrder(workOrderId),
     getWorkOrderHistory: (workOrderId: string, orgId: string) => dbInventoryStorage.getWorkOrderHistory(workOrderId, orgId),
     addWorkOrderHistoryEntry: (entry: any) => dbInventoryStorage.addWorkOrderHistoryEntry(entry),
-    getPartStockWithSupplierLeadTime: (partId: string, orgId: string) => dbInventoryStorage.getPartStockWithSupplierLeadTime(partId, orgId),
     getInventoryMovementsByWorkOrder: (workOrderId: string, orgId: string) => dbInventoryStorage.getInventoryMovementsByWorkOrder(workOrderId, orgId),
     getWorkOrderPartsByEquipment: (orgId: string, equipmentId: string) => dbInventoryStorage.getWorkOrderPartsByEquipment(orgId, equipmentId),
     getWorkOrderPartsByPartId: (orgId: string, partId: string) => dbInventoryStorage.getWorkOrderPartsByPartId(orgId, partId),
@@ -305,7 +301,6 @@ function createStorageFacade() {
 const storage = createStorageFacade();
 export { storage };
 
-export { DatabaseStorage } from "./storage/db-storage";
 
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, operation: string): Promise<T> {
   let timeoutId: NodeJS.Timeout;
