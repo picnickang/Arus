@@ -13,12 +13,20 @@ export function registerLeaveRoutes(app: Express, config: CrewExtensionsRoutesCo
 
   app.get("/api/crew/leave",
     withErrorHandling("fetch crew leave", async (req: Request, res: Response) => {
-      const { crew_id } = req.query;
+      const { crew_id, start_date, end_date } = req.query;
       const orgId = (req as any).orgId;
-      const leaves = await dbCrewStorage.getCrewLeave(
+      let leaves = await dbCrewStorage.getCrewLeave(
         crew_id as string | undefined,
         orgId
       );
+      if (start_date) {
+        const startMs = new Date(start_date as string).getTime();
+        leaves = leaves.filter((l: any) => new Date(l.startDate).getTime() >= startMs);
+      }
+      if (end_date) {
+        const endMs = new Date(end_date as string).getTime();
+        leaves = leaves.filter((l: any) => new Date(l.endDate).getTime() <= endMs);
+      }
       res.json(leaves);
     })
   );
