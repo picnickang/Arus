@@ -1,53 +1,84 @@
-import { dbHubSyncStorage, dbCrewStorage } from "../../repositories";
+import { dbCrewStorage } from "../../repositories";
 import { dbOptimizerStorage } from "../../repositories";
-import type { InsertReplayIncoming, InsertSheetVersion, InsertOptimizerConfiguration } from "@shared/schema";
+import type { InsertOptimizerConfiguration } from "@shared/schema";
 import { db } from "../../db-config";
 import { replayIncoming } from "@shared/schema-runtime";
-import { desc } from "drizzle-orm";
+import { desc, sql } from "drizzle-orm";
 
 export const hubSyncService = {
-  async logReplayRequest(data: InsertReplayIncoming) {
+  async logReplayRequest(data: Record<string, unknown>) {
     const [result] = await db.insert(replayIncoming).values(data).returning();
     return result;
   },
 
-  async getReplayHistory(_deviceId?: string, _endpoint?: string) {
+  async getReplayHistory() {
     return db.select().from(replayIncoming).orderBy(desc(replayIncoming.createdAt)).limit(100);
   },
 
-  async acquireSheetLock(sheetKeyOrData: string | Record<string, unknown>, holder?: string, token?: string, expiresAt?: Date) {
-    if (typeof sheetKeyOrData === 'string' && holder !== undefined) {
-      return dbHubSyncStorage.acquireSheetLock({ sheetType: sheetKeyOrData, sheetId: sheetKeyOrData, holder, token, expiresAt } as Parameters<typeof dbHubSyncStorage.acquireSheetLock>[0]);
+  async acquireSheetLock(sheetKey: string, holder: string, token: string, expiresAt: Date) {
+    const existing = await db.execute(
+      sql`SELECT sheet_key, holder, token, expires_at, created_at FROM sheet_lock WHERE sheet_key = ${sheetKey} LIMIT 1`
+    );
+    const existingRow = existing.rows?.[0];
+    if (existingRow && new Date(existingRow.expires_at as string) > new Date()) {
+      if (existingRow.holder !== holder) {
+        throw new Error(`Sheet ${sheetKey} is already locked by ${existingRow.holder}`);
+      }
     }
-    return dbHubSyncStorage.acquireSheetLock(sheetKeyOrData as Parameters<typeof dbHubSyncStorage.acquireSheetLock>[0]);
+    const result = await db.execute(
+      sql`INSERT INTO sheet_lock (sheet_key, holder, token, expires_at, created_at)
+          VALUES (${sheetKey}, ${holder}, ${token}, ${expiresAt}, NOW())
+          ON CONFLICT (sheet_key) DO UPDATE SET holder = ${holder}, token = ${token}, expires_at = ${expiresAt}, created_at = NOW()
+          RETURNING *`
+    );
+    return result.rows?.[0] ?? { sheetKey, holder, token, expiresAt };
   },
 
-  async releaseSheetLock(sheetType: string, sheetId: string) {
-    return dbHubSyncStorage.releaseSheetLock(sheetType, sheetId);
+  async releaseSheetLock(sheetKey: string, _token: string) {
+    await db.execute(sql`DELETE FROM sheet_lock WHERE sheet_key = ${sheetKey}`);
   },
 
-  async getSheetLock(sheetType: string, sheetId?: string) {
-    return dbHubSyncStorage.getSheetLock(sheetType, sheetId || '');
+  async getSheetLock(sheetKey: string) {
+    const result = await db.execute(
+      sql`SELECT sheet_key, holder, token, expires_at, created_at FROM sheet_lock WHERE sheet_key = ${sheetKey} LIMIT 1`
+    );
+    return result.rows?.[0] ?? null;
   },
 
   async isSheetLocked(sheetKey: string) {
-    const lock = await dbHubSyncStorage.getSheetLock(sheetKey, '');
-    return !!lock;
+    const lock = await this.getSheetLock(sheetKey);
+    if (!lock) return false;
+    return new Date(lock.expires_at as string) > new Date();
   },
 
-  async getSheetVersion(sheetType: string, sheetId?: string) {
-    return dbHubSyncStorage.getSheetVersion(sheetType, sheetId || '');
+  async getSheetVersion(sheetKey: string) {
+    const result = await db.execute(
+      sql`SELECT sheet_key, version, last_modified, last_modified_by FROM sheet_version WHERE sheet_key = ${sheetKey} LIMIT 1`
+    );
+    return result.rows?.[0] ?? null;
   },
 
-  async incrementSheetVersion(sheetKeyOrData: string | Record<string, unknown>, modifiedBy?: string) {
-    if (typeof sheetKeyOrData === 'string' && modifiedBy !== undefined) {
-      return dbHubSyncStorage.incrementSheetVersion({ sheetType: sheetKeyOrData, sheetId: sheetKeyOrData, lastModifiedBy: modifiedBy } as Parameters<typeof dbHubSyncStorage.incrementSheetVersion>[0]);
+  async incrementSheetVersion(sheetKey: string, modifiedBy: string) {
+    const existing = await this.getSheetVersion(sheetKey);
+    if (existing) {
+      const newVersion = (existing.version as number) + 1;
+      const result = await db.execute(
+        sql`UPDATE sheet_version SET version = ${newVersion}, last_modified = NOW(), last_modified_by = ${modifiedBy}
+            WHERE sheet_key = ${sheetKey} RETURNING *`
+      );
+      return result.rows?.[0];
     }
-    return dbHubSyncStorage.incrementSheetVersion(sheetKeyOrData as Parameters<typeof dbHubSyncStorage.incrementSheetVersion>[0]);
+    const result = await db.execute(
+      sql`INSERT INTO sheet_version (sheet_key, version, last_modified, last_modified_by)
+          VALUES (${sheetKey}, 1, NOW(), ${modifiedBy}) RETURNING *`
+    );
+    return result.rows?.[0];
   },
 
-  async setSheetVersion(data: InsertSheetVersion) {
-    return dbHubSyncStorage.incrementSheetVersion(data);
+  async setSheetVersion(data: Record<string, unknown>) {
+    const sheetKey = data.sheetId as string || data.sheetKey as string;
+    const modifiedBy = data.lastModifiedBy as string || data.modifiedBy as string || '';
+    return this.incrementSheetVersion(sheetKey, modifiedBy);
   },
 
   async getOptimizerConfigurations(orgId: string) {
@@ -67,9 +98,12 @@ export const hubSyncService = {
   },
 
   async runOptimization(configId: string, equipmentScope?: string[], timeHorizon?: number, orgId?: string) {
-    const config = await dbOptimizerStorage.getOptimizerConfigurations(orgId);
-    const matchedConfig = config.find(c => c.id === configId);
-    const resolvedOrgId = matchedConfig?.orgId || orgId || '';
+    const configs = await dbOptimizerStorage.getOptimizerConfigurations(orgId);
+    const matchedConfig = configs.find(c => c.id === configId);
+    const resolvedOrgId = matchedConfig?.orgId || orgId;
+    if (!resolvedOrgId) {
+      throw new Error("Cannot determine orgId for optimization run. Provide orgId or use a valid configId.");
+    }
     const result = await dbOptimizerStorage.createOptimizationResult({
       configurationId: configId,
       orgId: resolvedOrgId,
@@ -81,12 +115,11 @@ export const hubSyncService = {
   },
 
   async cancelOptimization(id: string) {
-    return dbOptimizerStorage.deleteOptimizationResult(id);
+    return dbOptimizerStorage.updateOptimizationResult(id, { runStatus: 'cancelled' });
   },
 
   async applyOptimizationToProduction(id: string) {
-    const result = await dbOptimizerStorage.getOptimizationResult(id);
-    return result;
+    return dbOptimizerStorage.updateOptimizationResult(id, { runStatus: 'applied' });
   },
 
   async getOptimizationResult(id: string) {
@@ -105,7 +138,7 @@ export const hubSyncService = {
     return dbCrewStorage.getShiftTemplates(orgId);
   },
 
-  async createShiftTemplate(data: any) {
+  async createShiftTemplate(data: Record<string, unknown>) {
     return dbCrewStorage.createShiftTemplate(data);
   },
 
