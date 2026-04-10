@@ -2,8 +2,9 @@ import type { Express, Request, Response } from "express";
 import type { RateLimitRequestHandler } from "express-rate-limit";
 import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
-import { storage } from "../../storage.js";
 import { dbMlAnalyticsStorage } from "../../db/ml-analytics/index.js";
+
+function getStorage() { return import("../../storage.js").then(m => m.storage); }
 
 interface AuthenticatedRequest extends Request {
   orgId?: string;
@@ -88,7 +89,7 @@ export function registerMlPipelineRoutes(
         },
       };
 
-      const result = await trainLSTMForFailurePrediction(storage, config);
+      const result = await trainLSTMForFailurePrediction(await getStorage(), config);
       res.json(result);
     })
   );
@@ -113,7 +114,7 @@ export function registerMlPipelineRoutes(
         },
       };
 
-      const result = await trainRFForHealthClassification(storage, config);
+      const result = await trainRFForHealthClassification(await getStorage(), config);
       res.json(result);
     })
   );
@@ -138,7 +139,7 @@ export function registerMlPipelineRoutes(
         },
       };
 
-      const result = await trainXGBoostForHealthClassification(storage, config);
+      const result = await trainXGBoostForHealthClassification(await getStorage(), config);
       res.json(result);
     })
   );
@@ -148,7 +149,7 @@ export function registerMlPipelineRoutes(
       const { orgId = req.orgId! } = req.body;
 
       const { retrainAllModels } = await import("../../ml-training-pipeline");
-      const results = await retrainAllModels(storage, orgId);
+      const results = await retrainAllModels(await getStorage(), orgId);
 
       res.json({
         message: `Successfully trained ${results.length} models`,
@@ -195,13 +196,13 @@ export function registerMlPipelineRoutes(
       let prediction = null;
 
       if (method === "lstm") {
-        prediction = await predictFailureWithLSTM(storage, equipmentId, orgId);
+        prediction = await predictFailureWithLSTM(await getStorage(), equipmentId, orgId);
       } else if (method === "random_forest") {
-        prediction = await predictHealthWithRandomForest(storage, equipmentId, orgId);
+        prediction = await predictHealthWithRandomForest(await getStorage(), equipmentId, orgId);
       } else if (method === "ensemble") {
-        prediction = await predictWithEnsemble(storage, equipmentId, orgId);
+        prediction = await predictWithEnsemble(await getStorage(), equipmentId, orgId);
       } else {
-        prediction = await predictWithHybridModel(storage, equipmentId, orgId);
+        prediction = await predictWithHybridModel(await getStorage(), equipmentId, orgId);
       }
 
       if (!prediction) {
@@ -211,7 +212,7 @@ export function registerMlPipelineRoutes(
         });
       }
 
-      await storePrediction(storage, equipmentId, orgId, prediction);
+      await storePrediction(await getStorage(), equipmentId, orgId, prediction);
       res.json(prediction);
     })
   );
@@ -225,7 +226,7 @@ export function registerMlPipelineRoutes(
       const orgId = req.orgId!;
 
       const { evaluateRetrainingTriggers } = await import("../../ml-retraining-service");
-      const triggers = await evaluateRetrainingTriggers(storage, orgId);
+      const triggers = await evaluateRetrainingTriggers(await getStorage(), orgId);
 
       res.json(triggers);
     })
@@ -237,7 +238,7 @@ export function registerMlPipelineRoutes(
       const equipmentType = req.params.equipmentType;
 
       const { determineOptimalTrainingWindow } = await import("../../adaptive-training-window");
-      const windowConfig = await determineOptimalTrainingWindow(storage, orgId, equipmentType);
+      const windowConfig = await determineOptimalTrainingWindow(await getStorage(), orgId, equipmentType);
 
       res.json(windowConfig);
     })

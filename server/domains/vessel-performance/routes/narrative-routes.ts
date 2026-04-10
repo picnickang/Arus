@@ -5,7 +5,6 @@
 import type { Express, Request, Response } from "express";
 import type { VesselPerformanceRoutesConfig } from "./types.js";
 import { withErrorHandling } from "../../../lib/route-utils.js";
-import { storage } from "../../../storage.js";
 
 export function registerNarrativeRoutes(app: Express, config: VesselPerformanceRoutesConfig): void {
 
@@ -13,7 +12,10 @@ export function registerNarrativeRoutes(app: Express, config: VesselPerformanceR
     const orgId = req.headers["x-org-id"] as string;
     if (!orgId) {return res.status(400).json({ message: "Organization ID is required" });}
 
-    const { NarrativeSummaryService } = await import("../../../narrative-summary-service.js");
+    const [{ NarrativeSummaryService }, { storage }] = await Promise.all([
+      import("../../../narrative-summary-service.js"),
+      import("../../../storage.js"),
+    ]);
     const narrativeService = new NarrativeSummaryService(storage);
 
     const input = req.body;

@@ -5,7 +5,7 @@
 import { eq, and, desc, sql } from "drizzle-orm";
 import { db } from "../../db";
 import { BaseRepository } from "../../shared/base-repository";
-import { oilAnalysis, wearParticleAnalysis, conditionMonitoring, type OilAnalysis, type InsertOilAnalysis, type WearParticleAnalysis, type InsertWearParticleAnalysis, type ConditionMonitoring, type InsertConditionMonitoring } from "@shared/schema";
+import { oilAnalysis, wearParticleAnalysis, conditionMonitoring, oilChangeRecords, type OilAnalysis, type InsertOilAnalysis, type WearParticleAnalysis, type InsertWearParticleAnalysis, type ConditionMonitoring, type InsertConditionMonitoring, type OilChangeRecord, type InsertOilChangeRecord } from "@shared/schema";
 
 const oilAnalysisRepo = new BaseRepository<OilAnalysis, InsertOilAnalysis>(oilAnalysis, { updatedAtColumn: "updatedAt" });
 const wearParticleRepo = new BaseRepository<WearParticleAnalysis, InsertWearParticleAnalysis>(wearParticleAnalysis, { updatedAtColumn: "updatedAt" });
@@ -69,4 +69,23 @@ export class DbConditionMonitoringStorage {
   async createConditionMonitoringRecord(record: InsertConditionMonitoring): Promise<ConditionMonitoring> { return conditionMonitoringRepo.create(record); }
   async updateConditionMonitoringRecord(id: string, record: Partial<InsertConditionMonitoring>, orgId?: string): Promise<ConditionMonitoring> { if (!orgId) throw new Error("orgId required"); return conditionMonitoringRepo.update(id, record, orgId); }
   async deleteConditionMonitoringRecord(id: string, orgId?: string): Promise<void> { if (!orgId) throw new Error("orgId required"); await conditionMonitoringRepo.delete(id, orgId); }
+
+  async getOilChangeRecords(orgId?: string, equipmentId?: string): Promise<OilChangeRecord[]> {
+    const c: any[] = [];
+    if (orgId) c.push(eq(oilChangeRecords.orgId, orgId));
+    if (equipmentId) c.push(eq(oilChangeRecords.equipmentId, equipmentId));
+    return db.select().from(oilChangeRecords).where(c.length ? and(...c) : undefined).orderBy(sql`${oilChangeRecords.changeDate} DESC`);
+  }
+
+  async createOilChangeRecord(record: InsertOilChangeRecord): Promise<OilChangeRecord> {
+    const [n] = await db.insert(oilChangeRecords).values({ ...record, changeDate: record.changeDate ? new Date(record.changeDate) : new Date() }).returning();
+    return n;
+  }
+
+  async getLatestOilChangeRecord(equipmentId: string, orgId?: string): Promise<OilChangeRecord | undefined> {
+    const c = [eq(oilChangeRecords.equipmentId, equipmentId)];
+    if (orgId) c.push(eq(oilChangeRecords.orgId, orgId));
+    const result = await db.select().from(oilChangeRecords).where(and(...c)).orderBy(sql`${oilChangeRecords.changeDate} DESC`).limit(1);
+    return result[0];
+  }
 }

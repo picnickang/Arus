@@ -5,7 +5,14 @@
 import type { Express, Request, Response } from "express";
 import type { VesselPerformanceRoutesConfig } from "./types.js";
 import { withErrorHandling } from "../../../lib/route-utils.js";
-import { storage } from "../../../storage.js";
+
+async function getCIIService() {
+  const [{ CIIService }, { storage }] = await Promise.all([
+    import("../../../cii-service.js"),
+    import("../../../storage.js"),
+  ]);
+  return new CIIService(storage);
+}
 
 export function registerCIIRoutes(app: Express, config: VesselPerformanceRoutesConfig): void {
 
@@ -13,8 +20,7 @@ export function registerCIIRoutes(app: Express, config: VesselPerformanceRoutesC
     const { vesselId } = req.params, orgId = req.headers["x-org-id"] as string;
     if (!orgId) {return res.status(400).json({ message: "Organization ID is required" });}
 
-    const { CIIService } = await import("../../../cii-service.js");
-    const ciiService = new CIIService(storage);
+    const ciiService = await getCIIService();
 
     const now = new Date();
     const startDate = req.query.startDate ? new Date(req.query.startDate as string) : new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -31,8 +37,7 @@ export function registerCIIRoutes(app: Express, config: VesselPerformanceRoutesC
     const { vesselId } = req.params, orgId = req.headers["x-org-id"] as string;
     if (!orgId) {return res.status(400).json({ message: "Organization ID is required" });}
 
-    const { CIIService } = await import("../../../cii-service.js");
-    const ciiService = new CIIService(storage);
+    const ciiService = await getCIIService();
     const trend = await ciiService.getCIITrend(vesselId, orgId);
 
     res.setHeader("Cache-Control", "public, max-age=3600");

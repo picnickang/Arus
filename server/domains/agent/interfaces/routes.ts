@@ -11,7 +11,6 @@ import { getToolSummaries, getRegisteredToolNames } from "../tools";
 import { getReportArtifact } from "../tools/enhanced-report-tools";
 import { executeDraftAction } from "../application/draft-executor";
 import { MAINTENANCE_ROLES } from "../domain/types";
-import { storage as storageRef } from "../../../storage";
 import { db } from "../../../db";
 import type { AuthenticatedRequest } from "../../../middleware/auth";
 import { auditAction } from "../../../utils/audit-helpers";
@@ -1059,13 +1058,19 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
   });
 
   const briefingRepo = new BriefingRepositoryAdapter();
-  const briefingDataAdapter = new BriefingDataAdapter(storageRef);
-  const briefingService = new BriefingGeneratorService(briefingRepo, agentRepo, briefingDataAdapter);
+  let _briefingService: BriefingGeneratorService | null = null;
+  async function getBriefingService() {
+    if (!_briefingService) {
+      const { storage: s } = await import("../../../storage");
+      _briefingService = new BriefingGeneratorService(briefingRepo, agentRepo, new BriefingDataAdapter(s));
+    }
+    return _briefingService;
+  }
 
   app.get("/api/agent/briefings/latest", rateLimit.generalApiRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const briefing = await briefingService.getLatestForToday(orgId);
+      const briefing = await (await getBriefingService()).getLatestForToday(orgId);
       if (!briefing) {
         return res.json(null);
       }
@@ -1086,11 +1091,11 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         if (isNaN(date.getTime())) {
           return res.status(400).json({ error: "Invalid date format" });
         }
-        const briefings = await briefingService.getByDate(orgId, date);
+        const briefings = await (await getBriefingService()).getByDate(orgId, date);
         return res.json(briefings);
       }
 
-      const briefings = await briefingService.list(orgId, limit);
+      const briefings = await (await getBriefingService()).list(orgId, limit);
       res.json(briefings);
     } catch (error: unknown) {
       res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
@@ -1100,7 +1105,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
   app.post("/api/agent/briefings/generate", rateLimit.writeOperationRateLimit, requireMaintenanceRole, async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const briefing = await briefingService.generate(orgId);
+      const briefing = await (await getBriefingService()).generate(orgId);
       res.json(briefing);
     } catch (error: unknown) {
       res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
@@ -1132,7 +1137,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
   }
 
   globalScheduler.registerBriefingHandler(async (orgId: string, scheduleRunId: string) => {
-    const result = await briefingService.generate(orgId, scheduleRunId);
+    const result = await (await getBriefingService()).generate(orgId, scheduleRunId);
     return { briefingId: result.id };
   });
 

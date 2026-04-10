@@ -151,14 +151,14 @@ export function registerConditionMonitoringRoutes(
     withErrorHandling("fetch oil change records", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const { equipmentId } = req.query;
-      const records = await dbConditionMonitoringStorage.getConditionMonitoringRecords(orgId, equipmentId as string);
+      const records = await dbConditionMonitoringStorage.getOilChangeRecords(orgId, equipmentId as string);
       res.json(records);
     })
   );
 
   app.post("/api/condition/oil-changes", requireOrgId, generalApiRateLimit,
     withErrorHandling("create oil change record", async (req, res) => {
-      const record = await dbConditionMonitoringStorage.createConditionMonitoringRecord(req.body);
+      const record = await dbConditionMonitoringStorage.createOilChangeRecord(req.body);
       sendCreated(res, record);
     })
   );
@@ -192,10 +192,11 @@ export function registerConditionMonitoringRoutes(
       const { equipmentId } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
 
-      const [latestOil, latestWear, conditionRecords] = await Promise.all([
+      const [latestOil, latestWear, conditionRecords, lastOilChange] = await Promise.all([
         dbConditionMonitoringStorage.getLatestOilAnalysis(equipmentId, orgId),
         dbConditionMonitoringStorage.getLatestWearParticleAnalysis(equipmentId, orgId),
         dbConditionMonitoringStorage.getConditionMonitoringRecords(orgId, equipmentId),
+        dbConditionMonitoringStorage.getLatestOilChangeRecord(equipmentId, orgId),
       ]);
       const latestAssessment = conditionRecords[0] ?? null;
 
@@ -203,7 +204,7 @@ export function registerConditionMonitoringRoutes(
         oilAnalysis: latestOil,
         wearAnalysis: latestWear,
         conditionAssessment: latestAssessment,
-        lastOilChange: latestOil,
+        lastOilChange: lastOilChange ?? null,
       });
     })
   );
