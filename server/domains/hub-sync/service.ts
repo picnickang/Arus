@@ -11,8 +11,15 @@ export const hubSyncService = {
     return result;
   },
 
-  async getReplayHistory() {
-    return db.select().from(replayIncoming).orderBy(desc(replayIncoming.createdAt)).limit(100);
+  async getReplayHistory(deviceId?: string, endpoint?: string) {
+    const rows = await db.select().from(replayIncoming).orderBy(desc(replayIncoming.createdAt)).limit(100);
+    if (!deviceId && !endpoint) return rows;
+    return rows.filter((row: Record<string, unknown>) => {
+      const payload = row.payload as Record<string, unknown> | null;
+      if (deviceId && payload?.deviceId !== deviceId) return false;
+      if (endpoint && payload?.endpoint !== endpoint) return false;
+      return true;
+    });
   },
 
   async acquireSheetLock(sheetKey: string, holder: string, token: string, expiresAt: Date) {
@@ -34,8 +41,12 @@ export const hubSyncService = {
     return result.rows?.[0] ?? { sheetKey, holder, token, expiresAt };
   },
 
-  async releaseSheetLock(sheetKey: string, _token: string) {
-    await db.execute(sql`DELETE FROM sheet_lock WHERE sheet_key = ${sheetKey}`);
+  async releaseSheetLock(sheetKey: string, token: string) {
+    const lock = await this.getSheetLock(sheetKey);
+    if (lock && lock.token !== token) {
+      throw new Error(`Cannot release lock on ${sheetKey}: invalid token`);
+    }
+    await db.execute(sql`DELETE FROM sheet_lock WHERE sheet_key = ${sheetKey} AND token = ${token}`);
   },
 
   async getSheetLock(sheetKey: string) {
@@ -130,8 +141,11 @@ export const hubSyncService = {
     return dbOptimizerStorage.deleteOptimizationResult(id);
   },
 
-  async deleteAllOptimizationResults(orgId: string) {
-    return dbOptimizerStorage.deleteAllOptimizationResults(orgId);
+  async deleteAllOptimizationResults(orgId: string): Promise<number> {
+    const existing = await dbOptimizerStorage.getOptimizationResults(orgId);
+    const count = existing.length;
+    await dbOptimizerStorage.deleteAllOptimizationResults(orgId);
+    return count;
   },
 
   async getShiftTemplates(orgId?: string) {

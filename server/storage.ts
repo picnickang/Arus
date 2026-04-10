@@ -132,7 +132,7 @@ function createStorageFacade() {
     getDrydockWindows: (orgId?: string, vesselId?: string) => vesselId && orgId ? dbVesselStorage.getDrydockWindows(vesselId, orgId) : dbVesselStorage.getAllDrydockWindows(orgId),
 
     getShiftTemplates: (orgId?: string) => dbCrewStorage.getShiftTemplates(orgId),
-    getCrewAssignments: (orgId: string, date?: string, vesselId?: string) => dbCrewStorage.getCrewAssignments(orgId, date, vesselId),
+    getCrewAssignments: (orgId: string, date?: string, vesselId?: string) => dbCrewStorage.getCrewAssignments(orgId, { date, vesselId }),
     createCrewAssignment: (data: any) => dbCrewStorage.createCrewAssignment(data),
     getCrewAssignmentsByDateRange: (from: Date, to: Date, orgId?: string) => dbCrewStorage.getCrewAssignmentsByDateRange(from, to, orgId),
     deleteCrewAssignmentsByRunId: (orgId: string, runId: string) => dbCrewStorage.deleteCrewAssignmentsByRunId(orgId, runId),

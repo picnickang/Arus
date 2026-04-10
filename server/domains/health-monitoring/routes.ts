@@ -247,16 +247,20 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
       const logs = await dbSystemAdminStorage.getErrorLogs({ orgId, limit: 1000 });
       
       const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      const recentLogs = (logs ?? []).filter((log: any) => new Date(log.createdAt) >= last24h);
+      const recentLogs = (logs ?? []).filter((log: Record<string, unknown>) => {
+        const ts = log.createdAt || log.timestamp;
+        return ts ? new Date(ts as string) >= last24h : false;
+      });
 
+      const getSeverity = (log: Record<string, unknown>) => ((log.level || log.severity || '') as string).toLowerCase();
       const summary = {
         totalErrors: recentLogs.length,
         byLevel: {
-          error: recentLogs.filter((l: any) => l.level === "error").length,
-          warning: recentLogs.filter((l: any) => l.level === "warning").length,
-          info: recentLogs.filter((l: any) => l.level === "info").length,
+          error: recentLogs.filter((l) => getSeverity(l) === "error").length,
+          warning: recentLogs.filter((l) => getSeverity(l) === "warning").length,
+          info: recentLogs.filter((l) => getSeverity(l) === "info").length,
         },
-        status: recentLogs.filter((l: any) => l.level === "error").length > 10 ? "degraded" : "healthy",
+        status: recentLogs.filter((l) => getSeverity(l) === "error").length > 10 ? "degraded" : "healthy",
         timestamp: new Date().toISOString(),
       };
 
