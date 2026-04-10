@@ -198,13 +198,12 @@ export function registerConditionMonitoringRoutes(
         dbConditionMonitoringStorage.getConditionMonitoringRecords(orgId, equipmentId),
       ]);
       const latestAssessment = conditionRecords[0] ?? null;
-      const lastOilChange = conditionRecords[0] ?? null;
 
       res.json({
         oilAnalysis: latestOil,
         wearAnalysis: latestWear,
         conditionAssessment: latestAssessment,
-        lastOilChange,
+        lastOilChange: latestOil,
       });
     })
   );
