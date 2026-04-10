@@ -2,11 +2,11 @@ import { Express, Request, Response } from "express";
 import { withErrorHandling } from "../lib/route-utils";
 import { logger } from "../utils/logger";
 import type { AuthenticatedRequest } from "../middleware/auth";
+import { storage } from "../storage";
 
 const LOG_CTX = "PdmGapFillRoutes";
 
 interface PdmGapFillDeps {
-  storage: any;
   db: any;
   generalApiRateLimit: any;
   writeOperationRateLimit: any;
@@ -14,7 +14,7 @@ interface PdmGapFillDeps {
 }
 
 export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): void {
-  const { storage, db, generalApiRateLimit, writeOperationRateLimit, wsServer } = deps;
+  const { db, generalApiRateLimit, writeOperationRateLimit, wsServer } = deps;
 
   app.post("/api/ml/calibration/fit", writeOperationRateLimit,
     withErrorHandling("fit calibration model", async (req: Request, res: Response) => {

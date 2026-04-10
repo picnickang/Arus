@@ -24,8 +24,6 @@ import {
   startPerformanceMonitoring,
   generalApiRateLimit,
 } from "./routes/route-dependencies";
-import { storage } from "./storage";
-
 // Extracted route modules
 import { registerObservabilityRoutes } from "./routes/observability-routes";
 import { registerInlineRoutes } from "./routes/inline-routes";
@@ -114,7 +112,7 @@ export async function registerRoutes(
 
   // Initialize DTC Integration Service
   const { initDtcIntegrationService } = await import("./dtc-integration-service");
-  initDtcIntegrationService(storage);
+  initDtcIntegrationService();
 
   // Mount Knowledge Base document management routes
   registerKnowledgeBaseRoutes(app, { generalApiRateLimit, writeOperationRateLimit });
@@ -218,7 +216,6 @@ export async function registerRoutes(
   // PdM Gap Fill routes (calibration, outcomes, anomaly-groups, aggregation, evaluation, training-queue)
   const { db: gapFillDb, getWebSocketServer: getGapFillWs } = await import("./routes/route-dependencies");
   registerPdmGapFillRoutes(app, {
-    storage,
     db: gapFillDb,
     generalApiRateLimit,
     writeOperationRateLimit,

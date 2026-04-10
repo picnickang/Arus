@@ -15,11 +15,11 @@ export const hubSyncService = {
     return db.select().from(replayIncoming).orderBy(desc(replayIncoming.createdAt)).limit(100);
   },
 
-  async acquireSheetLock(sheetKeyOrData: any, holder?: string, token?: string, expiresAt?: Date) {
-    if (holder !== undefined) {
-      return dbHubSyncStorage.acquireSheetLock({ sheetType: sheetKeyOrData, sheetId: sheetKeyOrData, holder, token, expiresAt });
+  async acquireSheetLock(sheetKeyOrData: string | Record<string, unknown>, holder?: string, token?: string, expiresAt?: Date) {
+    if (typeof sheetKeyOrData === 'string' && holder !== undefined) {
+      return dbHubSyncStorage.acquireSheetLock({ sheetType: sheetKeyOrData, sheetId: sheetKeyOrData, holder, token, expiresAt } as Parameters<typeof dbHubSyncStorage.acquireSheetLock>[0]);
     }
-    return dbHubSyncStorage.acquireSheetLock(sheetKeyOrData);
+    return dbHubSyncStorage.acquireSheetLock(sheetKeyOrData as Parameters<typeof dbHubSyncStorage.acquireSheetLock>[0]);
   },
 
   async releaseSheetLock(sheetType: string, sheetId: string) {
@@ -39,11 +39,11 @@ export const hubSyncService = {
     return dbHubSyncStorage.getSheetVersion(sheetType, sheetId || '');
   },
 
-  async incrementSheetVersion(sheetKeyOrData: any, modifiedBy?: string) {
+  async incrementSheetVersion(sheetKeyOrData: string | Record<string, unknown>, modifiedBy?: string) {
     if (typeof sheetKeyOrData === 'string' && modifiedBy !== undefined) {
-      return dbHubSyncStorage.incrementSheetVersion({ sheetType: sheetKeyOrData, sheetId: sheetKeyOrData, modifiedBy });
+      return dbHubSyncStorage.incrementSheetVersion({ sheetType: sheetKeyOrData, sheetId: sheetKeyOrData, lastModifiedBy: modifiedBy } as Parameters<typeof dbHubSyncStorage.incrementSheetVersion>[0]);
     }
-    return dbHubSyncStorage.incrementSheetVersion(sheetKeyOrData);
+    return dbHubSyncStorage.incrementSheetVersion(sheetKeyOrData as Parameters<typeof dbHubSyncStorage.incrementSheetVersion>[0]);
   },
 
   async setSheetVersion(data: InsertSheetVersion) {
@@ -66,13 +66,17 @@ export const hubSyncService = {
     return dbOptimizerStorage.getOptimizationResults(orgId);
   },
 
-  async runOptimization(configId: string, equipmentScope?: string[], timeHorizon?: number) {
+  async runOptimization(configId: string, equipmentScope?: string[], timeHorizon?: number, orgId?: string) {
+    const config = await dbOptimizerStorage.getOptimizerConfigurations(orgId);
+    const matchedConfig = config.find(c => c.id === configId);
+    const resolvedOrgId = matchedConfig?.orgId || orgId || '';
     const result = await dbOptimizerStorage.createOptimizationResult({
-      configId,
-      orgId: 'default',
-      status: 'queued',
-      parameters: { equipmentScope, timeHorizon },
-    } as any);
+      configurationId: configId,
+      orgId: resolvedOrgId,
+      runStatus: 'queued',
+      equipmentScope: equipmentScope ? JSON.stringify(equipmentScope) : undefined,
+      timeHorizon,
+    });
     return result;
   },
 

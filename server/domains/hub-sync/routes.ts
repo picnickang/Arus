@@ -185,7 +185,8 @@ export function registerHubSyncRoutes(
       const validatedData = runOptimizationSchema.parse(req.body);
       const { configId, equipmentScope, timeHorizon } = validatedData;
 
-      const result = await hubSyncService.runOptimization(configId, equipmentScope, timeHorizon);
+      const orgId = (req as AuthenticatedRequest).orgId || (req.query.orgId as string);
+      const result = await hubSyncService.runOptimization(configId, equipmentScope, timeHorizon, orgId);
       res.json(result);
     })
   );

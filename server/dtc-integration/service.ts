@@ -2,14 +2,14 @@
  * DTC Integration Service Class
  */
 
-import type { IStorage } from "../storage";
+import { storage } from "../storage";
 import type { DtcWithDefinition, DtcSummary, DtcFinancialImpact, DtcDashboardStats } from "./types";
 import { createWorkOrderFromDtc } from "./work-order-handler";
 import { calculateDtcHealthImpact, getDtcSummaryForReports, calculateDtcFinancialImpact } from "./health-impact";
 import { shouldTriggerAlert, createDtcAlert, correlateDtcWithTelemetry, getDtcDashboardStats } from "./alert-handler";
 
 export class DtcIntegrationService {
-  constructor(private storage: IStorage) {}
+  private get storage() { return storage; }
 
   async createWorkOrderFromDtc(dtc: DtcWithDefinition, orgId: string): Promise<any | null> {
     return createWorkOrderFromDtc(this.storage, dtc, orgId);
@@ -46,9 +46,9 @@ export class DtcIntegrationService {
 
 let dtcServiceInstance: DtcIntegrationService | null = null;
 
-export function initDtcIntegrationService(storage: IStorage): DtcIntegrationService {
+export function initDtcIntegrationService(): DtcIntegrationService {
   if (!dtcServiceInstance) {
-    dtcServiceInstance = new DtcIntegrationService(storage);
+    dtcServiceInstance = new DtcIntegrationService();
     console.log("[DTC Integration] Service initialized");
   }
   return dtcServiceInstance;

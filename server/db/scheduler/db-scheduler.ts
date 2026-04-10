@@ -141,15 +141,21 @@ export class DatabaseSchedulerStorage {
   }
 
   async approveSchedulerRun(id: string, userId?: string): Promise<SchedulerRun> {
-    return this.updateSchedulerRun(id, { status: 'approved', approvedAt: new Date(), approvedBy: userId } as any);
+    const [u] = await db.update(schedulerRuns).set({ status: 'approved', approvedAt: new Date(), approvedBy: userId, updatedAt: new Date() }).where(eq(schedulerRuns.id, id)).returning();
+    if (!u) { throw new Error(`Scheduler run ${id} not found`); }
+    return u;
   }
 
   async publishSchedulerRun(id: string, userId: string): Promise<SchedulerRun> {
-    return this.updateSchedulerRun(id, { status: 'published', publishedAt: new Date(), publishedBy: userId } as any);
+    const [u] = await db.update(schedulerRuns).set({ status: 'published', publishedAt: new Date(), publishedBy: userId, updatedAt: new Date() }).where(eq(schedulerRuns.id, id)).returning();
+    if (!u) { throw new Error(`Scheduler run ${id} not found`); }
+    return u;
   }
 
   async cancelSchedulerRun(id: string, _userId?: string): Promise<SchedulerRun> {
-    return this.updateSchedulerRun(id, { status: 'cancelled' } as any);
+    const [u] = await db.update(schedulerRuns).set({ status: 'cancelled', updatedAt: new Date() }).where(eq(schedulerRuns.id, id)).returning();
+    if (!u) { throw new Error(`Scheduler run ${id} not found`); }
+    return u;
   }
 
   async getScheduleAssignments(orgId: string, fromDate: Date, toDate: Date): Promise<any[]> {
