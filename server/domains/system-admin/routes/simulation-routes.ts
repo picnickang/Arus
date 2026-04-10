@@ -6,10 +6,12 @@
 import { Express, Request, Response, z, SystemAdminDependencies } from "./types.js";
 import { withErrorHandling, sendCreated } from "../../../lib/route-utils.js";
 import { logger } from "../../../utils/logger.js";
+import { dbTelemetryStorage } from "../../../repositories.js";
+
+const telemetryWriter = { createTelemetryReading: (r: any) => dbTelemetryStorage.createTelemetryReading(r) } as any;
 
 export function registerSimulationRoutes(app: Express, deps: SystemAdminDependencies): void {
   const {
-    storage,
     generalApiRateLimit,
     writeOperationRateLimit,
     requireAdminAuth,
@@ -110,7 +112,7 @@ export function registerSimulationRoutes(app: Express, deps: SystemAdminDependen
       logger.info("AdminSimulation", `Starting telemetry stress test: ${config.messagesPerSecond} msg/sec for ${config.durationSeconds}s`);
 
       const { TelemetryStressTest } = await import("../../../vessel-simulator.js");
-      const stressTest = new TelemetryStressTest(storage);
+      const stressTest = new TelemetryStressTest(telemetryWriter);
       const result = await stressTest.run(config);
 
       res.json({
@@ -147,7 +149,7 @@ export function registerSimulationRoutes(app: Express, deps: SystemAdminDependen
       try {
         fleetStressTest = getFleetStressTest();
       } catch {
-        fleetStressTest = initFleetStressTest(storage);
+        fleetStressTest = initFleetStressTest(telemetryWriter);
       }
       const result = await fleetStressTest.run(config);
 
