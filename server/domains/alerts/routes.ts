@@ -15,14 +15,15 @@ import { withErrorHandling, handleApiError, sendNotFound } from "../../lib/route
  */
 export function registerAlertsRoutes(
   app: Express,
-  rateLimit: {
+  deps: {
     writeOperationRateLimit: any;
     criticalOperationRateLimit: any;
     generalApiRateLimit: any;
-  },
-  wsServerInstance?: any
+    wsServer?: any;
+  }
 ) {
-  const { writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit } = rateLimit;
+  const { writeOperationRateLimit, criticalOperationRateLimit, generalApiRateLimit } = deps;
+  const wsServerInstance = deps.wsServer;
 
   // ========== Main Alerts Endpoints (Aliases for Notifications) ==========
 

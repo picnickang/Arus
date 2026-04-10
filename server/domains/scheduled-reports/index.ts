@@ -82,6 +82,15 @@ export function createScheduledReportsDomain(): ScheduledReportsDomain {
   return domainInstance;
 }
 
+export function registerScheduledReportsRoutes(
+  app: import('express').Express,
+  deps: { requireOrgId: any; generalApiRateLimit: any }
+) {
+  const domain = createScheduledReportsDomain();
+  app.use("/api/scheduled-reports", deps.requireOrgId, deps.generalApiRateLimit, domain.router);
+  domain.initialize().catch((err) => console.error("[Scheduled Reports] Init failed:", err));
+}
+
 export { ReportSchedulerService, ReportGenerationService };
 export * from './domain/types.js';
 export * from './domain/events.js';

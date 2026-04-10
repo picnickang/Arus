@@ -9,15 +9,13 @@ import { withErrorHandling } from "../../lib/route-utils";
 
 export function registerTelemetryIngestionRoutes(
   app: Express,
-  _rateLimit: {
+  _deps: {
     writeOperationRateLimit: unknown;
     criticalOperationRateLimit: unknown;
     generalApiRateLimit: unknown;
     telemetryRateLimit: unknown;
-  },
-  _middleware: {
-    requireValidOrgId: (options?: { verifyEquipmentId?: boolean }) => unknown;
-    validateHMAC: unknown;
+    requireValidOrgId?: (options?: { verifyEquipmentId?: boolean }) => unknown;
+    validateHMAC?: unknown;
   }
 ) {
   // Phase A: HTTP ingestion endpoints are placeholders that return 503
