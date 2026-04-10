@@ -36,8 +36,8 @@ export class ScheduleAssignmentRepositoryAdapter implements IScheduleAssignmentR
     return assignments.map(mapToEntity);
   }
 
-  async deleteByDateRange(orgId: string, start: Date, end: Date, mode?: string): Promise<number> {
-    return dbSchedulerStorage.deleteScheduleAssignmentsByDateRange(orgId, start, end, mode);
+  async deleteByDateRange(orgId: string, start: Date, end: Date, _mode?: string): Promise<void> {
+    await dbSchedulerStorage.deleteScheduleAssignmentsByDateRange(orgId, start, end);
   }
 }
 

@@ -1,5 +1,5 @@
 import type { Equipment, InsertEquipment, EquipmentHealth } from "@shared/schema-runtime";
-import { dbEquipmentStorage } from "../../repositories";
+import { dbEquipmentStorage, dbSensorsStorage, dbInventoryStorage } from "../../repositories";
 
 export class EquipmentRepository {
   async findAll(orgId: string): Promise<Equipment[]> {
@@ -39,19 +39,27 @@ export class EquipmentRepository {
   }
 
   async getSensorCoverage(equipmentId: string, orgId: string) {
-    return { equipmentId, orgId, sensors: [], coverage: 0 };
+    const sensors = await dbSensorsStorage.getSensorConfigurations(orgId, equipmentId);
+    const sensorTypes = ['temperature', 'pressure', 'vibration', 'flow', 'level'];
+    const coveredTypes = new Set(sensors.map(s => s.sensorType));
+    const coverage = sensorTypes.length > 0 ? Math.round((coveredTypes.size / sensorTypes.length) * 100) : 0;
+    return { equipmentId, orgId, sensors, coverage };
   }
 
   async setupSensors(equipmentId: string, orgId: string) {
-    return { equipmentId, orgId, configured: [] };
+    const existing = await dbSensorsStorage.getSensorConfigurations(orgId, equipmentId);
+    return { equipmentId, orgId, configured: existing };
   }
 
   async getCompatibleParts(equipmentId: string, orgId: string) {
-    return [];
+    const equipment = await this.findById(equipmentId, orgId);
+    if (!equipment) return [];
+    const parts = await dbInventoryStorage.getParts(orgId);
+    return parts.filter((p: any) => p.equipmentType === (equipment as any).type || p.equipmentId === equipmentId);
   }
 
   async getSuggestedParts(equipmentId: string, orgId: string) {
-    return [];
+    return this.getCompatibleParts(equipmentId, orgId);
   }
 
   async getEquipmentWithSensorIssues(orgId: string) {

@@ -136,6 +136,34 @@ export class DatabaseSchedulerStorage {
     }
   }
 
+  async getSchedulerRunsByStatus(orgId: string, status: string, limit?: number): Promise<SchedulerRun[]> {
+    return this.getSchedulerRuns(orgId, status, limit);
+  }
+
+  async approveSchedulerRun(id: string, userId?: string): Promise<SchedulerRun> {
+    return this.updateSchedulerRun(id, { status: 'approved', approvedAt: new Date(), approvedBy: userId } as any);
+  }
+
+  async publishSchedulerRun(id: string, userId: string): Promise<SchedulerRun> {
+    return this.updateSchedulerRun(id, { status: 'published', publishedAt: new Date(), publishedBy: userId } as any);
+  }
+
+  async cancelSchedulerRun(id: string, _userId?: string): Promise<SchedulerRun> {
+    return this.updateSchedulerRun(id, { status: 'cancelled' } as any);
+  }
+
+  async getScheduleAssignments(orgId: string, fromDate: Date, toDate: Date): Promise<any[]> {
+    const runs = await this.getSchedulerRuns(orgId);
+    const runIds = runs.map(r => r.id);
+    if (runIds.length === 0) return [];
+    const allAssignments: any[] = [];
+    for (const runId of runIds) {
+      const assignments = await db.select().from(scheduleAssignments).where(and(eq(scheduleAssignments.runId, runId), gte(scheduleAssignments.date, fromDate), lte(scheduleAssignments.date, toDate))).orderBy(scheduleAssignments.date);
+      allAssignments.push(...assignments);
+    }
+    return allAssignments;
+  }
+
   async findRecentSchedulerRunByHash(orgId: string, hash: string): Promise<SchedulerRun | null> {
     const [result] = await db.select().from(schedulerRuns).where(and(eq(schedulerRuns.orgId, orgId), eq(schedulerRuns.inputHash, hash))).orderBy(desc(schedulerRuns.createdAt)).limit(1);
     return result ?? null;

@@ -22,6 +22,7 @@ export class DbOptimizerStorage {
   async createOptimizationResult(result: InsertOptimizationResult): Promise<OptimizationResult> { const [n] = await db.insert(optimizationResults).values({ ...result, createdAt: new Date() }).returning(); return n; }
   async updateOptimizationResult(id: string, result: Partial<InsertOptimizationResult>): Promise<OptimizationResult> { const [u] = await db.update(optimizationResults).set(result).where(eq(optimizationResults.id, id)).returning(); if (!u) {throw new Error(`Optimization result ${id} not found`);} return u; }
   async deleteOptimizationResult(id: string): Promise<void> { await db.delete(optimizationResults).where(eq(optimizationResults.id, id)); }
+  async deleteAllOptimizationResults(orgId: string): Promise<void> { await db.delete(optimizationResults).where(eq(optimizationResults.orgId, orgId)); }
 
   async getScheduleOptimizations(optimizationResultId: string): Promise<ScheduleOptimization[]> { return db.select().from(scheduleOptimizations).where(eq(scheduleOptimizations.optimizationResultId, optimizationResultId)).orderBy(asc(scheduleOptimizations.scheduledDate)); }
   async createScheduleOptimization(optimization: InsertScheduleOptimization): Promise<ScheduleOptimization> { const [n] = await db.insert(scheduleOptimizations).values({ ...optimization, createdAt: new Date() }).returning(); return n; }

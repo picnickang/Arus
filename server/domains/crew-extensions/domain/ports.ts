@@ -29,7 +29,7 @@ export interface IScheduleAssignmentRepository {
   createBulk(assignments: Omit<ScheduleAssignmentEntity, 'id' | 'createdAt'>[]): Promise<void>;
   findByRunId(runId: string): Promise<ScheduleAssignmentEntity[]>;
   findByDateRange(orgId: string, fromDate: Date, toDate: Date): Promise<ScheduleAssignmentEntity[]>;
-  deleteByDateRange(orgId: string, start: Date, end: Date, mode?: string): Promise<number>;
+  deleteByDateRange(orgId: string, start: Date, end: Date, mode?: string): Promise<void>;
 }
 
 export interface IScheduleUnfilledRepository {

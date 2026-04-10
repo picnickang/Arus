@@ -21,8 +21,11 @@ export const hubSyncService = {
     return q.orderBy(desc(replayIncoming.createdAt)).limit(100);
   },
 
-  async acquireSheetLock(data: any) {
-    return dbHubSyncStorage.acquireSheetLock(data);
+  async acquireSheetLock(sheetKeyOrData: any, holder?: string, token?: string, expiresAt?: Date) {
+    if (holder !== undefined) {
+      return dbHubSyncStorage.acquireSheetLock({ sheetType: sheetKeyOrData, sheetId: sheetKeyOrData, holder, token, expiresAt });
+    }
+    return dbHubSyncStorage.acquireSheetLock(sheetKeyOrData);
   },
 
   async releaseSheetLock(sheetType: string, sheetId: string) {
@@ -88,7 +91,7 @@ export const hubSyncService = {
   },
 
   async deleteAllOptimizationResults(orgId: string) {
-    return dbOptimizerStorage.getOptimizationResults(orgId).then(() => {});
+    return dbOptimizerStorage.deleteAllOptimizationResults(orgId);
   },
 
   async getShiftTemplates(orgId?: string) {
