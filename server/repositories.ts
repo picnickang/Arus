@@ -1,4 +1,4 @@
-export { dbDevicesStorage } from "./db/devices.repo";
+export { dbDevicesStorage } from "./db/devices/index.js";
 export { dbWorkOrderStorage } from "./db/workorders/index.js";
 export { dbEquipmentStorage } from "./db/equipment/index.js";
 export { dbVesselStorage } from "./db/vessels/index.js";
@@ -34,7 +34,7 @@ export const deckLogStorage = new DbDeckLogStorage();
 export const engineLogStorage = new DbEngineLogStorage();
 
 import { DatabaseAnalyticsInsightsAdapter, type AnalyticsDependencies } from "./storage/domains/analytics-insights-adapter";
-import { dbDevicesStorage } from "./db/devices.repo";
+import { dbDevicesStorage } from "./db/devices/index.js";
 import { dbEquipmentStorage } from "./db/equipment/index.js";
 import { dbTelemetryStorage } from "./db/telemetry/index.js";
 import { dbAnalyticsStorage } from "./db/analytics/index.js";
