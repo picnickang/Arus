@@ -29,8 +29,8 @@ export function registerSkillsRoutes({ app, rateLimit }: CrewRouteDeps): void {
   );
 
   app.delete("/api/skills/:id", requireOrgId, criticalOperationRateLimit,
-    withErrorHandling("delete skill", async (req, res) => {
-      await crewService.deleteSkill(req.params.id, req.user?.id);
+    withErrorHandling("delete skill", async (req: any, res) => {
+      await crewService.deleteSkill(req.params.id, req.orgId);
       sendDeleted(res);
     })
   );

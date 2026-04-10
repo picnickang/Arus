@@ -12,7 +12,7 @@ import type {
 import { dbCrewExtensionsStorage, dbCrewStorage } from "../../../repositories";
 import { db } from "../../../db-config";
 import { skills } from "@shared/schema-runtime";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 export interface CrewServiceDependencies {
   crewMemberRepository: ICrewMemberRepository;
@@ -168,8 +168,11 @@ export class CrewApplicationService {
     return newSkill;
   }
 
-  async deleteSkill(id: string, userId?: string) {
-    await db.delete(skills).where(eq(skills.id, id));
+  async deleteSkill(id: string, orgId?: string) {
+    const conditions = orgId
+      ? and(eq(skills.id, id), eq(skills.orgId, orgId))
+      : eq(skills.id, id);
+    await db.delete(skills).where(conditions);
   }
 
   async getCrewSkills(crewId: string) {
