@@ -138,7 +138,7 @@ const domainRouters: DomainRouterConfig[] = [
   { name: "CrewExtensions", importPath: "../domains/crew-extensions/index.js", functionName: "registerCrewExtensionsRoutes",
     getDeps: () => ({ storage, crewOperationRateLimit, criticalOperationRateLimit }) },
   { name: "Scheduling", importPath: "../domains/scheduling/index.js", functionName: "registerSchedulingRoutes",
-    getDeps: () => ({ storage, requireOrgId, generalApiRateLimit, writeOperationRateLimit }) },
+    getDeps: () => ({ requireOrgId, generalApiRateLimit, writeOperationRateLimit }) },
 
   // Weather & External
   { name: "StormGeo", importPath: "../domains/stormgeo/index.js", functionName: "registerStormGeoRoutes",
@@ -211,7 +211,7 @@ const domainRouters: DomainRouterConfig[] = [
 
   // Settings
   { name: "Settings", importPath: "../domains/settings/index.js", functionName: "registerSettingsRoutes",
-    getDeps: () => ({ storage, requireOrgId, generalApiRateLimit, writeOperationRateLimit }) },
+    getDeps: () => ({ requireOrgId, generalApiRateLimit, writeOperationRateLimit }) },
 
   // Permissions
   { name: "Permissions", importPath: "../domains/permissions/routes.js", functionName: "registerPermissionRoutes",
@@ -223,7 +223,7 @@ const domainRouters: DomainRouterConfig[] = [
 
   // Home Attention Summary
   { name: "Home", importPath: "../routes/home-routes.js", functionName: "registerHomeRoutes",
-    getDeps: () => ({ storage, generalApiRateLimit }) },
+    getDeps: () => ({ generalApiRateLimit }) },
 
   // KB Ask (unified search + analyze)
   { name: "KbAsk", importPath: "../routes/kb-ask-route.js", functionName: "registerKbAskRoute",

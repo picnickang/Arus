@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { withErrorHandling } from "../lib/route-utils";
 import { logger } from "../utils/logger";
+import { storage } from "../storage";
 
 function safeCall(fn: ((...args: any[]) => any) | undefined, ...args: any[]): Promise<any> {
   if (typeof fn !== "function") return Promise.resolve(null);
@@ -15,8 +16,8 @@ function safeCall(fn: ((...args: any[]) => any) | undefined, ...args: any[]): Pr
   }
 }
 
-export function registerHomeRoutes(app: Express, deps: { storage: any; generalApiRateLimit: any }) {
-  const { storage, generalApiRateLimit } = deps;
+export function registerHomeRoutes(app: Express, deps: { generalApiRateLimit: any }) {
+  const { generalApiRateLimit } = deps;
 
   app.get("/api/home/attention-summary", generalApiRateLimit,
     withErrorHandling("get home attention summary", async (req: Request, res: Response) => {
@@ -26,9 +27,9 @@ export function registerHomeRoutes(app: Express, deps: { storage: any; generalAp
       const lastVisitTime = sinceParam ? new Date(sinceParam) : null;
 
       const [workOrderSummary, alerts, pdmRiskQueue] = await Promise.allSettled([
-        safeCall(storage.getWorkOrderSummary?.bind(storage), orgId),
-        safeCall(storage.getAlertNotifications?.bind(storage), false, orgId),
-        safeCall(storage.getPdmRiskQueue?.bind(storage), orgId),
+        safeCall((storage as any).getWorkOrderSummary?.bind(storage), orgId),
+        safeCall((storage as any).getAlertNotifications?.bind(storage), false, orgId),
+        safeCall((storage as any).getPdmRiskQueue?.bind(storage), orgId),
       ]);
 
       const woData = workOrderSummary.status === "fulfilled" ? workOrderSummary.value : null;
@@ -46,9 +47,9 @@ export function registerHomeRoutes(app: Express, deps: { storage: any; generalAp
       if (lastVisitTime && !isNaN(lastVisitTime.getTime())) {
         try {
           const [recentAlerts, recentWOs, completedWOs] = await Promise.allSettled([
-            safeCall(storage.getAlertNotificationsSince?.bind(storage), orgId, lastVisitTime),
-            safeCall(storage.getWorkOrdersSince?.bind(storage), orgId, lastVisitTime, "created"),
-            safeCall(storage.getWorkOrdersSince?.bind(storage), orgId, lastVisitTime, "completed"),
+            safeCall((storage as any).getAlertNotificationsSince?.bind(storage), orgId, lastVisitTime),
+            safeCall((storage as any).getWorkOrdersSince?.bind(storage), orgId, lastVisitTime, "created"),
+            safeCall((storage as any).getWorkOrdersSince?.bind(storage), orgId, lastVisitTime, "completed"),
           ]);
 
           const recentAlertsVal = recentAlerts.status === "fulfilled" ? recentAlerts.value : null;

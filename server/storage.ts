@@ -368,11 +368,11 @@ function createStorageFacade() {
     updateVessel: (id: string, updates: any, orgId: string) => vesselService.updateVessel(id, updates, orgId),
     deleteVessel: (id: string, deleteEquipment?: boolean, orgId?: string) => vesselService.deleteVessel(id, orgId),
 
-    getPortCalls: (vesselId?: string, orgId?: string) => dbVesselStorage.getPortCalls(vesselId || '', orgId || ''),
+    getPortCalls: (vesselId?: string, orgId?: string) => vesselId && orgId ? dbVesselStorage.getPortCalls(vesselId, orgId) : dbVesselStorage.getAllPortCalls(orgId),
     createPortCall: (data: any) => dbVesselStorage.createPortCall(data),
     updatePortCall: (id: string, updates: any, orgId: string) => dbVesselStorage.updatePortCall(id, updates, orgId),
     deletePortCall: (id: string, orgId: string) => dbVesselStorage.deletePortCall(id, orgId),
-    getDrydockWindows: (orgId?: string, vesselId?: string) => dbVesselStorage.getDrydockWindows(vesselId || '', orgId || ''),
+    getDrydockWindows: (orgId?: string, vesselId?: string) => vesselId && orgId ? dbVesselStorage.getDrydockWindows(vesselId, orgId) : dbVesselStorage.getAllDrydockWindows(orgId),
     createDrydockWindow: (data: any) => dbVesselStorage.createDrydockWindow(data),
     updateDrydockWindow: (id: string, updates: any, orgId: string) => dbVesselStorage.updateDrydockWindow(id, updates, orgId),
     deleteDrydockWindow: (id: string, orgId: string) => dbVesselStorage.deleteDrydockWindow(id, orgId),
@@ -547,7 +547,7 @@ function createStorageFacade() {
     createReplaySession: (session: any) => analyticsInsightsAdapter.createReplaySession?.(session) ?? Promise.resolve(session),
 
     getAcousticHistory: (equipmentId: string, orgId?: string) => dbSensorsStorage.getAcousticHistory?.(equipmentId, orgId) ?? Promise.resolve([]),
-  } as any;
+  };
 }
 
 const storage = createStorageFacade();

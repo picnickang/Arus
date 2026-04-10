@@ -1,21 +1,23 @@
 import { Express, Request, Response, RequestHandler } from "express";
 import { insertSettingsSchema } from "@shared/schema-runtime";
 import { withErrorHandling, sendDeleted, sendCreated } from "../../lib/route-utils";
+import { dbSystemAdminStorage } from "../../db/system-admin/index.js";
+import { vesselService } from "../../services/domains/vessel-service";
+import { dbEquipmentStorage } from "../../db/equipment/index.js";
+import { analyticsInsightsAdapter } from "../../repositories";
 
 interface SettingsConfig {
-  storage: any;
   requireOrgId: RequestHandler;
   generalApiRateLimit: RequestHandler;
   writeOperationRateLimit: RequestHandler;
 }
 
 export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
-  const { storage, requireOrgId, writeOperationRateLimit } = config;
+  const { requireOrgId, writeOperationRateLimit } = config;
 
-  // System settings
   app.get("/api/settings", requireOrgId,
     withErrorHandling("fetch settings", async (_req: Request, res: Response) => {
-      const settings = await storage.getSettings();
+      const settings = await dbSystemAdminStorage.getSettings();
       res.json(settings);
     })
   );
@@ -23,7 +25,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
   app.put("/api/settings", requireOrgId, writeOperationRateLimit,
     withErrorHandling("update settings", async (req: Request, res: Response) => {
       const settingsData = insertSettingsSchema.partial().parse(req.body);
-      const settings = await storage.updateSettings(settingsData);
+      const settings = await dbSystemAdminStorage.updateSettings(settingsData);
       res.json(settings);
     })
   );
@@ -31,7 +33,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
   app.get("/api/settings/validate-openai-key", requireOrgId, writeOperationRateLimit,
     withErrorHandling("validate OpenAI API key", async (_req: Request, res: Response) => {
       try {
-        const settings = await storage.getSettings();
+        const settings = await dbSystemAdminStorage.getSettings();
         const dbKey = settings?.openaiApiKey || null;
         const envKey = process.env.OPENAI_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY || null;
         const effectiveKey = dbKey || envKey;
@@ -64,7 +66,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
           hasEnvKey: !!envKey,
         });
       } catch (error: any) {
-        const settings = await storage.getSettings();
+        const settings = await dbSystemAdminStorage.getSettings();
         const dbKey = settings?.openaiApiKey || null;
         const envKey = process.env.OPENAI_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY || null;
         const source = dbKey ? 'user_configured' : envKey ? 'environment' : null;
@@ -102,12 +104,11 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
     })
   );
 
-  // Context events (for AI/ML context)
   app.get("/api/context/events", requireOrgId,
     withErrorHandling("fetch context events", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
       const { equipmentId, eventType, limit } = req.query;
-      const events = await storage.getContextEvents?.({
+      const events = await analyticsInsightsAdapter.getContextEvents?.({
         orgId,
         equipmentId: equipmentId as string,
         eventType: eventType as string,
@@ -120,19 +121,18 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
   app.post("/api/context/events", requireOrgId, writeOperationRateLimit,
     withErrorHandling("create context event", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
-      const event = await storage.createContextEvent?.({ ...req.body, orgId });
+      const event = await analyticsInsightsAdapter.createContextEvent?.({ ...req.body, orgId });
       sendCreated(res, event || req.body);
     })
   );
 
   app.delete("/api/context/events/:id", requireOrgId, writeOperationRateLimit,
     withErrorHandling("delete context event", async (req: Request, res: Response) => {
-      await storage.deleteContextEvent?.(req.params.id);
+      await analyticsInsightsAdapter.deleteContextEvent?.(req.params.id);
       sendDeleted(res);
     })
   );
 
-  // Development utilities (only in non-production)
   if (process.env.NODE_ENV !== "production") {
     app.get("/api/dev/debug", requireOrgId,
       withErrorHandling("fetch debug info", async (_req: Request, res: Response) => {
@@ -166,12 +166,11 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
     );
   }
 
-  // Fleet management
   app.get("/api/fleet/summary", requireOrgId,
     withErrorHandling("fetch fleet summary", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
-      const vessels = await storage.getVessels(orgId);
-      const equipment = await storage.getEquipmentRegistry(orgId);
+      const vessels = await vesselService.getVessels(orgId);
+      const equipment = await dbEquipmentStorage.getEquipmentRegistry(orgId);
 
       const summary = {
         vesselCount: vessels.length,
@@ -187,7 +186,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
   app.get("/api/fleet/status", requireOrgId,
     withErrorHandling("fetch fleet status", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
-      const vessels = await storage.getVessels(orgId);
+      const vessels = await vesselService.getVessels(orgId);
 
       const status = vessels.map((vessel: any) => ({
         id: vessel.id,
@@ -200,11 +199,10 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
     })
   );
 
-  // Telemetry replay (for debugging/analysis)
   app.get("/api/replay/sessions", requireOrgId,
     withErrorHandling("fetch replay sessions", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
-      const sessions = await storage.getReplaySessions?.(orgId);
+      const sessions = await analyticsInsightsAdapter.getReplaySessions?.(orgId);
       res.json(sessions ?? []);
     })
   );
@@ -212,7 +210,7 @@ export function registerSettingsRoutes(app: Express, config: SettingsConfig) {
   app.post("/api/replay/sessions", requireOrgId, writeOperationRateLimit,
     withErrorHandling("create replay session", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
-      const session = await storage.createReplaySession?.({ ...req.body, orgId });
+      const session = await analyticsInsightsAdapter.createReplaySession?.({ ...req.body, orgId });
       sendCreated(res, session || req.body);
     })
   );
