@@ -8,7 +8,9 @@ import { withErrorHandling, sendCreated } from "../../../lib/route-utils.js";
 import { logger } from "../../../utils/logger.js";
 import { dbTelemetryStorage } from "../../../repositories.js";
 
-const telemetryWriter = { createTelemetryReading: (r: any) => dbTelemetryStorage.createTelemetryReading(r) } as any;
+const telemetryWriter = {
+  createTelemetryReading: dbTelemetryStorage.createTelemetryReading.bind(dbTelemetryStorage),
+};
 
 export function registerSimulationRoutes(app: Express, deps: SystemAdminDependencies): void {
   const {
