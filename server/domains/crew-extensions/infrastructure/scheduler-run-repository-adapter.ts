@@ -48,7 +48,7 @@ export class SchedulerRunRepositoryAdapter implements ISchedulerRunRepository {
   }
 
   async findByOrgId(orgId: string, limit?: number): Promise<SchedulerRunEntity[]> {
-    const runs = await dbSchedulerStorage.getSchedulerRuns(orgId, limit);
+    const runs = await dbSchedulerStorage.getSchedulerRuns(orgId, undefined, limit);
     return runs.map(mapToEntity);
   }
 

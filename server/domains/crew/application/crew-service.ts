@@ -203,7 +203,7 @@ export class CrewApplicationService {
 
   // Assignments - delegated to storage
   async listAssignments(orgId?: string, vesselId?: string, crewId?: string) {
-    return dbCrewStorage.getCrewAssignments(orgId, vesselId, crewId);
+    return dbCrewStorage.getCrewAssignments(orgId, { vesselId, crewId });
   }
 
   async createAssignment(data: any, userId?: string) {

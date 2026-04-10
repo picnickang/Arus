@@ -63,7 +63,7 @@ export async function evaluateCrewChangeReminders(ctx: EvaluationContext): Promi
   const results: CrewAlertResult[] = [];
 
   for (const vessel of vessels) {
-    const assignments = await dbCrewStorage.getCrewAssignments(ctx.orgId, undefined, vessel.id);
+    const assignments = await dbCrewStorage.getCrewAssignments(ctx.orgId, { vesselId: vessel.id });
     for (const assignment of assignments) {
       const alert = processAssignment(assignment, vessel.id, now, reminderDays);
       if (alert) {results.push(alert);}

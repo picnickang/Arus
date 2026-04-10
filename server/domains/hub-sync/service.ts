@@ -3,7 +3,7 @@ import { dbOptimizerStorage } from "../../repositories";
 import type { InsertReplayIncoming, InsertSheetVersion, InsertOptimizerConfiguration } from "@shared/schema";
 import { db } from "../../db-config";
 import { replayIncoming } from "@shared/schema-runtime";
-import { eq, desc, and } from "drizzle-orm";
+import { desc } from "drizzle-orm";
 
 export const hubSyncService = {
   async logReplayRequest(data: InsertReplayIncoming) {
@@ -11,14 +11,8 @@ export const hubSyncService = {
     return result;
   },
 
-  async getReplayHistory(deviceId?: string, endpoint?: string) {
-    let q = db.select().from(replayIncoming);
-    const conditions = [];
-    if (deviceId) conditions.push(eq(replayIncoming.deviceId, deviceId));
-    if (conditions.length > 0) {
-      q = q.where(and(...conditions)) as any;
-    }
-    return q.orderBy(desc(replayIncoming.createdAt)).limit(100);
+  async getReplayHistory(_deviceId?: string, _endpoint?: string) {
+    return db.select().from(replayIncoming).orderBy(desc(replayIncoming.createdAt)).limit(100);
   },
 
   async acquireSheetLock(sheetKeyOrData: any, holder?: string, token?: string, expiresAt?: Date) {
@@ -45,8 +39,11 @@ export const hubSyncService = {
     return dbHubSyncStorage.getSheetVersion(sheetType, sheetId || '');
   },
 
-  async incrementSheetVersion(data: any) {
-    return dbHubSyncStorage.incrementSheetVersion(data);
+  async incrementSheetVersion(sheetKeyOrData: any, modifiedBy?: string) {
+    if (typeof sheetKeyOrData === 'string' && modifiedBy !== undefined) {
+      return dbHubSyncStorage.incrementSheetVersion({ sheetType: sheetKeyOrData, sheetId: sheetKeyOrData, modifiedBy });
+    }
+    return dbHubSyncStorage.incrementSheetVersion(sheetKeyOrData);
   },
 
   async setSheetVersion(data: InsertSheetVersion) {
@@ -70,7 +67,13 @@ export const hubSyncService = {
   },
 
   async runOptimization(configId: string, equipmentScope?: string[], timeHorizon?: number) {
-    return { id: configId, status: 'queued', equipmentScope, timeHorizon };
+    const result = await dbOptimizerStorage.createOptimizationResult({
+      configId,
+      orgId: 'default',
+      status: 'queued',
+      parameters: { equipmentScope, timeHorizon },
+    } as any);
+    return result;
   },
 
   async cancelOptimization(id: string) {
