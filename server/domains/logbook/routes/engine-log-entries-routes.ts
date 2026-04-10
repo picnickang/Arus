@@ -5,7 +5,7 @@
  */
 
 import type { Express } from "express";
-import { storage } from "../../../storage";
+import { engineLogStorage } from "../../../repositories";
 import type { RateLimiters, EventFilters } from "./types";
 import { validateUUID } from "../../../utils/validation";
 import { withErrorHandling, sendNotFound, sendDeleted, sendCreated } from "../../../lib/route-utils";
@@ -16,7 +16,7 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
   app.get("/api/logbook/engine/daily/:dailyLogId/hourly",
     withErrorHandling("get engine log hourly entries", async (req, res) => {
       const orgId = req.orgId;
-      const entries = await storage.getEngineLogHourly(req.params.dailyLogId, orgId);
+      const entries = await engineLogStorage.getEngineLogHourly(req.params.dailyLogId, orgId);
       res.json(entries);
     })
   );
@@ -24,7 +24,7 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
   app.put("/api/logbook/engine/hourly", writeOperationRateLimit,
     withErrorHandling("save engine log hourly entry", async (req, res) => {
       const orgId = req.orgId;
-      const entry = await storage.upsertEngineLogHourly({
+      const entry = await engineLogStorage.upsertEngineLogHourly({
         ...req.body,
         orgId,
       });
@@ -43,7 +43,7 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
       }
       
       const withOrgId = entries.map(e => ({ ...e, orgId }));
-      const results = await storage.bulkUpsertEngineLogHourly(withOrgId);
+      const results = await engineLogStorage.bulkUpsertEngineLogHourly(withOrgId);
       res.json(results);
     })
   );
@@ -51,7 +51,7 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
   app.delete("/api/logbook/engine/hourly/:id", writeOperationRateLimit,
     withErrorHandling("delete engine log hourly entry", async (req, res) => {
       const orgId = req.orgId;
-      await storage.deleteEngineLogHourly(req.params.id, orgId);
+      await engineLogStorage.deleteEngineLogHourly(req.params.id, orgId);
       sendDeleted(res);
     })
   );
@@ -59,7 +59,7 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
   app.get("/api/logbook/engine/daily/:dailyLogId/generators",
     withErrorHandling("get engine log generator entries", async (req, res) => {
       const orgId = req.orgId;
-      const entries = await storage.getEngineLogGenerator(req.params.dailyLogId, orgId);
+      const entries = await engineLogStorage.getEngineLogGenerator(req.params.dailyLogId, orgId);
       res.json(entries);
     })
   );
@@ -67,7 +67,7 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
   app.put("/api/logbook/engine/generator", writeOperationRateLimit,
     withErrorHandling("save engine log generator entry", async (req, res) => {
       const orgId = req.orgId;
-      const entry = await storage.upsertEngineLogGenerator({
+      const entry = await engineLogStorage.upsertEngineLogGenerator({
         ...req.body,
         orgId,
       });
@@ -86,7 +86,7 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
       }
       
       const withOrgId = entries.map(e => ({ ...e, orgId }));
-      const results = await storage.bulkUpsertEngineLogGenerator(withOrgId);
+      const results = await engineLogStorage.bulkUpsertEngineLogGenerator(withOrgId);
       res.json(results);
     })
   );
@@ -94,7 +94,7 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
   app.delete("/api/logbook/engine/generator/:id", writeOperationRateLimit,
     withErrorHandling("delete engine log generator entry", async (req, res) => {
       const orgId = req.orgId;
-      await storage.deleteEngineLogGenerator(req.params.id, orgId);
+      await engineLogStorage.deleteEngineLogGenerator(req.params.id, orgId);
       sendDeleted(res);
     })
   );
@@ -102,7 +102,7 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
   app.get("/api/logbook/engine/daily/:dailyLogId/watches",
     withErrorHandling("get engine log watches", async (req, res) => {
       const orgId = req.orgId;
-      const watches = await storage.getEngineLogWatch(req.params.dailyLogId, orgId);
+      const watches = await engineLogStorage.getEngineLogWatch(req.params.dailyLogId, orgId);
       res.json(watches);
     })
   );
@@ -110,7 +110,7 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
   app.put("/api/logbook/engine/watch", writeOperationRateLimit,
     withErrorHandling("save engine log watch assignment", async (req, res) => {
       const orgId = req.orgId;
-      const watch = await storage.upsertEngineLogWatch({
+      const watch = await engineLogStorage.upsertEngineLogWatch({
         ...req.body,
         orgId,
       });
@@ -121,7 +121,7 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
   app.delete("/api/logbook/engine/watch/:id", writeOperationRateLimit,
     withErrorHandling("delete engine log watch assignment", async (req, res) => {
       const orgId = req.orgId;
-      await storage.deleteEngineLogWatch(req.params.id, orgId);
+      await engineLogStorage.deleteEngineLogWatch(req.params.id, orgId);
       sendDeleted(res);
     })
   );
@@ -137,7 +137,7 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
         endTime: req.query.endTime ? new Date(req.query.endTime as string) : undefined,
       };
       
-      const events = await storage.getEngineLogEvents(dayId, orgId, filters);
+      const events = await engineLogStorage.getEngineLogEvents(dayId, orgId, filters);
       res.json(events);
     })
   );
@@ -145,7 +145,7 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
   app.get("/api/logbook/engine/events/:id",
     withErrorHandling("get engine log event", async (req, res) => {
       const orgId = req.orgId;
-      const event = await storage.getEngineLogEventById(req.params.id, orgId);
+      const event = await engineLogStorage.getEngineLogEventById(req.params.id, orgId);
       
       if (!event) {
         sendNotFound(res, "Event");
@@ -160,7 +160,7 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
     withErrorHandling("create engine log event", async (req, res) => {
       const orgId = req.orgId;
       
-      const day = await storage.getEngineLogDailyById(req.body.dayId, orgId);
+      const day = await engineLogStorage.getEngineLogDailyById(req.body.dayId, orgId);
       if (!day) {
         sendNotFound(res, "Engine log day");
         return;
@@ -171,7 +171,7 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
         return;
       }
       
-      const event = await storage.createEngineLogEvent({
+      const event = await engineLogStorage.createEngineLogEvent({
         ...req.body,
         orgId,
       });
@@ -185,19 +185,19 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
       const id = req.params.id;
       if (!validateUUID(id, res)) {return;}
       
-      const existingEvent = await storage.getEngineLogEventById(id, orgId);
+      const existingEvent = await engineLogStorage.getEngineLogEventById(id, orgId);
       if (!existingEvent) {
         sendNotFound(res, "Event");
         return;
       }
       
-      const day = await storage.getEngineLogDailyById(existingEvent.dayId, orgId);
+      const day = await engineLogStorage.getEngineLogDailyById(existingEvent.dayId, orgId);
       if (day?.status === 'locked') {
         res.status(403).json({ error: "Cannot modify events in a locked engine log" });
         return;
       }
       
-      const event = await storage.updateEngineLogEvent(id, req.body, orgId);
+      const event = await engineLogStorage.updateEngineLogEvent(id, req.body, orgId);
       res.json(event);
     })
   );
@@ -206,19 +206,19 @@ export function registerEngineLogEntriesRoutes(app: Express, rateLimit: RateLimi
     withErrorHandling("delete engine log event", async (req, res) => {
       const orgId = req.orgId;
       
-      const existingEvent = await storage.getEngineLogEventById(req.params.id, orgId);
+      const existingEvent = await engineLogStorage.getEngineLogEventById(req.params.id, orgId);
       if (!existingEvent) {
         sendNotFound(res, "Event");
         return;
       }
       
-      const day = await storage.getEngineLogDailyById(existingEvent.dayId, orgId);
+      const day = await engineLogStorage.getEngineLogDailyById(existingEvent.dayId, orgId);
       if (day?.status === 'locked') {
         res.status(403).json({ error: "Cannot delete events from a locked engine log" });
         return;
       }
       
-      await storage.deleteEngineLogEvent(req.params.id, orgId);
+      await engineLogStorage.deleteEngineLogEvent(req.params.id, orgId);
       sendDeleted(res);
     })
   );

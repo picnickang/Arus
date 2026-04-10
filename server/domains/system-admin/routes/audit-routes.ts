@@ -5,10 +5,10 @@
 
 import { Express, Request, Response, SystemAdminDependencies } from "./types.js";
 import { withErrorHandling, sendCreated } from "../../../lib/route-utils.js";
+import { dbSystemAdminStorage } from "../../../db/system-admin/index.js";
 
 export function registerAuditRoutes(app: Express, deps: SystemAdminDependencies): void {
   const {
-    storage,
     generalApiRateLimit,
     writeOperationRateLimit,
     requireAdminAuth,
@@ -23,7 +23,7 @@ export function registerAuditRoutes(app: Express, deps: SystemAdminDependencies)
     auditAdminAction("VIEW_AUDIT_EVENTS"),
     withErrorHandling("fetch admin audit events", async (req: Request, res: Response) => {
       const { orgId, action, limit } = req.query;
-      const events = await storage.getAdminAuditEvents(
+      const events = await dbSystemAdminStorage.getAdminAuditEvents(
         orgId as string,
         action as string,
         limit ? Number.parseInt(limit as string) : undefined
@@ -39,7 +39,7 @@ export function registerAuditRoutes(app: Express, deps: SystemAdminDependencies)
     auditAdminAction("CREATE_AUDIT_EVENT"),
     withErrorHandling("create admin audit event", async (req: Request, res: Response) => {
       const validatedData = insertAdminAuditEventSchema.parse(req.body);
-      const event = await storage.createAdminAuditEvent(validatedData);
+      const event = await dbSystemAdminStorage.createAdminAuditEvent(validatedData);
       sendCreated(res, event);
     })
   );
@@ -52,7 +52,7 @@ export function registerAuditRoutes(app: Express, deps: SystemAdminDependencies)
     withErrorHandling("fetch user audit events", async (req: Request, res: Response) => {
       const { userId } = req.params;
       const { orgId } = req.query;
-      const events = await storage.getAuditEventsByUser(userId, orgId as string);
+      const events = await dbSystemAdminStorage.getAuditEventsByUser(userId, orgId as string);
       res.json(events);
     })
   );
@@ -65,7 +65,7 @@ export function registerAuditRoutes(app: Express, deps: SystemAdminDependencies)
     withErrorHandling("fetch resource audit events", async (req: Request, res: Response) => {
       const { resourceType, resourceId } = req.params;
       const { orgId } = req.query;
-      const events = await storage.getAuditEventsByResource(
+      const events = await dbSystemAdminStorage.getAuditEventsByResource(
         resourceType,
         resourceId,
         orgId as string

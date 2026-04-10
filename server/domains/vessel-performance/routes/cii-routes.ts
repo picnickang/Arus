@@ -5,9 +5,9 @@
 import type { Express, Request, Response } from "express";
 import type { VesselPerformanceRoutesConfig } from "./types.js";
 import { withErrorHandling } from "../../../lib/route-utils.js";
+import { storage } from "../../../storage.js";
 
 export function registerCIIRoutes(app: Express, config: VesselPerformanceRoutesConfig): void {
-  const { storage } = config;
 
   app.get("/api/compliance/cii/:vesselId", withErrorHandling("calculate CII rating", async (req: Request, res: Response) => {
     const { vesselId } = req.params, orgId = req.headers["x-org-id"] as string;

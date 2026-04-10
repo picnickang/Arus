@@ -9,10 +9,10 @@ import { z } from "zod";
 import { withErrorHandling, handleApiError } from "../../../lib/route-utils";
 import { StcwRestDependencies, RestDay, rangeQuerySchema } from "./types";
 import { logger } from "../../../utils/logger.js";
+import { dbStcwStorage } from "../../../db/stcw/index.js";
 
 export function registerRangeRoutes(app: Express, deps: StcwRestDependencies): void {
   const {
-    storage,
     incrementRangeQuery,
     recordRangeQueryDuration,
   } = deps;
@@ -52,7 +52,7 @@ export function registerRangeRoutes(app: Express, deps: StcwRestDependencies): v
             const month = current.getMonth() + 1;
 
             try {
-              const restData = await storage.getCrewRestMonth(crewId, year, month);
+              const restData = await dbStcwStorage.getCrewRestMonth(crewId, year, month);
               if (restData.days && restData.days.length > 0) {
                 const filteredDays = restData.days.filter((day: RestDay) => {
                   const dayDate = new Date(day.date);
@@ -101,7 +101,7 @@ export function registerRangeRoutes(app: Express, deps: StcwRestDependencies): v
 
       incrementRangeQuery("crew_range", crewId);
 
-      const result = await storage.getCrewRestRange(crewId, startDate, endDate);
+      const result = await dbStcwStorage.getCrewRestRange(crewId, startDate, endDate);
 
       recordRangeQueryDuration("crew_range", Date.now() - startTime);
 
@@ -123,7 +123,7 @@ export function registerRangeRoutes(app: Express, deps: StcwRestDependencies): v
 
       incrementRangeQuery("vessel_crew", vesselId);
 
-      const result = await storage.getVesselCrewRest(vesselId, Number.parseInt(year), month);
+      const result = await dbStcwStorage.getVesselCrewRest(vesselId, Number.parseInt(year), month);
 
       recordRangeQueryDuration("vessel_crew", Date.now() - startTime);
 
@@ -139,7 +139,7 @@ export function registerRangeRoutes(app: Express, deps: StcwRestDependencies): v
 
       incrementRangeQuery("advanced_search", vesselId || "fleet");
 
-      const result = await storage.getCrewRestByDateRange(
+      const result = await dbStcwStorage.getCrewRestByDateRange(
         vesselId || "",
         startDate,
         endDate,

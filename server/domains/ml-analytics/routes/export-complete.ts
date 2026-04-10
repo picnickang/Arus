@@ -7,9 +7,10 @@
 import type { Express } from "express";
 import type { MlAnalyticsConfig } from "./types.js";
 import { logger } from "../../../utils/logger.js";
+import { dbMlAnalyticsStorage, dbDevicesStorage } from "../../../repositories.js";
 
 export function registerExportCompleteRoutes(app: Express, config: MlAnalyticsConfig) {
-  const { storage, adaptiveTrainingWindow } = config;
+  const { adaptiveTrainingWindow } = config;
 
   app.get("/api/analytics/export/ml-pdm-complete", async (req, res) => {
     try {
@@ -30,11 +31,11 @@ export function registerExportCompleteRoutes(app: Express, config: MlAnalyticsCo
         pdmScores,
         telemetryData,
       ] = await Promise.all([
-        storage.getMlModels(orgId as string),
-        storage.getFailurePredictions(orgId as string),
-        storage.getAnomalyDetections(orgId as string),
-        storage.getThresholdOptimizations(orgId as string),
-        storage.getPdmScores(),
+        dbMlAnalyticsStorage.getMlModels(orgId as string),
+        dbMlAnalyticsStorage.getFailurePredictions(orgId as string),
+        dbMlAnalyticsStorage.getAnomalyDetections(orgId as string),
+        dbMlAnalyticsStorage.getThresholdOptimizations(orgId as string),
+        dbDevicesStorage.getPdmScores(),
         db
           .select({
             id: rawTelemetry.id,

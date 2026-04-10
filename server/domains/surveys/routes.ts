@@ -31,9 +31,9 @@ const updateSurveySchema = z.object({
 
 export function registerSurveyRoutes(
   app: Express,
-  deps: { storage: any; generalApiRateLimit: any; writeOperationRateLimit: any }
+  deps: { generalApiRateLimit: any; writeOperationRateLimit: any }
 ): void {
-  const { storage, generalApiRateLimit, writeOperationRateLimit } = deps;
+  const { generalApiRateLimit, writeOperationRateLimit } = deps;
 
   app.get("/api/surveys", generalApiRateLimit,
     withErrorHandling("list surveys", async (req: Request, res: Response) => {

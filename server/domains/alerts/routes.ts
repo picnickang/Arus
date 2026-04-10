@@ -247,10 +247,10 @@ export function registerAlertsRoutes(
 
         const escalationData = escalationSchema.parse(req.body);
 
-        const { storage } = await import("../../storage");
+        const { workOrderService } = await import("../../repositories");
 
         const createWorkOrderFn = async (data: any) => {
-          const workOrder = await storage.createWorkOrder(data);
+          const workOrder = await workOrderService.createWorkOrder(data);
 
           if (wsServerInstance) {
             wsServerInstance.broadcastWorkOrderCreated(workOrder);

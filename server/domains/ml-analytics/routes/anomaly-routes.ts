@@ -11,9 +11,10 @@ import { logger } from "../../../utils/logger.js";
 import type { MlAnalyticsConfig } from "./types.js";
 import type { AuthenticatedRequest } from "../../../middleware/auth";
 import { domainEventBus, createDomainEvent } from "../../../lib/domain-event-bus/index.js";
+import { dbMlAnalyticsStorage, dbEquipmentStorage } from "../../../repositories.js";
 
 export function registerAnomalyRoutes(app: Express, config: MlAnalyticsConfig) {
-  const { storage, writeOperationRateLimit } = config;
+  const { writeOperationRateLimit } = config;
 
   app.get("/api/analytics/anomaly-detections",
     withErrorHandling("fetch anomaly detections", async (req, res) => {
@@ -21,7 +22,7 @@ export function registerAnomalyRoutes(app: Express, config: MlAnalyticsConfig) {
       if (!orgId) {
         return res.status(400).json({ message: "orgId is required" });
       }
-      const detections = await storage.getAnomalyDetections(
+      const detections = await dbMlAnalyticsStorage.getAnomalyDetections(
         orgId as string,
         equipmentId as string,
         severity as string
@@ -37,7 +38,7 @@ export function registerAnomalyRoutes(app: Express, config: MlAnalyticsConfig) {
       if (!orgId) {
         return res.status(400).json({ message: "orgId is required" });
       }
-      const detection = await storage.getAnomalyDetection(Number.parseInt(req.params.id), orgId as string);
+      const detection = await dbMlAnalyticsStorage.getAnomalyDetection(Number.parseInt(req.params.id), orgId as string);
       if (!detection) {
         return sendNotFound(res, "Anomaly detection");
       }
@@ -53,11 +54,11 @@ export function registerAnomalyRoutes(app: Express, config: MlAnalyticsConfig) {
         return res.status(400).json({ message: "orgId is required" });
       }
       const validatedData = insertAnomalyDetectionSchema.parse(detectionData);
-      const detection = await storage.createAnomalyDetection(validatedData, orgId);
+      const detection = await dbMlAnalyticsStorage.createAnomalyDetection(validatedData, orgId);
 
       if (detection.severity === "high" || detection.severity === "critical") {
         try {
-          const equipment = await storage.getEquipment(orgId as string, detection.equipmentId);
+          const equipment = await dbEquipmentStorage.getEquipment(orgId as string, detection.equipmentId);
           if (equipment) {
             domainEventBus.emit("pdm.anomaly.created", createDomainEvent("pdm.anomaly.created", orgId as string, {
               vesselId: equipment.vesselId || "unknown",
@@ -85,7 +86,7 @@ export function registerAnomalyRoutes(app: Express, config: MlAnalyticsConfig) {
       if (!orgId) {
         return res.status(400).json({ message: "orgId is required" });
       }
-      const detection = await storage.acknowledgeAnomaly(Number.parseInt(req.params.id), acknowledgedBy, orgId);
+      const detection = await dbMlAnalyticsStorage.acknowledgeAnomaly(Number.parseInt(req.params.id), acknowledgedBy, orgId);
       const { normalizeAnomalyDetection } = await import("../../../analytics-data-normalizer.js");
       res.json(normalizeAnomalyDetection(detection));
     })

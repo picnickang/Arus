@@ -7,14 +7,14 @@ import type { Express, Response } from "express";
 import { insertShiftTemplateSchema } from "@shared/schema";
 import type { CrewExtensionsRoutesConfig, AuthenticatedRequest } from "./types.js";
 import { withErrorHandling } from "../../../lib/route-utils.js";
+import { dbCrewStorage } from "../../../db/crew/index.js";
 
 export function registerShiftsRoutes(app: Express, config: CrewExtensionsRoutesConfig) {
-  const { storage } = config;
 
   app.get("/api/shifts",
     withErrorHandling("fetch shift templates", async (req: AuthenticatedRequest, res: Response) => {
       const { vessel_id } = req.query;
-      const shifts = await storage.getShiftTemplates(vessel_id as string | undefined);
+      const shifts = await dbCrewStorage.getShiftTemplates(vessel_id as string | undefined);
       const orgId = req.orgId;
       const filtered = orgId ? shifts.filter((s: any) => !s.orgId || s.orgId === orgId) : shifts;
       res.json(filtered);
@@ -25,7 +25,7 @@ export function registerShiftsRoutes(app: Express, config: CrewExtensionsRoutesC
     withErrorHandling("create shift template", async (req: AuthenticatedRequest, res: Response) => {
       const orgId = req.orgId!;
       const shiftData = insertShiftTemplateSchema.parse({ ...req.body, orgId });
-      const shift = await storage.createShiftTemplate(shiftData);
+      const shift = await dbCrewStorage.createShiftTemplate(shiftData);
       res.json(shift);
     })
   );
@@ -35,7 +35,7 @@ export function registerShiftsRoutes(app: Express, config: CrewExtensionsRoutesC
       const orgId = req.orgId!;
       const shiftData = insertShiftTemplateSchema.partial().parse(req.body);
       const { orgId: _discard, ...updates } = shiftData;
-      const shift = await storage.updateShiftTemplate(req.params.id, updates, orgId);
+      const shift = await dbCrewStorage.updateShiftTemplate(req.params.id, updates, orgId);
       res.json(shift);
     })
   );
@@ -43,7 +43,7 @@ export function registerShiftsRoutes(app: Express, config: CrewExtensionsRoutesC
   app.delete("/api/shifts/:id",
     withErrorHandling("delete shift template", async (req: AuthenticatedRequest, res: Response) => {
       const orgId = req.orgId!;
-      await storage.deleteShiftTemplate(req.params.id, orgId);
+      await dbCrewStorage.deleteShiftTemplate(req.params.id, orgId);
       res.json({ success: true });
     })
   );

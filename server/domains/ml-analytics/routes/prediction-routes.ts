@@ -11,9 +11,10 @@ import { logger } from "../../../utils/logger.js";
 import type { MlAnalyticsConfig } from "./types.js";
 import type { AuthenticatedRequest } from "../../../middleware/auth";
 import { domainEventBus, createDomainEvent } from "../../../lib/domain-event-bus/index.js";
+import { dbMlAnalyticsStorage, dbEquipmentStorage } from "../../../repositories.js";
 
 export function registerPredictionRoutes(app: Express, config: MlAnalyticsConfig) {
-  const { storage, writeOperationRateLimit } = config;
+  const { writeOperationRateLimit } = config;
 
   app.get("/api/analytics/failure-predictions",
     withErrorHandling("fetch failure predictions", async (req, res) => {
@@ -21,7 +22,7 @@ export function registerPredictionRoutes(app: Express, config: MlAnalyticsConfig
       if (!orgId) {
         return res.status(400).json({ message: "orgId is required" });
       }
-      const predictions = await storage.getFailurePredictions(
+      const predictions = await dbMlAnalyticsStorage.getFailurePredictions(
         orgId as string,
         equipmentId as string,
         riskLevel as string
@@ -37,7 +38,7 @@ export function registerPredictionRoutes(app: Express, config: MlAnalyticsConfig
       if (!orgId) {
         return res.status(400).json({ message: "orgId is required" });
       }
-      const prediction = await storage.getFailurePrediction(Number.parseInt(req.params.id), orgId as string);
+      const prediction = await dbMlAnalyticsStorage.getFailurePrediction(Number.parseInt(req.params.id), orgId as string);
       if (!prediction) {
         return sendNotFound(res, "Failure prediction");
       }
@@ -53,10 +54,10 @@ export function registerPredictionRoutes(app: Express, config: MlAnalyticsConfig
         return res.status(400).json({ message: "orgId is required" });
       }
       const validatedData = insertFailurePredictionSchema.parse(predictionData);
-      const prediction = await storage.createFailurePrediction(validatedData, orgId);
+      const prediction = await dbMlAnalyticsStorage.createFailurePrediction(validatedData, orgId);
 
       try {
-        const equipment = await storage.getEquipment(orgId as string, validatedData.equipmentId);
+        const equipment = await dbEquipmentStorage.getEquipment(orgId as string, validatedData.equipmentId);
         if (equipment) {
           const remainingDays = validatedData.predictedFailureDate
             ? Math.max(

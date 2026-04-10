@@ -9,22 +9,23 @@ import { insertSensorStateSchema } from "@shared/schema-runtime";
 import type { SensorManagementConfig } from "./types.js";
 import { withErrorHandling, sendNotFound, sendCreated } from "../../../lib/route-utils.js";
 import type { AuthenticatedRequest } from "../../../middleware/auth";
+import { dbSensorsStorage } from "../../../db/sensors/index.js";
 
 export function registerSensorStatusRoutes(app: Express, config: SensorManagementConfig) {
-  const { storage, requireOrgId } = config;
+  const { requireOrgId } = config;
 
   app.get("/api/sensor-configs/status", requireOrgId,
     withErrorHandling("fetch sensor status", async (req, res) => {
       const { equipmentId } = z.object({ equipmentId: z.string().optional() }).parse(req.query);
       const orgId = (req as AuthenticatedRequest).orgId;
-      const sensorConfigs = await storage.getSensorConfigurations(orgId, equipmentId);
+      const sensorConfigs = await dbSensorsStorage.getSensorConfigurations(orgId, equipmentId);
       const DEFAULT_THRESHOLD_MS = 5 * 60 * 1000;
       const now = new Date();
       const sensors = sensorConfigs.map((config: any) => ({
         equipmentId: config.equipmentId,
         sensorType: config.sensorType
       }));
-      const telemetryResults = await storage.getLatestTelemetryForSensors(sensors, orgId);
+      const telemetryResults = await dbSensorsStorage.getLatestTelemetryForSensors(sensors, orgId);
       const telemetryMap = new Map(
         telemetryResults.map((result: any) => [`${result.equipmentId}:${result.sensorType}`, result])
       );
@@ -64,7 +65,7 @@ export function registerSensorStatusRoutes(app: Express, config: SensorManagemen
     withErrorHandling("fetch sensor state", async (req, res) => {
       const { equipmentId, sensorType } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
-      const state = await storage.getSensorState(equipmentId, sensorType, orgId);
+      const state = await dbSensorsStorage.getSensorState(equipmentId, sensorType, orgId);
       if (!state) {
         return sendNotFound(res, "Sensor state");
       }
@@ -76,7 +77,7 @@ export function registerSensorStatusRoutes(app: Express, config: SensorManagemen
     withErrorHandling("create/update sensor state", async (req, res) => {
       const stateData = insertSensorStateSchema.parse(req.body);
       const orgId = (req as AuthenticatedRequest).orgId;
-      const sensorState = await storage.upsertSensorState({ ...stateData, orgId });
+      const sensorState = await dbSensorsStorage.upsertSensorState({ ...stateData, orgId });
       sendCreated(res, sensorState);
     })
   );

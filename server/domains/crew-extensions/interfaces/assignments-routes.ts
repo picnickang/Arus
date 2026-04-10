@@ -10,6 +10,8 @@ import { planShifts } from "../../../crew-scheduler.js";
 import type { CrewExtensionsRoutesConfig, AuthenticatedRequest } from "./types.js";
 import { withErrorHandling, sendNotFound } from "../../../lib/route-utils.js";
 import { sendBadRequest } from "../../../lib/api-helpers.js";
+import { dbCrewStorage } from "../../../db/crew/index.js";
+import { vesselService } from "../../../services/domains/vessel-service.js";
 
 // Schema for schedule planner assignment input
 const createScheduleAssignmentSchema = z.object({
@@ -35,7 +37,7 @@ const updateScheduleAssignmentSchema = z.object({
 });
 
 export function registerAssignmentsRoutes(app: Express, config: CrewExtensionsRoutesConfig) {
-  const { storage, crewOperationRateLimit } = config;
+  const { crewOperationRateLimit } = config;
 
   // Schedule planner assignments endpoint - returns assignments in timeline format
   app.get("/api/crew-extensions/assignments",
@@ -44,16 +46,15 @@ export function registerAssignmentsRoutes(app: Express, config: CrewExtensionsRo
       const { from, to, vesselId } = req.query;
       
       // Get assignments from storage with org isolation
-      const allAssignments = await storage.getCrewAssignments(
+      const allAssignments = await dbCrewStorage.getCrewAssignments(
         undefined, // date - we'll filter by range instead
         undefined, // crew_id
         vesselId as string | undefined
       );
       
-      // Get crew and vessels for name lookups
       const [crewMembers, vessels] = await Promise.all([
-        storage.getCrew(),
-        storage.getVessels(),
+        dbCrewStorage.getCrew(),
+        vesselService.getVessels(),
       ]);
       
       // Create lookup maps
@@ -100,7 +101,7 @@ export function registerAssignmentsRoutes(app: Express, config: CrewExtensionsRo
       const orgId = req.orgId!;
       const validated = createScheduleAssignmentSchema.parse(req.body);
       
-      const assignment = await storage.createCrewAssignment({
+      const assignment = await dbCrewStorage.createCrewAssignment({
         orgId,
         date: validated.startDate,
         crewId: validated.crewId,
@@ -153,7 +154,7 @@ export function registerAssignmentsRoutes(app: Express, config: CrewExtensionsRo
       if (validated.crewId) storageUpdates.crewId = validated.crewId;
       if (validated.vesselId !== undefined) storageUpdates.vesselId = validated.vesselId;
       
-      const assignment = await storage.updateCrewAssignment(id, storageUpdates, orgId);
+      const assignment = await dbCrewStorage.updateCrewAssignment(id, storageUpdates, orgId);
       
       res.json({
         id: assignment.id,
@@ -173,7 +174,7 @@ export function registerAssignmentsRoutes(app: Express, config: CrewExtensionsRo
       const orgId = req.orgId!;
       const { id } = req.params;
       
-      await storage.deleteCrewAssignment(id, orgId);
+      await dbCrewStorage.deleteCrewAssignment(id, orgId);
       res.json({ success: true });
     })
   );
@@ -181,7 +182,7 @@ export function registerAssignmentsRoutes(app: Express, config: CrewExtensionsRo
   app.get("/api/crew/assignments",
     withErrorHandling("fetch crew assignments", async (req: Request, res: Response) => {
       const { date, crew_id, vessel_id } = req.query;
-      const assignments = await storage.getCrewAssignments(
+      const assignments = await dbCrewStorage.getCrewAssignments(
         date as string | undefined,
         crew_id as string | undefined,
         vessel_id as string | undefined
@@ -193,7 +194,7 @@ export function registerAssignmentsRoutes(app: Express, config: CrewExtensionsRo
   app.post("/api/crew/assignments",
     withErrorHandling("create crew assignment", async (req: Request, res: Response) => {
       const assignmentData = insertCrewAssignmentSchema.parse(req.body);
-      const assignment = await storage.createCrewAssignment(assignmentData);
+      const assignment = await dbCrewStorage.createCrewAssignment(assignmentData);
       res.json(assignment);
     })
   );
@@ -219,7 +220,7 @@ export function registerAssignmentsRoutes(app: Express, config: CrewExtensionsRo
           role: assignment.role || null,
           status: "scheduled" as const
         }));
-        await storage.createBulkCrewAssignments(assignments);
+        await dbCrewStorage.createBulkCrewAssignments(assignments);
       }
       
       res.json({

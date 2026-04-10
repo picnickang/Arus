@@ -2,22 +2,22 @@ import { Express, Request, Response, RequestHandler } from "express";
 import { z } from "zod";
 import { withErrorHandling } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
+import { dbStormGeoStorage } from "../../db/stormgeo/index.js";
 
 interface StormGeoConfig {
-  storage: any;
   requireOrgId: RequestHandler;
   generalApiRateLimit: RequestHandler;
   writeOperationRateLimit: RequestHandler;
 }
 
 export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
-  const { storage, requireOrgId, generalApiRateLimit, writeOperationRateLimit } = config;
+  const { requireOrgId, generalApiRateLimit, writeOperationRateLimit } = config;
 
   app.get("/api/stormgeo/settings",
     withErrorHandling("get StormGeo settings", async (req: Request, res: Response) => {
       const orgId = req.orgId;
       const vesselId = req.query.vesselId as string | undefined;
-      const settings = await storage.getStormgeoSettings(orgId, vesselId);
+      const settings = await dbStormGeoStorage.getStormgeoSettings(orgId, vesselId);
       res.json(settings || null);
     })
   );
@@ -37,7 +37,7 @@ export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
   app.delete("/api/stormgeo/settings/:id", writeOperationRateLimit,
     withErrorHandling("delete StormGeo settings", async (req: Request, res: Response) => {
       const orgId = req.orgId;
-      await storage.deleteStormgeoSettings(req.params.id, orgId);
+      await dbStormGeoStorage.deleteStormgeoSettings(req.params.id, orgId);
       res.json({ success: true });
     })
   );
@@ -80,7 +80,7 @@ export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
       const orgId = req.orgId;
       const vesselId = req.query.vesselId as string | undefined;
       const limit = req.query.limit ? Number(req.query.limit) : undefined;
-      const history = await storage.getStormgeoImportHistory(orgId, { vesselId, limit });
+      const history = await dbStormGeoStorage.getStormgeoImportHistory(orgId, { vesselId, limit });
       res.json(history);
     })
   );
@@ -217,7 +217,7 @@ export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
   app.delete("/api/stormgeo/snapshots/route/:routeId", writeOperationRateLimit,
     withErrorHandling("delete StormGeo snapshots", async (req: Request, res: Response) => {
       const orgId = req.orgId;
-      await storage.deleteStormgeoSnapshotsByRoute(req.params.routeId, orgId);
+      await dbStormGeoStorage.deleteStormgeoSnapshotsByRoute(req.params.routeId, orgId);
       res.json({ success: true });
     })
   );

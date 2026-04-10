@@ -8,17 +8,16 @@ import type { Express } from "express";
 import { withErrorHandling, sendNotFound } from "../../../lib/route-utils.js";
 import type { MlAnalyticsConfig } from "./types.js";
 import type { AuthenticatedRequest } from "../../../middleware/auth";
+import { dbMlAnalyticsStorage } from "../../../repositories.js";
 
-export function registerTwinRoutes(app: Express, config: MlAnalyticsConfig) {
-  const { storage } = config;
-
+export function registerTwinRoutes(app: Express, _config: MlAnalyticsConfig) {
   app.get("/api/analytics/digital-twins",
     withErrorHandling("fetch digital twins", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId, vesselId, twinType } = req.query;
       if (!orgId) {
         return res.status(400).json({ message: "orgId is required" });
       }
-      const twins = await storage.getDigitalTwins(orgId as string, vesselId as string, twinType as string);
+      const twins = await dbMlAnalyticsStorage.getDigitalTwins(orgId as string, vesselId as string, twinType as string);
       const { normalizeDigitalTwins } = await import("../../../analytics-data-normalizer.js");
       res.json(normalizeDigitalTwins(twins));
     })
@@ -30,7 +29,7 @@ export function registerTwinRoutes(app: Express, config: MlAnalyticsConfig) {
       if (!orgId) {
         return res.status(400).json({ message: "orgId is required" });
       }
-      const twin = await storage.getDigitalTwin(req.params.id, orgId as string);
+      const twin = await dbMlAnalyticsStorage.getDigitalTwin(req.params.id, orgId as string);
       if (!twin) {
         return sendNotFound(res, "Digital twin");
       }
@@ -45,7 +44,7 @@ export function registerTwinRoutes(app: Express, config: MlAnalyticsConfig) {
       if (!orgId) {
         return res.status(400).json({ message: "orgId is required" });
       }
-      const simulations = await storage.getTwinSimulations(
+      const simulations = await dbMlAnalyticsStorage.getTwinSimulations(
         orgId as string,
         digitalTwinId as string,
         scenarioType as string,
@@ -61,7 +60,7 @@ export function registerTwinRoutes(app: Express, config: MlAnalyticsConfig) {
       if (!orgId) {
         return res.status(400).json({ message: "orgId is required" });
       }
-      const simulation = await storage.getTwinSimulation(req.params.id, orgId as string);
+      const simulation = await dbMlAnalyticsStorage.getTwinSimulation(req.params.id, orgId as string);
       if (!simulation) {
         return sendNotFound(res, "Twin simulation");
       }

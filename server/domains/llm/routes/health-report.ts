@@ -6,14 +6,14 @@
 
 import { Express } from "express";
 import { RateLimitRequestHandler } from "express-rate-limit";
-import type { IStorage } from "../../../storage";
 import { analyzeFleetHealth } from "../../../openai";
 import { withErrorHandling } from "../../../lib/route-utils";
 import { logger } from "../../../utils/logger.js";
+import { dbEquipmentStorage, dbTelemetryStorage, dbAlertStorage, workOrderService } from "../../../repositories";
+import { storage } from "../../../storage";
 
 export function registerHealthReportRoutes(
   app: Express,
-  storage: IStorage,
   rateLimiters: {
     generalApiRateLimit: RateLimitRequestHandler;
   }
@@ -24,7 +24,7 @@ export function registerHealthReportRoutes(
     withErrorHandling("generate health report", async (req, res) => {
       const { vesselId, equipmentId, lookbackHours = 24 } = req.body;
 
-      const equipmentHealth = await storage.getEquipmentHealth();
+      const equipmentHealth = await dbEquipmentStorage.getEquipmentHealth();
       const filteredEquipmentHealth = vesselId
         ? equipmentHealth.filter((eq) => eq.vessel === vesselId)
         : equipmentId
@@ -32,8 +32,8 @@ export function registerHealthReportRoutes(
           : equipmentHealth;
 
       const telemetryData = equipmentId
-        ? await storage.getTelemetryTrends(equipmentId, lookbackHours)
-        : await storage.getTelemetryTrends("", lookbackHours);
+        ? await dbTelemetryStorage.getTelemetryTrends(equipmentId, lookbackHours)
+        : await dbTelemetryStorage.getTelemetryTrends("", lookbackHours);
 
       let fleetAnalysis: any;
       try {
@@ -78,8 +78,8 @@ export function registerHealthReportRoutes(
       }
 
       const [workOrders, alerts] = await Promise.all([
-        storage.getWorkOrders(),
-        storage.getAlertNotifications(),
+        workOrderService.getWorkOrdersWithDetails(),
+        dbAlertStorage.getAlertNotifications(),
       ]);
 
       const filteredWorkOrders = equipmentId

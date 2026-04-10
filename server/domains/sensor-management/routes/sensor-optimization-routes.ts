@@ -7,15 +7,17 @@ import type { Express } from "express";
 import type { SensorManagementConfig } from "./types.js";
 import { withErrorHandling, sendNotFound } from "../../../lib/route-utils.js";
 import type { AuthenticatedRequest } from "../../../middleware/auth";
+import { dbMlAnalyticsStorage } from "../../../db/ml-analytics/index.js";
+import { dbSensorsStorage } from "../../../db/sensors/index.js";
 
 export function registerSensorOptimizationRoutes(app: Express, config: SensorManagementConfig) {
-  const { storage, requireOrgId, writeOperationRateLimit } = config;
+  const { requireOrgId, writeOperationRateLimit } = config;
 
   app.get("/api/sensor-optimization", requireOrgId,
     withErrorHandling("fetch threshold optimizations", async (req, res) => {
       const { equipmentId, sensorType, status } = req.query;
       const orgId = (req as AuthenticatedRequest).orgId;
-      const optimizations = await storage.getThresholdOptimizations(orgId, equipmentId as string, sensorType as string, status as string);
+      const optimizations = await dbMlAnalyticsStorage.getThresholdOptimizations(orgId, equipmentId as string, sensorType as string, status as string);
       res.json(optimizations);
     })
   );
@@ -24,7 +26,7 @@ export function registerSensorOptimizationRoutes(app: Express, config: SensorMan
     withErrorHandling("fetch threshold optimization", async (req, res) => {
       const { optimizationId } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
-      const optimization = await storage.getThresholdOptimization(Number.parseInt(optimizationId), orgId);
+      const optimization = await dbMlAnalyticsStorage.getThresholdOptimization(Number.parseInt(optimizationId), orgId);
       if (!optimization) {
         return sendNotFound(res, "Threshold optimization");
       }
@@ -36,7 +38,7 @@ export function registerSensorOptimizationRoutes(app: Express, config: SensorMan
     withErrorHandling("apply optimization", async (req, res) => {
       const { optimizationId } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
-      const result = await storage.applyThresholdOptimization(Number.parseInt(optimizationId), orgId);
+      const result = await dbMlAnalyticsStorage.applyThresholdOptimization(Number.parseInt(optimizationId), orgId);
       res.json({ success: true, applied: result });
     })
   );
@@ -46,7 +48,7 @@ export function registerSensorOptimizationRoutes(app: Express, config: SensorMan
       const { optimizationId } = req.params;
       const { reason } = req.body;
       const orgId = (req as AuthenticatedRequest).orgId;
-      const result = await storage.rejectThresholdOptimization(Number.parseInt(optimizationId), reason, orgId);
+      const result = await dbMlAnalyticsStorage.rejectThresholdOptimization(Number.parseInt(optimizationId), reason, orgId);
       res.json({ success: true, rejected: result });
     })
   );
@@ -94,10 +96,10 @@ export function registerSensorOptimizationRoutes(app: Express, config: SensorMan
       const orgId = (req as AuthenticatedRequest).orgId;
       let configuration;
       try {
-        configuration = await storage.updateSensorConfiguration(equipmentId, sensorType, parameters, orgId);
+        configuration = await dbSensorsStorage.updateSensorConfiguration(equipmentId, sensorType, parameters, orgId);
       } catch (updateError) {
         if (updateError instanceof Error && updateError.message?.includes("not found")) {
-          configuration = await storage.createSensorConfiguration({
+          configuration = await dbSensorsStorage.createSensorConfiguration({
             equipmentId,
             sensorType,
             orgId,

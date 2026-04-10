@@ -6,7 +6,6 @@
 import type { RequestHandler } from "express";
 
 export interface SensorManagementConfig {
-  storage: any;
   requireOrgId: RequestHandler;
   generalApiRateLimit: RequestHandler;
   writeOperationRateLimit: RequestHandler;

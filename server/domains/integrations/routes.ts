@@ -8,12 +8,12 @@
 
 import { Express, RequestHandler } from "express";
 import { LRUCache } from "lru-cache";
-import { IStorage } from "../../storage";
 import { withErrorHandling } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
+import { analyticsInsightsAdapter, vesselService, dbDevicesStorage, workOrderService } from "../../repositories.js";
+import { dbEquipmentStorage } from "../../db/equipment/index.js";
 
 interface IntegrationsRoutesConfig {
-  storage: IStorage;
   generalApiRateLimit: RequestHandler;
   getFMCCService: () => any;
   updateFleetHealthScore: (score: number) => void;
@@ -23,7 +23,7 @@ export function registerIntegrationsRoutes(
   app: Express,
   config: IntegrationsRoutesConfig
 ): void {
-  const { storage, generalApiRateLimit, getFMCCService, updateFleetHealthScore } = config;
+  const { generalApiRateLimit, getFMCCService, updateFleetHealthScore } = config;
 
   const DASHBOARD_TTL_MS = Number.parseInt(process.env.DASHBOARD_TTL_MS || "30000", 10);
   const dashboardCache = new LRUCache<string, { data: any; etag: string }>({ max: 200, ttl: DASHBOARD_TTL_MS });
@@ -45,7 +45,7 @@ export function registerIntegrationsRoutes(
         return res.json(cached.data);
       }
 
-      const metrics = await storage.getDashboardMetrics(orgId);
+      const metrics = await analyticsInsightsAdapter.getDashboardMetrics(orgId);
 
       if (metrics.fleetHealth !== undefined) {
         updateFleetHealthScore(metrics.fleetHealth);
@@ -88,12 +88,12 @@ export function registerIntegrationsRoutes(
         workOrders,
         equipment,
       ] = await Promise.all([
-        storage.getDashboardMetrics(orgId),
-        storage.getVessels(orgId).catch(() => []),
-        storage.getDevices(orgId).catch(() => []),
-        storage.getEquipmentHealth(orgId).catch(() => []),
-        storage.getWorkOrders(undefined, orgId).catch(() => []),
-        storage.getEquipmentRegistry(orgId).catch(() => []),
+        analyticsInsightsAdapter.getDashboardMetrics(orgId),
+        vesselService.getVessels(orgId).catch(() => []),
+        dbDevicesStorage.getDevices(orgId).catch(() => []),
+        dbEquipmentStorage.getEquipmentHealth(orgId, {}).catch(() => []),
+        workOrderService.getWorkOrdersWithDetails(undefined, orgId).catch(() => []),
+        dbEquipmentStorage.getEquipmentRegistry(orgId).catch(() => []),
       ]);
       
       // Extended queries with safe fallbacks (non-blocking)

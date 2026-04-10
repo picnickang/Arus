@@ -1,11 +1,11 @@
 import type { Express, RequestHandler } from "express";
-import type { IStorage } from "../../storage";
 import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
 import type { AuthenticatedRequest } from "../../middleware/auth";
+import { analyticsInsightsAdapter } from "../../repositories.js";
+import { dbAnalyticsStorage } from "../../db/analytics/index.js";
 
 interface InsightsRouteDependencies {
-  storage: IStorage;
   requireOrgId: RequestHandler;
   generalApiRateLimit: RequestHandler;
   reportGenerationRateLimit: RequestHandler;
@@ -15,15 +15,14 @@ export function registerInsightsV2Routes(
   app: Express,
   deps: InsightsRouteDependencies
 ): void {
-  const { storage, generalApiRateLimit, reportGenerationRateLimit } = deps;
+  const { generalApiRateLimit, reportGenerationRateLimit } = deps;
 
   logger.info("InsightsV2Routes", "Registering insights V2 API endpoints");
 
-  // Get all insight snapshots (with optional filtering)
   app.get("/api/insights/snapshots", generalApiRateLimit,
     withErrorHandling("fetch insight snapshots", async (req, res) => {
       const { orgId, scope } = req.query;
-      const snapshots = await storage.getInsightSnapshots(
+      const snapshots = await analyticsInsightsAdapter.getInsightSnapshots(
         orgId as string | undefined,
         scope as string | undefined
       );
@@ -31,11 +30,10 @@ export function registerInsightsV2Routes(
     })
   );
 
-  // Get latest insight snapshot for specific scope
   app.get("/api/insights/snapshots/latest", generalApiRateLimit,
     withErrorHandling("fetch latest insight snapshot", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId, scope = "fleet" } = req.query;
-      const snapshot = await storage.getLatestInsightSnapshot(orgId as string, scope as string);
+      const snapshot = await dbAnalyticsStorage.getLatestInsightSnapshot(orgId as string, scope as string);
 
       if (!snapshot) {
         return sendNotFound(res, `Insight snapshots for org: ${orgId}, scope: ${scope}`);
@@ -45,7 +43,6 @@ export function registerInsightsV2Routes(
     })
   );
 
-  // Manually trigger insights generation (for testing or immediate updates)
   app.post("/api/insights/generate", reportGenerationRateLimit,
     withErrorHandling("trigger insights generation", async (req, res) => {
       const { orgId = (req as AuthenticatedRequest).orgId, scope = "fleet" } = req.body;
@@ -63,7 +60,6 @@ export function registerInsightsV2Routes(
     })
   );
 
-  // Get insight generation job statistics
   app.get("/api/insights/jobs/stats", generalApiRateLimit,
     withErrorHandling("get insights job statistics", async (req, res) => {
       const { getInsightsJobStats } = await import("../../insights-scheduler");
@@ -72,11 +68,10 @@ export function registerInsightsV2Routes(
     })
   );
 
-  // Get insight reports (structured analysis results)
   app.get("/api/insights/reports", generalApiRateLimit,
     withErrorHandling("fetch insight reports", async (req, res) => {
       const { orgId, scope } = req.query;
-      const reports = await storage.getInsightReports(
+      const reports = await analyticsInsightsAdapter.getInsightReports(
         orgId as string | undefined,
         scope as string | undefined
       );
@@ -84,7 +79,6 @@ export function registerInsightsV2Routes(
     })
   );
 
-  // GET /api/insights/v2/equipment/:id - Technician-friendly insight for specific equipment
   app.get("/api/insights/v2/equipment/:id", generalApiRateLimit,
     withErrorHandling("generate technician insight", async (req, res) => {
       const { id } = req.params;
@@ -107,7 +101,6 @@ export function registerInsightsV2Routes(
     })
   );
 
-  // GET /api/insights/v2/fleet-overview - Technician-friendly insights for all equipment
   app.get("/api/insights/v2/fleet-overview", generalApiRateLimit,
     withErrorHandling("generate fleet technician insights", async (req, res) => {
       const startTime = Date.now();

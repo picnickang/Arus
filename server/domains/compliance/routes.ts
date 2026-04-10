@@ -1,7 +1,57 @@
 import type { Express, Request, Response } from "express";
-import { storage } from "../../storage";
+import { db } from "../../db-config";
+import { sql } from "drizzle-orm";
 import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
+
+const complianceRepo = {
+  async getComplianceFindings(orgId: string, filters?: any) {
+    const result = await db.execute(sql`SELECT * FROM compliance_findings WHERE org_id = ${orgId} ${filters?.vesselId ? sql`AND vessel_id = ${filters.vesselId}` : sql``} ${filters?.sourceType ? sql`AND source_type = ${filters.sourceType}` : sql``} ${filters?.severity ? sql`AND severity = ${filters.severity}` : sql``} ${filters?.status ? sql`AND status = ${filters.status}` : sql``} ${filters?.ruleCode ? sql`AND rule_code = ${filters.ruleCode}` : sql``} ${filters?.startDate ? sql`AND found_at >= ${filters.startDate}::timestamp` : sql``} ${filters?.endDate ? sql`AND found_at <= ${filters.endDate}::timestamp` : sql``} ORDER BY found_at DESC`);
+    return result.rows;
+  },
+  async getComplianceFindingById(id: string, orgId: string) {
+    const result = await db.execute(sql`SELECT * FROM compliance_findings WHERE id = ${id} AND org_id = ${orgId}`);
+    return result.rows[0];
+  },
+  async createComplianceFinding(data: any) {
+    const result = await db.execute(sql`INSERT INTO compliance_findings (org_id, vessel_id, source_type, severity, status, rule_code, title, description, found_at) VALUES (${data.orgId}, ${data.vesselId}, ${data.sourceType}, ${data.severity}, ${data.status || 'open'}, ${data.ruleCode}, ${data.title}, ${data.description}, NOW()) RETURNING *`);
+    return result.rows[0];
+  },
+  async acknowledgeComplianceFinding(id: string, _details: any, orgId: string) {
+    const result = await db.execute(sql`UPDATE compliance_findings SET status = 'acknowledged' WHERE id = ${id} AND org_id = ${orgId} RETURNING *`);
+    return result.rows[0];
+  },
+  async resolveComplianceFinding(id: string, _details: any, orgId: string) {
+    const result = await db.execute(sql`UPDATE compliance_findings SET status = 'resolved', resolved_at = NOW() WHERE id = ${id} AND org_id = ${orgId} RETURNING *`);
+    return result.rows[0];
+  },
+  async suppressComplianceFinding(id: string, _details: any, orgId: string) {
+    const result = await db.execute(sql`UPDATE compliance_findings SET status = 'suppressed' WHERE id = ${id} AND org_id = ${orgId} RETURNING *`);
+    return result.rows[0];
+  },
+  async deleteComplianceFinding(id: string, orgId: string) {
+    await db.execute(sql`DELETE FROM compliance_findings WHERE id = ${id} AND org_id = ${orgId}`);
+  },
+  async getComplianceRules(orgId: string, filters?: any) {
+    const result = await db.execute(sql`SELECT * FROM compliance_rules WHERE org_id = ${orgId} ${filters?.sourceType ? sql`AND source_type = ${filters.sourceType}` : sql``} ${filters?.category ? sql`AND category = ${filters.category}` : sql``} ${filters?.enabled !== undefined ? sql`AND enabled = ${filters.enabled}` : sql``} ORDER BY rule_name ASC`);
+    return result.rows;
+  },
+  async getComplianceRuleById(id: string, orgId: string) {
+    const result = await db.execute(sql`SELECT * FROM compliance_rules WHERE id = ${id} AND org_id = ${orgId}`);
+    return result.rows[0];
+  },
+  async createComplianceRule(data: any) {
+    const result = await db.execute(sql`INSERT INTO compliance_rules (org_id, source_type, category, rule_name, rule_code, description, severity, enabled) VALUES (${data.orgId}, ${data.sourceType}, ${data.category}, ${data.ruleName}, ${data.ruleCode}, ${data.description}, ${data.severity}, ${data.enabled ?? true}) RETURNING *`);
+    return result.rows[0];
+  },
+  async updateComplianceRule(id: string, updates: any, orgId: string) {
+    const result = await db.execute(sql`UPDATE compliance_rules SET rule_name = COALESCE(${updates.ruleName}, rule_name), description = COALESCE(${updates.description}, description), severity = COALESCE(${updates.severity}, severity), enabled = COALESCE(${updates.enabled}, enabled) WHERE id = ${id} AND org_id = ${orgId} RETURNING *`);
+    return result.rows[0];
+  },
+  async deleteComplianceRule(id: string, orgId: string) {
+    await db.execute(sql`DELETE FROM compliance_rules WHERE id = ${id} AND org_id = ${orgId}`);
+  },
+};
 
 interface RateLimiters {
   writeOperationRateLimit: any;
@@ -28,7 +78,7 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
         endDate: req.query.endDate as string | undefined,
       };
       
-      const findings = await storage.getComplianceFindings(orgId, filters);
+      const findings = await complianceRepo.getComplianceFindings(orgId!, filters);
       res.json(findings);
     })
   );
@@ -36,7 +86,7 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
   app.get("/api/compliance/findings/:id",
     withErrorHandling("get compliance finding", async (req: Request, res: Response) => {
       const orgId = req.orgId;
-      const finding = await storage.getComplianceFindingById(req.params.id, orgId);
+      const finding = await complianceRepo.getComplianceFindingById(req.params.id, orgId!);
       
       if (!finding) {
         return sendNotFound(res, "Compliance finding");
@@ -49,7 +99,7 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
   app.post("/api/compliance/findings", writeOperationRateLimit,
     withErrorHandling("create compliance finding", async (req: Request, res: Response) => {
       const orgId = req.orgId;
-      const finding = await storage.createComplianceFinding({
+      const finding = await complianceRepo.createComplianceFinding({
         ...req.body,
         orgId,
       });
@@ -66,7 +116,7 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
         return res.status(400).json({ error: "User details required for acknowledgment" });
       }
       
-      const finding = await storage.acknowledgeComplianceFinding(
+      const finding = await complianceRepo.acknowledgeComplianceFinding(
         req.params.id,
         { acknowledgedByUserId, acknowledgedByUserName },
         orgId
@@ -84,7 +134,7 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
         return res.status(400).json({ error: "User details required for resolution" });
       }
       
-      const finding = await storage.resolveComplianceFinding(
+      const finding = await complianceRepo.resolveComplianceFinding(
         req.params.id,
         { resolvedByUserId, resolvedByUserName, resolutionNotes },
         orgId
@@ -102,7 +152,7 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
         return res.status(400).json({ error: "Suppression details required" });
       }
       
-      const finding = await storage.suppressComplianceFinding(
+      const finding = await complianceRepo.suppressComplianceFinding(
         req.params.id,
         { suppressedUntil: new Date(suppressedUntil), suppressedReason },
         orgId
@@ -114,7 +164,7 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
   app.delete("/api/compliance/findings/:id", criticalOperationRateLimit,
     withErrorHandling("delete compliance finding", async (req: Request, res: Response) => {
       const orgId = req.orgId;
-      await storage.deleteComplianceFinding(req.params.id, orgId);
+      await complianceRepo.deleteComplianceFinding(req.params.id, orgId!);
       res.status(204).send();
     })
   );
@@ -128,7 +178,7 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
         enabled: req.query.enabled === 'true' ? true : req.query.enabled === 'false' ? false : undefined,
       };
       
-      const rules = await storage.getComplianceRules(orgId, filters);
+      const rules = await complianceRepo.getComplianceRules(orgId!, filters);
       res.json(rules);
     })
   );
@@ -136,7 +186,7 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
   app.get("/api/compliance/rules/:id",
     withErrorHandling("get compliance rule", async (req: Request, res: Response) => {
       const orgId = req.orgId;
-      const rule = await storage.getComplianceRuleById(req.params.id, orgId);
+      const rule = await complianceRepo.getComplianceRuleById(req.params.id, orgId!);
       
       if (!rule) {
         return sendNotFound(res, "Compliance rule");
@@ -149,7 +199,7 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
   app.post("/api/compliance/rules", writeOperationRateLimit,
     withErrorHandling("create compliance rule", async (req: Request, res: Response) => {
       const orgId = req.orgId;
-      const rule = await storage.createComplianceRule({
+      const rule = await complianceRepo.createComplianceRule({
         ...req.body,
         orgId,
       });
@@ -160,7 +210,7 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
   app.patch("/api/compliance/rules/:id", writeOperationRateLimit,
     withErrorHandling("update compliance rule", async (req: Request, res: Response) => {
       const orgId = req.orgId;
-      const rule = await storage.updateComplianceRule(req.params.id, req.body, orgId);
+      const rule = await complianceRepo.updateComplianceRule(req.params.id, req.body, orgId!);
       res.json(rule);
     })
   );
@@ -168,7 +218,7 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
   app.delete("/api/compliance/rules/:id", criticalOperationRateLimit,
     withErrorHandling("delete compliance rule", async (req: Request, res: Response) => {
       const orgId = req.orgId;
-      await storage.deleteComplianceRule(req.params.id, orgId);
+      await complianceRepo.deleteComplianceRule(req.params.id, orgId!);
       res.status(204).send();
     })
   );
@@ -225,7 +275,7 @@ export function registerComplianceRoutes(app: Express, rateLimiters?: RateLimite
       const orgId = req.orgId;
       const { vesselId } = req.params;
 
-      const findings = await storage.getComplianceFindings(orgId, {
+      const findings = await complianceRepo.getComplianceFindings(orgId!, {
         vesselId,
         status: "open",
       });

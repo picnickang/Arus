@@ -8,7 +8,6 @@
 
 import type { Express } from "express";
 import {
-  storage,
   generalApiRateLimit,
   writeOperationRateLimit,
   criticalOperationRateLimit,
@@ -118,57 +117,57 @@ const domainRouters: DomainRouterConfig[] = [
 
   // Integrations
   { name: "Integrations", importPath: "../domains/integrations/index.js", functionName: "registerIntegrationsRoutes",
-    getDeps: () => ({ storage, generalApiRateLimit, getFMCCService, updateFleetHealthScore }) },
+    getDeps: () => ({ generalApiRateLimit, getFMCCService, updateFleetHealthScore }) },
   { name: "DTC", importPath: "../domains/dtc/index.js", functionName: "registerDtcRoutes",
-    getDeps: () => ({ storage, writeOperationRateLimit, getWebSocketServer }) },
+    getDeps: () => ({ writeOperationRateLimit, getWebSocketServer }) },
 
   // ML & Analytics
   { name: "MLAnalytics", importPath: "../domains/ml-analytics/index.js", functionName: "registerMlAnalyticsRoutes",
-    getDeps: () => ({ storage, writeOperationRateLimit, schedulerEventBus, adaptiveTrainingWindow }) },
+    getDeps: () => ({ writeOperationRateLimit, schedulerEventBus, adaptiveTrainingWindow }) },
   { name: "CostSavings", importPath: "../domains/cost-savings/index.js", functionName: "registerCostSavingsRoutes",
     getDeps: () => ({ writeOperationRateLimit }) },
   { name: "ConditionMonitoring", importPath: "../domains/condition-monitoring/index.js", functionName: "registerConditionMonitoringRoutes",
-    getDeps: () => ({ storage, generalApiRateLimit }) },
+    getDeps: () => ({ generalApiRateLimit }) },
 
   // Sync
   { name: "Sync", importPath: "../domains/sync/index.js", functionName: "registerSyncRoutes",
-    getDeps: () => ({ storage, generalApiRateLimit, writeOperationRateLimit, getSyncMetrics, processPendingEvents, recordAndPublish }) },
+    getDeps: () => ({ generalApiRateLimit, writeOperationRateLimit, getSyncMetrics, processPendingEvents, recordAndPublish }) },
   // NOTE: CrewExtensions MUST be registered BEFORE Scheduling to ensure
   // /api/schedule/runs is matched before the generic /api/schedule/:id
   { name: "CrewExtensions", importPath: "../domains/crew-extensions/index.js", functionName: "registerCrewExtensionsRoutes",
-    getDeps: () => ({ storage, crewOperationRateLimit, criticalOperationRateLimit }) },
+    getDeps: () => ({ crewOperationRateLimit, criticalOperationRateLimit }) },
   { name: "Scheduling", importPath: "../domains/scheduling/index.js", functionName: "registerSchedulingRoutes",
     getDeps: () => ({ requireOrgId, generalApiRateLimit, writeOperationRateLimit }) },
 
   // Weather & External
   { name: "StormGeo", importPath: "../domains/stormgeo/index.js", functionName: "registerStormGeoRoutes",
-    getDeps: () => ({ storage, requireOrgId, generalApiRateLimit, writeOperationRateLimit }) },
+    getDeps: () => ({ requireOrgId, generalApiRateLimit, writeOperationRateLimit }) },
   { name: "Vibration", importPath: "../domains/vibration/index.js", functionName: "registerVibrationRoutes",
-    getDeps: () => ({ storage, requireOrgId, generalApiRateLimit }) },
+    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
   // Sensor Management
   { name: "SensorManagement", importPath: "../domains/sensor-management/index.js", functionName: "registerSensorManagementRoutes",
-    getDeps: () => ({ storage, requireOrgId, generalApiRateLimit, writeOperationRateLimit, criticalOperationRateLimit }) },
+    getDeps: () => ({ requireOrgId, generalApiRateLimit, writeOperationRateLimit, criticalOperationRateLimit }) },
 
   // Hub Sync & Insights
   { name: "HubSync", importPath: "../domains/hub-sync/index.js", functionName: "registerHubSyncRoutes",
     getDeps: () => ({ writeOperationRateLimit, generalApiRateLimit }) },
   { name: "InsightsV2", importPath: "../domains/insights/index.js", functionName: "registerInsightsV2Routes",
-    getDeps: () => ({ storage, requireOrgId, generalApiRateLimit, reportGenerationRateLimit }) },
+    getDeps: () => ({ requireOrgId, generalApiRateLimit, reportGenerationRateLimit }) },
 
   // LLM & ML Pipeline
   { name: "LLM", importPath: "../domains/llm/index.js", functionName: "registerLlmRoutes",
-    getDeps: () => ({ storage, generalApiRateLimit, reportGenerationRateLimit }) },
+    getDeps: () => ({ generalApiRateLimit, reportGenerationRateLimit }) },
   { name: "MLPipeline", importPath: "../domains/ml-pipeline/index.js", functionName: "registerMlPipelineRoutes",
-    getDeps: () => ({ storage, generalApiRateLimit }) },
+    getDeps: () => ({ generalApiRateLimit }) },
 
   // Crew Extensions registered earlier (before Scheduling) for route priority
   // Vessel Performance
   { name: "VesselPerformance", importPath: "../domains/vessel-performance/index.js", functionName: "registerVesselPerformanceRoutes",
-    getDeps: () => ({ storage, crewOperationRateLimit }) },
+    getDeps: () => ({ crewOperationRateLimit }) },
 
   // STCW Rest
   { name: "STCWRest", importPath: "../domains/stcw-rest/index.js", functionName: "registerStcwRestRoutes",
-    getDeps: () => ({ storage, writeOperationRateLimit, checkMonthCompliance, normalizeRestDays, generatePdfFilename, renderRestPdf,
+    getDeps: () => ({ writeOperationRateLimit, checkMonthCompliance, normalizeRestDays, generatePdfFilename, renderRestPdf,
       incrementIdempotencyHit, incrementHorImport, incrementHorPdfExport, incrementRangeQuery, recordRangeQueryDuration }) },
 
   // IoT Processing
@@ -177,7 +176,7 @@ const domainRouters: DomainRouterConfig[] = [
 
   // System Admin
   { name: "SystemAdmin", importPath: "../domains/system-admin/index.js", functionName: "registerSystemAdminRoutes",
-    getDeps: () => ({ storage, generalApiRateLimit, writeOperationRateLimit, criticalOperationRateLimit, requireAdminAuth, auditAdminAction,
+    getDeps: () => ({ generalApiRateLimit, writeOperationRateLimit, criticalOperationRateLimit, requireAdminAuth, auditAdminAction,
       adminPasswordVerifySchema, adminPasswordChangeSchema, insertAdminAuditEventSchema, insertAdminSystemSettingSchema,
       insertIntegrationConfigSchema, insertMaintenanceWindowSchema, insertSystemPerformanceMetricSchema }) },
 
@@ -195,7 +194,7 @@ const domainRouters: DomainRouterConfig[] = [
 
   // Inventory Optimization
   { name: "InventoryOptimization", importPath: "../domains/inventory-optimization/index.js", functionName: "registerInventoryOptimizationRoutes",
-    getDeps: () => ({ storage, generalApiRateLimit, writeOperationRateLimit }) },
+    getDeps: () => ({ generalApiRateLimit, writeOperationRateLimit }) },
 
   // Storage Config
   { name: "StorageConfig", importPath: "../domains/storage-config/index.js", functionName: "registerStorageConfigRoutes",
@@ -207,7 +206,7 @@ const domainRouters: DomainRouterConfig[] = [
 
   // Health Monitoring
   { name: "HealthMonitoring", importPath: "../domains/health-monitoring/index.js", functionName: "registerHealthMonitoringRoutes",
-    getDeps: () => ({ storage, requireOrgId, generalApiRateLimit }) },
+    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
 
   // Settings
   { name: "Settings", importPath: "../domains/settings/index.js", functionName: "registerSettingsRoutes",
@@ -219,7 +218,7 @@ const domainRouters: DomainRouterConfig[] = [
 
   // Class Survey Tracking
   { name: "Surveys", importPath: "../domains/surveys/routes.js", functionName: "registerSurveyRoutes",
-    getDeps: () => ({ storage, generalApiRateLimit, writeOperationRateLimit }) },
+    getDeps: () => ({ generalApiRateLimit, writeOperationRateLimit }) },
 
   // Home Attention Summary
   { name: "Home", importPath: "../routes/home-routes.js", functionName: "registerHomeRoutes",
@@ -293,8 +292,6 @@ export async function registerAllDomainRouters(app: Express): Promise<void> {
       } else if (config.name === "TelemetryIngestion") {
         const { requireValidOrgId: reqValid, validateHMAC: valHMAC, ...otherDeps } = deps;
         registerFn(app, otherDeps, { requireValidOrgId: reqValid, validateHMAC: valHMAC });
-      } else if (config.name === "LLM") {
-        registerFn(app, deps.storage, { generalApiRateLimit: deps.generalApiRateLimit, reportGenerationRateLimit: deps.reportGenerationRateLimit });
       } else {
         registerFn(app, deps);
       }

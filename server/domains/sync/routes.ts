@@ -1,12 +1,11 @@
 import { Express, Request, Response } from "express";
 import { RateLimitRequestHandler } from "express-rate-limit";
 import { requireOrgId, AuthenticatedRequest } from "../../middleware/auth";
-import { IStorage } from "../../storage";
 import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
+import { dbInventoryStorage } from "../../db/inventory/index.js";
 
 interface SyncRoutesConfig {
-  storage: IStorage;
   generalApiRateLimit: RateLimitRequestHandler;
   writeOperationRateLimit: RateLimitRequestHandler;
   getSyncMetrics: () => Promise<Record<string, unknown>>;
@@ -16,7 +15,6 @@ interface SyncRoutesConfig {
 
 export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void {
   const {
-    storage,
     generalApiRateLimit,
     writeOperationRateLimit,
     getSyncMetrics,
@@ -47,12 +45,12 @@ export function registerSyncRoutes(app: Express, config: SyncRoutesConfig): void
       results.eventsProcessed = await processPendingEvents();
 
       try {
-        const allParts = await storage.getParts();
+        const allParts = await dbInventoryStorage.getParts();
         results.partsChecked = allParts.length;
 
         for (const part of allParts) {
           try {
-            await storage.syncPartCostToStock(part.id);
+            await dbInventoryStorage.syncPartCostToStock(part.id);
             results.costSync++;
           } catch (syncError: unknown) {
             const msg = syncError instanceof Error ? syncError.message : String(syncError);

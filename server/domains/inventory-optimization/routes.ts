@@ -8,14 +8,14 @@
 
 import { Express, Request, Response } from "express";
 import { RateLimitRequestHandler } from "express-rate-limit";
-import type { IStorage } from "../../storage";
 import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { sendBadRequest } from "../../lib/api-helpers";
 import { logger } from "../../utils/logger.js";
 import type { AuthenticatedRequest } from "../../middleware/auth";
+import { dbInventoryStorage } from "../../db/inventory/index.js";
+import { workOrderService } from "../../repositories.js";
 
 interface InventoryOptimizationDependencies {
-  storage: IStorage;
   generalApiRateLimit: RateLimitRequestHandler;
   writeOperationRateLimit: RateLimitRequestHandler;
 }
@@ -24,13 +24,13 @@ export function registerInventoryOptimizationRoutes(
   app: Express,
   deps: InventoryOptimizationDependencies
 ): void {
-  const { storage, generalApiRateLimit, writeOperationRateLimit } = deps;
+  const { generalApiRateLimit, writeOperationRateLimit } = deps;
 
   app.post("/api/parts/:id/sync-costs-legacy", writeOperationRateLimit,
     withErrorHandling("sync part costs", async (req, res) => {
       const { id } = req.params;
       try {
-        await storage.syncPartCostToStock(id);
+        await dbInventoryStorage.syncPartCostToStock(id);
         res.json({
           success: true,
           message: "Cost synchronization completed successfully",
@@ -50,12 +50,12 @@ export function registerInventoryOptimizationRoutes(
       const { workOrderIds } = req.body;
       const orgId = (req as AuthenticatedRequest).orgId;
 
-      const allOrders = await storage.getWorkOrders(undefined, orgId);
+      const allOrders = await workOrderService.getWorkOrdersWithDetails(undefined, orgId);
       const workOrderIdSet = new Set(workOrderIds as string[]);
       const validWorkOrders = allOrders.filter(wo => workOrderIdSet.has(wo.id));
 
       const { planMaintenanceCosts } = await import("../../inventory");
-      const costPlan = await planMaintenanceCosts(validWorkOrders, storage, orgId);
+      const costPlan = await planMaintenanceCosts(validWorkOrders, dbInventoryStorage, orgId);
 
       res.json(costPlan);
     })
@@ -74,7 +74,7 @@ export function registerInventoryOptimizationRoutes(
       const orgId = (req as AuthenticatedRequest).orgId;
 
       const { findPartSubstitutions } = await import("../../inventory");
-      const substitutions = await findPartSubstitutions(partNo, storage, orgId);
+      const substitutions = await findPartSubstitutions(partNo, dbInventoryStorage, orgId);
 
       res.json(substitutions);
     })
@@ -90,7 +90,7 @@ export function registerInventoryOptimizationRoutes(
       }
 
       const parts = await Promise.all(
-        partNumbers.map((partNo: string) => storage.getPartByNumber(partNo, orgId))
+        partNumbers.map((partNo: string) => orgId ? dbInventoryStorage.getPartByPartNumber(partNo, orgId) : Promise.resolve(undefined))
       );
       const validParts = parts.filter((p) => p !== null);
 
@@ -140,7 +140,7 @@ export function registerInventoryOptimizationRoutes(
           : 365;
 
       const { autoOptimizeInventory } = await import("../../inventory/auto-optimization");
-      const results = await autoOptimizeInventory(orgId, partNumbers, days, storage);
+      const results = await autoOptimizeInventory(orgId, partNumbers, days, dbInventoryStorage);
 
       if (results.length === 0) {
         res.status(400).json({
@@ -172,7 +172,7 @@ export function registerInventoryOptimizationRoutes(
       const orgId = (req as AuthenticatedRequest).orgId;
 
       const { analyzeSupplierPerformance } = await import("../../inventory/supplier-analytics");
-      const performance = await analyzeSupplierPerformance(orgId, supplierIds, dateRange, storage);
+      const performance = await analyzeSupplierPerformance(orgId, supplierIds, dateRange, dbInventoryStorage);
 
       res.json(performance);
     })

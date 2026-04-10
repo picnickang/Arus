@@ -6,14 +6,13 @@
 
 import { Express } from "express";
 import { RateLimitRequestHandler } from "express-rate-limit";
-import type { IStorage } from "../../../storage";
 import { analyzeFleetHealth } from "../../../openai";
 import { withErrorHandling } from "../../../lib/route-utils";
 import { logger } from "../../../utils/logger.js";
+import { dbEquipmentStorage, dbTelemetryStorage, dbDevicesStorage, workOrderService } from "../../../repositories";
 
 export function registerFleetSummaryRoutes(
   app: Express,
-  storage: IStorage,
   rateLimiters: {
     generalApiRateLimit: RateLimitRequestHandler;
   }
@@ -25,10 +24,10 @@ export function registerFleetSummaryRoutes(
       const { lookbackHours = 168 } = req.body;
 
       const [equipmentHealth, telemetryData, workOrders, pdmScores] = await Promise.all([
-        storage.getEquipmentHealth(),
-        storage.getTelemetryTrends("", lookbackHours),
-        storage.getWorkOrders(),
-        storage.getPdmScores(),
+        dbEquipmentStorage.getEquipmentHealth(),
+        dbTelemetryStorage.getTelemetryTrends("", lookbackHours),
+        workOrderService.getWorkOrdersWithDetails(),
+        dbDevicesStorage.getPdmScores(),
       ]);
 
       let fleetAnalysis: any;

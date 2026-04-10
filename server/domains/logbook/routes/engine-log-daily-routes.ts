@@ -5,7 +5,7 @@
  */
 
 import type { Express } from "express";
-import { storage } from "../../../storage";
+import { engineLogStorage } from "../../../repositories";
 import type { RateLimiters, EngineLogFilters, SignatureDetails, LockDetails } from "./types";
 import { validateUUID } from "../../../utils/validation";
 import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../../lib/route-utils";
@@ -23,7 +23,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
         status: req.query.status as string | undefined,
       };
       
-      const entries = await storage.getEngineLogDaily(orgId, filters);
+      const entries = await engineLogStorage.getEngineLogDaily(orgId, filters);
       res.json(entries);
     })
   );
@@ -34,7 +34,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
       const id = req.params.id;
       if (!validateUUID(id, res)) {return;}
       
-      const entry = await storage.getEngineLogDailyById(id, orgId);
+      const entry = await engineLogStorage.getEngineLogDailyById(id, orgId);
       if (!entry) {
         return sendNotFound(res, "Engine log entry");
       }
@@ -49,7 +49,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
       const id = req.params.id;
       if (!validateUUID(id, res)) {return;}
       
-      const complete = await storage.getEngineLogComplete(id, orgId);
+      const complete = await engineLogStorage.getEngineLogComplete(id, orgId);
       if (!complete) {
         return sendNotFound(res, "Engine log entry");
       }
@@ -63,10 +63,10 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
       const orgId = req.orgId;
       const { vesselId, logDate } = req.params;
       
-      let entry = await storage.getEngineLogDailyByDate(vesselId, logDate, orgId);
+      let entry = await engineLogStorage.getEngineLogDailyByDate(vesselId, logDate, orgId);
       
       if (!entry) {
-        entry = await storage.createEngineLogDaily({
+        entry = await engineLogStorage.createEngineLogDaily({
           orgId,
           vesselId,
           logDate,
@@ -74,7 +74,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
         });
       }
       
-      const complete = await storage.getEngineLogComplete(entry.id, orgId);
+      const complete = await engineLogStorage.getEngineLogComplete(entry.id, orgId);
       res.json(complete);
     })
   );
@@ -83,7 +83,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
     withErrorHandling("create engine log daily", async (req, res) => {
       const orgId = req.orgId;
       
-      const existing = await storage.getEngineLogDailyByDate(
+      const existing = await engineLogStorage.getEngineLogDailyByDate(
         req.body.vesselId,
         req.body.logDate,
         orgId
@@ -96,7 +96,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
         });
       }
       
-      const entry = await storage.createEngineLogDaily({
+      const entry = await engineLogStorage.createEngineLogDaily({
         ...req.body,
         orgId,
       });
@@ -111,7 +111,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
       const id = req.params.id;
       if (!validateUUID(id, res)) {return;}
       
-      const entry = await storage.updateEngineLogDaily(id, req.body, orgId);
+      const entry = await engineLogStorage.updateEngineLogDaily(id, req.body, orgId);
       res.json(entry);
     })
   );
@@ -127,7 +127,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
         return res.status(400).json({ error: "Signature details required" });
       }
       
-      const entry = await storage.signEngineLogDaily(id, { signedByCrewId, signedByName, signedByRank }, orgId);
+      const entry = await engineLogStorage.signEngineLogDaily(id, { signedByCrewId, signedByName, signedByRank }, orgId);
       res.json(entry);
     })
   );
@@ -135,7 +135,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
   app.delete("/api/logbook/engine/daily/:id", criticalOperationRateLimit,
     withErrorHandling("delete engine log daily", async (req, res) => {
       const orgId = req.orgId;
-      await storage.deleteEngineLogDaily(req.params.id, orgId);
+      await engineLogStorage.deleteEngineLogDaily(req.params.id, orgId);
       sendDeleted(res);
     })
   );
@@ -152,7 +152,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
       }
       
       try {
-        const locked = await storage.lockEngineLogDaily(id, { lockedByUserId, lockedByUserName }, orgId);
+        const locked = await engineLogStorage.lockEngineLogDaily(id, { lockedByUserId, lockedByUserName }, orgId);
         res.json(locked);
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
@@ -167,7 +167,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
   app.post("/api/logbook/engine/daily/:id/unlock", writeOperationRateLimit,
     withErrorHandling("unlock engine log", async (req, res) => {
       const orgId = req.orgId;
-      const unlocked = await storage.unlockEngineLogDaily(req.params.id, orgId);
+      const unlocked = await engineLogStorage.unlockEngineLogDaily(req.params.id, orgId);
       res.json(unlocked);
     })
   );
@@ -177,7 +177,7 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
       const orgId = req.orgId;
       const { vesselId, from, to } = req.query;
       
-      const entries = await storage.getEngineLogDaily(orgId, {
+      const entries = await engineLogStorage.getEngineLogDaily(orgId, {
         vesselId: vesselId as string | undefined,
         startDate: from as string | undefined,
         endDate: to as string | undefined,
@@ -195,10 +195,10 @@ export function registerEngineLogDailyRoutes(app: Express, rateLimit: RateLimite
         return res.status(400).json({ error: "vesselId and date required" });
       }
       
-      let entry = await storage.getEngineLogDailyByDate(vesselId, date, orgId);
+      let entry = await engineLogStorage.getEngineLogDailyByDate(vesselId, date, orgId);
       
       if (!entry) {
-        entry = await storage.createEngineLogDaily({
+        entry = await engineLogStorage.createEngineLogDaily({
           orgId,
           vesselId,
           logDate: date,

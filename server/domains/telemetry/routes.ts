@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { z } from "zod";
-import { storage } from "../../storage";
+import { dbTelemetryStorage, dbDevicesStorage, dbSensorsStorage } from "../../repositories";
 import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
 
@@ -43,7 +43,7 @@ export function registerTelemetryRoutes(
       const sensorType = req.query.sensorType as string | undefined;
       const limit = req.query.limit ? Number.parseInt(req.query.limit as string, 10) : 500;
 
-      const readings = await storage.getLatestTelemetryReadings(
+      const readings = await (dbTelemetryStorage as any).getLatestTelemetryReadings(
         vesselId,
         equipmentId,
         sensorType,
@@ -60,7 +60,7 @@ export function registerTelemetryRoutes(
       const queryValidation = telemetryQuerySchema.parse(req.query);
       const { equipmentId, hours } = queryValidation;
 
-      const trends = await storage.getTelemetryTrends(equipmentId, hours);
+      const trends = await dbTelemetryStorage.getTelemetryTrends(equipmentId, hours);
       res.json(trends);
     })
   );
@@ -70,7 +70,7 @@ export function registerTelemetryRoutes(
     withErrorHandling("fetch telemetry history", async (req, res) => {
       const { equipmentId, sensorType } = req.params;
       const hours = req.query.hours ? Number.parseInt(req.query.hours as string) : 24;
-      const history = await storage.getTelemetryHistory(equipmentId, sensorType, hours);
+      const history = await dbTelemetryStorage.getTelemetryHistory(equipmentId, sensorType, hours);
       res.json(history);
     })
   );
@@ -78,7 +78,7 @@ export function registerTelemetryRoutes(
   // Clear orphaned telemetry data
   app.delete("/api/telemetry/cleanup", criticalOperationRateLimit,
     withErrorHandling("clear telemetry data", async (req, res) => {
-      await storage.clearOrphanedTelemetryData();
+      await (dbTelemetryStorage as any).clearOrphanedTelemetryData();
       res.json({
         ok: true,
         message: "Telemetry data cleared successfully",
@@ -91,7 +91,7 @@ export function registerTelemetryRoutes(
   // Get all edge heartbeats
   app.get("/api/edge/heartbeats", generalApiRateLimit,
     withErrorHandling("fetch heartbeats", async (req, res) => {
-      const heartbeats = await storage.getHeartbeats();
+      const heartbeats = await dbDevicesStorage.getHeartbeatsByOrg();
       res.json(heartbeats);
     })
   );
@@ -104,7 +104,7 @@ export function registerTelemetryRoutes(
       const { equipmentId, sensorType } = req.query;
       const orgId = req.orgId!;
 
-      const configs = await storage.getSensorConfigurations(
+      const configs = await dbSensorsStorage.getSensorConfigurations(
         orgId,
         equipmentId as string,
         sensorType as string
@@ -119,7 +119,7 @@ export function registerTelemetryRoutes(
       const { equipmentId, sensorType } = req.query;
       const orgId = req.orgId!;
 
-      const configs = await storage.getSensorConfigurations(
+      const configs = await dbSensorsStorage.getSensorConfigurations(
         orgId,
         equipmentId as string,
         sensorType as string

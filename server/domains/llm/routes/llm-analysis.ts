@@ -7,13 +7,13 @@
 import { Express } from "express";
 import { z } from "zod";
 import { RateLimitRequestHandler } from "express-rate-limit";
-import type { IStorage } from "../../../storage";
 import { withErrorHandling } from "../../../lib/route-utils";
 import { logger } from "../../../utils/logger.js";
+import { dbEquipmentStorage, dbTelemetryStorage, dbDevicesStorage, dbAlertStorage, vesselService } from "../../../repositories";
+import { storage } from "../../../storage";
 
 export function registerLlmAnalysisRoutes(
   app: Express,
-  storage: IStorage,
   rateLimiters: {
     generalApiRateLimit: RateLimitRequestHandler;
     reportGenerationRateLimit: RateLimitRequestHandler;
@@ -32,7 +32,7 @@ export function registerLlmAnalysisRoutes(
       }
 
       const { analyzeEquipmentHealth } = await import("../../../openai");
-      const telemetryData = await storage.getTelemetryHistory(equipmentId, sensorType, hours);
+      const telemetryData = await dbTelemetryStorage.getTelemetryHistory(equipmentId, sensorType, hours);
 
       if (telemetryData.length === 0) {
         return res.status(404).json({
@@ -53,8 +53,8 @@ export function registerLlmAnalysisRoutes(
       const { analyzeFleetHealth } = await import("../../../openai");
 
       const [equipmentHealth, telemetryTrends] = await Promise.all([
-        storage.getEquipmentHealth(),
-        storage.getTelemetryTrends(undefined, hours),
+        dbEquipmentStorage.getEquipmentHealth(),
+        dbTelemetryStorage.getTelemetryTrends(undefined, hours),
       ]);
 
       if (equipmentHealth.length === 0) {
@@ -100,11 +100,11 @@ export function registerLlmAnalysisRoutes(
       );
 
       const [device, equipmentHealth, alerts, telemetryTrends, pdmScore] = await Promise.all([
-        storage.getDevice(equipmentId),
-        storage.getEquipmentHealth(),
-        storage.getAlertNotifications(),
-        storage.getTelemetryTrends(equipmentId, Number.parseInt(hours as string)),
-        storage.getLatestPdmScore(equipmentId),
+        dbDevicesStorage.getDevice(equipmentId),
+        dbEquipmentStorage.getEquipmentHealth(),
+        dbAlertStorage.getAlertNotifications(),
+        dbTelemetryStorage.getTelemetryTrends(equipmentId, Number.parseInt(hours as string)),
+        dbDevicesStorage.getLatestPdmScore(equipmentId),
       ]);
 
       const recentAlerts = alerts.filter((alert) => alert.equipmentId === equipmentId).slice(0, 10);
@@ -168,7 +168,7 @@ export function registerLlmAnalysisRoutes(
       const { vesselId } = paramsSchema.parse(req.params);
       const { lookbackDays } = querySchema.parse(req.query);
 
-      const vessel = await storage.getVessel(vesselId);
+      const vessel = await vesselService.getVessel(vesselId);
       if (!vessel) {
         return res.status(404).json({
           success: false,
@@ -177,12 +177,12 @@ export function registerLlmAnalysisRoutes(
       }
 
       const [equipment, alerts, telemetry, pdmScores] = await Promise.all([
-        storage.getEquipmentHealth().then((all) => all.filter((e) => e.vessel === vesselId)),
-        storage
+        dbEquipmentStorage.getEquipmentHealth().then((all) => all.filter((e) => e.vessel === vesselId)),
+        dbAlertStorage
           .getAlertNotifications()
           .then((all) => all.filter((a) => a.vesselId === vesselId).slice(0, 20)),
-        storage.getLatestTelemetry(vesselId).catch(() => []),
-        storage.getPdmScores().then((scores) => scores.filter((s) => s.vessel === vesselId)),
+        dbTelemetryStorage.getLatestTelemetryReadings(vesselId).catch(() => []),
+        dbDevicesStorage.getPdmScores().then((scores) => scores.filter((s) => s.vessel === vesselId)),
       ]);
 
       const intelligence = {

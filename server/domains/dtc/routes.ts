@@ -3,6 +3,8 @@ import { z } from "zod";
 import { insertDtcFaultSchema } from "../../../shared/schema.js";
 import { withErrorHandling, sendNotFound, sendCreated } from "../../lib/route-utils.js";
 import { logger } from "../../utils/logger.js";
+import { dbDtcStorage } from "../../db/dtc/index.js";
+import { dbEquipmentStorage } from "../../db/equipment/index.js";
 
 let _dtcIntegrationService: any = null;
 async function getDtcService() {
@@ -14,7 +16,6 @@ async function getDtcService() {
 }
 
 interface DtcRoutesConfig {
-  storage: any;
   writeOperationRateLimit: any;
   getWebSocketServer: () => any;
 }
@@ -56,7 +57,7 @@ const dtcActiveQuerySchema = z.object({
 });
 
 export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
-  const { storage, writeOperationRateLimit, getWebSocketServer } = config;
+  const { writeOperationRateLimit, getWebSocketServer } = config;
 
   app.get("/api/dtc/definitions",
     withErrorHandling("fetch DTC definitions", async (req: Request, res: Response) => {
@@ -69,7 +70,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
       }
 
       const { spn, fmi, manufacturer } = validation.data;
-      const definitions = await storage.getDtcDefinitions(spn, fmi, manufacturer);
+      const definitions = await dbDtcStorage.getDtcDefinitions(spn, fmi, manufacturer);
 
       res.json(definitions);
     })
@@ -84,7 +85,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
         return res.status(400).json({ message: "Organization ID (x-org-id header) is required" });
       }
 
-      const activeDtcs = await storage.getActiveDtcs(id, orgId);
+      const activeDtcs = await dbDtcStorage.getActiveDtcs(id, orgId);
       res.json(activeDtcs);
     })
   );
@@ -107,7 +108,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
       }
 
       const filters = validation.data;
-      const history = await storage.getDtcHistory(id, orgId, filters);
+      const history = await dbDtcStorage.getDtcHistory(id, orgId, filters);
       res.json(history);
     })
   );
@@ -131,16 +132,16 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
       const { vesselId, severity } = validation.data;
 
       const equipmentList = vesselId
-        ? await storage.getEquipmentByVessel(vesselId, orgId)
-        : await storage.getEquipmentRegistry(orgId);
+        ? await dbEquipmentStorage.getEquipmentByVessel(vesselId, orgId)
+        : await dbEquipmentStorage.getEquipmentRegistry(orgId);
 
       const equipmentIds = equipmentList.map((eq: any) => eq.id);
       const equipmentMap = new Map(equipmentList.map((eq: any) => [eq.id, eq]));
 
       let flatDtcs: any[];
 
-      if (typeof storage.getActiveDtcsBatch === "function" && equipmentIds.length > 0) {
-        const batchResults = await storage.getActiveDtcsBatch(equipmentIds, orgId);
+      if (typeof dbDtcStorage.getActiveDtcsBatch === "function" && equipmentIds.length > 0) {
+        const batchResults = await dbDtcStorage.getActiveDtcsBatch(equipmentIds, orgId);
         flatDtcs = batchResults.map((dtc: any) => ({
           ...dtc,
           equipment: equipmentMap.get(dtc.equipmentId),
@@ -156,7 +157,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
         for (const chunk of chunks) {
           const chunkResults = await Promise.all(
             chunk.map(async (eq: any) => {
-              const dtcs = await storage.getActiveDtcs(eq.id, orgId);
+              const dtcs = await dbDtcStorage.getActiveDtcs(eq.id, orgId);
               return dtcs.map((dtc: any) => ({ ...dtc, equipment: eq }));
             })
           );
@@ -182,14 +183,14 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
 
       const faultData = insertDtcFaultSchema.parse({ ...req.body, orgId });
 
-      const equipment = await storage.getEquipment(orgId, faultData.equipmentId);
+      const equipment = await dbEquipmentStorage.getEquipment(orgId, faultData.equipmentId);
       if (!equipment) {
         return sendNotFound(res, "Equipment");
       }
 
-      const dtcFault = await storage.upsertDtcFault(faultData);
+      const dtcFault = await dbDtcStorage.upsertDtcFault(faultData);
 
-      const activeDtcs = await storage.getActiveDtcs(dtcFault.equipmentId, orgId);
+      const activeDtcs = await dbDtcStorage.getActiveDtcs(dtcFault.equipmentId, orgId);
       const enrichedFault = activeDtcs.find(
         (d: any) => d.spn === dtcFault.spn && d.fmi === dtcFault.fmi
       );
@@ -222,7 +223,7 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
         return res.status(400).json({ message: "Organization ID (x-org-id header) is required" });
       }
 
-      const activeDtcs = await storage.getActiveDtcs(equipmentId, orgId);
+      const activeDtcs = await dbDtcStorage.getActiveDtcs(equipmentId, orgId);
       const dtc = activeDtcs.find((d: any) => d.spn === Number.parseInt(spn) && d.fmi === Number.parseInt(fmi));
 
       if (!dtc) {
@@ -251,8 +252,8 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
         return res.status(400).json({ message: "Organization ID (x-org-id header) is required" });
       }
 
-      const activeDtcs = await storage.getActiveDtcs(equipmentId, orgId);
-      const dtc = activeDtcs.find((d: any) => d.spn === Number.parseInt(spn) && d.fmi === Number.parseInt(fmi));
+      const activeDtcs2 = await dbDtcStorage.getActiveDtcs(equipmentId, orgId);
+      const dtc = activeDtcs2.find((d: any) => d.spn === Number.parseInt(spn) && d.fmi === Number.parseInt(fmi));
 
       if (!dtc) {
         return sendNotFound(res, "DTC not found or not active");
@@ -288,13 +289,13 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
         return res.status(400).json({ message: "Organization ID (x-org-id header) is required" });
       }
 
-      const activeDtcs = await storage.getActiveDtcs(id, orgId);
+      const activeDtcsHealth = await dbDtcStorage.getActiveDtcs(id, orgId);
       const dtcService = await getDtcService();
-      const healthPenalty = dtcService.calculateDtcHealthImpact(activeDtcs);
+      const healthPenalty = dtcService.calculateDtcHealthImpact(activeDtcsHealth);
 
       res.json({
         equipmentId: id,
-        activeDtcCount: activeDtcs.length,
+        activeDtcCount: activeDtcsHealth.length,
         healthPenalty,
         estimatedHealthScore: Math.max(0, 100 - healthPenalty),
       });
@@ -343,8 +344,8 @@ export function registerDtcRoutes(app: Express, config: DtcRoutesConfig) {
         return res.status(400).json({ message: "Organization ID (x-org-id header) is required" });
       }
 
-      const activeDtcs = await storage.getActiveDtcs(equipmentId, orgId);
-      const dtc = activeDtcs.find((d: any) => d.spn === Number.parseInt(spn) && d.fmi === Number.parseInt(fmi));
+      const activeDtcsCorr = await dbDtcStorage.getActiveDtcs(equipmentId, orgId);
+      const dtc = activeDtcsCorr.find((d: any) => d.spn === Number.parseInt(spn) && d.fmi === Number.parseInt(fmi));
 
       if (!dtc) {
         return sendNotFound(res, "DTC not found or not active");

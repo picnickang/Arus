@@ -1,14 +1,14 @@
 import { Express, Request, Response, RequestHandler } from "express";
 import { withErrorHandling } from "../../lib/route-utils";
+import { dbSensorsStorage } from "../../db/sensors/index.js";
 
 interface VibrationConfig {
-  storage: any;
   requireOrgId: RequestHandler;
   generalApiRateLimit: RequestHandler;
 }
 
 export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
-  const { storage, requireOrgId, generalApiRateLimit } = config;
+  const { requireOrgId, generalApiRateLimit } = config;
 
   app.post(
     "/api/vibration/analyze",
@@ -319,7 +319,7 @@ export function registerVibrationRoutes(app: Express, config: VibrationConfig) {
     requireOrgId,
     withErrorHandling("fetch acoustic history", async (req: Request, res: Response) => {
       const { equipmentId, hours } = req.query;
-      const history = await storage.getAcousticHistory?.(
+      const history = await dbSensorsStorage.getAcousticHistory?.(
         equipmentId as string,
         hours ? Number.parseInt(hours as string) : 24
       );

@@ -7,9 +7,10 @@ import type { VesselPerformanceRoutesConfig } from "./types.js";
 import type { RestDay } from "../../../stcw-compliance";
 import { withErrorHandling } from "../../../lib/route-utils.js";
 import { logger } from "../../../utils/logger.js";
+import { dbStcwStorage } from "../../../db/stcw/index.js";
 
 export function registerSchedulingRoutes(app: Express, config: VesselPerformanceRoutesConfig): void {
-  const { storage, crewOperationRateLimit } = config;
+  const { crewOperationRateLimit } = config;
 
   app.post("/api/crew/schedule/plan-enhanced", crewOperationRateLimit, withErrorHandling("run enhanced crew scheduling", async (req: Request, res: Response) => {
     const { engine = "greedy", days, shifts, crew, leaves = [], portCalls = [], drydocks = [], certifications = {}, preferences = {}, validate_stcw = false } = req.body;
@@ -48,7 +49,7 @@ export function registerSchedulingRoutes(app: Express, config: VesselPerformance
 
             while (current <= endLimit) {
               const year = current.getFullYear(), month = current.getMonth() + 1;
-              try { const restData = await storage.getCrewRestMonth(crewId, year, month); if (restData.days && restData.days.length > 0) {results.push(...restData.days);} } catch { /* month data not found */ }
+              try { const restData = await dbStcwStorage.getCrewRestMonth(crewId, year, month); if (restData.days && restData.days.length > 0) {results.push(...restData.days);} } catch { /* month data not found */ }
               current.setMonth(current.getMonth() + 1);
             }
             return results;

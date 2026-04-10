@@ -8,10 +8,11 @@ import { Express, Request, Response } from "express";
 import { withErrorHandling } from "../../../lib/route-utils";
 import { StcwRestDependencies } from "./types";
 import type { AuthenticatedRequest } from "../../../middleware/auth";
+import { dbStcwStorage } from "../../../db/stcw/index.js";
+import { dbCrewStorage } from "../../../db/crew/index.js";
+import { vesselService } from "../../../repositories.js";
 
 export function registerFatigueRoutes(app: Express, deps: StcwRestDependencies): void {
-  const { storage } = deps;
-
   app.get("/api/hor/fatigue/:crewId",
     withErrorHandling("calculate fatigue risk", async (req: Request, res: Response) => {
       const { crewId } = req.params;
@@ -25,13 +26,13 @@ export function registerFatigueRoutes(app: Express, deps: StcwRestDependencies):
       const startDateStr = startDate.toISOString().split("T")[0];
       const endDateStr = endDate.toISOString().split("T")[0];
 
-      const { days: restDays } = await storage.getCrewRestRange(
+      const { days: restDays } = await dbStcwStorage.getCrewRestRange(
         crewId,
         startDateStr,
         endDateStr
       );
 
-      const crewMember = await storage.getCrewMember(crewId);
+      const crewMember = await dbCrewStorage.getCrewMember(crewId);
 
       const { calculateFatigueRisk, normalizeRestDays: normalizeForFatigue } = await import("../../../stcw-compliance");
       const normalizedDays = normalizeForFatigue(restDays);
@@ -58,14 +59,14 @@ export function registerFatigueRoutes(app: Express, deps: StcwRestDependencies):
       const startDateStr = startDate.toISOString().split("T")[0];
       const endDateStr = endDate.toISOString().split("T")[0];
 
-      const crewMembers = await storage.getCrew(undefined, vesselId);
+      const crewMembers = await dbCrewStorage.getCrew(undefined, vesselId);
 
       const { calculateFatigueRisk, calculateVesselFatigueSummary, normalizeRestDays: normalizeForFatigue } = 
         await import("../../../stcw-compliance");
 
       const fatigueResults = await Promise.all(
         crewMembers.map(async (crew) => {
-          const { days: restDays } = await storage.getCrewRestRange(
+          const { days: restDays } = await dbStcwStorage.getCrewRestRange(
             crew.id,
             startDateStr,
             endDateStr
@@ -101,17 +102,17 @@ export function registerFatigueRoutes(app: Express, deps: StcwRestDependencies):
       const startDateStr = startDate.toISOString().split("T")[0];
       const endDateStr = endDate.toISOString().split("T")[0];
 
-      const vessels = await storage.getVessels(orgId);
+      const vessels = await vesselService.getVessels(orgId);
       const { calculateFatigueRisk, calculateVesselFatigueSummary, normalizeRestDays: normalizeForFatigue } = 
         await import("../../../stcw-compliance");
 
       const vesselSummaries = await Promise.all(
         vessels.map(async (vessel) => {
-          const crewMembers = await storage.getCrew(undefined, vessel.id);
+          const crewMembers = await dbCrewStorage.getCrew(undefined, vessel.id);
           
           const fatigueResults = await Promise.all(
             crewMembers.map(async (crew) => {
-              const { days: restDays } = await storage.getCrewRestRange(
+              const { days: restDays } = await dbStcwStorage.getCrewRestRange(
                 crew.id,
                 startDateStr,
                 endDateStr

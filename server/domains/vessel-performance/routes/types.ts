@@ -3,7 +3,6 @@
  */
 
 import type { Express, Request, Response } from "express";
-import type { IStorage } from "../../../storage";
 import type { RateLimitRequestHandler } from "express-rate-limit";
 
 export interface AuthenticatedRequest extends Request {
@@ -11,7 +10,6 @@ export interface AuthenticatedRequest extends Request {
 }
 
 export interface VesselPerformanceRoutesConfig {
-  storage: IStorage;
   crewOperationRateLimit: RateLimitRequestHandler;
 }
 

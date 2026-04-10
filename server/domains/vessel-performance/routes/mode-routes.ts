@@ -5,17 +5,18 @@
 import type { Express, Request, Response } from "express";
 import type { VesselPerformanceRoutesConfig } from "./types.js";
 import { withErrorHandling } from "../../../lib/route-utils.js";
+import { dbEquipmentStorage } from "../../../db/equipment/index.js";
+import { dbTelemetryStorage } from "../../../db/telemetry/index.js";
 
 export function registerModeRoutes(app: Express, config: VesselPerformanceRoutesConfig): void {
-  const { storage } = config;
 
   app.get("/api/vessels/:id/operating-mode", withErrorHandling("detect operating mode", async (req: Request, res: Response) => {
     const { id: vesselId } = req.params, orgId = req.headers["x-org-id"] as string;
     if (!orgId) {return res.status(400).json({ message: "Organization ID is required" });}
 
     const now = new Date(), oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-    const equipment = await storage.listEquipment(orgId);
-    const vesselEquipment = equipment.filter(e => e.vesselId === vesselId);
+    const equipment = await dbEquipmentStorage.getEquipmentRegistry(orgId);
+    const vesselEquipment = equipment.filter((e: any) => e.vesselId === vesselId);
 
     if (vesselEquipment.length === 0) {return res.status(404).json({ message: "No equipment found for vessel" });}
 
@@ -24,7 +25,7 @@ export function registerModeRoutes(app: Express, config: VesselPerformanceRoutes
     let latestMode: any = null;
 
     for (const eq of vesselEquipment) {
-      const telemetry = await storage.getTelemetry(eq.id, oneHourAgo, now, orgId);
+      const telemetry = await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(eq.id, oneHourAgo, now, orgId);
       if (telemetry.length > 0) {
         const windows = telemetry.map(t => detector.toTelemetryWindow(t));
         const detection = detector.detectModeFromWindow(windows);

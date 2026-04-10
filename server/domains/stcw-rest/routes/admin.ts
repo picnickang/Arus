@@ -7,13 +7,13 @@
 import { Express, Request, Response } from "express";
 import { withErrorHandling } from "../../../lib/route-utils";
 import { StcwRestDependencies } from "./types";
+import { dbWorkOrderStorage } from "../../../db/workorders/index.js";
+import { dbMaintenanceStorage } from "../../../db/maintenance/index.js";
 
 export function registerAdminRoutes(app: Express, deps: StcwRestDependencies): void {
-  const { storage } = deps;
-
   app.delete("/api/work-orders/clear",
     withErrorHandling("clear work orders", async (_req: Request, res: Response) => {
-      await storage.clearAllWorkOrders();
+      await dbWorkOrderStorage.clearAllWorkOrders();
       res.json({
         ok: true,
         message: "All work orders cleared successfully",
@@ -23,7 +23,7 @@ export function registerAdminRoutes(app: Express, deps: StcwRestDependencies): v
 
   app.delete("/api/maintenance/schedules/clear",
     withErrorHandling("clear maintenance schedules", async (_req: Request, res: Response) => {
-      await storage.clearAllMaintenanceSchedules();
+      await dbMaintenanceStorage.clearAllMaintenanceSchedules();
       res.json({
         ok: true,
         message: "All maintenance schedules cleared successfully",

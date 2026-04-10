@@ -5,10 +5,11 @@
 
 import { Express, Request, Response, SystemAdminDependencies } from "./types.js";
 import { withErrorHandling, sendCreated } from "../../../lib/route-utils.js";
+import { dbSystemAdminStorage } from "../../../db/system-admin/index.js";
+import { dbDigitalTwinStorage } from "../../../db/digital-twin/index.js";
 
 export function registerMetricsRoutes(app: Express, deps: SystemAdminDependencies): void {
   const {
-    storage,
     generalApiRateLimit,
     writeOperationRateLimit,
     requireAdminAuth,
@@ -23,7 +24,7 @@ export function registerMetricsRoutes(app: Express, deps: SystemAdminDependencie
     auditAdminAction("VIEW_PERFORMANCE_METRICS"),
     withErrorHandling("fetch system performance metrics", async (req: Request, res: Response) => {
       const { orgId, category, hours } = req.query;
-      const metrics = await storage.getSystemPerformanceMetrics(
+      const metrics = await dbDigitalTwinStorage.getSystemPerformanceMetrics(
         orgId as string,
         category as string,
         hours ? Number.parseInt(hours as string) : undefined
@@ -39,7 +40,7 @@ export function registerMetricsRoutes(app: Express, deps: SystemAdminDependencie
     auditAdminAction("CREATE_PERFORMANCE_METRIC"),
     withErrorHandling("create system performance metric", async (req: Request, res: Response) => {
       const validatedData = insertSystemPerformanceMetricSchema.parse(req.body);
-      const metric = await storage.createSystemPerformanceMetric(validatedData);
+      const metric = await dbDigitalTwinStorage.createSystemPerformanceMetric(validatedData);
       sendCreated(res, metric);
     })
   );
@@ -51,7 +52,7 @@ export function registerMetricsRoutes(app: Express, deps: SystemAdminDependencie
     auditAdminAction("VIEW_LATEST_METRICS"),
     withErrorHandling("fetch latest performance metrics", async (req: Request, res: Response) => {
       const { orgId, category } = req.params;
-      const metrics = await storage.getLatestMetricsByCategory(orgId, category);
+      const metrics = await dbDigitalTwinStorage.getLatestMetricsByCategory(orgId, category);
       res.json(metrics);
     })
   );
@@ -64,7 +65,7 @@ export function registerMetricsRoutes(app: Express, deps: SystemAdminDependencie
     withErrorHandling("fetch metric trends", async (req: Request, res: Response) => {
       const { orgId, metricName } = req.params;
       const { hours } = req.query;
-      const trends = await storage.getMetricTrends(
+      const trends = await dbSystemAdminStorage.getMetricTrends(
         orgId,
         metricName,
         hours ? Number.parseInt(hours as string) : 24

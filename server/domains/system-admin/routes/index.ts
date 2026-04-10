@@ -4,7 +4,7 @@
  */
 
 import type { Express } from "express";
-import type { SystemAdminDependencies, IStorage, ThresholdCalibrator } from "./types.js";
+import type { SystemAdminDependencies, ThresholdCalibrator } from "./types.js";
 import { logger } from "../../../utils/logger.js";
 import { registerAuthRoutes } from "./auth-routes.js";
 import { registerAuditRoutes } from "./audit-routes.js";
@@ -14,7 +14,7 @@ import { registerIntegrationsRoutes } from "./integrations-routes.js";
 import { registerWindowsRoutes } from "./windows-routes.js";
 import { registerMetricsRoutes } from "./metrics-routes.js";
 
-export type { SystemAdminDependencies, IStorage, ThresholdCalibrator };
+export type { SystemAdminDependencies, ThresholdCalibrator };
 
 export function registerSystemAdminRoutes(
   app: Express,

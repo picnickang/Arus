@@ -16,7 +16,7 @@
  * - metrics-routes.ts (99 lines): Performance metrics
  */
 
-export type { SystemAdminDependencies, IStorage, ThresholdCalibrator } from "./routes/index.js";
+export type { SystemAdminDependencies, ThresholdCalibrator } from "./routes/index.js";
 
 export {
   registerSystemAdminRoutes,

@@ -3,12 +3,11 @@ import { z } from "zod";
 import { RateLimitRequestHandler } from "express-rate-limit";
 import { requireOrgId, AuthenticatedRequest } from "../../middleware/auth";
 import { insertOilAnalysisSchema, insertWearParticleAnalysisSchema } from "@shared/schema-runtime";
-import { IStorage } from "../../storage";
 import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
+import { dbConditionMonitoringStorage } from "../../db/condition-monitoring/index.js";
 
 interface ConditionMonitoringRoutesConfig {
-  storage: IStorage;
   generalApiRateLimit: RateLimitRequestHandler;
 }
 
@@ -16,7 +15,7 @@ export function registerConditionMonitoringRoutes(
   app: Express,
   config: ConditionMonitoringRoutesConfig
 ): void {
-  const { storage, generalApiRateLimit } = config;
+  const { generalApiRateLimit } = config;
 
   // ===== OIL ANALYSIS ROUTES =====
 
@@ -24,7 +23,7 @@ export function registerConditionMonitoringRoutes(
     withErrorHandling("fetch oil analyses", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const { equipmentId } = req.query;
-      const analyses = await storage.getOilAnalyses(orgId, equipmentId as string);
+      const analyses = await dbConditionMonitoringStorage.getOilAnalyses(orgId, equipmentId as string);
       res.json(analyses);
     })
   );
@@ -33,7 +32,7 @@ export function registerConditionMonitoringRoutes(
     withErrorHandling("fetch oil analysis", async (req, res) => {
       const { id } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
-      const analysis = await storage.getOilAnalysis(id, orgId);
+      const analysis = await dbConditionMonitoringStorage.getOilAnalysis(id, orgId);
       if (!analysis) {return sendNotFound(res, "Oil analysis");}
       res.json(analysis);
     })
@@ -45,7 +44,7 @@ export function registerConditionMonitoringRoutes(
         sampleDate: z.string().or(z.date()).transform((val) => typeof val === "string" ? new Date(val) : val),
       });
       const validatedData = oilAnalysisSchema.parse(req.body);
-      const analysis = await storage.createOilAnalysis(validatedData);
+      const analysis = await dbConditionMonitoringStorage.createOilAnalysis(validatedData);
       sendCreated(res, analysis);
     })
   );
@@ -54,7 +53,7 @@ export function registerConditionMonitoringRoutes(
     withErrorHandling("update oil analysis", async (req, res) => {
       const { id } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
-      const analysis = await storage.updateOilAnalysis(id, req.body, orgId);
+      const analysis = await dbConditionMonitoringStorage.updateOilAnalysis(id, req.body, orgId);
       res.json(analysis);
     })
   );
@@ -63,7 +62,7 @@ export function registerConditionMonitoringRoutes(
     withErrorHandling("delete oil analysis", async (req, res) => {
       const { id } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
-      await storage.deleteOilAnalysis(id, orgId);
+      await dbConditionMonitoringStorage.deleteOilAnalysis(id, orgId);
       sendDeleted(res);
     })
   );
@@ -74,7 +73,7 @@ export function registerConditionMonitoringRoutes(
     withErrorHandling("fetch wear particle analyses", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const { equipmentId } = req.query;
-      const analyses = await storage.getWearParticleAnalyses(orgId, equipmentId as string);
+      const analyses = await dbConditionMonitoringStorage.getWearParticleAnalyses(orgId, equipmentId as string);
       res.json(analyses);
     })
   );
@@ -83,7 +82,7 @@ export function registerConditionMonitoringRoutes(
     withErrorHandling("fetch wear particle analysis", async (req, res) => {
       const { id } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
-      const analysis = await storage.getWearParticleAnalysis(id, orgId);
+      const analysis = await dbConditionMonitoringStorage.getWearParticleAnalysis(id, orgId);
       if (!analysis) {return sendNotFound(res, "Wear particle analysis");}
       res.json(analysis);
     })
@@ -95,7 +94,7 @@ export function registerConditionMonitoringRoutes(
         analysisDate: z.string().or(z.date()).transform((val) => typeof val === "string" ? new Date(val) : val),
       });
       const validatedData = wearAnalysisSchema.parse(req.body);
-      const analysis = await storage.createWearParticleAnalysis(validatedData);
+      const analysis = await dbConditionMonitoringStorage.createWearParticleAnalysis(validatedData);
       sendCreated(res, analysis);
     })
   );
@@ -104,7 +103,7 @@ export function registerConditionMonitoringRoutes(
     withErrorHandling("update wear particle analysis", async (req, res) => {
       const { id } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
-      const analysis = await storage.updateWearParticleAnalysis(id, req.body, orgId);
+      const analysis = await dbConditionMonitoringStorage.updateWearParticleAnalysis(id, req.body, orgId);
       res.json(analysis);
     })
   );
@@ -113,7 +112,7 @@ export function registerConditionMonitoringRoutes(
     withErrorHandling("delete wear particle analysis", async (req, res) => {
       const { id } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
-      await storage.deleteWearParticleAnalysis(id, orgId);
+      await dbConditionMonitoringStorage.deleteWearParticleAnalysis(id, orgId);
       sendDeleted(res);
     })
   );
@@ -124,7 +123,7 @@ export function registerConditionMonitoringRoutes(
     withErrorHandling("fetch condition monitoring assessments", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const { equipmentId } = req.query;
-      const assessments = await storage.getConditionMonitoringAssessments(orgId, equipmentId as string);
+      const assessments = await dbConditionMonitoringStorage.getConditionMonitoringRecords(orgId, equipmentId as string);
       res.json(assessments);
     })
   );
@@ -133,7 +132,7 @@ export function registerConditionMonitoringRoutes(
     withErrorHandling("fetch condition monitoring assessment", async (req, res) => {
       const { id } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
-      const assessment = await storage.getConditionMonitoringAssessment(id, orgId);
+      const assessment = await dbConditionMonitoringStorage.getConditionMonitoringRecord(id, orgId);
       if (!assessment) {return sendNotFound(res, "Condition monitoring assessment");}
       res.json(assessment);
     })
@@ -141,7 +140,7 @@ export function registerConditionMonitoringRoutes(
 
   app.post("/api/condition/assessments", requireOrgId, generalApiRateLimit,
     withErrorHandling("create condition monitoring assessment", async (req, res) => {
-      const assessment = await storage.createConditionMonitoringAssessment(req.body);
+      const assessment = await dbConditionMonitoringStorage.createConditionMonitoringRecord(req.body);
       sendCreated(res, assessment);
     })
   );
@@ -152,14 +151,14 @@ export function registerConditionMonitoringRoutes(
     withErrorHandling("fetch oil change records", async (req, res) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const { equipmentId } = req.query;
-      const records = await storage.getOilChangeRecords(orgId, equipmentId as string);
+      const records = await dbConditionMonitoringStorage.getConditionMonitoringRecords(orgId, equipmentId as string);
       res.json(records);
     })
   );
 
   app.post("/api/condition/oil-changes", requireOrgId, generalApiRateLimit,
     withErrorHandling("create oil change record", async (req, res) => {
-      const record = await storage.createOilChangeRecord(req.body);
+      const record = await dbConditionMonitoringStorage.createConditionMonitoringRecord(req.body);
       sendCreated(res, record);
     })
   );
@@ -170,18 +169,18 @@ export function registerConditionMonitoringRoutes(
     withErrorHandling("generate condition assessment", async (req, res) => {
       const { oilAnalysisId, wearAnalysisId, vibrationScore } = req.body;
 
-      const oilAnalysis = await storage.getOilAnalysis(oilAnalysisId);
+      const oilAnalysis = await dbConditionMonitoringStorage.getOilAnalysis(oilAnalysisId);
       if (!oilAnalysis) {return sendNotFound(res, "Oil analysis");}
 
       let wearAnalysis;
       if (wearAnalysisId) {
-        wearAnalysis = await storage.getWearParticleAnalysis(wearAnalysisId);
+        wearAnalysis = await dbConditionMonitoringStorage.getWearParticleAnalysis(wearAnalysisId);
         if (!wearAnalysis) {return sendNotFound(res, "Wear particle analysis");}
       }
 
       const { generateConditionAssessment } = await import("../../condition-monitoring.js");
       const assessmentData = generateConditionAssessment(oilAnalysis, wearAnalysis, vibrationScore);
-      const savedAssessment = await storage.createConditionMonitoringAssessment(assessmentData);
+      const savedAssessment = await dbConditionMonitoringStorage.createConditionMonitoringRecord(assessmentData);
       sendCreated(res, savedAssessment);
     })
   );
@@ -194,10 +193,10 @@ export function registerConditionMonitoringRoutes(
       const orgId = (req as AuthenticatedRequest).orgId;
 
       const [latestOil, latestWear, latestAssessment, latestOilChange] = await Promise.all([
-        storage.getLatestOilAnalysis(equipmentId, orgId),
-        storage.getLatestWearParticleAnalysis(equipmentId, orgId),
-        storage.getLatestConditionAssessment(equipmentId, orgId),
-        storage.getLatestOilChange(equipmentId, orgId),
+        dbConditionMonitoringStorage.getLatestOilAnalysis(equipmentId, orgId),
+        dbConditionMonitoringStorage.getLatestWearParticleAnalysis(equipmentId, orgId),
+        dbConditionMonitoringStorage.getConditionMonitoringRecords(orgId, equipmentId).then((r: any[]) => r[0] ?? null),
+        dbConditionMonitoringStorage.getConditionMonitoringRecords(orgId, equipmentId).then((r: any[]) => r[0] ?? null),
       ]);
 
       res.json({

@@ -6,10 +6,10 @@
 import { Express, Request, Response, z, SystemAdminDependencies } from "./types.js";
 import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../../lib/route-utils.js";
 import { logger } from "../../../utils/logger.js";
+import { dbSystemAdminStorage } from "../../../db/system-admin/index.js";
 
 export function registerSettingsRoutes(app: Express, deps: SystemAdminDependencies): void {
   const {
-    storage,
     generalApiRateLimit,
     writeOperationRateLimit,
     criticalOperationRateLimit,
@@ -26,7 +26,7 @@ export function registerSettingsRoutes(app: Express, deps: SystemAdminDependenci
     auditAdminAction("VIEW_SYSTEM_SETTINGS"),
     withErrorHandling("fetch admin system settings", async (req: Request, res: Response) => {
       const { orgId, category } = req.query;
-      const settings = await storage.getAdminSystemSettings(orgId as string, category as string);
+      const settings = await dbSystemAdminStorage.getAdminSystemSettings(orgId as string, category as string);
       res.json(settings);
     })
   );
@@ -38,7 +38,7 @@ export function registerSettingsRoutes(app: Express, deps: SystemAdminDependenci
     auditAdminAction("VIEW_SYSTEM_SETTING"),
     withErrorHandling("fetch admin system setting", async (req: Request, res: Response) => {
       const { orgId, category, key } = req.params;
-      const setting = await storage.getAdminSystemSetting(orgId, category, key);
+      const setting = await dbSystemAdminStorage.getAdminSystemSetting(orgId, category, key);
       if (!setting) {
         return sendNotFound(res, "System setting");
       }
@@ -53,7 +53,7 @@ export function registerSettingsRoutes(app: Express, deps: SystemAdminDependenci
     auditAdminAction("CREATE_SYSTEM_SETTING"),
     withErrorHandling("create admin system setting", async (req: Request, res: Response) => {
       const validatedData = insertAdminSystemSettingSchema.parse(req.body);
-      const setting = await storage.createAdminSystemSetting(validatedData);
+      const setting = await dbSystemAdminStorage.createAdminSystemSetting(validatedData);
       sendCreated(res, setting);
     })
   );
@@ -66,7 +66,7 @@ export function registerSettingsRoutes(app: Express, deps: SystemAdminDependenci
     withErrorHandling("update admin system setting", async (req: Request, res: Response) => {
       const { id } = req.params;
       const validatedData = insertAdminSystemSettingSchema.partial().parse(req.body);
-      const setting = await storage.updateAdminSystemSetting(id, validatedData);
+      const setting = await dbSystemAdminStorage.updateAdminSystemSetting(id, validatedData);
       res.json(setting);
     })
   );
@@ -78,7 +78,7 @@ export function registerSettingsRoutes(app: Express, deps: SystemAdminDependenci
     auditAdminAction("DELETE_SYSTEM_SETTING"),
     withErrorHandling("delete admin system setting", async (req: Request, res: Response) => {
       const { id } = req.params;
-      await storage.deleteAdminSystemSetting(id);
+      await dbSystemAdminStorage.deleteAdminSystemSetting(id);
       sendDeleted(res);
     })
   );
@@ -90,7 +90,7 @@ export function registerSettingsRoutes(app: Express, deps: SystemAdminDependenci
     auditAdminAction("VIEW_SETTINGS_BY_CATEGORY"),
     withErrorHandling("fetch settings by category", async (req: Request, res: Response) => {
       const { orgId, category } = req.params;
-      const settings = await storage.getSettingsByCategory(orgId, category);
+      const settings = await dbSystemAdminStorage.getSettingsByCategory(orgId, category);
       res.json(settings);
     })
   );

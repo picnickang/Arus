@@ -8,15 +8,16 @@ import { insertJ1939ConfigurationSchema } from "@shared/schema-runtime";
 import type { SensorManagementConfig } from "./types.js";
 import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../../lib/route-utils.js";
 import type { AuthenticatedRequest } from "../../../middleware/auth";
+import { dbSensorsStorage } from "../../../db/sensors/index.js";
 
 export function registerJ1939Routes(app: Express, config: SensorManagementConfig) {
-  const { storage, requireOrgId, writeOperationRateLimit, criticalOperationRateLimit } = config;
+  const { requireOrgId, writeOperationRateLimit, criticalOperationRateLimit } = config;
 
   app.get("/api/j1939/configurations", requireOrgId,
     withErrorHandling("fetch J1939 configurations", async (req, res) => {
       const { deviceId } = req.query;
       const orgId = (req as AuthenticatedRequest).orgId;
-      const configurations = await storage.getJ1939Configurations(orgId, deviceId as string);
+      const configurations = await dbSensorsStorage.getJ1939Configurations(orgId, deviceId as string);
       res.json(configurations);
     })
   );
@@ -25,7 +26,7 @@ export function registerJ1939Routes(app: Express, config: SensorManagementConfig
     withErrorHandling("fetch J1939 configuration", async (req, res) => {
       const { id } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
-      const configuration = await storage.getJ1939Configuration(id, orgId);
+      const configuration = await dbSensorsStorage.getJ1939Configuration(id, orgId);
       if (!configuration) {
         return sendNotFound(res, "J1939 configuration");
       }
@@ -37,7 +38,7 @@ export function registerJ1939Routes(app: Express, config: SensorManagementConfig
     withErrorHandling("create J1939 configuration", async (req, res) => {
       const configData = insertJ1939ConfigurationSchema.parse(req.body);
       const orgId = (req as AuthenticatedRequest).orgId;
-      const configuration = await storage.createJ1939Configuration({ ...configData, orgId });
+      const configuration = await dbSensorsStorage.createJ1939Configuration({ ...configData, orgId });
       sendCreated(res, configuration);
     })
   );
@@ -47,11 +48,11 @@ export function registerJ1939Routes(app: Express, config: SensorManagementConfig
       const { id } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
       const configData = insertJ1939ConfigurationSchema.partial().parse(req.body);
-      const existing = await storage.getJ1939Configuration(id, orgId);
+      const existing = await dbSensorsStorage.getJ1939Configuration(id, orgId);
       if (!existing) {
         return sendNotFound(res, "J1939 configuration");
       }
-      const configuration = await storage.updateJ1939Configuration(id, configData, orgId);
+      const configuration = await dbSensorsStorage.updateJ1939Configuration(id, configData, orgId);
       res.json(configuration);
     })
   );
@@ -60,11 +61,11 @@ export function registerJ1939Routes(app: Express, config: SensorManagementConfig
     withErrorHandling("delete J1939 configuration", async (req, res) => {
       const { id } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
-      const existing = await storage.getJ1939Configuration(id, orgId);
+      const existing = await dbSensorsStorage.getJ1939Configuration(id, orgId);
       if (!existing) {
         return sendNotFound(res, "J1939 configuration");
       }
-      await storage.deleteJ1939Configuration(id, orgId);
+      await dbSensorsStorage.deleteJ1939Configuration(id, orgId);
       sendDeleted(res);
     })
   );

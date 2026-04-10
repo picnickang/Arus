@@ -7,10 +7,10 @@
 import { Express, Request, Response } from "express";
 import { withErrorHandling } from "../../../lib/route-utils";
 import { StcwRestDependencies } from "./types";
+import { dbStcwStorage } from "../../../db/stcw/index.js";
 
 export function registerDataRoutes(app: Express, deps: StcwRestDependencies): void {
   const {
-    storage,
     generatePdfFilename,
     renderRestPdf,
     incrementHorPdfExport,
@@ -27,7 +27,7 @@ export function registerDataRoutes(app: Express, deps: StcwRestDependencies): vo
         return;
       }
 
-      const restData = await storage.getCrewRestMonth(crewId, Number.parseInt(year), month);
+      const restData = await dbStcwStorage.getCrewRestMonth(crewId, Number.parseInt(year), month);
 
       if (!restData.sheet) {
         res.status(404).json({
@@ -51,7 +51,7 @@ export function registerDataRoutes(app: Express, deps: StcwRestDependencies): vo
         return;
       }
 
-      const restData = await storage.getCrewRestMonth(crewId, Number.parseInt(year), month);
+      const restData = await dbStcwStorage.getCrewRestMonth(crewId, Number.parseInt(year), month);
 
       if (!restData.sheet) {
         res.status(404).json({
@@ -92,7 +92,7 @@ export function registerDataRoutes(app: Express, deps: StcwRestDependencies): vo
         return;
       }
 
-      const restData = await storage.getCrewRestMonth(
+      const restData = await dbStcwStorage.getCrewRestMonth(
         crew_id as string,
         Number.parseInt(year as string),
         month as string
@@ -135,7 +135,7 @@ export function registerDataRoutes(app: Express, deps: StcwRestDependencies): vo
         return;
       }
 
-      const restData = await storage.getCrewRestMonth(
+      const restData = await dbStcwStorage.getCrewRestMonth(
         crew_id as string,
         Number.parseInt(year as string),
         month as string

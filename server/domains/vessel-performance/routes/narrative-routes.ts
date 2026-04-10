@@ -5,9 +5,9 @@
 import type { Express, Request, Response } from "express";
 import type { VesselPerformanceRoutesConfig } from "./types.js";
 import { withErrorHandling } from "../../../lib/route-utils.js";
+import { storage } from "../../../storage.js";
 
 export function registerNarrativeRoutes(app: Express, config: VesselPerformanceRoutesConfig): void {
-  const { storage } = config;
 
   app.post("/api/analytics/narrative-summary", withErrorHandling("generate narrative summary", async (req: Request, res: Response) => {
     const orgId = req.headers["x-org-id"] as string;

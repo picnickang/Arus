@@ -6,13 +6,13 @@
 
 import { Express } from "express";
 import { RateLimitRequestHandler } from "express-rate-limit";
-import type { IStorage } from "../../../storage";
 import type { AuthenticatedRequest } from "../../../types";
 import { withErrorHandling } from "../../../lib/route-utils";
+import { dbMaintenanceStorage } from "../../../repositories";
+import { dbAlertStorage } from "../../../repositories";
 
 export function registerComplianceReportRoutes(
   app: Express,
-  storage: IStorage,
   rateLimiters: {
     generalApiRateLimit: RateLimitRequestHandler;
   }
@@ -34,8 +34,8 @@ export function registerComplianceReportRoutes(
 
       const orgId = req.orgId!;
       const [maintenanceSchedules, alerts] = await Promise.all([
-        storage.getMaintenanceSchedules(equipmentFilter),
-        storage.getAlertNotifications(false, orgId),
+        dbMaintenanceStorage.getMaintenanceSchedules(equipmentFilter),
+        dbAlertStorage.getAlertNotifications(false, orgId),
       ]);
 
       const overdue = maintenanceSchedules.filter(
@@ -82,7 +82,7 @@ export function registerComplianceReportRoutes(
       const lookbackDate = new Date(Date.now() - lookbackHours * 60 * 60 * 1000);
       const orgId = req.orgId!;
 
-      const alertNotifications = await storage.getAlertNotifications(undefined, orgId);
+      const alertNotifications = await dbAlertStorage.getAlertNotifications(undefined, orgId);
 
       const recentAlerts = alertNotifications.filter(
         (alert) => new Date(alert.createdAt) >= lookbackDate

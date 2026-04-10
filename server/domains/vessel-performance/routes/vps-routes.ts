@@ -6,15 +6,17 @@
 import type { Express, Request, Response } from "express";
 import type { VesselPerformanceRoutesConfig } from "./types.js";
 import { withErrorHandling } from "../../../lib/route-utils.js";
+import { vesselService } from "../../../services/domains/vessel-service.js";
+import { dbEquipmentStorage } from "../../../db/equipment/index.js";
+import { dbTelemetryStorage } from "../../../db/telemetry/index.js";
 
 export function registerVPSRoutes(app: Express, config: VesselPerformanceRoutesConfig): void {
-  const { storage } = config;
 
   app.get("/api/vessels/:id/power-stw-analysis", withErrorHandling("compute power-STW analysis", async (req: Request, res: Response) => {
     const vesselId = req.params.id, orgId = req.headers["x-org-id"] as string;
     if (!orgId) {return res.status(400).json({ message: "Organization ID is required" });}
 
-    const vessel = await storage.getVessel(vesselId, orgId);
+    const vessel = await vesselService.getVessel(vesselId, orgId);
     if (!vessel) {return res.status(404).json({ message: "Vessel not found" });}
 
     const now = new Date(), defaultStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -23,10 +25,10 @@ export function registerVPSRoutes(app: Express, config: VesselPerformanceRoutesC
     if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {return res.status(400).json({ message: "Invalid date format. Use ISO 8601 strings." });}
     if (startDate > endDate) {return res.status(400).json({ message: "Start date must be before end date" });}
 
-    const vesselEquipment = await storage.getEquipmentByVessel(vesselId, orgId);
+    const vesselEquipment = await dbEquipmentStorage.getEquipmentByVessel(vesselId, orgId);
     const allTelemetry: any[] = [];
     for (const equipment of vesselEquipment) {
-      const telemetry = await storage.getTelemetryByEquipment(equipment.id, startDate, endDate, orgId);
+      const telemetry = await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(equipment.id, startDate, endDate, orgId);
       allTelemetry.push(...telemetry);
     }
 
@@ -74,7 +76,7 @@ export function registerVPSRoutes(app: Express, config: VesselPerformanceRoutesC
       computeFleetPowerSTWBenchmarks(orgId, { start: startDate, end: endDate }, vesselType)
     ]);
 
-    const vessels = await storage.getVessels(orgId);
+    const vessels = await vesselService.getVessels(orgId);
     const vesselCount = vesselType ? vessels.filter(v => v.type === vesselType).length : vessels.length;
 
     res.setHeader("Cache-Control", "public, max-age=300");

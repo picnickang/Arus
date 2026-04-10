@@ -9,9 +9,10 @@ import { insertThresholdOptimizationSchema } from "@shared/schema-runtime";
 import { withErrorHandling, sendNotFound } from "../../../lib/route-utils.js";
 import type { MlAnalyticsConfig } from "./types.js";
 import type { AuthenticatedRequest } from "../../../middleware/auth";
+import { dbMlAnalyticsStorage } from "../../../repositories.js";
 
 export function registerThresholdRoutes(app: Express, config: MlAnalyticsConfig) {
-  const { storage, writeOperationRateLimit } = config;
+  const { writeOperationRateLimit } = config;
 
   app.get("/api/analytics/threshold-optimizations",
     withErrorHandling("fetch threshold optimizations", async (req, res) => {
@@ -19,7 +20,7 @@ export function registerThresholdRoutes(app: Express, config: MlAnalyticsConfig)
       if (!orgId) {
         return res.status(400).json({ message: "orgId is required" });
       }
-      const optimizations = await storage.getThresholdOptimizations(
+      const optimizations = await dbMlAnalyticsStorage.getThresholdOptimizations(
         orgId as string,
         equipmentId as string,
         status as string
@@ -35,7 +36,7 @@ export function registerThresholdRoutes(app: Express, config: MlAnalyticsConfig)
       if (!orgId) {
         return res.status(400).json({ message: "orgId is required" });
       }
-      const optimization = await storage.getThresholdOptimization(Number.parseInt(req.params.id), orgId as string);
+      const optimization = await dbMlAnalyticsStorage.getThresholdOptimization(Number.parseInt(req.params.id), orgId as string);
       if (!optimization) {
         return sendNotFound(res, "Threshold optimization");
       }
@@ -51,7 +52,7 @@ export function registerThresholdRoutes(app: Express, config: MlAnalyticsConfig)
         return res.status(400).json({ message: "orgId is required" });
       }
       const validatedData = insertThresholdOptimizationSchema.parse(optimizationData);
-      const optimization = await storage.createThresholdOptimization(validatedData, orgId);
+      const optimization = await dbMlAnalyticsStorage.createThresholdOptimization(validatedData, orgId);
       const { normalizeThresholdOptimization } = await import("../../../analytics-data-normalizer.js");
       res.status(201).json(normalizeThresholdOptimization(optimization));
     })
@@ -63,7 +64,7 @@ export function registerThresholdRoutes(app: Express, config: MlAnalyticsConfig)
       if (!orgId) {
         return res.status(400).json({ message: "orgId is required" });
       }
-      const optimization = await storage.applyThresholdOptimization(Number.parseInt(req.params.id), orgId);
+      const optimization = await dbMlAnalyticsStorage.applyThresholdOptimization(Number.parseInt(req.params.id), orgId);
       const { normalizeThresholdOptimization } = await import("../../../analytics-data-normalizer.js");
       res.json(normalizeThresholdOptimization(optimization));
     })

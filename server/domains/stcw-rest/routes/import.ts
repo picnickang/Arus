@@ -8,10 +8,14 @@ import { Express, Request, Response } from "express";
 import { insertCrewRestSheetSchema } from "@shared/schema";
 import { withErrorHandling } from "../../../lib/route-utils";
 import { StcwRestDependencies, RestDay } from "./types";
+import { dbStcwStorage } from "../../../db/stcw/index.js";
+import { dbCrewStorage } from "../../../db/crew/index.js";
+import { db } from "../../../db/index.js";
+import { idempotencyLog } from "@shared/schema-runtime";
+import { eq } from "drizzle-orm";
 
 export function registerImportRoutes(app: Express, deps: StcwRestDependencies): void {
   const {
-    storage,
     checkMonthCompliance,
     normalizeRestDays,
     incrementIdempotencyHit,
@@ -24,8 +28,8 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
 
       const idempotencyKey = req.header("Idempotency-Key");
       if (idempotencyKey) {
-        const isDuplicate = await storage.checkIdempotency(idempotencyKey, "/api/crew/rest/import");
-        if (isDuplicate) {
+        const existing = await db.select().from(idempotencyLog).where(eq(idempotencyLog.key, idempotencyKey)).limit(1);
+        if (existing.length > 0) {
           incrementIdempotencyHit("/api/crew/rest/import");
           res.json({
             ok: true,
@@ -71,16 +75,16 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
         orgId,
       });
 
-      const sheet = await storage.createCrewRestSheet(sheetData);
+      const sheet = await dbStcwStorage.createCrewRestSheet(sheetData);
 
       let rowCount = 0;
       for (const dayData of rows) {
-        await storage.upsertCrewRestDay(sheet.id, { ...dayData, orgId: sheetData.orgId });
+        await dbStcwStorage.upsertCrewRestDay(sheet.id, { ...dayData, orgId: sheetData.orgId });
         rowCount++;
       }
 
       if (idempotencyKey) {
-        await storage.recordIdempotency(idempotencyKey, "/api/crew/rest/import");
+        await db.insert(idempotencyLog).values({ key: idempotencyKey, endpoint: "/api/crew/rest/import", createdAt: new Date() }).onConflictDoNothing();
       }
 
       incrementHorImport(sheetData.crewId, format, rowCount);
@@ -111,7 +115,7 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
           return;
         }
 
-        const restData = await storage.getCrewRestMonth(crew_id, Number.parseInt(year), month);
+        const restData = await dbStcwStorage.getCrewRestMonth(crew_id, Number.parseInt(year), month);
         if (!restData.sheet) {
           res.status(404).json({
             ok: false,
@@ -139,7 +143,7 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
         return;
       }
 
-      const restData = await storage.getCrewRestMonth(crewId, Number.parseInt(year), month);
+      const restData = await dbStcwStorage.getCrewRestMonth(crewId, Number.parseInt(year), month);
       if (!restData.sheet) {
         res.status(200).json({
           ok: false,
@@ -162,8 +166,8 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
 
       const idempotencyKey = req.header("Idempotency-Key");
       if (idempotencyKey) {
-        const isDuplicate = await storage.checkIdempotency(idempotencyKey, "/api/stcw/import");
-        if (isDuplicate) {
+        const existing = await db.select().from(idempotencyLog).where(eq(idempotencyLog.key, idempotencyKey)).limit(1);
+        if (existing.length > 0) {
           incrementIdempotencyHit("/api/stcw/import");
           res.json({
             success: true,
@@ -188,10 +192,9 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
       rows = normalizeRestDays(rows);
 
       const orgId = (req as any).orgId || req.header("x-org-id") || "default-org-id";
-      // Get crew name from storage if not provided
-      const crewMember = await storage.getCrewMember(crewId);
+      const crewMember = await dbCrewStorage.getCrewMember(crewId);
       const crewName = crewMember?.name || "Unknown";
-      const sheet = await storage.createCrewRestSheet({
+      const sheet = await dbStcwStorage.createCrewRestSheet({
         crewId,
         crewName,
         year: Number.parseInt(year),
@@ -202,12 +205,12 @@ export function registerImportRoutes(app: Express, deps: StcwRestDependencies): 
 
       let rowCount = 0;
       for (const dayData of rows) {
-        await storage.upsertCrewRestDay(sheet.id, { ...dayData, orgId });
+        await dbStcwStorage.upsertCrewRestDay(sheet.id, { ...dayData, orgId });
         rowCount++;
       }
 
       if (idempotencyKey) {
-        await storage.recordIdempotency(idempotencyKey, "/api/stcw/import");
+        await db.insert(idempotencyLog).values({ key: idempotencyKey, endpoint: "/api/stcw/import", createdAt: new Date() }).onConflictDoNothing();
       }
 
       incrementHorImport(crewId, "json", rowCount);

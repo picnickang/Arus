@@ -6,12 +6,11 @@
 
 import { Express } from "express";
 import { RateLimitRequestHandler } from "express-rate-limit";
-import type { IStorage } from "../../../storage";
 import { withErrorHandling } from "../../../lib/route-utils";
+import { dbMaintenanceStorage, dbEquipmentStorage, workOrderService } from "../../../repositories";
 
 export function registerMaintenanceReportRoutes(
   app: Express,
-  storage: IStorage,
   rateLimiters: {
     generalApiRateLimit: RateLimitRequestHandler;
   }
@@ -24,10 +23,10 @@ export function registerMaintenanceReportRoutes(
 
       const [maintenanceSchedules, maintenanceRecords, workOrders, equipmentHealth] =
         await Promise.all([
-          storage.getMaintenanceSchedules(),
-          storage.getMaintenanceRecords(),
-          storage.getWorkOrders(),
-          storage.getEquipmentHealth(),
+          dbMaintenanceStorage.getMaintenanceSchedules(),
+          dbMaintenanceStorage.getMaintenanceRecords(),
+          workOrderService.getWorkOrdersWithDetails(),
+          dbEquipmentStorage.getEquipmentHealth(),
         ]);
 
       const filteredSchedules = equipmentId

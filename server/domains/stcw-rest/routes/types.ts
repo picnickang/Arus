@@ -5,7 +5,6 @@
  */
 
 import { z } from "zod";
-import { IStorage } from "../../../storage";
 import { RateLimitRequestHandler } from "express-rate-limit";
 
 export interface RestDay {
@@ -27,7 +26,6 @@ export const rangeQuerySchema = z.object({
 });
 
 export interface StcwRestDependencies {
-  storage: IStorage;
   writeOperationRateLimit: RateLimitRequestHandler;
   checkMonthCompliance: (rows: RestDay[]) => any;
   normalizeRestDays: (rows: any[]) => RestDay[];

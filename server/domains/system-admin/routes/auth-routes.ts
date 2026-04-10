@@ -3,6 +3,8 @@ import { withErrorHandling } from "../../../lib/route-utils.js";
 import { logger } from "../../../utils/logger.js";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
+import { dbUserStorage } from "../../../db/users/index.js";
+import { dbSystemAdminStorage } from "../../../db/system-admin/index.js";
 
 const BCRYPT_COST = 12;
 const MAX_PASSWORD_LENGTH = 128;
@@ -47,7 +49,6 @@ function quoteEnvValue(value: string): string {
 
 export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies): void {
   const {
-    storage,
     generalApiRateLimit,
     writeOperationRateLimit,
     criticalOperationRateLimit,
@@ -117,10 +118,10 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
       expiresAt.setHours(expiresAt.getHours() + 2);
 
       const mockOrgId = "default-org-id";
-      let adminUser = await storage.getUserByEmail("admin@example.com", mockOrgId);
+      let adminUser = await dbUserStorage.getUserByEmail("admin@example.com", mockOrgId);
 
       if (!adminUser) {
-        adminUser = await storage.createUser({
+        adminUser = await dbUserStorage.createUser({
           orgId: mockOrgId,
           email: "admin@example.com",
           name: "System Administrator",
@@ -129,7 +130,7 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
         });
       }
 
-      await storage.createAdminSession({
+      await dbSystemAdminStorage.createAdminSession({
         orgId: mockOrgId,
         sessionToken: sessionTokenHash,
         userId: adminUser.id,
@@ -231,10 +232,10 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
         expiresAt.setHours(expiresAt.getHours() + 2);
 
         const mockOrgId = "default-org-id";
-        let adminUser = await storage.getUserByEmail("admin@example.com", mockOrgId);
+        let adminUser = await dbUserStorage.getUserByEmail("admin@example.com", mockOrgId);
 
         if (!adminUser) {
-          adminUser = await storage.createUser({
+          adminUser = await dbUserStorage.createUser({
             orgId: mockOrgId,
             email: "admin@example.com",
             name: "System Administrator",
@@ -243,7 +244,7 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
           });
         }
 
-        await storage.createAdminSession({
+        await dbSystemAdminStorage.createAdminSession({
           orgId: mockOrgId,
           sessionToken: sessionTokenHash,
           userId: adminUser.id,
@@ -335,7 +336,7 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
         process.env.ADMIN_TOKEN_HASH = newHash;
         delete process.env.ADMIN_TOKEN;
 
-        await storage.invalidateAllAdminSessions();
+        await dbSystemAdminStorage.invalidateAllAdminSessions();
 
         logger.info("AdminAuth", `Admin password changed successfully from ${req.ip}`);
 

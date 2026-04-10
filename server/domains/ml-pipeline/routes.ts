@@ -1,15 +1,15 @@
 import type { Express, Request, Response } from "express";
-import type { IStorage } from "../../storage";
 import type { RateLimitRequestHandler } from "express-rate-limit";
 import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
+import { storage } from "../../storage.js";
+import { dbMlAnalyticsStorage } from "../../db/ml-analytics/index.js";
 
 interface AuthenticatedRequest extends Request {
   orgId?: string;
 }
 
 interface MlPipelineRoutesConfig {
-  storage: IStorage;
   generalApiRateLimit: RateLimitRequestHandler;
 }
 
@@ -17,7 +17,7 @@ export function registerMlPipelineRoutes(
   app: Express,
   config: MlPipelineRoutesConfig
 ): void {
-  const { storage, generalApiRateLimit } = config;
+  const { generalApiRateLimit } = config;
 
   logger.info("MLPipelineRoutes", "Registering ML pipeline API endpoints");
 
@@ -287,7 +287,7 @@ export function registerMlPipelineRoutes(
       const cacheStats = registry.getCacheStats();
       const cachedModels = registry.listCachedModels();
 
-      const mlModels = await storage.getMlModels(orgId);
+      const mlModels = await dbMlAnalyticsStorage.getMlModels(orgId);
       const modelCounts = {
         lstm: mlModels.filter((m) => m.modelType === "lstm").length,
         randomForest: mlModels.filter((m) => m.modelType === "random_forest").length,
@@ -331,7 +331,7 @@ export function registerMlPipelineRoutes(
   app.get("/api/rul/models", generalApiRateLimit,
     withErrorHandling("get RUL models", async (req: AuthenticatedRequest, res: Response) => {
       const { componentClass, orgId = req.orgId! } = req.query;
-      const models = await storage.getRulModels(componentClass as string, orgId as string);
+      const models = await ((dbMlAnalyticsStorage as any).getRulModels?.(componentClass as string, orgId as string) ?? Promise.resolve([]));
       res.json(models);
     })
   );
@@ -344,7 +344,7 @@ export function registerMlPipelineRoutes(
       const { fitWeibullComprehensive } = await import("../../rul");
       const fitResult = fitWeibullComprehensive(failureTimes, modelId, componentClass);
 
-      const model = await storage.createRulModel({
+      const model = await (dbMlAnalyticsStorage as any).createRulModel?.({
         orgId,
         modelId: fitResult.modelId,
         componentClass: fitResult.componentClass,
@@ -367,7 +367,7 @@ export function registerMlPipelineRoutes(
       const { modelId, currentAge, quantile = 0.5 } = req.body;
       const orgId = req.orgId!;
 
-      const model = await storage.getRulModel(modelId, orgId);
+      const model = await (dbMlAnalyticsStorage as any).getRulModel?.(modelId, orgId);
       if (!model) {
         return sendNotFound(res, "RUL model");
       }

@@ -7,20 +7,21 @@ import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import type { CrewExtensionsRoutesConfig } from "./types.js";
 import { withErrorHandling, sendNotFound } from "../../../lib/route-utils.js";
+import { dbCrewStorage } from "../../../db/crew/index.js";
 
 const crewIdSchema = z.object({ id: z.string().uuid("Invalid crew ID format") });
 
 export function registerDutyRoutes(app: Express, config: CrewExtensionsRoutesConfig) {
-  const { storage, crewOperationRateLimit } = config;
+  const { crewOperationRateLimit } = config;
 
   app.get("/api/crew/:id/toggle-duty",
     withErrorHandling("toggle duty status", async (req: Request, res: Response) => {
       const { id } = crewIdSchema.parse(req.params);
-      const crew = await storage.getCrewMember(id);
+      const crew = await dbCrewStorage.getCrewMember(id);
       if (!crew) {
         return sendNotFound(res, "Crew member");
       }
-      const updatedCrew = await storage.updateCrew(id, { onDuty: !crew.onDuty });
+      const updatedCrew = await dbCrewStorage.updateCrewMember(id, { onDuty: !crew.onDuty });
       res.json(updatedCrew);
     })
   );
@@ -28,12 +29,12 @@ export function registerDutyRoutes(app: Express, config: CrewExtensionsRoutesCon
   app.post("/api/crew/:id/toggle-duty", crewOperationRateLimit,
     withErrorHandling("toggle duty status", async (req: Request, res: Response) => {
       const { id } = crewIdSchema.parse(req.params);
-      const crew = await storage.getCrewMember(id);
+      const crew = await dbCrewStorage.getCrewMember(id);
       if (!crew) {
         return sendNotFound(res, "Crew member");
       }
       const newDutyStatus = !crew.onDuty;
-      const updatedCrew = await storage.updateCrew(id, { onDuty: newDutyStatus });
+      const updatedCrew = await dbCrewStorage.updateCrewMember(id, { onDuty: newDutyStatus });
       res.json({
         success: true,
         crew: updatedCrew,

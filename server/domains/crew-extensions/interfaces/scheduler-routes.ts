@@ -23,9 +23,12 @@ import {
   DEFAULT_SCHEDULING_PREFERENCES,
   type ConstraintViolation 
 } from "../../../domain/scheduling/types.js";
+import { dbSchedulerStorage } from "../../../db/scheduler/index.js";
+import { dbCrewStorage } from "../../../db/crew/index.js";
+import { vesselService } from "../../../services/domains/vessel-service.js";
 
 export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRoutesConfig) {
-  const { storage, crewOperationRateLimit } = config;
+  const { crewOperationRateLimit } = config;
 
   app.post("/api/schedule/plan", crewOperationRateLimit,
     withErrorHandling("plan schedule", async (req: AuthenticatedRequest, res: Response) => {
@@ -41,7 +44,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
     withErrorHandling("fetch scheduler runs", async (req: AuthenticatedRequest, res: Response) => {
       const orgId = req.orgId!;
       const { limit } = req.query;
-      const runs = await storage.getSchedulerRuns(orgId, limit ? Number.parseInt(limit as string) : 50);
+      const runs = await dbSchedulerStorage.getSchedulerRuns(orgId, undefined, limit ? Number.parseInt(limit as string) : 50);
       const transformed = runs.map((run: any) => ({
         id: run.id,
         orgId: run.orgId,
@@ -65,11 +68,11 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
     withErrorHandling("fetch scheduler run", async (req: AuthenticatedRequest, res: Response) => {
       const orgId = req.orgId!;
       const { id } = req.params;
-      const run = await storage.getSchedulerRun(id);
+      const run = await dbSchedulerStorage.getSchedulerRun(id);
       if (!run || run.orgId !== orgId) {
         return sendNotFound(res, "Scheduler run");
       }
-      const assignments = await storage.getScheduleAssignmentsByRun(id);
+      const assignments = await (dbSchedulerStorage.getScheduleAssignmentsByRun?.(id) ?? Promise.resolve([]));
       res.json({ ...run, assignments });
     })
   );
@@ -110,11 +113,11 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       let assignments: any[] = [];
 
       if (scheduleRunId) {
-        const existing = await storage.getSchedulerRun(scheduleRunId);
+        const existing = await dbSchedulerStorage.getSchedulerRun(scheduleRunId);
         if (!existing || existing.orgId !== orgId) {
           return sendNotFound(res, "Scheduler run");
         }
-        assignments = await storage.getScheduleAssignmentsByRun(scheduleRunId);
+        assignments = await (dbSchedulerStorage.getScheduleAssignmentsByRun?.(scheduleRunId) ?? Promise.resolve([]));
       } else if (draftAssignments && Array.isArray(draftAssignments)) {
         assignments = draftAssignments;
       } else {
@@ -135,7 +138,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
     withErrorHandling("generate Hours of Rest", async (req: AuthenticatedRequest, res: Response) => {
       const orgId = req.orgId!;
       const { id } = req.params;
-      const existing = await storage.getSchedulerRun(id);
+      const existing = await dbSchedulerStorage.getSchedulerRun(id);
 
       if (!existing || existing.orgId !== orgId) {
         return sendNotFound(res, "Scheduler run");
@@ -159,7 +162,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       const { assignmentId } = req.params;
 
       // Get assignments with org scoping
-      const allAssignments = await storage.getCrewAssignments();
+      const allAssignments = await dbCrewStorage.getCrewAssignments();
       const orgAssignments = allAssignments.filter((a: any) => !a.orgId || a.orgId === orgId);
       const assignment = orgAssignments.find((a: any) => a.id === assignmentId);
       
@@ -167,15 +170,13 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
         return res.json([]);
       }
 
-      // Get all assignments for this crew member to check constraints (org scoped)
       const crewAssignments = orgAssignments.filter((a: any) => 
         a.crewId === assignment.crewId && a.id !== assignmentId
       );
 
-      // Get leave records and crew members with org scoping
-      const allLeaves = await storage.getCrewLeaves?.() || [];
+      const allLeaves = await dbCrewStorage.getCrewLeave(undefined, orgId);
       const leaves = allLeaves.filter((l: any) => !l.orgId || l.orgId === orgId);
-      const crewList = await storage.getCrew(orgId);
+      const crewList = await dbCrewStorage.getCrew(orgId);
       const crewMember = crewList.find((c: any) => c.id === assignment.crewId);
       
       // Calculate weekly hours from existing assignments
@@ -255,7 +256,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       const { assignmentId } = req.params;
 
       // Get assignments with org scoping
-      const allAssignments = await storage.getCrewAssignments();
+      const allAssignments = await dbCrewStorage.getCrewAssignments();
       const orgAssignments = allAssignments.filter((a: any) => !a.orgId || a.orgId === orgId);
       const assignment = orgAssignments.find((a: any) => a.id === assignmentId);
       
@@ -263,8 +264,8 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
         return res.json([]);
       }
 
-      const crewList = await storage.getCrew(orgId);
-      const allLeaves = await storage.getCrewLeaves?.() || [];
+      const crewList = await dbCrewStorage.getCrew(orgId);
+      const allLeaves = await dbCrewStorage.getCrewLeave(undefined, orgId);
       const leaves = allLeaves.filter((l: any) => !l.orgId || l.orgId === orgId);
       
       const shiftStart = new Date(assignment.start || assignment.date);
@@ -376,21 +377,21 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       const { assignmentId, suggestedCrewId } = validated.data;
 
       // Load and verify assignment belongs to this org
-      const allAssignments = await storage.getCrewAssignments();
+      const allAssignments = await dbCrewStorage.getCrewAssignments();
       const assignment = allAssignments.find((a: any) => a.id === assignmentId);
       
       if (!assignment || (assignment.orgId && assignment.orgId !== orgId)) {
         return res.status(404).json({ error: "Assignment not found" });
       }
 
-      const crewList = await storage.getCrew(orgId);
+      const crewList = await dbCrewStorage.getCrew(orgId);
       const crewMember = crewList.find((c: any) => c.id === suggestedCrewId);
       
       if (!crewMember) {
         return res.status(404).json({ error: "Crew member not found" });
       }
 
-      const updated = await storage.updateCrewAssignment(assignmentId, {
+      const updated = await dbCrewStorage.updateCrewAssignment(assignmentId, {
         crewId: suggestedCrewId,
         status: "scheduled",
       }, orgId);
@@ -427,7 +428,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       const { vesselId, from, to } = validated.data;
 
       // Get assignments with org scoping
-      const allAssignments = await storage.getCrewAssignments();
+      const allAssignments = await dbCrewStorage.getCrewAssignments();
       const orgAssignments = allAssignments.filter((a: any) => !a.orgId || a.orgId === orgId);
       const fromDate = new Date(from);
       const toDate = new Date(to);
@@ -443,7 +444,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       // Update all matching assignments to published status
       let publishedCount = 0;
       for (const assignment of assignmentsToPublish) {
-        await storage.updateCrewAssignment(assignment.id, { status: "scheduled" }, orgId);
+        await dbCrewStorage.updateCrewAssignment(assignment.id, { status: "scheduled" }, orgId);
         publishedCount++;
       }
 
@@ -452,8 +453,8 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
         try {
           const { sendSchedulePublishedNotification } = await import("../../../services/scheduler-notifications/index.js");
           
-          const crewMembers = await storage.getCrew(orgId);
-          const vessels = await storage.getVessels();
+          const crewMembers = await dbCrewStorage.getCrew(orgId);
+          const vessels = await vesselService.getVessels();
           
           const assignmentInfos = assignmentsToPublish.map((a: any) => {
             const crew = crewMembers.find((c: any) => c.id === a.crewId);

@@ -8,9 +8,11 @@ import type { Express } from "express";
 import { withErrorHandling } from "../../../lib/route-utils.js";
 import type { MlAnalyticsConfig } from "./types.js";
 import type { AuthenticatedRequest } from "../../../middleware/auth";
+import { dbMlAnalyticsStorage } from "../../../db/ml-analytics/index.js";
+import { dbTelemetryStorage } from "../../../db/telemetry/index.js";
 
 export function registerExportPartialRoutes(app: Express, config: MlAnalyticsConfig) {
-  const { storage, adaptiveTrainingWindow } = config;
+  const { adaptiveTrainingWindow } = config;
 
   app.get("/api/analytics/export/ml-models",
     withErrorHandling("export ML models", async (req, res) => {
@@ -19,7 +21,7 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
         return res.status(400).json({ message: "orgId is required" });
       }
 
-      const models = await storage.getMlModels(orgId as string);
+      const models = await dbMlAnalyticsStorage.getMlModels(orgId as string);
 
       const enrichedModels = models.map((model) => {
         const hyperparams = (model.hyperparameters ?? {}) as Record<string, unknown>;
@@ -82,8 +84,8 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
       const end = endDate ? new Date(endDate as string) : new Date();
 
       const telemetry = equipmentId
-        ? await storage.getTelemetryByEquipment(equipmentId as string, start, end, orgId as string)
-        : await storage.getTelemetryByDateRange(start, end, orgId as string);
+        ? await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(equipmentId as string, start, end, orgId as string)
+        : await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange("", start, end, orgId as string);
 
       const exportData = {
         format: "Telemetry Export v1.0",
@@ -128,7 +130,7 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
         return res.status(400).json({ message: "orgId is required" });
       }
 
-      const predictions = await storage.getFailurePredictions(orgId as string);
+      const predictions = await dbMlAnalyticsStorage.getFailurePredictions(orgId as string);
 
       const exportData = {
         format: "Predictive Maintenance Export v1.0",

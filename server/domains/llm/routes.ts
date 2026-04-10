@@ -9,16 +9,14 @@
 
 import { Express } from "express";
 import { RateLimitRequestHandler } from "express-rate-limit";
-import type { IStorage } from "../../storage";
 import { registerLlmRoutesModular } from "./routes/index.js";
 
 export function registerLlmRoutes(
   app: Express,
-  storage: IStorage,
   rateLimiters: {
     generalApiRateLimit: RateLimitRequestHandler;
     reportGenerationRateLimit: RateLimitRequestHandler;
   }
 ) {
-  registerLlmRoutesModular(app, storage, rateLimiters);
+  registerLlmRoutesModular(app, rateLimiters);
 }

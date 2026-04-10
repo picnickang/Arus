@@ -1,24 +1,17 @@
 import { Express, Request, Response, RequestHandler } from "express";
 import { withErrorHandling } from "../../lib/route-utils";
-
-interface IHealthStorage {
-  getEquipmentRegistry(orgId: string): Promise<any[]>;
-  getAlertNotifications(): Promise<any[]>;
-  getPdmScores(equipmentId?: string): Promise<any[]>;
-  getErrorLogs?(filters: Record<string, any>): Promise<any[]>;
-  createErrorLog?(data: Record<string, any>): Promise<any>;
-  deleteErrorLog?(id: string): Promise<void>;
-  clearErrorLogs?(olderThan?: Date): Promise<void>;
-}
+import { dbEquipmentStorage } from "../../db/equipment/index.js";
+import { dbAlertStorage } from "../../db/alerts/index.js";
+import { dbDevicesStorage } from "../../repositories.js";
+import { dbSystemAdminStorage } from "../../db/system-admin/index.js";
 
 interface HealthMonitoringConfig {
-  storage: IHealthStorage;
   requireOrgId: RequestHandler;
   generalApiRateLimit: RequestHandler;
 }
 
 export function registerHealthMonitoringRoutes(app: Express, config: HealthMonitoringConfig) {
-  const { storage, requireOrgId, generalApiRateLimit } = config;
+  const { requireOrgId, generalApiRateLimit } = config;
 
   // NOTE: /api/healthz and /api/readyz are handled by server/observability.ts
   // They are NOT registered here to preserve the existing security model
@@ -131,8 +124,8 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
     withErrorHandling("fetch detailed health", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
 
-      const equipment = await storage.getEquipmentRegistry(orgId);
-      const alerts = await storage.getAlertNotifications();
+      const equipment = await dbEquipmentStorage.getEquipmentRegistry(orgId);
+      const alerts = await dbAlertStorage.getAlertNotifications();
       const activeAlerts = alerts.filter((a: any) => !a.acknowledgedAt);
 
       const health = {
@@ -156,7 +149,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
       const orgId = req.headers["x-org-id"] as string;
       const { equipmentId } = req.query;
 
-      const pdmScores = await storage.getPdmScores(equipmentId as string);
+      const pdmScores = await dbDevicesStorage.getPdmScores(equipmentId as string, (req.headers["x-org-id"] as string) || '');
       const latestScore = pdmScores[0];
 
       const health = {
@@ -175,8 +168,8 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
     withErrorHandling("fetch fleet health", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
 
-      const equipment = await storage.getEquipmentRegistry(orgId);
-      const pdmScores = await storage.getPdmScores();
+      const equipment = await dbEquipmentStorage.getEquipmentRegistry(orgId);
+      const pdmScores = await dbDevicesStorage.getPdmScores(undefined, orgId);
 
       const equipmentHealth = equipment.map((eq: any) => {
         const scores = pdmScores.filter((s: any) => s.equipmentId === eq.id);
@@ -210,7 +203,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
     withErrorHandling("fetch error logs", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
       const { level, source, dateFrom, dateTo, limit } = req.query;
-      const logs = await storage.getErrorLogs?.({
+      const logs = await dbSystemAdminStorage.getErrorLogs({
         orgId,
         level: level as string,
         source: source as string,
@@ -225,14 +218,14 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
   app.post("/api/error-logs", requireOrgId,
     withErrorHandling("create error log", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
-      const log = await storage.createErrorLog?.({ ...req.body, orgId });
+      const log = await dbSystemAdminStorage.createErrorLog({ ...req.body, orgId });
       res.status(201).json(log || req.body);
     })
   );
 
   app.delete("/api/error-logs/:id", requireOrgId,
     withErrorHandling("delete error log", async (req: Request, res: Response) => {
-      await storage.deleteErrorLog?.(req.params.id);
+      await dbSystemAdminStorage.deleteErrorLog(req.params.id);
       res.status(204).send();
     })
   );
@@ -240,7 +233,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
   app.delete("/api/error-logs", requireOrgId,
     withErrorHandling("clear error logs", async (req: Request, res: Response) => {
       const { olderThan } = req.query;
-      await storage.clearErrorLogs?.(olderThan ? new Date(olderThan as string) : undefined);
+      await dbSystemAdminStorage.clearErrorLogs(olderThan ? new Date(olderThan as string) : undefined);
       res.status(204).send();
     })
   );
@@ -249,7 +242,7 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
   app.get("/api/error-health", requireOrgId,
     withErrorHandling("fetch error health", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
-      const logs = await storage.getErrorLogs?.({ orgId, limit: 1000 });
+      const logs = await dbSystemAdminStorage.getErrorLogs({ orgId, limit: 1000 });
       
       const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const recentLogs = (logs ?? []).filter((log: any) => new Date(log.createdAt) >= last24h);

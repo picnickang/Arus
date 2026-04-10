@@ -4,7 +4,7 @@
 
 import { eq, and, desc, sql } from "drizzle-orm";
 import { db } from "../../db";
-import { sensorConfigurations, sensorStates, type SensorConfiguration, type InsertSensorConfiguration, type SensorState, type InsertSensorState } from "@shared/schema";
+import { sensorConfigurations, sensorStates, j1939Configurations, type SensorConfiguration, type InsertSensorConfiguration, type SensorState, type InsertSensorState, type J1939Configuration, type InsertJ1939Configuration } from "@shared/schema";
 import { publishEvent } from "../../sync-events";
 
 export class DbSensorsStorage {
@@ -18,4 +18,10 @@ export class DbSensorsStorage {
   async deleteSensorConfigurationById(id: string, orgId?: string): Promise<void> { const c = [eq(sensorConfigurations.id, id)]; if (orgId) {c.push(eq(sensorConfigurations.orgId, orgId));} await db.delete(sensorConfigurations).where(and(...c)); }
   async getSensorState(equipmentId: string, sensorType: string, orgId?: string): Promise<SensorState | undefined> { const c = [eq(sensorStates.equipmentId, equipmentId), eq(sensorStates.sensorType, sensorType)]; if (orgId) {c.push(eq(sensorStates.orgId, orgId));} const [r] = await db.select().from(sensorStates).where(and(...c)).limit(1); return r; }
   async upsertSensorState(state: InsertSensorState): Promise<SensorState> { const [r] = await db.insert(sensorStates).values({ ...state, orgId: state.orgId || "default-org-id", updatedAt: new Date() }).onConflictDoUpdate({ target: [sensorStates.equipmentId, sensorStates.sensorType, sensorStates.orgId], set: { lastValue: state.lastValue, ema: state.ema, lastTs: state.lastTs, updatedAt: new Date() } }).returning(); return r; }
+
+  async getJ1939Configurations(orgId: string, deviceId?: string): Promise<J1939Configuration[]> { const c: any[] = [eq(j1939Configurations.orgId, orgId)]; if (deviceId) { c.push(eq(j1939Configurations.deviceId, deviceId)); } return db.select().from(j1939Configurations).where(and(...c)).orderBy(sql`${j1939Configurations.createdAt} DESC`); }
+  async getJ1939Configuration(id: string, orgId: string): Promise<J1939Configuration | undefined> { const [r] = await db.select().from(j1939Configurations).where(and(eq(j1939Configurations.id, id), eq(j1939Configurations.orgId, orgId))).limit(1); return r; }
+  async createJ1939Configuration(config: InsertJ1939Configuration): Promise<J1939Configuration> { const [r] = await db.insert(j1939Configurations).values({ ...config, orgId: config.orgId || "default-org-id", createdAt: new Date(), updatedAt: new Date() }).returning(); return r; }
+  async updateJ1939Configuration(id: string, config: Partial<InsertJ1939Configuration>, orgId: string): Promise<J1939Configuration> { const [r] = await db.update(j1939Configurations).set({ ...config, updatedAt: new Date() }).where(and(eq(j1939Configurations.id, id), eq(j1939Configurations.orgId, orgId))).returning(); if (!r) { throw new Error(`J1939 configuration ${id} not found`); } return r; }
+  async deleteJ1939Configuration(id: string, orgId: string): Promise<void> { await db.delete(j1939Configurations).where(and(eq(j1939Configurations.id, id), eq(j1939Configurations.orgId, orgId))); }
 }

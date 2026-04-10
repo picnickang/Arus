@@ -6,7 +6,6 @@
 
 import { Express } from "express";
 import { RateLimitRequestHandler } from "express-rate-limit";
-import type { IStorage } from "../../../storage";
 import { registerLlmAnalysisRoutes } from "./llm-analysis.js";
 import { registerHealthReportRoutes } from "./health-report.js";
 import { registerMaintenanceReportRoutes } from "./maintenance-report.js";
@@ -16,7 +15,6 @@ import { logger } from "../../../utils/logger.js";
 
 export function registerLlmRoutesModular(
   app: Express,
-  storage: IStorage,
   rateLimiters: {
     generalApiRateLimit: RateLimitRequestHandler;
     reportGenerationRateLimit: RateLimitRequestHandler;
@@ -24,11 +22,11 @@ export function registerLlmRoutesModular(
 ) {
   logger.info("LLMRoutes", "Registering LLM API endpoints");
 
-  registerLlmAnalysisRoutes(app, storage, rateLimiters);
-  registerHealthReportRoutes(app, storage, rateLimiters);
-  registerMaintenanceReportRoutes(app, storage, rateLimiters);
-  registerComplianceReportRoutes(app, storage, rateLimiters);
-  registerFleetSummaryRoutes(app, storage, rateLimiters);
+  registerLlmAnalysisRoutes(app, rateLimiters);
+  registerHealthReportRoutes(app, rateLimiters);
+  registerMaintenanceReportRoutes(app, rateLimiters);
+  registerComplianceReportRoutes(app, rateLimiters);
+  registerFleetSummaryRoutes(app, rateLimiters);
 
   logger.info("LLMRoutes", "Registered (llm: 5, reports: 5)");
 }
