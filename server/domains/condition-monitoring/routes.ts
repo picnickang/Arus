@@ -192,19 +192,19 @@ export function registerConditionMonitoringRoutes(
       const { equipmentId } = req.params;
       const orgId = (req as AuthenticatedRequest).orgId;
 
-      const [latestOil, latestWear, assessments] = await Promise.all([
+      const [latestOil, latestWear, conditionRecords] = await Promise.all([
         dbConditionMonitoringStorage.getLatestOilAnalysis(equipmentId, orgId),
         dbConditionMonitoringStorage.getLatestWearParticleAnalysis(equipmentId, orgId),
         dbConditionMonitoringStorage.getConditionMonitoringRecords(orgId, equipmentId),
       ]);
-      const latestAssessment = assessments[0] ?? null;
-      const latestOilChange = latestOil;
+      const latestAssessment = conditionRecords[0] ?? null;
+      const lastOilChange = conditionRecords[0] ?? null;
 
       res.json({
         oilAnalysis: latestOil,
         wearAnalysis: latestWear,
         conditionAssessment: latestAssessment,
-        lastOilChange: latestOilChange,
+        lastOilChange,
       });
     })
   );

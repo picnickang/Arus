@@ -121,8 +121,10 @@ export class DatabaseSchedulerStorage {
     return result; 
   }
 
-  async markSchedulerRunHorGenerated(runId: string): Promise<void> {
-    await db.update(schedulerRuns).set({ updatedAt: new Date() }).where(eq(schedulerRuns.id, runId));
+  async markSchedulerRunHorGenerated(runId: string): Promise<SchedulerRun> {
+    const [u] = await db.update(schedulerRuns).set({ horGenerated: true, horGeneratedAt: new Date(), updatedAt: new Date() }).where(eq(schedulerRuns.id, runId)).returning();
+    if (!u) { throw new Error(`Scheduler run ${runId} not found`); }
+    return u;
   }
 
   async deleteScheduleAssignmentsByDateRange(orgId: string, from: Date, to: Date): Promise<void> {
