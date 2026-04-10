@@ -60,7 +60,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
       if (!existing) {
         return sendNotFound(res, "Notification setting");
       }
-      const setting = await dbNotificationsStorage.updateNotificationSettings(req.params.id, req.body);
+      const setting = await dbNotificationsStorage.updateNotificationSettings(req.params.id, req.body, orgId);
       res.json(setting);
     })
   );
@@ -73,7 +73,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
       if (!existing) {
         return sendNotFound(res, "Notification setting");
       }
-      await dbNotificationsStorage.deleteNotificationSettings(req.params.id);
+      await dbNotificationsStorage.deleteNotificationSettings(req.params.id, orgId);
       sendDeleted(res);
     })
   );
@@ -89,7 +89,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
         scheduledBefore: req.query.scheduledBefore ? new Date(req.query.scheduledBefore as string) : undefined,
       };
       
-      const queue = await dbNotificationsStorage.getEmailQueue(filters?.status as string | undefined);
+      const queue = await dbNotificationsStorage.getEmailQueue(filters?.status as string | undefined, undefined, orgId);
       res.json(queue);
     })
   );
@@ -107,7 +107,8 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
 
   app.delete("/api/notifications/queue/:id", writeOperationRateLimit,
     withErrorHandling("delete notification queue item", async (req, res) => {
-      await dbNotificationsStorage.deleteEmailQueueItem(req.params.id);
+      const orgId = req.orgId;
+      await dbNotificationsStorage.deleteEmailQueueItem(req.params.id, orgId);
       sendDeleted(res);
     })
   );

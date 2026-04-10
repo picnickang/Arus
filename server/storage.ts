@@ -293,9 +293,9 @@ function createStorageFacade() {
     getActiveDtcs: (equipmentId: string, orgId?: string) => dbDtcStorage.getActiveDtcs(equipmentId, orgId),
 
     getNotificationSettings: (orgId?: string, filters?: any) => dbNotificationsStorage.getNotificationSettings(orgId, filters?.userId),
-    getNotificationQueue: (orgId?: string, filters?: any) => dbNotificationsStorage.getEmailQueue(filters?.status),
-    createNotificationQueueItem: (item: any) => dbNotificationsStorage.createNotificationQueueItem?.(item) ?? Promise.resolve(item),
-    updateNotificationQueueItem: (id: string, updates: any) => dbNotificationsStorage.updateNotificationQueueItem?.(id, updates) ?? Promise.resolve(null),
+    getNotificationQueue: (orgId?: string, filters?: any) => dbNotificationsStorage.getEmailQueue(filters?.status, undefined, orgId),
+    createNotificationQueueItem: (item: any) => dbNotificationsStorage.createEmailQueueItem(item),
+    updateNotificationQueueItem: (id: string, updates: any) => dbNotificationsStorage.updateEmailQueueItem(id, updates),
 
     getKbDocs: (orgId?: string) => analyticsInsightsAdapter.getKbDocs?.(orgId) ?? Promise.resolve([]),
 
