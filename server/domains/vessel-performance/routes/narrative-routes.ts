@@ -12,11 +12,8 @@ export function registerNarrativeRoutes(app: Express, config: VesselPerformanceR
     const orgId = req.headers["x-org-id"] as string;
     if (!orgId) {return res.status(400).json({ message: "Organization ID is required" });}
 
-    const [{ NarrativeSummaryService }, { storage }] = await Promise.all([
-      import("../../../narrative-summary-service.js"),
-      import("../../../storage.js"),
-    ]);
-    const narrativeService = new NarrativeSummaryService(storage);
+    const { NarrativeSummaryService } = await import("../../../narrative-summary-service.js");
+    const narrativeService = new NarrativeSummaryService();
 
     const input = req.body;
     if (!input.vesselId || !input.chartType) {return res.status(400).json({ message: "vesselId and chartType are required" });}

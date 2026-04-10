@@ -2,20 +2,18 @@
  * Training Window Calculator
  */
 
-import { IStorage } from "../storage.js";
 import type { DataQualityTier, TrainingWindowConfig } from "./types";
 import { EQUIPMENT_CONFIGS, DEFAULT_CONFIG, GLOBAL_CONFIG } from "./config";
 import { getEquipmentDataRange } from "./data-range";
 
 export async function determineOptimalTrainingWindow(
-  storage: IStorage,
   orgId: string,
   equipmentType?: string
 ): Promise<TrainingWindowConfig> {
   const normalizedType = equipmentType === "general" || !equipmentType ? undefined : equipmentType;
   const equipConfig = normalizedType ? EQUIPMENT_CONFIGS[normalizedType] || DEFAULT_CONFIG : DEFAULT_CONFIG;
 
-  const dataRange = await getEquipmentDataRange(storage, orgId, normalizedType);
+  const dataRange = await getEquipmentDataRange(orgId, normalizedType);
   const { availableDays, failureCount } = dataRange;
   const warnings: string[] = [];
   const recommendations: string[] = [];

@@ -2,16 +2,16 @@
  * Equipment Data Range Functions
  */
 
-import { IStorage } from "../storage.js";
+import { workOrderService } from "../services/domains/work-order-service.js";
+import { dbEquipmentStorage } from "../db/equipment/index.js";
 import type { EquipmentDataRange } from "./types";
 
 export async function getEquipmentDataRange(
-  storage: IStorage,
   orgId: string,
   equipmentType?: string
 ): Promise<EquipmentDataRange> {
-  const workOrders = await storage.getWorkOrders(undefined, orgId);
-  const equipmentList = await storage.getEquipmentRegistry();
+  const workOrders = await workOrderService.getWorkOrdersWithDetails(undefined, orgId);
+  const equipmentList = await dbEquipmentStorage.getEquipmentRegistry(orgId);
 
   const relevantEquipment = equipmentType
     ? equipmentList.filter((eq) => eq.type === equipmentType)

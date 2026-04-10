@@ -7,11 +7,8 @@ import type { VesselPerformanceRoutesConfig } from "./types.js";
 import { withErrorHandling } from "../../../lib/route-utils.js";
 
 async function getCIIService() {
-  const [{ CIIService }, { storage }] = await Promise.all([
-    import("../../../cii-service.js"),
-    import("../../../storage.js"),
-  ]);
-  return new CIIService(storage);
+  const { CIIService } = await import("../../../cii-service.js");
+  return new CIIService();
 }
 
 export function registerCIIRoutes(app: Express, config: VesselPerformanceRoutesConfig): void {
