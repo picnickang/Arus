@@ -25,15 +25,18 @@ export function registerHomeRoutes(app: Express, deps: { generalApiRateLimit: an
     withErrorHandling("get home attention summary", async (req: Request, res: Response) => {
       const orgId = (req as any).orgId || req.headers["x-org-id"] as string;
 
-      const [alerts, workOrders, equipment] = await Promise.allSettled([
+      const sinceParam = (req.query.since as string) || (req.headers["x-last-visit"] as string);
+      const lastVisitTime = sinceParam ? new Date(sinceParam) : null;
+
+      const [alerts, workOrders, equipmentList] = await Promise.allSettled([
         safeCall(() => dbAlertStorage.getAlertNotifications(false, orgId)),
         safeCall(() => dbWorkOrderStorage.getWorkOrders(undefined, orgId)),
-        safeCall(() => dbEquipmentStorage.getEquipment(orgId)),
+        safeCall(() => dbEquipmentStorage.getEquipmentRegistry(orgId)),
       ]);
 
       const alertData = alerts.status === "fulfilled" ? alerts.value : [];
       const woData = workOrders.status === "fulfilled" ? workOrders.value : [];
-      const equipData = equipment.status === "fulfilled" ? equipment.value : [];
+      const equipData = equipmentList.status === "fulfilled" ? equipmentList.value : [];
 
       const now = new Date();
       const overdueWorkOrders = Array.isArray(woData)
@@ -44,10 +47,34 @@ export function registerHomeRoutes(app: Express, deps: { generalApiRateLimit: an
         ? equipData.filter((eq: any) => eq.riskLevel === "high" || eq.riskLevel === "critical").length
         : 0;
 
+      let newSinceLastVisit = undefined;
+
+      if (lastVisitTime && !isNaN(lastVisitTime.getTime())) {
+        try {
+          const recentAlerts = Array.isArray(alertData)
+            ? alertData.filter((a: any) => a.createdAt && new Date(a.createdAt) > lastVisitTime).length
+            : 0;
+          const recentWOs = Array.isArray(woData)
+            ? woData.filter((wo: any) => wo.createdAt && new Date(wo.createdAt) > lastVisitTime).length
+            : 0;
+          const completedWOs = Array.isArray(woData)
+            ? woData.filter((wo: any) => wo.status === "completed" && wo.updatedAt && new Date(wo.updatedAt) > lastVisitTime).length
+            : 0;
+
+          newSinceLastVisit = {
+            newAlerts: recentAlerts,
+            newWorkOrders: recentWOs,
+            completedWorkOrders: completedWOs,
+          };
+        } catch {
+        }
+      }
+
       res.json({
         overdueWorkOrders,
         unacknowledgedAlerts,
         highRiskEquipment,
+        newSinceLastVisit,
       });
     })
   );
