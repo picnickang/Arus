@@ -4,7 +4,6 @@
  * Lazy loading of individual model predictions.
  */
 
-import type { IStorage } from "../storage.js";
 import type { TimeSeriesFeatures } from "../ml-training-data.js";
 import { getBestModel } from "../ml-training-pipeline.js";
 import { logger } from "../utils/logger.js";
@@ -17,17 +16,13 @@ export interface ModelPredictionResult {
   confidences: ModelConfidences;
 }
 
-/**
- * Load LSTM model and get prediction
- */
 export async function loadLstmPrediction(
-  storage: IStorage,
   orgId: string,
   equipmentType: string,
   recentData: TimeSeriesFeatures[]
 ): Promise<{ probability: number; confidence?: number } | null> {
   try {
-    const lstmModelPath = await getBestModel(storage, orgId, equipmentType, "lstm");
+    const lstmModelPath = await getBestModel(orgId, equipmentType, "lstm");
     if (!lstmModelPath) {return null;}
 
     const { loadLSTMModel, predictWithLSTM } = await import("../ml-lstm-model.js");
@@ -46,18 +41,14 @@ export async function loadLstmPrediction(
   }
 }
 
-/**
- * Load Random Forest model and get prediction
- */
 export async function loadRfPrediction(
-  storage: IStorage,
   orgId: string,
   equipmentId: string,
   equipmentType: string,
   recentData: TimeSeriesFeatures[]
 ): Promise<{ probability: number; confidence?: number } | null> {
   try {
-    const rfModelPath = await getBestModel(storage, orgId, equipmentType, "random_forest");
+    const rfModelPath = await getBestModel(orgId, equipmentType, "random_forest");
     if (!rfModelPath) {return null;}
 
     const { loadRandomForest, predictWithRandomForest } = await import("../ml-random-forest.js");
@@ -66,8 +57,7 @@ export async function loadRfPrediction(
     const classificationFeatures = await convertToClassificationFeatures(
       recentData,
       equipmentId,
-      orgId,
-      storage
+      orgId
     );
     const rfPred = await predictWithRandomForest(rfModel, classificationFeatures);
     const failureProb = rfPred.failureRisk;
@@ -84,18 +74,14 @@ export async function loadRfPrediction(
   }
 }
 
-/**
- * Load XGBoost model and get prediction
- */
 export async function loadXgbPrediction(
-  storage: IStorage,
   orgId: string,
   equipmentId: string,
   equipmentType: string,
   recentData: TimeSeriesFeatures[]
 ): Promise<{ probability: number; confidence?: number } | null> {
   try {
-    const xgbModelPath = await getBestModel(storage, orgId, equipmentType, "xgboost");
+    const xgbModelPath = await getBestModel(orgId, equipmentType, "xgboost");
     if (!xgbModelPath) {return null;}
 
     const { loadXGBoostModel, predictWithXGBoost } = await import("../ml-xgboost-model.js");
@@ -104,8 +90,7 @@ export async function loadXgbPrediction(
     const classificationFeatures = await convertToClassificationFeatures(
       recentData,
       equipmentId,
-      orgId,
-      storage
+      orgId
     );
     const xgbPred = await predictWithXGBoost(xgbModel, classificationFeatures);
     const failureProb = xgbPred.failureRisk;
@@ -122,11 +107,7 @@ export async function loadXgbPrediction(
   }
 }
 
-/**
- * Collect predictions from all available models
- */
 export async function collectModelPredictions(
-  storage: IStorage,
   orgId: string,
   equipmentId: string,
   equipmentType: string,
@@ -136,7 +117,7 @@ export async function collectModelPredictions(
   const breakdown: ModelBreakdown = {};
   const confidences: ModelConfidences = {};
 
-  const lstmResult = await loadLstmPrediction(storage, orgId, equipmentType, recentData);
+  const lstmResult = await loadLstmPrediction(orgId, equipmentType, recentData);
   if (lstmResult) {
     predictions.push(lstmResult.probability);
     breakdown.lstm = lstmResult.probability;
@@ -145,7 +126,7 @@ export async function collectModelPredictions(
     }
   }
 
-  const rfResult = await loadRfPrediction(storage, orgId, equipmentId, equipmentType, recentData);
+  const rfResult = await loadRfPrediction(orgId, equipmentId, equipmentType, recentData);
   if (rfResult) {
     predictions.push(rfResult.probability);
     breakdown.randomForest = rfResult.probability;
@@ -154,7 +135,7 @@ export async function collectModelPredictions(
     }
   }
 
-  const xgbResult = await loadXgbPrediction(storage, orgId, equipmentId, equipmentType, recentData);
+  const xgbResult = await loadXgbPrediction(orgId, equipmentId, equipmentType, recentData);
   if (xgbResult) {
     predictions.push(xgbResult.probability);
     breakdown.xgboost = xgbResult.probability;

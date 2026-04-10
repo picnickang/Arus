@@ -4,9 +4,10 @@
  * Store predictions and emit events.
  */
 
-import type { IStorage } from "../storage.js";
 import { domainEventBus, createDomainEvent } from "../lib/domain-event-bus/index.js";
 import { logger } from "../utils/logger.js";
+import { dbEquipmentStorage } from "../db/equipment/index.js";
+import { dbMlAnalyticsStorage } from "../db/ml-analytics/index.js";
 import type { ModelBreakdown, ModelWeights } from "./types.js";
 
 export interface PersistenceInput {
@@ -22,11 +23,7 @@ export interface PersistenceInput {
   recommendations: string[];
 }
 
-/**
- * Store prediction in database and emit scheduler event
- */
 export async function persistPrediction(
-  storage: IStorage,
   input: PersistenceInput
 ): Promise<void> {
   const {
@@ -42,7 +39,7 @@ export async function persistPrediction(
     recommendations,
   } = input;
 
-  await storage.createFailurePrediction(
+  await dbMlAnalyticsStorage.createFailurePrediction(
     {
       orgId,
       equipmentId,
@@ -80,7 +77,7 @@ export async function persistPrediction(
   );
 
   try {
-    const equipment = await storage.getEquipment(orgId, equipmentId);
+    const equipment = await dbEquipmentStorage.getEquipment(orgId, equipmentId);
     if (equipment) {
       const riskLevel =
         finalPrediction >= 0.7

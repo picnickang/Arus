@@ -4,8 +4,6 @@ import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
 import { dbMlAnalyticsStorage } from "../../db/ml-analytics/index.js";
 
-function getStorageFacade() { return import("../../storage.js").then(m => m.storage); }
-
 interface AuthenticatedRequest extends Request {
   orgId?: string;
 }
@@ -89,7 +87,7 @@ export function registerMlPipelineRoutes(
         },
       };
 
-      const result = await trainLSTMForFailurePrediction(await getStorageFacade(), config);
+      const result = await trainLSTMForFailurePrediction(config);
       res.json(result);
     })
   );
@@ -114,7 +112,7 @@ export function registerMlPipelineRoutes(
         },
       };
 
-      const result = await trainRFForHealthClassification(await getStorageFacade(), config);
+      const result = await trainRFForHealthClassification(config);
       res.json(result);
     })
   );
@@ -139,7 +137,7 @@ export function registerMlPipelineRoutes(
         },
       };
 
-      const result = await trainXGBoostForHealthClassification(await getStorageFacade(), config);
+      const result = await trainXGBoostForHealthClassification(config);
       res.json(result);
     })
   );
@@ -149,7 +147,7 @@ export function registerMlPipelineRoutes(
       const { orgId = req.orgId! } = req.body;
 
       const { retrainAllModels } = await import("../../ml-training-pipeline");
-      const results = await retrainAllModels(await getStorageFacade(), orgId);
+      const results = await retrainAllModels(orgId);
 
       res.json({
         message: `Successfully trained ${results.length} models`,
@@ -196,13 +194,13 @@ export function registerMlPipelineRoutes(
       let prediction = null;
 
       if (method === "lstm") {
-        prediction = await predictFailureWithLSTM(await getStorageFacade(), equipmentId, orgId);
+        prediction = await predictFailureWithLSTM(equipmentId, orgId);
       } else if (method === "random_forest") {
-        prediction = await predictHealthWithRandomForest(await getStorageFacade(), equipmentId, orgId);
+        prediction = await predictHealthWithRandomForest(equipmentId, orgId);
       } else if (method === "ensemble") {
-        prediction = await predictWithEnsemble(await getStorageFacade(), equipmentId, orgId);
+        prediction = await predictWithEnsemble(equipmentId, orgId);
       } else {
-        prediction = await predictWithHybridModel(await getStorageFacade(), equipmentId, orgId);
+        prediction = await predictWithHybridModel(equipmentId, orgId);
       }
 
       if (!prediction) {
@@ -212,7 +210,7 @@ export function registerMlPipelineRoutes(
         });
       }
 
-      await storePrediction(await getStorageFacade(), equipmentId, orgId, prediction);
+      await storePrediction(equipmentId, orgId, prediction);
       res.json(prediction);
     })
   );

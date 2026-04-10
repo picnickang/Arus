@@ -18,17 +18,73 @@ export async function initializeLocalDatabase(): Promise<void> {
 
 export async function initializeDatabase(): Promise<void> {
   console.log("→ Initializing database...");
-  const { initializeDatabase: initDb } = await import("../storage");
-  await initDb();
-  console.log("✓ Database initialized successfully");
+  const { db, isLocalMode } = await import("../db-config");
+  const { devices } = await import("@shared/schema-runtime");
+  const { dbInventoryStorage } = await import("../repositories");
 
-  try {
-    const { db } = await import("../db");
-    const { migrateWorkOrderServiceOrderBridge } = await import("../migrations/wo-so-bridge");
-    await migrateWorkOrderServiceOrderBridge(db);
-    console.log("✓ WO ↔ SO bridge migration applied");
-  } catch (err) {
-    console.warn("[WO-SO Bridge] Migration skipped or already applied:", (err as Error).message);
+  const maxRetries = 3;
+  const connectionTimeout = 30000;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`  Attempting database connection (attempt ${attempt}/${maxRetries})...`);
+      await withServiceTimeout(db.select().from(devices).limit(1), connectionTimeout, "Database connection check");
+      console.log("  Database connection verified");
+
+      if (!isLocalMode) {
+        console.log("PostgreSQL mode: Running TimescaleDB and view setup...");
+        const { ensureTimescaleDBSetup } = await import("../timescaledb-bootstrap");
+        await withServiceTimeout(ensureTimescaleDBSetup(), 60000, "TimescaleDB setup");
+
+        const { createDatabaseViews, verifyDatabaseViews } = await import("../schema-views");
+        await withServiceTimeout(createDatabaseViews(), 60000, "Create database views");
+        const viewVerification = await withServiceTimeout(verifyDatabaseViews(), 30000, "Verify database views");
+        if (!viewVerification.success) {
+          console.error("Database view verification failed:", viewVerification.errors);
+          throw new Error("Essential database views are not functioning properly");
+        }
+
+        await withServiceTimeout(dbInventoryStorage.seedStockForParts("default-org-id"), 30000, "Seed stock data");
+
+        const { createDatabaseIndexes, analyzeDatabasePerformance } = await import("../db-indexes");
+        await withServiceTimeout(createDatabaseIndexes(), 60000, "Create database indexes");
+
+        if (process.env.NODE_ENV === "development") {
+          await withServiceTimeout(analyzeDatabasePerformance(), 30000, "Analyze database performance");
+        }
+      } else {
+        console.log("SQLite mode: Skipping PostgreSQL-specific setup (TimescaleDB, views, indexes)");
+        console.log("Database ready for offline-first operation");
+      }
+
+      console.log("✓ Database initialized successfully");
+
+      try {
+        const { migrateWorkOrderServiceOrderBridge } = await import("../migrations/wo-so-bridge");
+        await migrateWorkOrderServiceOrderBridge(db);
+        console.log("✓ WO ↔ SO bridge migration applied");
+      } catch (err) {
+        console.warn("[WO-SO Bridge] Migration skipped or already applied:", (err as Error).message);
+      }
+
+      return;
+    } catch (error: any) {
+      const isLastAttempt = attempt === maxRetries;
+      console.warn(`  Database initialization attempt ${attempt} failed:`, error.message);
+
+      if (!isLastAttempt) {
+        const delay = attempt * 5000;
+        console.log(`  Retrying in ${delay / 1000}s...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        console.error("Database initialization failed after all retries:", error);
+        if (process.env.EMBEDDED_MODE === "true" || process.env.LOCAL_MODE === "true") {
+          console.error("Embedded/local mode: Continuing despite initialization error");
+          return;
+        }
+        throw error;
+      }
+    }
   }
 }
 

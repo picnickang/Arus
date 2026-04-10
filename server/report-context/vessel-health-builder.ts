@@ -67,7 +67,7 @@ export async function buildVesselHealthContext(
 
       const predictionPromises = equipment.slice(0, 10).map(async (eq) => {
         try {
-          const prediction = await predictWithHybridModel(storage, eq.id, orgId);
+          const prediction = await predictWithHybridModel(eq.id, orgId);
           if (prediction) {
             return {
               equipmentId: eq.id,

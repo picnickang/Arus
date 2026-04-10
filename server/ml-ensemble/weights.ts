@@ -4,14 +4,10 @@
  * Static and adaptive weight computation for model ensemble.
  */
 
-import type { IStorage } from "../storage.js";
 import { logger } from "../utils/logger.js";
+import { dbMlAnalyticsStorage } from "../db/ml-analytics/index.js";
 import type { ModelWeights } from "./types.js";
 
-/**
- * Equipment-specific model weights (STATIC FALLBACK)
- * Based on domain knowledge - used when adaptive weights unavailable
- */
 export const STATIC_WEIGHTS: Record<string, ModelWeights> = {
   main_engine: { lstm: 0.5, rf: 0.3, xgb: 0.2 },
   auxiliary_engine: { lstm: 0.5, rf: 0.3, xgb: 0.2 },
@@ -24,19 +20,14 @@ export const STATIC_WEIGHTS: Record<string, ModelWeights> = {
   default: { lstm: 0.34, rf: 0.33, xgb: 0.33 },
 };
 
-/**
- * Get adaptive model weights based on actual performance metrics
- * Uses macro-F1 scores from Phase 3 training optimizations
- */
 export async function getAdaptiveWeights(
-  storage: IStorage,
   orgId: string,
   equipmentType: string
 ): Promise<ModelWeights> {
   try {
-    const lstmModels = await storage.getMlModels(orgId, "lstm", "active");
-    const rfModels = await storage.getMlModels(orgId, "random_forest", "active");
-    const xgbModels = await storage.getMlModels(orgId, "xgboost", "active");
+    const lstmModels = await dbMlAnalyticsStorage.getMlModels(orgId, "lstm", "active");
+    const rfModels = await dbMlAnalyticsStorage.getMlModels(orgId, "random_forest", "active");
+    const xgbModels = await dbMlAnalyticsStorage.getMlModels(orgId, "xgboost", "active");
 
     const pickBest = (models: any[]) => {
       return models
@@ -94,7 +85,6 @@ export async function getAdaptiveWeights(
 }
 
 /**
- * Get model weights for specific equipment type (DEPRECATED)
  * @deprecated Use getAdaptiveWeights() for data-driven weights
  */
 export function getModelWeights(equipmentType: string): ModelWeights {

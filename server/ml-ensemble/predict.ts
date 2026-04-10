@@ -4,12 +4,13 @@
  * Main ensemble prediction combining LSTM, Random Forest, and XGBoost.
  */
 
-import type { IStorage } from "../storage.js";
 import type { TimeSeriesFeatures } from "../ml-training-data.js";
 import type { CalibrationMethod } from "../ml-calibration.js";
 import { getFeatureFlags } from "../ml-feature-flags.js";
 import { applyCalibration } from "../ml-calibration.js";
 import { logger } from "../utils/logger.js";
+import { dbEquipmentStorage } from "../db/equipment/index.js";
+import { dbMlAnalyticsStorage } from "../db/ml-analytics/index.js";
 
 import type { EnsemblePrediction, EnsembleConfig } from "./types.js";
 import { getAdaptiveWeights, STATIC_WEIGHTS } from "./weights.js";
@@ -17,18 +18,13 @@ import { calculateAgreement, generateRecommendations } from "./helpers.js";
 import { collectModelPredictions } from "./model-loaders.js";
 import { persistPrediction } from "./persistence.js";
 
-/**
- * Main ensemble prediction function
- * Combines all available models using intelligent weighting
- */
 export async function ensemblePredict(
-  storage: IStorage,
   orgId: string,
   equipmentId: string,
   recentData: TimeSeriesFeatures[],
   config?: Partial<EnsembleConfig>
 ): Promise<EnsemblePrediction> {
-  const equipment = await storage.getEquipment(orgId, equipmentId);
+  const equipment = await dbEquipmentStorage.getEquipment(orgId, equipmentId);
   if (!equipment) {
     throw new Error(`Equipment ${equipmentId} not found`);
   }
@@ -42,7 +38,7 @@ export async function ensemblePredict(
     enableShadowMode: config?.enableShadowMode ?? false,
   };
 
-  const flags = await getFeatureFlags(storage, orgId);
+  const flags = await getFeatureFlags(orgId);
   const useEnsemble = flags.enableEnsemble !== false;
 
   if (!useEnsemble && !ensembleConfig.enableShadowMode) {
@@ -50,13 +46,13 @@ export async function ensemblePredict(
   }
 
   const weights = ensembleConfig.useAdaptiveWeights
-    ? await getAdaptiveWeights(storage, orgId, equipmentType)
+    ? await getAdaptiveWeights(orgId, equipmentType)
     : STATIC_WEIGHTS.default;
 
   logger.debug("MlEnsemble", `Predicting for ${equipmentType} with ${ensembleConfig.useAdaptiveWeights ? "adaptive" : "static"} weights`, weights);
 
   const { predictions, breakdown: modelBreakdown, confidences: modelConfs } = 
-    await collectModelPredictions(storage, orgId, equipmentId, equipmentType, recentData);
+    await collectModelPredictions(orgId, equipmentId, equipmentType, recentData);
 
   if (predictions.length === 0) {
     logger.error("MlEnsemble", "CRITICAL: No models available for prediction");
@@ -96,7 +92,7 @@ export async function ensemblePredict(
 
   let calibrationMethod: CalibrationMethod | null = null;
   try {
-    const calibrationCurves = await storage.getCalibrationCurves(
+    const calibrationCurves = await dbMlAnalyticsStorage.getCalibrationCurves(
       orgId,
       undefined,
       equipmentId,
@@ -186,7 +182,7 @@ export async function ensemblePredict(
   }
 
   if (!ensembleConfig.enableShadowMode && confidence >= ensembleConfig.minConfidence) {
-    await persistPrediction(storage, {
+    await persistPrediction({
       orgId,
       equipmentId,
       equipmentType,

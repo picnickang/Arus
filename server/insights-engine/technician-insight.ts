@@ -34,7 +34,7 @@ export async function generateTechnicianInsight(
     }
 
     const { predictWithEnsemble } = await import("../ml-prediction-service");
-    const prediction = await predictWithEnsemble(storage, equipmentId, orgId);
+    const prediction = await predictWithEnsemble(equipmentId, orgId);
 
     const telemetry = await storage.getLatestTelemetryReadings(
       undefined,

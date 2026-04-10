@@ -38,8 +38,8 @@ export * from "./telemetry/index.js";
 // Crew domain
 export * from "./crew/index.js";
 
-// Devices domain (standalone implementation, not a shim)
-export * from "./devices.repo";
+// Devices domain
+export * from "./devices/index.js";
 
 // Additional domains
 export * from "./analytics/index.js";

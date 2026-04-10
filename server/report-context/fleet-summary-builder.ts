@@ -54,7 +54,7 @@ export async function buildFleetSummaryContext(
 
       const predictionPromises = equipment.slice(0, 20).map(async (eq) => {
         try {
-          const prediction = await predictWithHybridModel(storage, eq.id, orgId);
+          const prediction = await predictWithHybridModel(eq.id, orgId);
           if (prediction) {
             return {
               equipmentId: eq.id,

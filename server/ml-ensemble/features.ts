@@ -4,26 +4,22 @@
  * Convert time-series data to classification features for RF/XGBoost.
  */
 
-import type { IStorage } from "../storage.js";
 import type { TimeSeriesFeatures, ClassificationFeatures } from "../ml-training-data.js";
 import { bucketTelemetry } from "../ml-time-bucketing.js";
+import { dbEquipmentStorage } from "../db/equipment/index.js";
+import { workOrderService } from "../services/domains/work-order-service.js";
 import { calculateStats } from "./helpers.js";
 
 const isTemperature = (key: string) => /(temp|temperature|coolant|oil_temp|exhaust)/i.test(key);
 const isVibration = (key: string) => /(vib|vibration|accel|acceleration|rms|fft)/i.test(key);
 const isPressure = (key: string) => /(press|pressure|bar|psi|fuel_press|oil_press)/i.test(key);
 
-/**
- * Convert time-series data to classification features
- * Uses deterministic time bucketing and regex-based sensor detection
- */
 export async function convertToClassificationFeatures(
   timeSeriesData: TimeSeriesFeatures[],
   equipmentId: string,
-  orgId: string,
-  storage: IStorage
+  orgId: string
 ): Promise<ClassificationFeatures> {
-  const equipment = await storage.getEquipment(orgId, equipmentId);
+  const equipment = await dbEquipmentStorage.getEquipment(orgId, equipmentId);
 
   const telemetryData: any[] = [];
   for (const dataPoint of timeSeriesData) {
@@ -81,7 +77,7 @@ export async function convertToClassificationFeatures(
   const vibStats = calculateStats(vibrationValues);
   const presStats = calculateStats(pressureValues);
 
-  const workOrders = await storage.getWorkOrders(equipmentId, orgId);
+  const workOrders = await workOrderService.getWorkOrdersWithDetails(equipmentId, orgId);
   const lastMaintenance = workOrders
     .filter((wo) => wo.status === "completed")
     .sort((a, b) => (b.actualEndDate?.getTime() || 0) - (a.actualEndDate?.getTime() || 0))[0];

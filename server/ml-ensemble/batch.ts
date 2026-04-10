@@ -4,18 +4,13 @@
  * Batch predictions for multiple equipment with memory management.
  */
 
-import type { IStorage } from "../storage.js";
 import type { TimeSeriesFeatures } from "../ml-training-data.js";
 import { logger } from "../utils/logger.js";
+import { dbTelemetryStorage } from "../db/telemetry/index.js";
 import type { EnsemblePrediction } from "./types.js";
 import { ensemblePredict } from "./predict.js";
 
-/**
- * Batch ensemble predictions for multiple equipment
- * CPU-optimized with proper TensorFlow memory management
- */
 export async function batchEnsemblePredict(
-  storage: IStorage,
   orgId: string,
   equipmentIds: string[],
   batchSize: number = 10
@@ -32,14 +27,14 @@ export async function batchEnsemblePredict(
 
     const batchPromises = batch.map(async (equipmentId) => {
       try {
-        const recentData = await storage.getRecentTelemetry(equipmentId, 30, orgId);
+        const recentData = await dbTelemetryStorage.getLatestTelemetryReadings(equipmentId, 500);
 
         if (recentData.length < 5) {
           logger.warn("MlEnsemble", `Insufficient data for ${equipmentId}, skipping`);
           return null;
         }
 
-        const timeSeriesData: TimeSeriesFeatures[] = recentData.map((t) => ({
+        const timeSeriesData: TimeSeriesFeatures[] = recentData.map((t: any) => ({
           equipmentId: t.equipmentId,
           timestamp: t.ts,
           features: t.readings as any,
@@ -47,7 +42,7 @@ export async function batchEnsemblePredict(
           label: 0,
         }));
 
-        const prediction = await ensemblePredict(storage, orgId, equipmentId, timeSeriesData);
+        const prediction = await ensemblePredict(orgId, equipmentId, timeSeriesData);
         return { equipmentId, prediction };
       } catch (error) {
         logger.error("MlEnsemble", `Failed to predict for ${equipmentId}`, error);

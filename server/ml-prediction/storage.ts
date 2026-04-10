@@ -1,10 +1,12 @@
 /**
  * ML Prediction Storage and Explainability
  */
-import { IStorage } from "../storage.js";
-import type { TimeSeriesFeatures, ClassificationFeatures } from "../ml-training-data.js";
 import { domainEventBus, createDomainEvent } from "../lib/domain-event-bus/index.js";
 import { logger } from "../utils/logger.js";
+import { dbEquipmentStorage } from "../db/equipment/index.js";
+import { dbTelemetryStorage } from "../db/telemetry/index.js";
+import { dbMlAnalyticsStorage } from "../db/ml-analytics/index.js";
+import type { TimeSeriesFeatures, ClassificationFeatures } from "../ml-training-data.js";
 import { getModel } from "./model-loader.js";
 import { predictFailureWithLSTM, predictHealthWithRandomForest } from "./predictors.js";
 import { sanitizeTelemetry, calculateStats, type MLPredictionResult } from "./types.js";
@@ -28,12 +30,12 @@ function emitRulUpdateSafe(orgId: string, vesselId: string, equipmentId: string,
   }
 }
 
-export async function storePrediction(storage: IStorage, equipmentId: string, orgId: string, prediction: MLPredictionResult): Promise<void> {
-  const equipment = await storage.getEquipment(orgId, equipmentId);
+export async function storePrediction(equipmentId: string, orgId: string, prediction: MLPredictionResult): Promise<void> {
+  const equipment = await dbEquipmentStorage.getEquipment(orgId, equipmentId);
   if (!equipment) { return; }
 
   const riskLevel = calculateRiskLevel(prediction.failureProbability);
-  await storage.createFailurePrediction({
+  await dbMlAnalyticsStorage.createFailurePrediction({
     equipmentId, orgId, equipmentType: equipment.type,
     failureProbability: prediction.failureProbability, predictedFailureDate: prediction.predictedFailureDate,
     confidence: prediction.confidence, modelType: prediction.method, riskLevel,
@@ -78,7 +80,6 @@ function buildClassificationFeatures(telemetry: any[], equipmentId: string, equi
 }
 
 async function computeAndStoreExplanation(
-  storage: IStorage,
   modelPath: string,
   modelType: "lstm" | "random_forest",
   equipmentId: string,
@@ -89,16 +90,16 @@ async function computeAndStoreExplanation(
   const model = await getModel(modelPath, modelType);
   const endDate = new Date();
   const startDate = new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
-  const telemetry = sanitizeTelemetry(await storage.getTelemetryByEquipmentAndDateRange(equipmentId, startDate, endDate, orgId));
+  const telemetry = sanitizeTelemetry(await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(equipmentId, startDate, endDate, orgId));
 
   if (modelType === "lstm") {
     const timeSeriesFeatures = await buildTimeSeriesFeatures(telemetry, equipmentId);
     const { explainLSTMPrediction, storeFeatureImportances } = await import("../ml-explainability-service.js");
     const explanation = await explainLSTMPrediction(model, timeSeriesFeatures, model.config.sequenceLength);
     if (storedPrediction) {
-      const models = await storage.getMlModels(orgId, "lstm");
+      const models = await dbMlAnalyticsStorage.getMlModels(orgId, "lstm");
       const modelId = models.length > 0 ? models[0].id : undefined;
-      if (modelId) { await storeFeatureImportances(storage, orgId, explanation, { equipmentId, modelId, failurePredictionId: storedPrediction.id, explanationMethod: "shap" }); }
+      if (modelId) { await storeFeatureImportances(orgId, explanation, { equipmentId, modelId, failurePredictionId: storedPrediction.id, explanationMethod: "shap" }); }
     }
     return explanation;
   }
@@ -107,15 +108,14 @@ async function computeAndStoreExplanation(
   const { explainRandomForestPrediction, storeFeatureImportances } = await import("../ml-explainability-service.js");
   const explanation = explainRandomForestPrediction(model, features);
   if (storedPrediction) {
-    const models = await storage.getMlModels(orgId, "random_forest");
+    const models = await dbMlAnalyticsStorage.getMlModels(orgId, "random_forest");
     const modelId = models.length > 0 ? models[0].id : undefined;
-    if (modelId) { await storeFeatureImportances(storage, orgId, explanation, { equipmentId, modelId, failurePredictionId: storedPrediction.id, explanationMethod: "shap" }); }
+    if (modelId) { await storeFeatureImportances(orgId, explanation, { equipmentId, modelId, failurePredictionId: storedPrediction.id, explanationMethod: "shap" }); }
   }
   return explanation;
 }
 
 async function processAndStorePrediction(
-  storage: IStorage,
   pred: MLPredictionResult,
   modelType: "lstm" | "random_forest",
   equipment: any,
@@ -127,7 +127,7 @@ async function processAndStorePrediction(
   let explanation: any = null;
 
   try {
-    storedPrediction = await storage.createFailurePrediction({
+    storedPrediction = await dbMlAnalyticsStorage.createFailurePrediction({
       equipmentId, orgId, equipmentType: equipment.type,
       failureProbability: pred.failureProbability, predictedFailureDate: pred.predictedFailureDate,
       confidence: pred.confidence, modelType: pred.method,
@@ -140,9 +140,9 @@ async function processAndStorePrediction(
 
   try {
     const { getBestModel } = await import("../ml-training-pipeline.js");
-    const modelPath = await getBestModel(storage, orgId, equipment.type, modelType);
+    const modelPath = await getBestModel(orgId, equipment.type, modelType);
     if (modelPath) {
-      explanation = await computeAndStoreExplanation(storage, modelPath, modelType, equipmentId, equipment.type, orgId, storedPrediction);
+      explanation = await computeAndStoreExplanation(modelPath, modelType, equipmentId, equipment.type, orgId, storedPrediction);
     }
   } catch (e) {
     logger.error("MlPrediction", `Failed to compute SHAP values for ${modelType} prediction`, e);
@@ -153,23 +153,22 @@ async function processAndStorePrediction(
 }
 
 export async function predictWithExplainability(
-  storage: IStorage,
   equipmentId: string,
   orgId: string,
   method: "lstm" | "random_forest" | "hybrid" = "hybrid"
 ): Promise<{ prediction: MLPredictionResult; explanation: any | null; predictionId: number } | null> {
   try {
-    const equipment = await storage.getEquipment(orgId, equipmentId);
+    const equipment = await dbEquipmentStorage.getEquipment(orgId, equipmentId);
     if (!equipment) { return null; }
 
     if (method === "lstm" || method === "hybrid") {
-      const prediction = await predictFailureWithLSTM(storage, equipmentId, orgId);
-      if (prediction) { return processAndStorePrediction(storage, prediction, "lstm", equipment, equipmentId, orgId); }
+      const prediction = await predictFailureWithLSTM(equipmentId, orgId);
+      if (prediction) { return processAndStorePrediction(prediction, "lstm", equipment, equipmentId, orgId); }
     }
 
     if (method === "random_forest" || method === "hybrid") {
-      const prediction = await predictHealthWithRandomForest(storage, equipmentId, orgId);
-      if (prediction) { return processAndStorePrediction(storage, prediction, "random_forest", equipment, equipmentId, orgId); }
+      const prediction = await predictHealthWithRandomForest(equipmentId, orgId);
+      if (prediction) { return processAndStorePrediction(prediction, "random_forest", equipment, equipmentId, orgId); }
     }
 
     return null;
