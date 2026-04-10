@@ -2,7 +2,7 @@
  * Diagnostics Routes - Helper Functions
  */
 
-import { storage } from "../../storage.js";
+import { dbUserStorage } from "../../repositories";
 import type { CheckResult, ServiceStatus } from "./types.js";
 
 export const startTime = Date.now();
@@ -16,7 +16,7 @@ export async function runHealthChecks() {
 export async function checkDatabase(): Promise<CheckResult> {
   const start = Date.now();
   try {
-    const orgs = await storage.getOrganizations();
+    const orgs = await dbUserStorage.getOrganizations();
     return { status: 'pass', responseTimeMs: Date.now() - start, details: { organizationCount: orgs.length } };
   } catch (error) {
     return { status: 'fail', responseTimeMs: Date.now() - start, message: error instanceof Error ? error.message : 'Database check failed' };

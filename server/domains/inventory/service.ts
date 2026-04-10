@@ -6,7 +6,7 @@ import type {
 } from "@shared/schema-runtime";
 import { inventoryRepository } from "./repository";
 import { recordAndPublish } from "../../sync-events";
-import { storage } from "../../storage";
+import { dbInventoryStorage } from "../../repositories";
 
 /**
  * Inventory (Parts) Service
@@ -235,7 +235,7 @@ export class InventoryService {
     criticality?: string; stockStatus?: string; supplier?: string;
     sortBy?: string; sortOrder?: "asc" | "desc";
   }): Promise<{ items: any[]; total: number }> {
-    return storage.getPartsInventoryPaginated(orgId, options);
+    return dbInventoryStorage.getPartsInventoryPaginated(orgId, options);
   }
 }
 

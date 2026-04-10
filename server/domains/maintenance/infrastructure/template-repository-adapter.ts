@@ -9,7 +9,7 @@ import type {
   CreateTemplateCommand,
   UpdateTemplateCommand,
 } from '../domain/types';
-import { storage } from '../../../storage';
+import { dbMaintenanceTemplatesStorage } from '../../../repositories';
 
 /**
  * PostgreSQL/Storage adapter for MaintenanceTemplateRepository
@@ -20,17 +20,17 @@ export class MaintenanceTemplateRepositoryAdapter implements IMaintenanceTemplat
     equipmentType?: string,
     isActive?: boolean
   ): Promise<MaintenanceTemplateEntity[]> {
-    const templates = await storage.getMaintenanceTemplates(orgId, equipmentType, isActive);
+    const templates = await dbMaintenanceTemplatesStorage.getMaintenanceTemplates(orgId, equipmentType, isActive);
     return templates.map(this.mapToEntity);
   }
 
   async findById(id: string, orgId?: string): Promise<MaintenanceTemplateEntity | undefined> {
-    const template = await storage.getMaintenanceTemplate(id, orgId);
+    const template = await dbMaintenanceTemplatesStorage.getMaintenanceTemplate(id, orgId);
     return template ? this.mapToEntity(template) : undefined;
   }
 
   async create(command: CreateTemplateCommand): Promise<MaintenanceTemplateEntity> {
-    const template = await storage.createMaintenanceTemplate(command as any);
+    const template = await dbMaintenanceTemplatesStorage.createMaintenanceTemplate(command as any);
     return this.mapToEntity(template);
   }
 
@@ -39,12 +39,12 @@ export class MaintenanceTemplateRepositoryAdapter implements IMaintenanceTemplat
     updates: UpdateTemplateCommand,
     orgId?: string
   ): Promise<MaintenanceTemplateEntity> {
-    const template = await storage.updateMaintenanceTemplate(id, updates as any, orgId);
+    const template = await dbMaintenanceTemplatesStorage.updateMaintenanceTemplate(id, updates as any, orgId);
     return this.mapToEntity(template);
   }
 
   async delete(id: string, orgId?: string): Promise<void> {
-    await storage.deleteMaintenanceTemplate(id, orgId);
+    await dbMaintenanceTemplatesStorage.deleteMaintenanceTemplate(id, orgId);
   }
 
   private mapToEntity(template: any): MaintenanceTemplateEntity {

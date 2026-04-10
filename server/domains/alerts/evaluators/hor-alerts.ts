@@ -4,7 +4,7 @@
  */
 
 import { format } from "date-fns";
-import { storage } from "../../../storage.js";
+import { vesselService, dbStcwStorage } from "../../../repositories";
 import { alertSettingsService } from "../settings-service.js";
 import { checkMonthCompliance, normalizeRestDays } from "../../../stcw-compliance.js";
 import type { CrewAlertResult, EvaluationContext } from "./types.js";
@@ -103,13 +103,13 @@ export async function evaluateHoRViolationAlerts(ctx: EvaluationContext): Promis
   const settings = await alertSettingsService.getCrewAlertSettings(ctx.orgId, ctx.vesselId || null);
   if (!settings?.horViolationAlertsEnabled) {return results;}
 
-  const vessels = ctx.vesselId ? [{ id: ctx.vesselId }] : await storage.getVessels(ctx.orgId);
+  const vessels = ctx.vesselId ? [{ id: ctx.vesselId }] : await vesselService.getVessels(ctx.orgId);
   const currentYear = now.getFullYear();
   const currentMonth = format(now, "MMMM").toUpperCase();
 
   for (const vessel of vessels) {
     try {
-      const vesselCrewRest = await storage.getVesselCrewRest(vessel.id, currentYear, currentMonth);
+      const vesselCrewRest = await dbStcwStorage.getVesselCrewRest(vessel.id, currentYear, currentMonth);
 
       for (const [crewId, restData] of Object.entries(vesselCrewRest)) {
         processCrewRestData(crewId, restData, vessel.id, now, settings, results);

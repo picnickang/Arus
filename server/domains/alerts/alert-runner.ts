@@ -4,7 +4,7 @@
  * Handles deduplication and rate limiting.
  */
 
-import { storage } from "../../storage";
+import { dbUserStorage, vesselService } from "../../repositories";
 import { alertSettingsService } from "./settings-service";
 import { alertSettingsRepository } from "./settings-repository";
 import { emailProviderService } from "../../services/email-provider-service";
@@ -155,7 +155,7 @@ async function getAlertRecipients(
   
   for (const recipientId of notifyRecipients) {
     try {
-      const user = await storage.getUserById(recipientId);
+      const user = await dbUserStorage.getUser(recipientId);
       if (user?.email) {
         recipients.push(user.email);
       }
@@ -295,7 +295,7 @@ async function processAlert(
 /** Get vessel name safely - returns undefined on failure */
 async function getVesselName(vesselId: string): Promise<string | undefined> {
   try {
-    const vessel = await storage.getVessel(vesselId);
+    const vessel = await vesselService.getVessel(vesselId);
     return vessel?.name;
   } catch {
     return undefined;
@@ -379,7 +379,7 @@ export async function runCrewAlertsForAllOrgs(): Promise<AlertRunResult[]> {
   const results: AlertRunResult[] = [];
   
   try {
-    const orgs = await storage.getOrganizations?.() ?? [];
+    const orgs = await dbUserStorage.getOrganizations?.() ?? [];
     
     for (const org of orgs) {
       try {

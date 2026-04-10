@@ -8,7 +8,7 @@ import type {
   AlertComment,
   InsertAlertComment,
 } from "@shared/schema-runtime";
-import { storage } from "../../storage";
+import { dbAlertStorage } from "../../repositories";
 
 /**
  * Alerts Repository
@@ -21,14 +21,14 @@ export class AlertsRepository {
    * Get all alert configurations, optionally filtered by equipment
    */
   async findAllConfigurations(equipmentId?: string): Promise<AlertConfiguration[]> {
-    return storage.getAlertConfigurations(equipmentId);
+    return dbAlertStorage.getAlertConfigurations(equipmentId);
   }
 
   /**
    * Get single configuration by ID
    */
   async findConfigurationById(id: string): Promise<AlertConfiguration | undefined> {
-    const configs = await storage.getAlertConfigurations();
+    const configs = await dbAlertStorage.getAlertConfigurations();
     return configs.find((c) => c.id === id);
   }
 
@@ -36,7 +36,7 @@ export class AlertsRepository {
    * Create new alert configuration
    */
   async createConfiguration(config: InsertAlertConfig): Promise<AlertConfiguration> {
-    return storage.createAlertConfiguration(config);
+    return dbAlertStorage.createAlertConfiguration(config);
   }
 
   /**
@@ -46,14 +46,14 @@ export class AlertsRepository {
     id: string,
     config: Partial<InsertAlertConfig>
   ): Promise<AlertConfiguration> {
-    return storage.updateAlertConfiguration(id, config);
+    return dbAlertStorage.updateAlertConfiguration(id, config);
   }
 
   /**
    * Delete alert configuration
    */
   async deleteConfiguration(id: string): Promise<void> {
-    return storage.deleteAlertConfiguration(id);
+    return dbAlertStorage.deleteAlertConfiguration(id);
   }
 
   // ========== Alert Notifications ==========
@@ -62,21 +62,21 @@ export class AlertsRepository {
    * Get all alert notifications, optionally filtered by acknowledgment status
    */
   async findAllNotifications(acknowledged?: boolean, orgId?: string): Promise<AlertNotification[]> {
-    return storage.getAlertNotifications(acknowledged, orgId);
+    return dbAlertStorage.getAlertNotifications(acknowledged, orgId);
   }
 
   /**
    * Create new alert notification
    */
   async createNotification(notification: InsertAlertNotification): Promise<AlertNotification> {
-    return storage.createAlertNotification(notification);
+    return dbAlertStorage.createAlertNotification(notification);
   }
 
   /**
    * Acknowledge an alert notification
    */
   async acknowledgeNotification(id: string, acknowledgedBy: string): Promise<AlertNotification> {
-    return storage.acknowledgeAlert(id, acknowledgedBy);
+    return dbAlertStorage.acknowledgeAlert(id, acknowledgedBy);
   }
 
   /**
@@ -88,7 +88,7 @@ export class AlertsRepository {
     alertType: string,
     minutesBack: number = 10
   ): Promise<boolean> {
-    return storage.hasRecentAlert(equipmentId, sensorType, alertType, minutesBack);
+    return dbAlertStorage.hasRecentAlert(equipmentId, sensorType, alertType, minutesBack);
   }
 
   // ========== Alert Comments ==========
@@ -97,14 +97,14 @@ export class AlertsRepository {
    * Add comment to alert
    */
   async addComment(commentData: InsertAlertComment): Promise<AlertComment> {
-    return storage.addAlertComment(commentData);
+    return dbAlertStorage.addAlertComment(commentData);
   }
 
   /**
    * Get all comments for an alert
    */
   async getComments(alertId: string): Promise<AlertComment[]> {
-    return storage.getAlertComments(alertId);
+    return dbAlertStorage.getAlertComments(alertId);
   }
 
   // ========== Alert Suppressions ==========
@@ -113,21 +113,21 @@ export class AlertsRepository {
    * Create alert suppression
    */
   async createSuppression(suppressionData: InsertAlertSuppression): Promise<AlertSuppression> {
-    return storage.createAlertSuppression(suppressionData);
+    return dbAlertStorage.createAlertSuppression(suppressionData);
   }
 
   /**
    * Get all active suppressions
    */
   async findAllSuppressions(orgId?: string): Promise<AlertSuppression[]> {
-    return storage.getActiveSuppressions(orgId);
+    return dbAlertStorage.getActiveSuppressions(orgId);
   }
 
   /**
    * Remove alert suppression
    */
   async deleteSuppression(id: string): Promise<void> {
-    return storage.removeAlertSuppression(id);
+    return dbAlertStorage.removeAlertSuppression(id);
   }
 
   /**
@@ -138,7 +138,7 @@ export class AlertsRepository {
     sensorType: string,
     alertType: string
   ): Promise<boolean> {
-    return storage.isAlertSuppressed(equipmentId, sensorType, alertType);
+    return dbAlertStorage.isAlertSuppressed(equipmentId, sensorType, alertType);
   }
 
   // ========== Utility Methods ==========
@@ -147,7 +147,7 @@ export class AlertsRepository {
    * Delete all alerts and notifications
    */
   async deleteAllNotifications(): Promise<void> {
-    return storage.clearAllAlerts();
+    return dbAlertStorage.clearAllAlerts();
   }
 }
 

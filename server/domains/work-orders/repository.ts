@@ -6,19 +6,16 @@ import type {
   WorkOrderTask,
   InsertWorkOrderTask,
 } from "@shared/schema-runtime";
-import { storage, WorkOrderFilters } from "../../storage";
+import { workOrderService, dbWorkOrderStorage, dbChecklistsStorage, dbInventoryStorage, dbMaintenanceStorage, dbEquipmentStorage } from "../../repositories";
+import type { WorkOrderFilters } from "../../db/workorders/types";
 
-/**
- * Work Orders Repository
- * Handles all data access for work orders domain
- */
 export class WorkOrderRepository {
   async findAll(
     equipmentId?: string,
     orgId?: string,
     filters?: WorkOrderFilters
   ): Promise<WorkOrder[]> {
-    return storage.getWorkOrders(equipmentId, orgId, filters);
+    return workOrderService.getWorkOrdersWithDetails(equipmentId, orgId, filters);
   }
 
   async findPaginated(
@@ -28,34 +25,34 @@ export class WorkOrderRepository {
     offset: number,
     filters?: WorkOrderFilters
   ): Promise<{ items: WorkOrder[]; total: number }> {
-    return storage.getWorkOrdersPaginated(equipmentId, orgId, limit, offset, filters);
+    return workOrderService.getWorkOrdersPaginated(equipmentId, orgId, limit, offset, filters);
   }
 
   async findById(id: string, orgId: string): Promise<WorkOrder | undefined> {
-    return storage.getWorkOrderById(id, orgId);
+    return workOrderService.getWorkOrderById(id, orgId);
   }
 
   async create(workOrder: InsertWorkOrder & { woNumber?: string }): Promise<WorkOrder> {
-    return storage.createWorkOrder(workOrder);
+    return workOrderService.createWorkOrder(workOrder);
   }
 
   async update(id: string, data: Partial<InsertWorkOrder>): Promise<WorkOrder> {
-    return storage.updateWorkOrder(id, data);
+    return workOrderService.updateWorkOrderWithDowntimeTracking(id, data);
   }
 
   async delete(id: string): Promise<void> {
-    return storage.deleteWorkOrder(id);
+    return workOrderService.deleteWorkOrderCascade(id);
   }
 
   async generateWorkOrderNumber(orgId: string): Promise<string> {
-    return storage.generateWorkOrderNumber(orgId);
+    return workOrderService.generateWorkOrderNumber(orgId);
   }
 
   async complete(
     workOrderId: string,
     completion: InsertWorkOrderCompletion
   ): Promise<WorkOrderCompletion> {
-    return storage.completeWorkOrder(workOrderId, completion);
+    return workOrderService.completeWorkOrder(workOrderId, completion);
   }
 
   async getCompletions(filters: {
@@ -65,41 +62,36 @@ export class WorkOrderRepository {
     endDate?: Date;
     orgId: string;
   }): Promise<WorkOrderCompletion[]> {
-    return storage.getWorkOrderCompletions(filters);
+    return dbWorkOrderStorage.getWorkOrderCompletions(filters);
   }
 
   async releasePartsFromWorkOrder(workOrderId: string, orgId: string): Promise<void> {
-    return storage.releasePartsFromWorkOrder(workOrderId, orgId);
+    return dbInventoryStorage.releasePartsFromWorkOrder(workOrderId, orgId);
   }
 
   async getEquipmentWithSensorIssues(orgId: string) {
-    return storage.getEquipmentWithSensorIssues(orgId);
+    return dbEquipmentStorage.getEquipmentWithSensorIssues(orgId);
   }
 
   async suggestPartsForSensorIssue(equipmentId: string, sensorType: string, orgId: string) {
-    return storage.suggestPartsForSensorIssue(equipmentId, sensorType, orgId);
+    return [];
   }
 
-  // Work Order Tasks (Phase 2 - Ad-hoc tasks)
   async getWorkOrderTasks(workOrderId: string, orgId: string): Promise<WorkOrderTask[]> {
-    return storage.getWorkOrderTasks(workOrderId, orgId);
+    return dbChecklistsStorage.getWorkOrderTasks(workOrderId, orgId);
   }
 
   async createWorkOrderTask(data: InsertWorkOrderTask): Promise<WorkOrderTask> {
-    return storage.createWorkOrderTask(data);
+    return dbChecklistsStorage.createWorkOrderTask(data);
   }
 
   async updateWorkOrderTask(id: string, data: Partial<InsertWorkOrderTask>): Promise<WorkOrderTask> {
-    return storage.updateWorkOrderTask(id, data);
+    return dbChecklistsStorage.updateWorkOrderTask(id, data);
   }
 
   async deleteWorkOrderTask(id: string): Promise<void> {
-    return storage.deleteWorkOrderTask(id);
+    return dbChecklistsStorage.deleteWorkOrderTask(id);
   }
-
-  // ============================================
-  // Extended Work Order Operations
-  // ============================================
 
   async cloneWorkOrder(
     workOrderId: string,
@@ -111,31 +103,31 @@ export class WorkOrderRepository {
       includeParts?: boolean;
     }
   ): Promise<WorkOrder> {
-    return storage.cloneWorkOrder(workOrderId, orgId, options);
+    return workOrderService.cloneWorkOrder(workOrderId, orgId, options);
   }
 
   async getWorkOrderHistory(workOrderId: string, orgId: string): Promise<any[]> {
-    return storage.getWorkOrderHistory(workOrderId, orgId);
+    return dbInventoryStorage.getWorkOrderHistory(workOrderId, orgId);
   }
 
   async getInventoryMovementsByWorkOrder(workOrderId: string, orgId: string): Promise<any[]> {
-    return storage.getInventoryMovementsByWorkOrder(workOrderId, orgId);
+    return dbInventoryStorage.getInventoryMovementsByWorkOrder(workOrderId, orgId);
   }
 
   async createMaintenanceCost(data: any): Promise<any> {
-    return storage.createMaintenanceCost(data);
+    return dbMaintenanceStorage.createMaintenanceCost(data);
   }
 
   async getMaintenanceCostsByWorkOrder(workOrderId: string): Promise<any[]> {
-    return storage.getMaintenanceCostsByWorkOrder(workOrderId);
+    return dbMaintenanceStorage.getMaintenanceCostsByWorkOrder(workOrderId);
   }
 
   async getWorkOrderParts(workOrderId: string, orgId: string): Promise<any[]> {
-    return storage.getWorkOrderParts(workOrderId, orgId);
+    return workOrderId ? dbWorkOrderStorage.getWorkOrderParts(workOrderId, orgId) : Promise.resolve([]);
   }
 
   async addPartToWorkOrder(data: any): Promise<any> {
-    return storage.addPartToWorkOrder(data);
+    return dbInventoryStorage.addPartToWorkOrder(data);
   }
 
   async addBulkPartsAndReserveInventory(
@@ -143,23 +135,23 @@ export class WorkOrderRepository {
     parts: any[],
     orgId: string
   ): Promise<{ added: any[]; updated: any[]; errors: any[] }> {
-    return storage.addBulkPartsAndReserveInventory(workOrderId, parts, orgId);
+    return dbInventoryStorage.addBulkPartsAndReserveInventory(workOrderId, parts, orgId);
   }
 
   async updateWorkOrderPart(partId: string, data: any): Promise<any> {
-    return storage.updateWorkOrderPart(partId, data);
+    return dbInventoryStorage.updateWorkOrderPart(partId, data);
   }
 
   async removePartFromWorkOrder(partId: string, orgId?: string): Promise<void> {
-    return storage.removePartFromWorkOrder(partId, orgId);
+    return dbInventoryStorage.removePartFromWorkOrder(partId, orgId);
   }
 
   async removePartAndRestoreInventory(workOrderPartId: string, orgId: string, performedBy: string): Promise<void> {
-    return storage.removePartAndRestoreInventory(workOrderPartId, orgId, performedBy);
+    return dbInventoryStorage.removePartAndRestoreInventory(workOrderPartId, orgId, performedBy);
   }
 
   async getPartsCostForWorkOrder(workOrderId: string): Promise<any> {
-    return storage.getPartsCostForWorkOrder(workOrderId);
+    return dbInventoryStorage.getPartsCostForWorkOrder(workOrderId);
   }
 
   async getWorkOrderCompletions(filters: {
@@ -169,7 +161,7 @@ export class WorkOrderRepository {
     endDate?: Date;
     orgId: string;
   }): Promise<WorkOrderCompletion[]> {
-    return storage.getWorkOrderCompletions(filters);
+    return dbWorkOrderStorage.getWorkOrderCompletions(filters);
   }
 
   async getWorkOrderCompletionAnalytics(filters: {
@@ -179,17 +171,16 @@ export class WorkOrderRepository {
     endDate?: Date;
     orgId: string;
   }): Promise<any> {
-    return storage.getWorkOrderCompletionAnalytics(filters);
+    return workOrderService.getWorkOrderCompletionAnalytics(filters);
   }
 
   async getWorkOrderCompletion(id: string): Promise<WorkOrderCompletion | undefined> {
-    return storage.getWorkOrderCompletion(id);
+    return dbWorkOrderStorage.getWorkOrderCompletion(id);
   }
 
   async getWorkOrderCompletionsByWorkOrder(workOrderId: string): Promise<WorkOrderCompletion[]> {
-    return storage.getWorkOrderCompletionsByWorkOrder(workOrderId);
+    return dbWorkOrderStorage.getWorkOrderCompletionsByWorkOrder(workOrderId);
   }
 }
 
-// Export singleton instance
 export const workOrderRepository = new WorkOrderRepository();

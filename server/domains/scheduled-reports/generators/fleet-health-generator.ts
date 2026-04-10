@@ -3,7 +3,7 @@
  * Generates fleet-wide equipment health summary
  */
 
-import { storage } from '../../../storage.js';
+import { vesselService, dbEquipmentStorage, dbMaintenanceStorage } from '../../../repositories';
 import type { IFleetHealthGenerator } from '../domain/ports.js';
 import type {
   FleetHealthData,
@@ -39,7 +39,7 @@ export class FleetHealthGenerator implements IFleetHealthGenerator {
     vesselIds: string[] | null
   ): Promise<VesselHealthSummary[]> {
     try {
-      const allVessels = await storage.getVessels(orgId);
+      const allVessels = await vesselService.getVessels(orgId);
       const filteredVessels = vesselIds
         ? allVessels.filter((v) => vesselIds.includes(v.id))
         : allVessels;
@@ -47,7 +47,7 @@ export class FleetHealthGenerator implements IFleetHealthGenerator {
       const summaries: VesselHealthSummary[] = [];
 
       for (const vessel of filteredVessels) {
-        const equipment = await storage.getEquipmentByVessel(vessel.id);
+        const equipment = await dbEquipmentStorage.getEquipmentByVessel(vessel.id, orgId);
         
         let criticalCount = 0;
         let warningCount = 0;
@@ -85,13 +85,13 @@ export class FleetHealthGenerator implements IFleetHealthGenerator {
   ): Promise<EquipmentAlert[]> {
     try {
       const alerts: EquipmentAlert[] = [];
-      const allVessels = await storage.getVessels(orgId);
+      const allVessels = await vesselService.getVessels(orgId);
       const filteredVessels = vesselIds
         ? allVessels.filter((v) => vesselIds.includes(v.id))
         : allVessels;
 
       for (const vessel of filteredVessels) {
-        const equipment = await storage.getEquipmentByVessel(vessel.id);
+        const equipment = await dbEquipmentStorage.getEquipmentByVessel(vessel.id, orgId);
         
         for (const eq of equipment) {
           const health = (eq as any).healthScore || 100;
@@ -122,7 +122,7 @@ export class FleetHealthGenerator implements IFleetHealthGenerator {
   ): Promise<MaintenanceItem[]> {
     try {
       const items: MaintenanceItem[] = [];
-      const allVessels = await storage.getVessels(orgId);
+      const allVessels = await vesselService.getVessels(orgId);
       const filteredVessels = vesselIds
         ? allVessels.filter((v) => vesselIds.includes(v.id))
         : allVessels;
@@ -131,22 +131,19 @@ export class FleetHealthGenerator implements IFleetHealthGenerator {
       const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
       for (const vessel of filteredVessels) {
-        const tasks = await storage.getMaintenanceTasks({
-          vesselId: vessel.id,
-          status: 'pending',
-        });
+        const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(undefined, orgId, { status: 'pending' } as any);
 
-        for (const task of tasks) {
-          const dueDate = task.dueDate ? new Date(task.dueDate) : null;
+        for (const task of schedules) {
+          const dueDate = (task as any).dueDate ? new Date((task as any).dueDate) : null;
           
           if (dueDate && dueDate <= thirtyDaysFromNow) {
             items.push({
               id: task.id,
               equipmentName: (task as any).equipmentName || 'Unknown',
               vesselName: vessel.name,
-              taskName: task.title || task.name || 'Maintenance Task',
+              taskName: (task as any).title || (task as any).name || 'Maintenance Task',
               dueDate,
-              priority: task.priority || 'normal',
+              priority: (task as any).priority || 'normal',
             });
           }
         }

@@ -1059,10 +1059,9 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
 
   const briefingRepo = new BriefingRepositoryAdapter();
   let _briefingService: BriefingGeneratorService | null = null;
-  async function getBriefingService() {
+  function getBriefingService() {
     if (!_briefingService) {
-      const { storage: s } = await import("../../../storage");
-      _briefingService = new BriefingGeneratorService(briefingRepo, agentRepo, new BriefingDataAdapter(s));
+      _briefingService = new BriefingGeneratorService(briefingRepo, agentRepo, new BriefingDataAdapter());
     }
     return _briefingService;
   }

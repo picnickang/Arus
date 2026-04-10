@@ -3,7 +3,7 @@
  * Generates upcoming maintenance tasks report
  */
 
-import { storage } from '../../../storage.js';
+import { vesselService, dbMaintenanceStorage, dbEquipmentStorage } from '../../../repositories';
 import type { IMaintenanceDueGenerator } from '../domain/ports.js';
 import type { MaintenanceItem } from '../domain/types.js';
 import { logger } from '../../../utils/logger.js';
@@ -18,7 +18,7 @@ export class MaintenanceDueGenerator implements IMaintenanceDueGenerator {
 
     try {
       const items: MaintenanceItem[] = [];
-      const allVessels = await storage.getVessels(orgId);
+      const allVessels = await vesselService.getVessels(orgId);
       const filteredVessels = vesselIds
         ? allVessels.filter((v) => vesselIds.includes(v.id))
         : allVessels;
@@ -27,24 +27,21 @@ export class MaintenanceDueGenerator implements IMaintenanceDueGenerator {
       const sixtyDaysFromNow = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
 
       for (const vessel of filteredVessels) {
-        const tasks = await storage.getMaintenanceTasks({
-          vesselId: vessel.id,
-          status: 'pending',
-        });
+        const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(undefined, orgId, { status: 'pending' } as any);
 
-        for (const task of tasks) {
-          const dueDate = task.dueDate ? new Date(task.dueDate) : null;
+        for (const task of schedules) {
+          const dueDate = (task as any).dueDate ? new Date((task as any).dueDate) : null;
 
           if (dueDate && dueDate <= sixtyDaysFromNow) {
-            const equipment = task.equipmentId
-              ? await storage.getEquipment(task.equipmentId)
+            const equipment = (task as any).equipmentId
+              ? await dbEquipmentStorage.getEquipment(orgId, (task as any).equipmentId)
               : null;
 
             items.push({
               id: task.id,
               equipmentName: equipment?.name || 'Unknown Equipment',
               vesselName: vessel.name,
-              taskName: task.title || task.name || 'Maintenance Task',
+              taskName: (task as any).title || (task as any).name || 'Maintenance Task',
               dueDate,
               priority: this.calculatePriority(dueDate, now),
             });

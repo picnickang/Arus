@@ -5,7 +5,7 @@
 
 import type { ISchedulerRunRepository } from '../domain/ports.js';
 import type { SchedulerRunEntity, CreateSchedulerRunCommand } from '../domain/types.js';
-import { storage } from '../../../storage';
+import { dbSchedulerStorage } from '../../../repositories';
 
 function mapToEntity(run: any): SchedulerRunEntity {
   return {
@@ -30,7 +30,7 @@ function mapToEntity(run: any): SchedulerRunEntity {
 
 export class SchedulerRunRepositoryAdapter implements ISchedulerRunRepository {
   async create(command: CreateSchedulerRunCommand): Promise<SchedulerRunEntity> {
-    const run = await storage.createSchedulerRun({
+    const run = await dbSchedulerStorage.createSchedulerRun({
       orgId: command.orgId,
       status: command.status || 'pending',
       startDate: command.startDate,
@@ -41,49 +41,49 @@ export class SchedulerRunRepositoryAdapter implements ISchedulerRunRepository {
   }
 
   async findById(id: string, orgId?: string): Promise<SchedulerRunEntity | undefined> {
-    const run = await storage.getSchedulerRun(id);
+    const run = await dbSchedulerStorage.getSchedulerRun(id);
     if (!run) return undefined;
     if (orgId && run.orgId !== orgId) return undefined;
     return mapToEntity(run);
   }
 
   async findByOrgId(orgId: string, limit?: number): Promise<SchedulerRunEntity[]> {
-    const runs = await storage.getSchedulerRuns(orgId, limit);
+    const runs = await dbSchedulerStorage.getSchedulerRuns(orgId, limit);
     return runs.map(mapToEntity);
   }
 
   async findByStatus(orgId: string, status: string, limit?: number): Promise<SchedulerRunEntity[]> {
-    const runs = await storage.getSchedulerRunsByStatus(orgId, status, limit);
+    const runs = await dbSchedulerStorage.getSchedulerRunsByStatus(orgId, status, limit);
     return runs.map(mapToEntity);
   }
 
   async findRecentByHash(orgId: string, inputHash: string, hoursBack?: number): Promise<SchedulerRunEntity | undefined> {
-    const run = await storage.findRecentSchedulerRunByHash(orgId, inputHash, hoursBack);
+    const run = await dbSchedulerStorage.findRecentSchedulerRunByHash(orgId, inputHash, hoursBack);
     return run ? mapToEntity(run) : undefined;
   }
 
   async update(id: string, updates: Partial<SchedulerRunEntity>): Promise<SchedulerRunEntity> {
-    const run = await storage.updateSchedulerRun(id, updates as any);
+    const run = await dbSchedulerStorage.updateSchedulerRun(id, updates as any);
     return mapToEntity(run);
   }
 
   async approve(id: string, userId?: string): Promise<SchedulerRunEntity> {
-    const run = await storage.approveSchedulerRun(id, userId);
+    const run = await dbSchedulerStorage.approveSchedulerRun(id, userId);
     return mapToEntity(run);
   }
 
   async publish(id: string, userId: string): Promise<SchedulerRunEntity> {
-    const run = await storage.publishSchedulerRun(id, userId);
+    const run = await dbSchedulerStorage.publishSchedulerRun(id, userId);
     return mapToEntity(run);
   }
 
   async cancel(id: string, userId?: string): Promise<SchedulerRunEntity> {
-    const run = await storage.cancelSchedulerRun(id, userId);
+    const run = await dbSchedulerStorage.cancelSchedulerRun(id, userId);
     return mapToEntity(run);
   }
 
   async markHoRGenerated(id: string): Promise<SchedulerRunEntity> {
-    const run = await storage.markSchedulerRunHorGenerated(id);
+    const run = await dbSchedulerStorage.markSchedulerRunHorGenerated(id);
     return mapToEntity(run);
   }
 }

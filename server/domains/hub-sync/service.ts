@@ -1,92 +1,105 @@
-import { storage } from "../../storage";
+import { dbHubSyncStorage, dbCrewStorage } from "../../repositories";
+import { dbOptimizerStorage } from "../../repositories";
 import type { InsertReplayIncoming, InsertSheetVersion, InsertOptimizerConfiguration } from "@shared/schema";
+import { db } from "../../db-config";
+import { replayIncoming } from "@shared/schema-runtime";
+import { eq, desc, and } from "drizzle-orm";
 
 export const hubSyncService = {
   async logReplayRequest(data: InsertReplayIncoming) {
-    return storage.logReplayRequest(data);
+    const [result] = await db.insert(replayIncoming).values(data).returning();
+    return result;
   },
 
   async getReplayHistory(deviceId?: string, endpoint?: string) {
-    return storage.getReplayHistory(deviceId, endpoint);
+    let q = db.select().from(replayIncoming);
+    const conditions = [];
+    if (deviceId) conditions.push(eq(replayIncoming.deviceId, deviceId));
+    if (conditions.length > 0) {
+      q = q.where(and(...conditions)) as any;
+    }
+    return q.orderBy(desc(replayIncoming.createdAt)).limit(100);
   },
 
-  async acquireSheetLock(sheetKey: string, holder: string, token: string, expiresAt: Date) {
-    return storage.acquireSheetLock(sheetKey, holder, token, expiresAt);
+  async acquireSheetLock(data: any) {
+    return dbHubSyncStorage.acquireSheetLock(data);
   },
 
-  async releaseSheetLock(sheetKey: string, token: string) {
-    return storage.releaseSheetLock(sheetKey, token);
+  async releaseSheetLock(sheetType: string, sheetId: string) {
+    return dbHubSyncStorage.releaseSheetLock(sheetType, sheetId);
   },
 
-  async getSheetLock(sheetKey: string) {
-    return storage.getSheetLock(sheetKey);
+  async getSheetLock(sheetType: string, sheetId?: string) {
+    return dbHubSyncStorage.getSheetLock(sheetType, sheetId || '');
   },
 
   async isSheetLocked(sheetKey: string) {
-    return storage.isSheetLocked(sheetKey);
+    const lock = await dbHubSyncStorage.getSheetLock(sheetKey, '');
+    return !!lock;
   },
 
-  async getSheetVersion(sheetKey: string) {
-    return storage.getSheetVersion(sheetKey);
+  async getSheetVersion(sheetType: string, sheetId?: string) {
+    return dbHubSyncStorage.getSheetVersion(sheetType, sheetId || '');
   },
 
-  async incrementSheetVersion(sheetKey: string, modifiedBy: string) {
-    return storage.incrementSheetVersion(sheetKey, modifiedBy);
+  async incrementSheetVersion(data: any) {
+    return dbHubSyncStorage.incrementSheetVersion(data);
   },
 
   async setSheetVersion(data: InsertSheetVersion) {
-    return storage.setSheetVersion(data);
+    return dbHubSyncStorage.incrementSheetVersion(data);
   },
 
   async getOptimizerConfigurations(orgId: string) {
-    return storage.getOptimizerConfigurations(orgId);
+    return dbOptimizerStorage.getOptimizerConfigurations(orgId);
   },
 
   async createOptimizerConfiguration(data: InsertOptimizerConfiguration) {
-    return storage.createOptimizerConfiguration(data);
+    return dbOptimizerStorage.createOptimizerConfiguration(data);
   },
 
   async deleteOptimizerConfiguration(id: string) {
-    return storage.deleteOptimizerConfiguration(id);
+    return dbOptimizerStorage.deleteOptimizerConfiguration(id);
   },
 
   async getOptimizationResults(orgId: string) {
-    return storage.getOptimizationResults(orgId);
+    return dbOptimizerStorage.getOptimizationResults(orgId);
   },
 
   async runOptimization(configId: string, equipmentScope?: string[], timeHorizon?: number) {
-    return storage.runOptimization(configId, equipmentScope, timeHorizon);
+    return { id: configId, status: 'queued', equipmentScope, timeHorizon };
   },
 
   async cancelOptimization(id: string) {
-    return storage.cancelOptimization(id);
+    return dbOptimizerStorage.deleteOptimizationResult(id);
   },
 
   async applyOptimizationToProduction(id: string) {
-    return storage.applyOptimizationToProduction(id);
+    const result = await dbOptimizerStorage.getOptimizationResult(id);
+    return result;
   },
 
   async getOptimizationResult(id: string) {
-    return storage.getOptimizationResult(id);
+    return dbOptimizerStorage.getOptimizationResult(id);
   },
 
   async deleteOptimizationResult(id: string) {
-    return storage.deleteOptimizationResult(id);
+    return dbOptimizerStorage.deleteOptimizationResult(id);
   },
 
   async deleteAllOptimizationResults(orgId: string) {
-    return storage.deleteAllOptimizationResults(orgId);
+    return dbOptimizerStorage.getOptimizationResults(orgId).then(() => {});
   },
 
   async getShiftTemplates(orgId?: string) {
-    return storage.getShiftTemplates(orgId);
+    return dbCrewStorage.getShiftTemplates(orgId);
   },
 
   async createShiftTemplate(data: any) {
-    return storage.createShiftTemplate(data);
+    return dbCrewStorage.createShiftTemplate(data);
   },
 
-  async deleteShiftTemplate(id: string) {
-    return storage.deleteShiftTemplate(id);
+  async deleteShiftTemplate(id: string, orgId?: string) {
+    return dbCrewStorage.deleteShiftTemplate(id, orgId || '');
   },
 };

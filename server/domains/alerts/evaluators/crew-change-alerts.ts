@@ -3,11 +3,11 @@
  * Evaluates upcoming crew change alerts based on assignments
  */
 
-import { storage } from "../../../storage.js";
+import { dbCrewStorage, vesselService } from "../../../repositories";
 import { alertSettingsService } from "../settings-service.js";
 import type { CrewAlertResult, EvaluationContext } from "./types.js";
 
-type Assignment = Awaited<ReturnType<typeof storage.getCrewAssignments>>[number];
+type Assignment = Awaited<ReturnType<typeof dbCrewStorage.getCrewAssignments>>[number];
 
 function isAssignmentActive(assignment: Assignment): boolean {
   return assignment.status === "active" || assignment.status === "onboard";
@@ -59,11 +59,11 @@ export async function evaluateCrewChangeReminders(ctx: EvaluationContext): Promi
   if (!settings?.crewChangeRemindersEnabled) {return [];}
 
   const reminderDays = settings.crewChangeReminderDays || 14;
-  const vessels = ctx.vesselId ? [{ id: ctx.vesselId }] : await storage.getVessels(ctx.orgId);
+  const vessels = ctx.vesselId ? [{ id: ctx.vesselId }] : await vesselService.getVessels(ctx.orgId);
   const results: CrewAlertResult[] = [];
 
   for (const vessel of vessels) {
-    const assignments = await storage.getCrewAssignments(undefined, undefined, vessel.id);
+    const assignments = await dbCrewStorage.getCrewAssignments(ctx.orgId, undefined, vessel.id);
     for (const assignment of assignments) {
       const alert = processAssignment(assignment, vessel.id, now, reminderDays);
       if (alert) {results.push(alert);}

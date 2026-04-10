@@ -4,7 +4,7 @@
 import type { Router, Request, Response } from "express";
 import { cachedAnalytics, analyticsCacheKeys } from "../../lib/cache";
 import { equipmentHealthResponseSchema, rulBatchResponseSchema, type EquipmentHealthResponse, type RulBatchResponse } from "../../../shared/analytics-types";
-import { storage } from "../../storage";
+import { dbEquipmentStorage, dbAlertStorage, dbDevicesStorage, vesselService, workOrderService } from "../../repositories";
 import { getOrgId, sendValidatedResponse, handleError } from "./helpers.js";
 
 type EquipmentHealthItem = {
@@ -136,12 +136,12 @@ export function mountHealthMetricsRoutes(router: Router) {
       const { equipmentId } = req.query;
       const cacheKey = analyticsCacheKeys.equipmentHealth(orgId, equipmentId as string | undefined);
       const response = await cachedAnalytics<EquipmentHealthResponse>(cacheKey, async () => {
-        const rawHealthData = await storage.getEquipmentHealth(orgId, undefined, equipmentId as string | undefined);
+        const rawHealthData = await dbEquipmentStorage.getEquipmentHealth(orgId, { equipmentId: equipmentId as string | undefined });
         const healthData = rawHealthData.filter(eq => isValidUuid(eq.id));
         const [allWorkOrders, rawAlerts, vesselList] = await Promise.all([
-          storage.getWorkOrders(undefined, orgId),
-          storage.getAlertNotifications(undefined),
-          storage.getVessels(orgId),
+          workOrderService.getWorkOrdersWithDetails(undefined, orgId),
+          dbAlertStorage.getAlertNotifications(undefined),
+          vesselService.getVessels(orgId),
         ]);
         const vesselMap = new Map(vesselList.map(v => [v.id, v.name]));
         const orgEquipmentIds = new Set(healthData.map(eq => eq.id));
@@ -162,8 +162,8 @@ export function mountHealthMetricsRoutes(router: Router) {
       const { equipmentId } = req.query;
       const cacheKey = analyticsCacheKeys.rulPredictions(orgId, equipmentId as string | undefined);
       const response = await cachedAnalytics<RulBatchResponse>(cacheKey, async () => {
-        const pdmScores = await storage.getPdmScores(equipmentId as string | undefined, orgId);
-        const equipmentList = await storage.getEquipmentRegistry(orgId);
+        const pdmScores = await dbDevicesStorage.getPdmScores(equipmentId as string | undefined, orgId);
+        const equipmentList = await dbEquipmentStorage.getEquipmentRegistry(orgId);
         const equipmentMap = new Map(equipmentList.map(e => [e.id, e]));
         const orgPdmScores = pdmScores.filter(s => equipmentMap.get(s.equipmentId)?.orgId === orgId);
         const results = orgPdmScores.map(score => mapPdmScoreToRulResult(score, equipmentMap));

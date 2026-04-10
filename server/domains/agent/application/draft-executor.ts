@@ -1,5 +1,5 @@
 import fs from "fs";
-import { storage } from "../../../storage";
+import { workOrderService } from "../../../repositories";
 import { getReportArtifact } from "../tools/enhanced-report-tools";
 
 export interface DraftExecutionResult {
@@ -14,7 +14,7 @@ export async function executeDraftAction(
   orgId: string
 ): Promise<DraftExecutionResult> {
   if (draftType === "work_order") {
-    const wo = await storage.createWorkOrder({ ...data, status: "open", orgId });
+    const wo = await workOrderService.createWorkOrder({ ...data, status: "open", orgId });
     return { resultId: wo.id };
   }
 

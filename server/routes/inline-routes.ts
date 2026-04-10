@@ -4,7 +4,8 @@
  */
 
 import type { Express, Request, Response } from "express";
-import { generalApiRateLimit, storage } from "./route-dependencies";
+import { generalApiRateLimit } from "./route-dependencies";
+import { dbEquipmentStorage, dbTelemetryStorage } from "../repositories";
 import { cryptoRandom } from "@shared/crypto-random";
 import { telemetryDlqRouter } from "./telemetry-dlq-routes";
 import { telemetryIngestionRouter } from "./telemetry-ingestion-routes";
@@ -124,7 +125,7 @@ export function registerInlineRoutes(app: Express): void {
         return res.status(400).json({ message: "Organization ID is required" });
       }
 
-      const equipment = await storage.getEquipment(orgId, equipmentId);
+      const equipment = await dbEquipmentStorage.getEquipment(orgId, equipmentId);
       if (!equipment) {
         return res.status(404).json({ message: "Equipment not found" });
       }
@@ -152,7 +153,7 @@ export function registerInlineRoutes(app: Express): void {
         end: endDate,
       });
 
-      const telemetry = await storage.getTelemetryByEquipment(
+      const telemetry = await dbTelemetryStorage.getTelemetryByEquipment(
         equipmentId,
         startDate,
         endDate,

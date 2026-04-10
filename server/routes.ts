@@ -19,12 +19,12 @@ import {
   loggingContextMiddleware,
   auditMiddleware,
   requireOrgId,
-  storage,
   setWebSocketServer,
   TelemetryWebSocketServer,
   startPerformanceMonitoring,
   generalApiRateLimit,
 } from "./routes/route-dependencies";
+import { storage } from "./storage";
 
 // Extracted route modules
 import { registerObservabilityRoutes } from "./routes/observability-routes";

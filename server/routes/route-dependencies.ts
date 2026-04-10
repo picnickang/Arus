@@ -69,9 +69,6 @@ export {
 // Logging
 export { loggingContextMiddleware } from "../logging";
 
-// Storage
-export { storage } from "../storage";
-
 // Sync
 export { getSyncMetrics, processPendingEvents, recordAndPublish } from "../sync-events";
 

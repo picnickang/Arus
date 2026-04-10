@@ -7,7 +7,7 @@ import { failurePredictionListResponseSchema, anomalyDetectionListResponseSchema
 import { db } from "../../db";
 import { anomalyDetections, failurePredictions } from "../../../shared/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { storage } from "../../storage";
+import { dbEquipmentStorage } from "../../repositories";
 import { getOrgId, sendValidatedResponse, handleError, toFailurePredictionUuid } from "./helpers.js";
 
 type MaintRecRaw = { action?: string; priority?: string } | null;
@@ -97,7 +97,7 @@ export function mountPredictionsRoutes(router: Router) {
         if (riskLevel) {filters.push(eq(failurePredictions.riskLevel, riskLevel as any));}
         const predictions = await db.select().from(failurePredictions).where(and(...filters)).orderBy(sql`${failurePredictions.predictionTimestamp} DESC`).limit(100);
         const equipmentIds = [...new Set(predictions.map(p => p.equipmentId))];
-        const equipmentData = equipmentIds.length > 0 ? await storage.getEquipmentRegistry(orgId) : [];
+        const equipmentData = equipmentIds.length > 0 ? await dbEquipmentStorage.getEquipmentRegistry(orgId) : [];
         const equipmentMap = new Map(equipmentData.map(e => [e.id, e]));
         const results = predictions.map(p => mapPredictionToResult(p, equipmentMap));
         const highRisk = results.filter(r => r.riskLevel === "high").length;

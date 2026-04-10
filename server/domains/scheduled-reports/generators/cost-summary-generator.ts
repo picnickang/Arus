@@ -3,7 +3,7 @@
  * Generates maintenance cost analysis report
  */
 
-import { storage } from '../../../storage.js';
+import { vesselService, workOrderService } from '../../../repositories';
 import type { ICostSummaryGenerator } from '../domain/ports.js';
 import type {
   CostSummaryData,
@@ -55,7 +55,7 @@ export class CostSummaryGenerator implements ICostSummaryGenerator {
     endDate: Date
   ): Promise<VesselCostSummary[]> {
     try {
-      const allVessels = await storage.getVessels(orgId);
+      const allVessels = await vesselService.getVessels(orgId);
       const filteredVessels = vesselIds
         ? allVessels.filter((v) => vesselIds.includes(v.id))
         : allVessels;
@@ -63,7 +63,7 @@ export class CostSummaryGenerator implements ICostSummaryGenerator {
       const summaries: VesselCostSummary[] = [];
 
       for (const vessel of filteredVessels) {
-        const workOrders = await storage.getWorkOrders({
+        const workOrders = await workOrderService.getWorkOrdersWithDetails(undefined, orgId, {
           vesselId: vessel.id,
           status: 'completed',
         });
@@ -103,13 +103,13 @@ export class CostSummaryGenerator implements ICostSummaryGenerator {
   ): Promise<CategoryCost[]> {
     try {
       const categoryTotals: Record<string, number> = {};
-      const allVessels = await storage.getVessels(orgId);
+      const allVessels = await vesselService.getVessels(orgId);
       const filteredVessels = vesselIds
         ? allVessels.filter((v) => vesselIds.includes(v.id))
         : allVessels;
 
       for (const vessel of filteredVessels) {
-        const workOrders = await storage.getWorkOrders({
+        const workOrders = await workOrderService.getWorkOrdersWithDetails(undefined, orgId, {
           vesselId: vessel.id,
           status: 'completed',
         });

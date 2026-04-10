@@ -3,7 +3,7 @@
  * Generates inventory and low stock report
  */
 
-import { storage } from '../../../storage.js';
+import { vesselService, dbInventoryStorage } from '../../../repositories';
 import type { IInventoryStatusGenerator } from '../domain/ports.js';
 import type {
   InventoryStatusData,
@@ -48,7 +48,7 @@ export class InventoryStatusGenerator implements IInventoryStatusGenerator {
     vesselIds: string[] | null
   ): Promise<LowStockItem[]> {
     try {
-      const allVessels = await storage.getVessels(orgId);
+      const allVessels = await vesselService.getVessels(orgId);
       const filteredVessels = vesselIds
         ? allVessels.filter((v) => vesselIds.includes(v.id))
         : allVessels;
@@ -56,11 +56,11 @@ export class InventoryStatusGenerator implements IInventoryStatusGenerator {
       const lowStockItems: LowStockItem[] = [];
 
       for (const vessel of filteredVessels) {
-        const inventory = await storage.getInventoryItems(vessel.id);
+        const inventory = await dbInventoryStorage.getParts(orgId);
 
         for (const item of inventory) {
-          const currentQty = item.quantity || 0;
-          const minQty = item.minimumQuantity || item.reorderPoint || 0;
+          const currentQty = (item as any).quantity || 0;
+          const minQty = (item as any).minimumQuantity || (item as any).reorderPoint || 0;
 
           if (currentQty <= minQty) {
             lowStockItems.push({
@@ -70,7 +70,7 @@ export class InventoryStatusGenerator implements IInventoryStatusGenerator {
               currentQuantity: currentQty,
               minimumQuantity: minQty,
               vesselName: vessel.name,
-              estimatedCost: item.unitCost || 0,
+              estimatedCost: (item as any).unitCost || 0,
             });
           }
         }
@@ -92,7 +92,7 @@ export class InventoryStatusGenerator implements IInventoryStatusGenerator {
     vesselIds: string[] | null
   ): Promise<VesselInventorySummary[]> {
     try {
-      const allVessels = await storage.getVessels(orgId);
+      const allVessels = await vesselService.getVessels(orgId);
       const filteredVessels = vesselIds
         ? allVessels.filter((v) => vesselIds.includes(v.id))
         : allVessels;
@@ -100,16 +100,16 @@ export class InventoryStatusGenerator implements IInventoryStatusGenerator {
       const summaries: VesselInventorySummary[] = [];
 
       for (const vessel of filteredVessels) {
-        const inventory = await storage.getInventoryItems(vessel.id);
+        const inventory = await dbInventoryStorage.getParts(orgId);
 
         let totalValue = 0;
         let lowStockCount = 0;
 
         for (const item of inventory) {
-          totalValue += (item.quantity || 0) * (item.unitCost || 0);
+          totalValue += ((item as any).quantity || 0) * ((item as any).unitCost || 0);
 
-          const currentQty = item.quantity || 0;
-          const minQty = item.minimumQuantity || item.reorderPoint || 0;
+          const currentQty = (item as any).quantity || 0;
+          const minQty = (item as any).minimumQuantity || (item as any).reorderPoint || 0;
           if (currentQty <= minQty) {
             lowStockCount++;
           }

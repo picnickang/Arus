@@ -9,19 +9,19 @@ import type {
   CreateScheduleCommand,
   UpdateScheduleCommand,
 } from '../domain/types';
-import { storage } from '../../../storage';
+import { dbMaintenanceStorage, schedulingAdapter } from '../../../repositories';
 
 /**
  * PostgreSQL/Storage adapter for MaintenanceScheduleRepository
  */
 export class MaintenanceScheduleRepositoryAdapter implements IMaintenanceScheduleRepository {
   async findAll(equipmentId?: string, status?: string): Promise<MaintenanceScheduleEntity[]> {
-    const schedules = await storage.getMaintenanceSchedules(equipmentId, status);
+    const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(equipmentId, status);
     return schedules.map(this.mapToEntity);
   }
 
   async findById(id: string, orgId?: string): Promise<MaintenanceScheduleEntity | undefined> {
-    const schedules = await storage.getMaintenanceSchedules();
+    const schedules = await dbMaintenanceStorage.getMaintenanceSchedules();
     const schedule = schedules.find((s) => s.id === id);
 
     if (schedule && orgId && schedule.orgId !== orgId) {
@@ -32,7 +32,7 @@ export class MaintenanceScheduleRepositoryAdapter implements IMaintenanceSchedul
   }
 
   async findUpcoming(orgId: string, daysAhead: number): Promise<MaintenanceScheduleEntity[]> {
-    const schedules = await storage.getMaintenanceSchedules(undefined, 'scheduled');
+    const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(undefined, 'scheduled');
     const now = new Date();
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + daysAhead);
@@ -44,21 +44,21 @@ export class MaintenanceScheduleRepositoryAdapter implements IMaintenanceSchedul
   }
 
   async create(command: CreateScheduleCommand): Promise<MaintenanceScheduleEntity> {
-    const schedule = await storage.createMaintenanceSchedule(command as any);
+    const schedule = await dbMaintenanceStorage.createMaintenanceSchedule(command as any);
     return this.mapToEntity(schedule);
   }
 
   async update(id: string, updates: UpdateScheduleCommand): Promise<MaintenanceScheduleEntity> {
-    const schedule = await storage.updateMaintenanceSchedule(id, updates as any);
+    const schedule = await dbMaintenanceStorage.updateMaintenanceSchedule(id, updates as any);
     return this.mapToEntity(schedule);
   }
 
   async delete(id: string): Promise<void> {
-    await storage.deleteMaintenanceSchedule(id);
+    await dbMaintenanceStorage.deleteMaintenanceSchedule(id);
   }
 
   async autoScheduleForEquipment(equipmentId: string, pdmScore: number): Promise<MaintenanceScheduleEntity> {
-    const schedule = await storage.autoScheduleMaintenance(equipmentId, pdmScore);
+    const schedule = await schedulingAdapter.autoScheduleMaintenance(equipmentId, pdmScore);
     return this.mapToEntity(schedule);
   }
 

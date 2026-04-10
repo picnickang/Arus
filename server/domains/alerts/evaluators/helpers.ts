@@ -3,7 +3,8 @@
  * Utility functions for alert evaluation
  */
 
-import { storage } from "../../../storage.js";
+import { dbCrewStorage } from "../../../repositories";
+import { deckLogStorage, engineLogStorage } from "../../../repositories";
 import { addDays } from "date-fns";
 
 const severityMap: Record<string, "info" | "warning" | "critical"> = {
@@ -17,12 +18,13 @@ export function getSeverityFromMinSeverity(minSeverity?: string): "info" | "warn
 
 export async function getCertificationsNearExpiry(orgId: string, vesselId: string | undefined, now: Date, maxDays: number) {
   const cutoffDate = addDays(now, maxDays);
-  const crew = vesselId ? await storage.getCrewByVessel(vesselId) : await storage.getCrew(orgId);
+  const crew = await dbCrewStorage.getCrew(orgId, vesselId);
   const crewIds = crew.map((c: any) => c.id);
   
   if (crewIds.length === 0) { return []; }
   
-  const certs = await storage.getCrewCertificationsByCrewIds(crewIds, orgId);
+  const allCerts = await Promise.all(crewIds.map((id: string) => dbCrewStorage.getCrewCertifications(id, orgId)));
+  const certs = allCerts.flat();
   return certs.filter((cert: any) => {
     if (!cert.expiresAt) { return false; }
     const expiryDate = new Date(cert.expiresAt);
@@ -32,8 +34,8 @@ export async function getCertificationsNearExpiry(orgId: string, vesselId: strin
 
 export async function getUnsignedLogbooks(orgId: string, vesselId: string | undefined, graceHours: number, now: Date) {
   const graceDate = new Date(now.getTime() - graceHours * 60 * 60 * 1000);
-  const deckLogs = await storage.getDeckLogDaily(orgId, { vesselId, status: "draft" });
-  const engineLogs = await storage.getEngineLogDaily(orgId, { vesselId, status: "draft" });
+  const deckLogs = await deckLogStorage.getDeckLogDaily(orgId, { vesselId, status: "draft" });
+  const engineLogs = await engineLogStorage.getEngineLogDaily(orgId, { vesselId, status: "draft" });
   
   const unsignedDeck = deckLogs.filter((log: any) => {
     const logDate = new Date(log.logDate);

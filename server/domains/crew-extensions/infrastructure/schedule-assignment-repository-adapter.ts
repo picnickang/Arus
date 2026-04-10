@@ -5,7 +5,7 @@
 
 import type { IScheduleAssignmentRepository } from '../domain/ports.js';
 import type { ScheduleAssignmentEntity } from '../domain/types.js';
-import { storage } from '../../../storage';
+import { dbSchedulerStorage } from '../../../repositories';
 
 function mapToEntity(assignment: any): ScheduleAssignmentEntity {
   return {
@@ -23,21 +23,21 @@ function mapToEntity(assignment: any): ScheduleAssignmentEntity {
 
 export class ScheduleAssignmentRepositoryAdapter implements IScheduleAssignmentRepository {
   async createBulk(assignments: Omit<ScheduleAssignmentEntity, 'id' | 'createdAt'>[]): Promise<void> {
-    await storage.createBulkScheduleAssignments(assignments as any[]);
+    await dbSchedulerStorage.createBulkScheduleAssignments(assignments as any[]);
   }
 
   async findByRunId(runId: string): Promise<ScheduleAssignmentEntity[]> {
-    const assignments = await storage.getScheduleAssignmentsByRun(runId);
+    const assignments = await dbSchedulerStorage.getScheduleAssignmentsByRun(runId);
     return assignments.map(mapToEntity);
   }
 
   async findByDateRange(orgId: string, fromDate: Date, toDate: Date): Promise<ScheduleAssignmentEntity[]> {
-    const assignments = await storage.getScheduleAssignments(orgId, fromDate, toDate);
+    const assignments = await dbSchedulerStorage.getScheduleAssignments(orgId, fromDate, toDate);
     return assignments.map(mapToEntity);
   }
 
   async deleteByDateRange(orgId: string, start: Date, end: Date, mode?: string): Promise<number> {
-    return storage.deleteScheduleAssignmentsByDateRange(orgId, start, end, mode);
+    return dbSchedulerStorage.deleteScheduleAssignmentsByDateRange(orgId, start, end, mode);
   }
 }
 

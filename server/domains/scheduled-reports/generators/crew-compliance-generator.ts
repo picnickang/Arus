@@ -3,7 +3,7 @@
  * Generates crew certification and compliance report
  */
 
-import { storage } from '../../../storage.js';
+import { vesselService, dbCrewStorage, dbCrewExtensionsStorage } from '../../../repositories';
 import type { ICrewComplianceGenerator } from '../domain/ports.js';
 import type {
   CrewComplianceData,
@@ -53,7 +53,7 @@ export class CrewComplianceGenerator implements ICrewComplianceGenerator {
   ): Promise<CertificationAlert[]> {
     try {
       const alerts: CertificationAlert[] = [];
-      const allVessels = await storage.getVessels(orgId);
+      const allVessels = await vesselService.getVessels(orgId);
       const filteredVessels = vesselIds
         ? allVessels.filter((v) => vesselIds.includes(v.id))
         : allVessels;
@@ -62,13 +62,13 @@ export class CrewComplianceGenerator implements ICrewComplianceGenerator {
       const ninetyDaysFromNow = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
 
       for (const vessel of filteredVessels) {
-        const crew = await storage.getCrewByVessel(vessel.id);
+        const crew = await dbCrewStorage.getCrew(orgId, vessel.id);
 
         for (const member of crew) {
-          const certifications = await storage.getCrewCertifications(member.id);
+          const certifications = await dbCrewExtensionsStorage.getCrewCertifications(member.id, orgId);
 
           for (const cert of certifications) {
-            const expiryDate = cert.expiryDate ? new Date(cert.expiryDate) : null;
+            const expiryDate = (cert as any).expiryDate ? new Date((cert as any).expiryDate) : null;
 
             if (expiryDate && expiryDate <= ninetyDaysFromNow) {
               const daysUntilExpiry = Math.ceil(
@@ -79,7 +79,7 @@ export class CrewComplianceGenerator implements ICrewComplianceGenerator {
                 crewId: member.id,
                 crewName: `${member.firstName} ${member.lastName}`,
                 vesselName: vessel.name,
-                certificationName: cert.certificateName || cert.type || 'Certificate',
+                certificationName: (cert as any).certificateName || (cert as any).type || 'Certificate',
                 expiryDate,
                 daysUntilExpiry,
               });

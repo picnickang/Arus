@@ -9,7 +9,10 @@ import type {
   SelectCrew,
   InsertCrew,
 } from "../domain";
-import { storage } from "../../../storage";
+import { dbCrewExtensionsStorage, dbCrewStorage } from "../../../repositories";
+import { db } from "../../../db-config";
+import { skills } from "@shared/schema-runtime";
+import { eq } from "drizzle-orm";
 
 export interface CrewServiceDependencies {
   crewMemberRepository: ICrewMemberRepository;
@@ -85,133 +88,133 @@ export class CrewApplicationService {
   // Certifications - delegated to storage (orgId from request context via data.orgId)
   async listCertifications(crewId?: string, orgId?: string) {
     if (crewId && orgId) {
-      return storage.getCrewCertifications(crewId, orgId);
+      return dbCrewExtensionsStorage.getCrewCertifications(crewId, orgId);
     }
     return [];
   }
 
   async createCertification(data: any, userId?: string) {
-    return storage.createCrewCertification(data);
+    return dbCrewExtensionsStorage.createCrewCertification(data);
   }
 
   async updateCertification(id: string, data: any, userId?: string, orgId?: string) {
-    return storage.updateCrewCertification(id, data, orgId || data.orgId);
+    return dbCrewExtensionsStorage.updateCrewCertification(id, data, orgId || data.orgId);
   }
 
   async deleteCertification(id: string, userId?: string, orgId?: string) {
-    return storage.deleteCrewCertification(id, orgId || "");
+    return dbCrewExtensionsStorage.deleteCrewCertification(id, orgId || "");
   }
 
   async getCertificationsExpiring(orgId: string, daysAhead: number = 90, includeAcknowledged: boolean = false) {
-    return storage.getCertificationsExpiring(orgId, daysAhead, includeAcknowledged);
+    return dbCrewExtensionsStorage.getCertificationsExpiring(orgId, daysAhead, includeAcknowledged);
   }
 
   async acknowledgeCertificationAlert(certId: string, userId?: string, notes?: string) {
-    return storage.acknowledgeCertificationAlert(certId, userId, notes);
+    return dbCrewExtensionsStorage.acknowledgeCertificationAlert(certId, userId, notes);
   }
 
   async scanAndFlagExpiringCertifications(orgId: string) {
-    return storage.updateCertificationAlertFlags(orgId);
+    return dbCrewExtensionsStorage.updateCertificationAlertFlags(orgId);
   }
 
   // Documents - delegated to storage (orgId from request context via data.orgId)
   async getCrewDocuments(crewId: string, orgId?: string) {
-    return storage.getCrewDocuments(crewId, orgId || "");
+    return dbCrewExtensionsStorage.getCrewDocuments(crewId, orgId || "");
   }
 
   async createCrewDocument(data: any, userId?: string) {
-    return storage.createCrewDocument(data);
+    return dbCrewExtensionsStorage.createCrewDocument(data);
   }
 
   async updateCrewDocument(id: string, data: any, userId?: string, orgId?: string) {
-    return storage.updateCrewDocument(id, data, orgId || data.orgId);
+    return dbCrewExtensionsStorage.updateCrewDocument(id, data, orgId || data.orgId);
   }
 
   async deleteCrewDocument(id: string, userId?: string, orgId?: string) {
-    return storage.deleteCrewDocument(id, orgId || "");
+    return dbCrewExtensionsStorage.deleteCrewDocument(id, orgId || "");
   }
 
   async getDocumentsExpiring(orgId: string, daysAhead: number = 90, includeAcknowledged: boolean = false) {
-    return storage.getDocumentsExpiring(orgId, daysAhead, includeAcknowledged);
+    return dbCrewExtensionsStorage.getDocumentsExpiring(orgId, daysAhead, includeAcknowledged);
   }
 
   async acknowledgeDocumentAlert(docId: string, userId?: string, notes?: string) {
-    return storage.acknowledgeDocumentAlert(docId, userId, notes);
+    return dbCrewExtensionsStorage.acknowledgeDocumentAlert(docId, userId, notes);
   }
 
   async scanAndFlagExpiringDocuments(orgId: string) {
-    return storage.updateDocumentAlertFlags(orgId);
+    return dbCrewExtensionsStorage.updateDocumentAlertFlags(orgId);
   }
 
   // Notification settings - delegated to storage
   async getCrewNotificationSettings(crewId: string, orgId: string) {
-    return storage.getCrewNotificationSettings(crewId, orgId);
+    return dbCrewExtensionsStorage.getCrewNotificationSettings(crewId, orgId);
   }
 
   async upsertCrewNotificationSettings(crewId: string, orgId: string, data: any) {
-    return storage.upsertCrewNotificationSettings(crewId, orgId, data);
+    return dbCrewExtensionsStorage.upsertCrewNotificationSettings(crewId, orgId, data);
   }
 
   async getAllCrewNotificationSettings(orgId: string) {
-    return storage.getAllCrewNotificationSettings(orgId);
+    return dbCrewExtensionsStorage.getAllCrewNotificationSettings(orgId);
   }
 
-  // Skills - delegated to storage
   async listSkills(orgId: string) {
-    return storage.getSkills(orgId);
+    return db.select().from(skills).where(eq(skills.orgId, orgId));
   }
 
   async createSkill(data: any, userId?: string) {
-    return storage.createSkill(data);
+    const [newSkill] = await db.insert(skills).values(data).returning();
+    return newSkill;
   }
 
   async deleteSkill(id: string, userId?: string) {
-    return storage.deleteSkill(id);
+    await db.delete(skills).where(eq(skills.id, id));
   }
 
   async getCrewSkills(crewId: string) {
-    return storage.getCrewSkills(crewId);
+    return dbCrewStorage.getCrewSkills(crewId);
   }
 
   async assignSkillToCrew(crewId: string, skillId: string, level: string, userId?: string) {
-    return storage.assignSkillToCrew(crewId, skillId, level);
+    return dbCrewStorage.assignSkillToCrew(crewId, skillId, level);
   }
 
   async removeSkillFromCrew(crewId: string, skillId: string, userId?: string) {
-    return storage.removeSkillFromCrew(crewId, skillId);
+    return dbCrewStorage.removeSkillFromCrew(crewId, skillId);
   }
 
   // Leave - delegated to storage
   async listLeave(orgId?: string, crewId?: string, status?: string) {
-    return storage.getCrewLeave(crewId, orgId);
+    return dbCrewStorage.getCrewLeave(crewId, orgId);
   }
 
   async createLeave(data: any, userId?: string) {
-    return storage.createCrewLeave(data);
+    return dbCrewStorage.createCrewLeave(data);
   }
 
   async updateLeave(id: string, data: any, userId?: string, orgId?: string) {
-    return storage.updateCrewLeave(id, data, orgId || data.orgId);
+    return dbCrewStorage.updateCrewLeave(id, data, orgId || data.orgId);
   }
 
   async deleteLeave(id: string, userId?: string, orgId?: string) {
-    return storage.deleteCrewLeave(id, orgId || "");
+    return dbCrewStorage.deleteCrewLeave(id, orgId || "");
   }
 
   // Assignments - delegated to storage
   async listAssignments(orgId?: string, vesselId?: string, crewId?: string) {
-    return storage.getCrewAssignments(orgId, vesselId, crewId);
+    return dbCrewStorage.getCrewAssignments(orgId, vesselId, crewId);
   }
 
   async createAssignment(data: any, userId?: string) {
-    return storage.createCrewAssignment(data);
+    return dbCrewStorage.createCrewAssignment(data);
   }
 
   async updateAssignment(id: string, data: any, orgId: string, userId?: string) {
-    return storage.updateCrewAssignment(id, data, orgId);
+    return dbCrewStorage.updateCrewAssignment(id, data, orgId);
   }
 
   async deleteAssignment(id: string, userId?: string, orgId?: string) {
-    return storage.deleteCrewAssignment(id, orgId || "");
+    return dbCrewStorage.deleteCrewAssignment(id, orgId || "");
   }
 }
