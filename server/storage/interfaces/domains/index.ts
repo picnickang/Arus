@@ -68,11 +68,10 @@ import type { ISchedulingStorage } from "./scheduling.types";
 import type { IExternalStorage } from "./external.types";
 
 /**
- * Complete IStorage interface - intersection of all domain interfaces
- * 
- * This creates a single unified interface that includes all storage
- * operations from every domain module. Implementations must satisfy
- * all domain interfaces.
+ * @deprecated IStorage is a legacy god-object interface. New code should import
+ * domain repositories directly from server/repositories.ts instead. This interface
+ * is retained only for existing service-layer consumers (~50 files) that have not
+ * yet been migrated. No new code should depend on IStorage.
  */
 export type IStorage =
   ICoreStorage &

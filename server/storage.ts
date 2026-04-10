@@ -1,3 +1,10 @@
+/**
+ * @deprecated Storage Facade - Legacy compatibility layer.
+ * Domain routes and repos now import directly from server/repositories.ts.
+ * This facade is retained only for ~50 service-layer consumers (compliance reports,
+ * adaptive training, DTC integration, etc.) that have not yet been migrated.
+ * No new code should import from this file — use server/repositories.ts instead.
+ */
 import { db, isLocalMode } from "./db-config";
 import { devices, alertConfigurations, skills } from "@shared/schema-runtime";
 import { eq, sql } from "drizzle-orm";
