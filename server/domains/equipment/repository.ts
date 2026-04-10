@@ -1,5 +1,6 @@
 import type { Equipment, InsertEquipment, EquipmentHealth } from "@shared/schema-runtime";
 import { dbEquipmentStorage, dbSensorsStorage, dbInventoryStorage } from "../../repositories";
+import { DEFAULT_SENSORS } from "./service/types.js";
 
 export class EquipmentRepository {
   async findAll(orgId: string): Promise<Equipment[]> {
@@ -11,11 +12,11 @@ export class EquipmentRepository {
   }
 
   async create(data: InsertEquipment): Promise<Equipment> {
-    return dbEquipmentStorage.registerEquipment(data);
+    return dbEquipmentStorage.createEquipment(data);
   }
 
   async update(id: string, data: Partial<InsertEquipment>, orgId?: string): Promise<Equipment> {
-    return dbEquipmentStorage.updateEquipmentRegistry(id, data, orgId || '');
+    return dbEquipmentStorage.updateEquipment(id, data, orgId || '');
   }
 
   async delete(id: string, orgId?: string): Promise<void> {
@@ -47,15 +48,35 @@ export class EquipmentRepository {
   }
 
   async setupSensors(equipmentId: string, orgId: string) {
+    const equipment = await this.findById(equipmentId, orgId);
+    if (!equipment) { throw new Error('Equipment not found'); }
     const existing = await dbSensorsStorage.getSensorConfigurations(orgId, equipmentId);
-    return { equipmentId, orgId, configured: existing };
+    const existingTypes = new Set(existing.map(s => s.sensorType));
+    const sensorsToCreate = DEFAULT_SENSORS[equipment.type] || DEFAULT_SENSORS.default;
+    const created: any[] = [];
+    for (const sensor of sensorsToCreate) {
+      if (!existingTypes.has(sensor.type)) {
+        const newSensor = await dbSensorsStorage.createSensorConfiguration({
+          equipmentId, orgId, sensorType: sensor.type, enabled: true,
+          isCritical: sensor.critical, minValue: sensor.min, maxValue: sensor.max,
+        });
+        created.push(newSensor);
+      }
+    }
+    return {
+      equipmentId, equipmentType: equipment.type,
+      sensorsCreated: created.length,
+      sensorsSkipped: sensorsToCreate.length - created.length,
+      totalSensors: existing.length + created.length,
+      sensors: created.map(s => ({ sensorType: s.sensorType, enabled: s.enabled, isCritical: s.isCritical })),
+    };
   }
 
   async getCompatibleParts(equipmentId: string, orgId: string) {
     const equipment = await this.findById(equipmentId, orgId);
     if (!equipment) return [];
     const parts = await dbInventoryStorage.getParts(orgId);
-    return parts.filter((p: any) => p.equipmentType === (equipment as any).type || p.equipmentId === equipmentId);
+    return parts.filter((p: any) => p.equipmentType === equipment.type || p.equipmentId === equipmentId);
   }
 
   async getSuggestedParts(equipmentId: string, orgId: string) {
