@@ -13,7 +13,7 @@ import { requirePermission } from "../../permissions/middleware";
 import { withErrorHandling, sendCreated, sendDeleted } from "../../../lib/route-utils";
 import { sendBadRequest, sendConflict } from "../../../lib/api-helpers";
 import type { RateLimitMiddleware } from "./types";
-import { storage } from "../../../storage";
+import { dbInventoryStorage } from "../../../db/inventory/index.js";
 
 export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware) {
   const { writeOperationRateLimit } = rateLimit;
@@ -114,7 +114,7 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
   app.get("/api/parts/:partId/stock-status", requireOrgId,
     withErrorHandling("fetch part stock status with lead time", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
-      const stockStatus = await storage.getPartStockWithSupplierLeadTime(req.params.partId, orgId);
+      const stockStatus = await dbInventoryStorage.getPartStockWithSupplierLeadTime(req.params.partId, orgId);
       if (!stockStatus) {
         return res.status(404).json({ error: "Part not found" });
       }
@@ -131,7 +131,7 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
         return sendBadRequest(res, "additionalDays must be a positive number");
       }
       
-      const workOrder = await storage.getWorkOrderById(req.params.id, orgId);
+      const workOrder = await workOrderService.getWorkOrderById(req.params.id, orgId);
       if (!workOrder) {
         return res.status(404).json({ error: "Work order not found" });
       }
@@ -140,11 +140,11 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
       const newEndDate = new Date(currentEndDate);
       newEndDate.setDate(newEndDate.getDate() + additionalDays);
       
-      const updated = await storage.updateWorkOrder(req.params.id, {
+      const updated = await workOrderService.updateWorkOrder(req.params.id, {
         plannedEndDate: newEndDate.toISOString(),
       });
       
-      await storage.addWorkOrderHistoryEntry({
+      await dbInventoryStorage.addWorkOrderHistoryEntry({
         orgId,
         workOrderId: req.params.id,
         changeType: "completion_date_extended",

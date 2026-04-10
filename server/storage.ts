@@ -83,7 +83,7 @@ function createStorageFacade() {
     getCrewRestRange: (crewId: string, startDate: string, endDate: string) => dbStcwStorage.getCrewRestRange(crewId, startDate, endDate),
     getVesselCrewRest: (vesselId: string, year: number, month: string) => dbStcwStorage.getVesselCrewRest(vesselId, year, month),
     getCrewRestByDateRange: (vesselId?: string, startDate?: string, endDate?: string, complianceFilter?: boolean) => dbStcwStorage.getCrewRestByDateRange(vesselId, startDate, endDate, complianceFilter),
-    markSchedulerRunHorGenerated: (runId: string) => dbSchedulerStorage.markSchedulerRunHorGenerated?.(runId) ?? Promise.resolve(),
+    markSchedulerRunHorGenerated: (runId: string) => dbSchedulerStorage.markSchedulerRunHorGenerated(runId),
 
     getWorkOrderWorklogs: (workOrderId?: string, orgId?: string) => dbChecklistsStorage.getWorkOrderWorklogs(workOrderId, orgId),
     getWorkOrderTasks: (workOrderId: string, orgId?: string) => dbChecklistsStorage.getWorkOrderTasks(workOrderId, orgId),
@@ -133,7 +133,7 @@ function createStorageFacade() {
     deleteMaintenanceTemplate: (id: string, orgId?: string) => dbMaintenanceTemplatesStorage.deleteMaintenanceTemplate(id, orgId),
 
     getMaintenanceSchedules: (equipmentId?: string, orgId?: string, filters?: any) => dbMaintenanceStorage.getMaintenanceSchedules(equipmentId, orgId, filters),
-    getMaintenanceSchedule: (id: string) => dbMaintenanceStorage.getMaintenanceSchedule?.(id),
+    getMaintenanceSchedule: (id: string) => dbMaintenanceStorage.getMaintenanceSchedule(id),
     createMaintenanceSchedule: (schedule: any) => dbMaintenanceStorage.createMaintenanceSchedule(schedule),
     updateMaintenanceSchedule: (id: string, updates: any) => dbMaintenanceStorage.updateMaintenanceSchedule(id, updates),
     deleteMaintenanceSchedule: (id: string) => dbMaintenanceStorage.deleteMaintenanceSchedule(id),
@@ -236,18 +236,18 @@ function createStorageFacade() {
 
     getSchedulerRuns: (orgId: string, limit?: number) => dbSchedulerStorage.getSchedulerRuns(orgId, undefined, limit),
     getSchedulerRun: (id: string) => dbSchedulerStorage.getSchedulerRun(id),
-    getScheduleAssignmentsByRun: (runId: string) => dbSchedulerStorage.getScheduleAssignmentsByRun?.(runId) ?? Promise.resolve([]),
+    getScheduleAssignmentsByRun: (runId: string) => dbSchedulerStorage.getScheduleAssignmentsByRun(runId),
     createSchedulerRun: (run: any) => dbSchedulerStorage.createSchedulerRun(run),
     deleteSchedulerRuns: (orgId: string) => dbSchedulerStorage.deleteSchedulerRuns(orgId),
     deleteScheduleAssignmentsByOrg: (orgId: string) => dbSchedulerStorage.deleteScheduleAssignmentsByOrg(orgId),
     deleteScheduleUnfilledByOrg: (orgId: string) => dbSchedulerStorage.deleteScheduleUnfilledByOrg(orgId),
-    deleteScheduleAssignmentsByDateRange: (orgId: string, from: Date, to: Date) => dbSchedulerStorage.deleteScheduleAssignmentsByDateRange?.(orgId, from, to) ?? Promise.resolve(),
-    findRecentSchedulerRunByHash: (orgId: string, hash: string) => dbSchedulerStorage.findRecentSchedulerRunByHash?.(orgId, hash) ?? Promise.resolve(null),
-    createBulkScheduleAssignments: (assignments: any[]) => dbSchedulerStorage.createBulkScheduleAssignments?.(assignments) ?? Promise.resolve([]),
-    createBulkScheduleUnfilled: (unfilled: any[]) => dbSchedulerStorage.createBulkScheduleUnfilled?.(unfilled) ?? Promise.resolve([]),
-    updateSchedulerRun: (id: string, updates: any) => dbSchedulerStorage.updateSchedulerRun?.(id, updates) ?? Promise.resolve(null),
-    getSchedulingSettings: (orgId: string) => dbSchedulerStorage.getSchedulingSettings?.(orgId) ?? Promise.resolve(null),
-    getSchedulingSettingsByVessel: (orgId: string, vesselId: string) => dbSchedulerStorage.getSchedulingSettingsByVessel?.(orgId, vesselId) ?? Promise.resolve(null),
+    deleteScheduleAssignmentsByDateRange: (orgId: string, from: Date, to: Date) => dbSchedulerStorage.deleteScheduleAssignmentsByDateRange(orgId, from, to),
+    findRecentSchedulerRunByHash: (orgId: string, hash: string) => dbSchedulerStorage.findRecentSchedulerRunByHash(orgId, hash),
+    createBulkScheduleAssignments: (assignments: any[]) => dbSchedulerStorage.createBulkScheduleAssignments(assignments),
+    createBulkScheduleUnfilled: (unfilled: any[]) => dbSchedulerStorage.createBulkScheduleUnfilled(unfilled),
+    updateSchedulerRun: (id: string, updates: any) => dbSchedulerStorage.updateSchedulerRun(id, updates),
+    getSchedulingSettings: (orgId: string) => dbSchedulerStorage.getSchedulingSettings(orgId),
+    getSchedulingSettingsByVessel: (orgId: string, vesselId: string) => dbSchedulerStorage.getSchedulingSettingsByVessel(orgId, vesselId),
 
     createInsightSnapshot: (snapshot: any) => analyticsInsightsAdapter.createInsightSnapshot(snapshot),
     getLatestInsightSnapshot: (orgId: string, scope: string) => dbAnalyticsStorage.getLatestInsightSnapshot(orgId, scope),
@@ -297,7 +297,7 @@ function createStorageFacade() {
     createNotificationQueueItem: (item: any) => dbNotificationsStorage.createEmailQueueItem(item),
     updateNotificationQueueItem: (id: string, updates: any) => dbNotificationsStorage.updateEmailQueueItem(id, updates),
 
-    getKbDocs: (orgId?: string) => analyticsInsightsAdapter.getKbDocs?.(orgId) ?? Promise.resolve([]),
+    getKbDocs: (orgId?: string) => analyticsInsightsAdapter.getKbDocs(orgId),
 
   };
 }

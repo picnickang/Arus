@@ -31,7 +31,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
     withErrorHandling("get notification setting", async (req, res) => {
       const orgId = req.orgId;
       const all = await dbNotificationsStorage.getNotificationSettings(orgId);
-      const setting = (all as any[]).find((s: any) => s.id === req.params.id);
+      const setting = all.find((s) => s.id === req.params.id);
       
       if (!setting) {
         return sendNotFound(res, "Notification setting");
@@ -56,7 +56,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
     withErrorHandling("update notification setting", async (req, res) => {
       const orgId = req.orgId;
       const all = await dbNotificationsStorage.getNotificationSettings(orgId);
-      const existing = (all as any[]).find((s: any) => s.id === req.params.id);
+      const existing = all.find((s) => s.id === req.params.id);
       if (!existing) {
         return sendNotFound(res, "Notification setting");
       }
@@ -69,7 +69,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
     withErrorHandling("delete notification setting", async (req, res) => {
       const orgId = req.orgId;
       const all = await dbNotificationsStorage.getNotificationSettings(orgId);
-      const existing = (all as any[]).find((s: any) => s.id === req.params.id);
+      const existing = all.find((s) => s.id === req.params.id);
       if (!existing) {
         return sendNotFound(res, "Notification setting");
       }

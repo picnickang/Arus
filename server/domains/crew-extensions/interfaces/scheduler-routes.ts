@@ -72,7 +72,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       if (!run || run.orgId !== orgId) {
         return sendNotFound(res, "Scheduler run");
       }
-      const assignments = await (dbSchedulerStorage.getScheduleAssignmentsByRun?.(id) ?? Promise.resolve([]));
+      const assignments = await dbSchedulerStorage.getScheduleAssignmentsByRun(id);
       res.json({ ...run, assignments });
     })
   );
@@ -117,7 +117,7 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
         if (!existing || existing.orgId !== orgId) {
           return sendNotFound(res, "Scheduler run");
         }
-        assignments = await (dbSchedulerStorage.getScheduleAssignmentsByRun?.(scheduleRunId) ?? Promise.resolve([]));
+        assignments = await dbSchedulerStorage.getScheduleAssignmentsByRun(scheduleRunId);
       } else if (draftAssignments && Array.isArray(draftAssignments)) {
         assignments = draftAssignments;
       } else {

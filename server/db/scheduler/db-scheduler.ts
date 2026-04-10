@@ -6,6 +6,7 @@ import { eq, and, desc, gte, lte, sql } from "drizzle-orm";
 import { db } from "../../db-config";
 import { recordAndPublish } from "../../sync-events";
 import { schedulerRuns, drydockWindow, scheduleAssignments, scheduleUnfilled, type SchedulerRun, type InsertSchedulerRun, type DrydockWindow, type InsertDrydockWindow } from "@shared/schema-runtime";
+import { schedulingSettings, type SelectSchedulingSettings, type InsertSchedulingSettings } from "@shared/schema";
 
 export class DatabaseSchedulerStorage {
   async getSchedulerRuns(orgId?: string, status?: string, limit?: number): Promise<SchedulerRun[]> { 
@@ -53,8 +54,7 @@ export class DatabaseSchedulerStorage {
   }
 
   async getScheduleAssignmentsByRun(runId: string): Promise<any[]> {
-    console.warn(`[DatabaseSchedulerStorage] getScheduleAssignmentsByRun not yet implemented for runId=${runId}`);
-    return [];
+    return db.select().from(scheduleAssignments).where(eq(scheduleAssignments.runId, runId)).orderBy(scheduleAssignments.date);
   }
 
   async deleteSchedulerRuns(orgId: string): Promise<void> {
@@ -119,5 +119,43 @@ export class DatabaseSchedulerStorage {
     const now = new Date(); 
     const [result] = await db.select().from(drydockWindow).where(and(eq(drydockWindow.vesselId, vesselId), lte(drydockWindow.startDate, now), gte(drydockWindow.endDate, now))).limit(1); 
     return result; 
+  }
+
+  async markSchedulerRunHorGenerated(runId: string): Promise<void> {
+    await db.update(schedulerRuns).set({ updatedAt: new Date() }).where(eq(schedulerRuns.id, runId));
+  }
+
+  async deleteScheduleAssignmentsByDateRange(orgId: string, from: Date, to: Date): Promise<void> {
+    const runs = await this.getSchedulerRuns(orgId);
+    const runIds = runs.map(r => r.id);
+    if (runIds.length === 0) return;
+    for (const runId of runIds) {
+      await db.delete(scheduleAssignments).where(and(eq(scheduleAssignments.runId, runId), gte(scheduleAssignments.date, from), lte(scheduleAssignments.date, to)));
+    }
+  }
+
+  async findRecentSchedulerRunByHash(orgId: string, hash: string): Promise<SchedulerRun | null> {
+    const [result] = await db.select().from(schedulerRuns).where(and(eq(schedulerRuns.orgId, orgId), eq(schedulerRuns.inputHash, hash))).orderBy(desc(schedulerRuns.createdAt)).limit(1);
+    return result ?? null;
+  }
+
+  async createBulkScheduleAssignments(assignments: any[]): Promise<any[]> {
+    if (assignments.length === 0) return [];
+    return db.insert(scheduleAssignments).values(assignments).returning();
+  }
+
+  async createBulkScheduleUnfilled(unfilled: any[]): Promise<any[]> {
+    if (unfilled.length === 0) return [];
+    return db.insert(scheduleUnfilled).values(unfilled).returning();
+  }
+
+  async getSchedulingSettings(orgId: string): Promise<SelectSchedulingSettings | null> {
+    const [result] = await db.select().from(schedulingSettings).where(and(eq(schedulingSettings.orgId, orgId), sql`${schedulingSettings.vesselId} IS NULL`)).limit(1);
+    return result ?? null;
+  }
+
+  async getSchedulingSettingsByVessel(orgId: string, vesselId: string): Promise<SelectSchedulingSettings | null> {
+    const [result] = await db.select().from(schedulingSettings).where(and(eq(schedulingSettings.orgId, orgId), eq(schedulingSettings.vesselId, vesselId))).limit(1);
+    return result ?? null;
   }
 }

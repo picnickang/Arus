@@ -1,3 +1,6 @@
+import { eq, desc } from "drizzle-orm";
+import { db } from "../../db-config";
+import { kbDocs, type KbDoc } from "@shared/schema";
 import type { DashboardMetrics, EquipmentTelemetry, Equipment, PdmScore, WorkOrder, Device, EdgeHeartbeat, Vessel } from "@shared/schema";
 
 export interface AnalyticsDependencies {
@@ -115,5 +118,12 @@ export abstract class BaseAnalyticsInsightsAdapter {
   }
 }
 
-export class MemAnalyticsInsightsAdapter extends BaseAnalyticsInsightsAdapter {}
-export class DatabaseAnalyticsInsightsAdapter extends BaseAnalyticsInsightsAdapter {}
+export class MemAnalyticsInsightsAdapter extends BaseAnalyticsInsightsAdapter {
+  async getKbDocs(_orgId?: string): Promise<KbDoc[]> { return []; }
+}
+export class DatabaseAnalyticsInsightsAdapter extends BaseAnalyticsInsightsAdapter {
+  async getKbDocs(orgId?: string): Promise<KbDoc[]> {
+    if (orgId) { return db.select().from(kbDocs).where(eq(kbDocs.orgId, orgId)).orderBy(desc(kbDocs.createdAt)); }
+    return db.select().from(kbDocs).orderBy(desc(kbDocs.createdAt));
+  }
+}

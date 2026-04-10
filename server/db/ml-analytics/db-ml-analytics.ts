@@ -7,6 +7,8 @@ import { eq, and, desc, sql, gte, lte } from "drizzle-orm";
 import { db } from "../../db-config";
 import { getCloudTableOrUndefined } from "../../utils/cloud-guards";
 import { mlModels, anomalyDetections, failurePredictions, thresholdOptimizations, featureImportances, calibrationCurves, modelPerformanceValidations, engineerOverrides, type MlModel, type InsertMlModel, type AnomalyDetection, type InsertAnomalyDetection, type FailurePrediction, type InsertFailurePrediction, type ThresholdOptimization, type InsertThresholdOptimization, type FeatureImportance, type InsertFeatureImportance, type CalibrationCurve, type InsertCalibrationCurve, type EngineerOverride, type InsertEngineerOverride } from "@shared/schema-runtime";
+import { rulModels } from "@shared/schema-runtime";
+import type { RulModel, InsertRulModel } from "@shared/schema";
 
 function jsonSet(column: any, path: string, value: string) { return sql`jsonb_set(COALESCE(${column}, '{}'::jsonb), '${sql.raw(path)}', ${JSON.stringify(value)}::jsonb)`; }
 
@@ -49,7 +51,7 @@ export class DatabaseMlAnalyticsStorage {
   async deleteEngineerOverride(id: string, orgId: string): Promise<void> { await db.delete(engineerOverrides).where(and(eq(engineerOverrides.id, id), eq(engineerOverrides.orgId, orgId))); }
   async expireEngineerOverride(id: string, expiredBy: string, orgId: string): Promise<EngineerOverride> { return this.updateEngineerOverride(id, { status: 'expired', expiredBy, expiredAt: new Date() } as any, orgId); }
 
-  async getRulModels(_orgId?: string): Promise<any[]> { return []; }
-  async getRulModel(_modelId: string, _orgId?: string): Promise<any | undefined> { return undefined; }
-  async createRulModel(model: any): Promise<any> { return model; }
+  async getRulModels(orgId?: string): Promise<RulModel[]> { const table = getCloudTableOrUndefined(rulModels); if (!table) { return []; } if (orgId) { return db.select().from(table).where(eq(table.orgId, orgId)).orderBy(desc(table.createdAt)); } return db.select().from(table).orderBy(desc(table.createdAt)); }
+  async getRulModel(modelId: string, orgId?: string): Promise<RulModel | undefined> { const table = getCloudTableOrUndefined(rulModels); if (!table) { return undefined; } const conditions = orgId ? and(eq(table.modelId, modelId), eq(table.orgId, orgId)) : eq(table.modelId, modelId); const [r] = await db.select().from(table).where(conditions); return r; }
+  async createRulModel(model: InsertRulModel): Promise<RulModel> { const table = getCloudTableOrUndefined(rulModels); if (!table) { throw new Error('RUL models are not available in vessel mode'); } const [n] = await db.insert(table).values({ ...model, createdAt: new Date(), updatedAt: new Date() }).returning(); return n; }
 }
