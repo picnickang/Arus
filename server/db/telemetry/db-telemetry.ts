@@ -19,6 +19,12 @@ export class DatabaseTelemetryStorage {
   async getLatestTelemetryForSensors(equipmentId: string, sensorTypes: string[]): Promise<Map<string, EquipmentTelemetry>> { const result = new Map<string, EquipmentTelemetry>(); for (const sensorType of sensorTypes) { const latest = await this.getLatestTelemetryForSensor(equipmentId, sensorType); if (latest) {result.set(sensorType, latest);} } return result; }
   async getTelemetryTrends(equipmentId?: string, hours: number = 24): Promise<TelemetryTrend[]> { const cutoff = new Date(); cutoff.setHours(cutoff.getHours() - hours); const conditions: any[] = [gte(equipmentTelemetry.ts, cutoff)]; if (equipmentId) {conditions.push(eq(equipmentTelemetry.equipmentId, equipmentId));} const readings = await db.select().from(equipmentTelemetry).where(and(...conditions)); const grouped = new Map<string, EquipmentTelemetry[]>(); for (const r of readings) { const key = `${r.equipmentId}:${r.sensorType}`; if (!grouped.has(key)) {grouped.set(key, []);} grouped.get(key)!.push(r); } const trends: TelemetryTrend[] = []; for (const [key, group] of grouped) { const [eqId, sensorType] = key.split(":"); const values = group.map((r) => r.value ?? 0); trends.push({ equipmentId: eqId, sensorType, avgValue: values.reduce((a, b) => a + b, 0) / values.length, minValue: Math.min(...values), maxValue: Math.max(...values), dataPoints: values.length, lastReading: new Date(Math.max(...group.map((r) => r.ts?.getTime() ?? 0))) }); } return trends; }
 
+  async clearOrphanedTelemetryData(): Promise<void> {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    await db.delete(equipmentTelemetry).where(lte(equipmentTelemetry.ts, thirtyDaysAgo));
+  }
+
   async getPdmScores(equipmentId?: string): Promise<PdmScoreLog[]> { if (equipmentId) {return db.select().from(pdmScoreLogs).where(eq(pdmScoreLogs.equipmentId, equipmentId)).orderBy(sql`${pdmScoreLogs.ts} DESC`);} return db.select().from(pdmScoreLogs).orderBy(sql`${pdmScoreLogs.ts} DESC`); }
   async createPdmScore(score: InsertPdmScore): Promise<PdmScoreLog> { const [n] = await db.insert(pdmScoreLogs).values({ id: randomUUID(), ts: new Date(), ...score }).returning(); return n; }
   async getLatestPdmScore(equipmentId: string): Promise<PdmScoreLog | undefined> { const [result] = await db.select().from(pdmScoreLogs).where(eq(pdmScoreLogs.equipmentId, equipmentId)).orderBy(sql`${pdmScoreLogs.ts} DESC`).limit(1); return result; }

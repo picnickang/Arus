@@ -97,17 +97,17 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
   app.post("/api/notifications/queue", writeOperationRateLimit,
     withErrorHandling("create notification queue item", async (req, res) => {
       const orgId = req.orgId;
-      const item = await (dbNotificationsStorage as any).createNotificationQueueItem?.({
+      const item = await dbNotificationsStorage.createEmailQueueItem({
         ...req.body,
         orgId,
-      }) ?? { ...req.body, orgId };
+      });
       sendCreated(res, item);
     })
   );
 
   app.delete("/api/notifications/queue/:id", writeOperationRateLimit,
     withErrorHandling("delete notification queue item", async (req, res) => {
-      await (dbNotificationsStorage as any).deleteNotificationQueueItem?.(req.params.id);
+      await dbNotificationsStorage.deleteEmailQueueItem(req.params.id);
       sendDeleted(res);
     })
   );
@@ -146,7 +146,7 @@ export function registerNotificationRoutes(app: Express, rateLimiters?: RateLimi
       }
       
       const orgId = req.orgId;
-      const item = await (dbNotificationsStorage as any).createNotificationQueueItem?.({
+      const item = await dbNotificationsStorage.createEmailQueueItem({
         orgId,
         notificationType: "test",
         subject: subject || "ARUS Marine Test Notification",

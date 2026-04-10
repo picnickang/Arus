@@ -48,4 +48,8 @@ export class DatabaseMlAnalyticsStorage {
   async updateEngineerOverride(id: string, updates: Partial<InsertEngineerOverride>, orgId: string): Promise<EngineerOverride> { const [u] = await db.update(engineerOverrides).set({ ...updates, updatedAt: new Date() }).where(and(eq(engineerOverrides.id, id), eq(engineerOverrides.orgId, orgId))).returning(); if (!u) {throw new Error(`Engineer Override ${id} not found or access denied`);} return u; }
   async deleteEngineerOverride(id: string, orgId: string): Promise<void> { await db.delete(engineerOverrides).where(and(eq(engineerOverrides.id, id), eq(engineerOverrides.orgId, orgId))); }
   async expireEngineerOverride(id: string, expiredBy: string, orgId: string): Promise<EngineerOverride> { return this.updateEngineerOverride(id, { status: 'expired', expiredBy, expiredAt: new Date() } as any, orgId); }
+
+  async getRulModels(_orgId?: string): Promise<any[]> { return []; }
+  async getRulModel(_modelId: string, _orgId?: string): Promise<any | undefined> { return undefined; }
+  async createRulModel(model: any): Promise<any> { return model; }
 }

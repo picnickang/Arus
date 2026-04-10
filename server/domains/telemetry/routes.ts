@@ -43,12 +43,9 @@ export function registerTelemetryRoutes(
       const sensorType = req.query.sensorType as string | undefined;
       const limit = req.query.limit ? Number.parseInt(req.query.limit as string, 10) : 500;
 
-      const readings = await (dbTelemetryStorage as any).getLatestTelemetryReadings(
-        vesselId,
-        equipmentId,
-        sensorType,
-        limit
-      );
+      const readings = equipmentId
+        ? await dbTelemetryStorage.getLatestTelemetryReadings(equipmentId, limit)
+        : [];
 
       res.json(readings);
     })
@@ -78,7 +75,7 @@ export function registerTelemetryRoutes(
   // Clear orphaned telemetry data
   app.delete("/api/telemetry/cleanup", criticalOperationRateLimit,
     withErrorHandling("clear telemetry data", async (req, res) => {
-      await (dbTelemetryStorage as any).clearOrphanedTelemetryData();
+      await dbTelemetryStorage.clearOrphanedTelemetryData();
       res.json({
         ok: true,
         message: "Telemetry data cleared successfully",

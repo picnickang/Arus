@@ -331,7 +331,7 @@ export function registerMlPipelineRoutes(
   app.get("/api/rul/models", generalApiRateLimit,
     withErrorHandling("get RUL models", async (req: AuthenticatedRequest, res: Response) => {
       const { componentClass, orgId = req.orgId! } = req.query;
-      const models = await ((dbMlAnalyticsStorage as any).getRulModels?.(componentClass as string, orgId as string) ?? Promise.resolve([]));
+      const models = await dbMlAnalyticsStorage.getRulModels(orgId as string);
       res.json(models);
     })
   );
@@ -344,7 +344,7 @@ export function registerMlPipelineRoutes(
       const { fitWeibullComprehensive } = await import("../../rul");
       const fitResult = fitWeibullComprehensive(failureTimes, modelId, componentClass);
 
-      const model = await (dbMlAnalyticsStorage as any).createRulModel?.({
+      const model = await dbMlAnalyticsStorage.createRulModel({
         orgId,
         modelId: fitResult.modelId,
         componentClass: fitResult.componentClass,
@@ -367,7 +367,7 @@ export function registerMlPipelineRoutes(
       const { modelId, currentAge, quantile = 0.5 } = req.body;
       const orgId = req.orgId!;
 
-      const model = await (dbMlAnalyticsStorage as any).getRulModel?.(modelId, orgId);
+      const model = await dbMlAnalyticsStorage.getRulModel(modelId, orgId);
       if (!model) {
         return sendNotFound(res, "RUL model");
       }

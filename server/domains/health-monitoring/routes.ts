@@ -225,15 +225,17 @@ export function registerHealthMonitoringRoutes(app: Express, config: HealthMonit
 
   app.delete("/api/error-logs/:id", requireOrgId,
     withErrorHandling("delete error log", async (req: Request, res: Response) => {
-      await dbSystemAdminStorage.deleteErrorLog(req.params.id);
+      const orgId = req.headers["x-org-id"] as string;
+      await dbSystemAdminStorage.deleteErrorLog(req.params.id, orgId);
       res.status(204).send();
     })
   );
 
   app.delete("/api/error-logs", requireOrgId,
     withErrorHandling("clear error logs", async (req: Request, res: Response) => {
+      const orgId = req.headers["x-org-id"] as string;
       const { olderThan } = req.query;
-      await dbSystemAdminStorage.clearErrorLogs(olderThan ? new Date(olderThan as string) : undefined);
+      await dbSystemAdminStorage.clearErrorLogs(olderThan ? new Date(olderThan as string) : undefined, orgId);
       res.status(204).send();
     })
   );

@@ -33,7 +33,7 @@ export function registerInsightRoutes(app: Express, _config: MlAnalyticsConfig) 
       if (!orgId) {
         return res.status(400).json({ message: "orgId is required" });
       }
-      const snapshot = await dbAnalyticsStorage.getLatestInsightSnapshot(scope as string, orgId as string);
+      const snapshot = await dbAnalyticsStorage.getLatestInsightSnapshot(orgId as string, scope as string);
       if (!snapshot) {
         return sendNotFound(res, "Insight snapshot");
       }

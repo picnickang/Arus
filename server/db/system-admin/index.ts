@@ -70,11 +70,14 @@ export class DatabaseSystemAdminStorage extends DbAuditStorage {
     return newLog;
   }
 
-  async deleteErrorLog(id: string): Promise<void> {
+  async deleteErrorLog(id: string, orgId?: string): Promise<void> {
     const { errorLogs } = await import("@shared/schema-runtime");
-    const { eq } = await import("drizzle-orm");
+    const { eq, and } = await import("drizzle-orm");
     const { db: database } = await import("../../db-config");
-    await database.delete(errorLogs).where(eq(errorLogs.id, id));
+    const conditions = orgId
+      ? and(eq(errorLogs.id, id), eq(errorLogs.orgId, orgId))
+      : eq(errorLogs.id, id);
+    await database.delete(errorLogs).where(conditions);
   }
 
   async clearErrorLogs(olderThan?: Date, orgId?: string): Promise<void> {
