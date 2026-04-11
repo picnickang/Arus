@@ -204,3 +204,9 @@ id = "JP82sXWFQZ1E2-FOvUGV_"
 uri = "file://exports/3-client-frontend.txt"
 type = "text"
 title = "3. Client/Frontend Code (4.4 MB — pages, components, hooks)"
+
+[[outputs]]
+id = "qmcq0-4l6NvdG7w4rNkxq"
+uri = "file://arus-source.tar.gz"
+type = "unspecified"
+title = "ARUS Codebase (Source Only)"
