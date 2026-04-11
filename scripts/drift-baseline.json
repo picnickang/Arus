@@ -1,0 +1,1657 @@
+{
+  "_comment": "Auto-generated baseline of known PG/SQLite drift. Do not edit manually — regenerate with: node scripts/generate-drift-baseline.mjs",
+  "missingTables": [
+    "beastModeConfig",
+    "conditionMonitoring",
+    "costModel",
+    "dailyMetricRollups",
+    "dataQualityMetrics",
+    "deviceRegistry",
+    "digitalTwins",
+    "edgeDiagnosticLogs",
+    "industryBenchmarks",
+    "metricsHistory",
+    "mlModelAccuracyHistory",
+    "mqttDevices",
+    "oilAnalysis",
+    "oilChangeRecords",
+    "organizations",
+    "pdmBaseline",
+    "pdmScoreLogs",
+    "replayIncoming",
+    "rulFitHistory",
+    "rulModels",
+    "sensorBundles",
+    "sensorTemplates",
+    "serialPortStates",
+    "syncConflicts",
+    "syncJournal",
+    "syncOutbox",
+    "systemHealthChecks",
+    "systemPerformanceMetrics",
+    "systemSettings",
+    "telemetryRetentionPolicies",
+    "transportFailovers",
+    "transportSettings",
+    "twinSimulations",
+    "users",
+    "vibrationAnalysis",
+    "wearParticleAnalysis",
+    "weibullEstimates"
+  ],
+  "columnDrift": {
+    "vessels": {
+      "sqliteOnly": [
+        "id",
+        "orgId"
+      ],
+      "typeDrift": [
+        "lastHeartbeat"
+      ]
+    },
+    "equipment": {
+      "pgOnly": [
+        "defaultServiceProviderId",
+        "downtimeCostPerHour",
+        "emergencyDowntimeMultiplier",
+        "emergencyLaborMultiplier",
+        "emergencyPartsMultiplier",
+        "maintenanceSchedule",
+        "operatingParameters",
+        "purchaseDate",
+        "purchaseValue",
+        "specifications"
+      ],
+      "sqliteOnly": [
+        "id",
+        "orgId"
+      ]
+    },
+    "equipmentTelemetry": {
+      "typeDrift": [
+        "ts"
+      ]
+    },
+    "equipmentLifecycle": {
+      "pgOnly": [
+        "eventDate",
+        "eventType",
+        "orgId"
+      ],
+      "sqliteOnly": [
+        "installationDate",
+        "manufacturer",
+        "model",
+        "serialNumber"
+      ]
+    },
+    "performanceMetrics": {
+      "pgOnly": [
+        "metricType",
+        "orgId",
+        "recordedAt",
+        "unit",
+        "value"
+      ],
+      "sqliteOnly": [
+        "metricDate"
+      ]
+    },
+    "rawTelemetry": {
+      "pgOnly": [
+        "vessel"
+      ],
+      "typeDrift": [
+        "ts"
+      ]
+    },
+    "workOrders": {
+      "pgOnly": [
+        "vesselDowntimeStartedAt"
+      ],
+      "sqliteOnly": [
+        "id",
+        "orgId"
+      ]
+    },
+    "workOrderCompletions": {
+      "sqliteOnly": [
+        "completedAt",
+        "equipmentId",
+        "vesselId"
+      ]
+    },
+    "workOrderParts": {
+      "typeDrift": [
+        "usedAt"
+      ]
+    },
+    "workOrderChecklists": {
+      "pgOnly": [
+        "checklistItems",
+        "completedAt",
+        "completedBy",
+        "completionRate",
+        "templateName"
+      ],
+      "sqliteOnly": [
+        "id",
+        "name",
+        "orgId",
+        "status",
+        "templateId",
+        "totalItems"
+      ],
+      "typeDrift": [
+        "completedItems"
+      ]
+    },
+    "workOrderWorklogs": {
+      "pgOnly": [
+        "technicianName"
+      ],
+      "sqliteOnly": [
+        "crewId",
+        "crewName",
+        "id",
+        "orgId"
+      ],
+      "typeDrift": [
+        "startTime"
+      ]
+    },
+    "workOrderTasks": {
+      "pgOnly": [
+        "completedBy",
+        "completedByName",
+        "isCompleted"
+      ],
+      "sqliteOnly": [
+        "assignedTo",
+        "status",
+        "taskNumber",
+        "title"
+      ],
+      "typeDrift": [
+        "completedAt"
+      ]
+    },
+    "workOrderHistory": {
+      "pgOnly": [
+        "description",
+        "entryHash",
+        "eventType",
+        "fieldName",
+        "performedBy",
+        "performedByName",
+        "previousHash",
+        "sequenceNumber"
+      ],
+      "sqliteOnly": [
+        "action",
+        "changeReason",
+        "changedBy",
+        "changedByName"
+      ]
+    },
+    "maintenanceSchedules": {
+      "typeDrift": [
+        "scheduledDate"
+      ]
+    },
+    "maintenanceRecords": {
+      "pgOnly": [
+        "scheduledDate"
+      ],
+      "sqliteOnly": [
+        "actualStartTime",
+        "maintenanceType",
+        "scheduleId"
+      ]
+    },
+    "maintenanceCosts": {
+      "pgOnly": [
+        "orgId"
+      ],
+      "sqliteOnly": [
+        "recordId",
+        "scheduleId",
+        "workOrderId"
+      ],
+      "typeDrift": [
+        "incurredAt"
+      ]
+    },
+    "maintenanceChecklistItems": {
+      "pgOnly": [
+        "estimatedMinutes",
+        "isRequired",
+        "sortOrder"
+      ],
+      "sqliteOnly": [
+        "category",
+        "required",
+        "stepNumber",
+        "title"
+      ]
+    },
+    "maintenanceChecklistCompletions": {
+      "pgOnly": [
+        "checklistItemId",
+        "completedBy",
+        "isCompleted",
+        "orgId"
+      ],
+      "sqliteOnly": [
+        "itemId"
+      ],
+      "typeDrift": [
+        "completedAt"
+      ]
+    },
+    "maintenanceWindows": {
+      "pgOnly": [
+        "description",
+        "severity",
+        "status",
+        "type"
+      ],
+      "sqliteOnly": [
+        "windowType"
+      ],
+      "typeDrift": [
+        "startTime"
+      ]
+    },
+    "downtimeEvents": {
+      "sqliteOnly": [
+        "downtimeType",
+        "vesselId",
+        "workOrderId"
+      ],
+      "typeDrift": [
+        "startTime"
+      ]
+    },
+    "parts": {
+      "pgOnly": [
+        "alternateSupplierIds",
+        "compatibleEquipment",
+        "criticality",
+        "lastOrderDate",
+        "leadTimeDays",
+        "maxStockQty",
+        "minStockQty",
+        "partNo",
+        "primarySupplierId",
+        "riskLevel",
+        "standardCost"
+      ],
+      "sqliteOnly": [
+        "currency",
+        "dimensions",
+        "imageUrl",
+        "isActive",
+        "manufacturer",
+        "manufacturerPartNumber",
+        "partNumber",
+        "subcategory",
+        "unitCost",
+        "weight"
+      ]
+    },
+    "inventoryParts": {
+      "pgOnly": [
+        "currentStock",
+        "description",
+        "lastUsage30d",
+        "leadTimeDays",
+        "maxStockLevel",
+        "minStockLevel",
+        "partNumber",
+        "riskLevel",
+        "supplier",
+        "unitCost"
+      ],
+      "sqliteOnly": [
+        "binNumber",
+        "lastCountDate",
+        "location",
+        "maxStock",
+        "partId",
+        "quantityOnHand",
+        "quantityOnOrder",
+        "quantityReserved",
+        "reorderPoint",
+        "vesselId",
+        "warehouseId"
+      ]
+    },
+    "stock": {
+      "typeDrift": [
+        "lastCountDate"
+      ]
+    },
+    "inventoryMovements": {
+      "pgOnly": [
+        "notes",
+        "quantityAfter",
+        "quantityBefore",
+        "reservedAfter",
+        "reservedBefore"
+      ],
+      "sqliteOnly": [
+        "fromLocation",
+        "reason",
+        "toLocation"
+      ]
+    },
+    "suppliers": {
+      "pgOnly": [
+        "certifications",
+        "defectRate",
+        "equipmentTypesServiced",
+        "isPreferred",
+        "notes",
+        "qualityRating",
+        "responseSlaHours",
+        "serviceCapabilities",
+        "type"
+      ],
+      "sqliteOnly": [
+        "country",
+        "currency",
+        "rating"
+      ]
+    },
+    "purchaseOrders": {
+      "pgOnly": [
+        "expectedDate",
+        "orderNumber"
+      ],
+      "sqliteOnly": [
+        "currency",
+        "orderDate",
+        "poNumber",
+        "status",
+        "totalAmount"
+      ]
+    },
+    "purchaseOrderItems": {
+      "pgOnly": [
+        "rejectedQuantity",
+        "rejectionReason"
+      ],
+      "typeDrift": [
+        "receivedQuantity"
+      ]
+    },
+    "partSubstitutions": {
+      "pgOnly": [
+        "alternatePartNo",
+        "primaryPartNo"
+      ],
+      "sqliteOnly": [
+        "isActive",
+        "originalPartId",
+        "priority",
+        "substitutePartId"
+      ]
+    },
+    "partFailureHistory": {
+      "typeDrift": [
+        "failureDate"
+      ]
+    },
+    "reservations": {
+      "pgOnly": [
+        "expiresAt"
+      ],
+      "sqliteOnly": [
+        "reservedAt",
+        "status"
+      ],
+      "typeDrift": [
+        "quantity"
+      ]
+    },
+    "crew": {
+      "pgOnly": [
+        "address",
+        "emergencyContactName",
+        "emergencyContactPhone",
+        "name",
+        "roleId"
+      ],
+      "sqliteOnly": [
+        "department",
+        "employeeId",
+        "firstName",
+        "joinDate",
+        "lastName",
+        "vesselId"
+      ]
+    },
+    "skills": {
+      "pgOnly": [
+        "active",
+        "maxLevel"
+      ],
+      "sqliteOnly": [
+        "isActive"
+      ]
+    },
+    "crewSkill": {
+      "pgOnly": [
+        "level",
+        "orgId",
+        "skill"
+      ],
+      "sqliteOnly": [
+        "certifiedDate",
+        "id",
+        "proficiencyLevel",
+        "skillId"
+      ]
+    },
+    "crewAssignment": {
+      "pgOnly": [
+        "date",
+        "start"
+      ],
+      "sqliteOnly": [
+        "assignmentDate",
+        "workOrderId"
+      ]
+    },
+    "crewCertification": {
+      "pgOnly": [
+        "cert",
+        "certNumber",
+        "expiresAt"
+      ],
+      "sqliteOnly": [
+        "certificateNumber",
+        "certificationType",
+        "issueDate",
+        "issuedBy"
+      ]
+    },
+    "crewDocuments": {
+      "sqliteOnly": [
+        "description",
+        "documentNumber",
+        "issueDate",
+        "title"
+      ]
+    },
+    "crewLeave": {
+      "pgOnly": [
+        "start"
+      ],
+      "sqliteOnly": [
+        "leaveType",
+        "startDate"
+      ]
+    },
+    "shiftTemplate": {
+      "pgOnly": [
+        "certRequired",
+        "durationH",
+        "end",
+        "equipmentId",
+        "rankMin",
+        "requiredSkills",
+        "role",
+        "start",
+        "vesselId"
+      ],
+      "sqliteOnly": [
+        "breakMinutes",
+        "durationHours",
+        "endTime",
+        "isActive",
+        "name",
+        "startTime"
+      ]
+    },
+    "crewRestSheet": {
+      "pgOnly": [
+        "crewName",
+        "rank",
+        "scheduleRunId",
+        "sourceType"
+      ],
+      "sqliteOnly": [
+        "approvedAt",
+        "approvedBy",
+        "status"
+      ],
+      "typeDrift": [
+        "month"
+      ]
+    },
+    "crewRestDay": {
+      "pgOnly": [
+        "h0",
+        "h1",
+        "h10",
+        "h11",
+        "h12",
+        "h13",
+        "h14",
+        "h15",
+        "h16",
+        "h17",
+        "h18",
+        "h19",
+        "h2",
+        "h20",
+        "h21",
+        "h22",
+        "h23",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "h7",
+        "h8",
+        "h9",
+        "sheetId"
+      ],
+      "sqliteOnly": [
+        "id",
+        "restSheetId"
+      ],
+      "typeDrift": [
+        "date"
+      ]
+    },
+    "sensorConfigurations": {
+      "pgOnly": [
+        "critHi",
+        "critLo",
+        "deadband",
+        "emaAlpha",
+        "enabled",
+        "expectedIntervalMs",
+        "gain",
+        "graceMultiplier",
+        "hysteresis",
+        "lastModifiedBy",
+        "maxValid",
+        "minValid",
+        "notes",
+        "offset",
+        "sampleRateHz",
+        "targetUnit",
+        "version",
+        "warnHi",
+        "warnLo"
+      ],
+      "sqliteOnly": [
+        "calibrationDate",
+        "criticalThreshold",
+        "maxValue",
+        "minValue",
+        "name",
+        "samplingIntervalMs",
+        "unit",
+        "warningThreshold"
+      ]
+    },
+    "sensorStates": {
+      "pgOnly": [
+        "ema",
+        "lastTs",
+        "lastValue"
+      ],
+      "sqliteOnly": [
+        "currentValue",
+        "lastReading",
+        "status"
+      ]
+    },
+    "sensorTypes": {
+      "pgOnly": [
+        "maxValue",
+        "minValue",
+        "units"
+      ],
+      "sqliteOnly": [
+        "code",
+        "orgId"
+      ]
+    },
+    "sensorThresholds": {
+      "pgOnly": [
+        "criticalThreshold",
+        "description",
+        "deviceId",
+        "isActive",
+        "maxValue",
+        "minValue",
+        "rule",
+        "version",
+        "warningThreshold"
+      ],
+      "sqliteOnly": [
+        "equipmentId",
+        "isDefault",
+        "lowerCritical",
+        "lowerWarning",
+        "thresholdType",
+        "upperCritical",
+        "upperWarning"
+      ]
+    },
+    "sensorMapping": {
+      "pgOnly": [
+        "preferredUnit",
+        "scalingFactor",
+        "sensorTypeId",
+        "signalId",
+        "sourceId",
+        "vesselId"
+      ],
+      "sqliteOnly": [
+        "mappingType",
+        "scaleFactor",
+        "sourceSensorId",
+        "targetSensorType",
+        "transformFormula"
+      ]
+    },
+    "discoveredSignals": {
+      "pgOnly": [
+        "firstSeen",
+        "signalId",
+        "sourceId",
+        "unit",
+        "vesselId"
+      ],
+      "sqliteOnly": [
+        "discoveredAt",
+        "equipmentId",
+        "signalName",
+        "signalType",
+        "sourceProtocol"
+      ]
+    },
+    "alertConfigurations": {
+      "pgOnly": [
+        "criticalThreshold",
+        "enabled",
+        "lastModifiedBy",
+        "notifyEmail",
+        "notifyInApp",
+        "version",
+        "warningThreshold"
+      ],
+      "sqliteOnly": [
+        "alertType",
+        "condition",
+        "isEnabled",
+        "severity",
+        "threshold",
+        "vesselId"
+      ]
+    },
+    "alertNotifications": {
+      "pgOnly": [
+        "acknowledged",
+        "acknowledgedAt",
+        "sensorType",
+        "value"
+      ],
+      "sqliteOnly": [
+        "alertConfigId",
+        "isAcknowledged",
+        "sensorValue",
+        "severity",
+        "title",
+        "vesselId"
+      ]
+    },
+    "alertSuppressions": {
+      "pgOnly": [
+        "sensorType",
+        "suppressUntil",
+        "suppressedBy"
+      ],
+      "sqliteOnly": [
+        "alertConfigId",
+        "startTime",
+        "suppressionType"
+      ]
+    },
+    "alertComments": {
+      "pgOnly": [
+        "alertId",
+        "commentedBy"
+      ],
+      "sqliteOnly": [
+        "alertNotificationId",
+        "createdBy",
+        "createdByName"
+      ]
+    },
+    "actionableInsights": {
+      "pgOnly": [
+        "type"
+      ],
+      "sqliteOnly": [
+        "acknowledgedAt",
+        "acknowledgedBy",
+        "confidenceScore",
+        "description",
+        "insightType",
+        "potentialSavings",
+        "recommendation",
+        "severity",
+        "status",
+        "title"
+      ]
+    },
+    "operatingConditionAlerts": {
+      "pgOnly": [
+        "acknowledgedAt",
+        "alertType",
+        "message",
+        "parameterId",
+        "thresholdValue"
+      ],
+      "sqliteOnly": [
+        "conditionType",
+        "description",
+        "expectedRange",
+        "isActive"
+      ]
+    },
+    "pdmAlerts": {
+      "pgOnly": [
+        "at"
+      ],
+      "sqliteOnly": [
+        "acknowledgedAt",
+        "acknowledgedBy",
+        "alertType",
+        "confidence",
+        "description",
+        "equipmentId",
+        "pdmScore",
+        "recommendation",
+        "rulDays",
+        "severity",
+        "status"
+      ]
+    },
+    "mlModels": {
+      "sqliteOnly": [
+        "accuracy",
+        "equipmentType",
+        "f1Score",
+        "lastTrainedAt",
+        "modelType",
+        "precision",
+        "recall",
+        "status",
+        "trainingDataCount",
+        "version"
+      ]
+    },
+    "failurePredictions": {
+      "pgOnly": [
+        "predictionTimestamp"
+      ],
+      "sqliteOnly": [
+        "modelId",
+        "predictionDate"
+      ],
+      "typeDrift": [
+        "id"
+      ]
+    },
+    "anomalyDetections": {
+      "pgOnly": [
+        "detectionTimestamp"
+      ],
+      "sqliteOnly": [
+        "detectedAt"
+      ],
+      "typeDrift": [
+        "id"
+      ]
+    },
+    "componentDegradation": {
+      "pgOnly": [
+        "componentType",
+        "measurementTimestamp"
+      ],
+      "sqliteOnly": [
+        "componentName",
+        "degradationLevel",
+        "degradationRate",
+        "estimatedRulDays",
+        "healthScore",
+        "lastAssessedAt"
+      ],
+      "typeDrift": [
+        "id"
+      ]
+    },
+    "failureHistory": {
+      "pgOnly": [
+        "failureTimestamp"
+      ],
+      "sqliteOnly": [
+        "failureDate"
+      ],
+      "typeDrift": [
+        "id"
+      ]
+    },
+    "predictionFeedback": {
+      "sqliteOnly": [
+        "feedbackType",
+        "isCorrect",
+        "predictionId"
+      ],
+      "typeDrift": [
+        "id"
+      ]
+    },
+    "modelPerformanceValidations": {
+      "sqliteOnly": [
+        "modelId",
+        "validationDate"
+      ],
+      "typeDrift": [
+        "id"
+      ]
+    },
+    "retrainingTriggers": {
+      "sqliteOnly": [
+        "modelId",
+        "triggerReason",
+        "triggerType",
+        "triggeredAt"
+      ],
+      "typeDrift": [
+        "id"
+      ]
+    },
+    "thresholdOptimizations": {
+      "pgOnly": [
+        "optimizationTimestamp"
+      ],
+      "sqliteOnly": [
+        "appliedAt",
+        "confidenceScore",
+        "currentThreshold",
+        "optimizationReason",
+        "status",
+        "suggestedThreshold"
+      ],
+      "typeDrift": [
+        "id"
+      ]
+    },
+    "modelRegistry": {
+      "pgOnly": [
+        "algorithm",
+        "componentClass",
+        "deployedAt",
+        "features",
+        "isActive",
+        "windowDays"
+      ],
+      "sqliteOnly": [
+        "createdBy",
+        "description",
+        "framework",
+        "inputSchema",
+        "modelPath",
+        "outputSchema",
+        "stage",
+        "tags"
+      ]
+    },
+    "insightSnapshots": {
+      "pgOnly": [
+        "scope"
+      ],
+      "sqliteOnly": [
+        "snapshotDate",
+        "snapshotType"
+      ]
+    },
+    "insightReports": {
+      "pgOnly": [
+        "scope"
+      ],
+      "sqliteOnly": [
+        "content",
+        "equipmentId",
+        "reportType",
+        "summary",
+        "title",
+        "vesselId"
+      ],
+      "typeDrift": [
+        "periodStart"
+      ]
+    },
+    "telemetryAggregates": {
+      "pgOnly": [
+        "timeWindow",
+        "windowStart"
+      ],
+      "sqliteOnly": [
+        "periodStart"
+      ],
+      "typeDrift": [
+        "id"
+      ]
+    },
+    "telemetryRollups": {
+      "pgOnly": [
+        "bucket"
+      ],
+      "sqliteOnly": [
+        "rollupDate"
+      ]
+    },
+    "dtcDefinitions": {
+      "pgOnly": [
+        "fmi",
+        "fmiName",
+        "manufacturer",
+        "spn",
+        "spnName"
+      ],
+      "sqliteOnly": [
+        "category",
+        "code",
+        "id",
+        "isActive",
+        "name",
+        "orgId",
+        "possibleCauses",
+        "recommendedActions"
+      ],
+      "typeDrift": [
+        "severity"
+      ]
+    },
+    "dtcFaults": {
+      "pgOnly": [
+        "active",
+        "deviceId",
+        "firstSeen",
+        "fmi",
+        "lamp",
+        "oc",
+        "pgn",
+        "sa",
+        "spn"
+      ],
+      "sqliteOnly": [
+        "dtcDefinitionId",
+        "occurredAt"
+      ]
+    },
+    "integrationConfigs": {
+      "pgOnly": [
+        "config",
+        "lastHealthCheck",
+        "type"
+      ],
+      "sqliteOnly": [
+        "configuration",
+        "integrationType",
+        "lastSyncAt"
+      ]
+    },
+    "storageConfig": {
+      "pgOnly": [
+        "kind"
+      ],
+      "sqliteOnly": [
+        "configType",
+        "isActive",
+        "orgId",
+        "settings"
+      ]
+    },
+    "edgeHeartbeats": {
+      "sqliteOnly": [
+        "id"
+      ],
+      "typeDrift": [
+        "ts"
+      ]
+    },
+    "j1939Configurations": {
+      "pgOnly": [
+        "baudRate",
+        "canBusId",
+        "deviceId",
+        "enabled",
+        "filterMode",
+        "pgns",
+        "pollIntervalMs",
+        "sourceAddress",
+        "targetAddress"
+      ],
+      "sqliteOnly": [
+        "description",
+        "equipmentId",
+        "isActive",
+        "name",
+        "offset",
+        "pgn",
+        "scaleFactor",
+        "spn",
+        "unit"
+      ]
+    },
+    "calibrationCache": {
+      "pgOnly": [
+        "calibrationSource",
+        "coefficients",
+        "equipmentType",
+        "manufacturer",
+        "model"
+      ],
+      "sqliteOnly": [
+        "calibrationData",
+        "equipmentId"
+      ],
+      "typeDrift": [
+        "validFrom"
+      ]
+    },
+    "vibrationFeatures": {
+      "pgOnly": [
+        "timestamp",
+        "vesselId"
+      ],
+      "sqliteOnly": [
+        "ts"
+      ]
+    },
+    "operatingParameters": {
+      "pgOnly": [
+        "category",
+        "optimalValue"
+      ],
+      "sqliteOnly": [
+        "normalValue",
+        "tolerance"
+      ]
+    },
+    "scheduleOptimizations": {
+      "pgOnly": [
+        "currentScheduleId",
+        "equipmentId",
+        "optimizationResultId",
+        "recommendedScheduleDate"
+      ],
+      "sqliteOnly": [
+        "optimizationType",
+        "periodStart",
+        "vesselId"
+      ]
+    },
+    "optimizerConfigurations": {
+      "pgOnly": [
+        "algorithmType",
+        "config",
+        "conflictResolutionStrategy",
+        "costWeightFactor",
+        "enabled",
+        "maxSchedulingHorizon",
+        "resourceConstraintStrict",
+        "urgencyWeightFactor"
+      ],
+      "sqliteOnly": [
+        "constraints",
+        "isActive",
+        "objectives",
+        "optimizerType",
+        "parameters"
+      ]
+    },
+    "resourceConstraints": {
+      "pgOnly": [
+        "availabilityWindow",
+        "costPerHour",
+        "costPerUnit",
+        "isActive",
+        "maxConcurrentTasks",
+        "resourceName",
+        "restrictions",
+        "skills"
+      ],
+      "sqliteOnly": [
+        "constraintType",
+        "effectiveFrom",
+        "maxValue",
+        "minValue",
+        "unit"
+      ]
+    },
+    "optimizationResults": {
+      "pgOnly": [
+        "runStatus",
+        "startTime"
+      ],
+      "sqliteOnly": [
+        "runDate"
+      ]
+    },
+    "complianceBundles": {
+      "pgOnly": [
+        "bundleId",
+        "generatedAt",
+        "kind",
+        "title"
+      ],
+      "sqliteOnly": [
+        "bundleType",
+        "id",
+        "name",
+        "orgId",
+        "startDate",
+        "vesselId"
+      ]
+    },
+    "complianceDocs": {
+      "pgOnly": [
+        "fileHash",
+        "filePath",
+        "issuedAt"
+      ],
+      "sqliteOnly": [
+        "equipmentId",
+        "expiryDate",
+        "fileName",
+        "fileSize",
+        "fileUrl",
+        "mimeType",
+        "status"
+      ],
+      "typeDrift": [
+        "version"
+      ]
+    },
+    "complianceAuditLog": {
+      "pgOnly": [
+        "timestamp"
+      ],
+      "sqliteOnly": [
+        "id",
+        "ipAddress",
+        "metadata",
+        "newValue",
+        "orgId",
+        "performedByName",
+        "previousValue",
+        "userAgent"
+      ]
+    },
+    "costSavings": {
+      "pgOnly": [
+        "workOrderId"
+      ],
+      "sqliteOnly": [
+        "actualSavings",
+        "currency",
+        "description",
+        "equipmentId",
+        "estimatedSavings",
+        "periodStart",
+        "savingsType",
+        "vesselId"
+      ]
+    },
+    "laborRates": {
+      "pgOnly": [
+        "contractorRate",
+        "effectiveDate",
+        "emergencyRate",
+        "overtimeRate",
+        "position",
+        "skillLevel",
+        "standardRate"
+      ],
+      "sqliteOnly": [
+        "effectiveFrom",
+        "ratePerHour",
+        "skillType"
+      ]
+    },
+    "expenses": {
+      "pgOnly": [
+        "expenseDate",
+        "invoiceNumber",
+        "type",
+        "vendor",
+        "vesselName"
+      ],
+      "sqliteOnly": [
+        "category",
+        "equipmentId",
+        "incurredAt",
+        "vesselId"
+      ]
+    },
+    "portCall": {
+      "pgOnly": [
+        "arrivalDate"
+      ],
+      "sqliteOnly": [
+        "arrivalTime"
+      ]
+    },
+    "drydockWindow": {
+      "sqliteOnly": [
+        "yardName"
+      ],
+      "typeDrift": [
+        "startDate"
+      ]
+    },
+    "visualizationAssets": {
+      "pgOnly": [
+        "boundingBox",
+        "compressionType",
+        "fileFormat",
+        "filePath",
+        "fileSizeBytes",
+        "lodLevel",
+        "metadata",
+        "name",
+        "optimizationLevel",
+        "targetPlatform",
+        "textureResolution"
+      ],
+      "sqliteOnly": [
+        "chartConfig",
+        "dataQuery",
+        "description",
+        "fileUrl",
+        "orgId",
+        "reportId",
+        "thumbnailUrl",
+        "title"
+      ]
+    },
+    "adminAuditEvents": {
+      "pgOnly": [
+        "resourceId",
+        "resourceType",
+        "userId"
+      ],
+      "sqliteOnly": [
+        "eventType",
+        "ipAddress",
+        "performedBy",
+        "performedByName",
+        "status",
+        "targetId",
+        "targetType",
+        "userAgent"
+      ]
+    },
+    "adminSystemSettings": {
+      "pgOnly": [
+        "category",
+        "defaultValue",
+        "isReadonly",
+        "isSecret",
+        "key",
+        "updatedBy",
+        "validationRule",
+        "value"
+      ],
+      "sqliteOnly": [
+        "isEncrypted",
+        "settingKey",
+        "settingValue"
+      ]
+    },
+    "immutableAuditTrail": {
+      "pgOnly": [
+        "changedFields",
+        "eventCategory",
+        "eventType",
+        "ipAddress",
+        "newState",
+        "performedByName",
+        "performedByRole",
+        "performedByType",
+        "previousState"
+      ],
+      "sqliteOnly": [
+        "action",
+        "data",
+        "dataHash",
+        "id",
+        "orgId",
+        "performedAt",
+        "previousHash",
+        "sequenceNumber"
+      ]
+    },
+    "engineerOverrides": {
+      "pgOnly": [
+        "equipmentId",
+        "expiresAt"
+      ],
+      "sqliteOnly": [
+        "approvedAt",
+        "targetId",
+        "targetType"
+      ]
+    },
+    "predictionDataQuality": {
+      "pgOnly": [
+        "equipmentId",
+        "evaluationDate"
+      ],
+      "sqliteOnly": [
+        "anomalyRate",
+        "assessedAt",
+        "dataCompleteness",
+        "dataFreshness",
+        "issues",
+        "overallQualityScore",
+        "predictionId",
+        "recommendations",
+        "sensorCoverage"
+      ]
+    },
+    "userSessions": {
+      "sqliteOnly": [
+        "deviceInfo",
+        "ipAddress",
+        "isActive",
+        "sessionToken",
+        "userAgent"
+      ]
+    },
+    "loginEvents": {
+      "pgOnly": [
+        "attemptedEmail"
+      ],
+      "sqliteOnly": [
+        "eventType",
+        "success"
+      ]
+    },
+    "dataSubjectRequests": {
+      "pgOnly": [
+        "requesterEmail",
+        "requesterId"
+      ],
+      "sqliteOnly": [
+        "processedAt",
+        "processedBy",
+        "requestDetails",
+        "requestType",
+        "status",
+        "subjectEmail",
+        "subjectId"
+      ]
+    },
+    "crossBorderTransfers": {
+      "pgOnly": [
+        "sourceRegion",
+        "transferType"
+      ],
+      "sqliteOnly": [
+        "dataType",
+        "destinationCountry",
+        "legalBasis",
+        "safeguards",
+        "sourceCountry",
+        "transferDate"
+      ]
+    },
+    "syncProtocolVersion": {
+      "pgOnly": [
+        "deviceId"
+      ],
+      "sqliteOnly": [
+        "features",
+        "isActive",
+        "minClientVersion"
+      ]
+    },
+    "errorLogs": {
+      "pgOnly": [
+        "timestamp"
+      ],
+      "sqliteOnly": [
+        "context",
+        "endpoint",
+        "errorCode",
+        "errorType",
+        "message",
+        "requestId",
+        "resolved",
+        "severity",
+        "stackTrace",
+        "userId"
+      ]
+    },
+    "idempotencyLog": {
+      "pgOnly": [
+        "expiresAt",
+        "key"
+      ],
+      "sqliteOnly": [
+        "endpoint",
+        "id",
+        "idempotencyKey",
+        "method",
+        "orgId",
+        "requestBody",
+        "responseBody",
+        "status"
+      ]
+    },
+    "requestIdempotency": {
+      "pgOnly": [
+        "requestId"
+      ],
+      "sqliteOnly": [
+        "idempotencyKey",
+        "orgId",
+        "requestHash"
+      ],
+      "typeDrift": [
+        "expiresAt"
+      ]
+    },
+    "arMaintenanceProcedures": {
+      "pgOnly": [
+        "arAssets",
+        "createdBy",
+        "difficultyLevel",
+        "equipmentId",
+        "estimatedDuration",
+        "procedureType",
+        "safetyRequirements"
+      ],
+      "sqliteOnly": [
+        "arModelUrl",
+        "description",
+        "equipmentType",
+        "estimatedDurationMinutes",
+        "isActive",
+        "orgId",
+        "safetyWarnings"
+      ]
+    },
+    "opsDbStaged": {
+      "pgOnly": [
+        "url"
+      ],
+      "sqliteOnly": [
+        "data",
+        "operationType",
+        "orgId",
+        "processedAt",
+        "recordId",
+        "status",
+        "tableName"
+      ],
+      "typeDrift": [
+        "id"
+      ]
+    },
+    "sheetLock": {
+      "sqliteOnly": [
+        "id",
+        "orgId",
+        "sheetType"
+      ],
+      "typeDrift": [
+        "lockedAt"
+      ]
+    },
+    "sheetVersion": {
+      "sqliteOnly": [
+        "changedBy",
+        "data",
+        "id",
+        "orgId",
+        "sheetType"
+      ]
+    },
+    "dbSchemaVersion": {
+      "typeDrift": [
+        "appliedAt",
+        "id",
+        "version"
+      ]
+    },
+    "llmBudgetConfigs": {
+      "sqliteOnly": [
+        "alertThreshold",
+        "currency",
+        "dailyLimit",
+        "isActive",
+        "monthlyBudget",
+        "perRequestLimit"
+      ],
+      "typeDrift": [
+        "id"
+      ]
+    },
+    "llmCostTracking": {
+      "sqliteOnly": [
+        "cost",
+        "currency",
+        "errorMessage",
+        "inputTokens",
+        "latencyMs",
+        "metadata",
+        "model",
+        "outputTokens",
+        "provider",
+        "requestId",
+        "requestType",
+        "status",
+        "totalTokens"
+      ],
+      "typeDrift": [
+        "id"
+      ]
+    },
+    "ragSearchQueries": {
+      "pgOnly": [
+        "filters",
+        "searchType"
+      ],
+      "sqliteOnly": [
+        "feedbackScore",
+        "resultCount",
+        "searchLatencyMs",
+        "topResultIds",
+        "userId"
+      ]
+    },
+    "contentSources": {
+      "pgOnly": [
+        "accessLevel",
+        "dataQuality",
+        "entityName",
+        "lastModified",
+        "relatedSources",
+        "sourceId",
+        "tags"
+      ],
+      "sqliteOnly": [
+        "connectionConfig",
+        "lastSyncAt",
+        "name",
+        "syncSchedule"
+      ]
+    },
+    "knowledgeBaseItems": {
+      "pgOnly": [
+        "equipmentId",
+        "fileType",
+        "name",
+        "numChunks",
+        "sizeBytes",
+        "source",
+        "status"
+      ],
+      "sqliteOnly": [
+        "category",
+        "content",
+        "embedding",
+        "isActive",
+        "sourceType",
+        "sourceUrl",
+        "tags",
+        "title"
+      ]
+    },
+    "schedulerRuns": {
+      "pgOnly": [
+        "startedAt"
+      ],
+      "sqliteOnly": [
+        "runDate"
+      ]
+    },
+    "scheduleAssignments": {
+      "pgOnly": [
+        "date",
+        "runId"
+      ],
+      "sqliteOnly": [
+        "assignmentDate",
+        "orgId",
+        "schedulerRunId"
+      ]
+    },
+    "scheduleUnfilled": {
+      "pgOnly": [
+        "date",
+        "runId"
+      ],
+      "sqliteOnly": [
+        "assignmentDate",
+        "orgId",
+        "schedulerRunId"
+      ]
+    }
+  }
+}

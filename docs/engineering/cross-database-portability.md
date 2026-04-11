@@ -453,10 +453,11 @@ This runs three scripts:
    - Layer 2: Column parity — compares PG (`shared/schema/`) and SQLite
      (`shared/sqlite-schema/`) column names AND normalized types for switched
      tables. Uses a PG→SQLite type mapping (e.g., `varchar`→`text`,
-     `timestamp`→`text`, `boolean`→`integer`). Known pre-existing drift is
-     allowlisted; only NEW column or type drift blocks.
+     `timestamp`→`text`, `boolean`→`integer`). Uses a **column-level baseline**
+     (`scripts/drift-baseline.json`) so that even tables with existing drift
+     will still flag NEW column or type mismatches.
    - Layer 3: Missing tables — flags tables present in one schema but absent
-     from the other. Pre-existing gaps are allowlisted.
+     from the other. Pre-existing gaps are baselined.
 2. `scripts/check-storage-imports.mjs` — Enforces that no new code imports from
    the frozen `server/storage.ts` facade (allowed exceptions are listed in the script).
 3. `scripts/check-schema-imports.mjs` — Enforces that server code imports from

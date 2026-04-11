@@ -8,8 +8,10 @@
  *             cloud-only.
  *   Layer 2 — Column parity: For every switched table, compares column names
  *             AND normalized types between PG and SQLite definitions.
+ *             Uses a column-level baseline (drift-baseline.json) so that new
+ *             drift in already-drifted tables is still detected.
  *   Layer 3 — Missing tables: Flags tables present in one schema but absent
- *             from the other (with allowlist for pre-existing gaps).
+ *             from the other (with baseline for pre-existing gaps).
  *
  * Run:  node scripts/validate-dual-schema.mjs
  * Exit: 0 = pass, 1 = drift found
@@ -155,60 +157,25 @@ const COLUMN_PARITY_ALLOWLIST = new Set([
   "createdAt", "updatedAt", "deletedAt",
 ]);
 
-const KNOWN_DRIFT_TABLES = new Set([
-  "vessels", "equipment", "equipmentLifecycle", "performanceMetrics",
-  "rawTelemetry", "workOrders", "workOrderCompletions", "workOrderChecklists",
-  "workOrderWorklogs", "workOrderTasks", "workOrderHistory",
-  "maintenanceRecords", "maintenanceCosts", "maintenanceChecklistItems",
-  "maintenanceChecklistCompletions", "maintenanceWindows", "downtimeEvents",
-  "parts", "inventoryParts", "inventoryMovements", "suppliers",
-  "purchaseOrders", "purchaseOrderItems", "partSubstitutions", "partFailureHistory",
-  "reservations", "crew", "skills", "crewSkill", "crewAssignment",
-  "crewCertification", "crewDocuments", "crewLeave", "shiftTemplate",
-  "crewRestSheet", "crewRestDay", "sensorConfigurations", "sensorStates",
-  "sensorTemplates", "sensorBundles", "sensorTypes", "sensorThresholds",
-  "sensorMapping", "discoveredSignals", "alertConfigurations",
-  "alertNotifications", "alertSuppressions", "alertComments",
-  "actionableInsights", "operatingConditionAlerts", "pdmAlerts",
-  "pdmScoreLogs", "pdmBaseline", "mlModels", "failurePredictions",
-  "anomalyDetections", "componentDegradation", "failureHistory",
-  "predictionFeedback", "modelPerformanceValidations", "retrainingTriggers",
-  "thresholdOptimizations", "modelRegistry", "costSavings", "costModel",
-  "complianceRecords", "complianceAudits", "complianceCertificates",
-  "complianceTraining", "complianceNonConformities", "dailyMetricRollups",
-  "scheduleRuns", "scheduleAssignments", "scheduleUnfilled",
-  "devices", "equipmentTelemetry", "deviceRegistry", "organizations", "users",
-  "partsInventory", "stock", "maintenanceSchedules", "maintenanceTemplates",
-  "adminAuditEvents", "adminSystemSettings", "arMaintenanceProcedures",
-  "calibrationCache", "complianceAuditLog", "complianceBundles", "complianceDocs",
-  "contentSources", "crossBorderTransfers", "dataSubjectRequests", "drydockWindow",
-  "dtcDefinitions", "dtcFaults", "edgeHeartbeats", "engineerOverrides",
-  "errorLogs", "expenses", "idempotencyLog", "immutableAuditTrail",
-  "insightReports", "insightSnapshots", "integrationConfigs",
-  "j1939Configurations", "knowledgeBaseItems", "laborRates",
-  "llmBudgetConfigs", "llmCostTracking", "loginEvents", "operatingParameters",
-  "opsDbStaged", "optimizationResults", "optimizerConfigurations", "portCall",
-  "predictionDataQuality", "ragSearchQueries", "requestIdempotency",
-  "resourceConstraints", "scheduleOptimizations", "schedulerRuns",
-  "sheetLock", "sheetVersion", "storageConfig", "syncProtocolVersion",
-  "telemetryAggregates", "telemetryRollups", "userSessions",
-  "vibrationFeatures", "visualizationAssets",
-  "workOrderParts", "dbSchemaVersion",
-]);
+const baselinePath = resolve(__dirname, "drift-baseline.json");
+const baseline = JSON.parse(readFileSync(baselinePath, "utf8"));
+const baselineMissing = new Set(baseline.missingTables || []);
+const baselineDrift = baseline.columnDrift || {};
 
-const KNOWN_MISSING_TABLES = new Set([
-  ...KNOWN_DRIFT_TABLES,
-  "beastModeConfig", "conditionMonitoring", "dataQualityMetrics",
-  "digitalTwins", "edgeDiagnosticLogs", "industryBenchmarks",
-  "metricsHistory", "mlModelAccuracyHistory", "mqttDevices",
-  "oilAnalysis", "oilChangeRecords", "replayIncoming",
-  "rulFitHistory", "rulModels", "serialPortStates",
-  "syncConflicts", "syncJournal", "syncOutbox",
-  "systemHealthChecks", "systemPerformanceMetrics", "systemSettings",
-  "telemetryRetentionPolicies", "transportFailovers", "transportSettings",
-  "twinSimulations", "vibrationAnalysis", "wearParticleAnalysis",
-  "weibullEstimates",
-]);
+function isBaselineDrift(tableName, pgOnly, sqliteOnly, typeDriftCols) {
+  const entry = baselineDrift[tableName];
+  if (!entry) return false;
+
+  const baselinePgOnly = new Set(entry.pgOnly || []);
+  const baselineSqliteOnly = new Set(entry.sqliteOnly || []);
+  const baselineTypeDrift = new Set(entry.typeDrift || []);
+
+  const newPgOnly = pgOnly.filter(c => !baselinePgOnly.has(c));
+  const newSqliteOnly = sqliteOnly.filter(c => !baselineSqliteOnly.has(c));
+  const newTypeDrift = typeDriftCols.filter(c => !baselineTypeDrift.has(c));
+
+  return newPgOnly.length === 0 && newSqliteOnly.length === 0 && newTypeDrift.length === 0;
+}
 
 let knownDriftCount = 0;
 let newDriftCount = 0;
@@ -221,16 +188,16 @@ for (const pair of switchedPairs) {
   if (!pgDef && !sqliteDef) continue;
 
   if (pgDef && !sqliteDef) {
-    if (!KNOWN_MISSING_TABLES.has(pair.name)) {
+    if (!baselineMissing.has(pair.name)) {
       missingTableCount++;
-      errors.push(`Layer 2 — MISSING SQLite table for ${pair.name}: PG has ${pair.pgExport} but no SQLite ${pair.sqliteExport} found`);
+      errors.push(`Layer 3 — MISSING SQLite table for ${pair.name}: PG has ${pair.pgExport} but no SQLite ${pair.sqliteExport} found`);
     }
     continue;
   }
   if (!pgDef && sqliteDef) {
-    if (!KNOWN_MISSING_TABLES.has(pair.name)) {
+    if (!baselineMissing.has(pair.name)) {
       missingTableCount++;
-      errors.push(`Layer 2 — MISSING PG table for ${pair.name}: SQLite has ${pair.sqliteExport} but no PG ${pair.pgExport} found`);
+      errors.push(`Layer 3 — MISSING PG table for ${pair.name}: SQLite has ${pair.sqliteExport} but no PG ${pair.pgExport} found`);
     }
     continue;
   }
@@ -243,7 +210,8 @@ for (const pair of switchedPairs) {
   const pgOnly = [...pgColNames].filter(c => !sqliteColNames.has(c) && !COLUMN_PARITY_ALLOWLIST.has(c));
   const sqliteOnly = [...sqliteColNames].filter(c => !pgColNames.has(c) && !COLUMN_PARITY_ALLOWLIST.has(c));
 
-  const typeMismatches = [];
+  const typeDriftCols = [];
+  const typeDriftDetails = [];
   for (const [col, pgType] of pgDef.columns) {
     if (COLUMN_PARITY_ALLOWLIST.has(col)) continue;
     const sqliteType = sqliteDef.columns.get(col);
@@ -251,19 +219,31 @@ for (const pair of switchedPairs) {
     const pgNorm = normalizeType(pgType);
     const sqliteNorm = normalizeType(sqliteType);
     if (pgNorm !== sqliteNorm) {
-      typeMismatches.push(`${col}: PG=${pgType}(→${pgNorm}) vs SQLite=${sqliteType}(→${sqliteNorm})`);
+      typeDriftCols.push(col);
+      typeDriftDetails.push(`${col}: PG=${pgType}(→${pgNorm}) vs SQLite=${sqliteType}(→${sqliteNorm})`);
     }
   }
 
-  if (pgOnly.length > 0 || sqliteOnly.length > 0 || typeMismatches.length > 0) {
-    if (KNOWN_DRIFT_TABLES.has(pair.name)) {
+  if (pgOnly.length > 0 || sqliteOnly.length > 0 || typeDriftCols.length > 0) {
+    if (isBaselineDrift(pair.name, pgOnly, sqliteOnly, typeDriftCols)) {
       knownDriftCount++;
     } else {
       newDriftCount++;
+      const newPgOnly = pgOnly.filter(c => !(baselineDrift[pair.name]?.pgOnly || []).includes(c));
+      const newSqliteOnly = sqliteOnly.filter(c => !(baselineDrift[pair.name]?.sqliteOnly || []).includes(c));
+      const newTypeDrift = typeDriftDetails.filter(d => {
+        const col = d.split(":")[0];
+        return !(baselineDrift[pair.name]?.typeDrift || []).includes(col);
+      });
       const details = [];
-      if (pgOnly.length) details.push(`PG-only cols: ${pgOnly.join(", ")}`);
-      if (sqliteOnly.length) details.push(`SQLite-only cols: ${sqliteOnly.join(", ")}`);
-      if (typeMismatches.length) details.push(`Type mismatches: ${typeMismatches.join("; ")}`);
+      if (newPgOnly.length) details.push(`NEW PG-only cols: ${newPgOnly.join(", ")}`);
+      if (newSqliteOnly.length) details.push(`NEW SQLite-only cols: ${newSqliteOnly.join(", ")}`);
+      if (newTypeDrift.length) details.push(`NEW type mismatches: ${newTypeDrift.join("; ")}`);
+      if (!details.length) {
+        if (pgOnly.length) details.push(`PG-only cols: ${pgOnly.join(", ")}`);
+        if (sqliteOnly.length) details.push(`SQLite-only cols: ${sqliteOnly.join(", ")}`);
+        if (typeDriftDetails.length) details.push(`Type mismatches: ${typeDriftDetails.join("; ")}`);
+      }
       errors.push(`Layer 2 — NEW drift in ${pair.name} (${pgDef.tableName}): ${details.join("; ")}`);
     }
   }
