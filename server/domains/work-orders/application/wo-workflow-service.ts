@@ -24,11 +24,41 @@ export class WorkOrderWorkflowService {
   ): Promise<WorkOrderCompletionResult> {
     const { workOrderId, orgId, predictionFeedback: feedback } = input;
 
+    const wo = await this.woRepo.findById(workOrderId, orgId);
+    if (!wo) {
+      return {
+        workOrderId,
+        completed: false,
+        error: "Work order not found",
+        savingsCalculated: false,
+        predictionFeedbackRecorded: false,
+      };
+    }
+    if (wo.status === "completed") {
+      return {
+        workOrderId,
+        completed: false,
+        error: "Work order is already completed",
+        savingsCalculated: false,
+        predictionFeedbackRecorded: false,
+      };
+    }
+    if (wo.status === "cancelled") {
+      return {
+        workOrderId,
+        completed: false,
+        error: "Cannot complete a cancelled work order",
+        savingsCalculated: false,
+        predictionFeedbackRecorded: false,
+      };
+    }
+
     const updated = await this.woRepo.updateStatus(workOrderId, orgId, "completed", userId);
     if (!updated) {
       return {
         workOrderId,
         completed: false,
+        error: "Failed to update status",
         savingsCalculated: false,
         predictionFeedbackRecorded: false,
       };
@@ -86,10 +116,21 @@ export class WorkOrderWorkflowService {
     orgId: string,
     reason: string,
     userId: string,
-  ): Promise<{ cancelled: boolean; savingsVoided: number }> {
+  ): Promise<{ cancelled: boolean; savingsVoided: number; error?: string }> {
+    const wo = await this.woRepo.findById(workOrderId, orgId);
+    if (!wo) {
+      return { cancelled: false, savingsVoided: 0, error: "Work order not found" };
+    }
+    if (wo.status === "cancelled") {
+      return { cancelled: false, savingsVoided: 0, error: "Work order is already cancelled" };
+    }
+    if (wo.status === "completed") {
+      return { cancelled: false, savingsVoided: 0, error: "Cannot cancel a completed work order" };
+    }
+
     const updated = await this.woRepo.updateStatus(workOrderId, orgId, "cancelled", userId);
     if (!updated) {
-      return { cancelled: false, savingsVoided: 0 };
+      return { cancelled: false, savingsVoided: 0, error: "Failed to update status" };
     }
 
     const voided = await this.savings.voidForWorkOrder(

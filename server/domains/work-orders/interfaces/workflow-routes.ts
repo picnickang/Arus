@@ -93,7 +93,10 @@ export function registerWorkOrderWorkflowRoutes(
       );
 
       if (!result.completed) {
-        return sendNotFound(res, "Work Order");
+        if (result.error === "Work order not found") {
+          return sendNotFound(res, "Work Order");
+        }
+        return res.status(400).json({ error: result.error });
       }
 
       res.json(result);
@@ -117,10 +120,13 @@ export function registerWorkOrderWorkflowRoutes(
       const result = await service.cancelWithVoid(workOrderId, orgId, reason, userId);
 
       if (!result.cancelled) {
-        return sendNotFound(res, "Work Order");
+        if (result.error === "Work order not found") {
+          return sendNotFound(res, "Work Order");
+        }
+        return res.status(400).json({ error: result.error });
       }
 
-      res.json(result);
+      res.json({ cancelled: result.cancelled, savingsVoided: result.savingsVoided });
     }),
   );
 

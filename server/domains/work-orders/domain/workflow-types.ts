@@ -39,6 +39,7 @@ export interface WorkOrderCompletionInput {
 export interface WorkOrderCompletionResult {
   workOrderId: string;
   completed: boolean;
+  error?: string;
   savingsCalculated: boolean;
   savingsValidationStatus?: string;
   predictionFeedbackRecorded: boolean;
