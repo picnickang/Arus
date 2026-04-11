@@ -1,3 +1,4 @@
+import { useState as useLocalState } from "react";
 import { Clock, User, Ship, Wrench, Calendar, DollarSign, FileText, Package, ClipboardList, History, Copy, Link2, Send, Trash2, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +12,7 @@ import { WorkOrderHistoryTab } from "./WorkOrderHistoryTab";
 import { WorkOrderRequestsTab } from "./WorkOrderRequestsTab";
 import { LinkTemplateDialog } from "./LinkTemplateDialog";
 import { LinkedServiceOrdersPanel } from "./LinkedServiceOrdersPanel";
+import { PredictionFeedbackForm } from "./PredictionFeedbackForm";
 import { cn } from "@/lib/utils";
 import { useWorkOrderDetailData } from "@/features/work-orders";
 import type { WorkOrder } from "@shared/schema";
@@ -66,8 +68,12 @@ export function WorkOrderDetailDrawer({ workOrder, open, onClose, equipment, ves
     activeTab, setActiveTab, linkTemplateDialogOpen, setLinkTemplateDialogOpen,
     workOrderParts, totalPartsCost, totalLaborCost, totalProcurementCost, downtimeCost, procurementCosts, grandTotal, invalidateParts, invalidateChecklist,
   } = useWorkOrderDetailData({ workOrder });
+  const [showFeedbackStep, setShowFeedbackStep] = useLocalState(false);
+  const [predictionFeedback, setPredictionFeedback] = useLocalState<any>(undefined);
 
   if (!workOrder) {return null;}
+
+  const isPredictiveWo = workOrder.maintenanceType === "predictive";
 
   const getEquipmentName = (equipmentId: string) => equipment.find((e) => e.id === equipmentId)?.name || equipmentId?.slice(0, 8) || "Unknown";
   const getEquipmentType = (equipmentId: string) => equipment.find((e) => e.id === equipmentId)?.type || "Equipment";
@@ -184,6 +190,15 @@ export function WorkOrderDetailDrawer({ workOrder, open, onClose, equipment, ves
                 workOrderNumber={workOrder.woNumber || workOrder.id.slice(0, 8)}
                 workOrderStatus={workOrder.status}
               />
+              {showFeedbackStep && workOrder.status !== "completed" && workOrder.status !== "cancelled" && (
+                <>
+                  <Separator />
+                  <PredictionFeedbackForm
+                    workOrderId={workOrder.id}
+                    onChange={(feedback) => setPredictionFeedback(feedback)}
+                  />
+                </>
+              )}
             </TabsContent>
 
             <TabsContent value="parts" className="mt-0 p-4 sm:p-6">
@@ -216,7 +231,16 @@ export function WorkOrderDetailDrawer({ workOrder, open, onClose, equipment, ves
             <Button variant="outline" size="sm" onClick={() => onEdit(workOrder)} data-testid="button-edit-wo-drawer" className="text-xs sm:text-sm">Edit</Button>
             {onDelete && <Button variant="outline" size="sm" onClick={() => { onClose(); onDelete(workOrder); }} data-testid="button-delete-wo-drawer" className="text-xs sm:text-sm text-destructive hover:text-destructive"><Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />Delete</Button>}
             {workOrder.status !== "completed" && workOrder.status !== "cancelled" && (
-              <Button size="sm" onClick={() => onComplete(workOrder.id)} disabled={isCompleting} data-testid="button-complete-wo-drawer" className="text-xs sm:text-sm">{isCompleting ? "Completing..." : "Complete"}</Button>
+              <Button size="sm" onClick={() => {
+                if (isPredictiveWo && !showFeedbackStep) {
+                  setShowFeedbackStep(true);
+                  setActiveTab("details");
+                } else {
+                  onComplete(workOrder.id);
+                  setShowFeedbackStep(false);
+                  setPredictionFeedback(undefined);
+                }
+              }} disabled={isCompleting} data-testid="button-complete-wo-drawer" className="text-xs sm:text-sm">{isCompleting ? "Completing..." : showFeedbackStep ? "Confirm Complete" : "Complete"}</Button>
             )}
           </div>
         </div>

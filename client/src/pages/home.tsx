@@ -6,12 +6,15 @@ import { PageHeader } from "@/components/navigation/PageHeader";
 import { NavigationCard } from "@/components/navigation/NavigationCard";
 import { QuickActions } from "@/components/shared/QuickActions";
 import { AttentionBanner } from "@/components/shared/AttentionBanner";
+import { PendingApprovalsBanner } from "@/components/shared/PendingApprovalsBanner";
+import { QuickWorkOrderSheet } from "@/components/work-orders/QuickWorkOrderSheet";
 import { homePageGroups, type HomePageGroup } from "@/config/navigationConfig";
 import { trackPageVisit, getLastVisitTime, recordVisitTime } from "@/lib/pageTracking";
+import { getBriefingRedirect } from "@/lib/briefing-redirect";
 import {
   Wrench, AlertTriangle, Clock, Activity, Ship, Shield,
   ClipboardCheck, Anchor, BookOpen, BarChart3, Settings,
-  ChevronRight, Gauge, History,
+  ChevronRight, Gauge, History, Plus,
 } from "lucide-react";
 
 export { trackPageVisit };
@@ -257,18 +260,27 @@ function MyTasks() {
 }
 
 export default function HomePage() {
+  const [, navigate] = useLocation();
   const [role, setRole] = useState<string | null>(() => {
     try { return localStorage.getItem(STORAGE_KEY); } catch { return null; }
   });
+  const [quickWoOpen, setQuickWoOpen] = useState(false);
 
   const { attentionItems, sinceLastVisit } = useAttentionItems();
   const roleConfig = role ? ROLES[role] : null;
+  const briefingRedirect = role ? getBriefingRedirect() : null;
 
   useEffect(() => {
     if (role) {
       recordVisitTime();
     }
   }, [role]);
+
+  useEffect(() => {
+    if (briefingRedirect) {
+      navigate(briefingRedirect);
+    }
+  }, [briefingRedirect, navigate]);
 
   const handleSelectRole = (roleId: string) => {
     localStorage.setItem(STORAGE_KEY, roleId);
@@ -277,6 +289,10 @@ export default function HomePage() {
 
   if (!role) {
     return <RoleSelector onSelect={handleSelectRole} />;
+  }
+
+  if (briefingRedirect) {
+    return null;
   }
 
   const pinnedGroupIds = roleConfig?.pinnedGroups ?? homePageGroups.map((g) => g.id);
@@ -297,6 +313,8 @@ export default function HomePage() {
           setRole(null);
         }}
       />
+
+      <PendingApprovalsBanner />
 
       <div className="px-4 lg:px-6 pt-2">
         {attentionItems.length > 0 && (
@@ -359,6 +377,20 @@ export default function HomePage() {
           </details>
         )}
       </div>
+
+      <button
+        onClick={() => setQuickWoOpen(true)}
+        className="fixed bottom-24 right-4 md:bottom-6 md:right-6 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors z-40"
+        aria-label="Quick Work Order"
+        data-testid="button-quick-wo"
+      >
+        <Plus className="h-6 w-6" />
+      </button>
+
+      <QuickWorkOrderSheet
+        open={quickWoOpen}
+        onClose={() => setQuickWoOpen(false)}
+      />
     </div>
   );
 }

@@ -17,6 +17,13 @@ import { registerCompletionRoutes } from "./completion";
 import { registerPartsRoutes } from "./parts";
 import { registerExtendedRoutes } from "./extended";
 import { registerEnrichedPartsRoutes } from "./parts-enriched";
+import { registerWorkOrderWorkflowRoutes } from "./workflow-routes";
+import {
+  WorkOrderWorkflowRepositoryAdapter,
+  CostSavingsWorkflowAdapter,
+  PredictionFeedbackWorkflowAdapter,
+} from "../infrastructure/workflow-adapters";
+import { WorkOrderWorkflowService } from "../application/wo-workflow-service";
 import type { RateLimitMiddleware } from "./types";
 import { logger } from "../../../utils/logger.js";
 
@@ -31,7 +38,13 @@ export function registerWorkOrderRoutes(
   registerExtendedRoutes(app, rateLimit);
   registerEnrichedPartsRoutes(app);
 
-  logger.info("WorkOrdersRoutes", "Extended routes registered (clone, history, costs, parts, completions, enriched)");
+  const woRepo = new WorkOrderWorkflowRepositoryAdapter();
+  const savings = new CostSavingsWorkflowAdapter();
+  const predictionFeedback = new PredictionFeedbackWorkflowAdapter();
+  const workflowService = new WorkOrderWorkflowService(woRepo, savings, predictionFeedback);
+  registerWorkOrderWorkflowRoutes(app, workflowService, rateLimit);
+
+  logger.info("WorkOrdersRoutes", "Extended routes registered (clone, history, costs, parts, completions, enriched, workflow)");
 }
 
 export type { RateLimitMiddleware } from "./types";

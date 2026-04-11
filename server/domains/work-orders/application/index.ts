@@ -13,3 +13,4 @@ export const workOrderAppService = new WorkOrderApplicationService({
 });
 
 export { WorkOrderApplicationService } from "./work-order-service";
+export { WorkOrderWorkflowService } from "./wo-workflow-service";

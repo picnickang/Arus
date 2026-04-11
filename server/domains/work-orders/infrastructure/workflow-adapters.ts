@@ -1,0 +1,233 @@
+import { db } from "../../../db";
+import { workOrders, costSavings, failurePredictions } from "@shared/schema-runtime";
+import { eq, and, sql, ne } from "drizzle-orm";
+import { processWorkOrderCompletion } from "../../../cost-savings-engine/persistence";
+import type {
+  IWorkOrderWorkflowRepository,
+  ICostSavingsPort,
+  IPredictionFeedbackPort,
+  WorkOrderWithWorkflowContext,
+} from "../domain/workflow-ports";
+import type {
+  QuickWorkOrderInput,
+  QuickWorkOrderResult,
+  CompletionPredictionFeedback,
+} from "../domain/workflow-types";
+
+export class WorkOrderWorkflowRepositoryAdapter implements IWorkOrderWorkflowRepository {
+  async createQuick(orgId: string, input: QuickWorkOrderInput): Promise<QuickWorkOrderResult> {
+    const woNumber = await this.nextWorkOrderNumber(orgId);
+
+    const [row] = await db
+      .insert(workOrders)
+      .values({
+        orgId,
+        equipmentId: input.equipmentId,
+        vesselId: input.vesselId || null,
+        description: input.description,
+        reason: input.description,
+        priority: input.priority === "high" ? 1 : input.priority === "medium" ? 2 : 3,
+        status: "open",
+        maintenanceType: "corrective",
+        woNumber,
+      } as any)
+      .returning({
+        id: workOrders.id,
+      });
+
+    return {
+      id: row.id,
+      workOrderNumber: woNumber,
+      status: "open",
+      createdVia: "quick_mobile",
+      queuedOffline: false,
+    };
+  }
+
+  async findById(id: string, orgId: string): Promise<WorkOrderWithWorkflowContext | null> {
+    const [row] = await db
+      .select({
+        id: workOrders.id,
+        workOrderNumber: workOrders.woNumber,
+        equipmentId: workOrders.equipmentId,
+        vesselId: workOrders.vesselId,
+        status: workOrders.status,
+        maintenanceType: workOrders.maintenanceType,
+        costJustification: workOrders.costJustification,
+        totalCost: workOrders.totalCost,
+        totalLaborCost: workOrders.totalLaborCost,
+        totalPartsCost: workOrders.totalPartsCost,
+      })
+      .from(workOrders)
+      .where(and(eq(workOrders.id, id), eq(workOrders.orgId, orgId)))
+      .limit(1);
+
+    if (!row) return null;
+
+    return {
+      id: row.id,
+      workOrderNumber: row.workOrderNumber || "",
+      equipmentId: row.equipmentId,
+      vesselId: row.vesselId || null,
+      status: row.status,
+      maintenanceType: row.maintenanceType || null,
+      predictionId: null,
+      costJustification: row.costJustification || null,
+      estimatedRepairCost: null,
+      estimatedFailureCost: null,
+      totalCost: row.totalCost || null,
+      totalLaborCost: row.totalLaborCost || null,
+      totalPartsCost: row.totalPartsCost || null,
+    };
+  }
+
+  async updateStatus(
+    id: string,
+    orgId: string,
+    newStatus: string,
+    _updatedBy?: string,
+  ): Promise<boolean> {
+    const result = await db
+      .update(workOrders)
+      .set({
+        status: newStatus,
+        updatedAt: new Date(),
+        ...(newStatus === "completed" ? { completedAt: new Date() } : {}),
+      } as any)
+      .where(and(eq(workOrders.id, id), eq(workOrders.orgId, orgId)))
+      .returning({ id: workOrders.id });
+
+    return result.length > 0;
+  }
+
+  async nextWorkOrderNumber(orgId: string): Promise<string> {
+    const [result] = await db.execute(sql`
+      SELECT COALESCE(
+        MAX(CAST(SUBSTRING(wo_number FROM 'WO-([0-9]+)') AS INTEGER)),
+        0
+      ) + 1 AS next_num
+      FROM work_orders
+      WHERE org_id = ${orgId}
+    `).then((r: any) => r.rows || r);
+
+    return `WO-${String(result?.next_num || 1).padStart(5, "0")}`;
+  }
+
+  async isPredictive(id: string, orgId: string): Promise<boolean> {
+    const [row] = await db
+      .select({ maintenanceType: workOrders.maintenanceType })
+      .from(workOrders)
+      .where(and(eq(workOrders.id, id), eq(workOrders.orgId, orgId)))
+      .limit(1);
+
+    if (row?.maintenanceType === "predictive") return true;
+
+    const [pred] = await db
+      .select({ id: failurePredictions.id })
+      .from(failurePredictions)
+      .where(eq(failurePredictions.resolvedByWorkOrderId, id))
+      .limit(1);
+
+    return !!pred;
+  }
+}
+
+export class CostSavingsWorkflowAdapter implements ICostSavingsPort {
+  async processCompletion(
+    workOrderId: string,
+    orgId: string,
+  ): Promise<{ saved: boolean; savingsId?: string }> {
+    const result = await processWorkOrderCompletion(workOrderId, orgId);
+    return { saved: result.saved };
+  }
+
+  async voidForWorkOrder(
+    workOrderId: string,
+    orgId: string,
+    reason: string,
+    changedBy?: string,
+  ): Promise<number> {
+    const result = await db
+      .update(costSavings)
+      .set({
+        validationStatus: "voided",
+        validationReason: reason,
+        validationChangedBy: changedBy ?? "system",
+        validationChangedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(costSavings.workOrderId, workOrderId),
+          eq(costSavings.orgId, orgId),
+          ne(costSavings.validationStatus, "voided"),
+        ),
+      )
+      .returning({ id: costSavings.id });
+
+    return result.length;
+  }
+
+  async updateValidation(
+    workOrderId: string,
+    orgId: string,
+    status: "valid" | "disputed" | "voided",
+    reason: string,
+    changedBy: string,
+  ): Promise<boolean> {
+    const result = await db
+      .update(costSavings)
+      .set({
+        validationStatus: status,
+        validationReason: reason,
+        validationChangedBy: changedBy,
+        validationChangedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(costSavings.workOrderId, workOrderId),
+          eq(costSavings.orgId, orgId),
+        ),
+      )
+      .returning({ id: costSavings.id });
+
+    return result.length > 0;
+  }
+}
+
+export class PredictionFeedbackWorkflowAdapter implements IPredictionFeedbackPort {
+  async recordFeedback(
+    feedback: CompletionPredictionFeedback,
+    orgId: string,
+    userId: string,
+  ): Promise<void> {
+    if (feedback.predictionId) {
+      try {
+        await db.execute(sql`
+          INSERT INTO prediction_feedback (
+            org_id, prediction_id, equipment_id, user_id,
+            feedback_type, is_accurate, comments, created_at
+          )
+          SELECT
+            ${orgId},
+            ${Number(feedback.predictionId)},
+            wo.equipment_id,
+            ${userId},
+            ${feedback.outcome},
+            ${feedback.outcome !== "false_alarm"},
+            ${feedback.notes || `WO completion feedback: ${feedback.outcome}`},
+            NOW()
+          FROM work_orders wo
+          WHERE wo.id = ${feedback.workOrderId}
+          ON CONFLICT DO NOTHING
+        `);
+      } catch {
+        await db
+          .update(workOrders)
+          .set({
+            description: sql`COALESCE(description, '') || E'\n[Prediction feedback: ${sql.raw(feedback.outcome)}]'`,
+          } as any)
+          .where(eq(workOrders.id, feedback.workOrderId));
+      }
+    }
+  }
+}
