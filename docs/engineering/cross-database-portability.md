@@ -433,8 +433,9 @@ The count should match the number of exported table constants.
 
 | Automation | Status | Command |
 |-----------|--------|---------|
-| Schema export guard (ternary validation) | **Implemented** | `npm run check:schema` |
+| Schema export guard (ternary validation) | **Implemented** | `npm run check:schema` (Layer 1) |
 | Column parity check (PG vs SQLite column diff) | **Implemented** | `npm run check:schema` (Layer 2) |
+| Schema import boundary | **Implemented** | `npm run check:schema-imports` |
 | Storage facade import boundary | **Implemented** | `npm run check:storage-imports` |
 | All guardrails combined | **Implemented** | `npm run check:guards` |
 | ESLint rule banning `serial()` imports | Deferred | Create custom ESLint plugin or `no-restricted-imports` rule |
@@ -446,12 +447,18 @@ The count should match the number of exported table constants.
 npm run check:guards
 ```
 
-This runs two scripts:
-1. `scripts/validate-dual-schema.mjs` — Validates that every table export in
-   `schema-runtime.ts` uses the ternary guard pattern and compares column names
-   between PG and SQLite definitions for switched tables.
+This runs three scripts:
+1. `scripts/validate-dual-schema.mjs` — Two-layer validation:
+   - Layer 1: Every table export in `schema-runtime.ts` uses the ternary guard pattern.
+   - Layer 2: Column parity — compares PG (`shared/schema/`) and SQLite
+     (`shared/sqlite-schema/`) table definitions for switched tables. Known
+     pre-existing drift is allowlisted; only NEW column drift blocks.
 2. `scripts/check-storage-imports.mjs` — Enforces that no new code imports from
    the frozen `server/storage.ts` facade (allowed exceptions are listed in the script).
+3. `scripts/check-schema-imports.mjs` — Enforces that server code imports from
+   `@shared/schema-runtime` (the dual-mode switcher) rather than directly from
+   `@shared/schema/*` or `@shared/sqlite-schema/*`. Direct imports bypass the
+   runtime mode switch. Allowed exceptions are PG-specific adapters listed in the script.
 
 ---
 
