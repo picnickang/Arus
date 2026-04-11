@@ -1,0 +1,240 @@
+Here’s the real outstanding work, now that architecture is mostly solved.
+This is not generic — this is the actual remaining work to get ARUS to a true 10/10 platform.
+
+⸻
+
+🧾 OUTSTANDING WORK (ranked by impact)
+
+🔴 1. Finish Storage Facade Retirement (CRITICAL)
+
+Status
+	•	Guardrails exist ✅
+	•	Usage restricted ✅
+	•	Still ~50 legacy consumers ❗
+
+Work
+	•	Inventory all remaining storage.ts consumers
+	•	Migrate them to:
+	•	domain services OR
+	•	repositories/ports
+	•	Delete or rename storage.ts → legacyStorage.ts
+
+Done when
+	•	No production code imports it (only tests or explicit legacy folder)
+
+⸻
+
+🔴 2. Enforce Route Registration Fully
+
+Status
+	•	Domain router registry exists ✅
+	•	Still mixed patterns ❗
+
+Work
+	•	Ban app.use() outside routes.ts
+	•	Enforce:
+all new routes → domain-router-registry
+	•	Tag all legacy routes with removal phases
+
+Done when
+	•	One and only one way to register routes
+
+⸻
+
+🔴 3. Apply “Work Order Pattern” to Next Domain (PdM)
+
+Status
+	•	Work orders: clean ✅
+	•	PdM / analytics: still transitional ❗
+
+Work
+
+Pick PdM and enforce:
+	•	one endpoint path
+	•	no fallback routes
+	•	unified UI flows
+	•	typed contract (like complete-with-feedback)
+
+Done when
+	•	No duplicate PdM routes, hooks, or flows
+
+⸻
+
+🟠 4. Burn Down “Allowed Drift” (116 → 0)
+
+Status
+	•	Guardrail exists ✅
+	•	Drift tracked ✅
+	•	Drift still high ❗
+
+Work
+	•	Categorize drift:
+	•	quick fixes
+	•	medium effort
+	•	long tail
+	•	Add CI rule:
+drift must not increase
+	•	Set target:
+	•	116 → 80 → 50 → 20 → 0
+
+Done when
+	•	Drift trend is consistently downward
+
+⸻
+
+🟠 5. Kill Redirect Debt
+
+Status
+	•	Consolidated into legacy-redirects.ts ✅
+	•	Still ~20–25 redirects ❗
+
+Work
+	•	Log usage per redirect
+	•	Add expiration:
+	•	30 / 60 / 90 days
+	•	Remove aggressively
+
+Done when
+	•	Redirect count near zero
+
+⸻
+
+🟠 6. Enforce Dual-DB Discipline in CI
+
+Status
+	•	Validation exists ✅
+	•	Guardrail works ✅
+
+Work
+	•	Fail CI if:
+	•	schema change exists in only one DB
+	•	Add:
+	•	shared test suite (PG + SQLite)
+	•	“offline unsupported” flags where needed
+
+Done when
+	•	No manual DB parity checks needed
+
+⸻
+
+🟡 7. Domain Ownership Clarity
+
+Status
+	•	Domains exist ✅
+	•	Ownership not fully enforced ❗
+
+Work
+
+For each domain:
+	•	owns:
+	•	DB schema
+	•	API routes
+	•	services
+	•	UI module
+	•	prevent cross-domain leakage
+
+Done when
+	•	No “mystery logic” outside domains
+
+⸻
+
+🟡 8. AI Copilot → Workflow Integration
+
+Status
+	•	Copilot exists ✅
+	•	Integration unclear ❗
+
+Work
+
+Make Copilot:
+	•	summarize vessel status
+	•	explain alerts
+	•	propose work orders
+	•	guide decisions
+
+NOT:
+	•	a separate UI tool
+
+Done when
+	•	Copilot reduces clicks, not adds them
+
+⸻
+
+🟡 9. Product Workflow Simplification (BIG NEXT STEP)
+
+Status
+	•	Strong feature set ✅
+	•	Complexity risk ❗
+
+Work (by role)
+
+Vessel Engineer
+	•	one “what’s wrong now” screen
+	•	one “what do I fix” flow
+
+Fleet Manager
+	•	one “which vessels need attention” view
+
+PdM Engineer
+	•	one “which signals are real vs noise” loop
+
+Done when
+	•	users don’t need to navigate across modules to act
+
+⸻
+
+🟡 10. Eliminate Remaining Duplicate UX Paths
+
+Status
+	•	Some cleaned (WO) ✅
+	•	Others remain ❗
+
+Work
+	•	identify:
+	•	multiple ways to do same task
+	•	remove extras
+
+Done when
+	•	one path per action
+
+⸻
+
+🧠 Priority Summary
+
+Do FIRST (architecture completion)
+	1.	Storage facade retirement
+	2.	Route registration enforcement
+	3.	PdM domain cleanup
+
+Do NEXT (platform hardening)
+	4.	Drift burn-down
+	5.	Redirect removal
+	6.	Dual-DB CI enforcement
+
+Do LAST (product excellence)
+	7.	Domain ownership
+	8.	Copilot integration
+	9.	Workflow simplification
+	10.	UX path deduplication
+
+⸻
+
+🎯 Final reality check
+
+You are past the dangerous phase.
+
+Now you’re in:
+
+👉 “Consolidate and dominate” phase
+
+⸻
+
+🧾 One-line truth
+
+There are no more scary unknowns — only disciplined execution left.
+
+⸻
+
+If you want, next I’ll give you:
+
+👉 A 30-day execution plan to knock out the top 3 items (very actionable, step-by-step)
