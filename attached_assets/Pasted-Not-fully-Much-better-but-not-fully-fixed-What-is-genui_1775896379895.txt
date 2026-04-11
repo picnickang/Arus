@@ -1,0 +1,62 @@
+Not fully. Much better, but not fully fixed.
+
+What is genuinely fixed now:
+	•	The frontend no longer falls back to the legacy work-order completion endpoint. Both useWorkOrdersPageData.ts and useWorkOrders.ts now post directly to /api/work-orders/:id/complete-with-feedback.
+	•	The shared ROLES config is in use.
+	•	The quick work-order FAB positioning was changed, so the Copilot overlap issue looks addressed.
+	•	The drawer completion flow is wired into PredictionFeedbackForm and passes feedback into complete-with-feedback.
+
+Why I still would not call it fully fixed:
+
+1. The legacy completion route still exists
+
+server/domains/work-orders/interfaces/completion.ts still registers:
+
+POST /api/work-orders/:id/complete
+
+It is marked deprecated, but it is still live. That means the old path is retired in intent, not fully removed in runtime.
+
+2. Not all completion entry points are unified
+
+In client/src/pages/work-orders.tsx:
+	•	the drawer path calls onComplete(id, feedback)
+	•	the modal path still calls completeWorkOrderMutation.mutate({ orderId: selectedOrder.id })
+
+So the modal still completes a work order without prediction feedback.
+
+That means you still have two behaviors:
+	•	one rich path
+	•	one minimal path
+
+The endpoint is unified, but the workflow is not.
+
+3. Feedback is still optional, not enforced
+
+server/domains/work-orders/interfaces/workflow-routes.ts accepts predictionFeedback if present, but does not require it for predictive work orders.
+
+So even with the new endpoint, a predictive WO can still be completed without the feedback loop being closed.
+
+That matters because earlier the real issue was not just “which endpoint is used,” it was:
+does every valid completion path enforce the same operational behavior?
+
+Right now, the answer is still no.
+
+My updated verdict
+
+Before this update, I would have said:
+mid-migration, still carrying visible coexistence.
+
+Now I’d say:
+the architecture is clearly consolidating, and risk has dropped, but the cleanup is not complete yet.
+
+What would make me say “yes, fixed”
+
+Three things:
+	•	Delete or hard-disable POST /api/work-orders/:id/complete
+	•	Make every completion UI path go through one shared completion action
+	•	Require prediction feedback for predictive work orders, either in UI or server validation
+
+So the honest answer is:
+
+It is improved in a meaningful way.
+It is not fully fixed yet.

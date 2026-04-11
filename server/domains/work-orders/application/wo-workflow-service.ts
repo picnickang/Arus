@@ -57,6 +57,17 @@ export class WorkOrderWorkflowService {
       };
     }
 
+    const isPredictive = await this.woRepo.isPredictive(workOrderId, orgId);
+    if (isPredictive && !feedback) {
+      return {
+        workOrderId,
+        completed: false,
+        error: "Prediction feedback is required for predictive work orders",
+        savingsCalculated: false,
+        predictionFeedbackRecorded: false,
+      };
+    }
+
     try {
       await this.legacyCompletion.completeWorkOrder(
         workOrderId,

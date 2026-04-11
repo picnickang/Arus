@@ -69,7 +69,7 @@ export function WorkOrderDetailDrawer({ workOrder, open, onClose, equipment, ves
     workOrderParts, totalPartsCost, totalLaborCost, totalProcurementCost, downtimeCost, procurementCosts, grandTotal, invalidateParts, invalidateChecklist,
   } = useWorkOrderDetailData({ workOrder });
   const [showFeedbackStep, setShowFeedbackStep] = useLocalState(false);
-  const [predictionFeedback, setPredictionFeedback] = useLocalState<any>(undefined);
+  const [predictionFeedback, setPredictionFeedback] = useLocalState<{ workOrderId: string; predictionId?: string | number | null; outcome: "confirmed" | "partial" | "false_alarm"; notes?: string } | undefined>(undefined);
 
   if (!workOrder) {return null;}
 
@@ -240,7 +240,7 @@ export function WorkOrderDetailDrawer({ workOrder, open, onClose, equipment, ves
                   setShowFeedbackStep(false);
                   setPredictionFeedback(undefined);
                 }
-              }} disabled={isCompleting} data-testid="button-complete-wo-drawer" className="text-xs sm:text-sm">{isCompleting ? "Completing..." : showFeedbackStep ? "Confirm Complete" : "Complete"}</Button>
+              }} disabled={isCompleting || (showFeedbackStep && isPredictiveWo && !predictionFeedback)} data-testid="button-complete-wo-drawer" className="text-xs sm:text-sm">{isCompleting ? "Completing..." : showFeedbackStep ? "Confirm Complete" : isPredictiveWo ? "Provide Feedback & Complete" : "Complete"}</Button>
             )}
           </div>
         </div>

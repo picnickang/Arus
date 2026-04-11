@@ -1,9 +1,12 @@
+import { useState as useLocalState } from "react";
 import { Plus, Trash2, Package, FileText, Wrench, RefreshCw, AlertTriangle } from "lucide-react";
 import { WorkOrderRequestsTab } from "@/components/work-orders/WorkOrderRequestsTab";
+import { PredictionFeedbackForm } from "@/components/work-orders/PredictionFeedbackForm";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { WorkOrderFilterPanel, VirtualizedWorkOrderTable, WorkOrderDetailDrawer, WorkOrderFormDialog, WorkOrderCloneDialog } from "@/components/work-orders";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -97,7 +100,7 @@ export default function WorkOrders() {
       <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
         <DialogContent className="max-w-6xl w-[95vw] md:w-auto max-h-[90vh] overflow-y-auto" data-testid="order-detail-panel">
           <DialogHeader><DialogTitle>Work Order {selectedOrder?.woNumber || selectedOrder?.id}</DialogTitle><DialogDescription>Manage work order and parts for {selectedOrder && getEquipmentName(selectedOrder.equipmentId)}</DialogDescription></DialogHeader>
-          {selectedOrder && <ViewOrderTabs order={selectedOrder} getEquipmentName={getEquipmentName} getVesselName={getVesselName} onComplete={() => completeWorkOrderMutation.mutate({ orderId: selectedOrder.id })} isCompleting={completeWorkOrderMutation.isPending} onClose={() => setViewModalOpen(false)} queryClient={queryClient} />}
+          {selectedOrder && <ViewOrderTabs order={selectedOrder} getEquipmentName={getEquipmentName} getVesselName={getVesselName} onComplete={(feedback) => completeWorkOrderMutation.mutate({ orderId: selectedOrder.id, predictionFeedback: feedback })} isCompleting={completeWorkOrderMutation.isPending} onClose={() => setViewModalOpen(false)} queryClient={queryClient} />}
         </DialogContent>
       </Dialog>
 
@@ -110,7 +113,26 @@ function StatCard({ label, value, testId, className = "text-foreground" }: { lab
   return <Card><CardContent className="p-4 md:p-6"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-xs md:text-sm">{label}</p><p className={`text-xl md:text-2xl font-bold mt-1 ${className}`} data-testid={testId}>{value}</p></div></div></CardContent></Card>;
 }
 
-function ViewOrderTabs({ order, getEquipmentName, getVesselName, onComplete, isCompleting, onClose, queryClient }: { order: WorkOrder; getEquipmentName: (id: string) => string; getVesselName: (id: string | null) => string; onComplete: () => void; isCompleting: boolean; onClose: () => void; queryClient: { invalidateQueries: (options: { queryKey: string[] }) => void } }) {
+interface PredictionFeedbackData {
+  workOrderId: string;
+  predictionId?: string | number | null;
+  outcome: "confirmed" | "partial" | "false_alarm";
+  notes?: string;
+}
+
+function ViewOrderTabs({ order, getEquipmentName, getVesselName, onComplete, isCompleting, onClose, queryClient }: { order: WorkOrder; getEquipmentName: (id: string) => string; getVesselName: (id: string | null) => string; onComplete: (feedback?: PredictionFeedbackData) => void; isCompleting: boolean; onClose: () => void; queryClient: { invalidateQueries: (options: { queryKey: string[] }) => void } }) {
+  const isPredictiveWo = order.maintenanceType === "predictive";
+  const [showFeedbackStep, setShowFeedbackStep] = useLocalState(false);
+  const [predictionFeedback, setPredictionFeedback] = useLocalState<PredictionFeedbackData | undefined>(undefined);
+
+  const handleComplete = () => {
+    if (isPredictiveWo && !showFeedbackStep) {
+      setShowFeedbackStep(true);
+      return;
+    }
+    onComplete(predictionFeedback || undefined);
+  };
+
   return (
     <Tabs defaultValue="details" className="w-full">
       <TabsList className="grid w-full grid-cols-3">
@@ -139,8 +161,21 @@ function ViewOrderTabs({ order, getEquipmentName, getVesselName, onComplete, isC
           <div><Label className="text-sm font-medium">Created</Label><p className="text-sm text-muted-foreground">{order.createdAt ? formatDistanceToNow(new Date(order.createdAt), { addSuffix: true }) : "Unknown"}</p></div>
           {order.actualDowntimeHours && <div><Label className="text-sm font-medium">Actual Downtime</Label><p className="text-sm text-muted-foreground">{order.actualDowntimeHours}h</p></div>}
         </div>
+        {showFeedbackStep && order.status !== "completed" && order.status !== "cancelled" && (
+          <>
+            <Separator />
+            <PredictionFeedbackForm
+              workOrderId={order.id}
+              onChange={(feedback) => setPredictionFeedback(feedback as PredictionFeedbackData | undefined)}
+            />
+          </>
+        )}
         <div className="flex justify-end gap-2 pt-4">
-          {order.status !== "completed" && <Button onClick={onComplete} disabled={isCompleting} variant="default" data-testid="button-complete-work-order">{isCompleting ? "Completing..." : "Complete Work Order"}</Button>}
+          {order.status !== "completed" && order.status !== "cancelled" && (
+            <Button onClick={handleComplete} disabled={isCompleting || (showFeedbackStep && isPredictiveWo && !predictionFeedback)} variant="default" data-testid="button-complete-work-order">
+              {isCompleting ? "Completing..." : showFeedbackStep ? "Submit & Complete" : isPredictiveWo ? "Provide Feedback & Complete" : "Complete Work Order"}
+            </Button>
+          )}
           <Button variant="outline" onClick={onClose}>Close</Button>
         </div>
       </TabsContent>
