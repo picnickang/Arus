@@ -2,12 +2,14 @@
 /**
  * Dual-DB Schema Guardrail
  *
- * Two-layer validation:
+ * Three-layer validation:
  *   Layer 1 — Export guard: Every table export in schema-runtime.ts uses the
  *             ternary guard pattern (isLocalMode ? sqlite : pg) or is marked
  *             cloud-only.
- *   Layer 2 — Column parity: For every switched table, compares columns in
- *             the PG definition vs SQLite definition and flags mismatches.
+ *   Layer 2 — Column parity: For every switched table, compares column names
+ *             AND normalized types between PG and SQLite definitions.
+ *   Layer 3 — Missing tables: Flags tables present in one schema but absent
+ *             from the other (with allowlist for pre-existing gaps).
  *
  * Run:  node scripts/validate-dual-schema.mjs
  * Exit: 0 = pass, 1 = drift found
@@ -88,6 +90,26 @@ if (unguarded.length > 0) {
 // Layer 2 — Column parity check for switched tables
 // ============================================================================
 
+const PG_TYPES = "text|varchar|integer|boolean|timestamp|real|numeric|serial|uuid|jsonb|json|bigint|smallint|doublePrecision|char|decimal|date|time|interval|blob|customType";
+const SQLITE_TYPES = "text|integer|real|blob|numeric";
+const ALL_TYPES = [...new Set([...PG_TYPES.split("|"), ...SQLITE_TYPES.split("|")])].join("|");
+
+const PG_TO_NORMALIZED = {
+  varchar: "text", text: "text", char: "text",
+  integer: "integer", serial: "integer", bigint: "integer", smallint: "integer",
+  boolean: "integer",
+  real: "real", numeric: "real", decimal: "real", doublePrecision: "real",
+  timestamp: "text", date: "text", time: "text", interval: "text",
+  json: "text", jsonb: "text",
+  uuid: "text",
+  blob: "blob",
+  customType: "text",
+};
+
+function normalizeType(t) {
+  return PG_TO_NORMALIZED[t] || t;
+}
+
 function extractColumnsFromSource(src) {
   const tables = {};
   const tableBlocks = src.matchAll(
@@ -99,12 +121,13 @@ function extractColumnsFromSource(src) {
     const tableName = match[2];
     const body = match[3];
 
-    const cols = new Set();
-    const colMatches = body.matchAll(/(\w+)\s*:\s*(?:text|varchar|integer|boolean|timestamp|real|numeric|serial|uuid|jsonb|json|bigint|smallint|doublePrecision|char|decimal|date|time|interval|blob|customType)\s*\(/g);
-    for (const cm of colMatches) {
-      cols.add(cm[1]);
+    const columns = new Map();
+    const colRe = new RegExp(`(\\w+)\\s*:\\s*(${ALL_TYPES})\\s*\\(`, "g");
+    let cm;
+    while ((cm = colRe.exec(body)) !== null) {
+      columns.set(cm[1], cm[2]);
     }
-    tables[varName] = { tableName, columns: cols };
+    tables[varName] = { tableName, columns };
   }
   return tables;
 }
@@ -170,6 +193,7 @@ const KNOWN_DRIFT_TABLES = new Set([
   "sheetLock", "sheetVersion", "storageConfig", "syncProtocolVersion",
   "telemetryAggregates", "telemetryRollups", "userSessions",
   "vibrationFeatures", "visualizationAssets",
+  "workOrderParts", "dbSchemaVersion",
 ]);
 
 const KNOWN_MISSING_TABLES = new Set([
@@ -214,17 +238,32 @@ for (const pair of switchedPairs) {
   if (pgDef.columns.size === 0 || sqliteDef.columns.size === 0) continue;
 
   pairsChecked++;
-  const pgOnly = [...pgDef.columns].filter(c => !sqliteDef.columns.has(c) && !COLUMN_PARITY_ALLOWLIST.has(c));
-  const sqliteOnly = [...sqliteDef.columns].filter(c => !pgDef.columns.has(c) && !COLUMN_PARITY_ALLOWLIST.has(c));
+  const pgColNames = new Set(pgDef.columns.keys());
+  const sqliteColNames = new Set(sqliteDef.columns.keys());
+  const pgOnly = [...pgColNames].filter(c => !sqliteColNames.has(c) && !COLUMN_PARITY_ALLOWLIST.has(c));
+  const sqliteOnly = [...sqliteColNames].filter(c => !pgColNames.has(c) && !COLUMN_PARITY_ALLOWLIST.has(c));
 
-  if (pgOnly.length > 0 || sqliteOnly.length > 0) {
+  const typeMismatches = [];
+  for (const [col, pgType] of pgDef.columns) {
+    if (COLUMN_PARITY_ALLOWLIST.has(col)) continue;
+    const sqliteType = sqliteDef.columns.get(col);
+    if (!sqliteType) continue;
+    const pgNorm = normalizeType(pgType);
+    const sqliteNorm = normalizeType(sqliteType);
+    if (pgNorm !== sqliteNorm) {
+      typeMismatches.push(`${col}: PG=${pgType}(→${pgNorm}) vs SQLite=${sqliteType}(→${sqliteNorm})`);
+    }
+  }
+
+  if (pgOnly.length > 0 || sqliteOnly.length > 0 || typeMismatches.length > 0) {
     if (KNOWN_DRIFT_TABLES.has(pair.name)) {
       knownDriftCount++;
     } else {
       newDriftCount++;
       const details = [];
-      if (pgOnly.length) details.push(`PG-only: ${pgOnly.join(", ")}`);
-      if (sqliteOnly.length) details.push(`SQLite-only: ${sqliteOnly.join(", ")}`);
+      if (pgOnly.length) details.push(`PG-only cols: ${pgOnly.join(", ")}`);
+      if (sqliteOnly.length) details.push(`SQLite-only cols: ${sqliteOnly.join(", ")}`);
+      if (typeMismatches.length) details.push(`Type mismatches: ${typeMismatches.join("; ")}`);
       errors.push(`Layer 2 — NEW drift in ${pair.name} (${pgDef.tableName}): ${details.join("; ")}`);
     }
   }

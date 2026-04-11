@@ -448,17 +448,22 @@ npm run check:guards
 ```
 
 This runs three scripts:
-1. `scripts/validate-dual-schema.mjs` — Two-layer validation:
+1. `scripts/validate-dual-schema.mjs` — Three-layer validation:
    - Layer 1: Every table export in `schema-runtime.ts` uses the ternary guard pattern.
    - Layer 2: Column parity — compares PG (`shared/schema/`) and SQLite
-     (`shared/sqlite-schema/`) table definitions for switched tables. Known
-     pre-existing drift is allowlisted; only NEW column drift blocks.
+     (`shared/sqlite-schema/`) column names AND normalized types for switched
+     tables. Uses a PG→SQLite type mapping (e.g., `varchar`→`text`,
+     `timestamp`→`text`, `boolean`→`integer`). Known pre-existing drift is
+     allowlisted; only NEW column or type drift blocks.
+   - Layer 3: Missing tables — flags tables present in one schema but absent
+     from the other. Pre-existing gaps are allowlisted.
 2. `scripts/check-storage-imports.mjs` — Enforces that no new code imports from
    the frozen `server/storage.ts` facade (allowed exceptions are listed in the script).
 3. `scripts/check-schema-imports.mjs` — Enforces that server code imports from
    `@shared/schema-runtime` (the dual-mode switcher) rather than directly from
-   `@shared/schema/*` or `@shared/sqlite-schema/*`. Direct imports bypass the
-   runtime mode switch. Allowed exceptions are PG-specific adapters listed in the script.
+   `@shared/schema` or `@shared/schema/*` or `@shared/sqlite-schema/*`. Both
+   root and path imports are blocked. Direct imports bypass the runtime mode
+   switch. Allowed exceptions are PG-specific adapters listed in the script.
 
 ---
 
