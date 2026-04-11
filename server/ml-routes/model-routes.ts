@@ -1,6 +1,14 @@
 /**
  * ML Routes - Model Management Routes
  * CRUD operations for ML models
+ *
+ * @deprecated RETIREMENT TARGET — Phase 1 (30 days)
+ * Canonical replacements:
+ *   GET  /api/ml/models        → GET  /api/pdm/models          (model-registry)
+ *   GET  /api/ml/models/:id    → GET  /api/pdm/models/:modelId (model-registry)
+ *   POST /api/ml/train         → POST /api/pdm/training/runs   (training-pipeline)
+ *   POST /api/ml/models/:id/deploy  → POST /api/pdm/models/:modelId/deploy (model-registry)
+ *   GET  /api/ml/accuracy-trend     → GET  /api/pdm/drift       (monitoring)
  */
 
 import { Router, Response } from "express";

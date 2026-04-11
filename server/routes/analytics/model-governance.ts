@@ -1,5 +1,13 @@
 /**
  * Analytics Routes - ML Models, Performance, and Drift
+ *
+ * @deprecated RETIREMENT TARGET — Phase 2 (60 days)
+ * These are read-model views that overlap with pdm-platform routes:
+ *   GET /api/analytics/ml-models       → GET /api/pdm/models       (model-registry)
+ *   GET /api/analytics/ml-models/:id   → GET /api/pdm/models/:id   (model-registry)
+ *   GET /api/analytics/model-performance → GET /api/pdm/drift       (monitoring)
+ *   GET /api/analytics/model-drift     → GET /api/pdm/drift        (monitoring)
+ * Retained until analytics hub UI migrates to pdm-platform endpoints.
  */
 import type { Router, Request, Response } from "express";
 import { cachedAnalytics, analyticsCacheKeys } from "../../lib/cache";

@@ -1,3 +1,14 @@
+/**
+ * @deprecated RETIREMENT TARGET — Phase 2 (60 days)
+ * Actual routes in this file (mounted at /api/pdm):
+ *   GET  /dashboard              → consolidate into pdm-platform fleet-analytics
+ *   GET  /risk-queue/:status     → consolidate into pdm-platform prediction-governance
+ *   GET  /asset/:equipmentId     → consolidate into pdm-platform feature-store
+ *   POST /analyze/bearing        → consolidate into pdm-platform inference
+ *   POST /analyze/pump           → consolidate into pdm-platform inference
+ *   GET  /schedule               → (retained — unique scheduling view)
+ *   GET  /equipment/:equipmentId/telemetry → (retained — telemetry detail)
+ */
 import { Router } from 'express';
 import { z } from 'zod';
 import { logger } from '../utils/logger';

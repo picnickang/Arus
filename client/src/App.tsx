@@ -36,7 +36,7 @@ import { logisticsRoutes } from "@/routes/logistics";
 import { recordsRoutes } from "@/routes/records";
 import { analyticsRoutes } from "@/routes/analytics";
 import { systemRoutes } from "@/routes/system";
-import { legacyRedirects } from "@/routes/legacy-redirects";
+import { legacyRedirects, trackRedirectUsage } from "@/routes/legacy-redirects";
 
 const allRoutes = [
   ...operationsRoutes,
@@ -71,9 +71,12 @@ function FullPageLoader() {
   );
 }
 
-function Redirect({ to }: { to: string }) {
+function Redirect({ from, to }: { from: string; to: string }) {
   const [, setLocation] = useLocation();
-  useEffect(() => { setLocation(to); }, [to, setLocation]);
+  useEffect(() => {
+    trackRedirectUsage(from, to);
+    setLocation(to);
+  }, [from, to, setLocation]);
   return null;
 }
 
@@ -122,7 +125,7 @@ function Router() {
 
               {legacyRedirects.map(({ from, to }) => (
                 <Route key={from} path={from}>
-                  {() => <Redirect to={to} />}
+                  {() => <Redirect from={from} to={to} />}
                 </Route>
               ))}
 
