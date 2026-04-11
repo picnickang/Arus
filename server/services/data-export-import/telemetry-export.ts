@@ -8,7 +8,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { createWriteStream } from "node:fs";
 
-import { storage } from "../../storage";
+import { dbEquipmentStorage, dbTelemetryStorage } from "../../repositories";
 import { DataAnonymizationService, AnonymizationConfig, AnonymizationResult } from "../../compliance/data-anonymization.service";
 
 import { TELEMETRY_CHUNK_SIZE } from "./constants";
@@ -51,7 +51,7 @@ export async function exportTelemetryChunked(
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
 
-    const allEquipment = await storage.getEquipmentRegistry(orgId);
+    const allEquipment = await dbEquipmentStorage.getEquipmentRegistry(orgId);
     const equipmentIds = allEquipment.map((e) => e.id);
     const equipmentIdSet = new Set(equipmentIds);
 
@@ -59,7 +59,7 @@ export async function exportTelemetryChunked(
       let telemetry: any[] = [];
 
       if (entityName === "equipment_telemetry") {
-        telemetry = await storage.getTelemetry(equipmentId, undefined, 10000);
+        telemetry = await dbTelemetryStorage.getLatestTelemetryReadings(equipmentId, 10000);
         telemetry = telemetry
           .filter((t) => t.ts && new Date(t.ts) >= cutoffDate)
           .filter((t) => equipmentIdSet.has(t.equipmentId))

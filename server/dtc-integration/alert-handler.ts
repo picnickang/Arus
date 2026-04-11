@@ -2,7 +2,7 @@
  * DTC Alert Handler
  */
 
-import type { IStorage } from "../storage";
+import { dbEquipmentStorage, dbAlertStorage, dbDtcStorage, dbTelemetryStorage, workOrderService } from "../repositories";
 import type { DtcWithDefinition, DtcDashboardStats } from "./types";
 import { DTC_STATS_CACHE_TTL_MS, SPN_TO_SENSOR_MAP } from "./types";
 
@@ -15,10 +15,10 @@ export function shouldTriggerAlert(dtc: DtcWithDefinition): boolean {
   return false;
 }
 
-export async function createDtcAlert(storage: IStorage, dtc: DtcWithDefinition, orgId: string): Promise<any | null> {
+export async function createDtcAlert(dtc: DtcWithDefinition, orgId: string): Promise<any | null> {
   if (!shouldTriggerAlert(dtc)) { return null; }
 
-  const equipment = await storage.getEquipment(orgId, dtc.equipmentId);
+  const equipment = await dbEquipmentStorage.getEquipment(orgId, dtc.equipmentId);
   if (!equipment) { return null; }
 
   let alertLevel: "critical" | "warning" | "info" = "warning";
@@ -26,21 +26,21 @@ export async function createDtcAlert(storage: IStorage, dtc: DtcWithDefinition, 
   else if (dtc.definition?.severity === 3) {alertLevel = "warning";}
   else {alertLevel = "info";}
 
-  const recentAlert = await storage.hasRecentAlert(dtc.equipmentId, `dtc_${dtc.spn}_${dtc.fmi}`, "dtc_fault", 30);
+  const recentAlert = await dbAlertStorage.hasRecentAlert(dtc.equipmentId, `dtc_${dtc.spn}_${dtc.fmi}`, "dtc_fault", 30);
   if (recentAlert) {
     console.log(`[DTC Integration] Suppressing duplicate alert for DTC ${dtc.spn}/${dtc.fmi}`);
     return null;
   }
 
   const alertMessage = `DTC Fault: SPN ${dtc.spn} / FMI ${dtc.fmi} - ${dtc.definition?.description || "Unknown fault"}`;
-  return storage.createAlertNotification({
+  return dbAlertStorage.createAlertNotification({
     orgId, equipmentId: dtc.equipmentId, sensorType: `dtc_${dtc.spn}_${dtc.fmi}`,
     alertType: "dtc_fault", message: alertMessage, value: dtc.oc,
     threshold: dtc.definition?.severity || 4, acknowledged: false,
   });
 }
 
-export async function correlateDtcWithTelemetry(storage: IStorage, dtc: DtcWithDefinition, orgId: string, timeWindowMinutes: number = 60): Promise<any[]> {
+export async function correlateDtcWithTelemetry(dtc: DtcWithDefinition, orgId: string, timeWindowMinutes: number = 60): Promise<any[]> {
   const sensorType = SPN_TO_SENSOR_MAP[dtc.spn];
   if (!sensorType) { return []; }
 
@@ -49,7 +49,7 @@ export async function correlateDtcWithTelemetry(storage: IStorage, dtc: DtcWithD
   const hoursWindow = Math.ceil((endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60));
 
   try {
-    const allTelemetry = await storage.getTelemetryHistory(dtc.equipmentId, sensorType, hoursWindow);
+    const allTelemetry = await dbTelemetryStorage.getTelemetryHistory(dtc.equipmentId, sensorType, hoursWindow);
     return allTelemetry.filter((t: any) => {
       const timestamp = new Date(t.timestamp);
       return timestamp >= startTime && timestamp <= endTime;
@@ -59,17 +59,17 @@ export async function correlateDtcWithTelemetry(storage: IStorage, dtc: DtcWithD
   }
 }
 
-export async function getDtcDashboardStats(storage: IStorage, orgId: string): Promise<DtcDashboardStats> {
+export async function getDtcDashboardStats(orgId: string): Promise<DtcDashboardStats> {
   const cacheKey = `dtc-stats:${orgId}`;
   const cached = dtcStatsCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < DTC_STATS_CACHE_TTL_MS) { return cached.data; }
 
   const [allEquipment, allWorkOrders] = await Promise.all([
-    storage.getEquipmentRegistry(orgId),
-    storage.getWorkOrders(),
+    dbEquipmentStorage.getEquipmentRegistry(orgId),
+    workOrderService.getWorkOrdersWithDetails(),
   ]);
 
-  const allDtcsResults = await Promise.all(allEquipment.map((eq) => storage.getActiveDtcs(eq.id, orgId)));
+  const allDtcsResults = await Promise.all(allEquipment.map((eq) => dbDtcStorage.getActiveDtcs(eq.id, orgId)));
 
   let totalActiveDtcs = 0, criticalDtcs = 0, equipmentWithDtcs = 0;
   allDtcsResults.forEach((dtcs) => {

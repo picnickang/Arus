@@ -3,7 +3,7 @@
  */
 
 import OpenAI from "openai";
-import { storage } from "../storage";
+import { dbSystemAdminStorage } from "../repositories";
 import type { ErrorAnalysisResult } from "./types";
 import { cryptoRandom } from "@shared/crypto-random";
 
@@ -24,7 +24,7 @@ export type SettingsAccessor = () => Promise<{ openaiApiKey?: string | null }>;
  */
 export async function getOpenAIApiKey(getSettingsFn?: SettingsAccessor): Promise<string | undefined> {
   try {
-    const settingsAccessor = getSettingsFn || (async () => storage.getSettings());
+    const settingsAccessor = getSettingsFn || (async () => dbSystemAdminStorage.getSettings());
     const settings = await settingsAccessor();
     if (settings.openaiApiKey) {
       return settings.openaiApiKey;

@@ -1,20 +1,6 @@
-/**
- * FMCC Polling Service
- * 
- * Continuously polls FMCC for telemetry data and routes it to:
- * 1. Existing TrackLogService for navigation/position data
- * 2. Existing telemetry pipeline for fuel/engine sensor data
- * 
- * DESIGN RULES:
- * - FMCC plugs into existing telemetry & track schema, not a parallel universe
- * - If FMCC is disabled, the system behaves exactly as before (no regressions)
- * - Track log consumers should not care if data came from GPS vs FMCC
- * - Use source: 'fmcc' as the distinguishing attribute
- */
-
 import { EventEmitter } from 'node:events';
 import { trackLogService, Position } from '../services/track-log-service';
-import { storage } from '../storage';
+import { dbTelemetryStorage } from '../repositories';
 import { getFMCCService } from './index';
 import type { FmccSnapshot, FmccPollingConfig, FmccHealthStatus } from './fmcc-types';
 
@@ -55,9 +41,6 @@ export class FmccPollingService extends EventEmitter {
     }
   }
 
-  /**
-   * Start the polling loop
-   */
   start(): void {
     if (!this.config.enabled) {
       console.log('[FMCC Polling] Not starting - FMCC is disabled');
@@ -82,9 +65,6 @@ export class FmccPollingService extends EventEmitter {
     this.poll().catch(err => this.handlePollError(err));
   }
 
-  /**
-   * Stop the polling loop
-   */
   stop(): void {
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
@@ -93,9 +73,6 @@ export class FmccPollingService extends EventEmitter {
     }
   }
 
-  /**
-   * Perform a single poll and route data to appropriate subsystems
-   */
   async poll(): Promise<FmccSnapshot | null> {
     if (!this.config.enabled) { return null; }
 
@@ -108,7 +85,6 @@ export class FmccPollingService extends EventEmitter {
     }
 
     try {
-      // Use getInstantFuelFlow from the existing FMCC service
       const result = await fmccService.getInstantFuelFlow(this.config.vesselId);
       
       if (!result.success || !result.data) {
@@ -130,9 +106,6 @@ export class FmccPollingService extends EventEmitter {
     }
   }
 
-  /**
-   * Build a normalized FmccSnapshot from raw FMCC data
-   */
   private buildSnapshot(data: any): FmccSnapshot {
     const snapshot: FmccSnapshot = {
       vesselId: this.config.vesselId,
@@ -213,13 +186,6 @@ export class FmccPollingService extends EventEmitter {
     return snapshot;
   }
 
-  /**
-   * Route snapshot data to appropriate existing subsystems
-   * 
-   * IMPORTANT: This integrates with EXISTING services, not parallel ones:
-   * - Navigation data → TrackLogService (existing vessel_track_log table)
-   * - Fuel/Engine data → storage.createTelemetryReading (existing equipmentTelemetry)
-   */
   private async routeToSubsystems(snapshot: FmccSnapshot): Promise<void> {
     const promises: Promise<void>[] = [];
 
@@ -254,14 +220,6 @@ export class FmccPollingService extends EventEmitter {
     await Promise.all(promises);
   }
 
-  /**
-   * Route navigation data to the EXISTING TrackLogService
-   * 
-   * DESIGN: FMCC position data flows into the same vesselTrackLog table
-   * as GPS/AIS data, with source='fmcc' to distinguish origin.
-   * The track log is the single source of truth; we do NOT maintain
-   * separate FMCC-only tracks.
-   */
   private async routeToTrackLog(snapshot: FmccSnapshot): Promise<void> {
     if (!snapshot.navigation?.latDeg || !snapshot.navigation?.lonDeg) { return; }
 
@@ -300,16 +258,13 @@ export class FmccPollingService extends EventEmitter {
     }
   }
 
-  /**
-   * Route fuel/engine telemetry to the EXISTING telemetry pipeline
-   */
   private async routeToTelemetry(snapshot: FmccSnapshot, type: 'fuel' | 'engine' | 'tanks' | 'shaft' | 'bunker'): Promise<void> {
     try {
       const timestamp = new Date(snapshot.timestamp);
 
       if (type === 'fuel') {
         if (snapshot.fuel.totalFlowKgPerH !== undefined) {
-          await storage.createTelemetryReading({
+          await dbTelemetryStorage.createTelemetryReading({
             equipmentId: `fmcc-fuel-${snapshot.vesselId}`,
             sensorType: 'fuel_consumption',
             value: snapshot.fuel.totalFlowKgPerH,
@@ -327,7 +282,7 @@ export class FmccPollingService extends EventEmitter {
         }
 
         if (snapshot.fuel.foDensity !== undefined) {
-          await storage.createTelemetryReading({
+          await dbTelemetryStorage.createTelemetryReading({
             equipmentId: `fmcc-fuel-${snapshot.vesselId}`,
             sensorType: 'fuel_density',
             value: snapshot.fuel.foDensity,
@@ -337,7 +292,7 @@ export class FmccPollingService extends EventEmitter {
         }
 
         if (snapshot.fuel.foTemperature !== undefined) {
-          await storage.createTelemetryReading({
+          await dbTelemetryStorage.createTelemetryReading({
             equipmentId: `fmcc-fuel-${snapshot.vesselId}`,
             sensorType: 'fuel_temperature',
             value: snapshot.fuel.foTemperature,
@@ -358,7 +313,7 @@ export class FmccPollingService extends EventEmitter {
         ];
         for (const [sensorType, value] of perEngineFlows) {
           if (value !== undefined) {
-            await storage.createTelemetryReading({
+            await dbTelemetryStorage.createTelemetryReading({
               equipmentId: `fmcc-fuel-${snapshot.vesselId}`,
               sensorType,
               value,
@@ -371,7 +326,7 @@ export class FmccPollingService extends EventEmitter {
 
       if (type === 'engine' && snapshot.engine) {
         if (snapshot.engine.rpm !== undefined) {
-          await storage.createTelemetryReading({
+          await dbTelemetryStorage.createTelemetryReading({
             equipmentId: `fmcc-engine-${snapshot.vesselId}`,
             sensorType: 'rpm',
             value: snapshot.engine.rpm,
@@ -380,7 +335,7 @@ export class FmccPollingService extends EventEmitter {
           });
         }
         if (snapshot.engine.loadPercent !== undefined) {
-          await storage.createTelemetryReading({
+          await dbTelemetryStorage.createTelemetryReading({
             equipmentId: `fmcc-engine-${snapshot.vesselId}`,
             sensorType: 'engine_load',
             value: snapshot.engine.loadPercent,
@@ -390,7 +345,7 @@ export class FmccPollingService extends EventEmitter {
         }
 
         if (snapshot.engine.powerKw !== undefined) {
-          await storage.createTelemetryReading({
+          await dbTelemetryStorage.createTelemetryReading({
             equipmentId: `fmcc-engine-${snapshot.vesselId}`,
             sensorType: 'power_output',
             value: snapshot.engine.powerKw,
@@ -400,7 +355,7 @@ export class FmccPollingService extends EventEmitter {
         }
 
         if (snapshot.engine.runningHours !== undefined) {
-          await storage.createTelemetryReading({
+          await dbTelemetryStorage.createTelemetryReading({
             equipmentId: `fmcc-engine-${snapshot.vesselId}`,
             sensorType: 'running_hours',
             value: snapshot.engine.runningHours,
@@ -419,7 +374,7 @@ export class FmccPollingService extends EventEmitter {
         ];
         for (const [sensorType, value] of tankEntries) {
           if (value !== undefined) {
-            await storage.createTelemetryReading({
+            await dbTelemetryStorage.createTelemetryReading({
               equipmentId: `fmcc-fuel-${snapshot.vesselId}`,
               sensorType,
               value,
@@ -439,7 +394,7 @@ export class FmccPollingService extends EventEmitter {
         ];
         for (const [sensorType, value, unit] of shaftEntries) {
           if (value !== undefined) {
-            await storage.createTelemetryReading({
+            await dbTelemetryStorage.createTelemetryReading({
               equipmentId: `fmcc-engine-${snapshot.vesselId}`,
               sensorType,
               value,
@@ -451,7 +406,7 @@ export class FmccPollingService extends EventEmitter {
       }
 
       if (type === 'bunker' && snapshot.fuel.bunkerFlowKgPerH !== undefined) {
-        await storage.createTelemetryReading({
+        await dbTelemetryStorage.createTelemetryReading({
           equipmentId: `fmcc-fuel-${snapshot.vesselId}`,
           sensorType: 'bunker_flow',
           value: snapshot.fuel.bunkerFlowKgPerH,

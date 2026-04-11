@@ -4,7 +4,7 @@
  * Generate AI-powered and fallback overview summaries.
  */
 
-import { storage } from "../storage";
+import { dbSystemAdminStorage } from "../repositories";
 import type { InsightBundle } from "./types.js";
 
 /**
@@ -12,7 +12,7 @@ import type { InsightBundle } from "./types.js";
  */
 export async function llmOverview(bundle: InsightBundle): Promise<string> {
   try {
-    const settings = await storage.getSystemSettings();
+    const settings = await dbSystemAdminStorage.getSettings();
     if (!settings?.llmEnabled) {
       return generateFallbackOverview(bundle);
     }

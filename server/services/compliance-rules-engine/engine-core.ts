@@ -4,7 +4,9 @@
  * Main engine class for running compliance checks.
  */
 
-import { storage } from "../../storage";
+import { db } from "../../db-config";
+import { sql } from "drizzle-orm";
+import { vesselService } from "../../repositories";
 import type { ComplianceFinding } from "@shared/schema";
 import { emailNotificationService } from "../email-notification-service";
 import type { RuleContext, RuleEvaluator } from "./types.js";
@@ -24,6 +26,41 @@ import {
   evaluateEngineMissingHourly,
   evaluateBilgeHigh,
 } from "./engine-evaluators.js";
+
+async function getComplianceRules(orgId: string, filters?: any): Promise<any[]> {
+  const result = await db.execute(sql`SELECT * FROM compliance_rules WHERE org_id = ${orgId} ${filters?.sourceType ? sql`AND source_type = ${filters.sourceType}` : sql``} ${filters?.category ? sql`AND category = ${filters.category}` : sql``} ${filters?.enabled !== undefined ? sql`AND enabled = ${filters.enabled}` : sql``} ORDER BY rule_name ASC`);
+  return result.rows;
+}
+
+async function getComplianceFindings(orgId: string, filters?: any): Promise<any[]> {
+  const result = await db.execute(sql`SELECT * FROM compliance_findings WHERE org_id = ${orgId} ${filters?.vesselId ? sql`AND vessel_id = ${filters.vesselId}` : sql``} ${filters?.sourceType ? sql`AND source_type = ${filters.sourceType}` : sql``} ${filters?.severity ? sql`AND severity = ${filters.severity}` : sql``} ${filters?.status ? sql`AND status = ${filters.status}` : sql``} ${filters?.ruleCode ? sql`AND rule_code = ${filters.ruleCode}` : sql``} ${filters?.startDate ? sql`AND found_at >= ${filters.startDate}::timestamp` : sql``} ${filters?.endDate ? sql`AND found_at <= ${filters.endDate}::timestamp` : sql``} ORDER BY found_at DESC`);
+  return result.rows;
+}
+
+async function createComplianceFinding(data: any): Promise<any> {
+  const result = await db.execute(sql`INSERT INTO compliance_findings (org_id, vessel_id, source_type, severity, status, rule_code, title, description, found_at) VALUES (${data.orgId}, ${data.vesselId}, ${data.sourceType}, ${data.severity}, ${data.status || 'open'}, ${data.ruleCode}, ${data.title}, ${data.description}, NOW()) RETURNING *`);
+  return result.rows[0];
+}
+
+async function createComplianceRule(data: any): Promise<any> {
+  const result = await db.execute(sql`INSERT INTO compliance_rules (org_id, source_type, category, rule_name, rule_code, description, severity, enabled) VALUES (${data.orgId}, ${data.sourceType}, ${data.category}, ${data.ruleName}, ${data.ruleCode}, ${data.description}, ${data.severity}, ${data.enabled ?? true}) RETURNING *`);
+  return result.rows[0];
+}
+
+async function resolveComplianceFindingInDb(id: string, _data: any, orgId: string): Promise<any> {
+  const result = await db.execute(sql`UPDATE compliance_findings SET status = 'resolved', resolved_at = NOW() WHERE id = ${id} AND org_id = ${orgId} RETURNING *`);
+  return result.rows[0];
+}
+
+async function acknowledgeComplianceFindingInDb(id: string, _data: any, orgId: string): Promise<any> {
+  const result = await db.execute(sql`UPDATE compliance_findings SET status = 'acknowledged' WHERE id = ${id} AND org_id = ${orgId} RETURNING *`);
+  return result.rows[0];
+}
+
+async function suppressComplianceFindingInDb(id: string, _data: any, orgId: string): Promise<any> {
+  const result = await db.execute(sql`UPDATE compliance_findings SET status = 'suppressed' WHERE id = ${id} AND org_id = ${orgId} RETURNING *`);
+  return result.rows[0];
+}
 
 export class ComplianceRulesEngine {
   private ruleEvaluators: Map<string, RuleEvaluator> = new Map();
@@ -47,7 +84,7 @@ export class ComplianceRulesEngine {
   }
 
   async seedDefaultRules(orgId: string): Promise<void> {
-    const existingRules = await storage.getComplianceRules(orgId);
+    const existingRules = await getComplianceRules(orgId);
 
     if (existingRules.length > 0) {
       console.log(`[ComplianceRulesEngine] Rules already exist for org ${orgId}, skipping seed`);
@@ -57,7 +94,7 @@ export class ComplianceRulesEngine {
     const allRules = [...DEFAULT_DECK_RULES, ...DEFAULT_ENGINE_RULES];
 
     for (const rule of allRules) {
-      await storage.createComplianceRule({
+      await createComplianceRule({
         ...rule,
         orgId,
       });
@@ -74,7 +111,7 @@ export class ComplianceRulesEngine {
     const { orgId, vesselId, logDate, logType } = ctx;
     const sourceType = logType === "deck" ? "logbook_deck" : "logbook_engine";
 
-    const rules = await storage.getComplianceRules(orgId, {
+    const rules = await getComplianceRules(orgId, {
       sourceType,
       enabled: true,
     });
@@ -91,7 +128,7 @@ export class ComplianceRulesEngine {
       }
 
       try {
-        const existingFindings = await storage.getComplianceFindings(orgId, {
+        const existingFindings = await getComplianceFindings(orgId, {
           vesselId,
           ruleCode: rule.ruleCode,
           status: "open",
@@ -110,7 +147,7 @@ export class ComplianceRulesEngine {
 
         if (result.triggered && result.finding) {
           if (existingForDate.length === 0) {
-            const inserted = await storage.createComplianceFinding({
+            const inserted = await createComplianceFinding({
               ...result.finding,
               orgId,
               vesselId,
@@ -120,7 +157,7 @@ export class ComplianceRulesEngine {
 
             if (rule.notifyOnTrigger) {
               try {
-                const vessel = await storage.getVessel(vesselId);
+                const vessel = await vesselService.getVessel(vesselId);
                 const vesselName = vessel?.name || vesselId;
                 await emailNotificationService.sendComplianceNotification(inserted, vesselName, orgId);
               } catch (notifyError) {
@@ -135,7 +172,7 @@ export class ComplianceRulesEngine {
           }
         } else {
           for (const finding of existingForDate) {
-            const resolved = await storage.resolveComplianceFinding(
+            const resolved = await resolveComplianceFindingInDb(
               finding.id,
               {
                 resolvedByUserId: "system",
@@ -164,7 +201,7 @@ export class ComplianceRulesEngine {
     resolvedByUserName: string,
     resolutionNotes?: string
   ): Promise<ComplianceFinding | null> {
-    const finding = await storage.resolveComplianceFinding(
+    const finding = await resolveComplianceFindingInDb(
       findingId,
       {
         resolvedByUserId,
@@ -182,7 +219,7 @@ export class ComplianceRulesEngine {
     acknowledgedByUserId: string,
     acknowledgedByUserName: string
   ): Promise<ComplianceFinding | null> {
-    const finding = await storage.acknowledgeComplianceFinding(
+    const finding = await acknowledgeComplianceFindingInDb(
       findingId,
       {
         acknowledgedByUserId,
@@ -199,7 +236,7 @@ export class ComplianceRulesEngine {
     suppressedUntil: Date,
     suppressedReason: string
   ): Promise<ComplianceFinding | null> {
-    const finding = await storage.suppressComplianceFinding(
+    const finding = await suppressComplianceFindingInDb(
       findingId,
       {
         suppressedUntil,

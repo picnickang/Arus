@@ -2,7 +2,7 @@
  * STCW Dashboard Trends - Historical compliance trend analysis
  */
 
-import { storage } from '../../storage';
+import { vesselService } from '../../repositories';
 import { checkMonthCompliance, calculateFatigueRisk } from '../../stcw-compliance';
 import type { STCWTrends, TrendDataPoint } from './types';
 import { getCacheKey, getFromCache, setCache } from './cache';
@@ -131,8 +131,8 @@ export async function getSTCWComplianceTrends(
   const intervalDays = Math.max(1, Math.floor(lookbackDays / dataPointCount));
 
   const vessels = vesselId
-    ? ([await storage.getVessel(orgId, vesselId)].filter(Boolean) as any[])
-    : await storage.getVessels(orgId);
+    ? ([await vesselService.getVessel(orgId, vesselId)].filter(Boolean) as any[])
+    : await vesselService.getVessels(orgId);
 
   const fullRangeStart = new Date(endDate);
   fullRangeStart.setDate(fullRangeStart.getDate() - lookbackDays - 7);

@@ -2,7 +2,7 @@
  * STCW Dashboard Fleet Summary - Fleet-wide STCW compliance aggregation
  */
 
-import { storage } from '../../storage';
+import { vesselService } from '../../repositories';
 import { checkMonthCompliance, calculateFatigueRisk } from '../../stcw-compliance';
 import type { FleetSTCWSummary, VesselComplianceSummary } from './types';
 import { getCacheKey, getFromCache, setCache } from './cache';
@@ -143,7 +143,7 @@ export async function getFleetSTCWSummary(
   if (cached) {return cached;}
 
   const { startDate, endDate } = getDateRange(lookbackDays);
-  const vessels = await storage.getVessels(orgId);
+  const vessels = await vesselService.getVessels(orgId);
 
   const vesselDataPromises = vessels.map((vessel) =>
     getCrewRestDataForVessel(orgId, vessel.id, startDate, endDate).then((crewData) => ({ vessel, crewData }))

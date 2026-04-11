@@ -2,7 +2,7 @@
  * STCW Dashboard Data Fetcher - Crew rest data retrieval
  */
 
-import { storage } from '../../storage';
+import { dbCrewStorage, dbStcwStorage } from '../../repositories';
 import { withSpan } from '../../utils/request-spans';
 import type { RestDay } from '../../stcw-compliance';
 import type { CrewRestData } from './types';
@@ -27,11 +27,11 @@ export async function getCrewRestDataForVessel(
   const crewDataMap = new Map<string, CrewRestData>();
 
   try {
-    const crewList = await withSpan('db', 'getCrew', () => storage.getCrew(orgId), { vesselId });
+    const crewList = await withSpan('db', 'getCrew', () => dbCrewStorage.getCrew(orgId), { vesselId });
     const vesselCrew = crewList.filter((c) => c.vesselId === vesselId);
 
     for (const crew of vesselCrew) {
-      const restData = await storage.getCrewRestRange(crew.id, startDate, endDate);
+      const restData = await dbStcwStorage.getCrewRestRange(crew.id, startDate, endDate);
 
       const restDays: RestDay[] = restData.days
         .filter((day) => {

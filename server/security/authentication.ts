@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { storage } from "../storage";
+import { dbSystemAdminStorage, dbUserStorage } from "../repositories";
 import crypto from "crypto";
 
 function hashSessionToken(token: string): string {
@@ -53,7 +53,7 @@ export async function requireAuthentication(req: Request, res: Response, next: N
     }
 
     const tokenHash = hashSessionToken(token);
-    const session = await storage.getAdminSessionByToken(tokenHash);
+    const session = await dbSystemAdminStorage.getAdminSessionByToken(tokenHash);
 
     if (session) {
       if (new Date(session.expiresAt) < new Date()) {
@@ -64,15 +64,15 @@ export async function requireAuthentication(req: Request, res: Response, next: N
         });
       }
 
-      await storage.updateAdminSessionActivity(session.id);
+      await dbSystemAdminStorage.updateAdminSessionActivity(session.id);
 
       const mockOrgId = "default-org-id";
       let user = session.userId
-        ? await storage.getUser(session.userId)
-        : await storage.getUserByEmail(session.adminEmail || "admin@example.com", mockOrgId);
+        ? await dbUserStorage.getUser(session.userId)
+        : await dbUserStorage.getUserByEmail(session.adminEmail || "admin@example.com", mockOrgId);
 
       if (!user) {
-        user = await storage.createUser({
+        user = await dbUserStorage.createUser({
           orgId: mockOrgId,
           email: session.adminEmail || "admin@example.com",
           name: "System Administrator",

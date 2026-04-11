@@ -1,9 +1,18 @@
 /**
- * @deprecated Storage Facade - Legacy compatibility layer.
- * Domain routes and repos now import directly from server/repositories.ts.
- * This facade is retained only for ~50 service-layer consumers (compliance reports,
- * adaptive training, DTC integration, etc.) that have not yet been migrated.
- * No new code should import from this file — use server/repositories.ts instead.
+ * @deprecated FROZEN — Storage Facade (Legacy compatibility layer)
+ *
+ * ⛔ DO NOT ADD NEW IMPORTS FROM THIS FILE.
+ * ⛔ DO NOT ADD NEW METHODS TO THIS FACADE.
+ *
+ * All domain routes and repos now import directly from server/repositories.ts.
+ * Remaining consumers: ~3 files with constructor-injection patterns that pass
+ * the whole facade object (pdm-gap-fill-routes, data-privacy-routes, inventory/storage).
+ * These will be migrated when their constructors are refactored to accept repos.
+ *
+ * Migration guide:
+ *   BEFORE: import { storage } from "../storage";
+ *   AFTER:  import { dbEquipmentStorage, vesselService, ... } from "../repositories";
+ *   See server/repositories.ts for all available repo/service exports.
  */
 import { db } from "./db-config";
 import { sql } from "drizzle-orm";

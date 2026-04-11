@@ -4,7 +4,7 @@
  * Main simulation engine for generating realistic marine vessel telemetry data.
  */
 
-import type { IStorage } from "../storage";
+import type { IStorage } from "../storage/interfaces/storage.types";
 import type {
   SimulationConfig,
   SimulationResult,

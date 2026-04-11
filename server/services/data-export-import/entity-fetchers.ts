@@ -4,57 +4,62 @@
  * Functions for fetching entity data from storage for export.
  */
 
-import { storage } from "../../storage";
+import {
+  dbCrewStorage, dbCrewExtensionsStorage, dbAlertStorage, dbEquipmentStorage,
+  dbDevicesStorage, dbUserStorage, dbSensorsStorage, dbMaintenanceStorage,
+  dbInventoryStorage, dbSystemAdminStorage, dbWorkOrderStorage,
+  vesselService, workOrderService, analyticsInsightsAdapter,
+} from "../../repositories";
 import type { ExportOptions } from "./types";
 
 type EntityFetcher = (orgId: string, options: ExportOptions) => Promise<any[]>;
 
 async function fetchCrewCertifications(orgId: string): Promise<any[]> {
-  const crewMembers = await storage.getCrew(orgId);
+  const crewMembers = await dbCrewStorage.getCrew(orgId);
   const certs: any[] = [];
   for (const member of crewMembers) {
-    const memberCerts = await storage.getCrewCertifications(member.id, orgId);
+    const memberCerts = await dbCrewExtensionsStorage.getCrewCertifications(member.id);
     certs.push(...memberCerts);
   }
   return certs;
 }
 
 async function fetchAlertNotifications(orgId: string): Promise<any[]> {
-  const allAlerts = await storage.getAlertNotifications(undefined);
-  const equipment = await storage.getEquipmentRegistry(orgId);
+  const allAlerts = await dbAlertStorage.getAlertNotifications(undefined);
+  const equipment = await dbEquipmentStorage.getEquipmentRegistry(orgId);
   const equipmentIds = new Set(equipment.map((e) => e.id));
   return allAlerts.filter((a) => equipmentIds.has(a.equipmentId));
 }
 
 async function fetchPdmScoreLogs(orgId: string): Promise<any[]> {
-  const allScores = await storage.getPdmScores();
-  const equip = await storage.getEquipmentRegistry(orgId);
+  const allScores = await dbDevicesStorage.getPdmScores();
+  const equip = await dbEquipmentStorage.getEquipmentRegistry(orgId);
   const eqIds = new Set(equip.map((e) => e.id));
   return allScores.filter((s) => eqIds.has(s.equipmentId));
 }
 
 const entityFetchers: Record<string, EntityFetcher> = {
-  organizations: async (orgId) => { const org = await storage.getOrganization(orgId); return org ? [org] : []; },
-  vessels: (orgId) => storage.getVessels(orgId),
-  equipment: (orgId) => storage.getEquipmentRegistry(orgId),
-  devices: (orgId) => storage.getDevices(orgId),
-  users: (orgId) => storage.getUsers(orgId),
-  crew: (orgId) => storage.getCrew(orgId),
+  organizations: async (orgId) => { const org = await dbUserStorage.getOrganization(orgId); return org ? [org] : []; },
+  vessels: (orgId) => vesselService.getVessels(orgId),
+  equipment: (orgId) => dbEquipmentStorage.getEquipmentRegistry(orgId),
+  devices: (orgId) => dbDevicesStorage.getDevices(orgId),
+  users: (orgId) => dbUserStorage.getUsers(orgId),
+  crew: (orgId) => dbCrewStorage.getCrew(orgId),
   crew_certifications: (orgId) => fetchCrewCertifications(orgId),
-  crew_assignments: (orgId) => storage.getCrewAssignments(orgId),
-  sensor_configurations: (orgId) => storage.getSensorConfigurations(undefined, orgId),
-  alert_configurations: (orgId) => storage.getAlertConfigurations(undefined, orgId),
-  maintenance_schedules: (orgId) => storage.getMaintenanceSchedules(undefined, orgId),
-  work_orders: (orgId) => storage.getWorkOrders(undefined, orgId),
-  work_order_completions: (orgId) => storage.getWorkOrderCompletions({ orgId }),
-  maintenance_records: () => storage.getMaintenanceRecords(undefined),
+  crew_assignments: (orgId) => dbCrewStorage.getCrewAssignments(orgId),
+  sensor_configurations: (orgId) => dbSensorsStorage.getSensorConfigurations(undefined, orgId),
+  alert_configurations: (orgId) => dbAlertStorage.getAlertConfigurations(undefined, orgId),
+  maintenance_schedules: (orgId) => dbMaintenanceStorage.getMaintenanceSchedules(undefined, orgId),
+  work_orders: (orgId) => workOrderService.getWorkOrdersWithDetails(undefined, orgId),
+  work_order_completions: (orgId) => dbWorkOrderStorage.getWorkOrderCompletions({ orgId }),
+  maintenance_records: () => dbMaintenanceStorage.getMaintenanceRecords(undefined),
   alert_notifications: (orgId) => fetchAlertNotifications(orgId),
   pdm_score_logs: (orgId) => fetchPdmScoreLogs(orgId),
-  parts_inventory: (orgId) => storage.getPartsInventory(orgId),
-  system_settings: async () => { const settings = await storage.getSettings(); return settings ? [settings] : []; },
+  parts_inventory: (orgId) => dbInventoryStorage.getPartsInventory(orgId),
+  system_settings: async () => { const settings = await dbSystemAdminStorage.getSettings(); return settings ? [settings] : []; },
   kb_docs: async (orgId, options) => {
     if (!options.includeKnowledgeBase) {return [];}
-    try { return storage.getKbDocs(orgId); } catch { return []; }
+    try { return analyticsInsightsAdapter.getKbDocs(orgId); } catch { return []; }
   },
 };
 

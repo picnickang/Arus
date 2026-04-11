@@ -1,4 +1,4 @@
-import { storage } from "../storage";
+import { dbSchedulerStorage, dbStcwStorage, dbCrewStorage } from "../repositories";
 import type { InsertCrewRestSheet } from "@shared/schema";
 
 interface HoRGenerationResult {
@@ -156,7 +156,7 @@ export async function generateHoRFromSchedule(
   };
 
   try {
-    const run = await storage.getSchedulerRun(schedulerRunId);
+    const run = await dbSchedulerStorage.getSchedulerRun(schedulerRunId);
     if (!run) {
       result.errors.push(`Scheduler run ${schedulerRunId} not found`);
       return result;
@@ -172,7 +172,7 @@ export async function generateHoRFromSchedule(
       return result;
     }
 
-    const assignments = await storage.getScheduleAssignmentsByRun(schedulerRunId);
+    const assignments = await dbSchedulerStorage.getScheduleAssignmentsByRun(schedulerRunId);
 
     if (assignments.length === 0) {
       result.errors.push("No schedule assignments found for this run");
@@ -246,12 +246,12 @@ export async function generateHoRFromSchedule(
           scheduleRunId: schedulerRunId,
         };
 
-        const sheet = await storage.createCrewRestSheet(sheetInsert);
+        const sheet = await dbStcwStorage.createCrewRestSheet(sheetInsert);
         result.sheetsCreated++;
 
         for (const [date, hours] of sheetData.days) {
           try {
-            await storage.upsertCrewRestDay(sheet.id, {
+            await dbStcwStorage.upsertCrewRestDay(sheet.id, {
               orgId: run.orgId,
               sheetId: sheet.id,
               date,
@@ -267,7 +267,7 @@ export async function generateHoRFromSchedule(
       }
     }
 
-    await storage.markSchedulerRunHorGenerated(schedulerRunId);
+    await dbSchedulerStorage.markSchedulerRunHorGenerated(schedulerRunId);
 
     result.success = result.errors.length === 0;
     return result;
@@ -278,7 +278,7 @@ export async function generateHoRFromSchedule(
 }
 
 async function buildCrewLookup(orgId: string): Promise<Map<string, { name: string; rank: string | null }>> {
-  const crewMembers = await storage.getCrewMembers(orgId);
+  const crewMembers = await dbCrewStorage.getCrew(orgId);
   const lookup = new Map<string, { name: string; rank: string | null }>();
   for (const c of crewMembers) {
     lookup.set(c.id, { name: c.name, rank: c.rank });

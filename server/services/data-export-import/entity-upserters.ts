@@ -5,7 +5,11 @@
  */
 
 import * as crypto from "node:crypto";
-import { storage } from "../../storage";
+import {
+  dbUserStorage, dbEquipmentStorage, dbAlertStorage, dbSensorsStorage,
+  dbInventoryStorage, dbMaintenanceStorage, dbTelemetryStorage,
+  vesselService, workOrderService,
+} from "../../repositories";
 import type { ConflictResolution } from "./types";
 
 /**
@@ -47,12 +51,12 @@ async function upsertOrganization(
   isRemapping: boolean
 ): Promise<string | undefined> {
   if (isRemapping) { return undefined; }
-  const existingOrg = await storage.getOrganization(record.id);
+  const existingOrg = await dbUserStorage.getOrganization(record.id);
   if (existingOrg) {
     if (conflictResolution === "skip") { return undefined; }
-    await storage.updateOrganization(record.id, record);
+    await dbUserStorage.updateOrganization(record.id, record);
   } else {
-    await storage.createOrganization(record);
+    await dbUserStorage.createOrganization(record);
   }
   return record.id;
 }
@@ -65,17 +69,17 @@ async function upsertVessel(
   if (isRemapping) {
     const oldId = record.id;
     record.id = crypto.randomUUID();
-    await storage.createVessel(record);
+    await vesselService.createVessel(record);
     console.log(`[DataImport] Created vessel: ${oldId} → ${record.id}`);
     return record.id;
   }
-  const existingVessel = await storage.getVessel(record.id);
+  const existingVessel = await vesselService.getVessel(record.id);
   if (existingVessel) {
     if (conflictResolution === "skip") { return undefined; }
-    await storage.updateVessel(record.id, record, record.orgId);
+    await vesselService.updateVessel(record.id, record, record.orgId);
     return undefined;
   } 
-    await storage.createVessel(record);
+    await vesselService.createVessel(record);
     return record.id;
   
 }
@@ -88,17 +92,17 @@ async function upsertEquipment(
   if (isRemapping) {
     const oldId = record.id;
     record.id = crypto.randomUUID();
-    await storage.createEquipment(record);
+    await dbEquipmentStorage.createEquipment(record);
     console.log(`[DataImport] Created equipment: ${oldId} → ${record.id} (vesselId: ${record.vesselId})`);
     return record.id;
   }
-  const existingEquip = await storage.getEquipment(record.orgId, record.id);
+  const existingEquip = await dbEquipmentStorage.getEquipment(record.orgId, record.id);
   if (existingEquip) {
     if (conflictResolution === "skip") { return undefined; }
-    await storage.updateEquipment(record.id, record, record.orgId);
+    await dbEquipmentStorage.updateEquipment(record.id, record, record.orgId || '');
     return undefined;
   } 
-    await storage.createEquipment(record);
+    await dbEquipmentStorage.createEquipment(record);
     return record.id;
   
 }
@@ -112,17 +116,17 @@ async function upsertWorkOrder(
     const oldId = record.id;
     record.id = crypto.randomUUID();
     record.woNumber = `WO-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
-    await storage.createWorkOrder(record);
+    await workOrderService.createWorkOrder(record);
     console.log(`[DataImport] Created work_order: ${oldId} → ${record.id}`);
     return record.id;
   }
-  const existingWO = await storage.getWorkOrderById(record.id, record.orgId);
+  const existingWO = await workOrderService.getWorkOrderById(record.id, record.orgId);
   if (existingWO) {
     if (conflictResolution === "skip") { return undefined; }
-    await storage.updateWorkOrder(record.id, record);
+    await workOrderService.updateWorkOrderWithDowntimeTracking(record.id, record);
     return undefined;
   } 
-    await storage.createWorkOrder(record);
+    await workOrderService.createWorkOrder(record);
     return record.id;
   
 }
@@ -132,15 +136,15 @@ async function upsertMaintenanceSchedule(
   conflictResolution: ConflictResolution,
   isRemapping: boolean
 ): Promise<string | undefined> {
-  const existingSched = await storage.getMaintenanceSchedule(record.id);
+  const existingSched = await dbMaintenanceStorage.getMaintenanceSchedule(record.id);
   if (existingSched) {
     if (conflictResolution === "skip") { return undefined; }
-    await storage.updateMaintenanceSchedule(record.id, record);
+    await dbMaintenanceStorage.updateMaintenanceSchedule(record.id, record);
   } else {
     if (isRemapping) {
       record.id = crypto.randomUUID();
     }
-    await storage.createMaintenanceSchedule(record);
+    await dbMaintenanceStorage.createMaintenanceSchedule(record);
   }
   return record.id;
 }
@@ -154,10 +158,10 @@ async function upsertSensor(
     record.id = crypto.randomUUID();
   }
   try {
-    await storage.createSensor(record);
+    await dbSensorsStorage.createSensorConfiguration(record);
   } catch {
     if (conflictResolution !== "skip") {
-      await storage.updateSensor(record.id, record);
+      await dbSensorsStorage.updateSensorConfigurationById(record.id, record);
     }
   }
   return record.id;
@@ -172,10 +176,10 @@ async function upsertAlertConfiguration(
     record.id = crypto.randomUUID();
   }
   try {
-    await storage.createAlertConfiguration(record);
+    await dbAlertStorage.createAlertConfiguration(record);
   } catch {
     if (conflictResolution !== "skip") {
-      await storage.updateAlertConfiguration(record.id, record);
+      await dbAlertStorage.updateAlertConfiguration(record.id, record);
     }
   }
   return record.id;
@@ -186,10 +190,10 @@ async function upsertSensorConfiguration(
   conflictResolution: ConflictResolution
 ): Promise<string | undefined> {
   try {
-    await storage.createSensorConfiguration(record);
+    await dbSensorsStorage.createSensorConfiguration(record);
   } catch {
     if (conflictResolution !== "skip") {
-      await storage.updateSensorConfiguration(record.id, record);
+      await dbSensorsStorage.updateSensorConfigurationById(record.id, record);
     }
   }
   return record.id;
@@ -197,15 +201,14 @@ async function upsertSensorConfiguration(
 
 async function upsertPartsInventory(record: any): Promise<string | undefined> {
   try {
-    await storage.createPartInventory(record);
+    await dbInventoryStorage.createPartsInventory(record);
   } catch {
-    // Silently skip on conflict
   }
   return record.id;
 }
 
 async function upsertTelemetry(record: any): Promise<string | undefined> {
-  await storage.upsertTelemetry({
+  await dbTelemetryStorage.createTelemetryReading({
     equipmentId: record.equipmentId,
     sensorType: record.sensorType,
     value: record.value,

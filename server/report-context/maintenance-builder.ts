@@ -4,7 +4,7 @@
  * Build comprehensive context for maintenance reports.
  */
 
-import { storage } from "../storage";
+import { vesselService, dbEquipmentStorage, workOrderService, dbMaintenanceStorage } from "../repositories";
 import { vesselIntelligence } from "../vessel-intelligence";
 import type { SelectVessel, WorkOrder } from "@shared/schema-runtime";
 import type { ReportContext, ContextBuilderOptions } from "./types.js";
@@ -34,7 +34,7 @@ export async function buildMaintenanceContext(
   let schedules: any[];
 
   if (vesselId) {
-    const vessel = await storage.getVessel(vesselId);
+    const vessel = await vesselService.getVessel(vesselId);
     if (!vessel) {
       throw new Error(`Vessel not found: ${vesselId}`);
     }
@@ -43,13 +43,13 @@ export async function buildMaintenanceContext(
     workOrders = await getVesselWorkOrders(vesselId, start, end);
     schedules = await getVesselMaintenanceSchedules(vesselId);
   } else {
-    vessels = await storage.getVessels();
-    equipment = await storage.getEquipmentRegistry();
-    const allOrders = await storage.getWorkOrders();
+    vessels = await vesselService.getVessels();
+    equipment = await dbEquipmentStorage.getEquipmentRegistry();
+    const allOrders = await workOrderService.getWorkOrdersWithDetails();
     workOrders = allOrders.filter(
       (wo) => new Date(wo.createdAt) >= start && new Date(wo.createdAt) <= end
     );
-    schedules = await storage.getMaintenanceSchedules();
+    schedules = await dbMaintenanceStorage.getMaintenanceSchedules();
   }
 
   let intelligence;

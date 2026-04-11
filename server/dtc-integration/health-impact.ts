@@ -2,7 +2,7 @@
  * DTC Health and Financial Impact Calculations
  */
 
-import type { IStorage } from "../storage";
+import { dbEquipmentStorage, dbDtcStorage, workOrderService, vesselService } from "../repositories";
 import type { DtcWithDefinition, DtcSummary, DtcFinancialImpact } from "./types";
 
 export function calculateDtcHealthImpact(activeDtcs: DtcWithDefinition[]): number {
@@ -18,8 +18,8 @@ export function calculateDtcHealthImpact(activeDtcs: DtcWithDefinition[]): numbe
   return Math.min(healthPenalty, 100);
 }
 
-export async function getDtcSummaryForReports(storage: IStorage, equipmentId: string, orgId: string): Promise<DtcSummary> {
-  const dtcs = await storage.getActiveDtcs(equipmentId, orgId);
+export async function getDtcSummaryForReports(equipmentId: string, orgId: string): Promise<DtcSummary> {
+  const dtcs = await dbDtcStorage.getActiveDtcs(equipmentId, orgId);
 
   const criticalCount = dtcs.filter((d) => d.definition?.severity === 1).length;
   const highCount = dtcs.filter((d) => d.definition?.severity === 2).length;
@@ -42,16 +42,16 @@ export async function getDtcSummaryForReports(storage: IStorage, equipmentId: st
   return { activeDtcCount: dtcs.length, criticalCount, highCount, moderateCount, lowCount, topDtcs };
 }
 
-export async function calculateDtcFinancialImpact(storage: IStorage, vesselId: string, orgId: string): Promise<DtcFinancialImpact> {
-  const vesselEquipment = await storage.getEquipmentByVessel(vesselId, orgId);
+export async function calculateDtcFinancialImpact(vesselId: string, orgId: string): Promise<DtcFinancialImpact> {
+  const vesselEquipment = await dbEquipmentStorage.getEquipmentByVessel(vesselId, orgId || '');
   let totalDowntimeHours = 0;
   let criticalDtcCount = 0;
 
   for (const eq of vesselEquipment) {
-    const dtcs = await storage.getActiveDtcs(eq.id, orgId);
+    const dtcs = await dbDtcStorage.getActiveDtcs(eq.id, orgId);
     criticalDtcCount += dtcs.filter((d) => d.definition?.severity === 1).length;
 
-    const eqWorkOrders = await storage.getWorkOrders(eq.id);
+    const eqWorkOrders = await workOrderService.getWorkOrdersWithDetails(eq.id);
     const dtcWorkOrders = eqWorkOrders.filter((wo) => wo.reason?.includes("DTC Fault") && wo.affectsVesselDowntime);
 
     for (const wo of dtcWorkOrders) {
@@ -59,7 +59,7 @@ export async function calculateDtcFinancialImpact(storage: IStorage, vesselId: s
     }
   }
 
-  const vessel = await storage.getVessel(vesselId, orgId);
+  const vessel = await vesselService.getVessel(vesselId, orgId);
   const dayRate = vessel?.dayRate ? Number(vessel.dayRate) : 50000;
   const hourlyRate = dayRate / 24;
 

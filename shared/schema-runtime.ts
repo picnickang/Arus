@@ -62,9 +62,7 @@ export const equipmentLifecycle = isLocalMode ? sqliteVessel.equipmentLifecycleS
 export const performanceMetrics = isLocalMode ? sqliteVessel.performanceMetricsSqlite : pgSchema.performanceMetrics;
 export const rawTelemetry = isLocalMode ? sqliteVessel.rawTelemetrySqlite : pgSchema.rawTelemetry;
 export const deviceRegistry = isLocalMode ? sqliteVessel.deviceRegistrySqlite : pgSchema.deviceRegistry;
-export const equipmentDecommissionEvents = isLocalMode 
-  ? pgSchema.equipmentDecommissionEvents // SQLite fallback - table is PostgreSQL-only for now
-  : pgSchema.equipmentDecommissionEvents;
+export const equipmentDecommissionEvents = IS_POSTGRES ? pgSchema.equipmentDecommissionEvents : null; // Cloud-only table
 
 // Work Orders & Maintenance
 export const workOrders = isLocalMode ? sqliteVessel.workOrdersSqlite : pgSchema.workOrders;

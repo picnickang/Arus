@@ -15,7 +15,7 @@ import type {
   Stock,
   PartSubstitution,
 } from "@shared/schema-runtime";
-import type { IStorage } from "../storage";
+import type { IStorage } from "../storage/interfaces/storage.types";
 
 /**
  * Typed interface for inventory storage operations

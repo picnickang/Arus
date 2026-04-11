@@ -2,15 +2,15 @@
  * Engine Log Event - Helper Functions
  */
 
-import { storage } from '../../storage';
+import { engineLogStorage } from '../../repositories';
 import type { InsertEngineLogEvent } from '@shared/schema';
 import { ENGINE_LOG_EVENT_SOURCES } from './types.js';
 
 export async function ensureEngineLogDay(vesselId: string, orgId: string, timestamp: Date): Promise<string> {
   const logDate = timestamp.toISOString().split('T')[0];
-  let day = await storage.getEngineLogDailyByDate(vesselId, logDate, orgId);
+  let day = await engineLogStorage.getEngineLogDailyByDate(vesselId, logDate, orgId);
   if (!day) {
-    day = await storage.createEngineLogDaily({ orgId, vesselId, logDate, status: 'open' });
+    day = await engineLogStorage.createEngineLogDaily({ orgId, vesselId, logDate, status: 'open' });
   }
   return day.id;
 }
@@ -27,7 +27,7 @@ export async function createEngineEvent(vesselId: string, orgId: string, timesta
     const dayId = await ensureEngineLogDay(vesselId, orgId, timestamp);
     const idempotencyKey = createIdempotencyKey(ENGINE_LOG_EVENT_SOURCES.TELEMETRY, eventData.eventType!, vesselId, timestamp, additionalIdempotencyContext);
 
-    await storage.createEngineLogEvent({
+    await engineLogStorage.createEngineLogEvent({
       orgId, vesselId, dayId, timestamp,
       eventType: eventData.eventType!,
       source: ENGINE_LOG_EVENT_SOURCES.TELEMETRY,

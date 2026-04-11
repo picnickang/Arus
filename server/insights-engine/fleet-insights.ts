@@ -4,7 +4,7 @@
  * Generate insights for all equipment across the fleet.
  */
 
-import { storage } from "../storage";
+import { dbEquipmentStorage } from "../repositories";
 import type { TechnicianInsightView, VesselInsightGroup } from "./types.js";
 import { generateTechnicianInsight } from "./technician-insight.js";
 
@@ -25,7 +25,7 @@ export async function generateFleetTechnicianInsights(
 ): Promise<VesselInsightGroup[]> {
   const startTime = Date.now();
   try {
-    const allEquipment = await storage.getEquipmentRegistry(orgId);
+    const allEquipment = await dbEquipmentStorage.getEquipmentRegistry(orgId);
     const equipment = allEquipment.filter(
       (eq) => eq.isActive && (!vesselId || eq.vesselId === vesselId)
     );

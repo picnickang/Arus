@@ -4,11 +4,13 @@
  * Data fetching utilities for report context building.
  */
 
-import { storage } from "../storage";
+import { dbEquipmentStorage, workOrderService, dbTelemetryStorage, dbMaintenanceStorage, dbAlertStorage, dbCrewExtensionsStorage, dbStcwStorage } from "../repositories";
+import { db } from "../db-config";
+import { sql } from "drizzle-orm";
 import type { WorkOrder, EquipmentTelemetry } from "@shared/schema-runtime";
 
 export async function getVesselEquipment(vesselId: string): Promise<any[]> {
-  const allEquipment = await storage.getEquipmentRegistry();
+  const allEquipment = await dbEquipmentStorage.getEquipmentRegistry();
   return allEquipment.filter((e) => e.vesselId === vesselId);
 }
 
@@ -17,7 +19,7 @@ export async function getVesselWorkOrders(
   start: Date,
   end: Date
 ): Promise<WorkOrder[]> {
-  const allOrders = await storage.getWorkOrders();
+  const allOrders = await workOrderService.getWorkOrdersWithDetails();
   return allOrders.filter(
     (wo) =>
       wo.vesselId === vesselId && new Date(wo.createdAt) >= start && new Date(wo.createdAt) <= end
@@ -32,7 +34,7 @@ export async function getVesselTelemetry(
   const equipment = await getVesselEquipment(vesselId);
   const equipmentIds = equipment.map((e) => e.id);
 
-  const allTelemetry = await storage.getLatestTelemetryReadings();
+  const allTelemetry = await dbTelemetryStorage.getLatestTelemetryReadings();
   return allTelemetry.filter(
     (t) =>
       equipmentIds.includes(t.equipmentId) && new Date(t.ts) >= start && new Date(t.ts) <= end
@@ -40,7 +42,7 @@ export async function getVesselTelemetry(
 }
 
 export async function getVesselMaintenanceSchedules(vesselId: string): Promise<any[]> {
-  const allSchedules = await storage.getMaintenanceSchedules();
+  const allSchedules = await dbMaintenanceStorage.getMaintenanceSchedules();
   return allSchedules.filter((s) => s.vesselId === vesselId);
 }
 
@@ -48,7 +50,7 @@ export async function getVesselAlerts(vesselId: string, start: Date, end: Date):
   const equipment = await getVesselEquipment(vesselId);
   const equipmentIds = equipment.map((e) => e.id);
 
-  const allAlerts = await storage.getAlertNotifications();
+  const allAlerts = await dbAlertStorage.getAlertNotifications();
   return allAlerts.filter(
     (a) =>
       equipmentIds.includes(a.equipmentId) &&
@@ -58,22 +60,20 @@ export async function getVesselAlerts(vesselId: string, start: Date, end: Date):
 }
 
 export async function getCrewCertifications(crewIds: string[]): Promise<any[]> {
-  const allCerts = await storage.getCrewCertifications();
-  return allCerts.filter((cert) => crewIds.includes(cert.crewId));
+  const allCerts = await dbCrewExtensionsStorage.getCrewCertifications();
+  return allCerts.filter((cert: any) => crewIds.includes(cert.crewId));
 }
 
 export async function getCrewRestSheets(vesselId: string, start: Date, end: Date): Promise<any[]> {
-  const restData = await storage.getCrewRestByDateRange(
+  const restData = await dbStcwStorage.getCrewRestByDateRange(
     vesselId,
     start.toISOString().split("T")[0],
     end.toISOString().split("T")[0]
   );
-  return restData.map((r) => r.sheet);
+  return restData.map((r: any) => r.sheet);
 }
 
 export async function getComplianceLogs(start: Date, end: Date): Promise<any[]> {
-  return storage.getComplianceAuditLog({
-    startDate: start,
-    endDate: end,
-  });
+  const result = await db.execute(sql`SELECT * FROM compliance_audit_log WHERE created_at >= ${start.toISOString()}::timestamp AND created_at <= ${end.toISOString()}::timestamp ORDER BY created_at DESC`);
+  return result.rows as any[];
 }

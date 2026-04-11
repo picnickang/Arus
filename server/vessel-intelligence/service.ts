@@ -4,7 +4,7 @@
  * Main service class orchestrating vessel intelligence operations.
  */
 
-import { storage } from "../storage";
+import { dbEquipmentStorage, vesselService } from "../repositories";
 import type { VesselLearnings, HistoricalContext } from "./types.js";
 import {
   calculateOperatingHours,
@@ -31,16 +31,16 @@ export class VesselIntelligenceService {
     vesselId: string,
     lookbackDays: number = 365
   ): Promise<VesselLearnings> {
-    const vessel = await storage.getVessel(vesselId);
+    const vessel = await vesselService.getVessel(vesselId);
     if (!vessel) {
       throw new Error(`Vessel not found: ${vesselId}`);
     }
 
     const [workOrders, equipment, telemetry, schedules] = await Promise.all([
-      getWorkOrdersForVessel(storage, vesselId, lookbackDays),
-      storage.getEquipmentRegistry(),
-      getTelemetryForVessel(storage, vesselId, lookbackDays),
-      getMaintenanceSchedulesForVessel(storage, vesselId),
+      getWorkOrdersForVessel(vesselId, lookbackDays),
+      dbEquipmentStorage.getEquipmentRegistry(),
+      getTelemetryForVessel(vesselId, lookbackDays),
+      getMaintenanceSchedulesForVessel(vesselId),
     ]);
 
     const vesselEquipment = equipment.filter((e) => e.vesselId === vesselId);
@@ -65,14 +65,14 @@ export class VesselIntelligenceService {
   }
 
   async getHistoricalContext(vesselId: string): Promise<HistoricalContext> {
-    const vessel = await storage.getVessel(vesselId);
+    const vessel = await vesselService.getVessel(vesselId);
     if (!vessel) {
       throw new Error(`Vessel not found: ${vesselId}`);
     }
 
     const [workOrders, equipment] = await Promise.all([
-      getWorkOrdersForVessel(storage, vesselId),
-      storage.getEquipmentRegistry(),
+      getWorkOrdersForVessel(vesselId),
+      dbEquipmentStorage.getEquipmentRegistry(),
     ]);
 
     const vesselEquipment = equipment.filter((e) => e.vesselId === vesselId);

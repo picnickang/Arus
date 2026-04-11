@@ -1,15 +1,10 @@
-/**
- * HMAC Validation Middleware
- * Extracted from routes.ts for modularization
- */
-
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Request, Response, NextFunction } from "express";
-import { storage } from "../storage";
+import { dbSystemAdminStorage, dbDevicesStorage } from "../repositories";
 
 export async function validateHMAC(req: Request, res: Response, next: NextFunction) {
   try {
-    const settings = await storage.getSettings();
+    const settings = await dbSystemAdminStorage.getSettings();
     if (!settings.hmacRequired) {
       return next();
     }
@@ -41,7 +36,7 @@ export async function validateHMAC(req: Request, res: Response, next: NextFuncti
       });
     }
 
-    const device = await storage.getDevice(equipmentId);
+    const device = await dbDevicesStorage.getDevice(equipmentId);
     if (!device || !device.hmacKey) {
       return res.status(401).json({
         error: "Device not found or HMAC key not configured",

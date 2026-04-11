@@ -2,21 +2,21 @@
  * DTC Work Order Handler
  */
 
-import type { IStorage } from "../storage";
+import { dbEquipmentStorage, workOrderService } from "../repositories";
 import type { DtcWithDefinition } from "./types";
 import type { InsertWorkOrder } from "@shared/schema-runtime";
 
-export async function hasRelatedOpenWorkOrder(storage: IStorage, equipmentId: string, priority: number, excludeReason?: string): Promise<boolean> {
-  const existingOrders = await storage.getWorkOrders(equipmentId);
+export async function hasRelatedOpenWorkOrder(equipmentId: string, priority: number, excludeReason?: string): Promise<boolean> {
+  const existingOrders = await workOrderService.getWorkOrdersWithDetails(equipmentId);
   return !!existingOrders.find((wo) =>
     wo.status === "open" && wo.priority && wo.priority <= priority && (!excludeReason || !wo.reason?.includes(excludeReason))
   );
 }
 
-export async function createWorkOrderFromDtc(storage: IStorage, dtc: DtcWithDefinition, orgId: string): Promise<any | null> {
+export async function createWorkOrderFromDtc(dtc: DtcWithDefinition, orgId: string): Promise<any | null> {
   if (!dtc.definition || dtc.definition.severity > 2) { return null; }
 
-  const existingOrders = await storage.getWorkOrders(dtc.equipmentId);
+  const existingOrders = await workOrderService.getWorkOrdersWithDetails(dtc.equipmentId);
   const dtcWorkOrder = existingOrders.find((wo) =>
     wo.status === "open" && wo.reason?.includes(`SPN ${dtc.spn}`) && wo.reason?.includes(`FMI ${dtc.fmi}`)
   );
@@ -26,7 +26,7 @@ export async function createWorkOrderFromDtc(storage: IStorage, dtc: DtcWithDefi
     return null;
   }
 
-  const eq = await storage.getEquipment(orgId, dtc.equipmentId);
+  const eq = await dbEquipmentStorage.getEquipment(orgId, dtc.equipmentId);
   if (!eq) {
     console.warn(`[DTC Integration] Equipment ${dtc.equipmentId} not found`);
     return null;
@@ -34,7 +34,7 @@ export async function createWorkOrderFromDtc(storage: IStorage, dtc: DtcWithDefi
 
   const priority = dtc.definition.severity === 1 ? 1 : 2;
   const affectsVesselDowntime = dtc.definition.severity === 1;
-  const woNumber = await storage.generateWorkOrderNumber(orgId);
+  const woNumber = await workOrderService.generateWorkOrderNumber(orgId);
 
   const workOrderData: InsertWorkOrder & { woNumber?: string } = {
     orgId,
@@ -49,7 +49,7 @@ export async function createWorkOrderFromDtc(storage: IStorage, dtc: DtcWithDefi
     woNumber,
   };
 
-  const newWorkOrder = await storage.createWorkOrder(workOrderData);
+  const newWorkOrder = await workOrderService.createWorkOrder(workOrderData);
   console.log(`[DTC Integration] Created work order ${newWorkOrder.woNumber || newWorkOrder.id} for DTC SPN ${dtc.spn} FMI ${dtc.fmi}`);
   return newWorkOrder;
 }

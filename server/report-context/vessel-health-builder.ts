@@ -4,7 +4,7 @@
  * Build comprehensive context for vessel health reports.
  */
 
-import { storage } from "../storage";
+import { vesselService } from "../repositories";
 import { vesselIntelligence } from "../vessel-intelligence";
 import type { ReportContext, ContextBuilderOptions } from "./types.js";
 import {
@@ -25,7 +25,7 @@ export async function buildVesselHealthContext(
   orgId: string = "default-org",
   options: ContextBuilderOptions = {}
 ): Promise<ReportContext> {
-  const vessel = await storage.getVessel(vesselId);
+  const vessel = await vesselService.getVessel(vesselId);
   if (!vessel) {
     throw new Error(`Vessel not found: ${vesselId}`);
   }

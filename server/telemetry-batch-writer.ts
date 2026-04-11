@@ -29,7 +29,7 @@
  */
 
 import { EventEmitter } from "node:events";
-import { storage } from "./storage";
+import { dbTelemetryStorage } from "./repositories";
 import {
   telemetryBufferDepth,
   telemetryBufferEvictions,
@@ -404,7 +404,7 @@ export class TelemetryBatchWriter extends EventEmitter {
       const batch = readings.slice(i, i + batchSize);
 
       const insertPromises = batch.map((reading) =>
-        storage.createTelemetryReading({
+        dbTelemetryStorage.createTelemetryReading({
           equipmentId: reading.equipmentId,
           sensorType: reading.sensorType,
           value: reading.value,

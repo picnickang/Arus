@@ -1,9 +1,8 @@
-/**
- * Vibration Analyzer Class
- * Main orchestrator for vibration analysis
- */
-
-import { storage } from "../storage";
+import { dbTelemetryStorage } from "../repositories";
+import { db } from "../db";
+import { vibrationAnalysis } from "@shared/schema-runtime";
+import { eq, and, desc } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
 import { beastModeManager } from "../beast-mode-config";
 import type { VibrationAnalysis } from "@shared/schema-runtime";
 
@@ -61,7 +60,11 @@ export class VibrationAnalyzer {
         timestamp: new Date(),
       };
 
-      const savedAnalysis = await storage.createVibrationAnalysis(analysis);
+      const [savedAnalysis] = await db.insert(vibrationAnalysis).values({
+        id: randomUUID(),
+        ...analysis,
+        createdAt: new Date(),
+      }).returning();
       console.log(`[Vibration Analysis] Analysis completed for ${equipmentId}: ${anomalyDetection.isAnomalous ? "ANOMALY DETECTED" : "NORMAL"} (score: ${anomalyDetection.anomalyScore.toFixed(2)})`);
       return savedAnalysis;
     } catch (error) {
@@ -72,7 +75,7 @@ export class VibrationAnalyzer {
 
   private async getVibrationData(equipmentId: string, orgId: string): Promise<VibrationData[]> {
     try {
-      const allTelemetry = await storage.getLatestTelemetry(orgId, 1000);
+      const allTelemetry = await dbTelemetryStorage.getLatestTelemetryReadings(undefined, 1000);
       const telemetryData = allTelemetry.filter(
         (t) => t.equipmentId === equipmentId && t.sensorType === "vibration"
       );
@@ -94,7 +97,10 @@ export class VibrationAnalyzer {
     try {
       const isEnabled = await beastModeManager.isFeatureEnabled(orgId, "vibration_analysis");
       if (!isEnabled) {return [];}
-      return storage.getVibrationAnalysisHistory(orgId, equipmentId, limit);
+      return db.select().from(vibrationAnalysis)
+        .where(and(eq(vibrationAnalysis.orgId, orgId), eq(vibrationAnalysis.equipmentId, equipmentId)))
+        .orderBy(desc(vibrationAnalysis.timestamp))
+        .limit(limit);
     } catch (error) {
       console.error(`[Vibration Analysis] Error getting history for ${equipmentId}:`, error);
       return [];

@@ -2,17 +2,14 @@
  * DTC Integration Service Class
  */
 
-import { storage } from "../storage";
 import type { DtcWithDefinition, DtcSummary, DtcFinancialImpact, DtcDashboardStats } from "./types";
 import { createWorkOrderFromDtc } from "./work-order-handler";
 import { calculateDtcHealthImpact, getDtcSummaryForReports, calculateDtcFinancialImpact } from "./health-impact";
 import { shouldTriggerAlert, createDtcAlert, correlateDtcWithTelemetry, getDtcDashboardStats } from "./alert-handler";
 
 export class DtcIntegrationService {
-  private get storage() { return storage; }
-
   async createWorkOrderFromDtc(dtc: DtcWithDefinition, orgId: string): Promise<any | null> {
-    return createWorkOrderFromDtc(this.storage, dtc, orgId);
+    return createWorkOrderFromDtc(dtc, orgId);
   }
 
   calculateDtcHealthImpact(activeDtcs: DtcWithDefinition[]): number {
@@ -20,11 +17,11 @@ export class DtcIntegrationService {
   }
 
   async getDtcSummaryForReports(equipmentId: string, orgId: string): Promise<DtcSummary> {
-    return getDtcSummaryForReports(this.storage, equipmentId, orgId);
+    return getDtcSummaryForReports(equipmentId, orgId);
   }
 
   async calculateDtcFinancialImpact(vesselId: string, orgId: string): Promise<DtcFinancialImpact> {
-    return calculateDtcFinancialImpact(this.storage, vesselId, orgId);
+    return calculateDtcFinancialImpact(vesselId, orgId);
   }
 
   shouldTriggerAlert(dtc: DtcWithDefinition): boolean {
@@ -32,15 +29,15 @@ export class DtcIntegrationService {
   }
 
   async createDtcAlert(dtc: DtcWithDefinition, orgId: string): Promise<any | null> {
-    return createDtcAlert(this.storage, dtc, orgId);
+    return createDtcAlert(dtc, orgId);
   }
 
   async correlateDtcWithTelemetry(dtc: DtcWithDefinition, orgId: string, timeWindowMinutes: number = 60): Promise<any[]> {
-    return correlateDtcWithTelemetry(this.storage, dtc, orgId, timeWindowMinutes);
+    return correlateDtcWithTelemetry(dtc, orgId, timeWindowMinutes);
   }
 
   async getDtcDashboardStats(orgId: string): Promise<DtcDashboardStats> {
-    return getDtcDashboardStats(this.storage, orgId);
+    return getDtcDashboardStats(orgId);
   }
 }
 

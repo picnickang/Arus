@@ -10,7 +10,10 @@
  */
 
 import type { EquipmentTelemetry } from "@shared/schema-runtime";
-import { storage } from "../storage";
+import {
+  dbEquipmentStorage, dbAlertStorage, dbSensorsStorage, dbTelemetryStorage,
+  dbMaintenanceStorage, dbSystemAdminStorage, schedulingAdapter, analyticsInsightsAdapter,
+} from "../repositories";
 import { getWebSocketServer } from "../websocket-server";
 import {
   incrementAlertGenerated,
@@ -76,11 +79,11 @@ async function createAlert(
   telemetryReading: EquipmentTelemetry,
   result: ThresholdResult
 ): Promise<void> {
-  const equipment = await storage.getEquipmentRegistry(telemetryReading.orgId);
+  const equipment = await dbEquipmentStorage.getEquipmentRegistry(telemetryReading.orgId);
   const equipmentDetails = equipment.find((e) => e.id === telemetryReading.equipmentId);
   const directionWord = result.isLowIsBad ? "below" : "exceeded";
 
-  const alertNotification = await storage.createAlertNotification({
+  const alertNotification = await dbAlertStorage.createAlertNotification({
     equipmentId: telemetryReading.equipmentId,
     sensorType: telemetryReading.sensorType,
     alertType: result.alertType,
@@ -106,11 +109,8 @@ async function createAlert(
   });
 }
 
-/**
- * Check telemetry readings against alert configurations and create alerts if thresholds are exceeded
- */
 export async function checkAndCreateAlerts(telemetryReading: EquipmentTelemetry): Promise<void> {
-  const alertConfigs = await storage.getAlertConfigurations(telemetryReading.equipmentId);
+  const alertConfigs = await dbAlertStorage.getAlertConfigurations(telemetryReading.equipmentId);
 
   const matchingConfigs = alertConfigs.filter(
     (config) =>
@@ -129,14 +129,14 @@ export async function checkAndCreateAlerts(telemetryReading: EquipmentTelemetry)
 
     if (!result.triggered) {continue;}
 
-    const isSuppressed = await storage.isAlertSuppressed(
+    const isSuppressed = await dbAlertStorage.isAlertSuppressed(
       telemetryReading.equipmentId,
       telemetryReading.sensorType,
       result.alertType
     );
     if (isSuppressed) {continue;}
 
-    const hasRecentAlert = await storage.hasRecentAlert(
+    const hasRecentAlert = await dbAlertStorage.hasRecentAlert(
       telemetryReading.equipmentId,
       telemetryReading.sensorType,
       result.alertType,
@@ -148,9 +148,6 @@ export async function checkAndCreateAlerts(telemetryReading: EquipmentTelemetry)
   }
 }
 
-/**
- * Apply sensor configuration to telemetry reading
- */
 export async function applySensorConfiguration(
   equipmentId: string,
   sensorType: string,
@@ -170,7 +167,7 @@ export async function applySensorConfiguration(
   let processedValue = value;
 
   try {
-    const config = await storage.getSensorConfiguration(equipmentId, sensorType, orgId);
+    const config = await dbSensorsStorage.getSensorConfiguration(equipmentId, sensorType, orgId);
 
     if (!config) {
       return { processedValue, shouldKeep: true, flags: [] };
@@ -205,15 +202,12 @@ export async function applySensorConfiguration(
   }
 }
 
-/**
- * Generate AI-powered insights for telemetry reading
- */
 export async function generateAIInsights(telemetryReading: EquipmentTelemetry): Promise<void> {
   const cacheKey = `${telemetryReading.equipmentId}:${telemetryReading.sensorType}`;
   const lastRun = aiInsightsCache.get(cacheKey) ?? 0;
   const now = Date.now();
 
-  const settings = await storage.getSettings();
+  const settings = await dbSystemAdminStorage.getSettings();
   const throttleMs = (settings.aiInsightsThrottleMinutes || 2) * 60 * 1000;
 
   if (now - lastRun < throttleMs) {
@@ -225,12 +219,12 @@ export async function generateAIInsights(telemetryReading: EquipmentTelemetry): 
   try {
     const { analyzeEquipmentHealth } = await import("../openai");
 
-    const equipment = await storage.getEquipmentRegistry(telemetryReading.orgId);
+    const equipment = await dbEquipmentStorage.getEquipmentRegistry(telemetryReading.orgId);
     const equipmentDetails = equipment.find((e) => e.id === telemetryReading.equipmentId);
 
     if (!equipmentDetails) { return; }
 
-    const recentTelemetry = await storage.getTelemetryByEquipment(
+    const recentTelemetry = await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(
       telemetryReading.equipmentId,
       new Date(Date.now() - 24 * 60 * 60 * 1000),
       new Date(),
@@ -252,7 +246,7 @@ export async function generateAIInsights(telemetryReading: EquipmentTelemetry): 
     });
 
     if (analysis?.riskLevel !== "low") {
-      await storage.createInsightSnapshot({
+      await analyticsInsightsAdapter.createInsightSnapshot({
         orgId: telemetryReading.orgId,
         equipmentId: telemetryReading.equipmentId,
         sensorType: telemetryReading.sensorType,
@@ -266,13 +260,10 @@ export async function generateAIInsights(telemetryReading: EquipmentTelemetry): 
   }
 }
 
-/**
- * Check telemetry health score and schedule automatic maintenance if needed
- */
 export async function checkAndScheduleAutomaticMaintenance(
   telemetryReading: EquipmentTelemetry
 ): Promise<void> {
-  const settings = await storage.getSettings();
+  const settings = await dbSystemAdminStorage.getSettings();
 
   if (!settings.autoScheduleMaintenance) {
     return;
@@ -288,7 +279,7 @@ export async function checkAndScheduleAutomaticMaintenance(
     return;
   }
 
-  const existingSchedules = await storage.getMaintenanceSchedules(telemetryReading.equipmentId);
+  const existingSchedules = await dbMaintenanceStorage.getMaintenanceSchedules(telemetryReading.equipmentId);
   const hasUpcoming = existingSchedules.some(
     (s) =>
       s.status === "pending" &&
@@ -297,7 +288,7 @@ export async function checkAndScheduleAutomaticMaintenance(
   );
 
   if (!hasUpcoming) {
-    const newSchedule = await storage.autoScheduleMaintenance(
+    const newSchedule = await schedulingAdapter.autoScheduleMaintenance(
       telemetryReading.equipmentId,
       healthScore
     );

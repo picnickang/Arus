@@ -1,3 +1,15 @@
+/**
+ * Legacy Redirects — Consolidated redirect map.
+ *
+ * This is the single source of truth for backward-compatible route redirects.
+ * The `routeMigrations` map in navigationConfig.ts is used by programmatic
+ * helpers (migrateRoute) and does NOT need to duplicate entries here.
+ *
+ * Rules:
+ * - additionalRedirects entries override routeMigrations when both define the same `from`.
+ * - additionalRedirects has more specific targets (e.g. ?tab=...) so it takes priority.
+ * - Only add new entries here when retiring a client-side route.
+ */
 import { routeMigrations } from "@/config/navigationConfig";
 
 const additionalRedirects: Array<{ from: string; to: string }> = [

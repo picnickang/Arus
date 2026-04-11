@@ -4,7 +4,7 @@
  * Build context for specialized custom reports.
  */
 
-import { storage } from "../storage";
+import { vesselService, dbEquipmentStorage, workOrderService, dbTelemetryStorage } from "../repositories";
 import type { ReportContext, ContextBuilderOptions } from "./types.js";
 import { fetchKBKnowledge } from "./knowledge-citations.js";
 
@@ -19,10 +19,10 @@ export async function buildCustomContext(
   const start = new Date(end.getTime() - timeframeDays * 24 * 60 * 60 * 1000);
 
   const [vessels, equipment, workOrders, telemetry] = await Promise.all([
-    storage.getVessels(),
-    storage.getEquipmentRegistry(orgId),
-    storage.getWorkOrders(),
-    storage.getLatestTelemetryReadings(),
+    vesselService.getVessels(),
+    dbEquipmentStorage.getEquipmentRegistry(orgId),
+    workOrderService.getWorkOrdersWithDetails(),
+    dbTelemetryStorage.getLatestTelemetryReadings(),
   ]);
 
   let knowledge;

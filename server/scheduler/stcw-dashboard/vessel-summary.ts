@@ -2,7 +2,7 @@
  * STCW Dashboard Vessel Summary - Single vessel STCW compliance details
  */
 
-import { storage } from '../../storage';
+import { vesselService } from '../../repositories';
 import { checkMonthCompliance, calculateFatigueRisk } from '../../stcw-compliance';
 import type { VesselDetailedSummary } from './types';
 import { getDateRange, getCrewRestDataForVessel } from './data-fetcher';
@@ -13,7 +13,7 @@ export async function getVesselSTCWSummary(
   lookbackDays: number = 30
 ): Promise<VesselDetailedSummary> {
   const { startDate, endDate } = getDateRange(lookbackDays);
-  const vessel = await storage.getVessel(vesselId);
+  const vessel = await vesselService.getVessel(vesselId);
 
   if (!vessel) {
     throw new Error(`Vessel ${vesselId} not found`);

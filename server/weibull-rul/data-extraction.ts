@@ -4,7 +4,7 @@
  * Extract equipment life data and degradation metrics.
  */
 
-import { storage } from "../storage";
+import { dbEquipmentStorage, dbTelemetryStorage, workOrderService } from "../repositories";
 import type { EquipmentLifeData } from "./types.js";
 
 export async function getEquipmentLifeData(
@@ -12,7 +12,7 @@ export async function getEquipmentLifeData(
   orgId: string
 ): Promise<EquipmentLifeData[]> {
   try {
-    const workOrders = await storage.getWorkOrders();
+    const workOrders = await workOrderService.getWorkOrdersWithDetails();
     const equipmentWorkOrders = workOrders
       .filter((wo) => wo.equipmentId === equipmentId)
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
@@ -137,7 +137,7 @@ export function calculateDegradationMetric(dayData: any[]): number {
 
 export async function getCurrentEquipmentAge(equipmentId: string, orgId: string): Promise<number> {
   try {
-    const equipmentInfo = await storage.getEquipment(orgId, equipmentId);
+    const equipmentInfo = await dbEquipmentStorage.getEquipment(orgId, equipmentId);
 
     if (equipmentInfo?.commissioningDate) {
       const commissioningDate = new Date(equipmentInfo.commissioningDate);
@@ -146,7 +146,7 @@ export async function getCurrentEquipmentAge(equipmentId: string, orgId: string)
       return Math.max(0, ageMs / (1000 * 60 * 60));
     }
 
-    const telemetryData = await storage.getLatestTelemetry(orgId, 1000);
+    const telemetryData = await dbTelemetryStorage.getLatestTelemetryReadings(equipmentId, 1000);
     const equipmentTelemetry = telemetryData.filter((t) => t.equipmentId === equipmentId);
 
     if (equipmentTelemetry.length > 0) {

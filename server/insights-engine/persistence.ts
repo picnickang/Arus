@@ -4,7 +4,7 @@
  * Store and retrieve insight snapshots.
  */
 
-import { storage } from "../storage";
+import { analyticsInsightsAdapter, dbAnalyticsStorage } from "../repositories";
 import type { InsightSnapshot, InsertInsightSnapshot } from "@shared/schema-runtime";
 import type { InsightBundle } from "./types.js";
 import { computeInsights } from "./compute-fleet-kpi.js";
@@ -27,7 +27,7 @@ export async function persistSnapshot(
       compliance: bundle.compliance,
     };
 
-    const snapshot = await storage.createInsightSnapshot(orgId, insertData);
+    const snapshot = await analyticsInsightsAdapter.createInsightSnapshot(orgId, insertData);
     return { id: snapshot.id, createdAt: snapshot.createdAt };
   } catch (_error) {
     console.error("Failed to persist insight snapshot:", error);
@@ -61,7 +61,7 @@ export async function getLatestSnapshot(
   orgId: string = "default-org-id"
 ): Promise<InsightSnapshot | null> {
   try {
-    return await storage.getLatestInsightSnapshot(orgId, scope);
+    return await dbAnalyticsStorage.getLatestInsightSnapshot(orgId, scope);
   } catch (error) {
     console.error("Failed to get latest snapshot:", error);
     return null;

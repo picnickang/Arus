@@ -2,7 +2,7 @@
  * Engine Log Event - Event Creators
  */
 
-import { storage } from '../../storage';
+import { engineLogStorage } from '../../repositories';
 import type { FuelEventDetails } from './types.js';
 import { ENGINE_LOG_EVENT_TYPES, ENGINE_LOG_EVENT_SOURCES } from './types.js';
 import { ensureEngineLogDay, createIdempotencyKey } from './helpers.js';
@@ -13,7 +13,7 @@ export async function createWorkOrderEngineEvent(workOrderId: string, vesselId: 
     const dayId = await ensureEngineLogDay(vesselId, orgId, timestamp);
     const idempotencyKey = createIdempotencyKey(ENGINE_LOG_EVENT_SOURCES.WORK_ORDER, ENGINE_LOG_EVENT_TYPES.WORK_ORDER_ACTION, vesselId, timestamp, workOrderId);
 
-    await storage.createEngineLogEvent({
+    await engineLogStorage.createEngineLogEvent({
       orgId, vesselId, dayId, timestamp,
       eventType: ENGINE_LOG_EVENT_TYPES.WORK_ORDER_ACTION,
       source: ENGINE_LOG_EVENT_SOURCES.WORK_ORDER,
@@ -32,7 +32,7 @@ export async function createFuelEvent(vesselId: string, orgId: string, eventType
     const dayId = await ensureEngineLogDay(vesselId, orgId, timestamp);
     const idempotencyKey = createIdempotencyKey(ENGINE_LOG_EVENT_SOURCES.FUEL_SYSTEM, eventType, vesselId, timestamp, `${details.fuelType}_${details.quantity}`);
 
-    await storage.createEngineLogEvent({
+    await engineLogStorage.createEngineLogEvent({
       orgId, vesselId, dayId, timestamp, eventType,
       source: ENGINE_LOG_EVENT_SOURCES.FUEL_SYSTEM,
       summary, details: JSON.stringify(details),
@@ -48,7 +48,7 @@ export async function createManualEngineEvent(vesselId: string, orgId: string, e
     const timestamp = new Date();
     const dayId = await ensureEngineLogDay(vesselId, orgId, timestamp);
 
-    await storage.createEngineLogEvent({
+    await engineLogStorage.createEngineLogEvent({
       orgId, vesselId, dayId, timestamp, eventType,
       source: ENGINE_LOG_EVENT_SOURCES.MANUAL,
       summary, details, equipmentId, createdByUserId, createdByUserName,
@@ -65,7 +65,7 @@ export async function createAlarmEvent(vesselId: string, orgId: string, alarmCod
     const eventType = acknowledged ? ENGINE_LOG_EVENT_TYPES.ALARM_CLEARED : ENGINE_LOG_EVENT_TYPES.ALARM_TRIGGERED;
     const idempotencyKey = createIdempotencyKey(ENGINE_LOG_EVENT_SOURCES.ALARM_SYSTEM, eventType, vesselId, timestamp, alarmCode);
 
-    await storage.createEngineLogEvent({
+    await engineLogStorage.createEngineLogEvent({
       orgId, vesselId, dayId, timestamp, eventType,
       source: ENGINE_LOG_EVENT_SOURCES.ALARM_SYSTEM,
       summary: `${acknowledged ? 'Alarm Cleared' : 'Alarm Triggered'}: ${description}`,

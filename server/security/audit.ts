@@ -3,7 +3,7 @@
  */
 
 import { Request, Response, NextFunction } from "express";
-import { storage } from "../storage";
+import { dbSystemAdminStorage } from "../repositories";
 import { DEFAULT_ORG_ID } from "@shared/config/tenant";
 
 export function auditAdminAction(action: string) {
@@ -27,7 +27,7 @@ export function auditAdminAction(action: string) {
     let auditEventId: string;
 
     try {
-      const auditEvent = await storage.createAdminAuditEvent({
+      const auditEvent = await dbSystemAdminStorage.createAdminAuditEvent({
         orgId: DEFAULT_ORG_ID,
         userId: user.id,
         action,
@@ -79,7 +79,7 @@ export function auditAdminAction(action: string) {
         }
 
         try {
-          await storage.updateAdminAuditEvent(auditEventId, {
+          await dbSystemAdminStorage.updateAdminAuditEvent(auditEventId, {
             outcome,
             severity,
             details: {

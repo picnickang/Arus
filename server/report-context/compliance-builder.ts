@@ -4,7 +4,7 @@
  * Build comprehensive context for compliance reports.
  */
 
-import { storage } from "../storage";
+import { vesselService, dbCrewStorage, dbEquipmentStorage, workOrderService, dbStcwStorage } from "../repositories";
 import type { SelectVessel } from "@shared/schema-runtime";
 import type { ReportContext, ContextBuilderOptions } from "./types.js";
 import {
@@ -34,24 +34,24 @@ export async function buildComplianceContext(
   let complianceLogs: any[];
 
   if (vesselId) {
-    const vessel = await storage.getVessel(vesselId);
+    const vessel = await vesselService.getVessel(vesselId);
     if (!vessel) {
       throw new Error(`Vessel not found: ${vesselId}`);
     }
     vessels = [vessel];
-    crew = await storage.getCrew(undefined, vesselId);
+    crew = await dbCrewStorage.getCrew(undefined, vesselId);
     certifications = await getCrewCertifications(crew.map((c) => c.id));
     restSheets = await getCrewRestSheets(vesselId, start, end);
     complianceLogs = await getComplianceLogs(start, end);
   } else {
-    vessels = await storage.getVessels();
-    crew = await storage.getCrew();
+    vessels = await vesselService.getVessels();
+    crew = await dbCrewStorage.getCrew();
     certifications = await getCrewCertifications(crew.map((c) => c.id));
-    restSheets = await storage.getCrewRestSheets();
+    restSheets = await dbStcwStorage.getCrewRestByDateRange();
     complianceLogs = await getComplianceLogs(start, end);
   }
 
-  const workOrders = await storage.getWorkOrders();
+  const workOrders = await workOrderService.getWorkOrdersWithDetails();
   const filteredOrders = workOrders.filter(
     (wo) =>
       new Date(wo.createdAt) >= start &&
@@ -62,7 +62,7 @@ export async function buildComplianceContext(
   const citations = buildCitations(vessels[0], crew, filteredOrders);
   let knowledge;
   if (options.includeKnowledge) {
-    const equipment = await storage.getEquipmentRegistry(orgId);
+    const equipment = await dbEquipmentStorage.getEquipmentRegistry(orgId);
     knowledge = await fetchKBKnowledge(orgId, equipment, 'compliance');
   }
 

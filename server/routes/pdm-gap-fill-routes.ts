@@ -2,6 +2,7 @@ import { Express, Request, Response } from "express";
 import { withErrorHandling } from "../lib/route-utils";
 import { logger } from "../utils/logger";
 import type { AuthenticatedRequest } from "../middleware/auth";
+/** @deprecated TODO: Migrate PredictionOutcomeTracker/ModelEvaluationGate/MlTrainingJobQueue to accept repos */
 import { storage } from "../storage";
 
 const LOG_CTX = "PdmGapFillRoutes";

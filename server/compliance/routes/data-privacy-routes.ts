@@ -4,6 +4,7 @@ import { auditService } from '../immutable-audit.service';
 import { requireAdminAuth, auditAdminAction } from '../../security';
 import { DataExportImportService } from '../../services/data-export-import';
 import { DataAnonymizationService, type AnonymizationLevel } from '../data-anonymization.service';
+/** @deprecated TODO: Migrate DSAR methods to server/db/gdpr/db-gdpr.ts repo */
 import { storage } from '../../storage';
 import { requireComplianceAccess } from './audit-routes';
 

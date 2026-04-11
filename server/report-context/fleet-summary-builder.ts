@@ -4,7 +4,7 @@
  * Build comprehensive context for fleet summary reports.
  */
 
-import { storage } from "../storage";
+import { vesselService, dbEquipmentStorage, workOrderService, dbTelemetryStorage, dbAlertStorage } from "../repositories";
 import { vesselIntelligence } from "../vessel-intelligence";
 import type { ReportContext, ContextBuilderOptions } from "./types.js";
 import {
@@ -22,11 +22,11 @@ export async function buildFleetSummaryContext(
   const start = new Date(end.getTime() - timeframeDays * 24 * 60 * 60 * 1000);
 
   const [vessels, equipment, workOrders, telemetry, alerts] = await Promise.all([
-    storage.getVessels(),
-    storage.getEquipmentRegistry(),
-    storage.getWorkOrders(),
-    storage.getLatestTelemetryReadings(),
-    storage.getAlertNotifications(),
+    vesselService.getVessels(),
+    dbEquipmentStorage.getEquipmentRegistry(),
+    workOrderService.getWorkOrdersWithDetails(),
+    dbTelemetryStorage.getLatestTelemetryReadings(),
+    dbAlertStorage.getAlertNotifications(),
   ]);
 
   const filteredWorkOrders = workOrders.filter(

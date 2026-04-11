@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { storage } from "../storage";
+import { dbSchedulerStorage, dbCrewStorage, dbCrewExtensionsStorage, dbVesselStorage, vesselService } from "../repositories";
 import { planShifts, generateDays } from "../crew-scheduler";
 import {
   InsertSchedulerRun,
@@ -109,7 +109,7 @@ export async function planAndMaybeExecute({
 
   // Deduplication check for auto mode - prevent redundant replans
   if (mode === "auto") {
-    const existingRun = await storage.findRecentSchedulerRunByHash(orgId, inputHash, 24);
+    const existingRun = await dbSchedulerStorage.findRecentSchedulerRunByHash(orgId, inputHash);
     if (existingRun) {
       console.log(
         `[Scheduler] Skipping redundant auto-replan: identical inputs within last 24h (run ${existingRun.id})`
@@ -135,7 +135,7 @@ export async function planAndMaybeExecute({
     stats: trigger ? { trigger, triggerContext } : undefined,
   };
 
-  const run = await storage.createSchedulerRun(runData);
+  const run = await dbSchedulerStorage.createSchedulerRun(runData);
   const t0 = Date.now();
 
   try {
@@ -151,11 +151,10 @@ export async function planAndMaybeExecute({
         const endDate = new Date(daysArr[daysArr.length - 1]);
         endDate.setHours(23, 59, 59, 999); // End of last day
 
-        const deletedCount = await storage.deleteScheduleAssignmentsByDateRange(
+        const deletedCount = await dbSchedulerStorage.deleteScheduleAssignmentsByDateRange(
           orgId,
           startDate,
-          endDate,
-          mode
+          endDate
         );
         if (deletedCount > 0) {
           console.log(
@@ -178,7 +177,7 @@ export async function planAndMaybeExecute({
         executed: true,
       }));
 
-      await storage.createBulkScheduleAssignments(assignmentRecords);
+      await dbSchedulerStorage.createBulkScheduleAssignments(assignmentRecords);
     }
 
     // Always persist unfilled data for analysis
@@ -191,7 +190,7 @@ export async function planAndMaybeExecute({
       reason: u.reason,
     }));
 
-    await storage.createBulkScheduleUnfilled(unfilledRecords);
+    await dbSchedulerStorage.createBulkScheduleUnfilled(unfilledRecords);
 
     // Aggregate stats
     const stats = {
@@ -204,7 +203,7 @@ export async function planAndMaybeExecute({
     };
 
     // Update run with results
-    await storage.updateSchedulerRun(run.id, {
+    await dbSchedulerStorage.updateSchedulerRun(run.id, {
       finishedAt: new Date(),
       success: true,
       stats,
@@ -242,7 +241,7 @@ export async function planAndMaybeExecute({
     return { runId: run.id, mode, stats, scheduled, unfilled };
   } catch (_error) {
     // Mark run as failed
-    await storage.updateSchedulerRun(run.id, {
+    await dbSchedulerStorage.updateSchedulerRun(run.id, {
       finishedAt: new Date(),
       success: false,
       stats: { error: error instanceof Error ? error.message : "Unknown error" },
@@ -257,42 +256,42 @@ export async function planAndMaybeExecute({
 
 // Helper functions
 async function loadShiftTemplates(orgId: string, vessels?: string[]) {
-  const allShifts = await storage.getShiftTemplates();
+  const allShifts = await dbCrewStorage.getShiftTemplates();
   const orgShifts = allShifts.filter((s: any) => !s.orgId || s.orgId === orgId);
   if (!vessels || vessels.length === 0) { return orgShifts; }
   return orgShifts.filter((s) => !s.vesselId || vessels.includes(s.vesselId));
 }
 
 async function loadCrewWithSkills(orgId: string) {
-  const crew = await storage.getCrew(orgId);
+  const crew = await dbCrewStorage.getCrew(orgId);
   return Promise.all(
     crew.map(async (c) => {
-      const skills = await storage.getCrewSkills(c.id);
+      const skills = await dbCrewStorage.getCrewSkills(c.id);
       return { ...c, skills: skills.map((s) => s.skill) };
     })
   );
 }
 
 async function loadCrewLeaves(orgId: string) {
-  const crew = await storage.getCrew(orgId);
-  const allLeaves = await Promise.all(crew.map((c) => storage.getCrewLeave(c.id)));
+  const crew = await dbCrewStorage.getCrew(orgId);
+  const allLeaves = await Promise.all(crew.map((c) => dbCrewStorage.getCrewLeave(c.id)));
   return allLeaves.flat();
 }
 
 async function loadPortCalls(orgId: string, vessels?: string[]) {
-  const allPortCalls = await storage.getPortCalls(undefined, orgId);
+  const allPortCalls = await dbVesselStorage.getAllPortCalls(orgId);
   if (!vessels || vessels.length === 0) { return allPortCalls; }
   return allPortCalls.filter((pc) => vessels.includes(pc.vesselId));
 }
 
 async function loadDrydocks(orgId: string, vessels?: string[]) {
-  const allDrydocks = await storage.getDrydockWindows(orgId);
+  const allDrydocks = await dbVesselStorage.getAllDrydockWindows(orgId);
   if (!vessels || vessels.length === 0) { return allDrydocks; }
   return allDrydocks.filter((d) => vessels.includes(d.vesselId));
 }
 
 async function loadCertifications(orgId: string) {
-  const certsList = await storage.getCrewCertifications(undefined, orgId);
+  const certsList = await dbCrewExtensionsStorage.getCrewCertifications(undefined, orgId);
   const certsMap: { [crewId: string]: any[] } = {};
   for (const cert of certsList) {
     (certsMap[cert.crewId] ||= []).push(cert);
@@ -305,7 +304,7 @@ async function loadExistingAssignments(
   from: string,
   to: string
 ): Promise<SelectCrewAssignment[]> {
-  return storage.getCrewAssignmentsByDateRange(new Date(from), new Date(to));
+  return dbCrewStorage.getCrewAssignmentsByDateRange(new Date(from), new Date(to));
 }
 
 function aggregateReasons(reasons: string[]): Array<{ reason: string; count: number }> {
@@ -341,7 +340,7 @@ export async function simulateSchedule({
   const shifts = await loadShiftTemplates(orgId, vessels);
   const crewList = await loadCrewWithSkills(orgId);
   const leaves = await loadCrewLeaves(orgId);
-  const vesselsList = await storage.getVessels(orgId);
+  const vesselsList = await vesselService.getVessels(orgId);
   const existing = await loadExistingAssignments(orgId, since, daysArr[daysArr.length - 1]);
 
   // Build lookup maps
@@ -476,7 +475,7 @@ export async function applySimulatedSchedule({
 
   // Create a scheduler run record to track in Run History
   // When vesselIds filtering is applied, stats reflect the vessel subset
-  const runRecord = await storage.createSchedulerRun({
+  const runRecord = await dbSchedulerStorage.createSchedulerRun({
     orgId,
     startedAt: new Date(),
     finishedAt: new Date(),
@@ -499,7 +498,7 @@ export async function applySimulatedSchedule({
 
   // Create assignments in the crew_assignments table
   for (const p of toApply) {
-    await storage.createCrewAssignment({
+    await dbCrewStorage.createCrewAssignment({
       orgId,
       date: p.date,
       shiftId: p.shiftId || null,
@@ -535,7 +534,7 @@ export async function revertGeneratedSchedule({
   orgId: string;
   runId: string;
 }): Promise<{ deleted: number }> {
-  const deleted = await storage.deleteCrewAssignmentsByRunId(orgId, runId);
+  const deleted = await dbCrewStorage.deleteCrewAssignmentsByRunId(orgId, runId);
   
   console.log(
     `[Scheduler] Reverted generated schedule: deleted ${deleted} draft assignments from run ${runId}`
@@ -549,26 +548,22 @@ export async function revertGeneratedSchedule({
  * Also cleans up associated crew assignments, schedule_assignments, and schedule_unfilled rows
  */
 export async function clearSchedulerRunHistory(orgId: string): Promise<{ deleted: number }> {
-  const runs = await storage.getSchedulerRuns(orgId);
+  const runs = await dbSchedulerStorage.getSchedulerRuns(orgId);
   let totalAssignmentsDeleted = 0;
 
   // Clean up child tables BEFORE deleting parent runs
   // 1. Delete crew assignments generated by each run
   for (const run of runs) {
-    const deleted = await storage.deleteCrewAssignmentsByRunId(orgId, run.id);
+    const deleted = await dbCrewStorage.deleteCrewAssignmentsByRunId(orgId, run.id);
     totalAssignmentsDeleted += deleted;
   }
 
   // 2. Delete schedule_assignments and schedule_unfilled that reference runs
-  if (storage.deleteScheduleAssignmentsByOrg) {
-    await storage.deleteScheduleAssignmentsByOrg(orgId);
-  }
-  if (storage.deleteScheduleUnfilledByOrg) {
-    await storage.deleteScheduleUnfilledByOrg(orgId);
-  }
+  await dbSchedulerStorage.deleteScheduleAssignmentsByOrg(orgId);
+  await dbSchedulerStorage.deleteScheduleUnfilledByOrg(orgId);
 
   // 3. Finally delete the scheduler runs themselves
-  await storage.deleteSchedulerRuns(orgId);
+  await dbSchedulerStorage.deleteSchedulerRuns(orgId);
   
   console.log(
     `[Scheduler] Cleared scheduler run history: deleted ${runs.length} runs and ${totalAssignmentsDeleted} associated crew assignments for org ${orgId}`

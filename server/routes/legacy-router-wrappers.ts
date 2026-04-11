@@ -1,3 +1,17 @@
+/**
+ * Legacy Router Wrappers — Compatibility layer for Express Router objects
+ * that have not yet been converted to the registerFn(app, deps) pattern.
+ *
+ * ⛔ DO NOT ADD NEW WRAPPERS. New routes must use the domain router registry
+ *    pattern in server/routes/domain-router-registry.ts.
+ *
+ * Migration path for each wrapper:
+ *   1. Convert the source Router to a registerFn(app, deps) function
+ *   2. Move the entry from this file to domain-router-registry.ts
+ *   3. Delete the wrapper export here
+ *
+ * Retirement target: Remove this file when all wrappers are migrated.
+ */
 import type { Express } from "express";
 
 type RouterDeps = Record<string, any>;

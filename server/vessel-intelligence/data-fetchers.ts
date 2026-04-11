@@ -9,14 +9,13 @@ import type {
   WorkOrder,
   MaintenanceSchedule,
 } from "@shared/schema-runtime";
-import type { IStorage } from "../storage";
+import { dbEquipmentStorage, dbTelemetryStorage, dbMaintenanceStorage, workOrderService } from "../repositories";
 
 export async function getWorkOrdersForVessel(
-  storage: IStorage,
   vesselId: string,
   days?: number
 ): Promise<WorkOrder[]> {
-  const allOrders = await storage.getWorkOrders();
+  const allOrders = await workOrderService.getWorkOrdersWithDetails();
   let vesselOrders = allOrders.filter((wo) => wo.vesselId === vesselId);
 
   if (days) {
@@ -28,15 +27,14 @@ export async function getWorkOrdersForVessel(
 }
 
 export async function getTelemetryForVessel(
-  storage: IStorage,
   vesselId: string,
   days: number
 ): Promise<EquipmentTelemetry[]> {
-  const equipment = await storage.getEquipmentRegistry();
+  const equipment = await dbEquipmentStorage.getEquipmentRegistry();
   const vesselEquipment = equipment.filter((e) => e.vesselId === vesselId);
   const equipmentIds = vesselEquipment.map((e) => e.id);
 
-  const allTelemetry = await storage.getLatestTelemetryReadings();
+  const allTelemetry = await dbTelemetryStorage.getLatestTelemetryReadings(undefined, 500, undefined, undefined);
   const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
   return allTelemetry.filter(
@@ -45,9 +43,8 @@ export async function getTelemetryForVessel(
 }
 
 export async function getMaintenanceSchedulesForVessel(
-  storage: IStorage,
   vesselId: string
 ): Promise<MaintenanceSchedule[]> {
-  const allSchedules = await storage.getMaintenanceSchedules();
+  const allSchedules = await dbMaintenanceStorage.getMaintenanceSchedules();
   return allSchedules.filter((s) => s.vesselId === vesselId);
 }

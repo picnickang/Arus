@@ -2,7 +2,7 @@
  * StormGeo Integration Service - Main Class
  */
 
-import { storage } from "../../storage";
+import { dbStormGeoStorage } from "../../repositories";
 import type { StormgeoSetting, InsertStormgeoSetting, StormgeoSnapshot, StormgeoImportHistory, InsertStormgeoSnapshot, DeckLogHourly } from "@shared/schema";
 import { createHash } from "node:crypto";
 import type { StormGeoJSONFormat } from "./types.js";
@@ -13,18 +13,18 @@ export class StormGeoIntegrationService {
   constructor() { console.log("[StormGeo] Integration service initialized"); }
 
   async getSettings(orgId: string, vesselId?: string): Promise<StormgeoSetting | undefined> {
-    return storage.getStormgeoSettings(orgId, vesselId);
+    return dbStormGeoStorage.getStormgeoSettings(orgId, vesselId);
   }
 
   async upsertSettings(settings: InsertStormgeoSetting): Promise<StormgeoSetting> {
-    const existing = await storage.getStormgeoSettings(settings.orgId, settings.vesselId || undefined);
-    if (existing) { return storage.updateStormgeoSettings(existing.id, settings, settings.orgId); }
-    return storage.createStormgeoSettings(settings);
+    const existing = await dbStormGeoStorage.getStormgeoSettings(settings.orgId, settings.vesselId || undefined);
+    if (existing) { return dbStormGeoStorage.updateStormgeoSettings(existing.id, settings, settings.orgId); }
+    return dbStormGeoStorage.createStormgeoSettings(settings);
   }
 
   async importCSV(orgId: string, vesselId: string, fileContent: string, fileName: string, initiatedBy?: string): Promise<StormgeoImportHistory> {
     const startTime = Date.now(), fileHash = createHash('sha256').update(fileContent).digest('hex');
-    const importRecord = await storage.createStormgeoImportHistory({ orgId, vesselId, importType: 'file', fileName, fileSize: Buffer.byteLength(fileContent, 'utf8'), fileHash, status: 'processing', startedAt: new Date(), initiatedBy: initiatedBy || 'system' });
+    const importRecord = await dbStormGeoStorage.createStormgeoImportHistory({ orgId, vesselId, importType: 'file', fileName, fileSize: Buffer.byteLength(fileContent, 'utf8'), fileHash, status: 'processing', startedAt: new Date(), initiatedBy: initiatedBy || 'system' });
 
     try {
       const rows = parseCSV(fileContent);
@@ -35,17 +35,17 @@ export class StormGeoIntegrationService {
         catch (error) { errors.push({ row: i + 2, error: error instanceof Error ? error.message : 'Unknown error' }); }
       }
 
-      if (snapshots.length > 0) { await storage.bulkCreateStormgeoSnapshots(snapshots); }
+      if (snapshots.length > 0) { await dbStormGeoStorage.bulkCreateStormgeoSnapshots(snapshots); }
       const status = errors.length === 0 ? 'success' : (snapshots.length > 0 ? 'partial' : 'failed');
-      return storage.updateStormgeoImportHistory(importRecord.id, { status, recordsProcessed: rows.length, recordsCreated: snapshots.length, recordsFailed: errors.length, errorDetails: errors.length > 0 ? errors : undefined, completedAt: new Date(), durationMs: Date.now() - startTime }, orgId);
+      return dbStormGeoStorage.updateStormgeoImportHistory(importRecord.id, { status, recordsProcessed: rows.length, recordsCreated: snapshots.length, recordsFailed: errors.length, errorDetails: errors.length > 0 ? errors : undefined, completedAt: new Date(), durationMs: Date.now() - startTime }, orgId);
     } catch (_error) {
-      return storage.updateStormgeoImportHistory(importRecord.id, { status: 'failed', errorDetails: [{ row: 0, error: error instanceof Error ? error.message : 'Import failed' }], completedAt: new Date(), durationMs: Date.now() - startTime }, orgId);
+      return dbStormGeoStorage.updateStormgeoImportHistory(importRecord.id, { status: 'failed', errorDetails: [{ row: 0, error: _error instanceof Error ? _error.message : 'Import failed' }], completedAt: new Date(), durationMs: Date.now() - startTime }, orgId);
     }
   }
 
   async importJSON(orgId: string, vesselId: string, fileContent: string, fileName: string, initiatedBy?: string): Promise<StormgeoImportHistory> {
     const startTime = Date.now(), fileHash = createHash('sha256').update(fileContent).digest('hex');
-    const importRecord = await storage.createStormgeoImportHistory({ orgId, vesselId, importType: 'file', fileName, fileSize: Buffer.byteLength(fileContent, 'utf8'), fileHash, status: 'processing', startedAt: new Date(), initiatedBy: initiatedBy || 'system' });
+    const importRecord = await dbStormGeoStorage.createStormgeoImportHistory({ orgId, vesselId, importType: 'file', fileName, fileSize: Buffer.byteLength(fileContent, 'utf8'), fileHash, status: 'processing', startedAt: new Date(), initiatedBy: initiatedBy || 'system' });
 
     try {
       const data: StormGeoJSONFormat = JSON.parse(fileContent);
@@ -56,16 +56,16 @@ export class StormGeoIntegrationService {
         catch (error) { errors.push({ row: i + 1, error: error instanceof Error ? error.message : 'Unknown error' }); }
       }
 
-      if (snapshots.length > 0) { await storage.bulkCreateStormgeoSnapshots(snapshots); }
+      if (snapshots.length > 0) { await dbStormGeoStorage.bulkCreateStormgeoSnapshots(snapshots); }
       const status = errors.length === 0 ? 'success' : (snapshots.length > 0 ? 'partial' : 'failed');
-      return storage.updateStormgeoImportHistory(importRecord.id, { status, recordsProcessed: data.waypoints.length, recordsCreated: snapshots.length, recordsFailed: errors.length, errorDetails: errors.length > 0 ? errors : undefined, completedAt: new Date(), durationMs: Date.now() - startTime }, orgId);
+      return dbStormGeoStorage.updateStormgeoImportHistory(importRecord.id, { status, recordsProcessed: data.waypoints.length, recordsCreated: snapshots.length, recordsFailed: errors.length, errorDetails: errors.length > 0 ? errors : undefined, completedAt: new Date(), durationMs: Date.now() - startTime }, orgId);
     } catch (_error) {
-      return storage.updateStormgeoImportHistory(importRecord.id, { status: 'failed', errorDetails: [{ row: 0, error: error instanceof Error ? error.message : 'Import failed' }], completedAt: new Date(), durationMs: Date.now() - startTime }, orgId);
+      return dbStormGeoStorage.updateStormgeoImportHistory(importRecord.id, { status: 'failed', errorDetails: [{ row: 0, error: _error instanceof Error ? _error.message : 'Import failed' }], completedAt: new Date(), durationMs: Date.now() - startTime }, orgId);
     }
   }
 
   async getWeatherForTime(vesselId: string, targetTime: Date, orgId: string): Promise<StormgeoSnapshot | undefined> {
-    return storage.getStormgeoSnapshotForTime(vesselId, targetTime, orgId);
+    return dbStormGeoStorage.getStormgeoSnapshotForTime(vesselId, targetTime, orgId);
   }
 
   async autoFillHourlyEntry(vesselId: string, logDate: string, hour: number, orgId: string): Promise<{ fields: Partial<DeckLogHourly>; source: string; snapshotId?: string } | null> {
@@ -90,15 +90,15 @@ export class StormGeoIntegrationService {
   }
 
   async recordAutoFill(hourlyLogId: string, source: string, snapshotId: string | undefined, autoFilledFields: string[], confidenceScore?: number): Promise<void> {
-    await storage.createDeckLogHourlyAutoFill({ hourlyLogId, source, snapshotId: snapshotId || null, autoFilledFields, confidenceScore: confidenceScore ?? 0.9, dataQuality: confidenceScore && confidenceScore > 0.8 ? 'high' : 'medium' });
+    await dbStormGeoStorage.createDeckLogHourlyAutoFill({ hourlyLogId, source, snapshotId: snapshotId || null, autoFilledFields, confidenceScore: confidenceScore ?? 0.9, dataQuality: confidenceScore && confidenceScore > 0.8 ? 'high' : 'medium' });
   }
 
   async getImportHistory(orgId: string, vesselId?: string, limit?: number): Promise<StormgeoImportHistory[]> {
-    return storage.getStormgeoImportHistory(orgId, { vesselId, limit });
+    return dbStormGeoStorage.getStormgeoImportHistory(orgId, { vesselId, limit });
   }
 
   async getSnapshots(orgId: string, vesselId: string, startTime?: Date, endTime?: Date): Promise<StormgeoSnapshot[]> {
-    return storage.getStormgeoSnapshots(orgId, { vesselId, forecastTimeStart: startTime, forecastTimeEnd: endTime });
+    return dbStormGeoStorage.getStormgeoSnapshots(orgId, { vesselId, forecastTimeStart: startTime, forecastTimeEnd: endTime });
   }
 }
 

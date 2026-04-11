@@ -6,7 +6,7 @@
 
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
-import { storage } from "../storage";
+import { dbSystemAdminStorage } from "../repositories";
 import { db } from "../db";
 import { reportContextBuilder, type ReportContext } from "../report-context";
 import type {
@@ -47,7 +47,7 @@ export class EnhancedLLMService {
         return;
       }
 
-      const settings = await storage.getSettings();
+      const settings = await dbSystemAdminStorage.getSettings();
       const openaiKey = settings.openaiApiKey || process.env.OPENAI_API_KEY;
 
       if (openaiKey) {

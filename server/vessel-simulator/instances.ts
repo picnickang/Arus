@@ -4,7 +4,7 @@
  * Provides singleton access to VesselSimulator and TelemetryStressTest instances.
  */
 
-import type { IStorage } from "../storage";
+import type { IStorage } from "../storage/interfaces/storage.types";
 import { VesselSimulator } from "./simulator.js";
 import { TelemetryStressTest } from "./stress-test.js";
 import { FleetStressTest } from "./fleet-stress-test.js";

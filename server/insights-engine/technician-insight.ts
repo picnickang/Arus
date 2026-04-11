@@ -4,7 +4,7 @@
  * Generate plain-language insights for equipment technicians.
  */
 
-import { storage } from "../storage";
+import { dbEquipmentStorage, dbTelemetryStorage, vesselService } from "../repositories";
 import {
   determineStatusLevel,
   getPriorityFromStatus,
@@ -22,24 +22,22 @@ export async function generateTechnicianInsight(
 ): Promise<TechnicianInsightView | null> {
   const startTime = Date.now();
   try {
-    const equipment = await storage.getEquipment(orgId, equipmentId);
+    const equipment = await dbEquipmentStorage.getEquipment(orgId, equipmentId);
     if (!equipment || equipment.orgId !== orgId) {
       return null;
     }
 
     let vesselName: string | null = null;
     if (equipment.vesselId) {
-      const vessel = await storage.getVessel(equipment.vesselId, orgId);
+      const vessel = await vesselService.getVessel(equipment.vesselId, orgId);
       vesselName = vessel?.name || equipment.vesselName || null;
     }
 
     const { predictWithEnsemble } = await import("../ml-prediction-service");
     const prediction = await predictWithEnsemble(equipmentId, orgId);
 
-    const telemetry = await storage.getLatestTelemetryReadings(
-      undefined,
+    const telemetry = await dbTelemetryStorage.getLatestTelemetryReadings(
       equipmentId,
-      undefined,
       100
     );
 

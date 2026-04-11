@@ -4,7 +4,7 @@
  * Compute comprehensive fleet insights using ARUS data.
  */
 
-import { storage } from "../storage";
+import { dbDevicesStorage, dbEquipmentStorage, dbAlertStorage, dbTelemetryStorage, vesselService } from "../repositories";
 import type { FleetKPI, InsightBundle } from "./types.js";
 
 /**
@@ -21,12 +21,12 @@ export async function computeInsights(
   try {
     const [devices, equipment, alerts, telemetryReadings, sensorMappings, allVessels] =
       await Promise.all([
-        storage.getDevices(orgId),
-        storage.getEquipmentRegistry(orgId),
-        storage.getAlertNotifications(undefined, orgId),
-        storage.getLatestTelemetryReadings(undefined, undefined, undefined, 1000, orgId),
-        storage.getSensorMappings?.(orgId) ?? [],
-        storage.getVessels(orgId),
+        dbDevicesStorage.getDevices(orgId),
+        dbEquipmentStorage.getEquipmentRegistry(orgId),
+        dbAlertStorage.getAlertNotifications(undefined, orgId),
+        dbTelemetryStorage.getLatestTelemetryReadings(undefined, 1000, undefined, undefined),
+        [] as any[],
+        vesselService.getVessels(orgId),
       ]);
 
     const vessels = allVessels.length;
@@ -129,7 +129,7 @@ export async function computeInsights(
       risks.warnings.push(`${warningAlerts.length} warning alerts in last 7 days`);
     }
 
-    const equipment_health = await storage.getEquipmentHealth(orgId);
+    const equipment_health = await dbEquipmentStorage.getEquipmentHealth(orgId, {});
     const unhealthyEquipment = equipment_health.filter((eq) => eq.healthIndex < 70);
     if (unhealthyEquipment.length > 0) {
       risks.warnings.push(`${unhealthyEquipment.length} equipment units with health <70%`);

@@ -4,9 +4,15 @@
  * Compliance rule evaluators for engine room logbook entries.
  */
 
-import { storage } from "../../storage";
+import { engineLogStorage } from "../../repositories";
 import { parseISO, subDays } from "date-fns";
 import type { RuleContext, RuleResult } from "./types.js";
+
+async function getEngineLogByVesselAndDate(vesselId: string, logDate: string, orgId: string) {
+  const daily = await engineLogStorage.getEngineLogDailyByDate(vesselId, logDate, orgId);
+  if (!daily) return undefined;
+  return engineLogStorage.getEngineLogComplete(daily.id, orgId);
+}
 
 export async function evaluateEngineMissingWatch(
   ctx: RuleContext,
@@ -15,7 +21,7 @@ export async function evaluateEngineMissingWatch(
   const { vesselId, logDate, orgId } = ctx;
   const watchPeriods = (config.watchPeriods as string[]) || ["00-06", "06-12", "12-18", "18-24"];
 
-  const engineLogComplete = await storage.getEngineLogByVesselAndDate(vesselId, logDate, orgId);
+  const engineLogComplete = await getEngineLogByVesselAndDate(vesselId, logDate, orgId);
   if (!engineLogComplete?.daily) {
     return { triggered: false, skipped: true, skipReason: "No engine log record for this date" };
   }
@@ -50,7 +56,7 @@ export async function evaluateEngineOvertemp(
   const { vesselId, logDate, orgId } = ctx;
   const maxExhaustTemp = (config.maxExhaustTemp as number) || 450;
 
-  const engineLogComplete = await storage.getEngineLogByVesselAndDate(vesselId, logDate, orgId);
+  const engineLogComplete = await getEngineLogByVesselAndDate(vesselId, logDate, orgId);
   if (!engineLogComplete?.daily) {
     return { triggered: false, skipped: true, skipReason: "No engine log record for this date" };
   }
@@ -87,7 +93,7 @@ export async function evaluateEngineOverload(
   const { vesselId, logDate, orgId } = ctx;
   const maxLoad = (config.maxLoad as number) || 90;
 
-  const engineLogComplete = await storage.getEngineLogByVesselAndDate(vesselId, logDate, orgId);
+  const engineLogComplete = await getEngineLogByVesselAndDate(vesselId, logDate, orgId);
   if (!engineLogComplete?.daily) {
     return { triggered: false, skipped: true, skipReason: "No engine log record for this date" };
   }
@@ -125,7 +131,7 @@ export async function evaluateLowFuel(
   const minHfoRob = (config.minHfoRob as number) || 50;
   const minMdoRob = (config.minMdoRob as number) || 20;
 
-  const engineLogComplete = await storage.getEngineLogByVesselAndDate(vesselId, logDate, orgId);
+  const engineLogComplete = await getEngineLogByVesselAndDate(vesselId, logDate, orgId);
   if (!engineLogComplete?.daily) {
     return { triggered: false, skipped: true, skipReason: "No engine log record for this date" };
   }
@@ -165,7 +171,7 @@ export async function evaluateEngineUnsigned(
 ): Promise<RuleResult> {
   const { vesselId, logDate, orgId } = ctx;
 
-  const engineLogComplete = await storage.getEngineLogByVesselAndDate(vesselId, logDate, orgId);
+  const engineLogComplete = await getEngineLogByVesselAndDate(vesselId, logDate, orgId);
   if (!engineLogComplete?.daily) {
     return { triggered: false, skipped: true, skipReason: "No engine log record for this date" };
   }
@@ -200,7 +206,7 @@ export async function evaluateEngineMissingHourly(
   const { vesselId, logDate, orgId } = ctx;
   const minHourlyEntries = (config.minHourlyEntries as number) || 12;
 
-  const engineLogComplete = await storage.getEngineLogByVesselAndDate(vesselId, logDate, orgId);
+  const engineLogComplete = await getEngineLogByVesselAndDate(vesselId, logDate, orgId);
   if (!engineLogComplete?.daily) {
     return { triggered: false, skipped: true, skipReason: "No engine log record for this date" };
   }
@@ -236,7 +242,7 @@ export async function evaluateBilgeHigh(
   const { vesselId, logDate, orgId } = ctx;
   const maxBilgeLevel = (config.maxBilgeLevel as number) || 80;
 
-  const engineLogComplete = await storage.getEngineLogByVesselAndDate(vesselId, logDate, orgId);
+  const engineLogComplete = await getEngineLogByVesselAndDate(vesselId, logDate, orgId);
   if (!engineLogComplete?.daily) {
     return { triggered: false, skipped: true, skipReason: "No engine log record for this date" };
   }

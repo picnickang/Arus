@@ -5,7 +5,7 @@
  * and measure system throughput under load.
  */
 
-import type { IStorage } from "../storage";
+import type { IStorage } from "../storage/interfaces/storage.types";
 import { cryptoRandom } from "@shared/crypto-random";
 
 export interface StressTestConfig {

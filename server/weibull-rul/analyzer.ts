@@ -1,10 +1,7 @@
-/**
- * Weibull RUL Analyzer
- * 
- * Main engine class for Weibull reliability and RUL analysis.
- */
-
-import { storage } from "../storage";
+import { db } from "../db";
+import { weibullEstimates } from "@shared/schema-runtime";
+import { eq, and, desc } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
 import { beastModeManager } from "../beast-mode-config";
 import type { RULPrediction } from "./types.js";
 import { estimateWeibullParameters } from "./parameter-estimation.js";
@@ -86,7 +83,8 @@ export class WeibullRULAnalyzer {
 
   private async storeRULAnalysis(prediction: RULPrediction, orgId: string): Promise<void> {
     try {
-      await storage.createWeibullAnalysis({
+      await db.insert(weibullEstimates).values({
+        id: randomUUID(),
         orgId,
         equipmentId: prediction.equipmentId,
         currentAge: prediction.currentAge,
@@ -108,6 +106,7 @@ export class WeibullRULAnalyzer {
           dataPoints: 0,
           confidence: prediction.confidenceInterval.level,
         },
+        createdAt: new Date(),
       });
     } catch (error) {
       console.error(`[Weibull RUL] Error storing analysis for ${prediction.equipmentId}:`, error);
@@ -116,7 +115,10 @@ export class WeibullRULAnalyzer {
 
   async getRULHistory(equipmentId: string, orgId: string, limit: number = 50): Promise<any[]> {
     try {
-      return await storage.getWeibullAnalysisHistory(equipmentId, orgId, limit);
+      return await db.select().from(weibullEstimates)
+        .where(and(eq(weibullEstimates.equipmentId, equipmentId), eq(weibullEstimates.orgId, orgId)))
+        .orderBy(desc(weibullEstimates.createdAt))
+        .limit(limit);
     } catch (error) {
       console.error(`[Weibull RUL] Error getting history for ${equipmentId}:`, error);
       return [];

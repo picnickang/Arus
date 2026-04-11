@@ -1,4 +1,4 @@
-import { storage } from "../storage";
+import { dbCrewStorage } from "../repositories";
 import { checkMonthCompliance, type RestDay } from "../stcw-compliance";
 import { 
   initializeRestHours, 
@@ -253,7 +253,7 @@ export async function previewScheduleCompliance(
   const violations: ComplianceViolation[] = [];
   const crewDetailsMap = new Map<string, CrewDetail>();
 
-  const crewList = await storage.getCrew(orgId);
+  const crewList = await dbCrewStorage.getCrew(orgId);
   const crewLookup = new Map(crewList.map((c) => [c.id, c.name]));
 
   const enrichedAssignments: ScheduleAssignment[] = assignments.map((a) => ({

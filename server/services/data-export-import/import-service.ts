@@ -10,7 +10,7 @@ import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
 import { randomUUID } from "node:crypto";
 
-import { storage } from "../../storage";
+import { dbUserStorage } from "../../repositories";
 import { ENTITY_EXPORT_ORDER, TELEMETRY_ENTITIES } from "./constants";
 import type {
   ExportManifest,
@@ -30,18 +30,18 @@ function generateImportId(): string {
 }
 
 async function ensureTargetOrg(targetOrgId: string, sourceOrgId: string): Promise<void> {
-  const targetOrg = await storage.getOrganization(targetOrgId);
+  const targetOrg = await dbUserStorage.getOrganization(targetOrgId);
   if (targetOrg) { return; }
 
   console.log(`[DataImport] Creating target organization: ${targetOrgId}`);
   const slug = targetOrgId.toLowerCase().replace(/[^a-z0-9-]/g, '-');
-  await storage.createOrganization({
-    id: targetOrgId,
+  await dbUserStorage.createOrganization({
     name: `Imported from ${sourceOrgId}`,
     slug,
-    description: `Auto-created during import from ${sourceOrgId}`,
-    contactEmail: null,
-  });
+    maxUsers: 100,
+    maxEquipment: 1000,
+    subscriptionTier: "basic",
+  } as any);
 }
 
 async function importEntityFile(

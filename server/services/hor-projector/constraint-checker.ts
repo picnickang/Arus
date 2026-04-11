@@ -5,7 +5,7 @@
  * existing rest hours and projected compliance.
  */
 
-import { storage } from "../../storage";
+import { dbStcwStorage, dbCrewStorage } from "../../repositories";
 import { checkMonthCompliance, calculateFatigueRisk } from "../../stcw-compliance";
 import type { RestDay } from "../../stcw-compliance";
 import {
@@ -32,7 +32,7 @@ export async function getCrewExistingRestDays(
   endDate: string
 ): Promise<RestDay[]> {
   try {
-    const restData = await storage.getCrewRestRange(crewId, startDate, endDate);
+    const restData = await dbStcwStorage.getCrewRestRange(crewId, startDate, endDate);
     
     if (!restData?.days || restData.days.length === 0) {
       return [];
@@ -127,7 +127,7 @@ export async function canAssignCrew(
   
   let rosterVesselId: string | null = null;
   try {
-    const crewMembers = await storage.getAllCrew();
+    const crewMembers = await dbCrewStorage.getCrew();
     const crewMember = crewMembers.find((c) => c.id === crewId);
     if (crewMember) {
       rosterVesselId = crewMember.vesselId || null;
@@ -168,7 +168,7 @@ export async function canAssignCrew(
   
   let storedAssignments: DraftAssignment[] = [];
   try {
-    const allStoredAssignments = await storage.getCrewAssignments();
+    const allStoredAssignments = await dbCrewStorage.getCrewAssignments('' as any, {});
     storedAssignments = allStoredAssignments
       .filter((a) => a.crewId === crewId && a.id !== proposedAssignment.id)
       .filter((a) => {
@@ -274,7 +274,7 @@ export async function checkAssignmentOverlap(
   excludeAssignmentId?: string
 ): Promise<{ hasOverlap: boolean; overlappingAssignments: string[] }> {
   try {
-    const allAssignments = await storage.getCrewAssignments();
+    const allAssignments = await dbCrewStorage.getCrewAssignments('' as any, {});
     const crewAssignments = allAssignments.filter(
       (a) => a.crewId === crewId && a.id !== excludeAssignmentId
     );

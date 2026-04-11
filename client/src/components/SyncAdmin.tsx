@@ -17,22 +17,6 @@ import {
 import { useCustomMutation } from "@/hooks/useCrudMutations";
 import { formatDate } from "@/lib/formatters";
 
-interface SyncMetrics {
-  totalJournalEntries: number;
-  pendingEvents: number;
-  failedEvents: number;
-  recentActivity: number;
-}
-
-interface SyncHealth {
-  status: string;
-  timestamp: string;
-  totalJournalEntries: number;
-  pendingEvents: number;
-  failedEvents: number;
-  recentActivity: number;
-}
-
 interface DataIssue {
   code: string;
   message: string;
@@ -69,22 +53,15 @@ export default function SyncAdmin() {
   const [lastResult, setLastResult] = useState<string>("");
   const { toast } = useToast();
 
-  // Fetch sync health metrics (legacy endpoint)
-  const { data: syncHealth, isLoading: isLoadingHealth } = useQuery<SyncHealth>({
-    queryKey: ["/api/sync/health"],
-    refetchInterval: 60000, // Refresh every 60 seconds (slow-changing data)
-  });
-
-  // Fetch enhanced sync status with data quality information
   const { data: syncStatus, isLoading: isLoadingSyncStatus } = useQuery<SyncStatus>({
     queryKey: ["/api/sync/status"],
-    refetchInterval: 60000, // Refresh every 60 seconds (slow-changing data)
+    refetchInterval: 60000,
   });
 
   // Sync mutations using reusable hooks
   const reconcileMutation = useCustomMutation<void, { eventsProcessed: number; costSync: number }>({
     mutationFn: async () => await apiRequest("POST", "/api/sync/reconcile"),
-    invalidateKeys: ["/api/sync/health"],
+    invalidateKeys: ["/api/sync/status"],
     onSuccess: (data) => {
       toast({
         title: "Reconciliation Complete",
@@ -99,7 +76,7 @@ export default function SyncAdmin() {
       await apiRequest("POST", "/api/sync/reconcile/comprehensive", {
         orgId: "default-org-id",
       }),
-    invalidateKeys: ["/api/sync/health", "/api/sync/status"],
+    invalidateKeys: ["/api/sync/status"],
     onSuccess: (data: ReconciliationResult) => {
       toast({
         title: data.success
@@ -114,7 +91,7 @@ export default function SyncAdmin() {
 
   const processEventsMutation = useCustomMutation<void, { processed: number }>({
     mutationFn: async () => await apiRequest("POST", "/api/sync/process-events"),
-    invalidateKeys: ["/api/sync/health", "/api/sync/status"],
+    invalidateKeys: ["/api/sync/status"],
     onSuccess: (data) => {
       toast({
         title: "Events Processed",
@@ -134,29 +111,19 @@ export default function SyncAdmin() {
   };
 
   const getHealthBadge = () => {
-    if (isLoadingHealth || isLoadingSyncStatus)
+    if (isLoadingSyncStatus)
       {return <Badge variant="secondary">Loading...</Badge>;}
 
-    // Check enhanced sync status first if available
-    if (syncStatus) {
-      const hasCriticalIssues = syncStatus.sync.criticalIssues > 0;
-      const hasIssues = syncStatus.sync.totalIssues > 0;
-      const hasSystemIssues =
-        syncStatus.metrics.failedEvents > 0 || syncStatus.metrics.pendingEvents > 50;
+    if (!syncStatus) {return <Badge variant="destructive">Unknown</Badge>;}
 
-      if (hasCriticalIssues) {return <Badge variant="destructive">Critical Issues</Badge>;}
-      if (hasIssues || hasSystemIssues) {return <Badge variant="secondary">Issues Detected</Badge>;}
-      return <Badge variant="default">Healthy</Badge>;
-    }
+    const hasCriticalIssues = syncStatus.sync.criticalIssues > 0;
+    const hasIssues = syncStatus.sync.totalIssues > 0;
+    const hasSystemIssues =
+      syncStatus.metrics.failedEvents > 0 || syncStatus.metrics.pendingEvents > 50;
 
-    // Fallback to legacy health check
-    if (!syncHealth) {return <Badge variant="destructive">Unknown</Badge>;}
-    const hasIssues = syncHealth.failedEvents > 0 || syncHealth.pendingEvents > 50;
-    return (
-      <Badge variant={hasIssues ? "destructive" : "default"}>
-        {hasIssues ? "Issues Detected" : "Healthy"}
-      </Badge>
-    );
+    if (hasCriticalIssues) {return <Badge variant="destructive">Critical Issues</Badge>;}
+    if (hasIssues || hasSystemIssues) {return <Badge variant="secondary">Issues Detected</Badge>;}
+    return <Badge variant="default">Healthy</Badge>;
   };
 
   return (
@@ -177,71 +144,57 @@ export default function SyncAdmin() {
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Enhanced Metrics Overview */}
-        {(syncStatus || syncHealth) && (
+        {syncStatus && (
           <div className="space-y-4">
-            {/* Data Quality Overview */}
-            {syncStatus && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {syncStatus.sync.totalIssues}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Data Issues</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">
+                  {syncStatus.sync.totalIssues}
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-red-600">
-                    {syncStatus.sync.criticalIssues}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Critical Issues</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">
-                    {syncStatus.sync.lastRun
-                      ? new Date(syncStatus.sync.lastRun).toLocaleDateString()
-                      : "Never"}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Last Reconciliation</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">
-                    {syncStatus.metrics.recentActivity}
-                  </div>
-                  <div className="text-sm text-muted-foreground">24h Activity</div>
-                </div>
+                <div className="text-sm text-muted-foreground">Data Issues</div>
               </div>
-            )}
-
-            {/* System Metrics */}
-            {syncHealth && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {syncHealth.totalJournalEntries}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Journal Entries</div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-red-600">
+                  {syncStatus.sync.criticalIssues}
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-orange-600">
-                    {syncHealth.pendingEvents}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Pending Events</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-red-600">{syncHealth.failedEvents}</div>
-                  <div className="text-sm text-muted-foreground">Failed Events</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">
-                    {syncHealth.recentActivity}
-                  </div>
-                  <div className="text-sm text-muted-foreground">24h Activity</div>
-                </div>
+                <div className="text-sm text-muted-foreground">Critical Issues</div>
               </div>
-            )}
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">
+                  {syncStatus.sync.lastRun
+                    ? new Date(syncStatus.sync.lastRun).toLocaleDateString()
+                    : "Never"}
+                </div>
+                <div className="text-sm text-muted-foreground">Last Reconciliation</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600">
+                  {syncStatus.metrics.recentActivity}
+                </div>
+                <div className="text-sm text-muted-foreground">24h Activity</div>
+              </div>
+            </div>
 
-            {/* Recent Data Quality Activity */}
-            {syncStatus?.sync.recentActivity.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">
+                  {syncStatus.metrics.pendingEvents}
+                </div>
+                <div className="text-sm text-muted-foreground">Pending Events</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-red-600">{syncStatus.metrics.failedEvents}</div>
+                <div className="text-sm text-muted-foreground">Failed Events</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">
+                  {syncStatus.metrics.recentActivity}
+                </div>
+                <div className="text-sm text-muted-foreground">24h Activity</div>
+              </div>
+            </div>
+
+            {syncStatus.sync.recentActivity.length > 0 && (
               <div className="space-y-2">
                 <div className="text-sm font-medium">Recent Data Quality Activity:</div>
                 <div className="space-y-1">
@@ -303,7 +256,6 @@ export default function SyncAdmin() {
 
           <Button
             onClick={() => {
-              queryClient.invalidateQueries({ queryKey: ["/api/sync/health"] });
               queryClient.invalidateQueries({ queryKey: ["/api/sync/status"] });
             }}
             variant="outline"
@@ -321,7 +273,7 @@ export default function SyncAdmin() {
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
             <span>
-              Last updated: {syncHealth ? formatDate(syncHealth.timestamp) : "Never"}
+              Last updated: {syncStatus ? formatDate(syncStatus.timestamp) : "Never"}
             </span>
           </div>
           <div className="flex items-start gap-2">

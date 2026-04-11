@@ -1,6 +1,6 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { Server } from "node:http";
-import { storage } from "./storage";
+import { dbAlertStorage } from "./repositories";
 import {
   setWebSocketConnections,
   incrementWebSocketMessage,
@@ -205,7 +205,7 @@ class TelemetryWebSocketServer {
   // Send latest alerts to a specific client
   private async sendLatestAlerts(client: WebSocketClient) {
     try {
-      const alerts = await storage.getAlertNotifications(false); // Get unacknowledged alerts
+      const alerts = await dbAlertStorage.getAlertNotifications(false); // Get unacknowledged alerts
       client.ws.send(
         JSON.stringify({
           type: "alerts_initial",

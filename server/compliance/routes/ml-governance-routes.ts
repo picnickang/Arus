@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { auditService } from '../immutable-audit.service';
 import { requireAdminAuth, auditAdminAction } from '../../security';
-import { storage } from '../../storage';
+import { dbMlAnalyticsStorage } from '../../repositories';
 import { requireComplianceAccess } from './audit-routes';
 import { recordEngineerOverride, recordOverrideOutcome, getEngineerOverrides as getProvenanceOverrides } from '../../governance/provenance';
 import { insertEngineerOverrideSchema } from '@shared/schema';
@@ -29,7 +29,7 @@ router.get('/ml-governance/overrides', requireAdminAuth, requireComplianceAccess
     const orgId = req.headers['x-org-id'] as string;
     if (!orgId) { return res.status(401).json({ error: 'Organization ID required' }); }
     const { equipmentId, engineerId, overrideType, outcomeStatus, fromDate, toDate } = req.query;
-    const overrides = await storage.getEngineerOverrides(orgId, { equipmentId: equipmentId as string, engineerId: engineerId as string, overrideType: overrideType as string, outcomeStatus: outcomeStatus as string, fromDate: fromDate ? new Date(fromDate as string) : undefined, toDate: toDate ? new Date(toDate as string) : undefined });
+    const overrides = await dbMlAnalyticsStorage.getEngineerOverrides(orgId, { equipmentId: equipmentId as string, engineerId: engineerId as string, overrideType: overrideType as string, outcomeStatus: outcomeStatus as string, fromDate: fromDate ? new Date(fromDate as string) : undefined, toDate: toDate ? new Date(toDate as string) : undefined });
     res.json({ success: true, data: overrides, count: overrides.length });
   } catch (error) {
     console.error('[Compliance] Get engineer overrides error:', error);
@@ -42,7 +42,7 @@ router.get('/ml-governance/overrides/:id', requireAdminAuth, requireComplianceAc
     const orgId = req.headers['x-org-id'] as string;
     const { id } = req.params;
     if (!orgId) { return res.status(401).json({ error: 'Organization ID required' }); }
-    const override = await storage.getEngineerOverride(id, orgId);
+    const override = await dbMlAnalyticsStorage.getEngineerOverride(id, orgId);
     if (!override) { return res.status(404).json({ error: 'Engineer override not found' }); }
     res.json({ success: true, data: override });
   } catch (error) {
@@ -56,7 +56,7 @@ router.post('/ml-governance/overrides', requireAdminAuth, auditAdminAction('engi
     const orgId = req.headers['x-org-id'] as string;
     if (!orgId) { return res.status(401).json({ error: 'Organization ID required' }); }
     const validatedData = engineerOverrideSchema.parse({ ...req.body, orgId });
-    const override = await storage.createEngineerOverride(validatedData, orgId);
+    const override = await dbMlAnalyticsStorage.createEngineerOverride(validatedData, orgId);
     await recordEngineerOverride({ overrideId: override.id, predictionId: override.predictionId || undefined, equipmentId: override.equipmentId, vesselId: undefined, workOrderId: override.workOrderId || undefined, overrideType: override.overrideType as 'defer' | 'escalate' | 'dismiss' | 'modify', originalRiskLevel: override.originalRiskLevel, newRiskLevel: override.newRiskLevel || undefined, originalConfidence: override.originalConfidence || undefined, justification: override.justification, engineerId: override.engineerId, engineerName: override.engineerName, engineerCertifications: override.engineerCertifications || undefined, originalPrediction: override.originalPrediction as Record<string, unknown>, orgId });
     await auditService.logEvent({ orgId, eventCategory: 'ml_prediction', eventType: 'engineer_override_created', entityType: 'engineer_override', entityId: override.id, newState: { equipmentId: override.equipmentId, overrideType: override.overrideType, originalRiskLevel: override.originalRiskLevel, newRiskLevel: override.newRiskLevel, engineerId: override.engineerId, engineerName: override.engineerName }, performedBy: override.engineerId, performedByType: 'user', retentionRequired: true });
     res.status(201).json({ success: true, data: override, message: 'Engineer override recorded and logged to provenance chain' });
@@ -72,11 +72,11 @@ router.patch('/ml-governance/overrides/:id/outcome', requireAdminAuth, auditAdmi
     const orgId = req.headers['x-org-id'] as string;
     const { id } = req.params;
     if (!orgId) { return res.status(401).json({ error: 'Organization ID required' }); }
-    const existingOverride = await storage.getEngineerOverride(id, orgId);
+    const existingOverride = await dbMlAnalyticsStorage.getEngineerOverride(id, orgId);
     if (!existingOverride) { return res.status(404).json({ error: 'Engineer override not found' }); }
     const validatedData = updateOutcomeSchema.parse(req.body);
     const outcomeRecordedBy = (req as any).adminId || 'admin';
-    const override = await storage.updateEngineerOverrideOutcome(id, { ...validatedData, outcomeRecordedBy }, orgId);
+    const override = await dbMlAnalyticsStorage.updateEngineerOverrideOutcome(id, { ...validatedData, outcomeRecordedBy }, orgId);
     await recordOverrideOutcome({ overrideId: id, equipmentId: existingOverride.equipmentId, vesselId: undefined, originalOverrideType: existingOverride.overrideType as 'defer' | 'escalate' | 'dismiss' | 'modify', outcomeStatus: validatedData.outcomeStatus as 'pending' | 'validated' | 'failure_prevented' | 'failure_occurred', outcomeNotes: validatedData.outcomeNotes, outcomeRecordedBy, engineerId: existingOverride.engineerId, engineerName: existingOverride.engineerName, orgId });
     await auditService.logEvent({ orgId, eventCategory: 'ml_prediction', eventType: 'engineer_override_outcome_updated', entityType: 'engineer_override', entityId: id, previousState: { outcomeStatus: existingOverride.outcomeStatus }, newState: { outcomeStatus: validatedData.outcomeStatus, outcomeNotes: validatedData.outcomeNotes }, performedBy: outcomeRecordedBy, performedByType: 'user', retentionRequired: true });
     res.json({ success: true, data: override, message: 'Engineer override outcome updated and logged to provenance chain' });
@@ -104,7 +104,7 @@ router.get('/ml-governance/statistics', requireAdminAuth, requireComplianceAcces
   try {
     const orgId = req.headers['x-org-id'] as string;
     if (!orgId) { return res.status(401).json({ error: 'Organization ID required' }); }
-    const overrides = await storage.getEngineerOverrides(orgId, {});
+    const overrides = await dbMlAnalyticsStorage.getEngineerOverrides(orgId, {});
     const stats = { total: overrides.length, byType: {} as Record<string, number>, byOutcome: {} as Record<string, number>, byRiskLevel: {} as Record<string, number>, avgResponseTime: 0 };
     for (const o of overrides) {
       stats.byType[o.overrideType] = (stats.byType[o.overrideType] ?? 0) + 1;

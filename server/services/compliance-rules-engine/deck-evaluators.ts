@@ -4,9 +4,15 @@
  * Compliance rule evaluators for deck logbook entries.
  */
 
-import { storage } from "../../storage";
+import { deckLogStorage } from "../../repositories";
 import { parseISO, subDays } from "date-fns";
 import type { RuleContext, RuleResult } from "./types.js";
+
+async function getDeckLogByVesselAndDate(vesselId: string, logDate: string, orgId: string) {
+  const daily = await deckLogStorage.getDeckLogDailyByDate(vesselId, logDate, orgId);
+  if (!daily) return undefined;
+  return deckLogStorage.getDeckLogComplete(daily.id, orgId);
+}
 
 export async function evaluateDeckMissingWatch(
   ctx: RuleContext,
@@ -15,7 +21,7 @@ export async function evaluateDeckMissingWatch(
   const { vesselId, logDate, orgId } = ctx;
   const watchPeriods = (config.watchPeriods as string[]) || ["00-06", "06-12", "12-18", "18-24"];
 
-  const deckLogComplete = await storage.getDeckLogByVesselAndDate(vesselId, logDate, orgId);
+  const deckLogComplete = await getDeckLogByVesselAndDate(vesselId, logDate, orgId);
   if (!deckLogComplete?.daily) {
     return { triggered: false, skipped: true, skipReason: "No deck log record for this date" };
   }
@@ -50,7 +56,7 @@ export async function evaluateDeckMissingHourly(
   const { vesselId, logDate, orgId } = ctx;
   const minHourlyEntries = (config.minHourlyEntries as number) || 12;
 
-  const deckLogComplete = await storage.getDeckLogByVesselAndDate(vesselId, logDate, orgId);
+  const deckLogComplete = await getDeckLogByVesselAndDate(vesselId, logDate, orgId);
   if (!deckLogComplete?.daily) {
     return { triggered: false, skipped: true, skipReason: "No deck log record for this date" };
   }
@@ -85,7 +91,7 @@ export async function evaluateDeckUnsigned(
 ): Promise<RuleResult> {
   const { vesselId, logDate, orgId } = ctx;
 
-  const deckLogComplete = await storage.getDeckLogByVesselAndDate(vesselId, logDate, orgId);
+  const deckLogComplete = await getDeckLogByVesselAndDate(vesselId, logDate, orgId);
   if (!deckLogComplete?.daily) {
     return { triggered: false, skipped: true, skipReason: "No deck log record for this date" };
   }
@@ -119,7 +125,7 @@ export async function evaluateDeckMissingPosition(
 ): Promise<RuleResult> {
   const { vesselId, logDate, orgId } = ctx;
 
-  const deckLogComplete = await storage.getDeckLogByVesselAndDate(vesselId, logDate, orgId);
+  const deckLogComplete = await getDeckLogByVesselAndDate(vesselId, logDate, orgId);
   if (!deckLogComplete?.daily) {
     return { triggered: false, skipped: true, skipReason: "No deck log record for this date" };
   }
