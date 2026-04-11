@@ -221,10 +221,11 @@ export class PredictionFeedbackWorkflowAdapter implements IPredictionFeedbackPor
           ON CONFLICT DO NOTHING
         `);
       } catch {
+        const feedbackNote = `\n[Prediction feedback: ${feedback.outcome}]`;
         await db
           .update(workOrders)
           .set({
-            description: sql`COALESCE(description, '') || E'\n[Prediction feedback: ${sql.raw(feedback.outcome)}]'`,
+            description: sql`COALESCE(description, '') || ${feedbackNote}`,
           } as any)
           .where(eq(workOrders.id, feedback.workOrderId));
       }
