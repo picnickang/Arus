@@ -27,7 +27,7 @@ interface WorkOrderDetailDrawerProps {
   equipment: EquipmentItem[];
   vessels: VesselItem[];
   crew: CrewItem[];
-  onComplete: (workOrderId: string) => void;
+  onComplete: (workOrderId: string, feedback?: { workOrderId: string; predictionId?: string | number | null; outcome: "confirmed" | "partial" | "false_alarm"; notes?: string }) => void;
   onEdit: (workOrder: WorkOrder) => void;
   onClone?: (workOrder: WorkOrder) => void;
   onDelete?: (workOrder: WorkOrder) => void;
@@ -236,7 +236,7 @@ export function WorkOrderDetailDrawer({ workOrder, open, onClose, equipment, ves
                   setShowFeedbackStep(true);
                   setActiveTab("details");
                 } else {
-                  onComplete(workOrder.id);
+                  onComplete(workOrder.id, predictionFeedback || undefined);
                   setShowFeedbackStep(false);
                   setPredictionFeedback(undefined);
                 }

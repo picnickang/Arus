@@ -86,16 +86,33 @@ export function useUpdateWorkOrder() {
   });
 }
 
+export interface CompleteWorkOrderInput {
+  id: string;
+  completionNotes?: string;
+  actualHours?: number;
+  predictionFeedback?: {
+    workOrderId: string;
+    predictionId?: string | number | null;
+    outcome: "confirmed" | "partial" | "false_alarm";
+    notes?: string;
+  };
+}
+
 export function useCompleteWorkOrder() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ id, completionNotes }: { id: string; completionNotes?: string }) => {
-      return apiRequest("POST", `/api/work-orders/${id}/complete`, { completionNotes });
+    mutationFn: async ({ id, completionNotes, actualHours, predictionFeedback }: CompleteWorkOrderInput) => {
+      return apiRequest("POST", `/api/work-orders/${id}/complete-with-feedback`, {
+        completionNotes,
+        actualHours,
+        predictionFeedback,
+      });
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: workOrderKeys.detail(variables.id) });
       queryClient.invalidateQueries({ queryKey: workOrderKeys.list() });
+      queryClient.invalidateQueries({ queryKey: ["/api/work-order-completions"] });
     },
   });
 }

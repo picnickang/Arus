@@ -46,3 +46,13 @@ export interface ICostSavingsPort {
 export interface IPredictionFeedbackPort {
   recordFeedback(feedback: CompletionPredictionFeedback, orgId: string, userId: string): Promise<void>;
 }
+
+export interface ILegacyCompletionPort {
+  completeWorkOrder(workOrderId: string, completionData: any, orgId: string, userId?: string): Promise<any>;
+  aggregateProcurementCosts(workOrderId: string, orgId: string): Promise<void>;
+}
+
+export interface IWorkOrderEventPort {
+  emitCompleted(workOrderId: string, orgId: string, completedBy: string, actualHours?: number, completionNotes?: string): Promise<void>;
+  emitStatusChanged(workOrderId: string, orgId: string, previousStatus: string, newStatus: string, changedBy?: string): Promise<void>;
+}

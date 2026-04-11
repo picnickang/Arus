@@ -2,6 +2,8 @@ import type {
   IWorkOrderWorkflowRepository,
   ICostSavingsPort,
   IPredictionFeedbackPort,
+  ILegacyCompletionPort,
+  IWorkOrderEventPort,
 } from "../domain/workflow-ports";
 import type {
   WorkOrderCompletionInput,
@@ -16,13 +18,15 @@ export class WorkOrderWorkflowService {
     public woRepo: IWorkOrderWorkflowRepository,
     private savings: ICostSavingsPort,
     private predictionFeedback: IPredictionFeedbackPort,
+    private legacyCompletion: ILegacyCompletionPort,
+    private events: IWorkOrderEventPort,
   ) {}
 
   async completeWithFeedback(
     input: WorkOrderCompletionInput,
     userId: string,
   ): Promise<WorkOrderCompletionResult> {
-    const { workOrderId, orgId, predictionFeedback: feedback } = input;
+    const { workOrderId, orgId, predictionFeedback: feedback, completionNotes, actualHours } = input;
 
     const wo = await this.woRepo.findById(workOrderId, orgId);
     if (!wo) {
@@ -53,15 +57,45 @@ export class WorkOrderWorkflowService {
       };
     }
 
-    const updated = await this.woRepo.updateStatus(workOrderId, orgId, "completed", userId);
-    if (!updated) {
+    try {
+      await this.legacyCompletion.completeWorkOrder(
+        workOrderId,
+        {
+          workOrderId,
+          orgId,
+          equipmentId: wo.equipmentId,
+          vesselId: wo.vesselId || undefined,
+          completedAt: new Date(),
+          completionNotes: completionNotes || undefined,
+          actualDowntimeHours: actualHours || 0,
+        },
+        orgId,
+        userId,
+      );
+    } catch (err) {
+      console.error(
+        `[WOWorkflow] Legacy completion failed for WO ${workOrderId}:`,
+        err instanceof Error ? err.message : "unknown",
+      );
       return {
         workOrderId,
         completed: false,
-        error: "Failed to update status",
+        error: "Failed to complete work order",
         savingsCalculated: false,
         predictionFeedbackRecorded: false,
       };
+    }
+
+    await this.events.emitStatusChanged(workOrderId, orgId, wo.status, "completed", userId);
+    await this.events.emitCompleted(workOrderId, orgId, userId, actualHours, completionNotes);
+
+    try {
+      await this.legacyCompletion.aggregateProcurementCosts(workOrderId, orgId);
+    } catch (err) {
+      console.error(
+        `[WOWorkflow] Procurement cost aggregation failed for WO ${workOrderId}:`,
+        err instanceof Error ? err.message : "unknown",
+      );
     }
 
     let feedbackRecorded = false;
@@ -128,10 +162,13 @@ export class WorkOrderWorkflowService {
       return { cancelled: false, savingsVoided: 0, error: "Cannot cancel a completed work order" };
     }
 
+    const previousStatus = wo.status;
     const updated = await this.woRepo.updateStatus(workOrderId, orgId, "cancelled", userId);
     if (!updated) {
       return { cancelled: false, savingsVoided: 0, error: "Failed to update status" };
     }
+
+    await this.events.emitStatusChanged(workOrderId, orgId, previousStatus, "cancelled", userId);
 
     const voided = await this.savings.voidForWorkOrder(
       workOrderId,

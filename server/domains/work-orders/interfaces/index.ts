@@ -22,6 +22,8 @@ import {
   WorkOrderWorkflowRepositoryAdapter,
   CostSavingsWorkflowAdapter,
   PredictionFeedbackWorkflowAdapter,
+  LegacyCompletionAdapter,
+  WorkOrderEventAdapter,
 } from "../infrastructure/workflow-adapters";
 import { WorkOrderWorkflowService } from "../application/wo-workflow-service";
 import type { RateLimitMiddleware } from "./types";
@@ -41,7 +43,9 @@ export function registerWorkOrderRoutes(
   const woRepo = new WorkOrderWorkflowRepositoryAdapter();
   const savings = new CostSavingsWorkflowAdapter();
   const predictionFeedback = new PredictionFeedbackWorkflowAdapter();
-  const workflowService = new WorkOrderWorkflowService(woRepo, savings, predictionFeedback);
+  const legacyCompletion = new LegacyCompletionAdapter();
+  const events = new WorkOrderEventAdapter();
+  const workflowService = new WorkOrderWorkflowService(woRepo, savings, predictionFeedback, legacyCompletion, events);
   registerWorkOrderWorkflowRoutes(app, workflowService, rateLimit);
 
   logger.info("WorkOrdersRoutes", "Extended routes registered (clone, history, costs, parts, completions, enriched, workflow)");

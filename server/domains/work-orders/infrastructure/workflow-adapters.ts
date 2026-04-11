@@ -6,6 +6,8 @@ import type {
   IWorkOrderWorkflowRepository,
   ICostSavingsPort,
   IPredictionFeedbackPort,
+  ILegacyCompletionPort,
+  IWorkOrderEventPort,
   WorkOrderWithWorkflowContext,
 } from "../domain/workflow-ports";
 import type {
@@ -191,6 +193,56 @@ export class CostSavingsWorkflowAdapter implements ICostSavingsPort {
       .returning({ id: costSavings.id });
 
     return result.length > 0;
+  }
+}
+
+export class LegacyCompletionAdapter implements ILegacyCompletionPort {
+  async completeWorkOrder(workOrderId: string, completionData: any, orgId: string, userId?: string): Promise<any> {
+    const { workOrderService } = await import("../../../services/domains/work-order-service");
+    const completionRecord: any = {
+      workOrderId,
+      orgId,
+      equipmentId: completionData.equipmentId || "unknown",
+      vesselId: completionData.vesselId || null,
+      completedAt: completionData.completedAt || new Date(),
+      completedBy: userId || completionData.completedBy || null,
+      actualDowntimeHours: completionData.actualDowntimeHours || 0,
+      completionNotes: completionData.completionNotes || null,
+    };
+    return workOrderService.completeWorkOrder(workOrderId, completionRecord);
+  }
+
+  async aggregateProcurementCosts(workOrderId: string, orgId: string): Promise<void> {
+    const { aggregateProcurementCostsToWorkOrder } = await import("../../../cost-savings-engine");
+    await aggregateProcurementCostsToWorkOrder(workOrderId, orgId);
+  }
+}
+
+export class WorkOrderEventAdapter implements IWorkOrderEventPort {
+  async emitCompleted(workOrderId: string, orgId: string, completedBy: string, actualHours?: number, completionNotes?: string): Promise<void> {
+    const { workOrderEventPublisher } = await import("./event-publisher-adapter");
+    await workOrderEventPublisher.publish({
+      type: "WORK_ORDER_COMPLETED",
+      workOrderId,
+      orgId,
+      completedBy,
+      actualHours,
+      completionNotes,
+      timestamp: new Date(),
+    });
+  }
+
+  async emitStatusChanged(workOrderId: string, orgId: string, previousStatus: string, newStatus: string, changedBy?: string): Promise<void> {
+    const { workOrderEventPublisher } = await import("./event-publisher-adapter");
+    await workOrderEventPublisher.publish({
+      type: "WORK_ORDER_STATUS_CHANGED",
+      workOrderId,
+      orgId,
+      previousStatus,
+      newStatus,
+      changedBy,
+      timestamp: new Date(),
+    });
   }
 }
 

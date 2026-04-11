@@ -91,13 +91,13 @@ export default function WorkOrders() {
         </div>
       </div>
 
-      <WorkOrderDetailDrawer workOrder={drawerOrder} open={drawerOpen} onClose={closeDrawer} equipment={equipment} vessels={vessels} crew={allCrewMembers} onComplete={(id) => { completeWorkOrderMutation.mutate(id); closeDrawer(); }} onEdit={(_order) => { closeDrawer(); handleEditOrder(_order); }} onClone={(_order) => { closeDrawer(); closeCloneDialog(true); }} onDelete={handleDeleteOrder} isCompleting={completeWorkOrderMutation.isPending} />
+      <WorkOrderDetailDrawer workOrder={drawerOrder} open={drawerOpen} onClose={closeDrawer} equipment={equipment} vessels={vessels} crew={allCrewMembers} onComplete={(id, feedback) => { completeWorkOrderMutation.mutate({ orderId: id, predictionFeedback: feedback }); closeDrawer(); }} onEdit={(_order) => { closeDrawer(); handleEditOrder(_order); }} onClone={(_order) => { closeDrawer(); closeCloneDialog(true); }} onDelete={handleDeleteOrder} isCompleting={completeWorkOrderMutation.isPending} />
       <WorkOrderCloneDialog workOrder={cloneOrder} open={cloneDialogOpen} onOpenChange={closeCloneDialog} onSuccess={onCloneSuccess} />
 
       <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
         <DialogContent className="max-w-6xl w-[95vw] md:w-auto max-h-[90vh] overflow-y-auto" data-testid="order-detail-panel">
           <DialogHeader><DialogTitle>Work Order {selectedOrder?.woNumber || selectedOrder?.id}</DialogTitle><DialogDescription>Manage work order and parts for {selectedOrder && getEquipmentName(selectedOrder.equipmentId)}</DialogDescription></DialogHeader>
-          {selectedOrder && <ViewOrderTabs order={selectedOrder} getEquipmentName={getEquipmentName} getVesselName={getVesselName} onComplete={() => completeWorkOrderMutation.mutate(selectedOrder.id)} isCompleting={completeWorkOrderMutation.isPending} onClose={() => setViewModalOpen(false)} queryClient={queryClient} />}
+          {selectedOrder && <ViewOrderTabs order={selectedOrder} getEquipmentName={getEquipmentName} getVesselName={getVesselName} onComplete={() => completeWorkOrderMutation.mutate({ orderId: selectedOrder.id })} isCompleting={completeWorkOrderMutation.isPending} onClose={() => setViewModalOpen(false)} queryClient={queryClient} />}
         </DialogContent>
       </Dialog>
 

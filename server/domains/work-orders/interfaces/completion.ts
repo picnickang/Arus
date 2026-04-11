@@ -1,7 +1,13 @@
 /**
- * Work Order Completion Routes
+ * Work Order Completion Routes (Legacy)
  *
  * Completion workflow, completions list, and analytics.
+ *
+ * @deprecated The POST /api/work-orders/:id/complete route is the legacy
+ * completion path retained for backward compatibility. New callers should
+ * use POST /api/work-orders/:id/complete-with-feedback (workflow-routes.ts)
+ * which adds prediction feedback recording, savings validation, and
+ * domain event publishing on top of the same underlying completion logic.
  */
 
 import type { Express, Request, Response } from "express";
