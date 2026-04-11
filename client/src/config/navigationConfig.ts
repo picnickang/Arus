@@ -239,7 +239,6 @@ export function getCategoryById(id: string): NavigationCategory | undefined {
 
 // Route migration map for legacy dock entries
 export const routeMigrations: Record<string, string> = {
-  "/governance": "/logs/compliance",
   "/governance-dashboard": "/logs/compliance",
   "/logs-compliance": "/logs/compliance",
   "/deck-logbook": "/logs/deck",
@@ -249,27 +248,6 @@ export const routeMigrations: Record<string, string> = {
   "/condition-monitoring-log": "/logs/equipment",
   "/decommissioned-equipment-log": "/logs/equipment",
   "/devices": "/fleet?tab=equipment",
-  "/equipment-registry": "/fleet?tab=equipment",
-  "/health-monitor": "/fleet?tab=equipment",
-  "/health": "/fleet?tab=equipment",
-  "/fleet-overview": "/fleet",
-  "/bridge-view": "/fleet",
-  "/settings": "/configuration",
-  "/transport-settings": "/configuration",
-  "/storage-settings": "/configuration",
-  "/operating-parameters": "/configuration",
-  "/sensor-config": "/sensors",
-  "/sensor-optimization": "/sensors",
-  "/sensor-management": "/sensors",
-  "/cost-savings": "/analytics",
-  "/reports": "/analytics",
-  "/model-performance": "/analytics",
-  "/ml-explainability": "/analytics",
-  "/prediction-feedback": "/analytics",
-  "/llm-costs": "/analytics",
-  "/alerts": "/dashboard",
-  "/active-telemetry": "/dashboard?tab=telemetry",
-  "/actionable-insights": "/dashboard?tab=insights",
 };
 
 // Helper: Migrate legacy route to current route

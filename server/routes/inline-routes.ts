@@ -1,6 +1,8 @@
 /**
- * Inline Routes - Miscellaneous routes not part of domain modules
- * Extracted from routes.ts for modularization
+ * Inline Routes - Dev-only and infrastructure routes
+ *
+ * Production-facing routes have been migrated to the domain router registry.
+ * Only dev-only endpoints remain here.
  */
 
 import type { Express, Request, Response } from "express";
@@ -11,7 +13,6 @@ import { telemetryDlqRouter } from "./telemetry-dlq-routes";
 import { telemetryIngestionRouter } from "./telemetry-ingestion-routes";
 
 export function registerInlineRoutes(app: Express): void {
-  // DEV ONLY: Direct batch writer stress test (bypasses auth for testing)
   if (process.env.NODE_ENV === "development") {
     app.post("/api/dev/telemetry/stress-test", generalApiRateLimit, async (req: Request, res: Response) => {
       try {
@@ -92,7 +93,6 @@ export function registerInlineRoutes(app: Express): void {
     console.log("[Inline Routes] DEV stress-test endpoint registered");
   }
 
-  // MQTT Reliable Sync health endpoint
   app.get("/api/mqtt/reliable-sync/health", generalApiRateLimit, async (req: Request, res: Response) => {
     try {
       const { mqttReliableSync } = await import("../mqtt-reliable-sync");
@@ -115,7 +115,6 @@ export function registerInlineRoutes(app: Express): void {
     }
   });
 
-  // Load Distribution Analysis (VPS Feature)
   app.get("/api/equipment/:id/load-distribution", async (req: Request, res: Response) => {
     try {
       const equipmentId = req.params.id;
@@ -185,10 +184,7 @@ export function registerInlineRoutes(app: Express): void {
     }
   });
 
-  // Register Telemetry DLQ routes
   app.use("/api/telemetry/dlq", generalApiRateLimit, telemetryDlqRouter);
-
-  // Register Telemetry Ingestion routes (archive, heartbeat, batch, schema)
   app.use("/api/telemetry/ingestion", generalApiRateLimit, telemetryIngestionRouter);
 
   console.log("[Inline Routes] Registered (mqtt-health, load-distribution, telemetry-dlq, telemetry-ingestion)");

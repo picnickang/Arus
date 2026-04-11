@@ -13,7 +13,7 @@
 
 import { Router, Response } from "express";
 import { AuthenticatedRequest } from "../middleware/auth.js";
-import { storage } from "../storage.js";
+import { dbMlAnalyticsStorage } from "../repositories.js";
 import { mlTrainConfigSchema, type InsertMlModel } from "@shared/schema-runtime";
 import { z } from "zod";
 import { structuredLog } from "../logging.js";
@@ -22,13 +22,13 @@ import { sendSuccess, sendNotFound, sendBadRequest, handleError } from "../utils
 const router = Router();
 
 router.get("/ml/models", async (req: AuthenticatedRequest, res: Response) => {
-  try { sendSuccess(res, await storage.getMlModels(req.orgId)); }
+  try { sendSuccess(res, await dbMlAnalyticsStorage.getMlModels(req.orgId)); }
   catch (error) { handleError(error, res, "fetch ML models"); }
 });
 
 router.get("/ml/models/:id", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const model = await storage.getMlModel(req.params.id, req.orgId);
+    const model = await dbMlAnalyticsStorage.getMlModel(req.params.id, req.orgId);
     if (!model) {return sendNotFound(res, "ML model");}
     sendSuccess(res, model);
   } catch (error) { handleError(error, res, "fetch ML model"); }
@@ -36,10 +36,10 @@ router.get("/ml/models/:id", async (req: AuthenticatedRequest, res: Response) =>
 
 router.get("/ml/accuracy-trend", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const models = await storage.getMlModels(req.orgId);
+    const models = await dbMlAnalyticsStorage.getMlModels(req.orgId);
     const trendData = await Promise.all(
       models.filter((m) => m.status === "deployed" && m.accuracy).map(async (model) => {
-        const history = await storage.getMlModelAccuracyHistory(model.id, req.orgId);
+        const history = await dbMlAnalyticsStorage.getMlModelAccuracyHistory(model.id, req.orgId);
         return history.map((h) => ({ date: h.recordedAt.toISOString().split("T")[0], accuracy: Number.parseFloat(h.accuracy || "0"), modelId: model.id, modelName: model.name }));
       })
     );
@@ -61,7 +61,7 @@ router.post("/ml/train", async (req: AuthenticatedRequest, res: Response) => {
       trainedOn: null, deployedOn: null, archivedOn: null, accuracy: null, precision: null, recall: null, f1Score: null,
       dataPoints: null, trainingDurationMs: null, featureImportance: null, trainingMetrics: null, errorMessage: null,
     };
-    const newModel = await storage.createMlModel(modelData);
+    const newModel = await dbMlAnalyticsStorage.createMlModel(modelData);
     const { mlTrainingQueue } = await import("../ml-training-queue.js");
     const trainingJob = await mlTrainingQueue.enqueue({ modelId: newModel.id, orgId: req.orgId, algorithm: config.algorithm, equipmentType: config.equipmentType, dataWindowDays: config.dataWindowDays, hyperparameters: config.hyperparameters });
     structuredLog("info", `ML training started for model ${newModel.id}`, { operation: "ml_training_start", metadata: { modelId: newModel.id, equipmentType: config.equipmentType, algorithm: config.algorithm, windowDays: config.dataWindowDays } });
@@ -74,39 +74,39 @@ router.post("/ml/train", async (req: AuthenticatedRequest, res: Response) => {
 
 router.post("/ml/models/:id/deploy", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const model = await storage.getMlModel(req.params.id, req.orgId);
+    const model = await dbMlAnalyticsStorage.getMlModel(req.params.id, req.orgId);
     if (!model) {return sendNotFound(res, "ML model");}
     if (model.status === "training") {return sendBadRequest(res, "Cannot deploy a model that is still training");}
     if (model.status === "failed") {return sendBadRequest(res, "Cannot deploy a failed model");}
-    const updatedModel = await storage.updateMlModel(req.params.id, { status: "deployed", deployedOn: new Date() }, req.orgId);
+    const updatedModel = await dbMlAnalyticsStorage.updateMlModel(req.params.id, { status: "deployed", deployedOn: new Date() }, req.orgId);
     sendSuccess(res, { message: "Model deployed successfully", model: updatedModel });
   } catch (error) { handleError(error, res, "deploy ML model"); }
 });
 
 router.post("/ml/models/:id/archive", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const model = await storage.getMlModel(req.params.id, req.orgId);
+    const model = await dbMlAnalyticsStorage.getMlModel(req.params.id, req.orgId);
     if (!model) {return sendNotFound(res, "ML model");}
-    const updatedModel = await storage.updateMlModel(req.params.id, { status: "archived", archivedOn: new Date() }, req.orgId);
+    const updatedModel = await dbMlAnalyticsStorage.updateMlModel(req.params.id, { status: "archived", archivedOn: new Date() }, req.orgId);
     sendSuccess(res, { message: "Model archived successfully", model: updatedModel });
   } catch (error) { handleError(error, res, "archive ML model"); }
 });
 
 router.delete("/ml/models/:id", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const model = await storage.getMlModel(req.params.id, req.orgId);
+    const model = await dbMlAnalyticsStorage.getMlModel(req.params.id, req.orgId);
     if (!model) {return sendNotFound(res, "ML model");}
-    await storage.deleteMlModel(req.params.id, req.orgId);
+    await dbMlAnalyticsStorage.deleteMlModel(req.params.id, req.orgId);
     sendSuccess(res, { message: "Model deleted successfully" });
   } catch (error) { handleError(error, res, "delete ML model"); }
 });
 
 router.post("/ml/models/:id/accuracy", async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const model = await storage.getMlModel(req.params.modelId, req.orgId);
+    const model = await dbMlAnalyticsStorage.getMlModel(req.params.id, req.orgId);
     if (!model) {return sendNotFound(res, "ML model");}
     const { accuracy, validationAccuracy, testAccuracy, datasetSize } = req.body;
-    const historyEntry = await storage.addMlModelAccuracyHistory({ modelId: req.params.id, accuracy, validationAccuracy: validationAccuracy || null, testAccuracy: testAccuracy || null, datasetSize: datasetSize || null }, req.orgId);
+    const historyEntry = await dbMlAnalyticsStorage.addMlModelAccuracyHistory({ modelId: req.params.id, accuracy, validationAccuracy: validationAccuracy || null, testAccuracy: testAccuracy || null, datasetSize: datasetSize || null }, req.orgId);
     sendSuccess(res, { message: "Accuracy history recorded", entry: historyEntry });
   } catch (error) { handleError(error, res, "record accuracy history"); }
 });

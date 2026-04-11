@@ -66,7 +66,7 @@ Developed with Express.js and TypeScript, offering RESTful APIs with Zod validat
 -   **Performance Optimizations**: Redis circuit breaker, Vite code splitting, API caching, lazy-loaded pages, memoized context providers, and optimized TanStack Query defaults.
 -   **Hexagonal Architecture (DDD Modular Monolith)**: Clear separation of concerns into Domain, Application, Infrastructure, and Interfaces layers, with a Domain Event Registry and Cloud-Safe Outbox Processor.
 -   **Storage Architecture**: Domain-specific repositories in `server/db/` with a composed facade for service-layer consumers.
--   **Convergence Guardrails**: Automated scripts for schema drift validation, storage/schema/domain import boundary checks, and documentation of legacy route retirement plans.
+-   **Convergence Guardrails**: `check:guards` runs 4 scripts: schema drift validation (`validate-dual-schema.mjs`), storage import boundary (`check-storage-imports.mjs`), schema import boundary (`check-schema-imports.mjs`), and cross-domain import boundary (`check-domain-boundaries.mjs`). PdM route consolidation map at `scripts/pdm-route-map.json` with 2-phase retirement plan. Redirect expiration tiers and usage tracking in `legacy-redirects.ts`. Drift burn-down at `scripts/drift-burndown.json` (6 quick-fix, 42 medium, 68 heavy, 37 missing). Storage facade down to 1 consumer (`pdm-gap-fill-routes.ts`); `routeMigrations` deduped from 32→9 entries.
 
 # External Dependencies
 

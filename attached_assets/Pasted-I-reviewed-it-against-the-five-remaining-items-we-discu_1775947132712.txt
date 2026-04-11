@@ -1,0 +1,96 @@
+I reviewed it against the five remaining items we discussed.
+
+Verdict: not all fixed.
+You’ve made real progress, but the source bundle still shows 3 of the 5 items are only partially fixed, and 2 are clearly not finished.
+
+What is actually fixed
+
+1. Dual-DB guardrails: fixed
+
+Your screenshot shows:
+	•	New drift (blocking): 0
+	•	Missing tables: 0
+	•	storage import boundary passing
+	•	schema import boundary passing
+
+That is a real architectural improvement.
+
+One caveat: I cannot fully verify the guardrail scripts from the archive itself because this source bundle does not include those script files or the check:guards package scripts I looked for. But the terminal output you showed is strong evidence they exist in your working repo.
+
+2. Routes are much cleaner than before: improved
+
+server/routes.ts is now a thin coordinator and explicitly delegates route registration to registerAllDomainRouters(app). That is good.
+
+What is not fully fixed
+
+3. Storage facade retirement: not fixed, only frozen
+
+server/storage.ts is still present and says it remains for ~50 service-layer consumers.
+
+That means:
+	•	the facade is restricted
+	•	the facade is deprecated
+	•	but it is not retired
+
+So this item is managed, not finished.
+
+4. Route registration singularity: not fully fixed
+
+Even though the registry is now the main entry point, server/routes/domain-router-registry.ts still registers a large number of modules through legacy-router-wrappers.js, and server/routes.ts still calls registerInlineRoutes(app).
+
+So the truth is:
+	•	single coordinator: yes
+	•	single pure route pattern: no
+
+This is better than before, but still transitional.
+
+5. PdM / Sync overlap cleanup: not fixed
+
+This is the clearest miss.
+
+client/src/components/SyncAdmin.tsx still says:
+	•	“Fetch sync health metrics (legacy endpoint)”
+	•	it still queries "/api/sync/health"
+	•	and it still falls back to legacy health behavior
+
+PdM still has legacy overlap too:
+	•	client/src/pages/pdm-pack.tsx
+	•	client/src/features/maintenance/hooks/usePdmPackData.ts
+	•	client/src/pages/pdm-dashboard.tsx
+	•	client/src/pages/pdm-platform.tsx
+	•	server/pdm/PDM-REFACTORING-AUDIT.md still describes legacy/new coexistence and deprecate-later strategy
+
+So this area is definitely not done.
+
+6. Redirect debt: not fixed
+
+client/src/routes/legacy-redirects.ts still contains 41 redirects.
+
+That means redirect debt has been consolidated, but not burned down.
+
+That is organizationally cleaner, but it is not the same as removal.
+
+Straight answer by item
+
+Here is the honest scorecard:
+	•	Storage facade: No — frozen, not retired
+	•	Route registration: Partly — centralized, but still mixed with legacy wrappers and inline routes
+	•	PdM / Sync overlap: No — still clearly transitional
+	•	Redirect debt: No — still 41 redirects
+	•	Dual-DB guardrails: Yes — looks fixed from the terminal evidence
+
+Bottom line
+
+The codebase is in better shape than before, but this is not a “all five items have been implemented” situation from the source I reviewed.
+
+The most accurate summary is:
+
+You have hardened the architecture, but you have not finished convergence.
+
+The strongest win is the guardrail layer.
+The biggest remaining misses are:
+	•	PdM / Sync overlap
+	•	redirect retirement
+	•	actual storage facade retirement
+
+If you want, I can turn this into a tight acceptance checklist with exact “done / not done / evidence” lines you can hand back to Claude or your team.
