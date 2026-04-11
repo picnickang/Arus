@@ -260,7 +260,7 @@ export const syncConflicts = isLocalMode ? sqliteVessel.syncConflictsSqlite : (p
 // ============================================================================
 export const softwarePatches = IS_POSTGRES ? pgSchema.softwarePatches : undefined as any;
 export const configAuditLog = IS_POSTGRES ? pgSchema.configAuditLog : undefined as any;
-export const updateSettings = IS_POSTGRES ? pgSchema.updateSettings : sqliteSchema.updateSettingsSqlite;
+export const updateSettings = IS_POSTGRES ? pgSchema.updateSettings : sqliteSync.updateSettingsSqlite;
 export const patchDownloads = IS_POSTGRES ? pgSchema.patchDownloads : undefined as any;
 export const adminSessions = IS_POSTGRES ? pgSchema.adminSessions : undefined as any;
 export const modelDeployments = IS_POSTGRES ? pgSchema.modelDeployments : undefined as any;

@@ -1652,6 +1652,13 @@
         "orgId",
         "schedulerRunId"
       ]
+    },
+    "updateSettings": {
+      "pgOnly": [
+        "autoUpdateCriticalOnly",
+        "updateChannel",
+        "vesselId"
+      ]
     }
   }
 }

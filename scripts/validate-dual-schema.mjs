@@ -37,6 +37,8 @@ const guardedNames = new Set();
 const switchedPairs = [];
 const lines = runtimeSrc.split("\n");
 
+const VALID_NAMESPACES = new Set(["pgSchema", "sqliteVessel", "sqliteSync"]);
+
 for (const line of lines) {
   const exportMatch = line.match(/^export const (\w+)\s*=/);
   if (!exportMatch) continue;
@@ -66,6 +68,19 @@ for (const line of lines) {
     const sqliteMatch = line.match(/(?:sqliteVessel|sqliteSync)\.(\w+)/);
     if (pgMatch && sqliteMatch) {
       switchedPairs.push({ name, pgExport: pgMatch[1], sqliteExport: sqliteMatch[1] });
+    }
+  }
+
+  const nsRefs = line.matchAll(/(\w+)\.\w+/g);
+  for (const nsRef of nsRefs) {
+    const ns = nsRef[1];
+    if (ns === "undefined" || ns === "console" || ns === "process" || ns === "JSON" || ns === "Math") continue;
+    if (ns === "IS_POSTGRES" || ns === "IS_SQLITE" || ns === "isLocalMode" || ns === "isEmbedded") continue;
+    if (ns.match(/^[a-z]/) && !VALID_NAMESPACES.has(ns) && ns !== "pgSchema") {
+      const isImportedNs = runtimeSrc.includes(`import * as ${ns}`);
+      if (!isImportedNs && line.includes(`${ns}.`)) {
+        errors.push(`Layer 1 — Invalid namespace '${ns}' in export '${name}': not imported in schema-runtime.ts`);
+      }
     }
   }
 }
