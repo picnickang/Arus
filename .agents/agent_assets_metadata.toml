@@ -216,3 +216,9 @@ id = "obxjHM10XfsKqXqPKHtZq"
 uri = "file://arus-source-code.tar.gz"
 type = "unspecified"
 title = "ARUS Source Code (updated tar.gz)"
+
+[[outputs]]
+id = "8G-YJF6epnIxvxQFlVJqn"
+uri = "file://arus-source.tar"
+type = "unspecified"
+title = "ARUS Source Code (tar)"
