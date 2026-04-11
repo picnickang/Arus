@@ -210,3 +210,9 @@ id = "qmcq0-4l6NvdG7w4rNkxq"
 uri = "file://arus-source.tar.gz"
 type = "unspecified"
 title = "ARUS Codebase (Source Only)"
+
+[[outputs]]
+id = "obxjHM10XfsKqXqPKHtZq"
+uri = "file://arus-source-code.tar.gz"
+type = "unspecified"
+title = "ARUS Source Code (tar.gz)"
