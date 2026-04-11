@@ -1,0 +1,223 @@
+Good — this is now the stage where things get interesting.
+
+You’re no longer fixing bugs or obvious inconsistencies.
+You’re deciding whether ARUS becomes:
+
+👉 a clean, scalable platform
+or
+👉 a powerful but gradually inconsistent system
+
+Let me tighten the previous list into something actionable and brutal:
+
+⸻
+
+🎯 The 5 Remaining Issues (with REAL decisions)
+
+1. Storage Facade (THE big one)
+
+Current reality
+	•	server/storage.ts still exists
+	•	~50 services still depend on it
+	•	new code is supposed to avoid it
+
+The real problem
+
+Right now, developers still have two valid choices:
+	•	use storage facade
+	•	use domain/repo pattern
+
+That means drift is still possible.
+
+⸻
+
+🔥 Decision you need to make
+
+Option A (recommended):
+
+Kill storage facade as an entry point
+
+	•	Freeze it (no new usage)
+	•	Add lint rule banning new imports
+	•	Migrate remaining consumers gradually
+
+Option B:
+
+Formalize it as a compatibility layer only
+
+	•	Rename to legacyStorage
+	•	Move it out of main architecture paths
+	•	Make it visually “wrong” to use
+
+⸻
+
+Why this matters most
+
+This is the only issue that directly affects every new backend feature.
+
+⸻
+
+2. Route Registration (you’re 80% there)
+
+Current reality
+	•	domain-router-registry exists ✅
+	•	server/routes.ts still mixes patterns ❗
+
+⸻
+
+🔥 Decision
+
+“All new routes MUST register via domain router registry”
+
+Then:
+	•	ban direct app.use() except in routes.ts
+	•	tag remaining legacy routes with removal phases
+
+⸻
+
+Why it matters
+
+This defines:
+	•	where middleware applies
+	•	how auth is enforced
+	•	how observability is attached
+
+⸻
+
+3. PdM / Sync / Legacy Product Overlap
+
+Current reality
+	•	work orders = clean
+	•	PdM + sync = still transitional
+
+⸻
+
+🔥 Decision
+
+Pick ONE next domain:
+
+👉 PdM is the best candidate
+
+Then apply the exact same pattern:
+	•	one route set
+	•	one data flow
+	•	no legacy hooks
+	•	no fallback endpoints
+
+⸻
+
+Why this matters
+
+This is where architecture becomes user-visible consistency.
+
+⸻
+
+4. Redirect Debt (easy win, high signal)
+
+Current reality
+	•	still ~20–25 redirects
+	•	legacy IA still “supported”
+
+⸻
+
+🔥 Decision
+
+Redirects expire.
+
+Do this:
+	•	assign expiration dates (30/60/90 days)
+	•	log usage
+	•	delete aggressively
+
+⸻
+
+Why it matters
+
+Not performance — mental model clarity.
+
+⸻
+
+5. Dual DB (don’t fight it — control it)
+
+Current reality
+	•	Postgres + SQLite
+	•	runtime switching
+	•	schema duplication
+
+⸻
+
+🔥 Decision
+
+Treat dual-db as a first-class constraint, not a temporary hack
+
+Then enforce:
+	•	CI check: every schema change must exist in both
+	•	shared test suite across both modes
+	•	explicit “not supported offline” flags where needed
+
+⸻
+
+Why this matters
+
+This is not going away. It needs guardrails, not removal.
+
+⸻
+
+🧠 The Pattern You Just Proved Works
+
+Work orders solved the problem using:
+	•	single endpoint
+	•	no fallback
+	•	unified UI paths
+	•	enforced contract
+
+👉 That is now your platform rule template
+
+⸻
+
+🚨 The Real Risk Now
+
+It’s no longer:
+
+❌ “this is messy”
+
+It’s:
+
+⚠️ “will the next engineer follow the new pattern… or the old one?”
+
+⸻
+
+🧭 What success looks like in 30 days
+
+If you execute well, you get:
+	•	storage facade no longer used for new work
+	•	all new routes via domain registry
+	•	one more domain (PdM) fully cleaned like work orders
+	•	redirect count cut in half
+	•	CI preventing schema drift
+
+At that point, I would upgrade ARUS to:
+
+👉 “clean, scalable architecture with controlled legacy zones”
+
+⸻
+
+🧾 Final blunt summary
+
+You’ve crossed the hardest line:
+
+👉 You proved you can fix a complex domain properly
+
+Now the only question is:
+
+Do you enforce that pattern across the system?
+
+If yes → this becomes a top-tier industrial platform
+If no → it slowly drifts again, just more subtly
+
+⸻
+
+If you want next step, I’d do:
+
+👉 “Give me the exact enforcement rules (lint + CI + folder structure) so this never regresses.”
+
+That’s the move most teams skip — and it’s what actually locks this in.
