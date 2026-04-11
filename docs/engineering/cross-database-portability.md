@@ -431,16 +431,27 @@ The count should match the number of exported table constants.
 
 ## Automation Status
 
-The following automation is **deferred** from this task (documentation-only scope):
-
-| Automation | Status | Follow-up |
-|-----------|--------|-----------|
-| ESLint rule banning `serial()` imports in new schema files | Deferred | Create custom ESLint plugin or `no-restricted-imports` rule |
-| CI schema parity check (PG vs SQLite column name diff) | Deferred | Shell script comparing column names across schema pairs |
+| Automation | Status | Command |
+|-----------|--------|---------|
+| Schema export guard (ternary validation) | **Implemented** | `npm run check:schema` |
+| Column parity check (PG vs SQLite column diff) | **Implemented** | `npm run check:schema` (Layer 2) |
+| Storage facade import boundary | **Implemented** | `npm run check:storage-imports` |
+| All guardrails combined | **Implemented** | `npm run check:guards` |
+| ESLint rule banning `serial()` imports | Deferred | Create custom ESLint plugin or `no-restricted-imports` rule |
 | Automated dual-DB test matrix in CI | Deferred | Requires CI pipeline with both PG and SQLite test databases |
-| Pre-commit hook for `schema-runtime.ts` ternary validation | Deferred | Script to verify every table export has both branches |
 
-These should be tracked as separate engineering tasks and implemented incrementally.
+### Running Guardrails
+
+```bash
+npm run check:guards
+```
+
+This runs two scripts:
+1. `scripts/validate-dual-schema.mjs` — Validates that every table export in
+   `schema-runtime.ts` uses the ternary guard pattern and compares column names
+   between PG and SQLite definitions for switched tables.
+2. `scripts/check-storage-imports.mjs` — Enforces that no new code imports from
+   the frozen `server/storage.ts` facade (allowed exceptions are listed in the script).
 
 ---
 

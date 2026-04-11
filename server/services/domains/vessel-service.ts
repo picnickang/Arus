@@ -64,6 +64,31 @@ class VesselService {
     const v = await this.getVessels(orgId);
     return { vessels: v.length, signalsMapped: 0, signalsDiscovered: 0, latestPerVessel: v.map(x => ({ vesselId: x.id, lastTs: new Date().toISOString() })), dq7d: {} };
   }
+
+  async exportVessel(vesselId: string, orgId: string): Promise<Record<string, unknown>> {
+    const vessel = await dbVesselStorage.getVessel(vesselId, orgId);
+    if (!vessel) throw new Error(`Vessel ${vesselId} not found`);
+    return { ...vessel };
+  }
+
+  async importVessel(data: Record<string, unknown>, orgId: string): Promise<{ vesselId: string; equipmentCount: number; crewCount: number }> {
+    const vesselData = { ...data, organizationId: orgId } as InsertVessel;
+    const created = await dbVesselStorage.createVessel(vesselData);
+    return { vesselId: created.id, equipmentCount: 0, crewCount: 0 };
+  }
+
+  async resetVesselDowntime(vesselId: string, _orgId?: string): Promise<Vessel> {
+    return dbVesselStorage.updateVessel(vesselId, { status: "operational" });
+  }
+
+  async resetVesselOperation(vesselId: string, _orgId?: string): Promise<Vessel> {
+    return dbVesselStorage.updateVessel(vesselId, { status: "operational" });
+  }
+
+  async wipeVesselData(vesselId: string, orgId?: string): Promise<{ deletedRecords: number }> {
+    await dbVesselStorage.deleteVessel(vesselId, orgId);
+    return { deletedRecords: 1 };
+  }
 }
 
 export const vesselService = new VesselService();
