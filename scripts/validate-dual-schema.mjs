@@ -172,14 +172,45 @@ const KNOWN_DRIFT_TABLES = new Set([
   "vibrationFeatures", "visualizationAssets",
 ]);
 
+const KNOWN_MISSING_TABLES = new Set([
+  ...KNOWN_DRIFT_TABLES,
+  "beastModeConfig", "conditionMonitoring", "dataQualityMetrics",
+  "digitalTwins", "edgeDiagnosticLogs", "industryBenchmarks",
+  "metricsHistory", "mlModelAccuracyHistory", "mqttDevices",
+  "oilAnalysis", "oilChangeRecords", "replayIncoming",
+  "rulFitHistory", "rulModels", "serialPortStates",
+  "syncConflicts", "syncJournal", "syncOutbox",
+  "systemHealthChecks", "systemPerformanceMetrics", "systemSettings",
+  "telemetryRetentionPolicies", "transportFailovers", "transportSettings",
+  "twinSimulations", "vibrationAnalysis", "wearParticleAnalysis",
+  "weibullEstimates",
+]);
+
 let knownDriftCount = 0;
 let newDriftCount = 0;
+let missingTableCount = 0;
 let pairsChecked = 0;
 for (const pair of switchedPairs) {
   const pgDef = pgTables[pair.pgExport];
   const sqliteDef = sqliteTables[pair.sqliteExport];
 
-  if (!pgDef || !sqliteDef) continue;
+  if (!pgDef && !sqliteDef) continue;
+
+  if (pgDef && !sqliteDef) {
+    if (!KNOWN_MISSING_TABLES.has(pair.name)) {
+      missingTableCount++;
+      errors.push(`Layer 2 — MISSING SQLite table for ${pair.name}: PG has ${pair.pgExport} but no SQLite ${pair.sqliteExport} found`);
+    }
+    continue;
+  }
+  if (!pgDef && sqliteDef) {
+    if (!KNOWN_MISSING_TABLES.has(pair.name)) {
+      missingTableCount++;
+      errors.push(`Layer 2 — MISSING PG table for ${pair.name}: SQLite has ${pair.sqliteExport} but no PG ${pair.pgExport} found`);
+    }
+    continue;
+  }
+
   if (pgDef.columns.size === 0 || sqliteDef.columns.size === 0) continue;
 
   pairsChecked++;
@@ -209,6 +240,7 @@ console.log(`Switched table pairs:  ${switchedPairs.length}`);
 console.log(`Pairs with columns:    ${pairsChecked}`);
 console.log(`Known drift (allowed): ${knownDriftCount}`);
 console.log(`New drift (blocking):  ${newDriftCount}`);
+console.log(`Missing tables:        ${missingTableCount}`);
 console.log(`PG tables found:       ${Object.keys(pgTables).length}`);
 console.log(`SQLite tables found:   ${Object.keys(sqliteTables).length}`);
 console.log(`Total runtime exports: ${allExports.length}`);
