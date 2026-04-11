@@ -9,6 +9,7 @@ import type {
   ILegacyCompletionPort,
   IWorkOrderEventPort,
   WorkOrderWithWorkflowContext,
+  LegacyCompletionData,
 } from "../domain/workflow-ports";
 import type {
   QuickWorkOrderInput,
@@ -197,9 +198,9 @@ export class CostSavingsWorkflowAdapter implements ICostSavingsPort {
 }
 
 export class LegacyCompletionAdapter implements ILegacyCompletionPort {
-  async completeWorkOrder(workOrderId: string, completionData: any, orgId: string, userId?: string): Promise<any> {
+  async completeWorkOrder(workOrderId: string, completionData: LegacyCompletionData, orgId: string, userId?: string): Promise<void> {
     const { workOrderService } = await import("../../../services/domains/work-order-service");
-    const completionRecord: any = {
+    const completionRecord = {
       workOrderId,
       orgId,
       equipmentId: completionData.equipmentId || "unknown",
@@ -209,7 +210,7 @@ export class LegacyCompletionAdapter implements ILegacyCompletionPort {
       actualDowntimeHours: completionData.actualDowntimeHours || 0,
       completionNotes: completionData.completionNotes || null,
     };
-    return workOrderService.completeWorkOrder(workOrderId, completionRecord);
+    await workOrderService.completeWorkOrder(workOrderId, completionRecord);
   }
 
   async aggregateProcurementCosts(workOrderId: string, orgId: string): Promise<void> {

@@ -47,8 +47,17 @@ export interface IPredictionFeedbackPort {
   recordFeedback(feedback: CompletionPredictionFeedback, orgId: string, userId: string): Promise<void>;
 }
 
+export interface LegacyCompletionData {
+  equipmentId?: string;
+  vesselId?: string | null;
+  completedAt?: Date;
+  completedBy?: string | null;
+  actualDowntimeHours?: number;
+  completionNotes?: string | null;
+}
+
 export interface ILegacyCompletionPort {
-  completeWorkOrder(workOrderId: string, completionData: any, orgId: string, userId?: string): Promise<any>;
+  completeWorkOrder(workOrderId: string, completionData: LegacyCompletionData, orgId: string, userId?: string): Promise<void>;
   aggregateProcurementCosts(workOrderId: string, orgId: string): Promise<void>;
 }
 
