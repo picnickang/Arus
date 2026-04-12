@@ -399,6 +399,9 @@ const domainRouters: DomainRouterConfig[] = [
   { name: "ShipmateImport", importPath: "../import-adapters/shipmate/index.js", functionName: "shipmateImportRouter",
     mountPath: "/api/import/shipmate", middlewareKeys: [],
     getDeps: () => ({}) },
+
+  { name: "InfrastructureInline", importPath: "./inline-routes.js", functionName: "registerInlineRoutes",
+    getDeps: () => ({}) },
 ];
 
 /**

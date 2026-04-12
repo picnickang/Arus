@@ -1,11 +1,12 @@
 /**
  * ARUS API Routes - Thin Coordinator
- * 
+ *
  * All route registration is handled by the domain router registry.
  * This file only handles:
  * - Global middleware (logging, metrics, audit, tenant isolation)
  * - DTC integration initialization
  * - Domain router registration (delegated to registry)
+ * - Observability routes (healthz, readyz, metrics)
  * - HTTP server + WebSocket creation
  */
 
@@ -23,7 +24,6 @@ import {
   startPerformanceMonitoring,
 } from "./routes/route-dependencies";
 import { registerObservabilityRoutes } from "./routes/observability-routes";
-import { registerInlineRoutes } from "./routes/inline-routes";
 import { registerAllDomainRouters } from "./routes/domain-router-registry";
 
 /**
@@ -67,7 +67,6 @@ export async function registerRoutes(
   await registerAllDomainRouters(app);
 
   registerObservabilityRoutes(app);
-  registerInlineRoutes(app);
 
   const httpServer = createServer(app);
 
