@@ -182,7 +182,7 @@ export class EnhancedTrendsAnalyzer {
     hours: number
   ): Promise<TelemetryDataPoint[]> {
     try {
-      const { storage } = await import("../storage");
+      const { storage } = await import("../repositories");
 
       const endTime = new Date();
       const startTime = new Date(endTime.getTime() - hours * 60 * 60 * 1000);
@@ -215,7 +215,7 @@ export class EnhancedTrendsAnalyzer {
 
   private async getEquipmentSensorTypes(orgId: string, equipmentId: string): Promise<string[]> {
     try {
-      const { storage } = await import("../storage");
+      const { storage } = await import("../repositories");
 
       const sensorTypes = await storage.getEquipmentSensorTypes(orgId, equipmentId);
 

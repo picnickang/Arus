@@ -26,6 +26,6 @@ export async function processMaintenanceScheduling(data: {
   equipmentId: string;
   pdmScore: number;
 }): Promise<any> {
-  const { storage } = await import("../storage");
+  const { storage } = await import("../repositories");
   return storage.autoScheduleMaintenance(data.equipmentId, data.pdmScore);
 }

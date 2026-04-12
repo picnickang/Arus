@@ -1,8 +1,6 @@
 import { Router } from "express";
 import { beastModeManager, DEFAULT_ORG_ID } from "../beast-mode-config.js";
 import { enhancedTrendsAnalyzer } from "../enhanced-trends.js";
-import { storage } from "../storage.js";
-
 const router = Router();
 
 router.post("/trends/analyze/:equipmentId/:sensorType", async (req, res) => {
@@ -19,7 +17,6 @@ router.post("/trends/analyze/:equipmentId/:sensorType", async (req, res) => {
     }
     console.log(`[Beast Mode API] Enhanced trends analysis for ${equipmentId}:${sensorType} over ${hours}h`);
     const analysis = await enhancedTrendsAnalyzer.analyzeEquipmentTrends(orgId, equipmentId, sensorType, hours);
-    await storage.storeAnalysisResult({ orgId, equipmentId, analysisType: "enhanced_trends", results: analysis, metadata: { sensorType, timeRangeHours: hours, timestamp: new Date() } });
     res.json({
       success: true, equipmentId, sensorType, orgId, timeRange: analysis.timeRange,
       analysis: {
@@ -61,7 +58,6 @@ router.post("/trends/fleet-analyze", async (req, res) => {
     }
     console.log(`[Beast Mode API] Fleet trends analysis for ${equipmentIds.length} units over ${hours}h`);
     const fleetAnalysis = await enhancedTrendsAnalyzer.analyzeFleetTrends(orgId, equipmentIds, hours);
-    await storage.storeAnalysisResult({ orgId, equipmentId: "fleet-analysis", analysisType: "enhanced_trends_fleet", results: fleetAnalysis, metadata: { equipmentCount: equipmentIds.length, timeRangeHours: hours, timestamp: new Date() } });
     res.json({
       success: true, fleetId: fleetAnalysis.fleetId, equipmentCount: fleetAnalysis.equipmentCount, orgId, timeRange: fleetAnalysis.timeRange,
       analysis: { aggregatedMetrics: fleetAnalysis.aggregatedMetrics, equipmentRankings: fleetAnalysis.equipmentRankings.slice(0, 10), recommendations: fleetAnalysis.recommendations, sensorTypes: fleetAnalysis.sensorTypes },

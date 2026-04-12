@@ -3,7 +3,7 @@
  * Batch fetch and aggregate telemetry data
  */
 
-import { storage } from "../../storage.js";
+import { storage } from "../../repositories.js";
 import { log } from "./logging.js";
 import type { EquipmentTelemetry, TelemetryAggregate } from "./types.js";
 

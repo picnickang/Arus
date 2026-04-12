@@ -4,7 +4,7 @@
  */
 
 import { EventEmitter } from "node:events";
-import { storage } from "../storage.js";
+import { storage } from "../repositories.js";
 import { db } from "../db.js";
 import {
   digitalTwins, twinSimulations, visualizationAssets,

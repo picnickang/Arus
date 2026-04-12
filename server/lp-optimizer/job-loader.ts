@@ -2,7 +2,7 @@
  * LP Optimizer - Job Loading
  */
 
-import { storage } from "../storage.js";
+import { storage } from "../repositories.js";
 import type { MaintenanceJob } from "./types.js";
 import {
   getRequiredSkillLevel,

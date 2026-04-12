@@ -68,19 +68,17 @@ import {
 } from "./route-dependencies";
 
 /**
- * CANONICAL PATTERN — Every domain uses one registration signature:
+ * CANONICAL PATTERN — Two registration modes:
  *
- *   registerMyRoutes(app: Express, deps: { ... }): void
- *
- * To add a new domain, add an entry to the domainRouters array:
- *
+ * 1. registerFn mode — calls mod[functionName](app, deps):
  *   { name: "MyDomain", importPath: "../domains/my-domain/index.js",
  *     functionName: "registerMyRoutes",
- *     getDeps: () => ({ generalApiRateLimit, writeOperationRateLimit }) },
+ *     getDeps: () => ({ generalApiRateLimit }) },
  *
- * For legacy Express Router objects, use a wrapper from legacy-router-wrappers.ts:
- *   { name: "MyLegacy", importPath: "../routes/legacy-router-wrappers.js",
- *     functionName: "registerMyLegacyRoutes",
+ * 2. Router-mount mode — does app.use(mountPath, ...middleware, router):
+ *   { name: "MyRouter", importPath: "../my-module/routes.js",
+ *     functionName: "myRouter", mountPath: "/api/my-module",
+ *     middlewareKeys: ["generalApiRateLimit"],
  *     getDeps: () => ({ generalApiRateLimit }) },
  */
 
@@ -89,6 +87,8 @@ interface DomainRouterConfig {
   importPath: string;
   functionName: string;
   getDeps: () => Record<string, any>;
+  mountPath?: string;
+  middlewareKeys?: string[];
 }
 
 const domainRouters: DomainRouterConfig[] = [
@@ -281,7 +281,7 @@ const domainRouters: DomainRouterConfig[] = [
   { name: "Rms", importPath: "../domains/rms/index.js", functionName: "registerRmsRoutes",
     getDeps: () => ({}) },
 
-  // ===== Previously legacy function-style routes (migrated from routes.ts) =====
+  // ===== Function-style routes (registerFn pattern) =====
 
   { name: "KnowledgeBase", importPath: "../routes/kb-routes.js", functionName: "registerKnowledgeBaseRoutes",
     getDeps: () => ({ generalApiRateLimit, writeOperationRateLimit }) },
@@ -301,71 +301,112 @@ const domainRouters: DomainRouterConfig[] = [
     getDeps: () => ({ writeOperationRateLimit, generalApiRateLimit }) },
   { name: "PdmGapFill", importPath: "../routes/pdm-gap-fill-routes.js", functionName: "registerPdmGapFillRoutes",
     getDeps: () => ({ db, generalApiRateLimit, writeOperationRateLimit, wsServer: getWebSocketServer() }) },
-
-  // ===== Legacy routers wrapped to standard registerFn(app, deps) signature =====
-
-  { name: "BeastMode", importPath: "../routes/legacy-router-wrappers.js", functionName: "registerBeastRoutes",
-    getDeps: () => ({ generalApiRateLimit }) },
-  { name: "Governance", importPath: "../routes/legacy-router-wrappers.js", functionName: "registerGovernanceRoutes",
-    getDeps: () => ({ generalApiRateLimit }) },
-  { name: "ComplianceLegacy", importPath: "../routes/legacy-router-wrappers.js", functionName: "registerComplianceLegacyRoutes",
-    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
-  { name: "SensorBundles", importPath: "../routes/legacy-router-wrappers.js", functionName: "registerSensorBundlesRoutes",
-    getDeps: () => ({ generalApiRateLimit }) },
-  { name: "SensorTemplates", importPath: "../routes/legacy-router-wrappers.js", functionName: "registerSensorTemplatesRoutes",
-    getDeps: () => ({ generalApiRateLimit }) },
-  { name: "Suppliers", importPath: "../routes/legacy-router-wrappers.js", functionName: "registerSuppliersRoutes",
-    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
-  { name: "Purchasing", importPath: "../routes/legacy-router-wrappers.js", functionName: "registerPurchasingRoutes",
-    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
-  { name: "ServiceOrders", importPath: "../routes/legacy-router-wrappers.js", functionName: "registerServiceOrdersRoutes",
-    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
-  { name: "Diagnostics", importPath: "../routes/legacy-router-wrappers.js", functionName: "registerDiagnosticsRoutes",
-    getDeps: () => ({ generalApiRateLimit }) },
-  { name: "MlAiStudio", importPath: "../routes/legacy-router-wrappers.js", functionName: "registerMlAiStudioRoutes",
-    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
-  { name: "AgentLegacy", importPath: "../routes/legacy-router-wrappers.js", functionName: "registerAgentLegacyRoutes",
-    getDeps: () => ({}) },
-  { name: "PdmDashboard", importPath: "../routes/legacy-router-wrappers.js", functionName: "registerPdmDashboardRoutes",
-    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
-  { name: "PdmFeatureStore", importPath: "../routes/legacy-router-wrappers.js", functionName: "registerPdmFeatureStoreRoutes",
-    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
-  { name: "PdmFleetAnalytics", importPath: "../routes/legacy-router-wrappers.js", functionName: "registerPdmFleetAnalyticsRoutes",
-    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
-  { name: "PdmModelRegistry", importPath: "../routes/legacy-router-wrappers.js", functionName: "registerPdmModelRegistryRoutes",
-    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
-  { name: "PdmInference", importPath: "../routes/legacy-router-wrappers.js", functionName: "registerPdmInferenceRoutes",
-    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
-  { name: "PdmMonitoring", importPath: "../routes/legacy-router-wrappers.js", functionName: "registerPdmMonitoringRoutes",
-    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
-  { name: "TwinDefinition", importPath: "../routes/legacy-router-wrappers.js", functionName: "registerTwinDefinitionRoutes",
-    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
-  { name: "TwinState", importPath: "../routes/legacy-router-wrappers.js", functionName: "registerTwinStateRoutes",
-    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
-  { name: "ResidualAnalysis", importPath: "../routes/legacy-router-wrappers.js", functionName: "registerResidualAnalysisRoutes",
-    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
-  { name: "ScenarioSim", importPath: "../routes/legacy-router-wrappers.js", functionName: "registerScenarioSimRoutes",
-    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
-  { name: "Replay", importPath: "../routes/legacy-router-wrappers.js", functionName: "registerReplayRoutes",
-    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
-  { name: "TwinUpdates", importPath: "../routes/legacy-router-wrappers.js", functionName: "registerTwinUpdatesRoutes",
-    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
-  { name: "TrainingPipeline", importPath: "../routes/legacy-router-wrappers.js", functionName: "registerTrainingPipelineRoutes",
-    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
-  { name: "EquipmentIntelligence", importPath: "../routes/legacy-router-wrappers.js", functionName: "registerEquipmentIntelligenceRoutes",
-    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
-  { name: "PredictionGovernance", importPath: "../routes/legacy-router-wrappers.js", functionName: "registerPredictionGovernanceRoutes",
-    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
-  { name: "AmosImport", importPath: "../routes/legacy-router-wrappers.js", functionName: "registerAmosImportRoutes",
-    getDeps: () => ({ generalApiRateLimit }) },
-  { name: "ShipmateImport", importPath: "../routes/legacy-router-wrappers.js", functionName: "registerShipmateImportRoutes",
-    getDeps: () => ({}) },
   { name: "ScheduledReports", importPath: "../domains/scheduled-reports/index.js", functionName: "registerScheduledReportsRoutes",
     getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
+
+  // ===== Direct router mounts (mountPath mode — no wrapper layer) =====
+
+  { name: "BeastMode", importPath: "../beast/index.js", functionName: "beastModeRouter",
+    mountPath: "/api/beast", middlewareKeys: ["generalApiRateLimit"],
+    getDeps: () => ({ generalApiRateLimit }) },
+  { name: "Governance", importPath: "../governance/routes.js", functionName: "default",
+    mountPath: "/api/governance", middlewareKeys: ["generalApiRateLimit"],
+    getDeps: () => ({ generalApiRateLimit }) },
+  { name: "ComplianceLegacy", importPath: "../compliance/routes.js", functionName: "default",
+    mountPath: "/api/compliance", middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
+    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
+  { name: "SensorBundles", importPath: "../routes/sensorBundles.js", functionName: "default",
+    mountPath: "/api/sensor-bundles", middlewareKeys: ["generalApiRateLimit"],
+    getDeps: () => ({ generalApiRateLimit }) },
+  { name: "SensorTemplates", importPath: "../routes/sensorTemplates.js", functionName: "default",
+    mountPath: "/api/sensor-templates", middlewareKeys: ["generalApiRateLimit"],
+    getDeps: () => ({ generalApiRateLimit }) },
+  { name: "Suppliers", importPath: "../suppliers/index.js", functionName: "suppliersRouter",
+    mountPath: "/api", middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
+    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
+  { name: "Purchasing", importPath: "../purchasing/index.js", functionName: "purchasingRouter",
+    mountPath: "/api", middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
+    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
+  { name: "ServiceOrders", importPath: "../service-orders/index.js", functionName: "serviceOrderRoutes",
+    mountPath: "/api/service-orders", middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
+    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
+  { name: "Diagnostics", importPath: "../routes/diagnostics.js", functionName: "default",
+    mountPath: "/api/diagnostics", middlewareKeys: ["generalApiRateLimit"],
+    getDeps: () => ({ generalApiRateLimit }) },
+  { name: "MlAiStudio", importPath: "../ml-routes.js", functionName: "mlRouter",
+    mountPath: "/api", middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
+    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
+  { name: "AgentLegacy", importPath: "../routes/agent-routes.js", functionName: "default",
+    mountPath: "/api", middlewareKeys: [],
+    getDeps: () => ({}) },
+
+  // ===== PdM Domain — Direct router mounts =====
+
+  { name: "PdmDashboard", importPath: "../pdm/routes.js", functionName: "pdmRouter",
+    mountPath: "/api/pdm", middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
+    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
+  { name: "PdmFeatureStore", importPath: "../domains/pdm-platform/feature-store/routes.js", functionName: "featureStoreRouter",
+    mountPath: "/api/pdm/features", middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
+    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
+  { name: "PdmFleetAnalytics", importPath: "../domains/pdm-platform/fleet-analytics/routes.js", functionName: "fleetAnalyticsRouter",
+    mountPath: "/api/pdm/fleet", middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
+    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
+  { name: "PdmModelRegistry", importPath: "../domains/pdm-platform/model-registry/routes.js", functionName: "modelRegistryRouter",
+    mountPath: "/api/pdm/models", middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
+    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
+  { name: "PdmInference", importPath: "../domains/pdm-platform/inference/routes.js", functionName: "inferenceRouter",
+    mountPath: "/api/pdm/infer", middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
+    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
+  { name: "PdmMonitoring", importPath: "../domains/pdm-platform/monitoring/routes.js", functionName: "monitoringRouter",
+    mountPath: "/api/pdm/drift", middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
+    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
+  { name: "PredictionGovernance", importPath: "../domains/pdm-platform/prediction-governance/routes.js", functionName: "predictionGovernanceRouter",
+    mountPath: "/api/pdm/governance", middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
+    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
+  { name: "TrainingPipeline", importPath: "../domains/pdm-platform/training-pipeline/routes.js", functionName: "trainingPipelineRouter",
+    mountPath: "/api/pdm/training", middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
+    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
+
+  // ===== Digital Twin — Direct router mounts =====
+
+  { name: "TwinDefinition", importPath: "../domains/pdm-platform/digital-twin/twin-definition/routes.js", functionName: "twinDefinitionRouter",
+    mountPath: "/api/pdm/twin/def", middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
+    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
+  { name: "TwinState", importPath: "../domains/pdm-platform/digital-twin/twin-state/routes.js", functionName: "twinStateRouter",
+    mountPath: "/api/pdm/twin/state", middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
+    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
+  { name: "ResidualAnalysis", importPath: "../domains/pdm-platform/digital-twin/residual-analysis/routes.js", functionName: "residualAnalysisRouter",
+    mountPath: "/api/pdm/twin/residuals", middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
+    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
+  { name: "ScenarioSim", importPath: "../domains/pdm-platform/digital-twin/scenario-sim/routes.js", functionName: "scenarioSimRouter",
+    mountPath: "/api/pdm/twin/scenarios", middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
+    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
+  { name: "Replay", importPath: "../domains/pdm-platform/digital-twin/replay/routes.js", functionName: "replayRouter",
+    mountPath: "/api/pdm/twin/replay", middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
+    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
+  { name: "TwinUpdates", importPath: "../domains/pdm-platform/twin-updates/routes.js", functionName: "twinUpdatesRouter",
+    mountPath: "/api/pdm/twin/updates", middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
+    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
+
+  // ===== Other direct mounts =====
+
+  { name: "EquipmentIntelligence", importPath: "../domains/equipment-intelligence/interfaces/routes.js", functionName: "default",
+    mountPath: "/api/equipment-intelligence", middlewareKeys: ["requireOrgId", "generalApiRateLimit"],
+    getDeps: () => ({ requireOrgId, generalApiRateLimit }) },
+  { name: "AmosImport", importPath: "../import-adapters/amos/index.js", functionName: "amosImportRouter",
+    mountPath: "/", middlewareKeys: ["generalApiRateLimit"],
+    getDeps: () => ({ generalApiRateLimit }) },
+  { name: "ShipmateImport", importPath: "../import-adapters/shipmate/index.js", functionName: "shipmateImportRouter",
+    mountPath: "/api/import/shipmate", middlewareKeys: [],
+    getDeps: () => ({}) },
 ];
 
 /**
- * Register all domain routers
+ * Register all domain routers.
+ *
+ * Two registration modes:
+ * - registerFn mode (default): calls mod[functionName](app, deps)
+ * - router-mount mode (mountPath set): does app.use(mountPath, ...middleware, mod[functionName])
  */
 export async function registerAllDomainRouters(app: Express): Promise<void> {
   console.log("→ Registering domain routers...");
@@ -373,15 +414,25 @@ export async function registerAllDomainRouters(app: Express): Promise<void> {
   for (const config of domainRouters) {
     try {
       const mod = await import(config.importPath);
-      const registerFn = mod[config.functionName];
+      const target = mod[config.functionName];
 
-      if (typeof registerFn !== "function") {
-        console.error(`[Domain Registry] ${config.name}: Function ${config.functionName} not found in ${config.importPath}`);
+      if (!target) {
+        console.error(`[Domain Registry] ${config.name}: ${config.functionName} not found in ${config.importPath}`);
         continue;
       }
 
       const deps = config.getDeps();
-      await registerFn(app, deps);
+
+      if (config.mountPath) {
+        const middleware = (config.middlewareKeys ?? []).map(k => deps[k]).filter(Boolean);
+        app.use(config.mountPath, ...middleware, target);
+      } else {
+        if (typeof target !== "function") {
+          console.error(`[Domain Registry] ${config.name}: ${config.functionName} is not a function`);
+          continue;
+        }
+        await target(app, deps);
+      }
     } catch (error) {
       console.error(`[Domain Registry] Failed to register ${config.name}:`, error);
     }

@@ -3,7 +3,7 @@
  * Populate engine log hourly entries from telemetry
  */
 
-import { storage } from "../../storage.js";
+import { storage } from "../../repositories.js";
 import { log } from "./logging.js";
 import { DEFAULT_TELEMETRY_MAPPING } from "./mappings.js";
 import { ENGINE_ANOMALY_THRESHOLDS, checkAnomaly } from "./thresholds.js";

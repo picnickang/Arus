@@ -4,7 +4,7 @@
  * MODULARIZED: 599 lines → 6 focused modules (~35-130 lines each)
  */
 
-import type { IStorage } from '../storage.js';
+import type { IStorage } from '../repositories.js';
 import type {
   ReportingPeriod,
   EquipmentComplianceOptions,

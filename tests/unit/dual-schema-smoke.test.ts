@@ -21,7 +21,7 @@ describe("Dual-DB guardrail scripts", () => {
       encoding: "utf-8",
       timeout: 15000,
     });
-    expect(result).toContain("All storage facade imports are within the allowed exception list");
+    expect(result).toContain("storage facade imports eliminated");
   });
 
   test("check-schema-imports.mjs passes", () => {
@@ -238,6 +238,13 @@ describe("SQLite schema structural parity", () => {
     const result = execSync("node scripts/validate-dual-schema.mjs", { encoding: "utf-8", timeout: 15000 });
     expect(result).toContain("New drift (blocking):  0");
     expect(result).toContain("Missing tables:        0");
+  });
+
+  test("drift count must never increase (monotonic guard)", () => {
+    const result = execSync("node scripts/validate-dual-schema.mjs", { encoding: "utf-8", timeout: 15000 });
+    const knownMatch = result.match(/Known drift \(allowed\):\s+(\d+)/);
+    const knownCount = parseInt((knownMatch ?? ["", "999"])[1], 10);
+    expect(knownCount).toBeLessThanOrEqual(116);
   });
 });
 

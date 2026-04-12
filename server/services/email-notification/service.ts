@@ -2,7 +2,7 @@
  * Email Notification - Main Service Class
  */
 
-import { storage } from "../../storage.js";
+import { storage } from "../../repositories.js";
 import type {
   ComplianceFinding,
   NotificationSetting,

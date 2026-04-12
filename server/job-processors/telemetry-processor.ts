@@ -12,13 +12,13 @@ export async function processTelemetryProcessing(data: {
   };
 
   try {
-    const { storage } = await import("../storage");
+    const { storage } = await import("../repositories");
   } catch (error) {
     console.warn("Telemetry processing failed in background job:", error);
   }
 
   try {
-    const { storage } = await import("../storage");
+    const { storage } = await import("../repositories");
     const settings = await storage.getSettings();
 
     if (settings.llmEnabled) {

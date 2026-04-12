@@ -2,7 +2,7 @@
  * VPS Fleet Benchmark Functions
  */
 
-import { storage } from "../storage.js";
+import { storage } from "../repositories.js";
 import type { LoadHistBin, FleetLoadBenchmark, FleetPowerSTWBenchmark, PowerVsSTW } from "./types";
 import { quantile, calculatePowerSTWCurve } from "./calculations";
 

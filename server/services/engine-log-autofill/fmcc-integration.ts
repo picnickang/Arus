@@ -3,7 +3,7 @@
  * Aquametro FMCC fuel data integration
  */
 
-import { storage } from "../../storage.js";
+import { storage } from "../../repositories.js";
 import { getFMCCService } from "../../integrations/aquametro-fmcc.js";
 import { log } from "./logging.js";
 import type { FMCCFuelResult } from "./types.js";

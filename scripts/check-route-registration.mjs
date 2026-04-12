@@ -3,7 +3,7 @@
  * Route Registration Pattern Enforcement
  *
  * Ensures route registration only happens through the domain router registry
- * or explicit inline-routes.ts / legacy-router-wrappers.ts.
+ * or explicit inline-routes.ts.
  *
  * Forbidden patterns:
  *   - app.get("/api/...", ...) outside of inline-routes.ts / domain modules
@@ -28,7 +28,6 @@ const ALLOWED_ROUTE_FILES = new Set([
   "server/routes/domain-router-registry.ts",
   "server/routes/route-dependencies.ts",
   "server/routes/inline-routes.ts",
-  "server/routes/legacy-router-wrappers.ts",
   "server/routes/pdm-gap-fill-routes.ts",
   "server/routes/telemetry-dlq-routes.ts",
   "server/routes/telemetry-ingestion-routes.ts",

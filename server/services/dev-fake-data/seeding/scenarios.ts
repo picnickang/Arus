@@ -4,7 +4,7 @@
  * High-level scenario functions for engine room and deck log testing.
  */
 
-import { storage } from "../../../storage.js";
+import { storage } from "../../../repositories.js";
 import { autoFillFromTelemetry, autoFillGeneratorsFromTelemetry } from "../../engine-log-autofill-service.js";
 import { stormgeoIntegrationService } from "../../stormgeo-integration-service.js";
 import type { SeedResult } from "../types.js";

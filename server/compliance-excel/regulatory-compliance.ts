@@ -3,7 +3,7 @@
  */
 
 import type { EquipmentHealth, WorkOrder } from '@shared/schema-runtime';
-import type { IStorage } from '../storage.js';
+import type { IStorage } from '../repositories.js';
 import type { ReportingPeriod, RegulatoryFramework } from './types';
 import { FRAMEWORK_STANDARDS } from './types';
 import {

@@ -2,8 +2,8 @@
 /**
  * Storage Facade Import Boundary Enforcement
  *
- * Ensures no new code imports from server/storage.ts (the frozen facade).
- * Allowed exceptions are explicitly listed below.
+ * Ensures no code imports from server/storage.ts (the retired facade).
+ * All consumers must import from server/repositories.ts instead.
  *
  * Run:  node scripts/check-storage-imports.mjs
  * Exit: 0 = pass, 1 = violation found
@@ -18,45 +18,10 @@ const root = resolve(__dirname, "..");
 
 const ALLOWED = new Set([
   "server/storage.ts",
-  "server/storage/index.ts",
-  "server/bootstrap/services.ts",
-  "server/inventory/auto-optimization.ts",
-  "server/vessel-simulator/simulator.ts",
-  "server/vessel-simulator/instances.ts",
-  "server/vessel-simulator/stress-test.ts",
-  "server/vessel-simulator/fleet-stress-test.ts",
-  "server/beast/trends-routes.ts",
-  "server/beast/inventory-risk-routes.ts",
-  "server/beast/compliance-export-routes.ts",
-  "server/lp-optimizer/job-loader.ts",
-  "server/inventory-risk/analyzer.ts",
-  "server/pdm-services/service.ts",
-  "server/vps-kpi/fleet-benchmarks.ts",
-  "server/compliance-pdf/regulatory-compliance.ts",
-  "server/compliance-pdf/maintenance-compliance.ts",
-  "server/compliance-pdf/index.ts",
-  "server/compliance-pdf/fleet-compliance.ts",
-  "server/compliance-pdf/equipment-compliance.ts",
-  "server/compliance-excel/regulatory-compliance.ts",
-  "server/compliance-excel/maintenance-compliance.ts",
-  "server/compliance-excel/index.ts",
-  "server/compliance-excel/fleet-compliance.ts",
-  "server/compliance-excel/equipment-compliance.ts",
-  "server/services/scheduler-notifications/index.ts",
-  "server/services/engine-log-autofill/telemetry-fetcher.ts",
-  "server/services/engine-log-autofill/generator-autofill.ts",
-  "server/services/engine-log-autofill/fmcc-integration.ts",
-  "server/services/engine-log-autofill/engine-autofill.ts",
-  "server/services/engine-log-autofill/analytics.ts",
-  "server/services/email-notification/service.ts",
-  "server/services/email-notification/queue-processor.ts",
-  "server/services/dev-fake-data/seeding/telemetry-seeder.ts",
-  "server/services/dev-fake-data/seeding/scenarios.ts",
-  "server/services/dev-fake-data/seeding/event-seeder.ts",
-  "server/digital-twin/index.ts",
 ]);
 
-const STORAGE_IMPORT_RE = /from\s+['"](?:\.\.\/)+storage(?:\.js)?['"]/;
+const STORAGE_STATIC_RE = /from\s+['"](?:\.\.\/)+storage(?:\.js)?['"]/;
+const STORAGE_DYNAMIC_RE = /await\s+import\s*\(\s*['"](?:\.\.\/)+storage(?:\.js)?['"]\s*\)/;
 
 function walkDir(dir) {
   const results = [];
@@ -89,7 +54,8 @@ for (const filePath of tsFiles) {
   const fileLines = content.split("\n");
   for (let i = 0; i < fileLines.length; i++) {
     const line = fileLines[i];
-    if (STORAGE_IMPORT_RE.test(line) && !line.trimStart().startsWith("//") && !line.includes("import type")) {
+    if (line.trimStart().startsWith("//") || line.trimStart().startsWith("*")) continue;
+    if (STORAGE_STATIC_RE.test(line) || STORAGE_DYNAMIC_RE.test(line)) {
       violations.push(`${relPath}:${i + 1}: ${line.trim()}`);
     }
   }
@@ -102,9 +68,8 @@ if (violations.length > 0) {
     console.log(`  ✗ ${v}`);
   }
   console.log("\nFix: Import from server/repositories.ts instead of server/storage.ts");
-  console.log("See server/storage.ts header for migration guide.");
   process.exit(1);
 } else {
-  console.log("All storage facade imports are within the allowed exception list.");
+  console.log("All storage facade imports eliminated. Only server/storage.ts re-export stub remains.");
   process.exit(0);
 }

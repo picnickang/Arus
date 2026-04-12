@@ -1,15 +1,8 @@
 /**
- * @deprecated RETIREMENT TARGET — Phase 1 (30 days)
- * Actual routes in this file:
- *   POST /api/ml/calibration/fit       → consolidate into pdm-platform training-pipeline
- *   GET  /api/ml/calibration/report    → consolidate into pdm-platform monitoring
- *   POST /api/ml/outcomes/evaluate     → consolidate into pdm-platform prediction-governance
- *   GET  /api/analytics/anomaly-groups → consolidate into pdm-platform prediction-governance
- *   POST /api/telemetry/aggregation/run → consolidate into pdm-platform feature-store
- *   POST /api/ml/evaluate-model        → consolidate into pdm-platform model-registry
- *   POST /api/ml/train/async           → consolidate into pdm-platform training-pipeline
- *   GET  /api/ml/train/status/:jobId   → consolidate into pdm-platform training-pipeline
- *   GET  /api/ml/train/jobs            → consolidate into pdm-platform training-pipeline
+ * ML Operations Routes
+ *
+ * Calibration, outcome evaluation, anomaly correlation,
+ * telemetry aggregation, model evaluation, and training job queue.
  */
 import { Express, Request, Response } from "express";
 import { withErrorHandling } from "../lib/route-utils";

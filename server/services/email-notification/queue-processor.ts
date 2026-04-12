@@ -2,7 +2,7 @@
  * Email Notification - Queue Processing
  */
 
-import { storage } from "../../storage.js";
+import { storage } from "../../repositories.js";
 import type { NotificationQueueItem, InsertNotificationQueueItem } from "@shared/schema";
 import { format } from "date-fns";
 import { log, calculateBackoff } from "./logger.js";

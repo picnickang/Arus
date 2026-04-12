@@ -109,7 +109,7 @@ export async function analyzeFleetHealth(
       `[Fleet Analysis] Starting enriched analysis with ${equipmentHealthData.length} equipment units and ${telemetryData.length} telemetry records`
     );
 
-    const { storage } = await import("../storage");
+    const { storage } = await import("../repositories");
     const storageToUse = storageInstance ?? storage;
 
     const equipmentDossiers = await buildEquipmentDossiers(equipmentHealthData, storageToUse);

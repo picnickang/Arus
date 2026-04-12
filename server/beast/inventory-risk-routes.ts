@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { beastModeManager } from "../beast-mode-config.js";
 import { InventoryRiskAnalyzer } from "../inventory-risk.js";
-import { storage } from "../storage.js";
+import { storage } from "../repositories.js";
 
 const router = Router();
 

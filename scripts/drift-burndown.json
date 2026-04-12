@@ -2,63 +2,50 @@
   "_comment": "Drift burn-down categorization. Regenerate with: node scripts/categorize-drift.mjs",
   "generatedAt": "2026-04-11T19:10:27.345Z",
   "summary": {
-    "quickFix": 6,
+    "quickFix": 0,
+    "expectedArchitectural": 6,
     "medium": 42,
     "heavy": 68,
     "missing": 37,
     "total": 153
   },
   "categories": {
-    "quickFix": [
+    "expectedArchitectural": [
       {
         "table": "equipmentTelemetry",
-        "typeDrift": [
-          "ts"
-        ],
+        "typeDrift": ["ts"],
         "totalDiffs": 1,
-        "action": "Normalize timestamp/id types between PG and SQLite"
+        "reason": "PG timestamp vs SQLite integer — inherent to dual-DB architecture, not fixable"
       },
       {
         "table": "workOrderParts",
-        "typeDrift": [
-          "usedAt"
-        ],
+        "typeDrift": ["usedAt"],
         "totalDiffs": 1,
-        "action": "Normalize timestamp/id types between PG and SQLite"
+        "reason": "PG timestamp vs SQLite integer — inherent to dual-DB architecture, not fixable"
       },
       {
         "table": "maintenanceSchedules",
-        "typeDrift": [
-          "scheduledDate"
-        ],
+        "typeDrift": ["scheduledDate"],
         "totalDiffs": 1,
-        "action": "Normalize timestamp/id types between PG and SQLite"
+        "reason": "PG timestamp vs SQLite integer — inherent to dual-DB architecture, not fixable"
       },
       {
         "table": "stock",
-        "typeDrift": [
-          "lastCountDate"
-        ],
+        "typeDrift": ["lastCountDate"],
         "totalDiffs": 1,
-        "action": "Normalize timestamp/id types between PG and SQLite"
+        "reason": "PG timestamp vs SQLite integer — inherent to dual-DB architecture, not fixable"
       },
       {
         "table": "partFailureHistory",
-        "typeDrift": [
-          "failureDate"
-        ],
+        "typeDrift": ["failureDate"],
         "totalDiffs": 1,
-        "action": "Normalize timestamp/id types between PG and SQLite"
+        "reason": "PG timestamp vs SQLite integer — inherent to dual-DB architecture, not fixable"
       },
       {
         "table": "dbSchemaVersion",
-        "typeDrift": [
-          "appliedAt",
-          "id",
-          "version"
-        ],
+        "typeDrift": ["appliedAt", "id", "version"],
         "totalDiffs": 3,
-        "action": "Normalize timestamp/id types between PG and SQLite"
+        "reason": "PG serial/timestamp vs SQLite integer — inherent to dual-DB architecture, not fixable"
       }
     ],
     "medium": [

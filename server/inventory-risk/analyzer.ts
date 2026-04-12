@@ -3,7 +3,7 @@
  * Main InventoryRiskAnalyzer implementation
  */
 
-import { IStorage } from "../storage.js";
+import type { IStorage } from "../repositories.js";
 import type { PartRiskScore, InventoryRiskSummary, EquipmentPartsRisk } from "./types.js";
 import {
   calculateSupplierRisk,

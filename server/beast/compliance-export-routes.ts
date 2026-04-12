@@ -2,7 +2,7 @@ import { Router } from "express";
 import { beastModeManager } from "../beast-mode-config.js";
 import { CompliancePDFGenerator } from "../compliance-pdf.js";
 import { ComplianceExcelGenerator } from "../compliance-excel.js";
-import { storage } from "../storage.js";
+import { storage } from "../repositories.js";
 
 const router = Router();
 

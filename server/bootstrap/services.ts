@@ -165,7 +165,7 @@ export async function initializeJobQueue(): Promise<void> {
 }
 
 export async function initializeMLServices(): Promise<void> {
-  const { storage } = await import("../storage");
+  const { storage } = await import("../repositories");
 
   console.log("→ Initializing vessel telemetry simulator...");
   const { initVesselSimulator } = await import("../vessel-simulator");

@@ -4,7 +4,7 @@
  * Seeds fake engine and deck log events.
  */
 
-import { storage } from "../../../storage.js";
+import { storage } from "../../../repositories.js";
 import { log } from "../dev-guards.js";
 import { cryptoRandom } from "@shared/crypto-random";
 

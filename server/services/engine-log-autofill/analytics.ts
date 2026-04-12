@@ -3,7 +3,7 @@
  * Anomaly summary and unsigned log tracking
  */
 
-import { storage } from "../../storage.js";
+import { storage } from "../../repositories.js";
 import { ENGINE_ANOMALY_THRESHOLDS, GENERATOR_ANOMALY_THRESHOLDS, checkAnomaly } from "./thresholds.js";
 import type { AnomalySummary, UnsignedLogInfo } from "./types.js";
 

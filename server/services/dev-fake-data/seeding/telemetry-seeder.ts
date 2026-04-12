@@ -4,7 +4,7 @@
  * Main telemetry and weather seeding logic.
  */
 
-import { storage } from "../../../storage.js";
+import { storage } from "../../../repositories.js";
 import type { InsertEquipmentTelemetry, InsertStormgeoSnapshot } from "@shared/schema";
 import type { SeedFakeDataOptions, SeedResult } from "../types.js";
 import { assertDevMode, acquireSeedingLock, releaseSeedingLock, log } from "../dev-guards.js";
