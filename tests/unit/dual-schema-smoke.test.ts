@@ -121,14 +121,12 @@ describe("PG query shape smoke tests — critical domain paths", () => {
     const scriptFile = join(tmpDir, `_query_${tableName}.ts`);
     const scriptContent = [
       `import { db } from '../../server/db-config';`,
-      `import * as schema from '../../shared/schema-runtime';`,
+      `import { ${tableName} } from '../../shared/schema-runtime';`,
       `(async () => {`,
-      `  const table = (schema as any)['${tableName}'];`,
-      `  if (!table) { console.log(JSON.stringify({ ok: false, count: 0, keys: [], error: 'table not found' })); process.exit(1); }`,
       `  try {`,
-      `    const r = await db.select().from(table).limit(1);`,
+      `    const r = await db.select().from(${tableName}).limit(1);`,
       `    console.log(JSON.stringify({ ok: true, count: r.length, keys: r.length > 0 ? Object.keys(r[0]) : [] }));`,
-      `  } catch(e: any) { console.log(JSON.stringify({ ok: false, count: 0, keys: [], error: e.message })); }`,
+      `  } catch(e) { const msg = e instanceof Error ? e.message : String(e); console.log(JSON.stringify({ ok: false, count: 0, keys: [], error: msg })); }`,
       `  process.exit(0);`,
       `})();`,
     ].join('\n');
@@ -214,9 +212,8 @@ describe("SQLite schema structural parity", () => {
 
   test("schema-runtime has sufficient ternary guards (>=40)", () => {
     const runtimeContent = readFileSync(join(process.cwd(), "shared", "schema-runtime.ts"), "utf-8");
-    const ternaryMatches = runtimeContent.match(/IS_POSTGRES\s*\?/g);
-    expect(ternaryMatches).not.toBeNull();
-    expect(ternaryMatches!.length).toBeGreaterThanOrEqual(40);
+    const ternaryMatches = runtimeContent.match(/IS_POSTGRES\s*\?/g) ?? [];
+    expect(ternaryMatches.length).toBeGreaterThanOrEqual(40);
   });
 
   test("PG and SQLite schemas both export critical shared domain modules", () => {
@@ -233,7 +230,8 @@ describe("SQLite schema structural parity", () => {
     const result = execSync("node scripts/validate-dual-schema.mjs", { encoding: "utf-8", timeout: 15000 });
     const pairsMatch = result.match(/Pairs with columns:\s+(\d+)/);
     expect(pairsMatch).not.toBeNull();
-    expect(parseInt(pairsMatch![1], 10)).toBeGreaterThanOrEqual(100);
+    const pairCount = parseInt((pairsMatch ?? ["", "0"])[1], 10);
+    expect(pairCount).toBeGreaterThanOrEqual(100);
   });
 
   test("no new schema drift beyond known allowlist", () => {
@@ -241,6 +239,42 @@ describe("SQLite schema structural parity", () => {
     expect(result).toContain("New drift (blocking):  0");
     expect(result).toContain("Missing tables:        0");
   });
+});
+
+describe("SQLite mode import resolution", () => {
+  const fs = require("fs");
+  const tmpDir = join(process.cwd(), "tests", "unit");
+
+  function verifyLocalModeImports(tableName: string): { ok: boolean; hasTable: boolean } {
+    const scriptFile = join(tmpDir, `_sqlite_check_${tableName}.ts`);
+    const scriptContent = [
+      `import { ${tableName} } from '../../shared/schema-runtime';`,
+      `const hasTable = !!${tableName};`,
+      `console.log(JSON.stringify({ ok: true, hasTable }));`,
+    ].join('\n');
+    fs.writeFileSync(scriptFile, scriptContent);
+    try {
+      const result = execSync(
+        `LOCAL_MODE=true npx tsx ${scriptFile}`,
+        { encoding: "utf-8", timeout: 30000, cwd: process.cwd() }
+      );
+      const lines = result.trim().split("\n");
+      return JSON.parse(lines[lines.length - 1]);
+    } finally {
+      try { fs.unlinkSync(scriptFile); } catch {}
+    }
+  }
+
+  const criticalTables = ["vessels", "equipment", "workOrders", "inventoryParts", "crew"];
+
+  test.each(criticalTables)(
+    "%s table resolves in LOCAL_MODE (SQLite mode)",
+    (tableName) => {
+      const parsed = verifyLocalModeImports(tableName);
+      expect(parsed.ok).toBe(true);
+      expect(parsed.hasTable).toBe(true);
+    }
+  );
 });
 
 describe("Additional guardrail scripts", () => {
