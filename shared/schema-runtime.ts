@@ -1,17 +1,15 @@
 /**
- * Runtime Schema Switcher - ARCHITECT-APPROVED EDITION
- * 
- * This module provides a unified schema export that automatically switches
- * between PostgreSQL and SQLite schemas based on the deployment mode.
- * 
- * CRITICAL CHANGES FROM PREVIOUS VERSION:
- * 1. Removed wildcard exports to eliminate namespace pollution and binding conflicts
- * 2. Made Zod schemas mode-aware with ternary selection
- * 3. Guarded PostgreSQL-only tables to prevent SQLite crashes
- * 
- * Architecture:
- * - Cloud Mode (LOCAL_MODE=false): Exports PostgreSQL schema
- * - Vessel Mode (LOCAL_MODE=true): Exports SQLite schema
+ * Runtime Schema Switcher
+ *
+ * Unified schema export that switches between PostgreSQL and SQLite
+ * schemas based on the deployment mode (LOCAL_MODE / EMBEDDED_MODE).
+ *
+ * Design:
+ * - Cloud (LOCAL_MODE=false): exports PostgreSQL schema
+ * - Vessel (LOCAL_MODE=true): exports SQLite schema
+ * - Explicit named exports (no wildcards) to avoid binding conflicts
+ * - Mode-aware Zod schemas via ternary selection
+ * - PostgreSQL-only tables guarded to prevent SQLite crashes
  */
 
 const isLocalMode = process.env.LOCAL_MODE === "true" || process.env.EMBEDDED_MODE === "true";
