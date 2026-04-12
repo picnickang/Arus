@@ -4,8 +4,7 @@ import { auditService } from '../immutable-audit.service';
 import { requireAdminAuth, auditAdminAction } from '../../security';
 import { DataExportImportService } from '../../services/data-export-import';
 import { DataAnonymizationService, type AnonymizationLevel } from '../data-anonymization.service';
-/** @deprecated TODO: Migrate DSAR methods to server/db/gdpr/db-gdpr.ts repo */
-import { storage } from '../../storage';
+import { dbGdprStorage } from '../../db/gdpr';
 import { requireComplianceAccess } from './audit-routes';
 
 interface AdminRequest extends Request {
@@ -99,7 +98,7 @@ router.get('/dsar', requireAdminAuth, auditAdminAction('dsar_list'), requireComp
     const orgId = req.headers['x-org-id'] as string;
     if (!orgId) { return res.status(401).json({ error: 'Organization ID required' }); }
     const filters = dsarFilterSchema.parse(req.query);
-    const requests = await storage.getDataSubjectRequests(orgId, { status: filters.status, requestType: filters.requestType, requesterEmail: filters.requesterEmail, fromDate: filters.fromDate ? new Date(filters.fromDate) : undefined, toDate: filters.toDate ? new Date(filters.toDate) : undefined });
+    const requests = await dbGdprStorage.getDataSubjectRequestsFiltered(orgId, { status: filters.status, requestType: filters.requestType, requesterEmail: filters.requesterEmail, fromDate: filters.fromDate ? new Date(filters.fromDate) : undefined, toDate: filters.toDate ? new Date(filters.toDate) : undefined });
     await auditService.logEvent({ orgId, eventCategory: 'compliance_event', eventType: 'dsar_list_viewed', entityType: 'dsar', entityId: 'list', performedBy: (req as AdminRequest).adminId || 'admin', performedByType: 'user', metadata: { filters, count: requests.length } });
     res.json({ success: true, data: requests, count: requests.length });
   } catch (error) {
@@ -113,7 +112,7 @@ router.get('/dsar/:id', requireAdminAuth, auditAdminAction('dsar_view'), require
     const orgId = req.headers['x-org-id'] as string;
     const { id } = req.params;
     if (!orgId) { return res.status(401).json({ error: 'Organization ID required' }); }
-    const request = await storage.getDataSubjectRequest(id, orgId);
+    const request = await dbGdprStorage.getDataSubjectRequestWithOrg(id, orgId);
     if (!request) { return res.status(404).json({ error: 'DSAR request not found' }); }
     res.json({ success: true, data: request });
   } catch (error) {
@@ -127,7 +126,8 @@ router.post('/dsar', requireAdminAuth, auditAdminAction('dsar_create'), requireC
     const orgId = req.headers['x-org-id'] as string;
     if (!orgId) { return res.status(401).json({ error: 'Organization ID required' }); }
     const data = dsarRequestSchema.parse(req.body);
-    const request = await storage.createDataSubjectRequest({ orgId, ...data });
+    const dueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const request = await dbGdprStorage.createDataSubjectRequest({ orgId, ...data, dueDate } as any);
     await auditService.logEvent({ orgId, eventCategory: 'compliance_event', eventType: 'dsar_created', entityType: 'dsar', entityId: request.id, newState: request, performedBy: (req as AdminRequest).adminId || 'admin', performedByType: 'user', retentionRequired: true });
     res.status(201).json({ success: true, data: request, message: `DSAR request created. Due date: ${request.dueDate.toISOString()}` });
   } catch (error) {
@@ -141,10 +141,10 @@ router.post('/dsar/:id/acknowledge', requireAdminAuth, auditAdminAction('dsar_ac
     const orgId = req.headers['x-org-id'] as string;
     const { id } = req.params;
     if (!orgId) { return res.status(401).json({ error: 'Organization ID required' }); }
-    const existingRequest = await storage.getDataSubjectRequest(id, orgId);
+    const existingRequest = await dbGdprStorage.getDataSubjectRequestWithOrg(id, orgId);
     if (!existingRequest) { return res.status(404).json({ error: 'DSAR request not found' }); }
     if (existingRequest.status !== 'pending') { return res.status(400).json({ error: 'Invalid state transition', message: `DSAR request is already ${existingRequest.status}. Only pending requests can be acknowledged.` }); }
-    const request = await storage.acknowledgeDataSubjectRequest(id, (req as AdminRequest).adminId || 'admin', orgId);
+    const request = await dbGdprStorage.acknowledgeDataSubjectRequest(id, (req as AdminRequest).adminId || 'admin', orgId);
     await auditService.logEvent({ orgId, eventCategory: 'compliance_event', eventType: 'dsar_acknowledged', entityType: 'dsar', entityId: id, newState: { status: 'in_progress', acknowledgedAt: request.acknowledgedAt }, performedBy: (req as AdminRequest).adminId || 'admin', performedByType: 'user', retentionRequired: true });
     res.json({ success: true, data: request, message: 'DSAR request acknowledged and in progress' });
   } catch (error) {
@@ -159,11 +159,11 @@ router.post('/dsar/:id/collect', requireAdminAuth, auditAdminAction('dsar_data_c
     const { id } = req.params;
     const { identifierType } = req.body as { identifierType: 'email' | 'userId' | 'crewId' };
     if (!orgId) { return res.status(401).json({ error: 'Organization ID required' }); }
-    const request = await storage.getDataSubjectRequest(id, orgId);
+    const request = await dbGdprStorage.getDataSubjectRequestWithOrg(id, orgId);
     if (!request) { return res.status(404).json({ error: 'DSAR request not found' }); }
     const identifier = request.requesterId || request.requesterEmail;
     const type = identifierType || (request.requesterId ? 'userId' : 'email');
-    const collectedData = await storage.collectUserDataForDsar(orgId, identifier, type);
+    const collectedData = await dbGdprStorage.collectUserDataForDsar(orgId, identifier, type);
     const collectedDataObj = collectedData as Record<string, unknown>;
     const getArrayLength = (obj: Record<string, unknown>, key: string): number => {
       const arr = obj[key];
@@ -188,11 +188,11 @@ router.post('/dsar/:id/execute-erasure', requireAdminAuth, auditAdminAction('dsa
     const { confirmErasure, reason } = req.body;
     if (!orgId) { return res.status(401).json({ error: 'Organization ID required' }); }
     if (!confirmErasure) { return res.status(400).json({ error: 'Erasure must be explicitly confirmed', message: 'Set confirmErasure: true to proceed with data erasure' }); }
-    const request = await storage.getDataSubjectRequest(id, orgId);
+    const request = await dbGdprStorage.getDataSubjectRequestWithOrg(id, orgId);
     if (!request) { return res.status(404).json({ error: 'DSAR request not found' }); }
     if (request.requestType !== 'erasure') { return res.status(400).json({ error: 'Invalid request type', message: 'This endpoint is only for erasure requests' }); }
     const erasedBy = (req as AdminRequest).adminId || 'admin';
-    const result = await storage.executeDataErasure(id, orgId, erasedBy, reason);
+    const result = await dbGdprStorage.executeDataErasure(id, orgId, erasedBy, reason);
     await auditService.logEvent({ orgId, eventCategory: 'compliance_event', eventType: 'dsar_erasure_executed', entityType: 'dsar', entityId: id, performedBy: erasedBy, performedByType: 'user', metadata: { result, reason }, retentionRequired: true });
     res.json({ success: true, data: result });
   } catch (error) {
@@ -207,7 +207,7 @@ router.post('/dsar/:id/complete', requireAdminAuth, auditAdminAction('dsar_compl
     const { id } = req.params;
     const { notes } = req.body;
     if (!orgId) { return res.status(401).json({ error: 'Organization ID required' }); }
-    const request = await storage.completeDataSubjectRequest(id, (req as AdminRequest).adminId || 'admin', notes, orgId);
+    const request = await dbGdprStorage.completeDataSubjectRequest(id, (req as AdminRequest).adminId || 'admin', notes, orgId);
     await auditService.logEvent({ orgId, eventCategory: 'compliance_event', eventType: 'dsar_completed', entityType: 'dsar', entityId: id, newState: { status: 'completed', completedAt: request.completedAt }, performedBy: (req as AdminRequest).adminId || 'admin', performedByType: 'user', retentionRequired: true });
     res.json({ success: true, data: request, message: 'DSAR request completed' });
   } catch (error) {
@@ -222,7 +222,7 @@ router.post('/dsar/:id/reject', requireAdminAuth, auditAdminAction('dsar_reject'
     const { id } = req.params;
     const { reason, rejectionReason } = req.body;
     if (!orgId) { return res.status(401).json({ error: 'Organization ID required' }); }
-    const request = await storage.rejectDataSubjectRequest(id, (req as AdminRequest).adminId || 'admin', rejectionReason || reason, orgId);
+    const request = await dbGdprStorage.rejectDataSubjectRequest(id, (req as AdminRequest).adminId || 'admin', rejectionReason || reason, orgId);
     await auditService.logEvent({ orgId, eventCategory: 'compliance_event', eventType: 'dsar_rejected', entityType: 'dsar', entityId: id, newState: { status: 'rejected', rejectionReason: rejectionReason || reason }, performedBy: (req as AdminRequest).adminId || 'admin', performedByType: 'user', retentionRequired: true });
     res.json({ success: true, data: request, message: 'DSAR request rejected' });
   } catch (error) {
@@ -235,7 +235,7 @@ router.get('/dsar/statistics', requireAdminAuth, requireComplianceAccess, async 
   try {
     const orgId = req.headers['x-org-id'] as string;
     if (!orgId) { return res.status(401).json({ error: 'Organization ID required' }); }
-    const allRequests = await storage.getDataSubjectRequests(orgId, {});
+    const allRequests = await dbGdprStorage.getDataSubjectRequestsFiltered(orgId, {});
     const stats = { total: allRequests.length, byStatus: {} as Record<string, number>, byType: {} as Record<string, number>, avgCompletionDays: 0, overdueCount: 0 };
     let completedDays = 0, completedCount = 0;
     const now = new Date();

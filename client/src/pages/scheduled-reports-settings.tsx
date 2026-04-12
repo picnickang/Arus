@@ -52,7 +52,7 @@ export default function ScheduledReportsSettingsPage() {
   return (
     <div className="container mx-auto p-6">
       <div className="flex items-center gap-3 mb-6">
-        <Link href="/settings">
+        <Link href="/configuration?tab=system-settings">
           <Button variant="ghost" size="icon" data-testid="button-back">
             <ArrowLeft className="h-5 w-5" />
           </Button>

@@ -1,0 +1,134 @@
+You are a senior staff engineer finishing the final convergence work on ARUS, a maritime/industrial operations platform with:
+- Express/TypeScript backend
+- React/TypeScript frontend
+- domain-router-registry architecture
+- dual Postgres + SQLite support
+- guardrail scripts already present:
+  - npm run check:schema
+  - npm run check:storage-imports
+  - npm run check:schema-imports
+  - npm run check:domain-boundaries
+  - npm run check:guards
+
+Your goal is to COMPLETE all remaining convergence work, not just patch symptoms.
+
+CRITICAL RULES
+1. Do not weaken functionality.
+2. Do not remove working features unless they are explicitly legacy duplicates being retired.
+3. Prefer deletion over adding another compatibility layer.
+4. Do not introduce new fallback paths.
+5. Preserve the current architectural direction:
+   - single path
+   - enforced contracts
+   - typed boundaries
+   - no silent legacy bypasses
+6. After every major change, run relevant checks and fix failures.
+7. Keep changes incremental and safe.
+8. Update docs/comments/deprecation banners to match reality.
+
+WHAT MUST BE COMPLETED
+
+1. STORAGE FACADE RETIREMENT
+- Inspect server/storage.ts and all remaining imports/usages.
+- Migrate every remaining production consumer off the storage facade onto the approved domain/repository/service pattern.
+- Keep behavior identical.
+- When complete:
+  - no production code should import server/storage.ts
+  - only tests or an explicit legacy exception folder may reference it, if truly unavoidable
+- Then either:
+  - delete server/storage.ts, or
+  - rename it to something unmistakably legacy like server/legacy/legacyStorage.ts and update all references
+- Tighten the storage import guard so new imports are impossible outside the allowlist.
+- Reduce the allowlist to the minimum possible.
+
+2. ROUTE REGISTRATION CONVERGENCE
+- Inspect server/routes.ts, server/routes/domain-router-registry.*, and any legacy wrapper files.
+- Make the domain router registry the single approved registration mechanism for feature routes.
+- Remove or retire direct/inline route mounting where possible.
+- Eliminate legacy route wrappers that are no longer needed.
+- If some must remain temporarily, isolate them clearly in a legacy section with retirement comments and make sure no new code can follow that pattern.
+- Goal:
+  - one obvious route registration pattern
+  - no ambiguity for future developers
+
+3. PDM / SYNC DOMAIN CLEANUP
+- Inspect all PdM and sync-related pages, hooks, routes, wrappers, and deprecated files.
+- Unify each user workflow so there is one real path per action, not multiple overlapping ones.
+- Remove obsolete PdM pages/hooks/routes when they are duplicated by the new path.
+- Remove deprecated sync endpoint overlap and any remaining fallback logic.
+- Preserve all working user-visible capability.
+- Update navigation and links so users are routed only into the current path.
+- Goal:
+  - no parallel legacy/new PdM workflow
+  - no legacy sync fallback flow
+
+4. REDIRECT DEBT RETIREMENT
+- Inspect client/src/routes/legacy-redirects.ts and any redirect helpers/usages.
+- Remove redirects that are no longer needed.
+- Keep only the minimum set truly required for compatibility.
+- For any remaining redirects:
+  - ensure they are documented
+  - ensure expiration metadata is present
+  - ensure they point to the canonical destination
+- Update links/navigation so internal app code uses canonical routes directly instead of depending on redirects.
+- Goal:
+  - significantly reduce redirect count
+  - redirect file contains only justified leftovers
+
+5. DUAL-DB HARDENING
+- Keep the current guardrail scripts intact.
+- Ensure any remaining schema/runtime mismatches are resolved without increasing allowed drift.
+- If possible, reduce the allowed drift baseline safely.
+- Add or improve tests/checks so:
+  - new schema divergence fails fast
+  - missing runtime exports fail fast
+  - unsupported offline differences are explicit and documented
+- Do not break current dual-mode behavior.
+
+6. ENFORCEMENT / NO-REGRESSION
+- Strengthen lint/check scripts and docs so the cleaned architecture cannot regress.
+- Add/update guardrails for:
+  - storage imports
+  - schema imports
+  - domain boundaries
+  - route registration pattern, if feasible
+- If route-pattern linting is not feasible, add a script/check that detects forbidden route-registration patterns and wire it into npm run check:guards.
+- Update README or architecture docs with the final “approved patterns” for:
+  - data access
+  - route registration
+  - schema access
+  - domain boundaries
+  - redirects/deprecations
+
+WORKING METHOD
+1. First inspect the repo and produce a brief plan grouped by:
+   - storage
+   - routes
+   - PdM/sync
+   - redirects
+   - dual-db/checks
+2. Then execute changes in small batches.
+3. After each batch:
+   - run targeted checks/tests
+   - fix breakages immediately
+4. At the end, run:
+   - npm run check:guards
+   - any relevant test suite/build commands
+5. Then give a final report with:
+   - files changed
+   - what was deleted
+   - what remains intentionally legacy
+   - which guardrails were tightened
+   - any follow-up work still needed
+
+SUCCESS CRITERIA
+- No production consumers remain on the storage facade
+- Domain router registry is the clear single route pattern
+- PdM/sync legacy overlap is removed or minimized to explicitly isolated remnants
+- Redirect debt is materially reduced
+- Guardrails pass
+- No functionality regressions
+- No new compatibility shims added unless absolutely unavoidable and clearly documented as temporary
+
+IMPORTANT
+Be opinionated and finish the work. Do not stop at analysis. Make the changes.

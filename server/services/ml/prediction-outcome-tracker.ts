@@ -12,7 +12,7 @@
  * Designed to run as a scheduled job (e.g., daily via pg-boss or cron).
  *
  * Usage:
- *   const tracker = new PredictionOutcomeTracker(db, storage);
+ *   const tracker = new PredictionOutcomeTracker(db, { workOrderService, dbAlertStorage });
  *   const report = await tracker.evaluatePredictions(orgId);  // Run daily
  *   // Automatically triggers retraining if accuracy drops below threshold
  */
@@ -79,14 +79,19 @@ const DEFAULT_CONFIG: TrackerConfig = {
 // Main Service
 // ============================================================================
 
+interface OutcomeTrackerDeps {
+  getWorkOrders: (equipmentId?: string, orgId?: string) => Promise<any[]>;
+  getAlertNotifications: (acknowledged?: boolean, orgId?: string) => Promise<any[]>;
+}
+
 export class PredictionOutcomeTracker {
   private db: any;
-  private storage: any;
+  private deps: OutcomeTrackerDeps;
   private config: TrackerConfig;
 
-  constructor(db: any, storage: any, config?: Partial<TrackerConfig>) {
+  constructor(db: any, deps: OutcomeTrackerDeps, config?: Partial<TrackerConfig>) {
     this.db = db;
-    this.storage = storage;
+    this.deps = deps;
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
@@ -266,7 +271,7 @@ export class PredictionOutcomeTracker {
 
     try {
       // Check work orders (most reliable signal)
-      const workOrders = await this.storage.getWorkOrders(prediction.equipmentId, orgId);
+      const workOrders = await this.deps.getWorkOrders(prediction.equipmentId, orgId);
       const relevantWOs = (workOrders || []).filter((wo: any) => {
         const woDate = new Date(wo.createdAt);
         return woDate >= windowStart && woDate <= windowEnd &&
@@ -283,7 +288,7 @@ export class PredictionOutcomeTracker {
     if (!failureOccurred) {
       try {
         // Check alerts
-        const alerts = await this.storage.getAlertNotifications(false, orgId);
+        const alerts = await this.deps.getAlertNotifications(false, orgId);
         const relevantAlerts = (alerts || []).filter((alert: any) => {
           const alertDate = new Date(alert.createdAt);
           return alert.equipmentId === prediction.equipmentId &&

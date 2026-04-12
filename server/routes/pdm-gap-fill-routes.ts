@@ -15,8 +15,8 @@ import { Express, Request, Response } from "express";
 import { withErrorHandling } from "../lib/route-utils";
 import { logger } from "../utils/logger";
 import type { AuthenticatedRequest } from "../middleware/auth";
-/** @deprecated TODO: Migrate PredictionOutcomeTracker/ModelEvaluationGate/MlTrainingJobQueue to accept repos */
-import { storage } from "../storage";
+import { workOrderService, dbAlertStorage } from "../repositories";
+import { db } from "../db-config";
 
 const LOG_CTX = "PdmGapFillRoutes";
 
@@ -87,7 +87,10 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
       const orgId = (req as AuthenticatedRequest).orgId;
 
       const { PredictionOutcomeTracker } = await import("../services/ml/prediction-outcome-tracker");
-      const tracker = new PredictionOutcomeTracker(db, storage);
+      const tracker = new PredictionOutcomeTracker(db, {
+        getWorkOrders: (equipmentId, orgId) => workOrderService.getWorkOrdersWithDetails(equipmentId, orgId),
+        getAlertNotifications: (acknowledged, orgId) => dbAlertStorage.getAlertNotifications(acknowledged, orgId),
+      });
 
       const report = await tracker.evaluatePredictions(orgId);
 
@@ -171,7 +174,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
       }
 
       const { ModelEvaluationGate } = await import("../services/ml/model-evaluation-gate");
-      const gate = new ModelEvaluationGate(db, storage, thresholds);
+      const gate = new ModelEvaluationGate(db, thresholds);
 
       const predictFn = async (features: Record<string, number>): Promise<number> => {
         const values = Object.values(features);
@@ -205,7 +208,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
           return res.status(503).json({ message: "Job queue not initialized" });
         }
 
-        const queue = new MlTrainingJobQueue(boss, storage, wsServer);
+        const queue = new MlTrainingJobQueue(boss, db, wsServer);
         await queue.registerWorker();
 
         const jobId = await queue.enqueueTraining({
@@ -248,7 +251,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
           return res.status(503).json({ message: "Job queue not initialized" });
         }
 
-        const queue = new MlTrainingJobQueue(boss, storage);
+        const queue = new MlTrainingJobQueue(boss, db);
         const status = await queue.getJobStatus(jobId);
 
         if (!status) {
@@ -279,7 +282,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
           return res.json({ jobs: [], count: 0, note: "Job queue not initialized" });
         }
 
-        const queue = new MlTrainingJobQueue(boss, storage);
+        const queue = new MlTrainingJobQueue(boss, db);
         const jobs = await queue.getRecentJobs(orgId);
 
         res.json({ jobs, count: jobs.length });

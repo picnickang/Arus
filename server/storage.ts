@@ -4,10 +4,18 @@
  * ⛔ DO NOT ADD NEW IMPORTS FROM THIS FILE.
  * ⛔ DO NOT ADD NEW METHODS TO THIS FACADE.
  *
- * All domain routes and repos now import directly from server/repositories.ts.
- * Remaining consumers: ~3 files with constructor-injection patterns that pass
- * the whole facade object (pdm-gap-fill-routes, data-privacy-routes, inventory/storage).
- * These will be migrated when their constructors are refactored to accept repos.
+ * Route-layer consumers (pdm-gap-fill, data-privacy, ml-routes) have been
+ * migrated to direct repo imports. Remaining allowlisted consumers (~29 files)
+ * are in service/background layers — see scripts/check-storage-imports.mjs
+ * for the full allowlist.
+ *
+ * Key remaining consumer categories:
+ *   - server/bootstrap/services.ts
+ *   - server/beast/ (3 routes)
+ *   - server/compliance-pdf/ & server/compliance-excel/ (10 files — type-only)
+ *   - server/services/ (email-notification, scheduler, engine-log-autofill, dev-seed)
+ *   - server/digital-twin/, server/lp-optimizer/, server/vps-kpi/
+ *   - server/vessel-simulator/ (4 files — dev-only)
  *
  * Migration guide:
  *   BEFORE: import { storage } from "../storage";

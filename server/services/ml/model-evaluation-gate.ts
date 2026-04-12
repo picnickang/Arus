@@ -11,7 +11,7 @@
  * the current production model.
  *
  * Usage:
- *   const gate = new ModelEvaluationGate(db, storage);
+ *   const gate = new ModelEvaluationGate(db);
  *   const result = await gate.evaluate(orgId, newModelId, testData);
  *   if (result.approved) { deploy(newModelId); }
  *   else { logger.warn("Model rejected:", result.reason); }
@@ -158,12 +158,10 @@ function computeAUROC(predictions: Array<{ predicted: number; actual: 0 | 1 }>):
 
 export class ModelEvaluationGate {
   private db: any;
-  private storage: any;
   private config: GateConfig;
 
-  constructor(db: any, storage: any, config?: Partial<GateConfig>) {
+  constructor(db: any, config?: Partial<GateConfig>) {
     this.db = db;
-    this.storage = storage;
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 

@@ -99,11 +99,24 @@
   "phases": {
     "1": {
       "label": "30-day retirement",
-      "targets": ["server/ml-routes/model-routes.ts", "server/routes/pdm-gap-fill-routes.ts"]
+      "targets": ["server/ml-routes/model-routes.ts", "server/routes/pdm-gap-fill-routes.ts"],
+      "blockers": "AIStudioPage.tsx and useMLModels.ts use /api/ml/* — response shape mismatch with pdm-platform (sendSuccess wrapper vs direct JSON)"
     },
     "2": {
       "label": "60-day retirement",
-      "targets": ["server/pdm/routes.ts", "server/routes/analytics/model-governance.ts", "server/routes/analytics/predictions.ts"]
+      "targets": ["server/pdm/routes.ts", "server/routes/analytics/model-governance.ts", "server/routes/analytics/predictions.ts"],
+      "blockers": "useTrainingData.ts, useMLModels.ts, useModelPerformanceData.ts, useAnalytics.ts, useAdvancedAnalyticsData.ts use /api/analytics/* endpoints"
     }
+  },
+  "clientConsumerCount": {
+    "/api/ml/models": 7,
+    "/api/ml/training-jobs": 3,
+    "/api/ml/accuracy-trend": 1,
+    "/api/analytics/ml-models": 8,
+    "/api/analytics/model-performance": 3,
+    "/api/analytics/model-drift": 1,
+    "/api/analytics/anomalies": 5,
+    "/api/analytics/failure-predictions": 2,
+    "_lastUpdated": "2026-04-12"
   }
 }

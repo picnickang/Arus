@@ -16,7 +16,7 @@
  * - Uses existing model registry for storing results
  *
  * Usage:
- *   const mlJobQueue = new MlTrainingJobQueue(pgBoss, storage);
+ *   const mlJobQueue = new MlTrainingJobQueue(pgBoss, db);
  *   const jobId = await mlJobQueue.enqueueTraining(orgId, config);
  *   const status = await mlJobQueue.getJobStatus(jobId);
  */
@@ -67,13 +67,13 @@ export interface MlJobStatus {
 
 export class MlTrainingJobQueue {
   private boss: any;
-  private storage: any;
+  private db: any;
   private wsServer: any;
   private isWorkerRegistered = false;
 
-  constructor(pgBoss: any, storage: any, wsServer?: any) {
+  constructor(pgBoss: any, db: any, wsServer?: any) {
     this.boss = pgBoss;
-    this.storage = storage;
+    this.db = db;
     this.wsServer = wsServer;
   }
 
@@ -139,7 +139,7 @@ export class MlTrainingJobQueue {
     try {
       const { sql } = await import("drizzle-orm");
       const safeLimit = Math.min(Math.max(1, Math.floor(limit)), 100);
-      const result = await this.storage.db?.execute(
+      const result = await this.db?.execute(
         sql`SELECT id, state, data, output, createdon, startedon, completedon
         FROM pgboss.job
         WHERE name = ${QUEUE_NAME}
