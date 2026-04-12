@@ -114,8 +114,11 @@ describe("PG and SQLite schema directories", () => {
 });
 
 describe("PG query shape smoke tests — critical domain paths", () => {
+  const fs = require("fs");
+  const tmpDir = join(process.cwd(), "tests", "unit");
+
   function queryTable(tableName: string): { ok: boolean; count: number; keys: string[] } {
-    const scriptFile = join(__dirname, `_query_${tableName}.ts`);
+    const scriptFile = join(tmpDir, `_query_${tableName}.ts`);
     const scriptContent = [
       `import { db } from '../../server/db-config';`,
       `import * as schema from '../../shared/schema-runtime';`,
@@ -129,13 +132,13 @@ describe("PG query shape smoke tests — critical domain paths", () => {
       `  process.exit(0);`,
       `})();`,
     ].join('\n');
-    require('fs').writeFileSync(scriptFile, scriptContent);
+    fs.writeFileSync(scriptFile, scriptContent);
     try {
       const result = execSync(`npx tsx ${scriptFile}`, { encoding: "utf-8", timeout: 30000, cwd: process.cwd() });
       const lines = result.trim().split("\n");
       return JSON.parse(lines[lines.length - 1]);
     } finally {
-      try { require('fs').unlinkSync(scriptFile); } catch {}
+      try { fs.unlinkSync(scriptFile); } catch {}
     }
   }
 
