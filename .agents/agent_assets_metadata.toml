@@ -228,3 +228,9 @@ id = "gvBx1v6Kd4VXMFckNvRZG"
 uri = "file://chatgpt-export.tar.gz"
 type = "unspecified"
 title = "ARUS Codebase Export for ChatGPT"
+
+[[outputs]]
+id = "ZU7f-2L_8i3yydM2Vg69p"
+uri = "file://source-code.tar.gz"
+type = "unspecified"
+title = "ARUS Source Code (tar.gz)"
