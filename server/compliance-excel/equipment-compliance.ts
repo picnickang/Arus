@@ -3,8 +3,8 @@
  */
 
 import type { EquipmentHealth, WorkOrder } from '@shared/schema-runtime';
-import type { IStorage } from '../repositories.js';
-import type { ReportingPeriod, EquipmentComplianceOptions } from './types';
+
+import type { ComplianceDeps, ReportingPeriod, EquipmentComplianceOptions } from './types';
 import {
   createWorkbook,
   addSheet,
@@ -15,7 +15,7 @@ import {
 } from './utils';
 
 export async function generateEquipmentComplianceExcel(
-  storage: IStorage,
+  storage: ComplianceDeps,
   orgId: string,
   equipmentIds: string[],
   standardCodes: string[],

@@ -3,12 +3,12 @@
  */
 
 import type { EquipmentHealth, WorkOrder } from '@shared/schema-runtime';
-import type { IStorage } from '../repositories.js';
-import type { ReportingPeriod, MaintenanceComplianceOptions } from './types';
+
+import type { ComplianceDeps, ReportingPeriod, MaintenanceComplianceOptions } from './types';
 import { createWorkbook, addSheet, writeWorkbook, formatDate } from './utils';
 
 export async function generateMaintenanceComplianceExcel(
-  storage: IStorage,
+  storage: ComplianceDeps,
   orgId: string,
   vesselId: string,
   period: ReportingPeriod,

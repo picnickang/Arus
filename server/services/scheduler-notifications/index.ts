@@ -4,7 +4,7 @@
  */
 
 import { emailSender } from "../email-notification/email-sender.js";
-import { storage } from "../../repositories.js";
+import { dbSchedulerStorage, dbUserStorage, dbCrewStorage } from "../../repositories.js";
 import type { NotificationSettings, NotificationRecipient } from "../../../shared/schema/scheduling-settings.js";
 import { DEFAULT_NOTIFICATION_SETTINGS } from "../../../shared/schema/scheduling-settings.js";
 
@@ -32,12 +32,12 @@ type NotificationEvent = keyof NotificationSettings;
 async function getNotificationSettings(orgId: string, vesselId?: string): Promise<NotificationSettings> {
   try {
     if (vesselId) {
-      const vesselSettings = await storage.getSchedulingSettingsByVessel?.(orgId, vesselId);
+      const vesselSettings = await dbSchedulerStorage.getSchedulingSettingsByVessel(orgId, vesselId);
       if (vesselSettings?.notificationSettings) {
         return vesselSettings.notificationSettings;
       }
     }
-    const orgSettings = await storage.getSchedulingSettings?.(orgId);
+    const orgSettings = await dbSchedulerStorage.getSchedulingSettings(orgId);
     if (orgSettings?.notificationSettings) {
       return orgSettings.notificationSettings;
     }
@@ -70,7 +70,7 @@ async function getRecipientEmails(
 
 async function getAdminEmails(orgId: string): Promise<string[]> {
   try {
-    const users = await storage.getUsersByOrg?.(orgId);
+    const users = await dbUserStorage.getUsers(orgId);
     if (users) {
       return users
         .filter((u: any) => u.role === "admin" || u.role === "supervisor")
@@ -85,7 +85,7 @@ async function getAdminEmails(orgId: string): Promise<string[]> {
 
 async function getCrewEmail(crewId: string): Promise<string | undefined> {
   try {
-    const crew = await storage.getCrewMember(crewId);
+    const crew = await dbCrewStorage.getCrewMember(crewId);
     return crew?.email;
   } catch (error) {
     console.error("Failed to get crew email:", error);

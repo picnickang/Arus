@@ -2,7 +2,7 @@
  * VPS Fleet Benchmark Functions
  */
 
-import { storage } from "../repositories.js";
+import { dbTelemetryStorage, dbEquipmentStorage, vesselService } from "../repositories.js";
 import type { LoadHistBin, FleetLoadBenchmark, FleetPowerSTWBenchmark, PowerVsSTW } from "./types";
 import { quantile, calculatePowerSTWCurve } from "./calculations";
 
@@ -11,7 +11,7 @@ export async function computeEquipmentLoadDistribution(
   orgId: string,
   timeRange: { start: Date; end: Date }
 ): Promise<LoadHistBin[]> {
-  const telemetry = await storage.getTelemetryByEquipment(equipmentId, timeRange.start, timeRange.end, orgId);
+  const telemetry = await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(equipmentId, timeRange.start, timeRange.end, orgId);
   if (!telemetry || telemetry.length === 0) {return [];}
 
   const torqueData = telemetry
@@ -40,11 +40,11 @@ export async function computeFleetLoadBenchmarks(
   timeRange: { start: Date; end: Date },
   vesselType?: string
 ): Promise<FleetLoadBenchmark[]> {
-  const vessels = await storage.getVessels(orgId);
+  const vessels = await vesselService.getVessels(orgId);
   const filteredVessels = vesselType ? vessels.filter((v) => v.type === vesselType) : vessels;
   if (filteredVessels.length === 0) {return [];}
 
-  const allEquipment = await storage.getEquipment(orgId);
+  const allEquipment = await dbEquipmentStorage.getEquipmentRegistry(orgId);
   const allDistributions: LoadHistBin[][] = [];
 
   for (const vessel of filteredVessels) {
@@ -82,7 +82,7 @@ export async function computeFleetPowerSTWBenchmarks(
   timeRange: { start: Date; end: Date },
   vesselType?: string
 ): Promise<FleetPowerSTWBenchmark[]> {
-  const vessels = await storage.getVessels(orgId);
+  const vessels = await vesselService.getVessels(orgId);
   const filteredVessels = vesselType ? vessels.filter((v) => v.type === vesselType) : vessels;
   if (filteredVessels.length === 0) {return [];}
 
@@ -90,9 +90,9 @@ export async function computeFleetPowerSTWBenchmarks(
 
   for (const vessel of filteredVessels) {
     try {
-      const equipment = await storage.getEquipmentByVessel(vessel.id, orgId);
+      const equipment = await dbEquipmentStorage.getEquipmentByVessel(vessel.id, orgId);
       for (const eq of equipment) {
-        const telemetry = await storage.getTelemetryByEquipment(eq.id, timeRange.start, timeRange.end, orgId);
+        const telemetry = await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(eq.id, timeRange.start, timeRange.end, orgId);
         if (!telemetry || telemetry.length === 0) {continue;}
 
         const rpm = telemetry.filter((t) => t.sensor_type === "rpm").map((t) => t.value);

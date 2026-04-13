@@ -3,8 +3,8 @@
  */
 
 import type { EquipmentHealth, WorkOrder } from '@shared/schema-runtime';
-import type { IStorage } from '../repositories.js';
-import type { ReportingPeriod, MaintenanceComplianceOptions } from './types';
+
+import type { ComplianceDeps, ReportingPeriod, MaintenanceComplianceOptions } from './types';
 import {
   createPDFContext,
   formatDate,
@@ -17,7 +17,7 @@ import {
 } from './utils';
 
 export async function generateMaintenanceCompliancePDF(
-  storage: IStorage,
+  storage: ComplianceDeps,
   orgId: string,
   vesselId: string,
   period: ReportingPeriod,

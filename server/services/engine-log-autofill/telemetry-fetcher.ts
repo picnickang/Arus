@@ -3,7 +3,7 @@
  * Batch fetch and aggregate telemetry data
  */
 
-import { storage } from "../../repositories.js";
+import { dbTelemetryStorage } from "../../repositories.js";
 import { log } from "./logging.js";
 import type { EquipmentTelemetry, TelemetryAggregate } from "./types.js";
 
@@ -23,7 +23,7 @@ export async function batchFetchTelemetry(
 
     const batchPromises = batch.map(async (equipmentId) => {
       try {
-        return await storage.getTelemetryByEquipmentAndDateRange(
+        return await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(
           equipmentId,
           startDate,
           endDate,

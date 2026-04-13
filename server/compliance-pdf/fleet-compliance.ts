@@ -3,9 +3,9 @@
  */
 
 import type { EquipmentHealth, WorkOrder } from '@shared/schema-runtime';
-import type { IStorage } from '../repositories.js';
+
 import { MARITIME_STANDARDS } from '../compliance.js';
-import type { ReportingPeriod } from './types';
+import type { ComplianceDeps, ReportingPeriod } from './types';
 import {
   createPDFContext,
   formatDate,
@@ -19,7 +19,7 @@ import {
 } from './utils';
 
 export async function generateFleetComplianceOverviewPDF(
-  storage: IStorage,
+  storage: ComplianceDeps,
   orgId: string,
   period: ReportingPeriod
 ): Promise<Uint8Array> {

@@ -19,6 +19,7 @@ export function isBeastModeEnabled(): boolean {
 
 export const beastModeManager = {
   isEnabled: (_feature: BeastModeFeature) => false,
+  isFeatureEnabled: (_orgId: string, _feature: string) => false,
   enable: (_feature: BeastModeFeature) => {},
   disable: (_feature: BeastModeFeature) => {},
   getConfig: () => beastModeConfig,

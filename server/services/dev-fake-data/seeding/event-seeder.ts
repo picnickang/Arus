@@ -4,7 +4,7 @@
  * Seeds fake engine and deck log events.
  */
 
-import { storage } from "../../../repositories.js";
+import { engineLogStorage, deckLogStorage } from "../../../repositories.js";
 import { log } from "../dev-guards.js";
 import { cryptoRandom } from "@shared/crypto-random";
 
@@ -43,9 +43,9 @@ export async function seedFakeEvents(
 
     try {
       const logDate = eventTime.toISOString().split('T')[0];
-      let dailyLog = await storage.getEngineLogDailyByDate(vesselId, logDate, orgId);
+      let dailyLog = await engineLogStorage.getEngineLogDailyByDate(vesselId, logDate, orgId);
       if (!dailyLog) {
-        dailyLog = await storage.createEngineLogDaily({
+        dailyLog = await engineLogStorage.createEngineLogDaily({
           orgId,
           vesselId,
           logDate,
@@ -53,7 +53,7 @@ export async function seedFakeEvents(
         });
       }
 
-      await storage.createEngineLogEvent({
+      await engineLogStorage.createEngineLogEvent({
         orgId,
         vesselId,
         dayId: dailyLog.id,
@@ -80,9 +80,9 @@ export async function seedFakeEvents(
 
     try {
       const logDate = eventTime.toISOString().split('T')[0];
-      let dailyLog = await storage.getDeckLogDailyByDate(vesselId, logDate, orgId);
+      let dailyLog = await deckLogStorage.getDeckLogDailyByDate(vesselId, logDate, orgId);
       if (!dailyLog) {
-        dailyLog = await storage.createDeckLogDaily({
+        dailyLog = await deckLogStorage.createDeckLogDaily({
           orgId,
           vesselId,
           logDate,
@@ -90,7 +90,7 @@ export async function seedFakeEvents(
         });
       }
 
-      await storage.createDeckLogEvent({
+      await deckLogStorage.createDeckLogEvent({
         orgId,
         vesselId,
         dayId: dailyLog.id,

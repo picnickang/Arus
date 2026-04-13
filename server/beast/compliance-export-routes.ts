@@ -2,20 +2,26 @@ import { Router } from "express";
 import { beastModeManager } from "../beast-mode-config.js";
 import { CompliancePDFGenerator } from "../compliance-pdf.js";
 import { ComplianceExcelGenerator } from "../compliance-excel.js";
-import { storage } from "../repositories.js";
+import { dbEquipmentStorage, workOrderService } from "../repositories.js";
+import type { ComplianceDeps } from "../compliance-pdf/types";
 
 const router = Router();
+
+const complianceDeps: ComplianceDeps = {
+  getEquipmentHealth: (orgId, filters) => dbEquipmentStorage.getEquipmentHealth(orgId, filters),
+  getWorkOrders: (equipmentId, orgId, filters) => workOrderService.getWorkOrdersWithDetails(equipmentId, orgId, filters),
+};
 
 let compliancePDFGenerator: CompliancePDFGenerator;
 let complianceExcelGenerator: ComplianceExcelGenerator;
 
 function getCompliancePDFGenerator() {
-  if (!compliancePDFGenerator) { compliancePDFGenerator = new CompliancePDFGenerator(storage); }
+  if (!compliancePDFGenerator) { compliancePDFGenerator = new CompliancePDFGenerator(complianceDeps); }
   return compliancePDFGenerator;
 }
 
 function getComplianceExcelGenerator() {
-  if (!complianceExcelGenerator) { complianceExcelGenerator = new ComplianceExcelGenerator(storage); }
+  if (!complianceExcelGenerator) { complianceExcelGenerator = new ComplianceExcelGenerator(complianceDeps); }
   return complianceExcelGenerator;
 }
 
@@ -103,7 +109,7 @@ router.post("/compliance/equipment-excel", async (req, res) => {
     const isEnabled = await beastModeManager.isFeatureEnabled(orgId, "compliance_pdf");
     if (!isEnabled) { return res.status(403).json({ success: false, error: "Compliance Export Pod is not enabled for this organization", enabled: false }); }
     console.log(`[Beast Mode API] Equipment compliance Excel generation for ${equipmentIds.length} units`);
-    const excelData = await getComplianceExcelGenerator().generateEquipmentComplianceExcel(orgId, equipmentIds, standardCodes ?? ["ABS-A1-MACHINERY"], { startDate: new Date(reportingPeriod?.startDate ?? Date.now() - 30 * 24 * 60 * 60 * 1000), endDate: new Date(reportingPeriod?.endDate ?? Date.now()) }, { vesselName: vesselName ?? "Unknown Vessel" });
+    const excelData = await getComplianceExcelGenerator().generateEquipmentComplianceExcel(orgId, equipmentIds, standardCodes ?? ["ABS-A1-MACHINERY"], { startDate: new Date(reportingPeriod?.startDate ?? Date.now() - 30 * 24 * 60 * 60 * 1000), endDate: new Date(reportingPeriod?.endDate ?? Date.now()) }, { vesselName: vesselName ?? "Unknown Vessel", imoNumber: req.body.imoNumber ?? "N/A", flag: req.body.flag ?? "N/A", reportType: req.body.reportType ?? "inspection", inspector: req.body.inspector ?? "ARUS System" });
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader("Content-Disposition", `attachment; filename="equipment-compliance-${Date.now()}.xlsx"`);
     res.send(excelData);

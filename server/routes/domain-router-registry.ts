@@ -400,6 +400,13 @@ const domainRouters: DomainRouterConfig[] = [
     mountPath: "/api/import/shipmate", middlewareKeys: [],
     getDeps: () => ({}) },
 
+  { name: "MqttHealth", importPath: "./mqtt-health-routes.js", functionName: "mqttHealthRouter",
+    mountPath: "/api/mqtt/reliable-sync", middlewareKeys: ["generalApiRateLimit"],
+    getDeps: () => ({ generalApiRateLimit }) },
+  { name: "EquipmentLoadDistribution", importPath: "./equipment-load-distribution-routes.js", functionName: "equipmentLoadDistributionRouter",
+    mountPath: "/api/equipment", middlewareKeys: ["generalApiRateLimit"],
+    getDeps: () => ({ generalApiRateLimit }) },
+
   { name: "InfrastructureInline", importPath: "./inline-routes.js", functionName: "registerInlineRoutes",
     getDeps: () => ({}) },
 ];

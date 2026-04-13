@@ -2,7 +2,7 @@
  * Email Notification - Main Service Class
  */
 
-import { storage } from "../../repositories.js";
+import { dbNotificationsStorage } from "../../repositories.js";
 import type {
   ComplianceFinding,
   NotificationSetting,
@@ -50,7 +50,7 @@ class EmailNotificationService {
     vesselName: string,
     orgId: string
   ): Promise<void> {
-    const settings = await storage.getNotificationSettings(orgId, { notificationType: "compliance" });
+    const settings = await dbNotificationsStorage.getNotificationSettings(orgId);
 
     const applicableSettings = settings.filter(
       (s) =>
@@ -108,7 +108,7 @@ class EmailNotificationService {
     logDate: string,
     orgId: string
   ): Promise<void> {
-    const settings = await storage.getNotificationSettings(orgId, { notificationType: "logbook" });
+    const settings = await dbNotificationsStorage.getNotificationSettings(orgId);
     const applicableSettings = settings.filter((s) => s.enabled && (!s.vesselId || s.vesselId === vesselId));
 
     if (applicableSettings.length === 0) { return; }
@@ -141,7 +141,7 @@ class EmailNotificationService {
     equipmentName: string,
     orgId: string
   ): Promise<void> {
-    const settings = await storage.getNotificationSettings(orgId, { notificationType: "alert" });
+    const settings = await dbNotificationsStorage.getNotificationSettings(orgId);
     const applicableSettings = settings.filter(
       (s) => s.enabled && this.severityMeetsThreshold(alert.severity, s.minSeverity || "warning")
     );

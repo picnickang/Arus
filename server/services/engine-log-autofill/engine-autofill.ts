@@ -3,7 +3,7 @@
  * Populate engine log hourly entries from telemetry
  */
 
-import { storage } from "../../repositories.js";
+import { dbEquipmentStorage, engineLogStorage } from "../../repositories.js";
 import { log } from "./logging.js";
 import { DEFAULT_TELEMETRY_MAPPING } from "./mappings.js";
 import { ENGINE_ANOMALY_THRESHOLDS, checkAnomaly } from "./thresholds.js";
@@ -26,18 +26,18 @@ async function getOrCreateDailyLog(
   orgId: string,
   ctx: LogContext
 ): Promise<EngineLogDaily | null> {
-  let dailyLog = await storage.getEngineLogDailyByDate(vesselId, logDate, orgId);
+  let dailyLog = await engineLogStorage.getEngineLogDailyByDate(vesselId, logDate, orgId);
   if (dailyLog) { return dailyLog; }
 
   try {
-    dailyLog = await storage.createEngineLogDaily({ orgId, vesselId, logDate, status: 'open' });
+    dailyLog = await engineLogStorage.createEngineLogDaily({ orgId, vesselId, logDate, status: 'open' });
     log('info', 'Created new daily log', { ...ctx, dailyLogId: dailyLog.id });
     return dailyLog;
   } catch (error: unknown) {
     const errorCode = error instanceof Error && 'code' in error ? (error as { code: string }).code : undefined;
     if (errorCode !== '23505') { throw error; }
     log('info', 'Daily log already exists, fetching...', ctx);
-    dailyLog = await storage.getEngineLogDailyByDate(vesselId, logDate, orgId);
+    dailyLog = await engineLogStorage.getEngineLogDailyByDate(vesselId, logDate, orgId);
     if (!dailyLog) {
       throw new AutoFillError('Failed to retrieve existing daily log after duplicate key error', 'getOrCreateDailyLog', ctx, error);
     }
@@ -129,7 +129,7 @@ async function processHours(
     results.push({ hour, fieldsPopulated, fieldsSkipped, anomalies, source: 'telemetry', confidence });
 
     if (!dryRun) {
-      await storage.upsertEngineLogHourly(hourlyEntry as InsertEngineLogHourly);
+      await engineLogStorage.upsertEngineLogHourly(hourlyEntry as InsertEngineLogHourly);
     }
   }
 
@@ -180,7 +180,7 @@ export async function autoFillFromTelemetry(
       return createEmptySummary(vesselId, logDate);
     }
 
-    const vesselEquipment = await storage.getEquipmentByVessel(vesselId, orgId);
+    const vesselEquipment = await dbEquipmentStorage.getEquipmentByVessel(vesselId, orgId);
     const equipmentIds = vesselEquipment.map((e) => e.id);
 
     if (equipmentIds.length === 0) {
@@ -193,7 +193,7 @@ export async function autoFillFromTelemetry(
     const allTelemetry = await batchFetchTelemetry(equipmentIds, startDate, endDate, orgId);
     log('info', 'Fetched telemetry', { ...ctx, readingsCount: allTelemetry.length, equipmentCount: equipmentIds.length });
 
-    const existingHourly = await storage.getEngineLogHourly(dailyLog.id, orgId);
+    const existingHourly = await engineLogStorage.getEngineLogHourly(dailyLog.id, orgId);
     const existingByHour = new Map(existingHourly.map((h) => [h.hour, h]));
     const hoursToProcess = hours || Array.from({ length: 24 }, (_, i) => i);
 

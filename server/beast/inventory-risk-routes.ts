@@ -1,14 +1,24 @@
 import { Router } from "express";
 import { beastModeManager } from "../beast-mode-config.js";
 import { InventoryRiskAnalyzer } from "../inventory-risk.js";
-import { storage } from "../repositories.js";
+import { dbInventoryStorage, dbEquipmentStorage, workOrderService } from "../repositories.js";
+import type { InventoryRiskDeps } from "../inventory-risk/analyzer.js";
 
 const router = Router();
+
+const inventoryRiskDeps: InventoryRiskDeps = {
+  getPartsInventory: (orgId, includeInactive) => dbInventoryStorage.getPartsInventory(undefined, orgId),
+  getEquipment: (orgId, equipmentId) => dbEquipmentStorage.getEquipment(orgId, equipmentId),
+  getWorkOrderPartsByEquipment: (orgId, equipmentId) => dbInventoryStorage.getWorkOrderPartsByEquipment(orgId, equipmentId),
+  getPartById: (orgId, partId) => dbInventoryStorage.getPartById(partId, orgId),
+  getWorkOrderPartsByPartId: (orgId, partId) => dbInventoryStorage.getWorkOrderPartsByPartId(orgId, partId),
+  getWorkOrder: (orgId, workOrderId) => workOrderService.getWorkOrderById(workOrderId, orgId),
+};
 
 let inventoryRiskAnalyzer: InventoryRiskAnalyzer;
 function getInventoryRiskAnalyzer() {
   if (!inventoryRiskAnalyzer) {
-    inventoryRiskAnalyzer = new InventoryRiskAnalyzer(storage);
+    inventoryRiskAnalyzer = new InventoryRiskAnalyzer(inventoryRiskDeps);
   }
   return inventoryRiskAnalyzer;
 }

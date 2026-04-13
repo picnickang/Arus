@@ -4,7 +4,7 @@
  * High-level scenario functions for engine room and deck log testing.
  */
 
-import { storage } from "../../../repositories.js";
+import { vesselService, deckLogStorage } from "../../../repositories.js";
 import { autoFillFromTelemetry, autoFillGeneratorsFromTelemetry } from "../../engine-log-autofill-service.js";
 import { stormgeoIntegrationService } from "../../stormgeo-integration-service.js";
 import type { SeedResult } from "../types.js";
@@ -19,7 +19,7 @@ export async function seedFakeEngineRoomLogScenario(
   assertDevMode();
 
   if (!vesselId) {
-    const vessels = await storage.getVessels(orgId);
+    const vessels = await vesselService.getVessels(orgId);
     if (vessels.length === 0) {
       throw new Error('No vessels found. Create a vessel first or provide vesselId');
     }
@@ -82,7 +82,7 @@ export async function seedFakeDeckLogScenario(
   assertDevMode();
 
   if (!vesselId) {
-    const vessels = await storage.getVessels(orgId);
+    const vessels = await vesselService.getVessels(orgId);
     if (vessels.length === 0) {
       throw new Error('No vessels found. Create a vessel first or provide vesselId');
     }
@@ -115,9 +115,9 @@ export async function seedFakeDeckLogScenario(
 
   for (const logDate of uniqueDates) {
     try {
-      let dailyLog = await storage.getDeckLogDailyByDate(vesselId, logDate, orgId);
+      let dailyLog = await deckLogStorage.getDeckLogDailyByDate(vesselId, logDate, orgId);
       if (!dailyLog) {
-        dailyLog = await storage.createDeckLogDaily({
+        dailyLog = await deckLogStorage.createDeckLogDaily({
           orgId,
           vesselId,
           logDate,
@@ -134,7 +134,7 @@ export async function seedFakeDeckLogScenario(
         );
 
         if (autoFillResult) {
-          await storage.upsertDeckLogHourly({
+          await deckLogStorage.upsertDeckLogHourly({
             orgId,
             dailyLogId: dailyLog.id,
             hour,
@@ -169,7 +169,7 @@ export async function seedBothLogScenarios(
   assertDevMode();
 
   if (!vesselId) {
-    const vessels = await storage.getVessels(orgId);
+    const vessels = await vesselService.getVessels(orgId);
     if (vessels.length === 0) {
       throw new Error('No vessels found. Create a vessel first or provide vesselId');
     }
@@ -216,9 +216,9 @@ export async function seedBothLogScenarios(
     }
 
     try {
-      let dailyLog = await storage.getDeckLogDailyByDate(vesselId, logDate, orgId);
+      let dailyLog = await deckLogStorage.getDeckLogDailyByDate(vesselId, logDate, orgId);
       if (!dailyLog) {
-        dailyLog = await storage.createDeckLogDaily({
+        dailyLog = await deckLogStorage.createDeckLogDaily({
           orgId,
           vesselId,
           logDate,
@@ -235,7 +235,7 @@ export async function seedBothLogScenarios(
         );
 
         if (autoFillResult) {
-          await storage.upsertDeckLogHourly({
+          await deckLogStorage.upsertDeckLogHourly({
             orgId,
             dailyLogId: dailyLog.id,
             hour,

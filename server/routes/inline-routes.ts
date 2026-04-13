@@ -2,12 +2,11 @@
  * Inline Routes - Dev-only and infrastructure routes
  *
  * Production-facing routes have been migrated to the domain router registry.
- * Only dev-only endpoints remain here.
+ * Only dev-only endpoints and infrastructure mounts remain here.
  */
 
 import type { Express, Request, Response } from "express";
 import { generalApiRateLimit } from "./route-dependencies";
-import { dbEquipmentStorage, dbTelemetryStorage } from "../repositories";
 import { cryptoRandom } from "@shared/crypto-random";
 import { telemetryDlqRouter } from "./telemetry-dlq-routes";
 import { telemetryIngestionRouter } from "./telemetry-ingestion-routes";
@@ -93,99 +92,8 @@ export function registerInlineRoutes(app: Express): void {
     console.log("[Inline Routes] DEV stress-test endpoint registered");
   }
 
-  app.get("/api/mqtt/reliable-sync/health", generalApiRateLimit, async (req: Request, res: Response) => {
-    try {
-      const { mqttReliableSync } = await import("../mqtt-reliable-sync");
-      const healthStatus = mqttReliableSync.getHealthStatus();
-      const metrics = mqttReliableSync.getMetrics();
-
-      res.json({
-        service: "MQTT Reliable Sync Service",
-        status: healthStatus.status === "connected" ? "healthy" : "degraded",
-        timestamp: new Date().toISOString(),
-        mqtt: healthStatus,
-        detailedMetrics: metrics,
-      });
-    } catch (error) {
-      res.status(500).json({
-        service: "MQTT Reliable Sync Service",
-        message: "Failed to get MQTT health status",
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-  });
-
-  app.get("/api/equipment/:id/load-distribution", async (req: Request, res: Response) => {
-    try {
-      const equipmentId = req.params.id;
-      const orgId = req.headers["x-org-id"] as string;
-
-      if (!orgId) {
-        return res.status(400).json({ message: "Organization ID is required" });
-      }
-
-      const equipment = await dbEquipmentStorage.getEquipment(orgId, equipmentId);
-      if (!equipment) {
-        return res.status(404).json({ message: "Equipment not found" });
-      }
-
-      const now = new Date();
-      const defaultStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-      const startDate = req.query.startDate
-        ? new Date(req.query.startDate as string)
-        : defaultStart;
-      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : now;
-
-      if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
-        return res.status(400).json({ message: "Invalid date format. Use ISO 8601 strings." });
-      }
-
-      if (startDate > endDate) {
-        return res.status(400).json({ message: "Start date must be before end date" });
-      }
-
-      const { computeEquipmentLoadDistribution } = await import("../vps-kpi-service.js");
-
-      const loadDistribution = await computeEquipmentLoadDistribution(equipmentId, orgId, {
-        start: startDate,
-        end: endDate,
-      });
-
-      const telemetry = await dbTelemetryStorage.getTelemetryByEquipment(
-        equipmentId,
-        startDate,
-        endDate,
-        orgId
-      );
-
-      const torqueCount = telemetry.filter(
-        (t) => t.sensor_type === "shaft_torque" || t.sensor_type === "torque"
-      ).length;
-
-      res.setHeader("Cache-Control", "public, max-age=300");
-      res.json({
-        bins: loadDistribution,
-        metadata: {
-          equipmentId,
-          equipmentName: equipment.name,
-          equipmentType: equipment.type,
-          sampleCount: torqueCount,
-          period: {
-            start: startDate.toISOString(),
-            end: endDate.toISOString(),
-          },
-          timezone: "UTC",
-        },
-      });
-    } catch (error) {
-      console.error("Failed to compute load distribution:", error);
-      res.status(500).json({ message: "Failed to compute load distribution" });
-    }
-  });
-
   app.use("/api/telemetry/dlq", generalApiRateLimit, telemetryDlqRouter);
   app.use("/api/telemetry/ingestion", generalApiRateLimit, telemetryIngestionRouter);
 
-  console.log("[Inline Routes] Registered (mqtt-health, load-distribution, telemetry-dlq, telemetry-ingestion)");
+  console.log("[Inline Routes] Registered (telemetry-dlq, telemetry-ingestion)");
 }

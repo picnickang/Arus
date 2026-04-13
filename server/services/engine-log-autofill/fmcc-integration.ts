@@ -3,7 +3,7 @@
  * Aquametro FMCC fuel data integration
  */
 
-import { storage } from "../../repositories.js";
+import { engineLogStorage } from "../../repositories.js";
 import { getFMCCService } from "../../integrations/aquametro-fmcc.js";
 import { log } from "./logging.js";
 import type { FMCCFuelResult } from "./types.js";
@@ -111,7 +111,7 @@ export async function updateDailyLogWithFMCCFuel(
   }
 
   try {
-    await storage.updateEngineLogDaily(
+    await engineLogStorage.updateEngineLogDaily(
       dailyLogId,
       {
         fuelMeConsumption: fmccData.fuelMeConsumption,

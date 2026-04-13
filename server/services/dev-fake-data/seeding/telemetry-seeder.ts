@@ -4,7 +4,7 @@
  * Main telemetry and weather seeding logic.
  */
 
-import { storage } from "../../../repositories.js";
+import { vesselService, dbEquipmentStorage, dbTelemetryStorage, dbStormGeoStorage } from "../../../repositories.js";
 import type { InsertEquipmentTelemetry, InsertStormgeoSnapshot } from "@shared/schema";
 import type { SeedFakeDataOptions, SeedResult } from "../types.js";
 import { assertDevMode, acquireSeedingLock, releaseSeedingLock, log } from "../dev-guards.js";
@@ -56,12 +56,12 @@ export async function seedFakeTelemetryAndEvents(options: SeedFakeDataOptions): 
       events: 0,
     };
 
-    const vessel = await storage.getVessel(vesselId, orgId);
+    const vessel = await vesselService.getVessel(vesselId, orgId);
     if (!vessel) {
       log('warn', 'Vessel not found, will use vessel ID directly', { vesselId });
     }
 
-    const equipment = await storage.getEquipmentByVessel(vesselId, orgId);
+    const equipment = await dbEquipmentStorage.getEquipmentByVessel(vesselId, orgId);
     let mainEngineId = equipment.find(e => 
       e.type?.toLowerCase().includes('engine') && 
       !e.type?.toLowerCase().includes('generator')
@@ -74,7 +74,7 @@ export async function seedFakeTelemetryAndEvents(options: SeedFakeDataOptions): 
 
     if (!mainEngineId && includeEngineLogTestData) {
       log('info', 'No main engine found, creating demo equipment');
-      const demoEngine = await storage.createEquipment({
+      const demoEngine = await dbEquipmentStorage.createEquipment({
         orgId,
         vesselId,
         name: 'Main Engine (Demo)',
@@ -90,7 +90,7 @@ export async function seedFakeTelemetryAndEvents(options: SeedFakeDataOptions): 
     if (generators.length < 2 && includeEngineLogTestData) {
       log('info', 'Creating demo generators for telemetry seeding');
       for (let i = generators.length + 1; i <= 2; i++) {
-        const demoGen = await storage.createEquipment({
+        const demoGen = await dbEquipmentStorage.createEquipment({
           orgId,
           vesselId,
           name: `DG${i} (Demo)`,
@@ -134,7 +134,7 @@ export async function seedFakeTelemetryAndEvents(options: SeedFakeDataOptions): 
             status: 'normal',
             metadata: { simulated: true, source: 'dev-fake-data' },
           };
-          await storage.createTelemetryReading(telemetry);
+          await dbTelemetryStorage.createTelemetryReading(telemetry);
           result.telemetryRecords++;
         }
 
@@ -153,7 +153,7 @@ export async function seedFakeTelemetryAndEvents(options: SeedFakeDataOptions): 
               status: 'normal',
               metadata: { simulated: true, source: 'dev-fake-data', generatorNumber: genNum },
             };
-            await storage.createTelemetryReading(telemetry);
+            await dbTelemetryStorage.createTelemetryReading(telemetry);
             result.telemetryRecords++;
           }
         }
@@ -188,7 +188,7 @@ export async function seedFakeTelemetryAndEvents(options: SeedFakeDataOptions): 
           rawData: { sog: nav.sog, cog: nav.cog, simulated: true },
         };
 
-        await storage.createStormgeoSnapshot(snapshot);
+        await dbStormGeoStorage.createStormgeoSnapshot(snapshot);
         result.weatherSnapshots++;
 
         if (mainEngineId) {
@@ -236,7 +236,7 @@ export async function seedFakeTelemetryAndEvents(options: SeedFakeDataOptions): 
           ];
 
           for (const telemetry of navTelemetry) {
-            await storage.createTelemetryReading(telemetry);
+            await dbTelemetryStorage.createTelemetryReading(telemetry);
             result.telemetryRecords++;
           }
         }

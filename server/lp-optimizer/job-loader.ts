@@ -2,7 +2,7 @@
  * LP Optimizer - Job Loading
  */
 
-import { storage } from "../repositories.js";
+import { dbMaintenanceStorage, dbEquipmentStorage, dbInventoryStorage, workOrderService } from "../repositories.js";
 import type { MaintenanceJob } from "./types.js";
 import {
   getRequiredSkillLevel,
@@ -14,16 +14,16 @@ import {
 
 export async function getPendingMaintenanceJobs(orgId: string): Promise<MaintenanceJob[]> {
   try {
-    const schedules = await storage.getMaintenanceSchedules(orgId);
+    const schedules = await dbMaintenanceStorage.getMaintenanceSchedules(undefined, orgId);
     const pendingSchedules = schedules.filter((s) => s.status === "scheduled");
 
-    const workOrders = await storage.getWorkOrders();
+    const workOrders = await workOrderService.getWorkOrdersWithDetails();
     const pendingOrders = workOrders.filter((wo) => wo.status === "open");
 
-    const equipment = await storage.getEquipmentList(orgId);
+    const equipment = await dbEquipmentStorage.getEquipmentRegistry(orgId);
     const equipmentMap = new Map(equipment.map((eq) => [eq.id, eq]));
 
-    const partsInventory = (await storage.getPartsInventory?.(orgId)) ?? [];
+    const partsInventory = await dbInventoryStorage.getPartsInventory(undefined, orgId) ?? [];
 
     const jobs: MaintenanceJob[] = [];
 
@@ -78,7 +78,7 @@ export async function getPendingMaintenanceJobs(orgId: string): Promise<Maintena
 
 export async function getPartsAvailability(orgId: string): Promise<any[]> {
   try {
-    return (await storage.getPartsInventory?.(orgId)) ?? [];
+    return await dbInventoryStorage.getPartsInventory(undefined, orgId) ?? [];
   } catch {
     return [];
   }

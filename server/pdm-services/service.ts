@@ -3,7 +3,6 @@
  * PdmPackService orchestrator
  */
 
-import type { IStorage } from "../repositories.js";
 import { PdmBaseline, PdmAlert } from "../../shared/schema.js";
 import { extractBearingFeatures, extractPumpFeatures } from "../pdm-features.js";
 import type { BaselinePoint, AnalysisResult, BearingParams, PumpParams } from "./types.js";
@@ -13,7 +12,6 @@ import { evaluateAgainstBaseline, generateLLMExplanation } from "./analysis.js";
 
 export class PdmPackService {
   constructor(
-    private storage: IStorage,
     private db: any
   ) {}
 

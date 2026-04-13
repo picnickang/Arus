@@ -497,7 +497,11 @@ export {
   // Select Schemas (only 2 exist)
   selectSensorTemplateSchema,
   selectSensorBundleSchema,
-  // Standalone Zod Schemas (not tied to Drizzle tables) - 50 total
+  updateValidationStatusSchema,
+  validationStatusEnum,
+} from "./schema";
+
+export {
   adminPasswordChangeSchema,
   adminPasswordVerifySchema,
   adminSessionResponseSchema,
@@ -507,8 +511,6 @@ export {
   costSavingsListQuerySchema,
   costSavingsSummaryQuerySchema,
   costSavingsTrendQuerySchema,
-  updateValidationStatusSchema,
-  validationStatusEnum,
   crewIdSchema,
   crewQuerySchema,
   downtimeCostValidationSchema,
@@ -553,7 +555,7 @@ export {
   utcTimestampSchema,
   vesselIdSchema,
   vesselQuerySchema,
-} from "./schema";
+} from "./validation";
 
 // Equipment decommission schema exports (explicitly re-exported)
 export { 

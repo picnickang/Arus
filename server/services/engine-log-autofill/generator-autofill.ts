@@ -3,7 +3,7 @@
  * Populate generator entries from telemetry
  */
 
-import { storage } from "../../repositories.js";
+import { dbEquipmentStorage, engineLogStorage } from "../../repositories.js";
 import { log } from "./logging.js";
 import { GENERATOR_TELEMETRY_MAPPING } from "./mappings.js";
 import { GENERATOR_ANOMALY_THRESHOLDS, checkAnomaly } from "./thresholds.js";
@@ -21,15 +21,15 @@ async function getOrCreateDailyLog(
   logDate: string,
   orgId: string
 ): Promise<EngineLogDaily | null> {
-  let dailyLog = await storage.getEngineLogDailyByDate(vesselId, logDate, orgId);
+  let dailyLog = await engineLogStorage.getEngineLogDailyByDate(vesselId, logDate, orgId);
   if (dailyLog) { return dailyLog; }
 
   try {
-    return await storage.createEngineLogDaily({ orgId, vesselId, logDate, status: 'open' });
+    return await engineLogStorage.createEngineLogDaily({ orgId, vesselId, logDate, status: 'open' });
   } catch (error: unknown) {
     const errorCode = error instanceof Error && 'code' in error ? (error as { code: string }).code : undefined;
     if (errorCode !== '23505') { throw error; }
-    dailyLog = await storage.getEngineLogDailyByDate(vesselId, logDate, orgId);
+    dailyLog = await engineLogStorage.getEngineLogDailyByDate(vesselId, logDate, orgId);
     if (!dailyLog) {
       throw new Error('Failed to retrieve existing daily log after duplicate key error');
     }
@@ -98,7 +98,7 @@ async function processGeneratorHours(
     );
 
     if (hasData && !dryRun) {
-      await storage.upsertEngineLogGenerator(generatorEntry as InsertEngineLogGenerator);
+      await engineLogStorage.upsertEngineLogGenerator(generatorEntry as InsertEngineLogGenerator);
       hoursProcessed++;
     }
     anomaliesFound += anomalyCount;
@@ -123,7 +123,7 @@ export async function autoFillGeneratorsFromTelemetry(
     return { hoursProcessed: 0, generatorsProcessed: 0, anomalies: 0 };
   }
 
-  const vesselEquipment = await storage.getEquipmentByVessel(vesselId, orgId);
+  const vesselEquipment = await dbEquipmentStorage.getEquipmentByVessel(vesselId, orgId);
   const generators = vesselEquipment.filter(
     (e) => e.type?.toLowerCase().includes('generator') || e.type?.toLowerCase().includes('dg')
   );

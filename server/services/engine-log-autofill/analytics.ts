@@ -3,13 +3,13 @@
  * Anomaly summary and unsigned log tracking
  */
 
-import { storage } from "../../repositories.js";
+import { engineLogStorage, vesselService } from "../../repositories.js";
 import { ENGINE_ANOMALY_THRESHOLDS, GENERATOR_ANOMALY_THRESHOLDS, checkAnomaly } from "./thresholds.js";
 import type { AnomalySummary, UnsignedLogInfo } from "./types.js";
 
 export async function getAnomalySummary(dailyLogId: string, orgId: string): Promise<AnomalySummary> {
-  const hourly = await storage.getEngineLogHourly(dailyLogId, orgId);
-  const generators = await storage.getEngineLogGenerator(dailyLogId, orgId);
+  const hourly = await engineLogStorage.getEngineLogHourly(dailyLogId, orgId);
+  const generators = await engineLogStorage.getEngineLogGenerator(dailyLogId, orgId);
 
   const byField: Record<string, { count: number; severity: 'warning' | 'critical'; values: number[] }> =
     {};
@@ -71,7 +71,7 @@ export async function getUnsignedLogs(
   startDate.setDate(startDate.getDate() - daysBack);
   const startDateStr = startDate.toISOString().split('T')[0];
 
-  const dailyLogs = await storage.getEngineLogDaily(orgId, {
+  const dailyLogs = await engineLogStorage.getEngineLogDaily(orgId, {
     vesselId,
     startDate: startDateStr,
   });
@@ -80,10 +80,10 @@ export async function getUnsignedLogs(
 
   const results: UnsignedLogInfo[] = [];
   for (const log of unsignedLogs) {
-    const hourly = await storage.getEngineLogHourly(log.id, orgId);
+    const hourly = await engineLogStorage.getEngineLogHourly(log.id, orgId);
     const anomalySummary = await getAnomalySummary(log.id, orgId);
 
-    const vessels = await storage.getVessels(orgId);
+    const vessels = await vesselService.getVessels(orgId);
     const vessel = vessels.find((v) => v.id === log.vesselId);
 
     results.push({

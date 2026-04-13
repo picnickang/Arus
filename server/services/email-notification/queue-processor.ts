@@ -2,7 +2,7 @@
  * Email Notification - Queue Processing
  */
 
-import { storage } from "../../repositories.js";
+import { dbNotificationsStorage } from "../../repositories.js";
 import type { NotificationQueueItem, InsertNotificationQueueItem } from "@shared/schema";
 import { format } from "date-fns";
 import { log, calculateBackoff } from "./logger.js";
@@ -11,7 +11,7 @@ import { emailSender } from "./email-sender.js";
 export async function queueNotification(
   item: InsertNotificationQueueItem
 ): Promise<NotificationQueueItem> {
-  return storage.createNotificationQueueItem(item);
+  return dbNotificationsStorage.createEmailQueueItem(item);
 }
 
 export async function processQueueItem(item: NotificationQueueItem): Promise<void> {
@@ -27,7 +27,7 @@ export async function processQueueItem(item: NotificationQueueItem): Promise<voi
   });
 
   if (result.success) {
-    await storage.updateNotificationQueueItem(
+    await dbNotificationsStorage.updateEmailQueueItem(
       item.id,
       {
         status: "sent",
@@ -52,7 +52,7 @@ export async function processQueueItem(item: NotificationQueueItem): Promise<voi
       backoffMs,
     });
 
-    await storage.updateNotificationQueueItem(
+    await dbNotificationsStorage.updateEmailQueueItem(
       item.id,
       {
         status: "pending",
@@ -71,7 +71,7 @@ export async function processQueueItem(item: NotificationQueueItem): Promise<voi
       error: result.error,
     });
 
-    await storage.updateNotificationQueueItem(
+    await dbNotificationsStorage.updateEmailQueueItem(
       item.id,
       {
         status: "failed",
@@ -86,7 +86,7 @@ export async function processQueueItem(item: NotificationQueueItem): Promise<voi
 
 export async function processDigestQueue(): Promise<number> {
   const now = new Date();
-  const pendingItems = await storage.getNotificationQueue("*", { status: "pending" });
+  const pendingItems = await dbNotificationsStorage.getEmailQueue("*", { status: "pending" });
 
   const digestItems = pendingItems.filter(
     (item) => item.scheduledFor && new Date(item.scheduledFor) <= now
@@ -132,7 +132,7 @@ export async function processDigestQueue(): Promise<number> {
     });
 
     for (const item of items) {
-      await storage.updateNotificationQueueItem(
+      await dbNotificationsStorage.updateEmailQueueItem(
         item.id,
         {
           status: result.success ? "sent" : "failed",
@@ -151,7 +151,7 @@ export async function processDigestQueue(): Promise<number> {
 }
 
 export async function retryFailedNotifications(maxAttempts: number = 3): Promise<number> {
-  const failedItems = await storage.getNotificationQueue("*", { status: "failed" });
+  const failedItems = await dbNotificationsStorage.getEmailQueue("*", { status: "failed" });
   const retriable = failedItems.filter((item) => (item.attemptCount ?? 0) < maxAttempts);
   let retryCount = 0;
 

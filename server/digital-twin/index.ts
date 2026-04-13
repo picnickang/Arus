@@ -4,7 +4,7 @@
  */
 
 import { EventEmitter } from "node:events";
-import { storage } from "../repositories.js";
+import { dbTelemetryStorage } from "../repositories.js";
 import { db } from "../db.js";
 import {
   digitalTwins, twinSimulations, visualizationAssets,
@@ -160,7 +160,7 @@ export class DigitalTwinService extends EventEmitter {
 
   private async getLatestTelemetryForVessel(_vesselId: string): Promise<Record<string, any>> {
     try {
-      const latestTelemetry = await storage.getLatestTelemetryReadings(50);
+      const latestTelemetry = await dbTelemetryStorage.getLatestTelemetryReadings(undefined, 50);
       const vesselTelemetry: Record<string, any> = {};
       for (const reading of latestTelemetry) { if (reading.equipmentId && reading.sensorType) { vesselTelemetry[reading.sensorType] = reading.value; } }
       return vesselTelemetry;
@@ -185,7 +185,7 @@ export class DigitalTwinService extends EventEmitter {
 
   async updateFuelEfficiency(twinId: string, orgId: string, telemetryData: Record<string, any>): Promise<void> {
     try {
-      const twin = await storage.getDigitalTwin(twinId, orgId);
+      const [twin] = await db.select().from(digitalTwins).where(eq(digitalTwins.id, twinId)).limit(1);
       if (!twin) { console.warn(`[DigitalTwin] Twin ${twinId} not found`); return; }
       const { predictFuelConsumption } = await import("../digital-twin-fuel-calc.js");
       const specs = (twin.specifications as any) ?? {};
@@ -195,7 +195,7 @@ export class DigitalTwinService extends EventEmitter {
       const daysInService = twin.lastUpdate ? Math.floor((Date.now() - new Date(twin.lastUpdate).getTime()) / 86400000) : 30;
       const prediction = predictFuelConsumption(state, characteristics, conditions, daysInService);
       const updatedState = { ...((twin.currentState as any) ?? {}), fuel: { ...((twin.currentState as any)?.fuel ?? {}), predictedRate: prediction.predictedFuelRate, efficiency: prediction.efficiency, confidence: prediction.confidence, lastUpdated: new Date().toISOString() } };
-      await storage.updateDigitalTwin(twinId, orgId, { currentState: updatedState, fuelEfficiency: prediction.efficiency, lastUpdate: new Date() });
+      await db.update(digitalTwins).set({ currentState: updatedState, fuelEfficiency: prediction.efficiency.toString(), lastUpdate: new Date() }).where(eq(digitalTwins.id, twinId));
       console.log(`[DigitalTwin] Updated fuel efficiency for ${twinId}: ${prediction.efficiency.toFixed(1)}%`);
     } catch (error) { console.error(`[DigitalTwin] Failed to update fuel efficiency:`, error); }
   }

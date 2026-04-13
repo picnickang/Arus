@@ -4,8 +4,8 @@
  * MODULARIZED: 595 lines → 6 focused modules (~50-130 lines each)
  */
 
-import type { IStorage } from '../repositories.js';
 import type {
+  ComplianceDeps,
   ReportingPeriod,
   EquipmentComplianceOptions,
   MaintenanceComplianceOptions,
@@ -28,7 +28,7 @@ export type {
 export { FRAMEWORK_STANDARDS } from './types';
 
 export class CompliancePDFGenerator {
-  constructor(private storage: IStorage) {}
+  constructor(private storage: ComplianceDeps) {}
 
   async generateEquipmentCompliancePDF(
     orgId: string,

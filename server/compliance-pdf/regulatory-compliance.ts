@@ -3,9 +3,9 @@
  */
 
 import type { EquipmentHealth, WorkOrder } from '@shared/schema-runtime';
-import type { IStorage } from '../repositories.js';
+
 import { MARITIME_STANDARDS } from '../compliance.js';
-import type { ReportingPeriod, RegulatoryFramework } from './types';
+import type { ComplianceDeps, ReportingPeriod, RegulatoryFramework } from './types';
 import { FRAMEWORK_STANDARDS } from './types';
 import {
   createPDFContext,
@@ -20,7 +20,7 @@ import {
 } from './utils';
 
 export async function generateRegulatoryCompliancePDF(
-  storage: IStorage,
+  storage: ComplianceDeps,
   orgId: string,
   regulatoryFramework: RegulatoryFramework,
   equipmentIds: string[],

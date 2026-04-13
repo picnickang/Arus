@@ -3,8 +3,8 @@
  */
 
 import type { EquipmentHealth, WorkOrder } from '@shared/schema-runtime';
-import type { IStorage } from '../repositories.js';
-import type { ReportingPeriod } from './types';
+
+import type { ComplianceDeps, ReportingPeriod } from './types';
 import {
   createWorkbook,
   addSheet,
@@ -16,7 +16,7 @@ import {
 } from './utils';
 
 export async function generateFleetComplianceOverviewExcel(
-  storage: IStorage,
+  storage: ComplianceDeps,
   orgId: string,
   period: ReportingPeriod
 ): Promise<Buffer> {

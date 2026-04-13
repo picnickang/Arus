@@ -3,8 +3,16 @@
  * Main InventoryRiskAnalyzer implementation
  */
 
-import type { IStorage } from "../repositories.js";
 import type { PartRiskScore, InventoryRiskSummary, EquipmentPartsRisk } from "./types.js";
+
+export interface InventoryRiskDeps {
+  getPartsInventory(orgId: string, includeInactive?: boolean): Promise<any[]>;
+  getEquipment(orgId: string, equipmentId: string): Promise<any>;
+  getWorkOrderPartsByEquipment(orgId: string, equipmentId: string): Promise<any[]>;
+  getPartById(orgId: string, partId: string): Promise<any>;
+  getWorkOrderPartsByPartId(orgId: string, partId: string): Promise<any[]>;
+  getWorkOrder(orgId: string, workOrderId: string): Promise<any>;
+}
 import {
   calculateSupplierRisk,
   buildRiskSummary,
@@ -15,7 +23,7 @@ import {
 } from "./calculators.js";
 
 export class InventoryRiskAnalyzer {
-  constructor(private storage: IStorage) {}
+  constructor(private storage: InventoryRiskDeps) {}
 
   async analyzeInventoryRisk(
     orgId: string,
