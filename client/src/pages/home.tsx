@@ -10,7 +10,7 @@ import { PendingApprovalsBanner } from "@/components/shared/PendingApprovalsBann
 import { QuickWorkOrderSheet } from "@/components/work-orders/QuickWorkOrderSheet";
 import { homePageGroups, type HomePageGroup } from "@/config/navigationConfig";
 import { trackPageVisit, getLastVisitTime, recordVisitTime } from "@/lib/pageTracking";
-import { getBriefingRedirect } from "@/lib/briefing-redirect";
+import { getBriefingRedirect, markRoleJustSelected, clearRoleJustSelected } from "@/lib/briefing-redirect";
 import {
   ChevronRight, History, Plus,
 } from "lucide-react";
@@ -208,12 +208,14 @@ export default function HomePage() {
 
   useEffect(() => {
     if (briefingRedirect) {
+      clearRoleJustSelected();
       navigate(briefingRedirect);
     }
   }, [briefingRedirect, navigate]);
 
   const handleSelectRole = (roleId: string) => {
     localStorage.setItem(STORAGE_KEY, roleId);
+    markRoleJustSelected();
     setRole(roleId);
   };
 
