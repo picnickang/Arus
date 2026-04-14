@@ -310,7 +310,7 @@ export default function HomePage() {
 
       <button
         onClick={() => setQuickWoOpen(true)}
-        className="fixed bottom-24 right-4 md:bottom-6 md:right-6 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors z-40"
+        className="fixed bottom-20 left-4 md:bottom-6 md:left-6 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors z-40"
         aria-label="Quick Work Order"
         data-testid="button-quick-wo"
       >
