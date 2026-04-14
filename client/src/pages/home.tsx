@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { isVesselRole } from "@/lib/briefing-redirect";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { NavigationCard } from "@/components/navigation/NavigationCard";
@@ -138,7 +139,7 @@ function SinceLastVisit({ data }: { data: { newAlerts: number; newWorkOrders: nu
 
 function MyTasks() {
   const { data: myWorkOrders } = useQuery({
-    queryKey: ["/api/work-orders?assignedToMe=true&status=open"],
+    queryKey: ["/api/work-orders", { assignedToMe: "true", status: "open" }],
     refetchInterval: 60000,
   });
 
@@ -199,6 +200,13 @@ export default function HomePage() {
   const { attentionItems, sinceLastVisit } = useAttentionItems();
   const roleConfig = role ? ROLES[role] : null;
   const briefingRedirect = role ? getBriefingRedirect() : null;
+
+  const { data: vessels } = useQuery<Array<{ id: string; name: string }>>({
+    queryKey: ["/api/vessels"],
+    enabled: isVesselRole(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const homeVesselId = isVesselRole() && vessels?.length ? vessels[0].id : undefined;
 
   useEffect(() => {
     if (role) {
@@ -322,6 +330,7 @@ export default function HomePage() {
       <QuickWorkOrderSheet
         open={quickWoOpen}
         onClose={() => setQuickWoOpen(false)}
+        vesselId={homeVesselId}
       />
     </div>
   );

@@ -21,7 +21,7 @@ export function useDashboardData() {
   const [workOrdersExpanded, setWorkOrdersExpanded] = useState(true);
   const { isConnected, latestAlert, subscribe, unsubscribe } = useWebSocket({ autoConnect: true });
 
-  const { metrics, devices, equipmentHealth, workOrders, vessels: allVessels, equipment: equipmentRegistry, latestTelemetry, dtcStats, operatingAlerts, insightsSnapshot, insightsJobStats, stcwSummary, stcwTrends, isLoading: summaryLoading } = useDashboardSummary();
+  const { metrics, devices, equipmentHealth, workOrders, vessels: allVessels, equipment: equipmentRegistry, latestTelemetry, dtcStats, operatingAlerts, insightsSnapshot, insightsJobStats, stcwSummary, stcwTrends, isLoading: summaryLoading, error: summaryError } = useDashboardSummary();
   const metricsLoading = summaryLoading;
   const devicesLoading = summaryLoading;
   const healthLoading = summaryLoading;
@@ -56,7 +56,7 @@ export function useDashboardData() {
   useEffect(() => { if (isFocusMode) { setDeviceStatusExpanded(false); setTelemetryExpanded(false); setPredictiveMaintenanceExpanded(criticalEquipmentCount > 0); setWorkOrdersExpanded(criticalWorkOrdersCount > 0); } else { setDeviceStatusExpanded(true); setTelemetryExpanded(true); setPredictiveMaintenanceExpanded(true); setWorkOrdersExpanded(true); } }, [isFocusMode]);
 
   return {
-    alertBanner, metrics, metricsLoading, devices, devicesLoading, equipmentHealth, equipmentHealthArray, healthLoading, workOrders, ordersLoading, allVessels, latestReadings, latestReadingsLoading, dtcStats, currentTime, preferences,
+    alertBanner, metrics, metricsLoading, summaryError, devices, devicesLoading, equipmentHealth, equipmentHealthArray, healthLoading, workOrders, ordersLoading, allVessels, latestReadings, latestReadingsLoading, dtcStats, currentTime, preferences,
     criticalEquipmentCount, criticalWorkOrdersCount, totalCriticalIssues, criticalEquipment, criticalWorkOrders,
     selectedVessel, setSelectedVessel, isConnected, isFocusMode, toggleFocusMode,
     deviceStatusExpanded, setDeviceStatusExpanded, telemetryExpanded, setTelemetryExpanded, predictiveMaintenanceExpanded, setPredictiveMaintenanceExpanded, workOrdersExpanded, setWorkOrdersExpanded,

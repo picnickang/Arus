@@ -149,6 +149,7 @@ export default function BriefingPage() {
   const latestQuery = useQuery<Briefing | null>({
     queryKey: ["/api/agent/briefings/latest"],
     enabled: isToday,
+    refetchInterval: isToday ? 60000 : false,
   });
 
   const dateQuery = useQuery<Briefing[]>({

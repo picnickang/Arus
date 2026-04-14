@@ -142,25 +142,27 @@ function KeyFindings({
 }
 
 export default function AnalyticsHub() {
-  const { data: equipmentHealth = [], isLoading: healthLoading } = useQuery<any[]>({
+  const { data: equipmentHealth = [], isLoading: healthLoading, error: healthError } = useQuery<any[]>({
     queryKey: ["/api/equipment/health"],
     staleTime: 60000,
   });
 
-  const { data: workOrderSummary } = useQuery<any>({
+  const { data: workOrderSummary, error: woError } = useQuery<any>({
     queryKey: ["/api/work-orders/summary"],
     staleTime: 60000,
   });
 
-  const { data: costSummary } = useQuery<any>({
+  const { data: costSummary, error: costError } = useQuery<any>({
     queryKey: ["/api/pdm/cost-savings/summary"],
     staleTime: 120000,
   });
 
-  const { data: integrityStatus } = useQuery<any>({
+  const { data: integrityStatus, error: integrityError } = useQuery<any>({
     queryKey: ["/api/reconciliation/status"],
     staleTime: 120000,
   });
+
+  const hasErrors = healthError || woError || costError || integrityError;
 
   const avgHealth = useMemo(() => {
     if (!equipmentHealth || equipmentHealth.length === 0) return 0;
@@ -206,6 +208,18 @@ export default function AnalyticsHub() {
             Cross-domain fleet intelligence and performance analysis
           </p>
         </div>
+
+        {hasErrors && (
+          <div className="flex items-start gap-3 p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10" data-testid="error-banner">
+            <AlertTriangle className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-yellow-700 dark:text-yellow-300">Some data could not be loaded</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {[healthError && "equipment health", woError && "work orders", costError && "cost savings", integrityError && "data integrity"].filter(Boolean).join(", ")} — values shown may be incomplete. Data will retry automatically.
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           <HeadlineMetric

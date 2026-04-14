@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,6 +92,16 @@ function EngineWatchCard({ period, watch, isLocked, updateWatchAssignment }: { p
 
 export default function EngineLogbookPage() {
   const e = useEngineLogbookData();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("action") === "new") {
+      e.setActiveTab("events");
+      e.setNewEventDialogOpen(true);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+
   if (e.loadingVessels) {return <div className="container mx-auto p-6"><Skeleton className="h-8 w-64 mb-6" /><div className="grid gap-4"><Skeleton className="h-32 w-full" /><Skeleton className="h-64 w-full" /></div></div>;}
 
   return (

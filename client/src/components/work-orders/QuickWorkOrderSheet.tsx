@@ -34,10 +34,11 @@ export function QuickWorkOrderSheet({
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoBase64, setPhotoBase64] = useState<string | null>(null);
 
-  const { data: equipment = [] } = useQuery<Array<{ id: string; name: string; equipmentType?: string }>>({
+  const { data: equipmentRaw } = useQuery<any>({
     queryKey: ["/api/equipment", vesselId ? { vesselId } : {}],
     staleTime: 5 * 60 * 1000,
   });
+  const equipment: Array<{ id: string; name: string; equipmentType?: string }> = Array.isArray(equipmentRaw) ? equipmentRaw : [];
 
   const createMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/work-orders/quick", data),

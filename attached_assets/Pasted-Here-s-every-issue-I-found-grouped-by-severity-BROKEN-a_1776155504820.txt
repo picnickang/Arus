@@ -1,0 +1,21 @@
+Here’s every issue I found, grouped by severity:
+
+BROKEN — affects users right now:
+	1.	Role selection immediately redirects away (already fixed in your last tar). User picks a role, never sees the home page — goes straight to /briefing or /dashboard.
+	2.	My Tasks query key won’t invalidate on WO completion. The query uses ["/api/work-orders?assignedToMe=true&status=open"] as a single string. When a WO completes, invalidateQueries({ queryKey: ["/api/work-orders"] }) does NOT match because TanStack’s partial matching compares array elements, not substrings. The tasks section on the home page goes stale until the 60s refetch fires. Same bug in QuickServiceRequestDialog with ["/api/suppliers?type=service_provider,both"].
+	3.	Three quick actions navigate to pages that ignore the URL parameter. “Log Engine Entry” → /engine-logbook?action=new, “New Deck Entry” → /deck-logbook?action=new, “Record Rest Hours” → /hours-of-rest?action=record. None of these pages read the action param. The user taps the quick action expecting a form to open, sees the regular page, has to find the button manually.
+	4.	QuickWorkOrderSheet has no vessel context. Rendered without vesselId, so the equipment dropdown fetches all equipment across all vessels. On a 20-vessel fleet, that’s thousands of items in a mobile dropdown.
+
+DEGRADED — works but poorly:
+	5.	ConnectivityBanner never shows sync status. The component accepts pendingSyncCount but App.tsx renders it without the prop — defaults to 0. On intermittent vessel connectivity, pending offline work orders have no visible indicator.
+	6.	Briefing page has no auto-refresh. No refetchInterval on either query. During shift handover (the exact scenario this page is built for), if a new briefing is generated while the page is open, the user sees stale data until manual page reload.
+	7.	Analytics Hub has 4 queries with zero error handling. If any API call fails (connectivity drop, server restart), the affected metric cards silently show zero/empty instead of an error state. The fleet manager sees “0 critical items” when the real answer is “we don’t know.”
+	8.	Dashboard-improved has no error state. Uses useDashboardData hook which has a 2-minute refetch interval but no error UI. If the API is unreachable, the dashboard shows stale data with no indication.
+
+DRIFT — will cause problems later:
+	9.	Role configuration is defined in 6 places. config/roles.ts (ROLES + pinnedGroups), BottomNav.tsx (ROLE_DEFAULTS — different values), briefing-redirect.ts (ROLE_LANDING), SuggestionCards.tsx (MAINTENANCE_ROLES), permissions-settings.tsx (hardcoded role list), crewManagementUtils.ts (role display names). Adding a new role requires updating all 6 files.
+	10.	BottomNav ROLE_DEFAULTS diverge from config/roles.ts pinnedGroups. BottomNav shows 4 categories per role, config/roles.ts shows 3. These are different concepts (nav bar vs home page groups) but share role IDs and have no shared source of truth.
+	11.	Three read-only pages have no permission gates. Briefing, dashboard-improved, and equipment-intelligence render for any user regardless of role. Low severity since they’re read-only, but inconsistent with analytics-hub which does check permissions.
+	12.	Five buttons in home.tsx lack type="button". Inside a page that doesn’t have a <form>, this is cosmetic — but if a form is ever added as a parent, these buttons will submit it.
+
+Want me to fix all of the BROKEN and DEGRADED items?​​​​​​​​​​​​​​​​

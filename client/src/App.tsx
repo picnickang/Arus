@@ -89,6 +89,19 @@ function useTrackPageVisit() {
   }, [loc]);
 }
 
+function ConnectivityBannerWithSync() {
+  const [pendingCount, setPendingCount] = useState(0);
+  useEffect(() => {
+    const cache = queryClient.getMutationCache();
+    const unsubscribe = cache.subscribe(() => {
+      const pending = cache.getAll().filter(m => m.state.status === "pending").length;
+      setPendingCount(pending);
+    });
+    return unsubscribe;
+  }, []);
+  return <ConnectivityBanner pendingSyncCount={pendingCount} />;
+}
+
 function Router() {
   const { currentOrgId, isLoading } = useOrganization();
   useTrackPageVisit();
@@ -106,7 +119,7 @@ function Router() {
         Skip to main content
       </a>
 
-      <ConnectivityBanner />
+      <ConnectivityBannerWithSync />
 
       <main
         id="main-content"

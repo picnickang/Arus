@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,6 +81,16 @@ function WatchPeriodCard({ period, watch, isLocked, updateWatchAssignment }: { p
 
 export default function DeckLogbookPage() {
   const d = useDeckLogbookData();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("action") === "new") {
+      d.setActiveTab("events");
+      d.setNewEventDialogOpen(true);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+
   if (d.loadingVessels) {return <div className="p-6 space-y-4"><Skeleton className="h-10 w-64" /><Skeleton className="h-96 w-full" /></div>;}
 
   return (

@@ -74,7 +74,7 @@ export function QuickServiceRequestDialog({
     responseSlaHours?: number;
     isPreferred?: boolean;
   }[]>({
-    queryKey: ["/api/suppliers?type=service_provider,both"],
+    queryKey: ["/api/suppliers", { type: "service_provider,both" }],
   });
 
   // Reset form when dialog closes

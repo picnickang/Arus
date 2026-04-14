@@ -1,4 +1,4 @@
-import { RefreshCw, Heart, Wrench, AlertTriangle, Ship, ExternalLink } from "lucide-react";
+import { RefreshCw, Heart, Wrench, AlertTriangle, Ship, ExternalLink, WifiOff } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -380,6 +380,7 @@ export default function BridgeDashboard() {
     alertBanner,
     metrics,
     metricsLoading,
+    summaryError,
     equipmentHealthArray,
     workOrders,
     latestReadings,
@@ -410,6 +411,26 @@ export default function BridgeDashboard() {
 
   return (
     <div className="min-h-screen" data-testid="bridge-dashboard">
+      {summaryError && (
+        <div className="mx-4 lg:mx-6 mt-4 p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10" data-testid="error-banner">
+          <div className="flex items-start gap-3">
+            <WifiOff className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-yellow-700 dark:text-yellow-300">
+                {metrics ? "Dashboard data may be stale" : "Unable to load dashboard data"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {metrics
+                  ? "The last refresh failed. Values shown may be outdated. Data will retry automatically."
+                  : "The server may be temporarily unavailable."}
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={refreshData} data-testid="button-retry-dashboard">
+              <RefreshCw className="h-3 w-3 mr-1" />Retry
+            </Button>
+          </div>
+        </div>
+      )}
       {alertBanner && (
         <div
           className={`mx-4 lg:mx-6 mt-4 p-3 rounded-lg border-l-4 ${
