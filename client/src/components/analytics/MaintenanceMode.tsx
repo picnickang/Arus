@@ -2,7 +2,7 @@ import { TrendingUp, Clock, Target, DollarSign, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScenarioBanner } from "./ScenarioBanner";
-import { CollapsibleSection } from "./CollapsibleSection";
+import { CollapsibleSection } from "@/components/shared/CollapsibleSection";
 import { ContextHelp } from "./ContextHelp";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { formatDistanceToNow } from "date-fns";
