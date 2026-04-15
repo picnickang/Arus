@@ -59,15 +59,6 @@
     }
   },
   "plugins": {
-    "updater": {
-      "pubkey": "REPLACE_WITH: npx @tauri-apps/cli signer generate -w ~/.tauri/arus.key",
-      "endpoints": [
-        "https://github.com/YOUR_ORG/arus-marine/releases/latest/download/latest.json"
-      ],
-      "windows": {
-        "installMode": "passive"
-      }
-    },
     "shell": {
       "open": "^https?://"
     }

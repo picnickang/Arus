@@ -9,8 +9,11 @@
 import { describe, it, expect } from "@jest/globals";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 
-// Read the registry source directly to validate structure
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const registryPath = path.resolve(__dirname, "../../server/routes/domain-router-registry.ts");
 const registrySource = fs.readFileSync(registryPath, "utf-8");
 

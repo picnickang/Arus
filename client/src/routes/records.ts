@@ -8,6 +8,10 @@ const FuelEmissionsLog = lazy(() => import("@/pages/fuel-emissions-log"));
 const VesselTrackLog = lazy(() => import("@/pages/vessel-track-log"));
 const ConditionMonitoringLog = lazy(() => import("@/pages/condition-monitoring-log"));
 const RmsMonitoring = lazy(() => import("@/pages/rms-monitoring"));
+const ComplianceConsolidated = lazy(() => import("@/pages/compliance-consolidated"));
+const DeckLogConsolidated = lazy(() => import("@/pages/deck-log-consolidated"));
+const EngineLogConsolidated = lazy(() => import("@/pages/engine-log-consolidated"));
+const EquipmentLogConsolidated = lazy(() => import("@/pages/equipment-log-consolidated"));
 
 export const recordsRoutes = [
   { path: "/logs", component: LogsHub },
@@ -22,4 +26,8 @@ export const recordsRoutes = [
   { path: "/vessel-track-log", component: VesselTrackLog },
   { path: "/condition-monitoring-log", component: ConditionMonitoringLog },
   { path: "/rms-monitoring", component: RmsMonitoring },
+  { path: "/compliance-consolidated", component: ComplianceConsolidated },
+  { path: "/deck-log-consolidated", component: DeckLogConsolidated },
+  { path: "/engine-log-consolidated", component: EngineLogConsolidated },
+  { path: "/equipment-log-consolidated", component: EquipmentLogConsolidated },
 ];

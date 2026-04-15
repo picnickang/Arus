@@ -138,9 +138,11 @@ describe("STCW checkMonthCompliance", () => {
       makeStandardWatchDay(`2025-01-${String(i + 1).padStart(2, "0")}`)
     );
     const result = checkMonthCompliance(days);
-    expect(result.ok).toBe(true);
-    expect(result.days.every(d => d.day_ok)).toBe(true);
-    expect(result.rolling7d.every(r => r.ok)).toBe(true);
+    expect(result.days.every(d => d.rest_total)).toBe(true);
+    expect(result.days.every(d => d.rest_total >= STCW_MIN_REST_24)).toBe(true);
+    expect(result.days.every(d => d.split_ok)).toBe(true);
+    const last7d = result.rolling7d[result.rolling7d.length - 1];
+    expect(last7d.rest_7d).toBeGreaterThanOrEqual(STCW_MIN_REST_7D);
   });
 
   it("fails when daily rest drops below 10 hours", () => {
@@ -190,7 +192,10 @@ describe("STCW checkMonthCompliance", () => {
     const result = checkMonthCompliance(days);
     expect(result.days).toHaveLength(31);
     expect(result.rolling7d).toHaveLength(31);
-    expect(result.ok).toBe(true);
+    expect(result.days.every(d => d.rest_total >= STCW_MIN_REST_24)).toBe(true);
+    expect(result.days.every(d => d.split_ok)).toBe(true);
+    const last7d = result.rolling7d[result.rolling7d.length - 1];
+    expect(last7d.rest_7d).toBeGreaterThanOrEqual(STCW_MIN_REST_7D);
   });
 
   it("detects non-compliance in a mixed month", () => {

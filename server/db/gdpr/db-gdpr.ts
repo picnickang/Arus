@@ -4,7 +4,7 @@
 
 import { eq, and, desc, sql } from "drizzle-orm";
 import { db } from "../../db-config";
-import { dataSubjectRequests, mlEngineerOverrides, type DataSubjectRequest, type InsertDataSubjectRequest, type MlEngineerOverride, type InsertMlEngineerOverride } from "@shared/schema-runtime";
+import { dataSubjectRequests, engineerOverrides, type DataSubjectRequest, type InsertDataSubjectRequest, type EngineerOverride, type InsertEngineerOverride } from "@shared/schema-runtime";
 
 export class DatabaseGdprStorage {
   async getDataSubjectRequests(orgId?: string, status?: string, type?: string): Promise<DataSubjectRequest[]> { const conditions = []; if (orgId) {conditions.push(eq(dataSubjectRequests.orgId, orgId));} if (status) {conditions.push(eq(dataSubjectRequests.status, status));} if (type) {conditions.push(eq(dataSubjectRequests.requestType, type));} let query = db.select().from(dataSubjectRequests); if (conditions.length > 0) {query = query.where(and(...conditions));} return query.orderBy(sql`${dataSubjectRequests.createdAt} DESC`); }
@@ -75,11 +75,11 @@ export class DatabaseGdprStorage {
     return { dsarId, status: 'erasure_recorded', erasedBy, note: 'Actual data erasure requires manual review per retention policies' };
   }
 
-  async getMlEngineerOverrides(equipmentId?: string, overrideType?: string, isActive?: boolean): Promise<MlEngineerOverride[]> { const conditions = []; if (equipmentId) {conditions.push(eq(mlEngineerOverrides.equipmentId, equipmentId));} if (overrideType) {conditions.push(eq(mlEngineerOverrides.overrideType, overrideType));} if (isActive !== undefined) {conditions.push(eq(mlEngineerOverrides.isActive, isActive));} let query = db.select().from(mlEngineerOverrides); if (conditions.length > 0) {query = query.where(and(...conditions));} return query.orderBy(sql`${mlEngineerOverrides.createdAt} DESC`); }
-  async getMlEngineerOverride(id: string): Promise<MlEngineerOverride | undefined> { const [result] = await db.select().from(mlEngineerOverrides).where(eq(mlEngineerOverrides.id, id)); return result; }
-  async createMlEngineerOverride(override: InsertMlEngineerOverride): Promise<MlEngineerOverride> { const [n] = await db.insert(mlEngineerOverrides).values(override).returning(); return n; }
-  async updateMlEngineerOverride(id: string, updates: Partial<InsertMlEngineerOverride>): Promise<MlEngineerOverride> { const [u] = await db.update(mlEngineerOverrides).set({ ...updates, updatedAt: new Date() }).where(eq(mlEngineerOverrides.id, id)).returning(); if (!u) {throw new Error(`ML engineer override ${id} not found`);} return u; }
-  async deleteMlEngineerOverride(id: string): Promise<void> { await db.delete(mlEngineerOverrides).where(eq(mlEngineerOverrides.id, id)); }
-  async getActiveOverridesForEquipment(equipmentId: string): Promise<MlEngineerOverride[]> { return db.select().from(mlEngineerOverrides).where(and(eq(mlEngineerOverrides.equipmentId, equipmentId), eq(mlEngineerOverrides.isActive, true))).orderBy(sql`${mlEngineerOverrides.createdAt} DESC`); }
-  async deactivateOverride(id: string, deactivatedBy: string): Promise<MlEngineerOverride> { const [u] = await db.update(mlEngineerOverrides).set({ isActive: false, deactivatedBy, deactivatedAt: new Date(), updatedAt: new Date() }).where(eq(mlEngineerOverrides.id, id)).returning(); if (!u) {throw new Error(`ML engineer override ${id} not found`);} return u; }
+  async getMlEngineerOverrides(equipmentId?: string, overrideType?: string, isActive?: boolean): Promise<EngineerOverride[]> { const conditions = []; if (equipmentId) {conditions.push(eq(engineerOverrides.equipmentId, equipmentId));} if (overrideType) {conditions.push(eq(engineerOverrides.overrideType, overrideType));} if (isActive !== undefined) {conditions.push(eq(engineerOverrides.isActive, isActive));} let query = db.select().from(engineerOverrides); if (conditions.length > 0) {query = query.where(and(...conditions));} return query.orderBy(sql`${engineerOverrides.createdAt} DESC`); }
+  async getMlEngineerOverride(id: string): Promise<EngineerOverride | undefined> { const [result] = await db.select().from(engineerOverrides).where(eq(engineerOverrides.id, id)); return result; }
+  async createMlEngineerOverride(override: InsertEngineerOverride): Promise<EngineerOverride> { const [n] = await db.insert(engineerOverrides).values(override).returning(); return n; }
+  async updateMlEngineerOverride(id: string, updates: Partial<InsertEngineerOverride>): Promise<EngineerOverride> { const [u] = await db.update(engineerOverrides).set({ ...updates, updatedAt: new Date() }).where(eq(engineerOverrides.id, id)).returning(); if (!u) {throw new Error(`ML engineer override ${id} not found`);} return u; }
+  async deleteMlEngineerOverride(id: string): Promise<void> { await db.delete(engineerOverrides).where(eq(engineerOverrides.id, id)); }
+  async getActiveOverridesForEquipment(equipmentId: string): Promise<EngineerOverride[]> { return db.select().from(engineerOverrides).where(and(eq(engineerOverrides.equipmentId, equipmentId), eq(engineerOverrides.isActive, true))).orderBy(sql`${engineerOverrides.createdAt} DESC`); }
+  async deactivateOverride(id: string, deactivatedBy: string): Promise<EngineerOverride> { const [u] = await db.update(engineerOverrides).set({ isActive: false, deactivatedBy, deactivatedAt: new Date(), updatedAt: new Date() }).where(eq(engineerOverrides.id, id)).returning(); if (!u) {throw new Error(`ML engineer override ${id} not found`);} return u; }
 }

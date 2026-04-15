@@ -1,6 +1,6 @@
 import { describe, test, expect, afterAll } from "@jest/globals";
 import { execSync } from "child_process";
-import { readFileSync } from "fs";
+import { readFileSync, writeFileSync, unlinkSync } from "fs";
 import { join } from "path";
 
 describe("Dual-DB guardrail scripts", () => {
@@ -114,7 +114,6 @@ describe("PG and SQLite schema directories", () => {
 });
 
 describe("PG query shape smoke tests — critical domain paths", () => {
-  const fs = require("fs");
   const tmpDir = join(process.cwd(), "tests", "unit");
 
   function queryTable(tableName: string): { ok: boolean; count: number; keys: string[] } {
@@ -130,13 +129,13 @@ describe("PG query shape smoke tests — critical domain paths", () => {
       `  process.exit(0);`,
       `})();`,
     ].join('\n');
-    fs.writeFileSync(scriptFile, scriptContent);
+    writeFileSync(scriptFile, scriptContent);
     try {
       const result = execSync(`npx tsx ${scriptFile}`, { encoding: "utf-8", timeout: 30000, cwd: process.cwd() });
       const lines = result.trim().split("\n");
       return JSON.parse(lines[lines.length - 1]);
     } finally {
-      try { fs.unlinkSync(scriptFile); } catch {}
+      try { unlinkSync(scriptFile); } catch {}
     }
   }
 
@@ -249,7 +248,6 @@ describe("SQLite schema structural parity", () => {
 });
 
 describe("SQLite mode import resolution", () => {
-  const fs = require("fs");
   const tmpDir = join(process.cwd(), "tests", "unit");
 
   function verifyLocalModeImports(tableName: string): { ok: boolean; hasTable: boolean } {
@@ -259,7 +257,7 @@ describe("SQLite mode import resolution", () => {
       `const hasTable = !!${tableName};`,
       `console.log(JSON.stringify({ ok: true, hasTable }));`,
     ].join('\n');
-    fs.writeFileSync(scriptFile, scriptContent);
+    writeFileSync(scriptFile, scriptContent);
     try {
       const result = execSync(
         `LOCAL_MODE=true npx tsx ${scriptFile}`,
@@ -268,7 +266,7 @@ describe("SQLite mode import resolution", () => {
       const lines = result.trim().split("\n");
       return JSON.parse(lines[lines.length - 1]);
     } finally {
-      try { fs.unlinkSync(scriptFile); } catch {}
+      try { unlinkSync(scriptFile); } catch {}
     }
   }
 

@@ -188,6 +188,17 @@ export function validateEnvironment(): EnvironmentConfig {
   validateSessionSecret(isEmbedded, localMode, isDevelopment, isProduction, errors, warnings);
   validateSyncConfig(localMode, isEmbedded, warnings);
   logOptionalServices(isReplit);
+
+  if (isProduction && isDevelopment) {
+    errors.push("NODE_ENV is both production and development — configuration conflict");
+  }
+  if (isProduction && !process.env.SESSION_SECRET) {
+    errors.push("Production deployment without SESSION_SECRET is insecure");
+  }
+  if (isDevelopment) {
+    console.log("ℹ Auth: Development mode — auth bypass enabled for dev-admin-user");
+  }
+
   outputResults(warnings, errors, isEmbedded, localMode);
 
   return {

@@ -36,7 +36,7 @@
     "db:migrate:status": "tsx server/scripts/migrate.ts --status",
     "db:migrate:deploy": "tsx server/scripts/migrate.ts --deploy",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern='tests/unit' --forceExit",
+    "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/unit --forceExit",
     "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/integration --runInBand",
     "test:all": "npm run test:unit && npm run test:integration",
     "ci": "npm run lint && npm run check && npm run test:unit && npm run build",

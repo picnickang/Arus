@@ -11,6 +11,10 @@ const RagAnalyticsDashboard = lazy(() => import("@/features/kb/pages/RagAnalytic
 const GovernanceDashboard = lazy(() => import("@/pages/governance-dashboard"));
 const ScheduledReports = lazy(() => import("@/pages/scheduled-reports"));
 const ScheduledReportsSettings = lazy(() => import("@/pages/scheduled-reports-settings"));
+const AIHealthDashboard = lazy(() => import("@/pages/ai-health-dashboard"));
+const AISensorAudits = lazy(() => import("@/pages/ai-sensor-audits"));
+const AIStudioPage = lazy(() => import("@/pages/AIStudioPage"));
+const MLTraining = lazy(() => import("@/pages/ml-training"));
 
 export const analyticsRoutes = [
   { path: "/equipment-intelligence", component: EquipmentIntelligence },
@@ -24,4 +28,8 @@ export const analyticsRoutes = [
   { path: "/governance-dashboard", component: GovernanceDashboard },
   { path: "/scheduled-reports", component: ScheduledReports },
   { path: "/scheduled-reports-settings", component: ScheduledReportsSettings },
+  { path: "/ai-health", component: AIHealthDashboard },
+  { path: "/ai-sensor-audits", component: AISensorAudits },
+  { path: "/ai-studio", component: AIStudioPage },
+  { path: "/ml-training", component: MLTraining },
 ];
