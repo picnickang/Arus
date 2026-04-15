@@ -240,3 +240,9 @@ id = "oiUgLN1q4GYV1OeByU3s3"
 uri = "file://source-review-bundle.txt"
 type = "text"
 title = "ARUS Convergence Source Code Bundle"
+
+[[outputs]]
+id = "XgQq1FeyUH__dyKmAmvmm"
+uri = "file://arus-windows-installer.tar.gz"
+type = "unspecified"
+title = "ARUS Windows Installer Files (tar.gz, 27 KB)"
