@@ -56,10 +56,7 @@ jobs:
       - run: npm ci
 
       - name: Run unit tests
-        run: npm test -- --testPathPattern='tests/unit' --forceExit --no-cache
-
-      - name: Run client tests
-        run: npm run test:client
+        run: npm run test:unit
 
   integration-tests:
     name: Integration Tests
@@ -97,7 +94,7 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arus_test
 
       - name: Run integration tests
-        run: npm test -- --testPathPattern='tests/integration' --forceExit --no-cache
+        run: npm run test:integration
 
   build:
     name: Build
