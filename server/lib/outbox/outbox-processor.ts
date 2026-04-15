@@ -7,7 +7,7 @@
 import { db, isCloudMode } from '../../db';
 import { syncOutbox } from '@shared/schema';
 import { eq, and, lt } from 'drizzle-orm';
-import { log } from '../../lib/logger';
+import { log } from '../structured-logger';
 
 export interface OutboxProcessorConfig {
   batchSize: number;

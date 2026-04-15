@@ -4,7 +4,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { fetchReconciliationStatus, fetchReconciliationReport } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/formatters";
-import type { ReconciliationStatus, ReconciliationReport } from "../../../../shared/analytics-types";
+import type { ReconciliationStatus, ReconciliationReport } from "@shared/analytics-types";
 import type { PDFSection, PDFTableData } from "@/lib/exportUtils";
 
 export function useDataIntegrityData() {

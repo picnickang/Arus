@@ -5,7 +5,7 @@
  * by providing a shared place to store the WebSocket server instance.
  */
 
-import type { TelemetryWebSocketServer } from "./telemetry-websocket";
+import type { TelemetryWebSocketServer } from "./websocket";
 
 let wsServer: TelemetryWebSocketServer | null = null;
 

@@ -6,7 +6,7 @@
 
 import { Express } from "express";
 import { RateLimitRequestHandler } from "express-rate-limit";
-import type { AuthenticatedRequest } from "../../../types";
+import type { AuthenticatedRequest } from "../../../middleware/auth";
 import { withErrorHandling } from "../../../lib/route-utils";
 import { dbMaintenanceStorage } from "../../../repositories";
 import { dbAlertStorage } from "../../../repositories";

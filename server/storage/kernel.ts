@@ -37,5 +37,5 @@ export { dbGdprStorage } from "../db/gdpr/index.js";
 export { dbStormGeoStorage } from "../db/stormgeo/index.js";
 
 // Logbook adapters (domain-specific)
-export { DatabaseDeckLogStorage } from "../domains/logbook/deck-log-storage.js";
-export { DatabaseEngineLogStorage } from "../domains/logbook/engine-log-storage.js";
+export { DatabaseDeckLogStorage } from "./domains/logbook/deck-log-storage.js";
+export { DatabaseEngineLogStorage } from "./domains/logbook/engine-log-storage.js";
