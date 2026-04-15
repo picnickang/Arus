@@ -1,0 +1,66 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "ARUS Cloud",
+  "version": "1.0.0",
+  "identifier": "com.arus.marine",
+  "build": {
+    "beforeDevCommand": "",
+    "devUrl": "http://localhost:5000",
+    "beforeBuildCommand": "npm run build:renderer",
+    "frontendDist": "../dist/public"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "ARUS - Marine PdM System",
+        "width": 1400,
+        "height": 900,
+        "minWidth": 1024,
+        "minHeight": 680,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:5000 https://localhost:5000 http://127.0.0.1:5000 https://127.0.0.1:5000 https://*.arus.io; img-src 'self' data: blob:; font-src 'self' data:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.png"
+    ],
+    "category": "Utility",
+    "shortDescription": "ARUS Marine Predictive Maintenance System (Cloud Edition)",
+    "longDescription": "ARUS is a comprehensive marine predictive maintenance and vessel management system for fleet operators. Cloud edition connects to a remote server.",
+    "externalBin": [
+      "binaries/arus-server"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "12.0"
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "perMachine",
+        "installerIcon": "icons/icon.ico",
+        "installWebview2Mode": "downloadBootstrapper"
+      },
+      "wix": {
+        "language": "en-US",
+        "fragmentPaths": ["windows/wix/service-component.wxs"],
+        "componentRefs": ["ARUSBackendBinaries", "ARUSBackendService"]
+      }
+    }
+  },
+  "plugins": {
+    "shell": {
+      "open": "^https?://"
+    }
+  }
+}
