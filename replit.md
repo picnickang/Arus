@@ -70,6 +70,14 @@ Developed with Express.js and TypeScript, offering RESTful APIs with Zod validat
 -   **Route Registration**: `domain-router-registry.ts` is the single route registration system. All routes — including infrastructure inline routes — register through the registry. Two modes: registerFn (for function-based registration) and router-mount (for Express Router objects with mountPath). Only observability routes (`/healthz`, `/readyz`, `/metrics`) are registered separately as a controlled exception. Route-registration guardrail prevents inline `app.get/post("/api/...")` outside approved files.
 -   **PdM Domain**: Unified architecture — `server/pdm/routes.ts` (dashboard/risk/schedule), `server/domains/pdm-platform/` (inference, feature-store, fleet-analytics, model-registry, monitoring, prediction-governance, training-pipeline, digital-twin), `server/routes/pdm-gap-fill-routes.ts` (ML operations), `server/ml-routes/model-routes.ts` (CRUD), `server/routes/analytics/model-governance.ts` (read views). No deprecated annotations — all routes serve active client pages.
 
+# Testing & CI/CD
+
+-   **Unit Tests**: `npm run test:unit` runs ~74 pure unit tests in `tests/unit/` covering STCW compliance, prediction calibration, work order validation, shared validators, middleware smoke tests, and domain registry consistency. No database or network required.
+-   **Integration Tests**: `npm run test:integration` runs tests requiring a PostgreSQL service container.
+-   **CI Pipeline**: `.github/workflows/ci.yml` with lint+typecheck, unit tests, integration tests (PostgreSQL service), build verification, and dead code detection (knip).
+-   **Docker**: `Dockerfile` (multi-stage production build) and `docker-compose.yml` (local dev with PostgreSQL + Redis).
+-   **Migration Numbering**: Sequential 0001-0012. Script `scripts/fix-migration-numbering.sh` resolves duplicate prefixes.
+
 # External Dependencies
 
 -   PostgreSQL

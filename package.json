@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
@@ -33,7 +36,10 @@
     "db:migrate:status": "tsx server/scripts/migrate.ts --status",
     "db:migrate:deploy": "tsx server/scripts/migrate.ts --deploy",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern='tests/unit' --forceExit",
     "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/integration --runInBand",
+    "test:all": "npm run test:unit && npm run test:integration",
+    "ci": "npm run lint && npm run check && npm run test:unit && npm run build",
     "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
     "test:client": "node --experimental-vm-modules node_modules/jest/bin/jest.js client/tests",
     "test:quick": "node client/tests/runner.mjs",

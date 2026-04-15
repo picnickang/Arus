@@ -1,0 +1,70 @@
+# ============================================================================
+# ARUS Marine PdM Platform — Docker Compose (Development)
+# ============================================================================
+# Usage:
+#   docker compose up -d postgres   # Start database only
+#   docker compose up               # Start everything
+#   docker compose down -v          # Stop and remove volumes
+# ============================================================================
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: arus
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Optional: TimescaleDB for telemetry performance
+  # Uncomment to use instead of standard PostgreSQL
+  # timescaledb:
+  #   image: timescale/timescaledb:latest-pg16
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #     POSTGRES_DB: arus
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - timescale_data:/var/lib/postgresql/data
+
+  # Optional: Redis for caching and rate limiting
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Production mode: ARUS server
+  # arus:
+  #   build: .
+  #   ports:
+  #     - "5000:5000"
+  #   environment:
+  #     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/arus
+  #     REDIS_URL: redis://redis:6379
+  #     SESSION_SECRET: ${SESSION_SECRET}
+  #     OPENAI_API_KEY: ${OPENAI_API_KEY}
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+
+volumes:
+  postgres_data:
+  # timescale_data:
