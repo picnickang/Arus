@@ -59,12 +59,12 @@ export interface ApiRequestOptions {
   signal?: AbortSignal;
 }
 
-export async function apiRequest(
+export async function apiRequest<T = unknown>(
   method: string,
   url: string,
   data?: unknown | undefined,
   options?: ApiRequestOptions
-): Promise<unknown> {
+): Promise<T> {
   const res = await fetch(resolveUrl(url), {
     method,
     headers: createHeaders(!!data),
@@ -83,10 +83,10 @@ export async function apiRequest(
   const result = text ? JSON.parse(text) : null;
   
   if (result && typeof result === 'object' && 'success' in result && 'data' in result) {
-    return result.data;
+    return result.data as T;
   }
   
-  return result;
+  return result as T;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
