@@ -1,0 +1,338 @@
+You are a senior staff engineer, principal architect, QA lead, SRE, data platform architect, and maritime operations product strategist.
+
+Your task is to DEBUG, REVIEW, and EVALUATE the entire ARUS application end-to-end.
+
+You must evaluate:
+1. Functional correctness (does it work?)
+2. Telemetry and all I/O (is data flowing correctly?)
+3. Storage and persistence (is it safe and consistent?)
+4. Architecture (is it truly modular and hexagonal?)
+5. Data engineering (is data used effectively?)
+6. Data presentation (is it smart and actionable?)
+7. Product usability (does it serve real vessel management roles?)
+8. AUTOMATION RUNWAY (can this system evolve into autonomous workflows?)
+
+This is not just a code review. This is a full system and product evaluation.
+
+==================================================
+CRITICAL RULES
+==================================================
+
+- Do not give opinions without evidence.
+- Run the app and tests where possible.
+- Add missing tests if necessary.
+- Prefer real integration behavior over mocks.
+- Separate:
+  - code bugs
+  - architecture issues
+  - data issues
+  - workflow issues
+  - product gaps
+- Be brutally honest but constructive.
+- Prioritize findings:
+  - blocking
+  - high
+  - medium
+  - low
+
+==================================================
+PHASE 1 — SYSTEM MAP
+==================================================
+
+Map:
+- backend + frontend structure
+- domains and modules
+- data flows
+- telemetry ingestion paths
+- storage boundaries
+- I/O surfaces
+- background jobs / schedulers
+- sync / offline behavior
+- AI/copilot/agent components
+- key workflows
+
+Produce a clear system diagram (textual).
+
+==================================================
+PHASE 2 — ARCHITECTURE REVIEW (HEXAGONAL + MODULAR)
+==================================================
+
+Determine:
+
+- Is the system truly hexagonal?
+- Are ports/adapters real or superficial?
+- Are domains cleanly bounded?
+- Is dependency direction correct?
+- Is there any cross-domain leakage?
+- Are there multiple ways to do the same thing?
+
+Evaluate:
+- domain structure
+- routing pattern
+- storage boundaries
+- guardrail enforcement
+
+Run:
+- npm run check:guards
+
+Give a final verdict:
+- truly modular and hexagonal
+- mostly modular with minor leaks
+- partially modular
+- not genuinely modular
+
+==================================================
+PHASE 3 — RUN AND DEBUG
+==================================================
+
+Run:
+- install
+- typecheck
+- build
+- test suite
+- backend start
+- frontend start
+- guardrails
+
+Capture:
+- errors
+- warnings
+- broken flows
+- missing config
+
+==================================================
+PHASE 4 — TELEMETRY + I/O VALIDATION
+==================================================
+
+Test:
+- telemetry ingestion (valid + invalid)
+- storage of telemetry
+- downstream visibility (dashboards, APIs)
+- transformation/processing
+- anomaly/prediction linkage
+
+Trace all I/O:
+- API → DB → UI
+- file imports/exports
+- sync flows
+- background jobs
+- notifications
+- AI interactions (if testable)
+
+For each:
+- what goes in
+- what comes out
+- what validates it
+- what consumes it
+- what breaks
+
+==================================================
+PHASE 5 — STORAGE + PERSISTENCE
+==================================================
+
+Test:
+- Postgres mode
+- SQLite mode
+
+Validate:
+- CRUD persistence
+- restart durability
+- data integrity
+- cross-domain relationships
+- schema boundary enforcement
+
+==================================================
+PHASE 6 — CRUD + CONTRACT + TENANT ISOLATION
+==================================================
+
+Test all major domains:
+- create
+- read
+- update
+- delete/archive/complete
+- list/filter/pagination
+- invalid payloads
+- auth failures
+- cross-tenant access blocked
+
+==================================================
+PHASE 7 — DATA ENGINEERING REVIEW
+==================================================
+
+Evaluate:
+
+A. Data model quality
+- coherence
+- relationships
+- duplication
+
+B. Data usage effectiveness
+- is telemetry actually used?
+- do predictions lead to actions?
+- is data connected across domains?
+
+C. Data pipeline quality
+- ingestion → validation → storage → retrieval → action
+
+D. Data activation
+- does data drive decisions?
+- or is it just stored and displayed?
+
+E. Missed opportunities
+- unused signals
+- missing aggregations
+- missing prioritization
+- missing summaries
+
+Give:
+- strengths
+- weaknesses
+- top 5 improvements
+
+==================================================
+PHASE 8 — DATA PRESENTATION REVIEW
+==================================================
+
+Evaluate:
+- dashboards
+- alerts
+- tables
+- drilldowns
+
+Answer:
+- is the right info shown first?
+- is it actionable?
+- is it overwhelming?
+- are insights prioritized?
+- are recommendations clear?
+
+Identify:
+- where data is too raw
+- where summarization is missing
+- where decision support is weak
+
+==================================================
+PHASE 9 — ROLE-BASED EVALUATION
+==================================================
+
+Evaluate for each role:
+
+- Technical Superintendent
+- Fleet Manager
+- Operations Manager
+- HSQE / Compliance
+- Procurement Manager
+- Reliability / PdM Engineer
+- Data Engineer
+- Chief Engineer
+- Executive / COO
+
+For each:
+- score /10
+- what works
+- what is missing
+- what is confusing
+- what decisions are supported
+- what decisions are NOT supported
+
+==================================================
+PHASE 10 — AUTOMATION RUNWAY (CRITICAL)
+==================================================
+
+This is the most important strategic section.
+
+Evaluate:
+
+A. CURRENT STATE
+- what decisions the system supports
+- what actions are manual vs assisted
+- where humans are still required
+
+B. AUTOMATION POTENTIAL
+For each domain:
+- work orders
+- telemetry
+- PdM
+- inventory
+- alerts
+- sync
+- reporting
+
+Answer:
+- what could be automated?
+- what should remain human-in-the-loop?
+- what is currently missing to enable automation?
+
+C. REQUIREMENTS FOR AUTOMATION
+Identify missing capabilities:
+- event-driven architecture gaps
+- missing state machines
+- lack of deterministic workflows
+- missing auditability
+- lack of confidence scoring
+- lack of explainability
+- missing feedback loops
+- missing data normalization
+
+D. AUTONOMY MATURITY LEVEL
+Rate system:
+- Level 1: data display
+- Level 2: decision support
+- Level 3: assisted action
+- Level 4: semi-autonomous
+- Level 5: autonomous operations
+
+Explain current level and path forward.
+
+E. AUTOMATION ROADMAP
+Give:
+- top 5 automation opportunities
+- what needs to change to enable them
+- risks of over-automation
+
+==================================================
+PHASE 11 — BUG HUNT
+==================================================
+
+Find:
+- broken flows
+- stale endpoints
+- duplicate logic
+- unused code
+- hidden fallbacks
+- data inconsistencies
+
+==================================================
+PHASE 12 — FINAL OUTPUT
+==================================================
+
+Provide:
+
+1. SYSTEM MAP
+2. COMMANDS RUN + RESULTS
+3. ARCHITECTURE VERDICT
+4. DEBUG FINDINGS
+5. TELEMETRY / I/O RESULTS
+6. STORAGE VALIDATION
+7. CRUD + TENANT RESULTS
+8. DATA ENGINEERING REVIEW
+9. DATA PRESENTATION REVIEW
+10. ROLE-BASED SCORES
+11. AUTOMATION RUNWAY ANALYSIS
+12. TOP RISKS
+13. PRIORITIZED FIX LIST
+14. FINAL VERDICT
+
+Final verdict must answer:
+
+- Is the system stable?
+- Is it truly modular and hexagonal?
+- Is data used effectively?
+- Is data presented intelligently?
+- Does it serve vessel management roles well?
+- AND MOST IMPORTANT:
+  → Does this system have strong runway to automate these roles over time?
+
+==================================================
+
+Do not stop at analysis. Execute, test, and provide evidence.
