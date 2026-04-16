@@ -1,10 +1,11 @@
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const read = (rel: string) => readFileSync(resolve(ROOT, rel), 'utf-8');
 const json = (rel: string) => JSON.parse(read(rel));
+const exists = (rel: string) => existsSync(resolve(ROOT, rel));
 
 const CONF_PATHS = [
   'src-tauri/tauri.conf.json',
@@ -31,6 +32,10 @@ type TauriConf = {
   };
   plugins: Record<string, unknown>;
 };
+
+// ============================================================================
+// Configuration Tests
+// ============================================================================
 
 describe('Tauri Windows Installer — Configuration', () => {
   const configs: Record<string, TauriConf> = {};
@@ -75,6 +80,12 @@ describe('Tauri Windows Installer — Configuration', () => {
       expect(csp).toContain("img-src 'self' data: blob:");
     });
 
+    it('CSP does NOT contain http: or https: wildcards', () => {
+      const csp = conf.app.security.csp;
+      // Ensure no bare protocol wildcards that defeat CSP
+      expect(csp).not.toMatch(/connect-src[^;]* https?: /);
+    });
+
     it('bundle is active and targets "all"', () => {
       expect(conf.bundle.active).toBe(true);
       expect(conf.bundle.targets).toBe('all');
@@ -89,6 +100,17 @@ describe('Tauri Windows Installer — Configuration', () => {
           expect.stringMatching(/icon\.png/),
         ])
       );
+    });
+
+    it('all referenced icon files exist on disk', () => {
+      for (const icon of conf.bundle.icon) {
+        expect(exists(`src-tauri/${icon}`)).toBe(true);
+      }
+    });
+
+    it('icon.ico exists for NSIS installer', () => {
+      const nsis = conf.bundle.windows.nsis;
+      expect(exists(`src-tauri/${nsis.installerIcon}`)).toBe(true);
     });
 
     it('externalBin references arus-server sidecar', () => {
@@ -147,7 +169,16 @@ describe('Tauri Windows Installer — Configuration', () => {
   it('default config uses offlineInstaller (air-gap safe)', () => {
     expect(configs['src-tauri/tauri.conf.json'].bundle.windows.nsis.installWebview2Mode).toBe('offlineInstaller');
   });
+
+  it('vessel config does NOT have unsafe-eval in CSP', () => {
+    const csp = configs['src-tauri/tauri.vessel.conf.json'].app.security.csp;
+    expect(csp).not.toContain('unsafe-eval');
+  });
 });
+
+// ============================================================================
+// WiX Service Fragment Tests
+// ============================================================================
 
 describe('Tauri Windows Installer — WiX Service Fragment', () => {
   let wxs: string;
@@ -178,14 +209,21 @@ describe('Tauri Windows Installer — WiX Service Fragment', () => {
     }
   });
 
+  // ── Install lifecycle ────────────────────────────────────────────────────
+
   describe('Install lifecycle — Custom Actions', () => {
     const requiredActions = [
       'CreateARUSDataDir',
       'CreateARUSServiceAcct',
+      'DenyARUSServiceLogon',
       'GrantARUSDataDirAccess',
       'InstallARUSService',
       'SetServiceAccount',
-      'SetServiceEnv',
+      'SetServiceEnvPort',
+      'SetServiceEnvNodeEnv',
+      'SetServiceEnvDeployMode',
+      'SetServiceEnvLocalMode',
+      'SetServiceEnvDbPath',
       'SetServiceStdout',
       'SetServiceStderr',
       'SetServiceStart',
@@ -234,6 +272,110 @@ describe('Tauri Windows Installer — WiX Service Fragment', () => {
     });
   });
 
+  // ── Service account security ─────────────────────────────────────────────
+
+  describe('Service account security', () => {
+    it('creates service account with a random password (not /passwordreq:no)', () => {
+      expect(wxs).not.toContain('/passwordreq:no');
+      // Should use PowerShell to generate a random password
+      expect(wxs).toContain('Get-Random');
+      expect(wxs).toContain('New-LocalUser');
+      expect(wxs).toContain('ConvertTo-SecureString');
+    });
+
+    it('denies interactive logon for the service account', () => {
+      expect(wxs).toContain('DenyARUSServiceLogon');
+      expect(wxs).toContain('SeDenyInteractiveLogonRight');
+    });
+
+    it('service account password is passed to NSSM and temp file is deleted', () => {
+      expect(wxs).toContain('arus_svc_pwd.tmp');
+      // Verify the temp file is deleted after use
+      const setAccountAction = wxs.match(/Id="SetServiceAccount"[\s\S]*?ExeCommand="([^"]+)"/);
+      expect(setAccountAction).not.toBeNull();
+      expect(setAccountAction![1]).toContain('del');
+    });
+
+    it('data directory ACL grants access only to service account', () => {
+      expect(wxs).toContain('icacls');
+      expect(wxs).toContain('ARUS_svc:(OI)(CI)F');
+      expect(wxs).toContain('/inheritance:e');
+    });
+
+    it('nssm.exe uses confirm flag on remove to prevent accidental deletion', () => {
+      const removeAction = wxs.match(
+        /Id="RemoveARUSService"[\s\S]*?ExeCommand="([^"]+)"/
+      );
+      expect(removeAction).not.toBeNull();
+      expect(removeAction![1]).toContain('remove ARUSBackend confirm');
+    });
+
+    it('critical install actions use Return="check" (fail on error)', () => {
+      const criticalActions = [
+        'InstallARUSService',
+        'SetServiceAccount',
+        'SetServiceEnvPort',
+        'InitARUSDatabase',
+      ];
+      for (const action of criticalActions) {
+        const match = wxs.match(new RegExp(`Id="${action}"[\\s\\S]*?Return="([^"]+)"`));
+        expect(match).not.toBeNull();
+        expect(match![1]).toBe('check');
+      }
+    });
+
+    it('teardown actions use Return="ignore" (best-effort cleanup)', () => {
+      const teardownActions = ['StopARUSService', 'RemoveARUSService', 'RemoveARUSServiceAcct'];
+      for (const action of teardownActions) {
+        const match = wxs.match(new RegExp(`Id="${action}"[\\s\\S]*?Return="([^"]+)"`));
+        expect(match).not.toBeNull();
+        expect(match![1]).toBe('ignore');
+      }
+    });
+  });
+
+  // ── Environment variables ────────────────────────────────────────────────
+
+  describe('Service environment variables', () => {
+    it('uses ARUS_DEPLOYMENT_MODE (not DEPLOYMENT_MODE) to match server', () => {
+      expect(wxs).toContain('ARUS_DEPLOYMENT_MODE=VESSEL');
+      expect(wxs).not.toMatch(/[^_]DEPLOYMENT_MODE=VESSEL/);
+    });
+
+    it('sets each env var with a separate NSSM call', () => {
+      const envActions = [
+        'SetServiceEnvPort',
+        'SetServiceEnvNodeEnv',
+        'SetServiceEnvDeployMode',
+        'SetServiceEnvLocalMode',
+        'SetServiceEnvDbPath',
+      ];
+      for (const action of envActions) {
+        expect(wxs).toContain(`Id="${action}"`);
+      }
+    });
+
+    it('sets PORT=5000', () => {
+      expect(wxs).toContain('PORT=5000');
+    });
+
+    it('sets NODE_ENV=production', () => {
+      expect(wxs).toContain('NODE_ENV=production');
+    });
+
+    it('sets LOCAL_MODE=true', () => {
+      expect(wxs).toContain('LOCAL_MODE=true');
+    });
+
+    it('sets DATABASE_PATH to ProgramData location', () => {
+      expect(wxs).toContain('DATABASE_PATH=');
+      expect(wxs).toContain('ARUS Marine');
+      expect(wxs).toContain('vessel-local.db');
+    });
+  });
+
+  // ── Upgrade lifecycle ────────────────────────────────────────────────────
+
   describe('Upgrade lifecycle', () => {
     it('stops service before file replacement', () => {
       const stopUpgrade = wxs.match(
@@ -243,6 +385,15 @@ describe('Tauri Windows Installer — WiX Service Fragment', () => {
       expect(stopUpgrade![1].trim()).toBe('Installed AND NOT REMOVE');
     });
 
+    it('runs database migration after file replacement', () => {
+      const migrate = wxs.match(
+        /Action="MigrateARUSDatabase"[^>]*After="([^"]+)"[^>]*>([^<]+)/
+      );
+      expect(migrate).not.toBeNull();
+      expect(migrate![1]).toBe('InstallFiles');
+      expect(migrate![2].trim()).toBe('Installed AND NOT REMOVE');
+    });
+
     it('restarts service after install finalize', () => {
       const restart = wxs.match(
         /Action="RestartARUSService"[^>]*After="InstallFinalize"[^>]*>([^<]+)/
@@ -250,7 +401,17 @@ describe('Tauri Windows Installer — WiX Service Fragment', () => {
       expect(restart).not.toBeNull();
       expect(restart![1].trim()).toBe('Installed AND NOT REMOVE');
     });
+
+    it('migration uses --init-db flag', () => {
+      const migrateAction = wxs.match(
+        /Id="MigrateARUSDatabase"[\s\S]*?ExeCommand="([^"]+)"/
+      );
+      expect(migrateAction).not.toBeNull();
+      expect(migrateAction![1]).toContain('--init-db');
+    });
   });
+
+  // ── Uninstall lifecycle ──────────────────────────────────────────────────
 
   describe('Uninstall lifecycle', () => {
     it('stops, removes service, and deletes service account on REMOVE="ALL"', () => {
@@ -263,7 +424,6 @@ describe('Tauri Windows Installer — WiX Service Fragment', () => {
     });
 
     it('uninstall chain is ordered: stop → remove service → remove account', () => {
-      expect(wxs).toContain('Action="RemoveARUSService"');
       const removeService = wxs.match(/Action="RemoveARUSService"[^>]*After="([^"]+)"/);
       expect(removeService).not.toBeNull();
       expect(removeService![1]).toBe('StopARUSService');
@@ -273,6 +433,8 @@ describe('Tauri Windows Installer — WiX Service Fragment', () => {
       expect(removeAcct![1]).toBe('RemoveARUSService');
     });
   });
+
+  // ── Service configuration ────────────────────────────────────────────────
 
   describe('Service configuration', () => {
     it('configures auto-restart recovery policy (3 restarts, 15s delay)', () => {
@@ -284,15 +446,8 @@ describe('Tauri Windows Installer — WiX Service Fragment', () => {
     });
 
     it('service runs under dedicated ARUS_svc account, not SYSTEM', () => {
-      expect(wxs).toContain('ObjectName');
       expect(wxs).toContain('ARUS_svc');
       expect(wxs).not.toContain('LocalSystem');
-    });
-
-    it('sets production environment variables', () => {
-      expect(wxs).toContain('NODE_ENV=production');
-      expect(wxs).toContain('DEPLOYMENT_MODE=VESSEL');
-      expect(wxs).toContain('PORT=5000');
     });
 
     it('logs stdout and stderr to ProgramData directory', () => {
@@ -317,53 +472,6 @@ describe('Tauri Windows Installer — WiX Service Fragment', () => {
     });
   });
 
-  describe('Security — WiX hardening', () => {
-    it('data directory ACL grants access only to service account', () => {
-      expect(wxs).toContain('icacls');
-      expect(wxs).toContain('ARUS_svc:(OI)(CI)F');
-      expect(wxs).toContain('/inheritance:e');
-    });
-
-    it('service account is created with no login rights', () => {
-      expect(wxs).toContain('net user ARUS_svc /add');
-    });
-
-    it('nssm.exe uses confirm flag on remove to prevent accidental deletion', () => {
-      const removeLine = wxs.split('\n').find(
-        (l) => l.includes('Id="RemoveARUSService"')
-      );
-      expect(removeLine).toBeDefined();
-      const removeAction = wxs.match(
-        /Id="RemoveARUSService"[\s\S]*?ExeCommand="([^"]+)"/
-      );
-      expect(removeAction).not.toBeNull();
-      expect(removeAction![1]).toContain('remove ARUSBackend confirm');
-    });
-
-    it('critical install actions use Return="check" (fail on error)', () => {
-      const criticalActions = [
-        'InstallARUSService',
-        'SetServiceAccount',
-        'SetServiceEnv',
-        'InitARUSDatabase',
-      ];
-      for (const action of criticalActions) {
-        const match = wxs.match(new RegExp(`Id="${action}"[\\s\\S]*?Return="([^"]+)"`));
-        expect(match).not.toBeNull();
-        expect(match![1]).toBe('check');
-      }
-    });
-
-    it('teardown actions use Return="ignore" (best-effort cleanup)', () => {
-      const teardownActions = ['StopARUSService', 'RemoveARUSService', 'RemoveARUSServiceAcct'];
-      for (const action of teardownActions) {
-        const match = wxs.match(new RegExp(`Id="${action}"[\\s\\S]*?Return="([^"]+)"`));
-        expect(match).not.toBeNull();
-        expect(match![1]).toBe('ignore');
-      }
-    });
-  });
-
   it('Feature element references both component IDs', () => {
     expect(wxs).toContain('Id="ARUSBackendFeature"');
     expect(wxs).toContain('<ComponentRef Id="ARUSBackendBinaries"');
@@ -379,6 +487,10 @@ describe('Tauri Windows Installer — WiX Service Fragment', () => {
     expect(new Set(guids).size).toBe(guids.length);
   });
 });
+
+// ============================================================================
+// Capabilities Tests
+// ============================================================================
 
 describe('Tauri Windows Installer — Capabilities', () => {
   let caps: { identifier: string; windows: string[]; permissions: unknown[] };
@@ -422,6 +534,10 @@ describe('Tauri Windows Installer — Capabilities', () => {
     expect(flat).toContain('process:allow-exit');
   });
 });
+
+// ============================================================================
+// Rust Sidecar Logic Tests
+// ============================================================================
 
 describe('Tauri Windows Installer — Rust Sidecar Logic', () => {
   let libRs: string;
@@ -487,11 +603,19 @@ describe('Tauri Windows Installer — Rust Sidecar Logic', () => {
     expect(libRs).toContain('Duration::from_secs(4)');
   });
 
+  it('does NOT use danger_accept_invalid_certs', () => {
+    expect(libRs).not.toContain('danger_accept_invalid_certs');
+  });
+
   it('hides console window in release builds on Windows', () => {
     const mainRs = read('src-tauri/src/main.rs');
     expect(mainRs).toContain('#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]');
   });
 });
+
+// ============================================================================
+// Cargo.toml Dependency Tests
+// ============================================================================
 
 describe('Tauri Windows Installer — Cargo.toml Dependencies', () => {
   let cargo: string;

@@ -161,7 +161,6 @@ async fn ping_backend(base_url: &str) -> bool {
     let url = format!("{}/api/healthz", base_url);
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(4))
-        .danger_accept_invalid_certs(false)
         .build();
 
     match client {

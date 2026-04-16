@@ -72,7 +72,7 @@ Developed with Express.js and TypeScript, offering RESTful APIs with Zod validat
 
 # Testing & CI/CD
 
--   **Unit Tests**: `npm run test:unit` runs ~310 tests in `tests/unit/` covering STCW compliance, prediction calibration, work order validation, shared validators, middleware smoke, domain registry, maritime converters, money utils, RUL engine, statistics/anomaly detection, dual-schema parity, and Tauri Windows installer config/WiX/sidecar validation. No database or network required.
+-   **Unit Tests**: `npm run test:unit` runs ~335 tests in `tests/unit/` covering STCW compliance, prediction calibration, work order validation, shared validators, middleware smoke, domain registry, maritime converters, money utils, RUL engine, statistics/anomaly detection, dual-schema parity, and Tauri Windows installer config/WiX/sidecar validation. No database or network required.
 -   **Integration Tests**: `npm run test:integration` runs tests requiring a PostgreSQL service container.
 -   **CI Pipeline**: `.github/workflows/ci.yml` with lint+typecheck, unit tests, integration tests (PostgreSQL service), build verification, and dead code detection (knip).
 -   **Docker**: `Dockerfile` (multi-stage production build) and `docker-compose.yml` (local dev with PostgreSQL + Redis).

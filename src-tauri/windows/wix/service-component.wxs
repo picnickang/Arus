@@ -10,13 +10,15 @@
   so Source= attributes use $(var.SourceDir)resources\ which is guaranteed
   to exist.  See the "Stage WiX resources" step in tauri-build.yml.
 
-  UPGRADE: Custom actions now check the Installed property.  On upgrade
-  the service is stopped before files are replaced and restarted after.
-  Fresh installs register and start.  Uninstalls stop then remove.
+  UPGRADE: Custom actions check the Installed property.  On upgrade
+  the service is stopped, files are replaced, database is migrated,
+  and the service is restarted.  Fresh installs register and start.
+  Uninstalls stop then remove.
 
   SERVICE ACCOUNT: Service runs under a dedicated local account "ARUS_svc"
-  rather than SYSTEM.  The account is created with no login rights and
-  only write access to the ProgramData directory.
+  with a random 24-character password generated at install time.
+  The account has no interactive logon rights and only write access
+  to the ProgramData directory.
 
   TWO INSTALLER VARIANTS: The WebView2 install mode is controlled in
   tauri.conf.json — vessel builds use offlineInstaller (bundled, air-gap
@@ -71,6 +73,10 @@
       </Component>
     </DirectoryRef>
 
+    <!-- ================================================================== -->
+    <!-- FRESH INSTALL — Custom Actions                                      -->
+    <!-- ================================================================== -->
+
     <CustomAction Id="CreateARUSDataDir"
                   Directory="ARUSBINDIR"
                   ExeCommand="cmd.exe /c mkdir &quot;[CommonAppDataFolder]ARUS Marine\logs&quot; 2&gt;nul"
@@ -78,9 +84,22 @@
                   Impersonate="no"
                   Return="ignore" />
 
+    <!-- Generate a random password and create the service account.
+         PowerShell generates a 24-char password, stores it in a temp file,
+         creates the user with that password, then deletes the temp file.
+         The password is never persisted — NSSM stores it encrypted in the
+         registry as part of the service ObjectName configuration.  -->
     <CustomAction Id="CreateARUSServiceAcct"
                   Directory="ARUSBINDIR"
-                  ExeCommand="cmd.exe /c net user ARUS_svc /add /passwordreq:no /active:yes /comment:&quot;ARUS Marine service account&quot; 2&gt;nul"
+                  ExeCommand="cmd.exe /c powershell -NoProfile -Command &quot;$p = -join ((48..57)+(65..90)+(97..122) | Get-Random -Count 24 | ForEach-Object {[char]$_}); $sp = ConvertTo-SecureString $p -AsPlainText -Force; New-LocalUser -Name 'ARUS_svc' -Password $sp -Description 'ARUS Marine service account' -PasswordNeverExpires -UserMayNotChangePassword -ErrorAction SilentlyContinue; $p | Out-File -Encoding ascii ([IO.Path]::Combine($env:TEMP,'arus_svc_pwd.tmp'))&quot;"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <!-- Deny interactive logon for the service account -->
+    <CustomAction Id="DenyARUSServiceLogon"
+                  Directory="ARUSBINDIR"
+                  ExeCommand="cmd.exe /c powershell -NoProfile -Command &quot;$sid = (New-Object System.Security.Principal.NTAccount('ARUS_svc')).Translate([System.Security.Principal.SecurityIdentifier]).Value; $tmp = [IO.Path]::GetTempFileName(); secedit /export /cfg $tmp /quiet; $c = Get-Content $tmp; $deny = ($c | Select-String 'SeDenyInteractiveLogonRight').ToString(); if ($deny -notmatch $sid) { $c = $c -replace '(SeDenyInteractiveLogonRight\s*=\s*)', ('$1*' + $sid + ','); $c | Set-Content $tmp; secedit /configure /db ([IO.Path]::ChangeExtension($tmp,'.sdb')) /cfg $tmp /quiet }; Remove-Item $tmp -ErrorAction SilentlyContinue&quot;"
                   Execute="deferred"
                   Impersonate="no"
                   Return="ignore" />
@@ -99,16 +118,46 @@
                   Impersonate="no"
                   Return="check" />
 
+    <!-- Read the temp password file and set the service account -->
     <CustomAction Id="SetServiceAccount"
                   Directory="ARUSBINDIR"
-                  ExeCommand="&quot;[ARUSBINDIR]nssm.exe&quot; set ARUSBackend ObjectName &quot;.\ARUS_svc&quot; &quot;&quot;"
+                  ExeCommand="cmd.exe /c for /f &quot;usebackq delims=&quot; %p in (&quot;%TEMP%\arus_svc_pwd.tmp&quot;) do &quot;[ARUSBINDIR]nssm.exe&quot; set ARUSBackend ObjectName &quot;.\ARUS_svc&quot; &quot;%p&quot; &amp;&amp; del &quot;%TEMP%\arus_svc_pwd.tmp&quot;"
                   Execute="deferred"
                   Impersonate="no"
                   Return="check" />
 
-    <CustomAction Id="SetServiceEnv"
+    <!-- Environment variables — one per NSSM call for robustness -->
+    <CustomAction Id="SetServiceEnvPort"
                   Directory="ARUSBINDIR"
-                  ExeCommand="&quot;[ARUSBINDIR]nssm.exe&quot; set ARUSBackend AppEnvironmentExtra &quot;PORT=5000&quot; &quot;NODE_ENV=production&quot; &quot;DEPLOYMENT_MODE=VESSEL&quot; &quot;LOCAL_MODE=true&quot; &quot;DATABASE_PATH=[CommonAppDataFolder]ARUS Marine\vessel-local.db&quot;"
+                  ExeCommand="&quot;[ARUSBINDIR]nssm.exe&quot; set ARUSBackend AppEnvironmentExtra +PORT=5000"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+
+    <CustomAction Id="SetServiceEnvNodeEnv"
+                  Directory="ARUSBINDIR"
+                  ExeCommand="&quot;[ARUSBINDIR]nssm.exe&quot; set ARUSBackend AppEnvironmentExtra +NODE_ENV=production"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+
+    <CustomAction Id="SetServiceEnvDeployMode"
+                  Directory="ARUSBINDIR"
+                  ExeCommand="&quot;[ARUSBINDIR]nssm.exe&quot; set ARUSBackend AppEnvironmentExtra +ARUS_DEPLOYMENT_MODE=VESSEL"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+
+    <CustomAction Id="SetServiceEnvLocalMode"
+                  Directory="ARUSBINDIR"
+                  ExeCommand="&quot;[ARUSBINDIR]nssm.exe&quot; set ARUSBackend AppEnvironmentExtra +LOCAL_MODE=true"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+
+    <CustomAction Id="SetServiceEnvDbPath"
+                  Directory="ARUSBINDIR"
+                  ExeCommand="&quot;[ARUSBINDIR]nssm.exe&quot; set ARUSBackend AppEnvironmentExtra &quot;+DATABASE_PATH=[CommonAppDataFolder]ARUS Marine\vessel-local.db&quot;"
                   Execute="deferred"
                   Impersonate="no"
                   Return="check" />
@@ -162,6 +211,10 @@
                   Impersonate="no"
                   Return="ignore" />
 
+    <!-- ================================================================== -->
+    <!-- UPGRADE — Custom Actions                                            -->
+    <!-- ================================================================== -->
+
     <CustomAction Id="StopARUSServiceUpgrade"
                   Directory="ARUSBINDIR"
                   ExeCommand="&quot;[ARUSBINDIR]nssm.exe&quot; stop ARUSBackend"
@@ -169,12 +222,24 @@
                   Impersonate="no"
                   Return="ignore" />
 
+    <!-- Run database migration on upgrade to apply any schema changes -->
+    <CustomAction Id="MigrateARUSDatabase"
+                  Directory="ARUSBINDIR"
+                  ExeCommand="&quot;[ARUSBINDIR]arus-server.exe&quot; --init-db"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+
     <CustomAction Id="RestartARUSService"
                   Directory="ARUSBINDIR"
                   ExeCommand="&quot;[ARUSBINDIR]nssm.exe&quot; restart ARUSBackend"
                   Execute="deferred"
                   Impersonate="no"
                   Return="ignore" />
+
+    <!-- ================================================================== -->
+    <!-- UNINSTALL — Custom Actions                                          -->
+    <!-- ================================================================== -->
 
     <CustomAction Id="StopARUSService"
                   Directory="ARUSBINDIR"
@@ -197,25 +262,41 @@
                   Impersonate="no"
                   Return="ignore" />
 
+    <!-- ================================================================== -->
+    <!-- Execution Sequence                                                  -->
+    <!-- ================================================================== -->
+
     <InstallExecuteSequence>
 
+      <!-- UPGRADE: stop service before file replacement -->
       <Custom Action="StopARUSServiceUpgrade"
               Before="InstallFiles">Installed AND NOT REMOVE</Custom>
 
+      <!-- FRESH INSTALL: full setup chain -->
       <Custom Action="CreateARUSDataDir"
               After="InstallFiles">NOT Installed AND NOT REMOVE</Custom>
       <Custom Action="CreateARUSServiceAcct"
               After="CreateARUSDataDir">NOT Installed AND NOT REMOVE</Custom>
-      <Custom Action="GrantARUSDataDirAccess"
+      <Custom Action="DenyARUSServiceLogon"
               After="CreateARUSServiceAcct">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="GrantARUSDataDirAccess"
+              After="DenyARUSServiceLogon">NOT Installed AND NOT REMOVE</Custom>
       <Custom Action="InstallARUSService"
               After="GrantARUSDataDirAccess">NOT Installed AND NOT REMOVE</Custom>
       <Custom Action="SetServiceAccount"
               After="InstallARUSService">NOT Installed AND NOT REMOVE</Custom>
-      <Custom Action="SetServiceEnv"
+      <Custom Action="SetServiceEnvPort"
               After="SetServiceAccount">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="SetServiceEnvNodeEnv"
+              After="SetServiceEnvPort">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="SetServiceEnvDeployMode"
+              After="SetServiceEnvNodeEnv">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="SetServiceEnvLocalMode"
+              After="SetServiceEnvDeployMode">NOT Installed AND NOT REMOVE</Custom>
+      <Custom Action="SetServiceEnvDbPath"
+              After="SetServiceEnvLocalMode">NOT Installed AND NOT REMOVE</Custom>
       <Custom Action="SetServiceStdout"
-              After="SetServiceEnv">NOT Installed AND NOT REMOVE</Custom>
+              After="SetServiceEnvDbPath">NOT Installed AND NOT REMOVE</Custom>
       <Custom Action="SetServiceStderr"
               After="SetServiceStdout">NOT Installed AND NOT REMOVE</Custom>
       <Custom Action="SetServiceStart"
@@ -229,9 +310,13 @@
       <Custom Action="StartARUSService"
               After="InitARUSDatabase">NOT Installed AND NOT REMOVE</Custom>
 
+      <!-- UPGRADE: migrate database then restart -->
+      <Custom Action="MigrateARUSDatabase"
+              After="InstallFiles">Installed AND NOT REMOVE</Custom>
       <Custom Action="RestartARUSService"
               After="InstallFinalize">Installed AND NOT REMOVE</Custom>
 
+      <!-- UNINSTALL: stop → remove service → remove account -->
       <Custom Action="StopARUSService"
               Before="RemoveFiles">REMOVE="ALL"</Custom>
       <Custom Action="RemoveARUSService"

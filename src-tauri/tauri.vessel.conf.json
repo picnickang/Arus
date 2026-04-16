@@ -24,7 +24,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:5000 https://localhost:5000 http://127.0.0.1:5000 https://127.0.0.1:5000 https://*.arus.io; img-src 'self' data: blob:; font-src 'self' data:"
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:5000 https://localhost:5000 http://127.0.0.1:5000 https://127.0.0.1:5000 https://*.arus.io; img-src 'self' data: blob:; font-src 'self' data:"
     }
   },
   "bundle": {
