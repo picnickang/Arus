@@ -49,6 +49,9 @@ export class PredictionEngineService implements PredictionExplanationQuery {
           meanPressure: features.meanPressure,
           kurtosis: features.kurtosis,
         } : null,
+        modelVersionId: resolvedVersionId ?? null,
+        featureSetVersion: features?.windowMinutes ? `v1.window${features.windowMinutes}m` : "v1",
+        featureSnapshotId: features?.id ?? null,
       }).returning();
 
       const explanationRows = this.generateExplanations(predictionRecord.id, run.id, features);
@@ -97,6 +100,78 @@ export class PredictionEngineService implements PredictionExplanationQuery {
       .from(predictionExplanations)
       .where(eq(predictionExplanations.predictionId, predictionId))
       .orderBy(desc(predictionExplanations.importance));
+  }
+
+  /**
+   * Full prediction lineage: links a prediction back to the exact feature snapshot
+   * and model version used to produce it. Enables reproducibility and audit.
+   */
+  async getLineage(orgId: string, predictionId: number): Promise<{
+    prediction: {
+      id: number;
+      predictionTimestamp: Date | null;
+      failureProbability: number;
+      riskLevel: string;
+      remainingUsefulLife: number | null;
+    };
+    modelVersion: { id: string } | null;
+    featureSetVersion: string | null;
+    featureSnapshot: {
+      id: string;
+      timestamp: Date;
+      windowMinutes: number | null;
+      values: Record<string, number | null>;
+    } | null;
+  } | null> {
+    const [prediction] = await db.select()
+      .from(failurePredictions)
+      .where(and(eq(failurePredictions.id, predictionId), eq(failurePredictions.orgId, orgId)))
+      .limit(1);
+
+    if (!prediction) return null;
+
+    let featureSnapshot = null;
+    if (prediction.featureSnapshotId) {
+      const [snap] = await db.select()
+        .from(equipmentFeatures)
+        .where(and(
+          eq(equipmentFeatures.id, prediction.featureSnapshotId),
+          eq(equipmentFeatures.orgId, orgId),
+        ))
+        .limit(1);
+      if (snap) {
+        featureSnapshot = {
+          id: snap.id,
+          timestamp: snap.timestamp,
+          windowMinutes: snap.windowMinutes,
+          values: {
+            meanTemp: snap.meanTemp,
+            stdTemp: snap.stdTemp,
+            meanVibration: snap.meanVibration,
+            stdVibration: snap.stdVibration,
+            rmsVibration: snap.rmsVibration,
+            peakToPeak: snap.peakToPeak,
+            meanPressure: snap.meanPressure,
+            stdPressure: snap.stdPressure,
+            kurtosis: snap.kurtosis,
+            skewness: snap.skewness,
+          },
+        };
+      }
+    }
+
+    return {
+      prediction: {
+        id: prediction.id,
+        predictionTimestamp: prediction.predictionTimestamp,
+        failureProbability: prediction.failureProbability,
+        riskLevel: prediction.riskLevel,
+        remainingUsefulLife: prediction.remainingUsefulLife,
+      },
+      modelVersion: prediction.modelVersionId ? { id: prediction.modelVersionId } : null,
+      featureSetVersion: prediction.featureSetVersion ?? null,
+      featureSnapshot,
+    };
   }
 
   private async resolveActiveVersion(orgId: string): Promise<string | undefined> {

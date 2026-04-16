@@ -199,6 +199,7 @@ export const failurePredictions = pgTable(
     predictionValidUntil: timestamp("prediction_valid_until", { withTimezone: true }),
     modelVersionId: varchar("model_version_id").references(() => modelVersions.id),
     featureSetVersion: varchar("feature_set_version", { length: 100 }),
+    featureSnapshotId: varchar("feature_snapshot_id"),
     reviewStatus: varchar("review_status", { length: 50 }).default("pending"),
     reviewedBy: varchar("reviewed_by", { length: 255 }),
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
@@ -211,6 +212,8 @@ export const failurePredictions = pgTable(
     predictionTimeIdx: index("idx_failure_prediction_time").on(table.predictionTimestamp),
     orgReviewStatusIdx: index("idx_failure_pred_org_review").on(table.orgId, table.reviewStatus),
     orgValidUntilIdx: index("idx_failure_pred_org_valid_until").on(table.orgId, table.predictionValidUntil),
+    modelVersionIdx: index("idx_failure_pred_model_version").on(table.orgId, table.modelVersionId),
+    featureSnapshotIdx: index("idx_failure_pred_feature_snapshot").on(table.orgId, table.featureSnapshotId),
   })
 );
 

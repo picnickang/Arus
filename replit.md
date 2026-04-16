@@ -51,6 +51,7 @@ Developed with Express.js and TypeScript, offering RESTful APIs with Zod validat
 -   **Suggestion Outcome Tracking**: Records outcome categories for agent suggestions with effectiveness summary.
 -   **Daily Operations Briefing**: Automated shift-start summary persisted as structured entity with key operational sections and AI-generated executive summary.
 -   **Financial Layer**: Three-part cost integrity system covering procurement to WO cost flow, decision-point cost context for AI suggestions, and savings claim integrity with validation.
+-   **Prediction Lineage**: Every `failurePredictions` row now carries `modelVersionId`, `featureSetVersion`, and `featureSnapshotId` — a FK-capable pointer to the exact `equipmentFeatures` row used at inference time. Lineage query endpoint at `GET /api/pdm/infer/predictions/:id/lineage` returns the prediction, model version, feature set version, and full snapshot values for audit and reproducibility.
 
 ## System Design Choices
 

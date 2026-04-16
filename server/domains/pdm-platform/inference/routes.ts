@@ -37,4 +37,17 @@ router.get("/predictions/:predictionId/explanations", async (req: Request, res: 
   }
 });
 
+router.get("/predictions/:predictionId/lineage", async (req: Request, res: Response) => {
+  try {
+    const orgId = req.headers["x-org-id"] as string;
+    const predictionId = parseInt(req.params.predictionId);
+    if (isNaN(predictionId)) return res.status(400).json({ error: "Invalid predictionId" });
+    const result = await predictionEngine.getLineage(orgId, predictionId);
+    if (!result) return res.status(404).json({ error: "Prediction not found" });
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export { router as inferenceRouter };
