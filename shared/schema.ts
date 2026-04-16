@@ -137,4 +137,11 @@ export const insertShiftTemplateSchema = createInsertSchema(shiftTemplate);
 // insertMaintenanceChecklistCompletionSchema, insertMaintenanceChecklistItemSchema are exported from modular schema
 
 // Validation schemas are in shared/validation/ — imported directly or via schema-runtime.ts
-export * from "./validation";
+// Selective re-exports to avoid binding conflicts with ./schema/* (sensors, costs, ml, entities)
+export * from "./validation/admin";
+export * from "./validation/query-filters";
+export * from "./validation/datetime";
+export * from "./validation/marine";
+export * from "./validation/j1939";
+export * from "./validation/pdm";
+export * from "./validation/telemetry";

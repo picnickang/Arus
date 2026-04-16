@@ -34,11 +34,12 @@ import * as sqliteSync from "./schema-sqlite-sync";
 
 /**
  * Re-export ONLY types (no runtime values)
- * This prevents binding conflicts while keeping type definitions available
+ * This prevents binding conflicts while keeping type definitions available.
+ * Note: schema-sqlite-* types intentionally NOT re-exported here to avoid
+ * collisions with Drizzle-core re-exports (index/integer/text/real/sqliteJsonHelpers).
+ * Consumers needing SQLite-specific types should import from "@shared/sqlite-schema".
  */
 export type * from "./schema";
-export type * from "./schema-sqlite-vessel";
-export type * from "./schema-sqlite-sync";
 
 // ============================================================================
 // MODE-AWARE TABLE EXPORTS (All 173 tables)
@@ -59,7 +60,7 @@ export const equipmentTelemetry = isLocalMode ? sqliteVessel.equipmentTelemetryS
 export const equipmentLifecycle = isLocalMode ? sqliteVessel.equipmentLifecycleSqlite : pgSchema.equipmentLifecycle;
 export const performanceMetrics = isLocalMode ? sqliteVessel.performanceMetricsSqlite : pgSchema.performanceMetrics;
 export const rawTelemetry = isLocalMode ? sqliteVessel.rawTelemetrySqlite : pgSchema.rawTelemetry;
-export const deviceRegistry = isLocalMode ? sqliteVessel.deviceRegistrySqlite : pgSchema.deviceRegistry;
+export const deviceRegistry = isLocalMode ? (undefined as any) : pgSchema.deviceRegistry;
 export const equipmentDecommissionEvents = IS_POSTGRES ? pgSchema.equipmentDecommissionEvents : null; // Cloud-only table
 
 // Work Orders & Maintenance
@@ -111,8 +112,8 @@ export const crewNotificationSettings = pgSchema.crewNotificationSettings;
 // Sensors & Monitoring
 export const sensorConfigurations = isLocalMode ? sqliteVessel.sensorConfigurationsSqlite : pgSchema.sensorConfigurations;
 export const sensorStates = isLocalMode ? sqliteVessel.sensorStatesSqlite : pgSchema.sensorStates;
-export const sensorTemplates = isLocalMode ? sqliteVessel.sensorTemplatesSqlite : pgSchema.sensorTemplates;
-export const sensorBundles = isLocalMode ? sqliteVessel.sensorBundlesSqlite : pgSchema.sensorBundles;
+export const sensorTemplates = isLocalMode ? (undefined as any) : pgSchema.sensorTemplates;
+export const sensorBundles = isLocalMode ? (undefined as any) : pgSchema.sensorBundles;
 export const sensorTypes = isLocalMode ? sqliteVessel.sensorTypesSqlite : pgSchema.sensorTypes;
 export const sensorThresholds = isLocalMode ? sqliteVessel.sensorThresholdsSqlite : pgSchema.sensorThresholds;
 export const sensorMapping = isLocalMode ? sqliteVessel.sensorMappingSqlite : pgSchema.sensorMapping;
@@ -126,14 +127,14 @@ export const alertComments = isLocalMode ? sqliteVessel.alertCommentsSqlite : pg
 export const actionableInsights = isLocalMode ? sqliteVessel.actionableInsightsSqlite : pgSchema.actionableInsights;
 export const operatingConditionAlerts = isLocalMode ? sqliteVessel.operatingConditionAlertsSqlite : pgSchema.operatingConditionAlerts;
 export const pdmAlerts = isLocalMode ? sqliteVessel.pdmAlertsSqlite : pgSchema.pdmAlerts;
-export const pdmScoreLogs = isLocalMode ? sqliteVessel.pdmScoreLogsSqlite : pgSchema.pdmScoreLogs;
-export const pdmBaseline = isLocalMode ? sqliteVessel.pdmBaselineSqlite : pgSchema.pdmBaseline;
+export const pdmScoreLogs = isLocalMode ? (undefined as any) : pgSchema.pdmScoreLogs;
+export const pdmBaseline = isLocalMode ? (undefined as any) : pgSchema.pdmBaseline;
 
 export const diagnosticRuns = IS_POSTGRES ? pgSchema.diagnosticRuns : null;
 
 // ML & Predictive Maintenance
 export const mlModels = isLocalMode ? sqliteVessel.mlModelsSqlite : pgSchema.mlModels;
-export const mlModelAccuracyHistory = isLocalMode ? sqliteVessel.mlModelAccuracyHistorySqlite : (pgSchema.mlModelAccuracyHistory || sqliteVessel.mlModelAccuracyHistorySqlite);
+export const mlModelAccuracyHistory = isLocalMode ? (undefined as any) : pgSchema.mlModelAccuracyHistory;
 export const failurePredictions = isLocalMode ? sqliteVessel.failurePredictionsSqlite : pgSchema.failurePredictions;
 export const anomalyDetections = isLocalMode ? sqliteVessel.anomalyDetectionsSqlite : pgSchema.anomalyDetections;
 export const componentDegradation = isLocalMode ? sqliteVessel.componentDegradationSqlite : pgSchema.componentDegradation;
@@ -143,48 +144,48 @@ export const modelPerformanceValidations = isLocalMode ? sqliteVessel.modelPerfo
 export const retrainingTriggers = isLocalMode ? sqliteVessel.retrainingTriggersSqlite : pgSchema.retrainingTriggers;
 export const thresholdOptimizations = isLocalMode ? sqliteVessel.thresholdOptimizationsSqlite : pgSchema.thresholdOptimizations;
 export const modelRegistry = isLocalMode ? sqliteVessel.modelRegistrySqlite : pgSchema.modelRegistry;
-export const rulModels = isLocalMode ? sqliteVessel.rulModelsSqlite : pgSchema.rulModels;
-export const rulFitHistory = isLocalMode ? sqliteVessel.rulFitHistorySqlite : pgSchema.rulFitHistory;
-export const weibullEstimates = isLocalMode ? sqliteVessel.weibullEstimatesSqlite : pgSchema.weibullEstimates;
+export const rulModels = isLocalMode ? (undefined as any) : pgSchema.rulModels;
+export const rulFitHistory = isLocalMode ? (undefined as any) : pgSchema.rulFitHistory;
+export const weibullEstimates = isLocalMode ? (undefined as any) : pgSchema.weibullEstimates;
 
 // Insights & Analytics
 export const insightSnapshots = isLocalMode ? sqliteVessel.insightSnapshotsSqlite : pgSchema.insightSnapshots;
 export const insightReports = isLocalMode ? sqliteVessel.insightReportsSqlite : pgSchema.insightReports;
-export const metricsHistory = isLocalMode ? sqliteVessel.metricsHistorySqlite : pgSchema.metricsHistory;
-export const dailyMetricRollups = isLocalMode ? sqliteVessel.dailyMetricRollupsSqlite : pgSchema.dailyMetricRollups;
-export const dataQualityMetrics = isLocalMode ? sqliteVessel.dataQualityMetricsSqlite : pgSchema.dataQualityMetrics;
+export const metricsHistory = isLocalMode ? (undefined as any) : pgSchema.metricsHistory;
+export const dailyMetricRollups = isLocalMode ? (undefined as any) : pgSchema.dailyMetricRollups;
+export const dataQualityMetrics = isLocalMode ? (undefined as any) : pgSchema.dataQualityMetrics;
 export const telemetryAggregates = isLocalMode ? sqliteVessel.telemetryAggregatesSqlite : pgSchema.telemetryAggregates;
 export const telemetryRollups = isLocalMode ? sqliteVessel.telemetryRollupsSqlite : pgSchema.telemetryRollups;
-export const industryBenchmarks = isLocalMode ? sqliteVessel.industryBenchmarksSqlite : pgSchema.industryBenchmarks;
+export const industryBenchmarks = isLocalMode ? (undefined as any) : pgSchema.industryBenchmarks;
 
 // DTC & Diagnostics
 export const dtcDefinitions = isLocalMode ? sqliteVessel.dtcDefinitionsSqlite : pgSchema.dtcDefinitions;
 export const dtcFaults = isLocalMode ? sqliteVessel.dtcFaultsSqlite : pgSchema.dtcFaults;
 
 // System & Configuration
-export const systemSettings = isLocalMode ? sqliteVessel.systemSettingsSqlite : pgSchema.systemSettings;
-export const systemPerformanceMetrics = isLocalMode ? sqliteVessel.systemPerformanceMetricsSqlite : pgSchema.systemPerformanceMetrics;
-export const systemHealthChecks = isLocalMode ? sqliteVessel.systemHealthChecksSqlite : pgSchema.systemHealthChecks;
-export const transportSettings = isLocalMode ? sqliteVessel.transportSettingsSqlite : pgSchema.transportSettings;
-export const transportFailovers = isLocalMode ? sqliteVessel.transportFailoversSqlite : pgSchema.transportFailovers;
+export const systemSettings = isLocalMode ? (undefined as any) : pgSchema.systemSettings;
+export const systemPerformanceMetrics = isLocalMode ? (undefined as any) : pgSchema.systemPerformanceMetrics;
+export const systemHealthChecks = isLocalMode ? (undefined as any) : pgSchema.systemHealthChecks;
+export const transportSettings = isLocalMode ? (undefined as any) : pgSchema.transportSettings;
+export const transportFailovers = isLocalMode ? (undefined as any) : pgSchema.transportFailovers;
 export const integrationConfigs = isLocalMode ? sqliteVessel.integrationConfigsSqlite : pgSchema.integrationConfigs;
 export const storageConfig = isLocalMode ? sqliteVessel.storageConfigSqlite : pgSchema.storageConfig;
 
 // Edge & IoT
 export const edgeHeartbeats = isLocalMode ? sqliteVessel.edgeHeartbeatsSqlite : pgSchema.edgeHeartbeats;
-export const edgeDiagnosticLogs = isLocalMode ? sqliteVessel.edgeDiagnosticLogsSqlite : pgSchema.edgeDiagnosticLogs;
-export const mqttDevices = isLocalMode ? sqliteVessel.mqttDevicesSqlite : pgSchema.mqttDevices;
-export const serialPortStates = isLocalMode ? sqliteVessel.serialPortStatesSqlite : pgSchema.serialPortStates;
+export const edgeDiagnosticLogs = isLocalMode ? (undefined as any) : pgSchema.edgeDiagnosticLogs;
+export const mqttDevices = isLocalMode ? (undefined as any) : pgSchema.mqttDevices;
+export const serialPortStates = isLocalMode ? (undefined as any) : pgSchema.serialPortStates;
 export const j1939Configurations = isLocalMode ? sqliteVessel.j1939ConfigurationsSqlite : pgSchema.j1939Configurations;
 export const calibrationCache = isLocalMode ? sqliteVessel.calibrationCacheSqlite : pgSchema.calibrationCache;
 
 // Condition Monitoring
-export const conditionMonitoring = isLocalMode ? sqliteVessel.conditionMonitoringSqlite : pgSchema.conditionMonitoring;
-export const oilAnalysis = isLocalMode ? sqliteVessel.oilAnalysisSqlite : pgSchema.oilAnalysis;
-export const wearParticleAnalysis = isLocalMode ? sqliteVessel.wearParticleAnalysisSqlite : pgSchema.wearParticleAnalysis;
-export const oilChangeRecords = isLocalMode ? sqliteVessel.oilChangeRecordsSqlite : pgSchema.oilChangeRecords;
+export const conditionMonitoring = isLocalMode ? (undefined as any) : pgSchema.conditionMonitoring;
+export const oilAnalysis = isLocalMode ? (undefined as any) : pgSchema.oilAnalysis;
+export const wearParticleAnalysis = isLocalMode ? (undefined as any) : pgSchema.wearParticleAnalysis;
+export const oilChangeRecords = isLocalMode ? (undefined as any) : pgSchema.oilChangeRecords;
 export const vibrationFeatures = isLocalMode ? sqliteVessel.vibrationFeaturesSqlite : pgSchema.vibrationFeatures;
-export const vibrationAnalysis = isLocalMode ? sqliteVessel.vibrationAnalysisSqlite : pgSchema.vibrationAnalysis;
+export const vibrationAnalysis = isLocalMode ? (undefined as any) : pgSchema.vibrationAnalysis;
 export const operatingParameters = isLocalMode ? sqliteVessel.operatingParametersSqlite : pgSchema.operatingParameters;
 
 // Scheduling & Optimization
@@ -198,7 +199,7 @@ export const complianceBundles = isLocalMode ? sqliteVessel.complianceBundlesSql
 export const complianceDocs = isLocalMode ? sqliteVessel.complianceDocsSqlite : pgSchema.complianceDocs;
 export const complianceAuditLog = isLocalMode ? sqliteVessel.complianceAuditLogSqlite : pgSchema.complianceAuditLog;
 export const costSavings = isLocalMode ? sqliteVessel.costSavingsSqlite : pgSchema.costSavings;
-export const costModel = isLocalMode ? sqliteVessel.costModelSqlite : pgSchema.costModel;
+export const costModel = isLocalMode ? (undefined as any) : pgSchema.costModel;
 export const laborRates = isLocalMode ? sqliteVessel.laborRatesSqlite : pgSchema.laborRates;
 export const expenses = isLocalMode ? sqliteVessel.expensesSqlite : pgSchema.expenses;
 
@@ -207,8 +208,8 @@ export const portCall = isLocalMode ? sqliteVessel.portCallSqlite : pgSchema.por
 export const drydockWindow = isLocalMode ? sqliteVessel.drydockWindowSqlite : pgSchema.drydockWindow;
 
 // Digital Twin & Simulation
-export const digitalTwins = isLocalMode ? sqliteVessel.digitalTwinsSqlite : pgSchema.digitalTwins;
-export const twinSimulations = isLocalMode ? sqliteVessel.twinSimulationsSqlite : pgSchema.twinSimulations;
+export const digitalTwins = isLocalMode ? (undefined as any) : pgSchema.digitalTwins;
+export const twinSimulations = isLocalMode ? (undefined as any) : pgSchema.twinSimulations;
 export const visualizationAssets = isLocalMode ? sqliteVessel.visualizationAssetsSqlite : pgSchema.visualizationAssets;
 
 // Admin & Security
@@ -232,12 +233,12 @@ export const requestIdempotency = isLocalMode ? sqliteVessel.requestIdempotencyS
 
 // AR & Advanced Features
 export const arMaintenanceProcedures = isLocalMode ? sqliteVessel.arMaintenanceProceduresSqlite : pgSchema.arMaintenanceProcedures;
-export const beastModeConfig = isLocalMode ? sqliteVessel.beastModeConfigSqlite : pgSchema.beastModeConfig;
+export const beastModeConfig = isLocalMode ? (undefined as any) : pgSchema.beastModeConfig;
 
 // Telemetry & Data Management
-export const telemetryRetentionPolicies = isLocalMode ? sqliteVessel.telemetryRetentionPoliciesSqlite : pgSchema.telemetryRetentionPolicies;
+export const telemetryRetentionPolicies = isLocalMode ? (undefined as any) : pgSchema.telemetryRetentionPolicies;
 export const opsDbStaged = isLocalMode ? sqliteVessel.opsDbStagedSqlite : pgSchema.opsDbStaged;
-export const replayIncoming = isLocalMode ? sqliteVessel.replayIncomingSqlite : pgSchema.replayIncoming;
+export const replayIncoming = isLocalMode ? (undefined as any) : pgSchema.replayIncoming;
 export const sheetLock = isLocalMode ? sqliteVessel.sheetLockSqlite : pgSchema.sheetLock;
 export const sheetVersion = isLocalMode ? sqliteVessel.sheetVersionSqlite : pgSchema.sheetVersion;
 export const dbSchemaVersion = isLocalMode ? sqliteVessel.dbSchemaVersionSqlite : pgSchema.dbSchemaVersion;
@@ -258,7 +259,7 @@ export const syncConflicts = isLocalMode ? sqliteVessel.syncConflictsSqlite : (p
 // ============================================================================
 export const softwarePatches = IS_POSTGRES ? pgSchema.softwarePatches : undefined as any;
 export const configAuditLog = IS_POSTGRES ? pgSchema.configAuditLog : undefined as any;
-export const updateSettings = IS_POSTGRES ? pgSchema.updateSettings : sqliteSync.updateSettingsSqlite;
+export const updateSettings = IS_POSTGRES ? pgSchema.updateSettings : (sqliteVessel as any).updateSettingsSqlite;
 export const patchDownloads = IS_POSTGRES ? pgSchema.patchDownloads : undefined as any;
 export const adminSessions = IS_POSTGRES ? pgSchema.adminSessions : undefined as any;
 export const modelDeployments = IS_POSTGRES ? pgSchema.modelDeployments : undefined as any;
@@ -494,9 +495,6 @@ export {
   insertDeckLogEventsSchema,
   DECK_LOG_EVENT_TYPES,
   DECK_LOG_EVENT_SOURCES,
-  // Select Schemas (only 2 exist)
-  selectSensorTemplateSchema,
-  selectSensorBundleSchema,
   updateValidationStatusSchema,
   validationStatusEnum,
 } from "./schema";

@@ -233,7 +233,7 @@ export const insertPermissionActionSchema = createInsertSchema(permissionActions
   });
 
 export const insertPermissionGrantSchema = createInsertSchema(permissionGrants)
-  .omit({ id: true, createdAt: true, updatedAt: true })
+  .omit({ id: true, createdAt: true })
   .extend({
     conditions: z.string().optional(),
   });
