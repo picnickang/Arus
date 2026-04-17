@@ -246,3 +246,9 @@ id = "XgQq1FeyUH__dyKmAmvmm"
 uri = "file://arus-windows-installer.tar.gz"
 type = "unspecified"
 title = "ARUS Windows Installer Files (tar.gz, 27 KB)"
+
+[[outputs]]
+id = "-FwxZHrfcnPkQfrFRuaWY"
+uri = "file://.local/arus-bugs.tar.gz"
+type = "unspecified"
+title = "ARUS Bug Bundle (174 KB)"
