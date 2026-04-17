@@ -252,3 +252,9 @@ id = "-FwxZHrfcnPkQfrFRuaWY"
 uri = "file://.local/arus-bugs.tar.gz"
 type = "unspecified"
 title = "ARUS Bug Bundle (174 KB)"
+
+[[outputs]]
+id = "VwJDCDNoOOBLc73EeWJUI"
+uri = "file://.local/arus-runtime-schema.tar.gz"
+type = "unspecified"
+title = "ARUS Runtime Schema (120 KB)"
