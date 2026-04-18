@@ -224,27 +224,26 @@
     },
     "maintenanceChecklistItems": {
       "pgOnly": [
+        "acceptanceCriteria",
         "estimatedMinutes",
-        "isRequired",
-        "sortOrder"
+        "expectedResult",
+        "imageUrl",
+        "orgId",
+        "safetyWarning"
       ],
-      "sqliteOnly": [
-        "category",
-        "required",
-        "stepNumber",
-        "title"
-      ]
+      "sqliteOnly": []
     },
     "maintenanceChecklistCompletions": {
       "pgOnly": [
-        "checklistItemId",
+        "actualValue",
         "completedBy",
-        "isCompleted",
-        "orgId"
+        "notes",
+        "orgId",
+        "passed",
+        "photoUrls",
+        "status"
       ],
-      "sqliteOnly": [
-        "itemId"
-      ],
+      "sqliteOnly": [],
       "typeDrift": [
         "completedAt"
       ]

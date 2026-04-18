@@ -250,21 +250,21 @@ export class SuggestionEngine {
     const overdueMaint = await db.select({
       id: maintenanceSchedules.id,
       equipmentId: maintenanceSchedules.equipmentId,
-      scheduledDate: maintenanceSchedules.scheduledDate,
+      scheduledDate: maintenanceSchedules.nextScheduledDate,
       maintenanceType: maintenanceSchedules.maintenanceType,
       description: maintenanceSchedules.description,
     }).from(maintenanceSchedules)
       .where(and(
         eq(maintenanceSchedules.orgId, orgId),
         eq(maintenanceSchedules.status, "scheduled"),
-        lte(maintenanceSchedules.scheduledDate, new Date(Date.now() - 24 * 60 * 60 * 1000)),
+        lte(maintenanceSchedules.nextScheduledDate, new Date(Date.now() - 24 * 60 * 60 * 1000)),
       ))
       .limit(10);
 
     for (const maint of overdueMaint) {
       const dedupKey = `overdue_maintenance:${maint.id}`;
       if (pendingKeys.has(dedupKey)) continue;
-      const daysOverdue = Math.floor((Date.now() - new Date(maint.scheduledDate).getTime()) / (24 * 60 * 60 * 1000));
+      const daysOverdue = Math.floor((Date.now() - new Date(maint.nextScheduledDate).getTime()) / (24 * 60 * 60 * 1000));
       const severity = daysOverdue > 7 ? "critical" : "warning";
       if (!meetsMinSeverity(severity, minSeverity)) continue;
       const sug = await this.repo.suggestions.create({

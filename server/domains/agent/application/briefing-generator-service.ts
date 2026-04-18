@@ -159,7 +159,7 @@ export class BriefingGeneratorService {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
       for (const maint of records) {
-        const isOverdue = new Date(maint.scheduledDate) < todayStart;
+        const isOverdue = new Date(maint.nextScheduledDate) < todayStart;
         items.push({
           id: maint.id,
           title: `${maint.maintenanceType} — ${maint.equipmentId}`,

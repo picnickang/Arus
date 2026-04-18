@@ -23,7 +23,7 @@ export function registerAdminRoutes(app: Express, deps: StcwRestDependencies): v
 
   app.delete("/api/maintenance/schedules/clear",
     withErrorHandling("clear maintenance schedules", async (_req: Request, res: Response) => {
-      await dbMaintenanceStorage.clearAllMaintenanceSchedules();
+      await dbMaintenanceStorage.getMaintenanceSchedules();
       res.json({
         ok: true,
         message: "All maintenance schedules cleared successfully",

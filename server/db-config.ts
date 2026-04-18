@@ -296,6 +296,12 @@ export { initializeLocalDatabase };
 let dbInstance: ReturnType<typeof drizzlePgWs> | ReturnType<typeof drizzlePgHttp> | ReturnType<typeof drizzlePgNode> | ReturnType<typeof drizzleSqlite> | null = 
   isLocalMode ? localDatabase : cloudDatabase;
 
+// Type alias: expose the PG-WebSocket variant as the canonical query-builder type.
+// All three PG drivers (ws, http, node) share the same query-builder API, and
+// SQLite's libsql driver is interchangeable for our storage layer's purposes.
+// This gives downstream consumers a concrete query-builder type instead of `any`.
+type DbType = ReturnType<typeof drizzlePgWs<typeof schema>>;
+
 // Export the appropriate database instance based on mode
 // This will be null initially in local mode, then set after initializeLocalDatabase()
 export const db = new Proxy({} as any, {
@@ -324,13 +330,18 @@ export const db = new Proxy({} as any, {
     if (!dbInstance) {return undefined;}
     return Reflect.getOwnPropertyDescriptor(dbInstance, prop);
   }
-});
+}) as DbType;
+
+// Helper alias for transaction callback parameter typing.
+// Use this in repository methods instead of the awkward
+//   `Parameters<Parameters<typeof db.transaction>[0]>[0]` pattern.
+export type DbTransaction = Parameters<Parameters<DbType["transaction"]>[0]>[0];
+
+// Type-safe database type alias for downstream consumers
+export type Database = DbType;
 
 export const pool = pgPool;
 export const libsqlClient = localClient;
-
-// Type-safe database instance
-export type Database = typeof db;
 
 // Mode-aware table exports for storage layer
 // These provide a unified interface regardless of PostgreSQL vs SQLite

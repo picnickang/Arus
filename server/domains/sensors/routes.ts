@@ -96,7 +96,7 @@ router.get("/summary", requireOrgId, async (req: Request, res: Response) => {
       if (row.calibration_status === "overdue") summary.overdue += count;
       if (row.calibration_status === "failed") summary.failed += count;
       if (row.calibration_status === "unknown") summary.unknown += count;
-      summary.byType[row.sensor_type] = (summary.byType[row.sensor_type] || 0) + count;
+      summary.byType[row.sensorType] = (summary.byType[row.sensorType] || 0) + count;
     }
 
     summary.dataQualityScore = summary.total > 0

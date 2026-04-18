@@ -42,7 +42,7 @@ router.get('/ml-governance/overrides/:id', requireAdminAuth, requireComplianceAc
     const orgId = req.headers['x-org-id'] as string;
     const { id } = req.params;
     if (!orgId) { return res.status(401).json({ error: 'Organization ID required' }); }
-    const override = await dbMlAnalyticsStorage.getEngineerOverride(id, orgId);
+    const override = await dbMlAnalyticsStorage.getEngineerOverrides(id, orgId);
     if (!override) { return res.status(404).json({ error: 'Engineer override not found' }); }
     res.json({ success: true, data: override });
   } catch (error) {
@@ -72,11 +72,11 @@ router.patch('/ml-governance/overrides/:id/outcome', requireAdminAuth, auditAdmi
     const orgId = req.headers['x-org-id'] as string;
     const { id } = req.params;
     if (!orgId) { return res.status(401).json({ error: 'Organization ID required' }); }
-    const existingOverride = await dbMlAnalyticsStorage.getEngineerOverride(id, orgId);
+    const existingOverride = await dbMlAnalyticsStorage.getEngineerOverrides(id, orgId);
     if (!existingOverride) { return res.status(404).json({ error: 'Engineer override not found' }); }
     const validatedData = updateOutcomeSchema.parse(req.body);
     const outcomeRecordedBy = (req as any).adminId || 'admin';
-    const override = await dbMlAnalyticsStorage.updateEngineerOverrideOutcome(id, { ...validatedData, outcomeRecordedBy }, orgId);
+    const override = await dbMlAnalyticsStorage.updateEngineerOverride(id, { ...validatedData, outcomeRecordedBy }, orgId);
     await recordOverrideOutcome({ overrideId: id, equipmentId: existingOverride.equipmentId, vesselId: undefined, originalOverrideType: existingOverride.overrideType as 'defer' | 'escalate' | 'dismiss' | 'modify', outcomeStatus: validatedData.outcomeStatus as 'pending' | 'validated' | 'failure_prevented' | 'failure_occurred', outcomeNotes: validatedData.outcomeNotes, outcomeRecordedBy, engineerId: existingOverride.engineerId, engineerName: existingOverride.engineerName, orgId });
     await auditService.logEvent({ orgId, eventCategory: 'ml_prediction', eventType: 'engineer_override_outcome_updated', entityType: 'engineer_override', entityId: id, previousState: { outcomeStatus: existingOverride.outcomeStatus }, newState: { outcomeStatus: validatedData.outcomeStatus, outcomeNotes: validatedData.outcomeNotes }, performedBy: outcomeRecordedBy, performedByType: 'user', retentionRequired: true });
     res.json({ success: true, data: override, message: 'Engineer override outcome updated and logged to provenance chain' });

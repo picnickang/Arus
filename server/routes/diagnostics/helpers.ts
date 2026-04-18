@@ -27,7 +27,7 @@ export async function checkTelemetry(): Promise<CheckResult> {
   try {
     const { telemetryBatchWriter } = await import("../../telemetry-batch-writer.js");
     const stats = telemetryBatchWriter.getStats();
-    const bufferUtilization = stats.maxBufferSize > 0 ? (stats.currentBufferSize / stats.maxBufferSize) * 100 : 0;
+    const bufferUtilization = stats.bufferSize > 0 ? (stats.currentBufferSize / stats.bufferSize) * 100 : 0;
     if (bufferUtilization > 90) { return { status: 'warn', message: 'Telemetry buffer near capacity', details: { bufferUtilization: Math.round(bufferUtilization) } }; }
     return { status: 'pass', details: { bufferUtilization: Math.round(bufferUtilization), totalWritten: stats.totalWritten } };
   } catch { return { status: 'warn', message: 'Telemetry service not available' }; }

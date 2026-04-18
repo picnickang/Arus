@@ -197,7 +197,7 @@ export default function ScheduledReports() {
         await queryClient.invalidateQueries({ queryKey: ['/api/scheduled-reports/schedules'] });
         const fresh = queryClient.getQueryData<{ data: ReportSchedule[] }>(['/api/scheduled-reports/schedules']);
         const updated = fresh?.data?.find((s) => s.id === scheduleId);
-        if (updated?.lastRunAt && updated.lastRunAt !== initialLastRunAt) {
+        if (updated?.lastRun && updated.lastRun !== initialLastRunAt) {
           clearInterval(timer);
           pollingTimersRef.current.delete(scheduleId);
           toast({ title: 'Report ready', description: `"${updated.name}" has finished generating.` });
@@ -217,7 +217,7 @@ export default function ScheduledReports() {
     },
     onSuccess: (schedule) => {
       toast({ title: 'Report generating', description: 'Your report is being generated.' });
-      pollForCompletion(schedule.id, schedule.lastRunAt);
+      pollForCompletion(schedule.id, schedule.lastRun);
     },
     onError: () => {
       toast({ title: 'Error', description: 'Failed to run report.', variant: 'destructive' });
@@ -460,14 +460,14 @@ export default function ScheduledReports() {
                   </Badge>
                 </div>
                 <div className="text-sm text-muted-foreground space-y-1">
-                  <p>Last run: {formatDate(schedule.lastRunAt)}</p>
+                  <p>Last run: {formatDate(schedule.lastRun)}</p>
                   <p>Next run: {formatDate(schedule.nextRunAt)}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => runNowMutation.mutate({ id: schedule.id, lastRunAt: schedule.lastRunAt })}
+                    onClick={() => runNowMutation.mutate({ id: schedule.id, lastRunAt: schedule.lastRun })}
                     disabled={runNowMutation.isPending}
                     data-testid={`button-run-${schedule.id}`}
                   >

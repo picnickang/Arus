@@ -50,7 +50,7 @@ export function registerExportPartialRoutes(app: Express, config: MlAnalyticsCon
           hyperparameters: m.hyperparameters,
           performanceMetrics: m.performanceMetrics,
           featureImportance: m.featureImportance,
-          deployedAt: m.deployedAt,
+          deployedAt: m.deployedOn,
           createdAt: m.createdAt,
         })),
       };

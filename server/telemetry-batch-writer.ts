@@ -154,7 +154,7 @@ export class TelemetryBatchWriter extends EventEmitter {
 
     logger.info("TelemetryBatchWriter", "Initialized with config", {
       batchIntervalMs: this.config.batchIntervalMs,
-      maxBufferSize: this.config.maxBufferSize,
+      maxBufferSize: this.config.bufferSize,
       evictionPercent: this.config.evictionPercent,
       maxRetries: this.config.maxRetries,
     });
@@ -240,7 +240,7 @@ export class TelemetryBatchWriter extends EventEmitter {
     buffer.push(reading);
     this.stats.totalQueued++;
 
-    const perVesselMax = Math.floor(this.config.maxBufferSize / Math.max(this.vesselBuffers.size, 1));
+    const perVesselMax = Math.floor(this.config.bufferSize / Math.max(this.vesselBuffers.size, 1));
     if (buffer.length >= perVesselMax) {
       this.evictOldestFromVessel(vesselId);
     }
@@ -268,7 +268,7 @@ export class TelemetryBatchWriter extends EventEmitter {
     const buffer = this.vesselBuffers.get(vesselId);
     if (!buffer || buffer.length === 0) return;
 
-    const perVesselMax = Math.floor(this.config.maxBufferSize / Math.max(this.vesselBuffers.size, 1));
+    const perVesselMax = Math.floor(this.config.bufferSize / Math.max(this.vesselBuffers.size, 1));
     const evictCount = Math.floor(perVesselMax * this.config.evictionPercent);
     const evicted = buffer.splice(0, evictCount);
 
@@ -370,7 +370,7 @@ export class TelemetryBatchWriter extends EventEmitter {
         }
         
         for (const vesselId of this.vesselBuffers.keys()) {
-          const perVesselMax = Math.floor(this.config.maxBufferSize / Math.max(this.vesselBuffers.size, 1));
+          const perVesselMax = Math.floor(this.config.bufferSize / Math.max(this.vesselBuffers.size, 1));
           const buffer = this.vesselBuffers.get(vesselId)!;
           if (buffer.length > perVesselMax) {
             this.evictOldestFromVessel(vesselId);

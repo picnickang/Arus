@@ -26,7 +26,10 @@ export type EntityType =
   | "parts_inventory"
   | "inventory_movement"
   | "equipment"
-  | "sync";
+  | "sync"
+  | "maintenance_template"
+  | "maintenance_checklist_item"
+  | "maintenance_checklist_completion";
 
 // Operation types for journal entries
 export type OperationType = "create" | "update" | "delete" | "reconcile";
@@ -78,7 +81,16 @@ export type EventType =
   | "sync.reconciled"
   | "cost.synced"
   | "reconcile.completed"
-  | "inventory.optimized";
+  | "inventory.optimized"
+  | "maintenance_template.created"
+  | "maintenance_template.updated"
+  | "maintenance_template.deleted"
+  | "maintenance_checklist_item.created"
+  | "maintenance_checklist_item.updated"
+  | "maintenance_checklist_item.deleted"
+  | "maintenance_checklist_completion.created"
+  | "maintenance_checklist_completion.updated"
+  | "maintenance_checklist_completion.deleted";
 
 /**
  * Record an operation in the sync journal for audit trails

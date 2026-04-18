@@ -37,9 +37,9 @@ export function registerVPSRoutes(app: Express, config: VesselPerformanceRoutesC
       const timestamp = new Date(reading.timestamp).getTime();
       if (!telemetryMap.has(timestamp)) {telemetryMap.set(timestamp, {});}
       const entry = telemetryMap.get(timestamp)!;
-      if (reading.sensor_type === "rpm" || reading.sensor_type === "engine_rpm") {entry.rpm = reading.value;}
-      else if (reading.sensor_type === "shaft_torque" || reading.sensor_type === "torque") {entry.torque = reading.value;}
-      else if (reading.sensor_type === "speed" || reading.sensor_type === "stw" || reading.sensor_type === "gps_speed") {entry.stw = reading.value;}
+      if (reading.sensorType === "rpm" || reading.sensorType === "engine_rpm") {entry.rpm = reading.value;}
+      else if (reading.sensorType === "shaft_torque" || reading.sensorType === "torque") {entry.torque = reading.value;}
+      else if (reading.sensorType === "speed" || reading.sensorType === "stw" || reading.sensorType === "gps_speed") {entry.stw = reading.value;}
     }
 
     const completeReadings = Array.from(telemetryMap.entries()).filter(([_, data]) => data.rpm && data.torque).map(([timestamp, data]) => ({ timestamp, rpm: data.rpm!, torque: data.torque!, stw: data.stw }));

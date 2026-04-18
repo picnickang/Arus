@@ -66,7 +66,7 @@ export class MaintenanceApplicationService {
       version: 1,
       payload: {
         equipmentId: schedule.equipmentId,
-        scheduledDate: schedule.scheduledDate,
+        scheduledDate: schedule.nextScheduledDate,
         maintenanceType: schedule.maintenanceType,
         priority: schedule.priority,
       },
@@ -136,7 +136,7 @@ export class MaintenanceApplicationService {
       version: 1,
       payload: {
         equipmentId: schedule.equipmentId,
-        scheduledDate: schedule.scheduledDate,
+        scheduledDate: schedule.nextScheduledDate,
       },
     };
 
@@ -165,7 +165,7 @@ export class MaintenanceApplicationService {
       version: 1,
       payload: {
         equipmentId: schedule.equipmentId,
-        scheduledDate: schedule.scheduledDate,
+        scheduledDate: schedule.nextScheduledDate,
         pdmScore,
         triggerSource: 'pdm_prediction',
       },

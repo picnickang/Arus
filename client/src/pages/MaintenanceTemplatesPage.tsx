@@ -104,7 +104,7 @@ function TemplateCard({ template, onView, onEdit, onClone, onDelete, cloneIsPend
       <CardContent>
         <div className="space-y-2 text-sm">
           <div className="flex items-center gap-2"><Clock className="h-4 w-4 text-muted-foreground" /><span className="text-muted-foreground">Frequency:</span><span className="font-medium" data-testid={`template-freq-${template.id}`}>{template.frequency}</span></div>
-          <div className="flex items-center gap-2"><Clock className="h-4 w-4 text-muted-foreground" /><span className="text-muted-foreground">Duration:</span><span className="font-medium" data-testid={`template-duration-${template.id}`}>{template.estimatedDuration} min</span></div>
+          <div className="flex items-center gap-2"><Clock className="h-4 w-4 text-muted-foreground" /><span className="text-muted-foreground">Duration:</span><span className="font-medium" data-testid={`template-duration-${template.id}`}>{template.estimatedDurationHours} min</span></div>
         </div>
         <div className="flex items-center gap-2 mt-4">
           <Button size="sm" variant="outline" onClick={() => onView(template)} data-testid={`button-view-${template.id}`}><FileText className="h-3 w-3 mr-1" />View</Button>
@@ -162,7 +162,7 @@ function ViewTemplateContent({ template, items, onClose }: { template: Maintenan
         <div><label className="text-sm font-medium text-muted-foreground">Frequency</label><p className="text-sm" data-testid="view-frequency">{template.frequency}</p></div>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <div><label className="text-sm font-medium text-muted-foreground">Duration</label><p className="text-sm" data-testid="view-duration">{template.estimatedDuration} minutes</p></div>
+        <div><label className="text-sm font-medium text-muted-foreground">Duration</label><p className="text-sm" data-testid="view-duration">{template.estimatedDurationHours} minutes</p></div>
         <div><label className="text-sm font-medium text-muted-foreground">Priority</label><div className="mt-1"><Badge variant={config.variant} className={config.className}>{config.label}</Badge></div></div>
       </div>
       <div className="border-t pt-4">

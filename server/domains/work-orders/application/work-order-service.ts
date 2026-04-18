@@ -145,7 +145,7 @@ export class WorkOrderApplicationService {
   }
 
   async addPartToWorkOrder(data: any): Promise<any> {
-    return workOrderRepository.addPartToWorkOrder(data);
+    return workOrderRepository.addBulkPartsToWorkOrder(data);
   }
 
   async addBulkPartsAndReserveInventory(

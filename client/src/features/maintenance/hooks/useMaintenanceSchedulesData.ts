@@ -31,18 +31,18 @@ export function useMaintenanceSchedulesData() {
   const getEquipmentName = (equipmentId: string) => { const eq = equipment?.find((e) => e.id === equipmentId); return eq?.name || equipmentId; };
 
   const handleViewSchedule = (schedule: MaintenanceSchedule) => { setSelectedSchedule(schedule); setViewModalOpen(true); };
-  const handleEditSchedule = (schedule: MaintenanceSchedule) => { setSelectedSchedule(schedule); setEditForm({ equipmentId: schedule.equipmentId, scheduledDate: typeof schedule.scheduledDate === "string" ? schedule.scheduledDate : new Date(schedule.scheduledDate).toISOString().slice(0, 16), maintenanceType: schedule.maintenanceType, priority: schedule.priority, status: schedule.status, description: schedule.description, assignedTo: schedule.assignedTo }); setEditModalOpen(true); };
+  const handleEditSchedule = (schedule: MaintenanceSchedule) => { setSelectedSchedule(schedule); setEditForm({ equipmentId: schedule.equipmentId, scheduledDate: typeof schedule.nextScheduledDate === "string" ? schedule.nextScheduledDate : new Date(schedule.nextScheduledDate).toISOString().slice(0, 16), maintenanceType: schedule.maintenanceType, priority: schedule.priority, status: schedule.status, description: schedule.description, assignedTo: schedule.assignedTo }); setEditModalOpen(true); };
   const handleDeleteSchedule = (schedule: MaintenanceSchedule) => { const equipmentName = getEquipmentName(schedule.equipmentId); if (confirm(`Delete maintenance schedule for "${equipmentName}"? This cannot be undone.`)) { deleteMutation.mutate(schedule.id); } };
 
   const handleCreateSubmit = () => {
-    if (!createForm.equipmentId || !createForm.scheduledDate || !createForm.maintenanceType) { toast({ title: "Please fill in all required fields", variant: "destructive" }); return; }
-    const payload: InsertMaintenanceSchedule = { ...createForm, orgId: getCurrentOrgId(), scheduledDate: new Date(createForm.scheduledDate), equipmentId: createForm.equipmentId, maintenanceType: createForm.maintenanceType, priority: createForm.priority || 2 };
+    if (!createForm.equipmentId || !createForm.nextScheduledDate || !createForm.maintenanceType) { toast({ title: "Please fill in all required fields", variant: "destructive" }); return; }
+    const payload: InsertMaintenanceSchedule = { ...createForm, orgId: getCurrentOrgId(), scheduledDate: new Date(createForm.nextScheduledDate), equipmentId: createForm.equipmentId, maintenanceType: createForm.maintenanceType, priority: createForm.priority || 2 };
     createMutation.mutate(payload);
   };
 
   const handleEditSubmit = () => {
-    if (!selectedSchedule || !editForm.equipmentId || !editForm.scheduledDate || !editForm.maintenanceType) { toast({ title: "Please fill in all required fields", variant: "destructive" }); return; }
-    const updates = { ...editForm, scheduledDate: editForm.scheduledDate ? new Date(editForm.scheduledDate) : undefined };
+    if (!selectedSchedule || !editForm.equipmentId || !editForm.nextScheduledDate || !editForm.maintenanceType) { toast({ title: "Please fill in all required fields", variant: "destructive" }); return; }
+    const updates = { ...editForm, scheduledDate: editForm.nextScheduledDate ? new Date(editForm.nextScheduledDate) : undefined };
     updateMutation.mutate({ id: selectedSchedule.id, updates: updates as Partial<InsertMaintenanceSchedule> });
   };
 
@@ -51,7 +51,7 @@ export function useMaintenanceSchedulesData() {
     if (searchText) { filtered = filtered.filter((schedule) => getEquipmentName(schedule.equipmentId).toLowerCase().includes(searchText.toLowerCase()) || (schedule.description && schedule.description.toLowerCase().includes(searchText.toLowerCase())) || (schedule.assignedTo && schedule.assignedTo.toLowerCase().includes(searchText.toLowerCase()))); }
     if (statusFilter !== "all") { filtered = filtered.filter((schedule) => schedule.status === statusFilter); }
     if (priorityFilter !== "all") { filtered = filtered.filter((schedule) => schedule.priority === Number.parseInt(priorityFilter)); }
-    return filtered.sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime());
+    return filtered.sort((a, b) => new Date(a.nextScheduledDate).getTime() - new Date(b.nextScheduledDate).getTime());
   }, [schedules, searchText, statusFilter, priorityFilter, equipment]);
 
   const getStatusBadge = (status: string) => {

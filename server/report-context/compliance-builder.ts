@@ -47,7 +47,7 @@ export async function buildComplianceContext(
     vessels = await vesselService.getVessels();
     crew = await dbCrewStorage.getCrew();
     certifications = await getCrewCertifications(crew.map((c) => c.id));
-    restSheets = await dbStcwStorage.getCrewRestByDateRange();
+    restSheets = await dbStcwStorage.getCrewRestRange();
     complianceLogs = await getComplianceLogs(start, end);
   }
 

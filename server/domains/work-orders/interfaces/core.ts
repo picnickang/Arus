@@ -76,8 +76,8 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
       const completed = workOrders.filter((wo: any) => wo.status === "completed" || wo.status === "closed").length;
       const overdue = workOrders.filter((wo: any) => {
         if (wo.status === "completed" || wo.status === "closed" || wo.status === "cancelled") return false;
-        if (!wo.scheduledDate && !wo.plannedEndDate) return false;
-        const dueDate = new Date(wo.scheduledDate || wo.plannedEndDate);
+        if (!wo.nextScheduledDate && !wo.plannedEndDate) return false;
+        const dueDate = new Date(wo.nextScheduledDate || wo.plannedEndDate);
         return dueDate < now;
       }).length;
       const highPriority = workOrders.filter((wo: any) => wo.priority === 1 || wo.priority === "high" || wo.priority === "critical").length;
@@ -103,7 +103,7 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
     withErrorHandling("create work order", async (req: Request, res: Response) => {
       const processedBody = {
         ...req.body,
-        scheduledDate: req.body.scheduledDate ? new Date(req.body.scheduledDate) : undefined,
+        scheduledDate: req.body.nextScheduledDate ? new Date(req.body.nextScheduledDate) : undefined,
         completedDate: req.body.completedDate ? new Date(req.body.completedDate) : undefined,
         plannedStartDate: req.body.plannedStartDate
           ? new Date(req.body.plannedStartDate)

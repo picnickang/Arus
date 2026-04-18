@@ -421,7 +421,7 @@ function ModelRegistryTab({ highlightedVersionId }: { highlightedVersionId?: str
               <div><span className="text-muted-foreground">Target:</span> {deployment.deploymentTarget}</div>
               <div><span className="text-muted-foreground">Status:</span> <Badge>{deployment.deploymentStatus}</Badge></div>
               <div><span className="text-muted-foreground">Traffic:</span> {deployment.trafficPercentage}%</div>
-              <div><span className="text-muted-foreground">Deployed:</span> {new Date(deployment.deployedAt).toLocaleDateString()}</div>
+              <div><span className="text-muted-foreground">Deployed:</span> {new Date(deployment.deployedOn).toLocaleDateString()}</div>
             </div>
           </CardContent>
         </Card>

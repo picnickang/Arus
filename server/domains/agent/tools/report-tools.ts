@@ -54,14 +54,14 @@ registerTool({
         id: maintenanceSchedules.id, equipmentId: maintenanceSchedules.equipmentId,
         maintenanceType: maintenanceSchedules.maintenanceType,
         status: maintenanceSchedules.status,
-        scheduledDate: maintenanceSchedules.scheduledDate,
+        scheduledDate: maintenanceSchedules.nextScheduledDate,
         priority: maintenanceSchedules.priority,
       }).from(maintenanceSchedules)
         .where(and(
           eq(maintenanceSchedules.orgId, ctx.orgId),
           eq(maintenanceSchedules.status, "scheduled"),
         ))
-        .orderBy(maintenanceSchedules.scheduledDate)
+        .orderBy(maintenanceSchedules.nextScheduledDate)
         .limit(30),
 
       db.select({

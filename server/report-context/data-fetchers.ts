@@ -65,7 +65,7 @@ export async function getCrewCertifications(crewIds: string[]): Promise<any[]> {
 }
 
 export async function getCrewRestSheets(vesselId: string, start: Date, end: Date): Promise<any[]> {
-  const restData = await dbStcwStorage.getCrewRestByDateRange(
+  const restData = await dbStcwStorage.getCrewRestRange(
     vesselId,
     start.toISOString().split("T")[0],
     end.toISOString().split("T")[0]

@@ -37,11 +37,11 @@ export async function getPendingMaintenanceJobs(orgId: string): Promise<Maintena
         equipmentName: equip.name,
         maintenanceType: schedule.maintenanceType,
         priority: schedule.priority,
-        estimatedDuration: schedule.estimatedDuration || 120,
+        estimatedDuration: schedule.estimatedDurationHours || 120,
         requiredSkillLevel: getRequiredSkillLevel(schedule.maintenanceType, equip.type),
         parts: estimatePartsRequired(schedule.maintenanceType, equip.type, partsInventory),
-        preferredDate: schedule.scheduledDate,
-        deadline: new Date(schedule.scheduledDate.getTime() + 7 * 24 * 60 * 60 * 1000),
+        preferredDate: schedule.nextScheduledDate,
+        deadline: new Date(schedule.nextScheduledDate.getTime() + 7 * 24 * 60 * 60 * 1000),
       };
 
       jobs.push(job);

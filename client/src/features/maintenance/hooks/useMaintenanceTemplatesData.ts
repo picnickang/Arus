@@ -45,7 +45,7 @@ export function useMaintenanceTemplatesData() {
   const cloneTemplateMutation = useCustomMutation<string, void>({ mutationFn: (id: string) => apiRequest("POST", `/api/maintenance-templates/${id}/clone`), invalidateKeys: ["/api/maintenance-templates"], successMessage: "Template cloned successfully" });
 
   const onTemplateSubmit = (data: TemplateFormData) => { if (isEditDialogOpen && selectedTemplate) { updateTemplateMutation.mutate({ id: selectedTemplate.id, data }); } else { createTemplateMutation.mutate(data); } };
-  const handleEdit = (template: MaintenanceTemplate) => { setSelectedTemplate(template); templateForm.reset({ equipmentType: template.equipmentType, name: template.name, description: template.description || "", frequency: template.frequency, estimatedDuration: template.estimatedDuration, priority: template.priority }); setIsEditDialogOpen(true); };
+  const handleEdit = (template: MaintenanceTemplate) => { setSelectedTemplate(template); templateForm.reset({ equipmentType: template.equipmentType, name: template.name, description: template.description || "", frequency: template.frequency, estimatedDuration: template.estimatedDurationHours, priority: template.priority }); setIsEditDialogOpen(true); };
   const handleView = (template: MaintenanceTemplate) => { setSelectedTemplate(template); setIsViewDialogOpen(true); };
   const handleDelete = (id: string) => { setDeleteTemplateId(id); };
   const handleClone = (id: string) => { cloneTemplateMutation.mutate(id); };

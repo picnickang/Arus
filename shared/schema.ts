@@ -145,3 +145,4 @@ export * from "./validation/marine";
 export * from "./validation/j1939";
 export * from "./validation/pdm";
 export * from "./validation/telemetry";
+export * from "./validation/entities";

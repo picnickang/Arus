@@ -852,7 +852,7 @@ export default function VesselDashboard() {
                           </div>
                           <div className="text-[10px] text-slate-500">
                             <Badge variant="outline" className="text-[9px] mr-1.5">{s.isPredictive ? "Predictive" : "Scheduled"}</Badge>
-                            {new Date(s.scheduledDate).toLocaleDateString()}
+                            {new Date(s.nextScheduledDate).toLocaleDateString()}
                           </div>
                         </div>
                       ))}

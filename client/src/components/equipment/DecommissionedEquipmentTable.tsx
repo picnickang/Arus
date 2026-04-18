@@ -83,7 +83,7 @@ export function DecommissionedEquipmentTable({
               </TableCell>
               <TableCell data-testid={`text-reason-${item.id}`}>
                 <span className="text-sm text-muted-foreground">
-                  {item.decommissionReason || "-"}
+                  {item.decommissionedAt || "-"}
                 </span>
               </TableCell>
               <TableCell className="text-right">

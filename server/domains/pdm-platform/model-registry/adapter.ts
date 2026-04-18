@@ -34,7 +34,7 @@ export class ModelRegistryAdapter implements ModelRegistryPort {
         eq(modelDeployments.modelId, modelId),
         eq(modelDeployments.deploymentStatus, "active")
       ))
-      .orderBy(desc(modelDeployments.deployedAt))
+      .orderBy(desc(modelDeployments.deployedOn))
       .limit(1);
     return result ?? null;
   }

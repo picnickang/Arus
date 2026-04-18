@@ -36,7 +36,7 @@ export function registerMetricsRoutes(router: Router) {
       res.json({
         batchWriter: stats,
         health: {
-          bufferUtilization: stats.maxBufferSize > 0 ? Math.round((stats.currentBufferSize / stats.maxBufferSize) * 100) : 0,
+          bufferUtilization: stats.bufferSize > 0 ? Math.round((stats.currentBufferSize / stats.bufferSize) * 100) : 0,
           evictionRate: stats.totalQueued > 0 ? Math.round((stats.totalEvicted / stats.totalQueued) * 10000) / 100 : 0,
           writeSuccessRate: stats.totalQueued > 0 ? Math.round((stats.totalWritten / stats.totalQueued) * 10000) / 100 : 100,
         },

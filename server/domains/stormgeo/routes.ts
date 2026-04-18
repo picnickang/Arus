@@ -37,7 +37,7 @@ export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
   app.delete("/api/stormgeo/settings/:id", writeOperationRateLimit,
     withErrorHandling("delete StormGeo settings", async (req: Request, res: Response) => {
       const orgId = req.orgId;
-      await dbStormGeoStorage.deleteStormgeoSettings(req.params.id, orgId);
+      await dbStormGeoStorage.deleteStormgeoSetting(req.params.id, orgId);
       res.json({ success: true });
     })
   );
@@ -217,7 +217,7 @@ export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
   app.delete("/api/stormgeo/snapshots/route/:routeId", writeOperationRateLimit,
     withErrorHandling("delete StormGeo snapshots", async (req: Request, res: Response) => {
       const orgId = req.orgId;
-      await dbStormGeoStorage.deleteStormgeoSnapshotsByRoute(req.params.routeId, orgId);
+      await dbStormGeoStorage.deleteStormgeoSnapshotsBefore(req.params.routeId, orgId);
       res.json({ success: true });
     })
   );

@@ -33,13 +33,13 @@ export class BriefingDataAdapter implements BriefingDataPort {
     const scheduled = await dbMaintenanceStorage.getMaintenanceSchedules(undefined, orgId);
     const orgFiltered = scheduled.filter(s =>
       (s as { orgId?: string }).orgId === orgId &&
-      new Date(s.scheduledDate) <= todayEnd
+      new Date(s.nextScheduledDate) <= todayEnd
     );
 
     return orgFiltered.slice(0, 15).map(r => ({
       id: r.id,
       equipmentId: r.equipmentId,
-      scheduledDate: new Date(r.scheduledDate),
+      scheduledDate: new Date(r.nextScheduledDate),
       maintenanceType: r.maintenanceType,
       description: r.description,
     }));

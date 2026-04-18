@@ -134,18 +134,28 @@ export const maintenanceTemplates = pgTable("maintenance_templates", {
 });
 
 // Maintenance checklist items
+// Drizzle schema is now aligned with the deployed PG schema (verified via \d).
+// db-checklists.ts uses the canonical names: stepNumber, title, category, etc.
 export const maintenanceChecklistItems = pgTable("maintenance_checklist_items", {
   id: varchar("id")
     .primaryKey()
     .default(sql`gen_random_uuid()`),
+  orgId: varchar("org_id")
+    .notNull()
+    .references(() => organizations.id),
   templateId: varchar("template_id")
     .notNull()
     .references(() => maintenanceTemplates.id),
-  description: text("description").notNull(),
-  sortOrder: integer("sort_order").default(0),
-  isRequired: boolean("is_required").default(true),
+  stepNumber: integer("step_number").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  category: text("category"),
+  required: boolean("required").default(true),
+  imageUrl: text("image_url"),
   estimatedMinutes: integer("estimated_minutes"),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
+  safetyWarning: text("safety_warning"),
+  expectedResult: text("expected_result"),
+  acceptanceCriteria: text("acceptance_criteria"),
 });
 
 // Maintenance checklist completions
@@ -156,15 +166,20 @@ export const maintenanceChecklistCompletions = pgTable("maintenance_checklist_co
   orgId: varchar("org_id")
     .notNull()
     .references(() => organizations.id),
-  workOrderId: varchar("work_order_id").notNull(),
-  checklistItemId: varchar("checklist_item_id")
+  workOrderId: varchar("work_order_id")
+    .notNull()
+    .references(() => workOrders.id),
+  itemId: varchar("item_id")
     .notNull()
     .references(() => maintenanceChecklistItems.id),
-  isCompleted: boolean("is_completed").default(false),
-  completedBy: text("completed_by"),
-  completedAt: timestamp("completed_at", { mode: "date" }),
+  status: text("status").notNull().default("pending"),
+  passed: boolean("passed"),
+  actualValue: text("actual_value"),
   notes: text("notes"),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
+  photoUrls: text("photo_urls").array(),
+  completedAt: timestamp("completed_at", { mode: "date" }),
+  completedBy: varchar("completed_by"),
+  completedByName: text("completed_by_name"),
 });
 
 // ========================================
@@ -382,12 +397,10 @@ export const insertMaintenanceTemplateSchema = createInsertSchema(maintenanceTem
 
 export const insertMaintenanceChecklistItemSchema = createInsertSchema(maintenanceChecklistItems).omit({
   id: true,
-  createdAt: true,
 });
 
 export const insertMaintenanceChecklistCompletionSchema = createInsertSchema(maintenanceChecklistCompletions).omit({
   id: true,
-  createdAt: true,
 });
 
 // Condition Monitoring Insert Schemas

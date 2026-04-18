@@ -42,7 +42,7 @@ export function registerPartsRoutes(app: Express, rateLimit: RateLimitMiddleware
         workOrderId: req.params.id,
       };
 
-      const part = await workOrderService.addPartToWorkOrder(partData);
+      const part = await workOrderService.addBulkPartsToWorkOrder(partData);
       sendCreated(res, part);
     })
   );

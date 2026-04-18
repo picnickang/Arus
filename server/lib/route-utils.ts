@@ -5,8 +5,9 @@
  * Per SonarQube guidance: Extract Method for repeated error handling patterns.
  */
 
-import type { Response } from "express";
+import type { Request, Response } from "express";
 import { z } from "zod";
+import type { AuthenticatedRequest } from "../middleware/auth";
 
 /**
  * Standard error response format
@@ -80,9 +81,12 @@ export function handleApiError(
  * @param operation - Description of the operation
  * @param handler - The async handler function
  */
-export function withErrorHandling<Req, Res extends Response>(
+export function withErrorHandling<
+  Req extends Request = AuthenticatedRequest,
+  Res extends Response = Response
+>(
   operation: string,
-  handler: (req: Req, res: Res) => Promise<void>
+  handler: (req: Req, res: Res) => Promise<void | Response>
 ): (req: Req, res: Res) => Promise<void> {
   return async (req: Req, res: Res) => {
     try {

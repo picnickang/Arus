@@ -52,7 +52,7 @@ export class PartsInventoryRepositoryAdapter implements IPartsInventoryRepositor
   }
 
   async findLowStock(orgId: string): Promise<PartsInventoryEntity[]> {
-    const items = await inventoryRepository.findLowStockItems(orgId);
+    const items = await inventoryRepository.findLowStockParts(orgId);
     return items.map(mapToEntity);
   }
 

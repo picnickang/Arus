@@ -98,10 +98,10 @@ export function EquipmentReinstateDialog({
               <span className="text-muted-foreground">Type:</span>{" "}
               <span className="font-medium">{equipment.type}</span>
             </div>
-            {equipment.decommissionReason && (
+            {equipment.decommissionedAt && (
               <div>
                 <span className="text-muted-foreground">Previous Decommission Reason:</span>{" "}
-                <span className="font-medium">{equipment.decommissionReason}</span>
+                <span className="font-medium">{equipment.decommissionedAt}</span>
               </div>
             )}
           </div>

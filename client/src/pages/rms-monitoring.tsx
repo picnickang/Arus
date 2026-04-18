@@ -487,7 +487,7 @@ export default function RmsMonitoringPage() {
                   <div className="space-y-3">
                     {tanks.map((tank, idx) => (
                       <div key={idx} className="flex items-center justify-between" data-testid={`tank-level-${idx}`}>
-                        <span className="text-sm font-medium capitalize">{tank.sensor_type?.replace("tank_", "").replace(/_/g, " ")}</span>
+                        <span className="text-sm font-medium capitalize">{tank.sensorType?.replace("tank_", "").replace(/_/g, " ")}</span>
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-bold">{parseFloat(tank.value).toFixed(1)}%</span>
                           <span className="text-xs text-muted-foreground">

@@ -28,7 +28,7 @@ export const maintenanceSchedulesSqlite = sqliteTable(
   (table) => ({
     equipmentIdx: index("idx_ms_equipment").on(table.equipmentId),
     vesselIdx: index("idx_ms_vessel").on(table.vesselId),
-    scheduledDateIdx: index("idx_ms_scheduled_date").on(table.scheduledDate),
+    scheduledDateIdx: index("idx_ms_scheduled_date").on(table.nextScheduledDate),
     statusIdx: index("idx_ms_status").on(table.status),
   })
 );

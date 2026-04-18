@@ -177,7 +177,7 @@ export class PredictionEngineService implements PredictionExplanationQuery {
   private async resolveActiveVersion(orgId: string): Promise<string | undefined> {
     const [deployment] = await db.select().from(modelDeployments)
       .where(and(eq(modelDeployments.orgId, orgId), eq(modelDeployments.deploymentStatus, "active")))
-      .orderBy(desc(modelDeployments.deployedAt))
+      .orderBy(desc(modelDeployments.deployedOn))
       .limit(1);
     return deployment?.modelVersionId ?? undefined;
   }

@@ -44,10 +44,10 @@ export function registerMaintenanceReportRoutes(
 
       const now = new Date();
       const overdueSchedules = filteredSchedules.filter(
-        (s) => new Date(s.scheduledDate) < now && s.status !== "completed"
+        (s) => new Date(s.nextScheduledDate) < now && s.status !== "completed"
       );
       const upcomingSchedules = filteredSchedules.filter((s) => {
-        const schedDate = new Date(s.scheduledDate);
+        const schedDate = new Date(s.nextScheduledDate);
         return schedDate > now && schedDate < new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
       });
 

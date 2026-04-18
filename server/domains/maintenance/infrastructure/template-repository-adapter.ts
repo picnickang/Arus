@@ -55,7 +55,7 @@ export class MaintenanceTemplateRepositoryAdapter implements IMaintenanceTemplat
       equipmentType: template.equipmentType,
       maintenanceType: template.maintenanceType,
       description: template.description,
-      estimatedDuration: template.estimatedDuration,
+      estimatedDuration: template.estimatedDurationHours,
       requiredParts: template.requiredParts,
       checklistItems: template.checklistItems,
       intervalDays: template.intervalDays,

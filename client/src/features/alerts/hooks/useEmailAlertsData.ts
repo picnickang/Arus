@@ -42,7 +42,7 @@ export function useEmailAlertsData() {
       setFormData({
         emailEnabled: settings.emailEnabled, defaultToEmail: settings.defaultToEmail, ccEmails: settings.ccEmails, bccEmails: settings.bccEmails,
         timezone: settings.timezone, provider: settings.provider, smtpHost: settings.smtpHost, smtpPort: settings.smtpPort, smtpUser: settings.smtpUser,
-        smtpUseTls: settings.smtpUseTls, fromEmail: settings.fromEmail, fromName: settings.fromName, alertCooldownMinutes: settings.alertCooldownMinutes,
+        smtpUseTls: settings.smtpUseTls, fromEmail: settings.fromEmail, fromName: settings.fromName, alertCooldownMinutes: settings.defaultCooldownMinutes,
         dailyDigestEnabled: settings.dailyDigestEnabled, dailyDigestTime: settings.dailyDigestTime,
       });
     }

@@ -39,7 +39,7 @@ export function registerComplianceReportRoutes(
       ]);
 
       const overdue = maintenanceSchedules.filter(
-        (s) => s.status === "scheduled" && new Date(s.scheduledDate) < new Date()
+        (s) => s.status === "scheduled" && new Date(s.nextScheduledDate) < new Date()
       ).length;
       const totalSchedules = maintenanceSchedules.length;
       const complianceRate =
@@ -63,10 +63,10 @@ export function registerComplianceReportRoutes(
           },
           schedules: maintenanceSchedules.slice(0, 20),
           overdue: maintenanceSchedules
-            .filter((s) => s.status === "scheduled" && new Date(s.scheduledDate) < new Date())
+            .filter((s) => s.status === "scheduled" && new Date(s.nextScheduledDate) < new Date())
             .slice(0, 10),
           upcoming: maintenanceSchedules
-            .filter((s) => s.status === "scheduled" && new Date(s.scheduledDate) >= new Date())
+            .filter((s) => s.status === "scheduled" && new Date(s.nextScheduledDate) >= new Date())
             .slice(0, 10),
         },
       };

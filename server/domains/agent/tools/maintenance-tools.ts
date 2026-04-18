@@ -27,7 +27,7 @@ registerTool({
 
     const schedules = await db.select().from(maintenanceSchedules)
       .where(and(...conditions))
-      .orderBy(desc(maintenanceSchedules.scheduledDate))
+      .orderBy(desc(maintenanceSchedules.nextScheduledDate))
       .limit(input.limit || 20);
 
     return {
@@ -35,7 +35,7 @@ registerTool({
       items: schedules.map(s => ({
         id: s.id, equipmentId: s.equipmentId,
         description: s.description, status: s.status,
-        priority: s.priority, scheduledDate: s.scheduledDate,
+        priority: s.priority, scheduledDate: s.nextScheduledDate,
         maintenanceType: s.maintenanceType, assignedTo: s.assignedTo,
         pdmScore: s.pdmScore,
       })),

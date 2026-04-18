@@ -132,7 +132,7 @@ export function registerExportCompleteRoutes(app: Express, config: MlAnalyticsCo
               escapeCsv(perf.accuracy), escapeCsv(perf.precision), escapeCsv(perf.recall),
               escapeCsv(perf.f1Score), escapeCsv(hyper.dataQualityTier),
               escapeCsv(hyper.confidenceMultiplier), escapeCsv(hyper.lookbackDays),
-              escapeCsv(hyper.isLegacyEnriched), escapeCsv(m.deployedAt), escapeCsv(m.createdAt),
+              escapeCsv(hyper.isLegacyEnriched), escapeCsv(m.deployedOn), escapeCsv(m.createdAt),
             ].join(",");
           }),
         ].join("\n");

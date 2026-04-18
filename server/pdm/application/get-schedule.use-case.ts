@@ -225,7 +225,7 @@ export function createGetScheduleUseCase(repository: PdmRepositoryPort): GetSche
       weekEnd.setDate(weekEnd.getDate() + 6);
 
       const tasksThisWeek = scheduledTasks.filter(t => {
-        const sd = t.scheduledDate ? new Date(t.scheduledDate) : t.schedulingWindow.preferredDate;
+        const sd = t.nextScheduledDate ? new Date(t.nextScheduledDate) : t.schedulingWindow.preferredDate;
         return sd >= weekStart && sd <= weekEnd;
       });
 

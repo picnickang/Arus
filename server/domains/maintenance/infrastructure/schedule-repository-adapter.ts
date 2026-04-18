@@ -38,8 +38,8 @@ export class MaintenanceScheduleRepositoryAdapter implements IMaintenanceSchedul
     futureDate.setDate(futureDate.getDate() + daysAhead);
 
     return schedules
-      .filter((s) => s.orgId === orgId && s.scheduledDate >= now && s.scheduledDate <= futureDate)
-      .sort((a, b) => a.scheduledDate.getTime() - b.scheduledDate.getTime())
+      .filter((s) => s.orgId === orgId && s.nextScheduledDate >= now && s.nextScheduledDate <= futureDate)
+      .sort((a, b) => a.nextScheduledDate.getTime() - b.nextScheduledDate.getTime())
       .map(this.mapToEntity);
   }
 
@@ -67,12 +67,12 @@ export class MaintenanceScheduleRepositoryAdapter implements IMaintenanceSchedul
       id: schedule.id,
       orgId: schedule.orgId,
       equipmentId: schedule.equipmentId,
-      scheduledDate: schedule.scheduledDate,
+      scheduledDate: schedule.nextScheduledDate,
       status: schedule.status || 'scheduled',
       priority: schedule.priority || 'medium',
       maintenanceType: schedule.maintenanceType,
       description: schedule.description,
-      estimatedDuration: schedule.estimatedDuration,
+      estimatedDuration: schedule.estimatedDurationHours,
       assignedTo: schedule.assignedTo,
       completedAt: schedule.completedAt,
       completedBy: schedule.completedBy,

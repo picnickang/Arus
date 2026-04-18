@@ -139,7 +139,7 @@ export function registerRangeRoutes(app: Express, deps: StcwRestDependencies): v
 
       incrementRangeQuery("advanced_search", vesselId || "fleet");
 
-      const result = await dbStcwStorage.getCrewRestByDateRange(
+      const result = await dbStcwStorage.getCrewRestRange(
         vesselId || "",
         startDate,
         endDate,

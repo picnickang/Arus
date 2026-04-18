@@ -18,8 +18,8 @@ export class StormGeoIntegrationService {
 
   async upsertSettings(settings: InsertStormgeoSetting): Promise<StormgeoSetting> {
     const existing = await dbStormGeoStorage.getStormgeoSettings(settings.orgId, settings.vesselId || undefined);
-    if (existing) { return dbStormGeoStorage.updateStormgeoSettings(existing.id, settings, settings.orgId); }
-    return dbStormGeoStorage.createStormgeoSettings(settings);
+    if (existing) { return dbStormGeoStorage.updateStormgeoSetting(existing.id, settings, settings.orgId); }
+    return dbStormGeoStorage.createStormgeoSetting(settings);
   }
 
   async importCSV(orgId: string, vesselId: string, fileContent: string, fileName: string, initiatedBy?: string): Promise<StormgeoImportHistory> {
@@ -35,11 +35,11 @@ export class StormGeoIntegrationService {
         catch (error) { errors.push({ row: i + 2, error: error instanceof Error ? error.message : 'Unknown error' }); }
       }
 
-      if (snapshots.length > 0) { await dbStormGeoStorage.bulkCreateStormgeoSnapshots(snapshots); }
+      if (snapshots.length > 0) { await dbStormGeoStorage.createStormgeoSnapshot(snapshots); }
       const status = errors.length === 0 ? 'success' : (snapshots.length > 0 ? 'partial' : 'failed');
-      return dbStormGeoStorage.updateStormgeoImportHistory(importRecord.id, { status, recordsProcessed: rows.length, recordsCreated: snapshots.length, recordsFailed: errors.length, errorDetails: errors.length > 0 ? errors : undefined, completedAt: new Date(), durationMs: Date.now() - startTime }, orgId);
+      return dbStormGeoStorage.createStormgeoImportHistory(importRecord.id, { status, recordsProcessed: rows.length, recordsCreated: snapshots.length, recordsFailed: errors.length, errorDetails: errors.length > 0 ? errors : undefined, completedAt: new Date(), durationMs: Date.now() - startTime }, orgId);
     } catch (_error) {
-      return dbStormGeoStorage.updateStormgeoImportHistory(importRecord.id, { status: 'failed', errorDetails: [{ row: 0, error: _error instanceof Error ? _error.message : 'Import failed' }], completedAt: new Date(), durationMs: Date.now() - startTime }, orgId);
+      return dbStormGeoStorage.createStormgeoImportHistory(importRecord.id, { status: 'failed', errorDetails: [{ row: 0, error: _error instanceof Error ? _error.message : 'Import failed' }], completedAt: new Date(), durationMs: Date.now() - startTime }, orgId);
     }
   }
 
@@ -56,16 +56,16 @@ export class StormGeoIntegrationService {
         catch (error) { errors.push({ row: i + 1, error: error instanceof Error ? error.message : 'Unknown error' }); }
       }
 
-      if (snapshots.length > 0) { await dbStormGeoStorage.bulkCreateStormgeoSnapshots(snapshots); }
+      if (snapshots.length > 0) { await dbStormGeoStorage.createStormgeoSnapshot(snapshots); }
       const status = errors.length === 0 ? 'success' : (snapshots.length > 0 ? 'partial' : 'failed');
-      return dbStormGeoStorage.updateStormgeoImportHistory(importRecord.id, { status, recordsProcessed: data.waypoints.length, recordsCreated: snapshots.length, recordsFailed: errors.length, errorDetails: errors.length > 0 ? errors : undefined, completedAt: new Date(), durationMs: Date.now() - startTime }, orgId);
+      return dbStormGeoStorage.createStormgeoImportHistory(importRecord.id, { status, recordsProcessed: data.waypoints.length, recordsCreated: snapshots.length, recordsFailed: errors.length, errorDetails: errors.length > 0 ? errors : undefined, completedAt: new Date(), durationMs: Date.now() - startTime }, orgId);
     } catch (_error) {
-      return dbStormGeoStorage.updateStormgeoImportHistory(importRecord.id, { status: 'failed', errorDetails: [{ row: 0, error: _error instanceof Error ? _error.message : 'Import failed' }], completedAt: new Date(), durationMs: Date.now() - startTime }, orgId);
+      return dbStormGeoStorage.createStormgeoImportHistory(importRecord.id, { status: 'failed', errorDetails: [{ row: 0, error: _error instanceof Error ? _error.message : 'Import failed' }], completedAt: new Date(), durationMs: Date.now() - startTime }, orgId);
     }
   }
 
   async getWeatherForTime(vesselId: string, targetTime: Date, orgId: string): Promise<StormgeoSnapshot | undefined> {
-    return dbStormGeoStorage.getStormgeoSnapshotForTime(vesselId, targetTime, orgId);
+    return dbStormGeoStorage.getStormgeoSnapshot(vesselId, targetTime, orgId);
   }
 
   async autoFillHourlyEntry(vesselId: string, logDate: string, hour: number, orgId: string): Promise<{ fields: Partial<DeckLogHourly>; source: string; snapshotId?: string } | null> {

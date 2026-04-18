@@ -283,8 +283,8 @@ export async function checkAndScheduleAutomaticMaintenance(
   const hasUpcoming = existingSchedules.some(
     (s) =>
       s.status === "pending" &&
-      s.scheduledDate &&
-      new Date(s.scheduledDate) > new Date()
+      s.nextScheduledDate &&
+      new Date(s.nextScheduledDate) > new Date()
   );
 
   if (!hasUpcoming) {
@@ -300,7 +300,7 @@ export async function checkAndScheduleAutomaticMaintenance(
         equipmentId: telemetryReading.equipmentId,
         scheduleId: newSchedule.id,
         priority: newSchedule.priority,
-        scheduledDate: newSchedule.scheduledDate,
+        scheduledDate: newSchedule.nextScheduledDate,
         message: `Automatic maintenance scheduled for ${telemetryReading.equipmentId}`,
       });
     }

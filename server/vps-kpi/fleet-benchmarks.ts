@@ -15,7 +15,7 @@ export async function computeEquipmentLoadDistribution(
   if (!telemetry || telemetry.length === 0) {return [];}
 
   const torqueData = telemetry
-    .filter((t) => t.sensor_type === "shaft_torque" || t.sensor_type === "torque")
+    .filter((t) => t.sensorType === "shaft_torque" || t.sensorType === "torque")
     .map((t) => t.value);
 
   if (torqueData.length === 0) {return [];}
@@ -95,9 +95,9 @@ export async function computeFleetPowerSTWBenchmarks(
         const telemetry = await dbTelemetryStorage.getTelemetryByEquipmentAndDateRange(eq.id, timeRange.start, timeRange.end, orgId);
         if (!telemetry || telemetry.length === 0) {continue;}
 
-        const rpm = telemetry.filter((t) => t.sensor_type === "rpm").map((t) => t.value);
-        const torque = telemetry.filter((t) => t.sensor_type === "shaft_torque" || t.sensor_type === "torque").map((t) => t.value);
-        const stw = telemetry.filter((t) => t.sensor_type === "speed" || t.sensor_type === "stw").map((t) => t.value);
+        const rpm = telemetry.filter((t) => t.sensorType === "rpm").map((t) => t.value);
+        const torque = telemetry.filter((t) => t.sensorType === "shaft_torque" || t.sensorType === "torque").map((t) => t.value);
+        const stw = telemetry.filter((t) => t.sensorType === "speed" || t.sensorType === "stw").map((t) => t.value);
 
         if (rpm.length > 0 && torque.length > 0) {
           allPoints.push(...calculatePowerSTWCurve(rpm, torque, stw.length > 0 ? stw : undefined));

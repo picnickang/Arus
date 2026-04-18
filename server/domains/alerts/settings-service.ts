@@ -120,7 +120,7 @@ export class AlertSettingsService {
       smtpUseTls: settings.smtpUseTls ?? true,
       fromEmail: settings.fromEmail || 'noreply@arus-marine.com',
       fromName: settings.fromName || 'ARUS Marine',
-      alertCooldownMinutes: settings.alertCooldownMinutes ?? 30,
+      alertCooldownMinutes: settings.defaultCooldownMinutes ?? 30,
       dailyDigestEnabled: settings.dailyDigestEnabled ?? false,
       dailyDigestTime: settings.dailyDigestTime,
       lastTestStatus: settings.lastTestStatus,
@@ -333,7 +333,7 @@ export class AlertSettingsService {
     entityId?: string
   ): Promise<{ shouldSend: boolean; cooldownId?: string; minutesRemaining?: number }> {
     const settings = await alertSettingsRepository.getOrgSettings(orgId);
-    const cooldownMinutes = settings?.alertCooldownMinutes ?? 30;
+    const cooldownMinutes = settings?.defaultCooldownMinutes ?? 30;
     
     const existing = await alertSettingsRepository.checkCooldown(
       orgId, alertType, alertKey, vesselId, entityId
@@ -366,7 +366,7 @@ export class AlertSettingsService {
     entityId?: string,
     emailSent: boolean = false
   ): Promise<void> {
-    const cooldown = await alertSettingsRepository.upsertCooldown(
+    const cooldown = await alertSettingsRepository.getCooldown(
       orgId, alertType, alertKey, vesselId, entityId
     );
     

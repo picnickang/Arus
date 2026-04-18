@@ -81,7 +81,7 @@ export async function runStorageRegressionTests(): Promise<{ passed: number; fai
   }));
 
   results.push(await runTest("STCW Rest: list", async () => {
-    const sheets = await dbStcwStorage.getCrewRestByDateRange();
+    const sheets = await dbStcwStorage.getCrewRestRange();
     if (!Array.isArray(sheets)) {throw new Error("Expected array");}
   }));
 

@@ -259,7 +259,7 @@ export class TelemetryAggregator {
 
       return (rows?.rows ?? []).map((row: any) => ({
         equipmentId: row.equipment_id,
-        sensorType: row.sensor_type,
+        sensorType: row.sensorType,
         bucketStart: new Date(row.bucket_start),
         bucketSize: row.bucket_size,
         count: row.count,
