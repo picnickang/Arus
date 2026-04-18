@@ -29,7 +29,9 @@ export type EntityType =
   | "sync"
   | "maintenance_template"
   | "maintenance_checklist_item"
-  | "maintenance_checklist_completion";
+  | "maintenance_checklist_completion"
+  | "operating_parameter"
+  | "operating_condition_alert";
 
 // Operation types for journal entries
 export type OperationType = "create" | "update" | "delete" | "reconcile";
@@ -90,7 +92,13 @@ export type EventType =
   | "maintenance_checklist_item.deleted"
   | "maintenance_checklist_completion.created"
   | "maintenance_checklist_completion.updated"
-  | "maintenance_checklist_completion.deleted";
+  | "maintenance_checklist_completion.deleted"
+  | "operating_parameter.created"
+  | "operating_parameter.updated"
+  | "operating_parameter.deleted"
+  | "operating_condition_alert.created"
+  | "operating_condition_alert.updated"
+  | "operating_condition_alert.deleted";
 
 /**
  * Record an operation in the sync journal for audit trails

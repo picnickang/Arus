@@ -215,7 +215,7 @@ export const dailyMetricRollups = pgTable(
   })
 );
 
-// Engineer overrides for predictions
+// Engineer overrides for predictions — aligned with deployed PG (PdM-specific workflow)
 export const engineerOverrides = pgTable(
   "engineer_overrides",
   {
@@ -225,23 +225,32 @@ export const engineerOverrides = pgTable(
     orgId: varchar("org_id")
       .notNull()
       .references(() => organizations.id),
+    predictionId: varchar("prediction_id"),
     equipmentId: varchar("equipment_id")
       .notNull()
       .references(() => equipment.id),
+    workOrderId: varchar("work_order_id"),
+    originalPrediction: jsonb("original_prediction").notNull(),
+    originalRiskLevel: text("original_risk_level").notNull(),
+    originalConfidence: real("original_confidence"),
     overrideType: text("override_type").notNull(),
-    originalValue: jsonb("original_value"),
-    overrideValue: jsonb("override_value").notNull(),
-    reason: text("reason").notNull(),
-    approvedBy: varchar("approved_by"),
-    expiresAt: timestamp("expires_at", { mode: "date" }),
-    isActive: boolean("is_active").default(true),
-    createdBy: varchar("created_by").notNull(),
+    newRiskLevel: text("new_risk_level"),
+    newScheduleDate: timestamp("new_schedule_date", { mode: "date" }),
+    justification: text("justification").notNull(),
+    engineerId: varchar("engineer_id").notNull(),
+    engineerName: text("engineer_name").notNull(),
+    engineerCertifications: text("engineer_certifications").array(),
+    outcomeStatus: text("outcome_status").default("pending"),
+    outcomeNotes: text("outcome_notes"),
+    outcomeRecordedAt: timestamp("outcome_recorded_at", { mode: "date" }),
+    outcomeRecordedBy: varchar("outcome_recorded_by"),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
-    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
   },
   (table) => ({
     equipmentIdx: index("idx_engineer_overrides_equipment").on(table.equipmentId),
-    activeIdx: index("idx_engineer_overrides_active").on(table.isActive),
+    engineerIdx: index("idx_engineer_overrides_engineer").on(table.engineerId),
+    outcomeIdx: index("idx_engineer_overrides_outcome").on(table.outcomeStatus),
+    createdAtIdx: index("idx_engineer_overrides_created_at").on(table.createdAt),
   })
 );
 
@@ -295,7 +304,6 @@ export const insertDailyMetricRollupSchema = createInsertSchema(dailyMetricRollu
 export const insertEngineerOverrideSchema = createInsertSchema(engineerOverrides).omit({
   id: true,
   createdAt: true,
-  updatedAt: true,
 });
 
 export type J1939Configuration = typeof j1939Configurations.$inferSelect;

@@ -1,8 +1,17 @@
-import type { Express } from "express";
+import type {
+  Express as ExpressApp,
+  Request as ExpressRequest,
+  Response as ExpressResponse,
+  NextFunction as ExpressNextFunction,
+} from "express";
 import type { RateLimitRequestHandler } from "express-rate-limit";
 import { z } from "zod";
 
-export type { Express, Request, Response };
+// Re-export Express types explicitly to avoid the global Fetch API Request/Response collision
+export type Express = ExpressApp;
+export type Request = ExpressRequest;
+export type Response = ExpressResponse;
+export type NextFunction = ExpressNextFunction;
 
 export interface ThresholdCalibrator {
   calibrateForEquipment: (orgId: string, equipmentId: string) => Promise<Record<string, unknown>>;

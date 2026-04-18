@@ -140,7 +140,7 @@ export const pdmScoreLogs = pgTable("pdm_score_logs", {
   contextJson: jsonb("context_json"),
 });
 
-// Equipment lifecycle tracking
+// Equipment lifecycle tracking — aligned with deployed PG (rich lifecycle record)
 export const equipmentLifecycle = pgTable(
   "equipment_lifecycle",
   {
@@ -150,24 +150,29 @@ export const equipmentLifecycle = pgTable(
     orgId: varchar("org_id")
       .notNull()
       .references(() => organizations.id),
-    equipmentId: varchar("equipment_id")
-      .notNull()
-      .references(() => equipment.id),
-    eventType: text("event_type").notNull(),
-    eventDate: timestamp("event_date", { mode: "date" }).notNull(),
-    description: text("description"),
-    cost: real("cost"),
-    performedBy: text("performed_by"),
+    equipmentId: varchar("equipment_id").notNull(),
+    manufacturer: text("manufacturer"),
+    model: text("model"),
+    serialNumber: text("serial_number"),
+    installationDate: timestamp("installation_date", { mode: "date" }),
+    warrantyExpiry: timestamp("warranty_expiry", { mode: "date" }),
+    expectedLifespan: integer("expected_lifespan"),
+    replacementCost: real("replacement_cost"),
+    operatingHours: integer("operating_hours").default(0),
+    maintenanceCount: integer("maintenance_count").default(0),
+    lastMajorOverhaul: timestamp("last_major_overhaul", { mode: "date" }),
+    nextRecommendedReplacement: timestamp("next_recommended_replacement", { mode: "date" }),
+    condition: text("condition").notNull().default("good"),
     notes: text("notes"),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
   },
   (table) => ({
-    equipmentIdx: index("idx_lifecycle_equipment").on(table.equipmentId),
-    eventTypeIdx: index("idx_lifecycle_event_type").on(table.eventType),
+    orgIdx: index("idx_equipment_lifecycle_org_id").on(table.orgId),
   })
 );
 
-// Performance metrics
+// Performance metrics — aligned with deployed PG (specific-metric columns)
 export const performanceMetrics = pgTable(
   "performance_metrics",
   {
@@ -177,18 +182,24 @@ export const performanceMetrics = pgTable(
     orgId: varchar("org_id")
       .notNull()
       .references(() => organizations.id),
-    equipmentId: varchar("equipment_id")
-      .notNull()
-      .references(() => equipment.id),
-    metricType: text("metric_type").notNull(),
-    value: real("value").notNull(),
-    unit: text("unit"),
-    recordedAt: timestamp("recorded_at", { mode: "date" }).notNull(),
+    equipmentId: varchar("equipment_id").notNull(),
+    metricDate: timestamp("metric_date", { mode: "date" }).notNull(),
+    efficiency: real("efficiency"),
+    reliability: real("reliability"),
+    availability: real("availability"),
+    mtbfHours: real("mtbf_hours"),
+    mttrHours: real("mttr_hours"),
+    totalDowntimeMinutes: integer("total_downtime_minutes"),
+    plannedDowntimeMinutes: integer("planned_downtime_minutes"),
+    unplannedDowntimeMinutes: integer("unplanned_downtime_minutes"),
+    operatingHours: real("operating_hours"),
+    energyConsumption: real("energy_consumption"),
+    performanceScore: real("performance_score"),
     notes: text("notes"),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   },
   (table) => ({
-    equipmentMetricIdx: index("idx_perf_equipment_metric").on(table.equipmentId, table.metricType),
+    equipmentMetricDateIdx: index("idx_perf_equipment_date").on(table.equipmentId, table.metricDate),
   })
 );
 
@@ -320,7 +331,7 @@ export const industryBenchmarks = pgTable(
   })
 );
 
-// Operating parameters
+// Operating parameters — aligned with deployed PG (rich threshold model)
 export const operatingParameters = pgTable(
   "operating_parameters",
   {
@@ -330,26 +341,33 @@ export const operatingParameters = pgTable(
     orgId: varchar("org_id")
       .notNull()
       .references(() => organizations.id),
-    equipmentId: varchar("equipment_id")
-      .notNull()
-      .references(() => equipment.id),
+    equipmentType: text("equipment_type").notNull(),
+    manufacturer: text("manufacturer"),
+    model: text("model"),
     parameterName: text("parameter_name").notNull(),
-    minValue: real("min_value"),
-    maxValue: real("max_value"),
-    optimalValue: real("optimal_value"),
-    unit: text("unit"),
-    category: text("category"),
+    parameterType: text("parameter_type").notNull(),
+    unit: text("unit").notNull(),
+    optimalMin: real("optimal_min"),
+    optimalMax: real("optimal_max"),
+    criticalMin: real("critical_min"),
+    criticalMax: real("critical_max"),
+    lifeImpactDescription: text("life_impact_description"),
+    recommendedAction: text("recommended_action"),
     isActive: boolean("is_active").default(true),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
     updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
+    version: integer("version").default(1),
+    lastModifiedBy: varchar("last_modified_by", { length: 255 }),
+    lastModifiedDevice: varchar("last_modified_device", { length: 255 }),
   },
   (table) => ({
-    equipmentIdx: index("idx_operating_parameters_equipment").on(table.equipmentId),
-    parameterIdx: index("idx_operating_parameters_name").on(table.parameterName),
+    parameterIdx: index("idx_operating_params_param").on(table.parameterName),
+    typeIdx: index("idx_operating_params_type").on(table.equipmentType),
   })
 );
 
-// Operating condition alerts
+// Operating condition alerts — aligned with deployed PG + boolean flags & created_at
+// (boolean flags backfilled from timestamp columns via migration)
 export const operatingConditionAlerts = pgTable(
   "operating_condition_alerts",
   {
@@ -362,20 +380,32 @@ export const operatingConditionAlerts = pgTable(
     equipmentId: varchar("equipment_id")
       .notNull()
       .references(() => equipment.id),
-    parameterId: varchar("parameter_id").references(() => operatingParameters.id),
-    alertType: text("alert_type").notNull(),
-    severity: text("severity").default("warning"),
-    currentValue: real("current_value"),
-    thresholdValue: real("threshold_value"),
-    message: text("message"),
+    parameterId: varchar("parameter_id")
+      .notNull()
+      .references(() => operatingParameters.id),
+    parameterName: text("parameter_name").notNull(),
+    parameterType: text("parameter_type"),
+    currentValue: real("current_value").notNull(),
+    optimalMin: real("optimal_min"),
+    optimalMax: real("optimal_max"),
+    thresholdType: text("threshold_type").notNull(),
+    severity: text("severity").notNull().default("warning"),
+    lifeImpact: text("life_impact"),
+    recommendedAction: text("recommended_action"),
+    acknowledged: boolean("acknowledged").default(false),
+    resolved: boolean("resolved").default(false),
+    alertedAt: timestamp("alerted_at", { mode: "date" }).notNull().defaultNow(),
     acknowledgedAt: timestamp("acknowledged_at", { mode: "date" }),
     acknowledgedBy: varchar("acknowledged_by"),
     resolvedAt: timestamp("resolved_at", { mode: "date" }),
-    alertedAt: timestamp("alerted_at", { mode: "date" }).defaultNow(),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   },
   (table) => ({
-    equipmentIdx: index("idx_operating_condition_alerts_equipment").on(table.equipmentId),
-    severityIdx: index("idx_operating_condition_alerts_severity").on(table.severity),
+    equipmentIdx: index("idx_op_alerts_equipment").on(table.equipmentId),
+    timeIdx: index("idx_op_alerts_time").on(table.alertedAt),
+    activeIdx: index("idx_op_alerts_active").on(table.equipmentId, table.acknowledgedAt),
+    resolvedIdx: index("idx_operating_condition_alerts_resolved").on(table.equipmentId, table.resolved),
   })
 );
 
@@ -391,11 +421,11 @@ export const insertDeviceSchema = createInsertSchema(devices).omit({ updatedAt: 
 export const insertHeartbeatSchema = createInsertSchema(edgeHeartbeats).omit({ ts: true });
 export const insertPdmScoreSchema = createInsertSchema(pdmScoreLogs).omit({ id: true, ts: true });
 
-export const insertEquipmentLifecycleSchema = createInsertSchema(equipmentLifecycle)
-  .omit({ id: true, createdAt: true })
-  .extend({
-    eventType: z.enum(["installation", "upgrade", "repair", "replacement", "decommission"]),
-  });
+export const insertEquipmentLifecycleSchema = createInsertSchema(equipmentLifecycle).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
 export const insertPerformanceMetricSchema = createInsertSchema(performanceMetrics)
   .omit({ id: true, createdAt: true })

@@ -19,7 +19,7 @@ import {
 } from "./base";
 import { users } from "./core";
 
-// Sync journal for audit trails and change tracking
+// Sync journal for audit trails and change tracking (vessel-aware)
 export const syncJournal = pgTable(
   "sync_journal",
   {
@@ -31,8 +31,14 @@ export const syncJournal = pgTable(
     operation: text("operation").notNull(),
     payload: jsonb("payload"),
     userId: varchar("user_id").references(() => users.id),
+    vesselId: varchar("vessel_id"),
+    syncType: text("sync_type"),
+    status: text("status").notNull().default("pending"),
     syncStatus: text("sync_status").default("pending"),
+    retryCount: integer("retry_count").notNull().default(0),
+    lastError: text("last_error"),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
   },
   (table) => ({
     entityIndex: index("idx_sync_journal_entity").on(
@@ -40,10 +46,11 @@ export const syncJournal = pgTable(
       table.entityId,
       table.createdAt
     ),
+    vesselStatusIdx: index("idx_sync_journal_vessel_status").on(table.vesselId, table.status),
   })
 );
 
-// Sync outbox for event publishing and real-time notifications
+// Sync outbox for event publishing and real-time notifications (vessel-aware + priority)
 export const syncOutbox = pgTable(
   "sync_outbox",
   {
@@ -54,11 +61,21 @@ export const syncOutbox = pgTable(
     payload: jsonb("payload"),
     processed: boolean("processed").default(false),
     processingAttempts: integer("processing_attempts").default(0),
+    vesselId: varchar("vessel_id"),
+    status: text("status").notNull().default("pending"),
+    priority: integer("priority").notNull().default(100),
+    syncedAt: timestamp("synced_at", { mode: "date" }),
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
     processedAt: timestamp("processed_at", { mode: "date" }),
+    updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
   },
   (table) => ({
     eventIndex: index("idx_sync_outbox_event").on(table.eventType, table.processed),
+    vesselStatusPriorityIdx: index("idx_sync_outbox_vessel_status_priority").on(
+      table.vesselId,
+      table.status,
+      table.priority
+    ),
   })
 );
 

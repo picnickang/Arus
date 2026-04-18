@@ -74,27 +74,68 @@
     },
     "equipmentLifecycle": {
       "pgOnly": [
-        "eventDate",
-        "eventType",
         "orgId"
       ],
-      "sqliteOnly": [
-        "installationDate",
-        "manufacturer",
-        "model",
-        "serialNumber"
+      "typeDrift": [
+        "installationDate"
       ]
     },
     "performanceMetrics": {
       "pgOnly": [
-        "metricType",
-        "orgId",
-        "recordedAt",
-        "unit",
-        "value"
+        "orgId"
+      ],
+      "typeDrift": [
+        "metricDate"
+      ]
+    },
+    "operatingParameters": {
+      "pgOnly": [
+        "equipmentType",
+        "manufacturer",
+        "model",
+        "parameterType",
+        "optimalMin",
+        "optimalMax",
+        "criticalMin",
+        "criticalMax",
+        "lifeImpactDescription",
+        "recommendedAction"
       ],
       "sqliteOnly": [
-        "metricDate"
+        "equipmentId",
+        "minValue",
+        "maxValue"
+      ]
+    },
+    "operatingConditionAlerts": {
+      "pgOnly": [
+        "parameterName",
+        "parameterType",
+        "optimalMin",
+        "optimalMax",
+        "thresholdType",
+        "lifeImpact",
+        "recommendedAction",
+        "acknowledged",
+        "resolved",
+        "alertedAt"
+      ]
+    },
+    "engineerOverrides": {
+      "pgOnly": [
+        "predictionId",
+        "workOrderId",
+        "originalPrediction",
+        "originalRiskLevel",
+        "originalConfidence",
+        "newRiskLevel",
+        "newScheduleDate"
+      ],
+      "sqliteOnly": [
+        "originalValue",
+        "overrideValue",
+        "reason",
+        "approvedBy"
       ]
     },
     "rawTelemetry": {
@@ -758,7 +799,17 @@
         "alertType",
         "message",
         "parameterId",
-        "thresholdValue"
+        "thresholdValue",
+        "parameterName",
+        "parameterType",
+        "optimalMin",
+        "optimalMax",
+        "thresholdType",
+        "lifeImpact",
+        "recommendedAction",
+        "acknowledged",
+        "resolved",
+        "alertedAt"
       ],
       "sqliteOnly": [
         "conditionType",
@@ -1083,11 +1134,24 @@
     "operatingParameters": {
       "pgOnly": [
         "category",
-        "optimalValue"
+        "optimalValue",
+        "equipmentType",
+        "manufacturer",
+        "model",
+        "parameterType",
+        "optimalMin",
+        "optimalMax",
+        "criticalMin",
+        "criticalMax",
+        "lifeImpactDescription",
+        "recommendedAction"
       ],
       "sqliteOnly": [
         "normalValue",
-        "tolerance"
+        "tolerance",
+        "equipmentId",
+        "minValue",
+        "maxValue"
       ]
     },
     "scheduleOptimizations": {
@@ -1347,12 +1411,23 @@
     "engineerOverrides": {
       "pgOnly": [
         "equipmentId",
-        "expiresAt"
+        "expiresAt",
+        "predictionId",
+        "workOrderId",
+        "originalPrediction",
+        "originalRiskLevel",
+        "originalConfidence",
+        "newRiskLevel",
+        "newScheduleDate"
       ],
       "sqliteOnly": [
         "approvedAt",
         "targetId",
-        "targetType"
+        "targetType",
+        "originalValue",
+        "overrideValue",
+        "reason",
+        "approvedBy"
       ]
     },
     "predictionDataQuality": {
