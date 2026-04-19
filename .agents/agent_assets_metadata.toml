@@ -288,3 +288,9 @@ id = "2SbKqae3hSMCjQQG5Ww0A"
 uri = "file://.local/dead-code-audit.md"
 type = "text"
 title = "ARUS Dead-Code Audit — Findings & Roadmap (revised)"
+
+[[outputs]]
+id = "V6J2VqACV7c6Fqpufa18O"
+uri = "file://.local/launch-readiness-assessment.md"
+type = "text"
+title = "ARUS v1.0 Launch Readiness Assessment"
