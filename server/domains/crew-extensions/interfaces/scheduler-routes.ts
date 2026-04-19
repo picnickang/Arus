@@ -26,13 +26,27 @@ import {
 import { dbSchedulerStorage } from "../../../db/scheduler/index.js";
 import { dbCrewStorage } from "../../../db/crew/index.js";
 import { vesselService } from "../../../services/domains/vessel-service.js";
+import {
+  planAndMaybeExecute,
+  applySchedule,
+  cancelScheduleRun,
+  clearSchedulerRunHistory,
+  simulateSchedule,
+  applySimulatedSchedule,
+  revertGeneratedSchedule,
+} from "../../../scheduler/scheduler-controller.js";
+import { previewScheduleCompliance } from "../../../scheduler/compliance-preview.js";
+import { generateHoRFromSchedule } from "../../../scheduler/hor-generator.js";
+import { sendSchedulePublishedNotification } from "../../../services/scheduler-notifications/index.js";
+import { canAssignCrew } from "../../../services/hor-projector/constraint-checker.js";
+import { projectComplianceFromAssignments } from "../../../services/hor-projector/projector.js";
+import { crewExtensionsAppService, scheduleSimulationService } from "../application/index.js";
 
 export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRoutesConfig) {
   const { crewOperationRateLimit } = config;
 
   app.post("/api/schedule/plan", crewOperationRateLimit,
     withErrorHandling("plan schedule", async (req: AuthenticatedRequest, res: Response) => {
-      const { planAndMaybeExecute } = await import("../../../scheduler/scheduler-controller.js");
       const orgId = req.orgId!;
       const { from, days, vessels, mode } = req.body;
       const result = await planAndMaybeExecute({ orgId, from, days: days || 7, vessels, mode: mode || "dry_run" });
@@ -79,7 +93,6 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
 
   app.post("/api/schedule/runs/:id/apply", crewOperationRateLimit,
     withErrorHandling("apply scheduler run", async (req: AuthenticatedRequest, res: Response) => {
-      const { applySchedule } = await import("../../../scheduler/scheduler-controller.js");
       const orgId = req.orgId!;
       const { id } = req.params;
       const result = await applySchedule(id, orgId);
@@ -89,7 +102,6 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
 
   app.post("/api/schedule/runs/:id/cancel", crewOperationRateLimit,
     withErrorHandling("cancel scheduler run", async (req: AuthenticatedRequest, res: Response) => {
-      const { cancelScheduleRun } = await import("../../../scheduler/scheduler-controller.js");
       const orgId = req.orgId!;
       const { id } = req.params;
       const result = await cancelScheduleRun(id, orgId);
@@ -100,7 +112,6 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
   app.delete("/api/schedule/runs", crewOperationRateLimit,
     withErrorHandling("clear scheduler run history", async (req: AuthenticatedRequest, res: Response) => {
       const orgId = req.orgId!;
-      const { clearSchedulerRunHistory } = await import("../../../scheduler/scheduler-controller.js");
       const result = await clearSchedulerRunHistory(orgId);
       res.json(result);
     })
@@ -127,8 +138,6 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       if (assignments.length === 0) {
         return res.json({ isCompliant: true, violations: [], summary: { totalCrew: 0, compliantCrew: 0, violationCount: 0, warningCount: 0 } });
       }
-
-      const { previewScheduleCompliance } = await import("../../../scheduler/compliance-preview.js");
       const result = await previewScheduleCompliance(orgId, assignments);
       res.json(result);
     })
@@ -143,8 +152,6 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       if (!existing || existing.orgId !== orgId) {
         return sendNotFound(res, "Scheduler run");
       }
-
-      const { generateHoRFromSchedule } = await import("../../../scheduler/hor-generator.js");
       const result = await generateHoRFromSchedule(id);
 
       if (result.success) {
@@ -451,8 +458,6 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       // Send notifications (async, don't block response)
       if (publishedCount > 0) {
         try {
-          const { sendSchedulePublishedNotification } = await import("../../../services/scheduler-notifications/index.js");
-          
           const crewMembers = await dbCrewStorage.getCrew(orgId);
           const vessels = await vesselService.getVessels();
           
@@ -492,7 +497,6 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
   // Schedule Generator: Simulate (no DB writes)
   app.post("/api/schedule/simulate", crewOperationRateLimit,
     withErrorHandling("simulate schedule", async (req: AuthenticatedRequest, res: Response) => {
-      const { simulateSchedule } = await import("../../../scheduler/scheduler-controller.js");
       const orgId = req.orgId!;
       const { from, days, vessels, fillUnassignedOnly } = req.body;
       const result = await simulateSchedule({ 
@@ -509,7 +513,6 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
   // Schedule Generator: Apply simulated schedule as drafts
   app.post("/api/schedule/apply-draft", crewOperationRateLimit,
     withErrorHandling("apply simulated schedule", async (req: AuthenticatedRequest, res: Response) => {
-      const { applySimulatedSchedule } = await import("../../../scheduler/scheduler-controller.js");
       const orgId = req.orgId!;
       const { simulationResult, skipCollisions, vesselIds } = req.body;
       
@@ -530,7 +533,6 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
   // Schedule Generator: Revert generated schedule (deletes only drafts)
   app.post("/api/schedule/revert/:runId", crewOperationRateLimit,
     withErrorHandling("revert generated schedule", async (req: AuthenticatedRequest, res: Response) => {
-      const { revertGeneratedSchedule } = await import("../../../scheduler/scheduler-controller.js");
       const orgId = req.orgId!;
       const { runId } = req.params;
       
@@ -582,7 +584,6 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       const { crewId, proposedAssignment, existingDrafts } = validated.data;
       
       try {
-        const { canAssignCrew } = await import("../../../services/hor-projector/constraint-checker.js");
         const result = await canAssignCrew(crewId, proposedAssignment, existingDrafts);
         res.json(result);
       } catch (error: any) {
@@ -639,7 +640,6 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       }
 
       try {
-        const { projectComplianceFromAssignments } = await import("../../../services/hor-projector/projector.js");
         const result = projectComplianceFromAssignments(assignments);
         res.json({
           isCompliant: result.isCompliant,
@@ -704,8 +704,6 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
         status: status ? status.split(',').filter(Boolean) : undefined,
         includeUnfilled: includeUnfilled !== 'false',
       };
-
-      const { crewExtensionsAppService } = await import("../application/index.js");
       const view = await crewExtensionsAppService.getSchedulePlannerView(filter);
       res.json(view);
     })
@@ -726,8 +724,6 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
           })),
         });
       }
-
-      const { crewExtensionsAppService } = await import("../application/index.js");
       await crewExtensionsAppService.refreshSchedulePlannerView(orgId, userId);
       res.json({ success: true, refreshedAt: new Date().toISOString() });
     })
@@ -758,8 +754,6 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       }
 
       const { from, days, vessels, crewIds, strategy } = parseResult.data;
-
-      const { scheduleSimulationService } = await import("../application/index.js");
       const preview = await scheduleSimulationService.simulate({
         orgId,
         from,
@@ -785,9 +779,6 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
     withErrorHandling("get simulation preview", async (req: AuthenticatedRequest, res: Response) => {
       const orgId = req.orgId!;
       const { previewId } = req.query;
-
-      const { scheduleSimulationService } = await import("../application/index.js");
-      
       let preview;
       if (previewId && typeof previewId === 'string') {
         preview = await scheduleSimulationService.getPreview(previewId, orgId);
@@ -838,8 +829,6 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       }
 
       const { previewId, selectedAssignmentIds } = parseResult.data;
-
-      const { scheduleSimulationService } = await import("../application/index.js");
       const result = await scheduleSimulationService.commit({
         previewId,
         orgId,
@@ -865,8 +854,6 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
       if (!previewId || typeof previewId !== 'string') {
         return res.status(400).json({ error: "previewId is required" });
       }
-
-      const { scheduleSimulationService } = await import("../application/index.js");
       const deleted = await scheduleSimulationService.discard(previewId, orgId, 'manual', userId);
 
       res.json({
