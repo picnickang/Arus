@@ -1,0 +1,48 @@
+{
+  "_comment": "TypeScript error burndown baseline. Total must monotonically decrease. Regenerate with: node scripts/check-ts-burndown.mjs --write-baseline",
+  "generatedAt": "2026-04-19T06:21:28.773Z",
+  "total": 3541,
+  "summary": {
+    "byCode": {
+      "TS2339": 1021,
+      "TS2322": 397,
+      "TS2345": 386,
+      "TS2769": 277,
+      "TS2551": 156,
+      "TS2802": 153,
+      "TS7006": 147,
+      "TS2724": 131,
+      "TS2554": 124,
+      "TS2304": 111
+    },
+    "byTopFiles": {
+      "server/domains/alerts/settings-service.ts": 35,
+      "server/ml-routes/model-routes.ts": 31,
+      "server/beast/vibration-routes.ts": 29,
+      "client/src/features/analytics/hooks/useMaintenanceModeData.ts": 28,
+      "client/src/features/telemetry/hooks/useOperatingParametersData.ts": 28,
+      "client/src/pages/pdm-equipment-detail.tsx": 27,
+      "server/rul-engine/degradation-analysis.ts": 27,
+      "client/src/components/equipment/EquipmentFormDialog.tsx": 26,
+      "client/src/features/index.ts": 26,
+      "client/src/pages/condition-monitoring-log.tsx": 25,
+      "server/db/logbooks/db-logbooks.ts": 24,
+      "server/routes/sensorTemplates.ts": 24,
+      "server/routes/telemetry-ingestion-routes.ts": 24,
+      "server/services/domains/work-order-service.ts": 24,
+      "server/vessel-simulator/sensor-mappings.ts": 24
+    },
+    "byTopDirs": {
+      "client/src": 1098,
+      "server/domains": 719,
+      "server/services": 382,
+      "server/db": 255,
+      "server/routes": 204,
+      "server/storage": 57,
+      "server/compliance": 49,
+      "server/beast": 45,
+      "server/vessel-intelligence": 45,
+      "server/vessel-simulator": 41
+    }
+  }
+}
