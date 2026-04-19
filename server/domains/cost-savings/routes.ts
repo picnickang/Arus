@@ -11,6 +11,8 @@ import {
 import { requireOrgId, AuthenticatedRequest } from "../../middleware/auth";
 import { withErrorHandling } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
+import { getSavingsSummary, getMonthlySavingsTrend, calculateWorkOrderSavings, processWorkOrderCompletion, updateSavingsValidationStatus } from "../../cost-savings-engine";
+import { db } from "../../db";
 
 interface CostSavingsRoutesConfig {
   writeOperationRateLimit: RateLimitRequestHandler;
@@ -31,7 +33,6 @@ export function registerCostSavingsRoutes(
       const startDate = new Date();
       startDate.setMonth(startDate.getMonth() - validatedQuery.months);
 
-      const { getSavingsSummary } = await import("../../cost-savings-engine");
       const summary = await getSavingsSummary(orgId, startDate, endDate);
 
       res.json(summary);
@@ -43,7 +44,6 @@ export function registerCostSavingsRoutes(
       const orgId = (req as AuthenticatedRequest).orgId;
       const validatedQuery = costSavingsTrendQuerySchema.parse(req.query);
 
-      const { getMonthlySavingsTrend } = await import("../../cost-savings-engine");
       const trend = await getMonthlySavingsTrend(orgId, validatedQuery.months);
 
       res.json(trend);
@@ -56,7 +56,6 @@ export function registerCostSavingsRoutes(
       const { workOrderId } = req.params;
       const validatedOptions = costSavingsCalculateOptionsSchema.parse(req.body);
 
-      const { calculateWorkOrderSavings } = await import("../../cost-savings-engine");
       const calculation = await calculateWorkOrderSavings(
         workOrderId,
         orgId,
@@ -79,7 +78,6 @@ export function registerCostSavingsRoutes(
       const orgId = (req as AuthenticatedRequest).orgId;
       const { workOrderId } = req.params;
 
-      const { processWorkOrderCompletion } = await import("../../cost-savings-engine");
       const result = await processWorkOrderCompletion(workOrderId, orgId);
 
       res.json(result);
@@ -91,7 +89,6 @@ export function registerCostSavingsRoutes(
       const orgId = (req as AuthenticatedRequest).orgId;
       const validatedQuery = costSavingsListQuerySchema.parse(req.query);
 
-      const { db } = await import("../../db");
       const { eq, and, sql } = await import("drizzle-orm");
 
       let query = db
@@ -125,7 +122,6 @@ export function registerCostSavingsRoutes(
       const { equipmentService } = await import("../equipment/service");
       const financials = await equipmentService.getEquipmentFinancialSummary(orgId);
 
-      const { getSavingsSummary } = await import("../../cost-savings-engine");
       const endDate = new Date();
       const startDate = new Date();
       startDate.setMonth(startDate.getMonth() - 12);
@@ -150,7 +146,6 @@ export function registerCostSavingsRoutes(
       const { id } = req.params;
       const body = updateValidationStatusSchema.parse(req.body);
 
-      const { db } = await import("../../db");
       const { eq, and } = await import("drizzle-orm");
 
       const [existing] = await db
@@ -163,7 +158,6 @@ export function registerCostSavingsRoutes(
         return res.status(404).json({ message: "Savings record not found" });
       }
 
-      const { updateSavingsValidationStatus } = await import("../../cost-savings-engine");
       await updateSavingsValidationStatus(id, orgId, body.validationStatus, body.reason, userId);
 
       const [updated] = await db

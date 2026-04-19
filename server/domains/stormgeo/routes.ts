@@ -3,6 +3,7 @@ import { z } from "zod";
 import { withErrorHandling } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
 import { dbStormGeoStorage } from "../../db/stormgeo/index.js";
+import { stormgeoIntegrationService } from "../../services/stormgeo-integration-service";
 
 interface StormGeoConfig {
   requireOrgId: RequestHandler;
@@ -25,7 +26,6 @@ export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
   app.post("/api/stormgeo/settings", writeOperationRateLimit,
     withErrorHandling("save StormGeo settings", async (req: Request, res: Response) => {
       const orgId = req.orgId;
-      const { stormgeoIntegrationService } = await import("../../services/stormgeo-integration-service");
       const settings = await stormgeoIntegrationService.upsertSettings({
         ...req.body,
         orgId,
@@ -52,7 +52,6 @@ export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
         return;
       }
 
-      const { stormgeoIntegrationService } = await import("../../services/stormgeo-integration-service");
       
       let result;
       if (fileType === 'json' || fileName?.endsWith('.json')) {
@@ -97,7 +96,6 @@ export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
         return;
       }
 
-      const { stormgeoIntegrationService } = await import("../../services/stormgeo-integration-service");
       const snapshots = await stormgeoIntegrationService.getSnapshots(orgId, vesselId, startTime, endTime);
       res.json(snapshots);
     })
@@ -114,7 +112,6 @@ export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
         return;
       }
 
-      const { stormgeoIntegrationService } = await import("../../services/stormgeo-integration-service");
       const snapshot = await stormgeoIntegrationService.getWeatherForTime(
         vesselId,
         new Date(timestamp),
@@ -134,7 +131,6 @@ export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
         return;
       }
 
-      const { stormgeoIntegrationService } = await import("../../services/stormgeo-integration-service");
       const result = await stormgeoIntegrationService.autoFillHourlyEntry(
         vesselId,
         logDate,
@@ -184,7 +180,6 @@ export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
       
       const { vesselId, logDate } = parseResult.data;
 
-      const { stormgeoIntegrationService } = await import("../../services/stormgeo-integration-service");
       const results: Record<number, { fields: Record<string, unknown>; source: string; snapshotId?: string }> = {};
       let filledCount = 0;
 

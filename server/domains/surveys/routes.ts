@@ -2,6 +2,7 @@ import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { withErrorHandling, sendNotFound, sendCreated, sendDeleted } from "../../lib/route-utils";
 import { logger } from "../../utils/logger";
+import { db } from "../../db";
 
 const surveyTypeEnum = z.enum(["annual", "intermediate", "special", "renewal", "docking", "bottom"]);
 const classSocietyEnum = z.enum(["DNV", "LR", "BV", "ABS", "ClassNK", "RINA", "CCS", "KR", "Other"]);
@@ -43,7 +44,6 @@ export function registerSurveyRoutes(
       const { vesselId, status, dueBefore } = req.query;
 
       try {
-        const { db } = await import("../../db");
         const { sql } = await import("drizzle-orm");
 
         let result;
@@ -88,7 +88,6 @@ export function registerSurveyRoutes(
       const { vesselId, surveyType, classSociety, dueDate, scope, surveyorName } = parsed.data;
 
       try {
-        const { db } = await import("../../db");
         const { sql } = await import("drizzle-orm");
         const result = await db.execute(sql`
           INSERT INTO class_surveys (org_id, vessel_id, survey_type, class_society, due_date, scope, surveyor_name)
@@ -113,7 +112,6 @@ export function registerSurveyRoutes(
       const daysAhead = Math.min(Math.max(Number(req.query.days) || 90, 1), 365);
 
       try {
-        const { db } = await import("../../db");
         const { sql } = await import("drizzle-orm");
 
         const cutoffDate = new Date();
@@ -145,7 +143,6 @@ export function registerSurveyRoutes(
       if (!orgId) return res.status(401).json({ message: "Organization ID required" });
 
       try {
-        const { db } = await import("../../db");
         const { sql } = await import("drizzle-orm");
         const result = await db.execute(sql`
           SELECT * FROM class_surveys WHERE id = ${req.params.id} AND org_id = ${orgId}
@@ -174,7 +171,6 @@ export function registerSurveyRoutes(
 
       const data = parsed.data;
       try {
-        const { db } = await import("../../db");
         const { sql } = await import("drizzle-orm");
 
         const result = await db.execute(sql`
@@ -206,7 +202,6 @@ export function registerSurveyRoutes(
       if (!orgId) return res.status(401).json({ message: "Organization ID required" });
 
       try {
-        const { db } = await import("../../db");
         const { sql } = await import("drizzle-orm");
         const result = await db.execute(sql`
           DELETE FROM class_surveys WHERE id = ${req.params.id} AND org_id = ${orgId} RETURNING id

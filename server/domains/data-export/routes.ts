@@ -10,6 +10,7 @@ import { RateLimitRequestHandler } from "express-rate-limit";
 import { withErrorHandling, sendNotFound } from "../../lib/route-utils";
 import { logger } from "../../utils/logger.js";
 import type { AuthenticatedRequest } from "../../middleware/auth";
+import { getDataExportImportService } from "../../services/data-export-import";
 
 interface DataExportDependencies {
   generalApiRateLimit: RateLimitRequestHandler;
@@ -38,7 +39,6 @@ export function registerDataExportRoutes(
     criticalOperationRateLimit,
     auditAdminAction("EXPORT_DATA"),
     withErrorHandling("export data", async (req: Request, res: Response) => {
-      const { getDataExportImportService } = await import("../../services/data-export-import");
       const service = getDataExportImportService();
       const orgId = req.header("x-org-id") || req.body.orgId || "default-org-id";
       const exportedBy = (req as AuthenticatedRequest).user?.id || "admin";
@@ -71,7 +71,6 @@ export function registerDataExportRoutes(
     generalApiRateLimit,
     auditAdminAction("DOWNLOAD_EXPORT"),
     withErrorHandling("download export", async (req: Request, res: Response) => {
-      const { getDataExportImportService } = await import("../../services/data-export-import");
       const service = getDataExportImportService();
       const exports = await service.listExports();
       const exportFile = exports.find((e: any) => e.id === req.params.exportId);
@@ -97,7 +96,6 @@ export function registerDataExportRoutes(
     generalApiRateLimit,
     auditAdminAction("VIEW_EXPORTS"),
     withErrorHandling("list exports", async (req: Request, res: Response) => {
-      const { getDataExportImportService } = await import("../../services/data-export-import");
       const service = getDataExportImportService();
       const exports = await service.listExports();
 
@@ -117,7 +115,6 @@ export function registerDataExportRoutes(
     criticalOperationRateLimit,
     auditAdminAction("DELETE_EXPORT"),
     withErrorHandling("delete export", async (req: Request, res: Response) => {
-      const { getDataExportImportService } = await import("../../services/data-export-import");
       const service = getDataExportImportService();
       const deleted = await service.deleteExport(req.params.exportId);
 
@@ -141,7 +138,6 @@ export function registerDataExportRoutes(
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      const { getDataExportImportService } = await import("../../services/data-export-import");
       const service = getDataExportImportService();
 
       const result = await service.importData(req.file.path, {

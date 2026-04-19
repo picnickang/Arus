@@ -42,6 +42,9 @@ jobs:
       - name: TypeScript error burndown
         run: npm run check:ts-burndown
 
+      - name: Route module import smoke check
+        run: npx tsx scripts/check-route-imports.mjs
+
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest

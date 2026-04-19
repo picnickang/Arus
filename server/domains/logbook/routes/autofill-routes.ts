@@ -12,6 +12,8 @@ import { z } from "zod";
 import type { RateLimiters } from "./types";
 import { withErrorHandling } from "../../../lib/route-utils";
 import { logger } from "../../../utils/logger.js";
+import { autoFillFromTelemetry, autoFillGeneratorsFromTelemetry, getAnomalySummary, ENGINE_ANOMALY_THRESHOLDS, GENERATOR_ANOMALY_THRESHOLDS, getUnsignedLogs } from "../../../services/engine-log-autofill-service";
+import { emailNotificationService } from "../../../services/email-notification-service";
 
 const autoFillRequestSchema = z.object({
   vesselId: z.string().uuid("Invalid vessel ID format"),
@@ -46,7 +48,6 @@ export function registerAutofillRoutes(app: Express, rateLimit: RateLimiters) {
       
       const { vesselId, logDate, hours, overwriteManual, dryRun } = parseResult.data;
 
-      const { autoFillFromTelemetry, autoFillGeneratorsFromTelemetry } = await import("../../../services/engine-log-autofill-service");
       
       const [mainEngineResult, generatorResult] = await Promise.all([
         autoFillFromTelemetry(vesselId, orgId, logDate, { hours, overwriteManual, dryRun }),
@@ -64,7 +65,6 @@ export function registerAutofillRoutes(app: Express, rateLimit: RateLimiters) {
   app.get("/api/logbook/engine/daily/:id/anomalies",
     withErrorHandling("get anomaly summary", async (req, res) => {
       const orgId = req.orgId;
-      const { getAnomalySummary } = await import("../../../services/engine-log-autofill-service");
       
       const summary = await getAnomalySummary(req.params.id, orgId);
       res.json(summary);
@@ -73,7 +73,6 @@ export function registerAutofillRoutes(app: Express, rateLimit: RateLimiters) {
 
   app.get("/api/logbook/engine/thresholds",
     withErrorHandling("get anomaly thresholds", async (req, res) => {
-      const { ENGINE_ANOMALY_THRESHOLDS, GENERATOR_ANOMALY_THRESHOLDS } = await import("../../../services/engine-log-autofill-service");
       res.json({
         engine: ENGINE_ANOMALY_THRESHOLDS,
         generator: GENERATOR_ANOMALY_THRESHOLDS,
@@ -87,7 +86,6 @@ export function registerAutofillRoutes(app: Express, rateLimit: RateLimiters) {
       const vesselId = req.query.vesselId as string | undefined;
       const daysBack = req.query.daysBack ? Number.parseInt(req.query.daysBack as string) : 7;
 
-      const { getUnsignedLogs } = await import("../../../services/engine-log-autofill-service");
       const unsignedLogs = await getUnsignedLogs(orgId, { vesselId, daysBack });
 
       res.json(unsignedLogs);
@@ -111,9 +109,6 @@ export function registerAutofillRoutes(app: Express, rateLimit: RateLimiters) {
       
       const { vesselId, daysBack: parsedDaysBack } = parseResult.data;
       const daysBack = parsedDaysBack ?? 7;
-
-      const { getUnsignedLogs } = await import("../../../services/engine-log-autofill-service");
-      const { emailNotificationService } = await import("../../../services/email-notification-service");
 
       const unsignedLogs = await getUnsignedLogs(orgId, { vesselId, daysBack });
 

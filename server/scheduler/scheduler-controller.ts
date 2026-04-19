@@ -544,6 +544,36 @@ export async function revertGeneratedSchedule({
 }
 
 /**
+ * Apply a scheduler run - promotes a draft/completed run to "published" status
+ * so its assignments become active. Wraps dbSchedulerStorage.publishSchedulerRun
+ * with org-scoped ownership validation.
+ */
+export async function applySchedule(runId: string, orgId: string): Promise<{ runId: string; status: string }> {
+  const run = await dbSchedulerStorage.getSchedulerRun(runId);
+  if (!run || run.orgId !== orgId) {
+    throw new Error(`Scheduler run ${runId} not found for org ${orgId}`);
+  }
+  const updated = await dbSchedulerStorage.publishSchedulerRun(runId, orgId);
+  console.log(`[Scheduler] Applied/published scheduler run ${runId} for org ${orgId}`);
+  return { runId: updated.id, status: updated.status ?? "published" };
+}
+
+/**
+ * Cancel a scheduler run - marks the run as cancelled and removes any
+ * draft assignments that were generated from it. Org-scoped.
+ */
+export async function cancelScheduleRun(runId: string, orgId: string): Promise<{ runId: string; status: string; deletedAssignments: number }> {
+  const run = await dbSchedulerStorage.getSchedulerRun(runId);
+  if (!run || run.orgId !== orgId) {
+    throw new Error(`Scheduler run ${runId} not found for org ${orgId}`);
+  }
+  const deletedAssignments = await dbCrewStorage.deleteCrewAssignmentsByRunId(orgId, runId);
+  const updated = await dbSchedulerStorage.cancelSchedulerRun(runId);
+  console.log(`[Scheduler] Cancelled scheduler run ${runId}: removed ${deletedAssignments} draft assignments`);
+  return { runId: updated.id, status: updated.status ?? "cancelled", deletedAssignments };
+}
+
+/**
  * Clear all scheduler run history for an organization
  * Also cleans up associated crew assignments, schedule_assignments, and schedule_unfilled rows
  */
