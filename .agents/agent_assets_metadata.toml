@@ -276,3 +276,9 @@ id = "5aHzR7jH8o7FF6vfYFGDf"
 uri = "file://.local/wave4-prep/decisions.md"
 type = "text"
 title = "Wave 4 Decisions (preview)"
+
+[[outputs]]
+id = "DVawWD1kf0yhakKxyIrn8"
+uri = "file://.local/wave4-applied-report.md"
+type = "text"
+title = "Wave 4 — Application Report"
