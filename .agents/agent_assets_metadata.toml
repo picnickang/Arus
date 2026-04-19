@@ -263,10 +263,16 @@ title = "ARUS Runtime Schema (120 KB)"
 id = "aYiSRzZBRMjHUhGGsBVQZ"
 uri = "file://.local/wave4-prep.tar"
 type = "unspecified"
-title = "ARUS Wave 4 Prep — Bundle for External Claude"
+title = "ARUS Wave 4 Prep — Bundle (with decisions)"
 
 [[outputs]]
 id = "ITq_Sjeaz77ahfudIgYmZ"
 uri = "file://.local/wave4-prep/README.md"
 type = "text"
 title = "Wave 4 Brief (preview)"
+
+[[outputs]]
+id = "5aHzR7jH8o7FF6vfYFGDf"
+uri = "file://.local/wave4-prep/decisions.md"
+type = "text"
+title = "Wave 4 Decisions (preview)"
