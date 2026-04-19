@@ -1,0 +1,223 @@
+You are a senior staff engineer and codebase auditor.
+
+Your task is to IDENTIFY, VALIDATE, and (where safe) REMOVE dead code across the entire ARUS codebase.
+
+Dead code = any code that is:
+- not imported or referenced anywhere
+- not reachable through runtime paths (API routes, UI navigation, background jobs)
+- replaced by newer implementations (legacy duplicates)
+- behind permanently false conditions
+- unused exports, types, utilities, hooks, components
+- stale routes/pages no longer linked or redirected to
+- obsolete feature flags or deprecated paths
+
+CRITICAL RULES
+1. Do not guess. Prove dead code with evidence.
+2. Prefer deletion over commenting-out.
+3. Do NOT remove code that is:
+   - dynamically imported without clear trace
+   - used by config/CLI/scripts/tests unless verified unused
+   - required for dual DB modes or environment-specific paths
+4. Preserve functionality. If unsure, mark as “candidate” not “safe to delete”.
+5. After changes, run build, tests, and guardrails.
+
+==================================================
+PHASE 1 — STATIC DISCOVERY (WHO IS UNUSED?)
+==================================================
+
+Use tools and analysis to find unused code:
+
+- TypeScript:
+  - run typecheck with noUnusedLocals / noUnusedParameters if possible
+- Linters:
+  - unused imports/vars
+- Dependency graph:
+  - trace imports to find unreferenced files/exports
+
+Scan for:
+- files never imported
+- exported functions/classes never used
+- unused React components/pages
+- unused hooks
+- unused services/repositories
+- unused route handlers
+- unused types/interfaces
+- unused constants/config entries
+
+Produce a list:
+- file path
+- symbol name
+- why it appears unused
+
+==================================================
+PHASE 2 — RUNTIME REACHABILITY (IS IT EVER HIT?)
+==================================================
+
+Verify whether candidates are actually reachable:
+
+Check:
+- route registration (domain-router-registry, routes.ts)
+- frontend navigation (menus, links, routers)
+- background jobs / schedulers
+- telemetry ingestion paths
+- CLI/scripts
+- feature flags
+- dynamic imports
+
+For each candidate, classify:
+- UNUSED (no references, no runtime path)
+- LEGACY (replaced by new path)
+- CONDITIONALLY USED (env/flag/test only)
+- UNKNOWN (needs caution)
+
+==================================================
+PHASE 3 — LEGACY / DUPLICATE DETECTION
+==================================================
+
+Specifically look for:
+- duplicate domain flows (old vs new)
+- deprecated endpoints still present
+- old PdM pages/hooks vs new ones
+- old work-order paths vs canonical path
+- redirect-only pages/components
+- wrapper/adaptor layers no longer needed
+
+Mark:
+- which is canonical
+- which is safe to remove
+
+==================================================
+PHASE 4 — FRONTEND DEAD CODE
+==================================================
+
+Detect:
+- unused components
+- unused pages/routes
+- unused hooks
+- unused UI utilities
+- dead CSS/styles
+- routes not linked anywhere
+
+Also check:
+- pages only referenced by old redirects
+- components not reachable from any route
+
+==================================================
+PHASE 5 — BACKEND DEAD CODE
+==================================================
+
+Detect:
+- unused route files
+- unused handlers
+- unused services
+- unused repositories/adapters
+- unused background jobs
+- dead telemetry paths
+- unused sync endpoints
+
+Verify against:
+- route registration
+- domain registry
+- scripts and workers
+
+==================================================
+PHASE 6 — DATA / SCHEMA DEAD AREAS
+==================================================
+
+Identify:
+- tables not used by any queries
+- fields never read or written
+- schema entries not used in runtime
+- unused DTOs / validation schemas
+
+Be careful:
+- do not remove without confirming not used in analytics or reporting
+
+==================================================
+PHASE 7 — SAFE REMOVAL
+==================================================
+
+For code classified as UNUSED or LEGACY:
+
+1. Delete in small batches
+2. After each batch:
+   - run typecheck
+   - run build
+   - run tests
+   - run guardrails:
+     - npm run check:guards
+
+3. Fix any breakages immediately
+
+Do NOT remove:
+- anything classified UNKNOWN without flagging
+
+==================================================
+PHASE 8 — ADD SAFEGUARDS (PREVENT FUTURE DEAD CODE)
+==================================================
+
+If missing, add or improve:
+- lint rules for unused imports/vars
+- TS config for unused detection
+- CI checks to fail on new dead code
+- scripts to detect unreferenced files
+
+==================================================
+FINAL REQUIRED OUTPUT
+==================================================
+
+Provide:
+
+1. DEAD CODE INVENTORY
+- file
+- symbol
+- classification (unused / legacy / conditional / unknown)
+- evidence
+
+2. CODE REMOVED
+- list of deleted files
+- list of removed exports/functions
+- why safe
+
+3. CODE RETAINED (BUT FLAGGED)
+- items not removed
+- reason (conditional / unknown / risky)
+
+4. IMPACT CHECK
+- build result
+- test result
+- guardrail result
+- any regressions found
+
+5. DATA / SCHEMA FINDINGS
+- unused tables/fields/types
+- recommendations (remove / keep)
+
+6. FRONTEND FINDINGS
+- unused pages/components/hooks
+- navigation gaps or orphaned UI
+
+7. BACKEND FINDINGS
+- unused routes/services/adapters
+- dead I/O paths
+
+8. DUPLICATE / LEGACY FINDINGS
+- parallel implementations
+- which is canonical
+- which should be removed next
+
+9. SAFEGUARDS ADDED
+- lint rules
+- CI checks
+- scripts
+
+10. FINAL VERDICT
+Answer clearly:
+- How much dead code existed?
+- How much was removed?
+- What remains and why?
+- Is the codebase now clean of unused paths?
+- What should be removed next?
+
+IMPORTANT:
+Do not be vague. Show evidence. Make real deletions where safe.
