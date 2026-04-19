@@ -258,3 +258,15 @@ id = "VwJDCDNoOOBLc73EeWJUI"
 uri = "file://.local/arus-runtime-schema.tar.gz"
 type = "unspecified"
 title = "ARUS Runtime Schema (120 KB)"
+
+[[outputs]]
+id = "aYiSRzZBRMjHUhGGsBVQZ"
+uri = "file://.local/wave4-prep.tar"
+type = "unspecified"
+title = "ARUS Wave 4 Prep — Bundle for External Claude"
+
+[[outputs]]
+id = "ITq_Sjeaz77ahfudIgYmZ"
+uri = "file://.local/wave4-prep/README.md"
+type = "text"
+title = "Wave 4 Brief (preview)"
