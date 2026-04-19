@@ -36,9 +36,11 @@ jobs:
       - name: Typecheck
         run: npm run check
 
-      - name: Check domain boundaries
+      - name: Check domain boundaries & leak baseline
         run: npm run check:guards
-        continue-on-error: true
+
+      - name: TypeScript error burndown
+        run: npm run check:ts-burndown
 
   unit-tests:
     name: Unit Tests

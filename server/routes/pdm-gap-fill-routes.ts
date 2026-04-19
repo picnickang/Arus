@@ -8,8 +8,15 @@ import { Express, Request, Response } from "express";
 import { withErrorHandling } from "../lib/route-utils";
 import { logger } from "../utils/logger";
 import type { AuthenticatedRequest } from "../middleware/auth";
-import { workOrderService, dbAlertStorage } from "../repositories";
+import { workOrderService, dbAlertStorage, dbMlAnalyticsStorage } from "../repositories";
 import { db } from "../db-config";
+import { PredictionCalibrator } from "../services/ml/prediction-calibration";
+import { PredictionOutcomeTracker } from "../services/ml/prediction-outcome-tracker";
+import { AnomalyCorrelator } from "../services/anomaly-correlation/anomaly-correlator";
+import { TelemetryAggregator } from "../services/telemetry-aggregation/telemetry-aggregator";
+import { ModelEvaluationGate } from "../services/ml/model-evaluation-gate";
+import { MlTrainingJobQueue } from "../services/ml/ml-training-job-queue";
+import { jobQueueService } from "../job-queue-service";
 
 const LOG_CTX = "PdmGapFillRoutes";
 
@@ -28,7 +35,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
       const orgId = (req as AuthenticatedRequest).orgId;
       const { modelId, method } = req.body;
 
-      const { PredictionCalibrator } = await import("../services/ml/prediction-calibration");
+
       const calibrator = new PredictionCalibrator(db);
 
       const result = await calibrator.fitFromHistory(orgId, modelId, { method });
@@ -60,7 +67,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
       const orgId = (req as AuthenticatedRequest).orgId;
       const modelId = req.query.modelId as string | undefined;
 
-      const { PredictionCalibrator } = await import("../services/ml/prediction-calibration");
+
       const calibrator = new PredictionCalibrator(db);
 
       const report = await calibrator.getCalibrationReport(orgId, modelId);
@@ -79,7 +86,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
     withErrorHandling("evaluate prediction outcomes", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
 
-      const { PredictionOutcomeTracker } = await import("../services/ml/prediction-outcome-tracker");
+
       const tracker = new PredictionOutcomeTracker(db, {
         getWorkOrders: (equipmentId, orgId) => workOrderService.getWorkOrdersWithDetails(equipmentId, orgId),
         getAlertNotifications: (acknowledged, orgId) => dbAlertStorage.getAlertNotifications(acknowledged, orgId),
@@ -97,8 +104,8 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
       const equipmentId = req.query.equipmentId as string | undefined;
       const includeAcknowledged = req.query.includeAcknowledged === "true";
 
-      const { AnomalyCorrelator } = await import("../services/anomaly-correlation/anomaly-correlator");
-      const { dbMlAnalyticsStorage } = await import("../db/ml-analytics/index");
+
+
       const correlator = new AnomalyCorrelator(dbMlAnalyticsStorage);
 
       const report = await correlator.correlateAnomalies(orgId, {
@@ -115,7 +122,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
       const orgId = (req as AuthenticatedRequest).orgId;
       const { lookbackHours = 2 } = req.body;
 
-      const { TelemetryAggregator } = await import("../services/telemetry-aggregation/telemetry-aggregator");
+
       const aggregator = new TelemetryAggregator(db);
 
       const result = await aggregator.runScheduledAggregation(orgId, lookbackHours);
@@ -135,7 +142,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
       const endDate = new Date(req.query.endDate as string || Date.now());
       const bucket = req.query.bucket as any;
 
-      const { TelemetryAggregator } = await import("../services/telemetry-aggregation/telemetry-aggregator");
+
       const aggregator = new TelemetryAggregator(db);
 
       const data = await aggregator.queryAggregated(orgId, equipmentId, sensorType, startDate, endDate, bucket);
@@ -166,7 +173,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
         });
       }
 
-      const { ModelEvaluationGate } = await import("../services/ml/model-evaluation-gate");
+
       const gate = new ModelEvaluationGate(db, thresholds);
 
       const predictFn = async (features: Record<string, number>): Promise<number> => {
@@ -193,8 +200,8 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
       }
 
       try {
-        const { MlTrainingJobQueue } = await import("../services/ml/ml-training-job-queue");
-        const { jobQueueService } = await import("../job-queue-service");
+
+
 
         const boss = jobQueueService.getBoss();
         if (!boss) {
@@ -236,8 +243,8 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
       const { jobId } = req.params;
 
       try {
-        const { MlTrainingJobQueue } = await import("../services/ml/ml-training-job-queue");
-        const { jobQueueService } = await import("../job-queue-service");
+
+
 
         const boss = jobQueueService.getBoss();
         if (!boss) {
@@ -267,8 +274,8 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
       const orgId = (req as AuthenticatedRequest).orgId;
 
       try {
-        const { MlTrainingJobQueue } = await import("../services/ml/ml-training-job-queue");
-        const { jobQueueService } = await import("../job-queue-service");
+
+
 
         const boss = jobQueueService.getBoss();
         if (!boss) {
@@ -287,7 +294,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
 
   (async () => {
     try {
-      const { TelemetryAggregator } = await import("../services/telemetry-aggregation/telemetry-aggregator");
+
       const aggregator = new TelemetryAggregator(db);
       await aggregator.ensureTable();
     } catch (err) {
