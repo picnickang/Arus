@@ -5,6 +5,7 @@
  */
 
 import { dbSystemAdminStorage } from "../repositories";
+import { analyzeInsightBundle } from "../openai";
 import type { InsightBundle } from "./types.js";
 
 /**
@@ -16,8 +17,6 @@ export async function llmOverview(bundle: InsightBundle): Promise<string> {
     if (!settings?.llmEnabled) {
       return generateFallbackOverview(bundle);
     }
-
-    const { analyzeInsightBundle } = await import("../openai");
 
     const analysisData = {
       fleet_kpi: bundle.kpi.fleet,

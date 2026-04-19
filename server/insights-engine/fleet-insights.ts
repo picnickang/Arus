@@ -5,6 +5,7 @@
  */
 
 import { dbEquipmentStorage } from "../repositories";
+import { recordFleetTechnicianInsight } from "../ml-prometheus-metrics";
 import type { TechnicianInsightView, VesselInsightGroup } from "./types.js";
 import { generateTechnicianInsight } from "./technician-insight.js";
 
@@ -56,7 +57,7 @@ export async function generateFleetTechnicianInsights(
     }));
 
     const duration = (Date.now() - startTime) / 1000;
-    const { recordFleetTechnicianInsight } = await import("../ml-prometheus-metrics");
+
     recordFleetTechnicianInsight(orgId, result.length, duration, true);
 
     console.log(
@@ -74,7 +75,7 @@ export async function generateFleetTechnicianInsights(
     console.error("[Insights] Failed to generate fleet technician insights:", error);
 
     const duration = (Date.now() - startTime) / 1000;
-    const { recordFleetTechnicianInsight } = await import("../ml-prometheus-metrics");
+
     recordFleetTechnicianInsight(orgId, 0, duration, false);
 
     return [];

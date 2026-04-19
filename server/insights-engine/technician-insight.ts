@@ -5,6 +5,11 @@
  */
 
 import { dbEquipmentStorage, dbTelemetryStorage, vesselService } from "../repositories";
+import { predictWithEnsemble } from "../ml-prediction-service";
+import {
+  recordTechnicianInsight,
+  recordTechnicianInsightFallback,
+} from "../ml-prometheus-metrics";
 import {
   determineStatusLevel,
   getPriorityFromStatus,
@@ -33,7 +38,6 @@ export async function generateTechnicianInsight(
       vesselName = vessel?.name || equipment.vesselName || null;
     }
 
-    const { predictWithEnsemble } = await import("../ml-prediction-service");
     const prediction = await predictWithEnsemble(equipmentId, orgId);
 
     const telemetry = await dbTelemetryStorage.getLatestTelemetryReadings(
@@ -131,7 +135,6 @@ export async function generateTechnicianInsight(
     };
 
     const duration = (Date.now() - startTime) / 1000;
-    const { recordTechnicianInsight } = await import("../ml-prometheus-metrics");
     recordTechnicianInsight(orgId, statusLevel, duration, true);
 
     console.log(
@@ -151,9 +154,6 @@ export async function generateTechnicianInsight(
     console.error("[Insights] Failed to generate technician insight:", error);
 
     const duration = (Date.now() - startTime) / 1000;
-    const { recordTechnicianInsight, recordTechnicianInsightFallback } = await import(
-      "../ml-prometheus-metrics"
-    );
     recordTechnicianInsight(orgId, "error", duration, false);
     recordTechnicianInsightFallback(orgId, "exception");
 

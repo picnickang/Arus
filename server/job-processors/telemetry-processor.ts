@@ -2,6 +2,9 @@
  * Telemetry Processing Job Processor
  */
 
+import { storage } from "../repositories";
+import { generateAIInsights } from "../ai-insights";
+
 export async function processTelemetryProcessing(data: {
   telemetryReading: any;
 }): Promise<{ alerts: any[]; schedules: any[]; insights: any }> {
@@ -12,17 +15,9 @@ export async function processTelemetryProcessing(data: {
   };
 
   try {
-    const { storage } = await import("../repositories");
-  } catch (error) {
-    console.warn("Telemetry processing failed in background job:", error);
-  }
-
-  try {
-    const { storage } = await import("../repositories");
     const settings = await storage.getSettings();
 
     if (settings.llmEnabled) {
-      const { generateAIInsights } = await import("../ai-insights");
       results.insights = await generateAIInsights(data.telemetryReading);
     }
   } catch (error) {

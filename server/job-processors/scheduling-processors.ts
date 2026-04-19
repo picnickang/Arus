@@ -2,6 +2,9 @@
  * Scheduling Job Processors
  */
 
+import { scheduleWithORTools } from "../crew-scheduler-ortools";
+import { storage } from "../repositories";
+
 export async function processCrewScheduling(data: {
   days: string[];
   shifts: any[];
@@ -9,7 +12,6 @@ export async function processCrewScheduling(data: {
   leaves: any[];
   options: any;
 }): Promise<any> {
-  const { scheduleWithORTools } = await import("../crew-scheduler-ortools");
   return scheduleWithORTools(
     data.days,
     data.shifts,
@@ -26,6 +28,5 @@ export async function processMaintenanceScheduling(data: {
   equipmentId: string;
   pdmScore: number;
 }): Promise<any> {
-  const { storage } = await import("../repositories");
   return storage.autoScheduleMaintenance(data.equipmentId, data.pdmScore);
 }
