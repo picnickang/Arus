@@ -3,7 +3,7 @@
  */
 
 import { storage } from "../repositories";
-import { generateAIInsights } from "../ai-insights";
+import { generateAIInsights } from "../services/telemetry-processing";
 
 export async function processTelemetryProcessing(data: {
   telemetryReading: any;

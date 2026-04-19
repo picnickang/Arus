@@ -70,7 +70,7 @@ export async function withProtection<T>(method: string, equipmentId: string, org
         structuredLog({ method, equipmentId, orgId, latencyMs, status: "info", details: { reason: "no_prediction_available" } });
       }
       return result;
-    } catch (_error) {
+    } catch (error) {
       const latencyMs = Date.now() - startTime;
       circuitBreaker.recordFailure();
       mlObservability.logFailure(equipmentId, orgId, method, error as Error, latencyMs);

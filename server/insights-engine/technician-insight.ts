@@ -5,7 +5,7 @@
  */
 
 import { dbEquipmentStorage, dbTelemetryStorage, vesselService } from "../repositories";
-import { predictWithEnsemble } from "../ml-prediction-service";
+import { predictWithEnsemble } from "../ml-prediction";
 import {
   recordTechnicianInsight,
   recordTechnicianInsightFallback,
