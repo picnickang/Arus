@@ -282,3 +282,9 @@ id = "DVawWD1kf0yhakKxyIrn8"
 uri = "file://.local/wave4-applied-report.md"
 type = "text"
 title = "Wave 4 — Application Report"
+
+[[outputs]]
+id = "2SbKqae3hSMCjQQG5Ww0A"
+uri = "file://.local/dead-code-audit.md"
+type = "text"
+title = "ARUS Dead-Code Audit — Findings & Roadmap"
