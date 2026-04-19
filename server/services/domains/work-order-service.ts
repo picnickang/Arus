@@ -26,6 +26,7 @@ import {
 } from "@shared/schema-runtime";
 import { publishEvent } from "../../sync-events.js";
 import { dbWorkOrderStorage } from "../../db/workorders/index.js";
+import { dbInventoryStorage } from "../../db/inventory/index.js";
 import { getWebSocketServer } from "../../websocket-server";
 import { ilike } from "../../utils/sql-compat";
 export interface WorkOrderFilters {
@@ -326,7 +327,6 @@ class WorkOrderService {
   async deleteWorkOrderCascade(id: string): Promise<void> {
     const [wo] = await db.select({ orgId: workOrders.orgId }).from(workOrders).where(eq(workOrders.id, id)).limit(1);
     if (wo?.orgId) {
-      const { dbInventoryStorage } = await import("../../db/inventory/index.js");
       await dbInventoryStorage.releasePartsFromWorkOrder(id, wo.orgId);
     }
     await db.delete(workOrderParts).where(eq(workOrderParts.workOrderId, id));

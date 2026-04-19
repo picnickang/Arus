@@ -1,0 +1,368 @@
+{
+  "_comment": "Domain leak baseline. Counts must monotonically decrease. Regenerate with: node scripts/check-domain-leaks.mjs --write-baseline",
+  "generatedAt": "2026-04-19T06:08:27.501Z",
+  "totals": {
+    "dynamicImports": 478,
+    "routeStorageImports": 104,
+    "crossDomainStorage": 79,
+    "total": 661
+  },
+  "samples": {
+    "dynamicImports": [
+      {
+        "file": "server/adaptive-training-window/data-range.ts",
+        "target": "../db"
+      },
+      {
+        "file": "server/adaptive-training-window/data-range.ts",
+        "target": "@shared/schema"
+      },
+      {
+        "file": "server/app.ts",
+        "target": "./routes.js"
+      },
+      {
+        "file": "server/bootstrap/middleware.ts",
+        "target": "../security"
+      },
+      {
+        "file": "server/bootstrap/middleware.ts",
+        "target": "../middleware/auth"
+      },
+      {
+        "file": "server/bootstrap/middleware.ts",
+        "target": "../middleware/db-context"
+      },
+      {
+        "file": "server/bootstrap/middleware.ts",
+        "target": "../orgIdValidation"
+      },
+      {
+        "file": "server/bootstrap/middleware.ts",
+        "target": "../middleware/api-ready-gate"
+      },
+      {
+        "file": "server/bootstrap/schedulers.ts",
+        "target": "../insights-scheduler"
+      },
+      {
+        "file": "server/bootstrap/schedulers.ts",
+        "target": "../vessel-scheduler"
+      },
+      {
+        "file": "server/bootstrap/schedulers.ts",
+        "target": "../optimization-cleanup-scheduler"
+      },
+      {
+        "file": "server/bootstrap/schedulers.ts",
+        "target": "../materialized-view-scheduler"
+      },
+      {
+        "file": "server/bootstrap/schedulers.ts",
+        "target": "../services/data-reconciliation.js"
+      },
+      {
+        "file": "server/bootstrap/schedulers.ts",
+        "target": "../../shared/config/tenant"
+      },
+      {
+        "file": "server/bootstrap/schedulers.ts",
+        "target": "../domains/pdm-platform/twin-updates/twin-update.service"
+      },
+      {
+        "file": "server/bootstrap/schedulers.ts",
+        "target": "../domains/pdm-platform/twin-updates/adapter"
+      },
+      {
+        "file": "server/bootstrap/schedulers.ts",
+        "target": "../domains/pdm-platform/digital-twin/twin-definition/adapter"
+      },
+      {
+        "file": "server/bootstrap/schedulers.ts",
+        "target": "../domains/pdm-platform/digital-twin/twin-state/adapter"
+      },
+      {
+        "file": "server/bootstrap/schedulers.ts",
+        "target": "../domains/pdm-platform/digital-twin/twin-state/twin-state.service"
+      },
+      {
+        "file": "server/bootstrap/schedulers.ts",
+        "target": "../domains/pdm-platform/digital-twin/residual-analysis/residual-analysis.service"
+      },
+      {
+        "file": "server/bootstrap/schedulers.ts",
+        "target": "../domains/pdm-platform/feature-store/telemetry-adapter"
+      },
+      {
+        "file": "server/bootstrap/schedulers.ts",
+        "target": "../../shared/config/tenant"
+      },
+      {
+        "file": "server/bootstrap/schedulers.ts",
+        "target": "../domains/pdm-platform/prediction-governance/prediction-governance.service"
+      },
+      {
+        "file": "server/bootstrap/schedulers.ts",
+        "target": "../domains/pdm-platform/prediction-governance/adapter"
+      },
+      {
+        "file": "server/bootstrap/schedulers.ts",
+        "target": "../job-processors"
+      }
+    ],
+    "routeStorageImports": [
+      {
+        "file": "server/beast/compliance-export-routes.ts",
+        "storage": "dbEquipmentStorage"
+      },
+      {
+        "file": "server/beast/inventory-risk-routes.ts",
+        "storage": "dbInventoryStorage"
+      },
+      {
+        "file": "server/beast/inventory-risk-routes.ts",
+        "storage": "dbEquipmentStorage"
+      },
+      {
+        "file": "server/compliance/routes/data-privacy-routes.ts",
+        "storage": "dbGdprStorage"
+      },
+      {
+        "file": "server/compliance/routes/ml-governance-routes.ts",
+        "storage": "dbMlAnalyticsStorage"
+      },
+      {
+        "file": "server/domains/compliance/routes.ts",
+        "storage": "dbComplianceStorage"
+      },
+      {
+        "file": "server/domains/condition-monitoring/routes.ts",
+        "storage": "dbConditionMonitoringStorage"
+      },
+      {
+        "file": "server/domains/crew-extensions/interfaces/assignments-routes.ts",
+        "storage": "dbCrewStorage"
+      },
+      {
+        "file": "server/domains/crew-extensions/interfaces/certifications-routes.ts",
+        "storage": "dbCrewExtensionsStorage"
+      },
+      {
+        "file": "server/domains/crew-extensions/interfaces/duty-routes.ts",
+        "storage": "dbCrewStorage"
+      },
+      {
+        "file": "server/domains/crew-extensions/interfaces/leave-routes.ts",
+        "storage": "dbCrewStorage"
+      },
+      {
+        "file": "server/domains/crew-extensions/interfaces/scheduler-routes.ts",
+        "storage": "dbSchedulerStorage"
+      },
+      {
+        "file": "server/domains/crew-extensions/interfaces/scheduler-routes.ts",
+        "storage": "dbCrewStorage"
+      },
+      {
+        "file": "server/domains/crew-extensions/interfaces/shifts-routes.ts",
+        "storage": "dbCrewStorage"
+      },
+      {
+        "file": "server/domains/dtc/routes.ts",
+        "storage": "dbDtcStorage"
+      },
+      {
+        "file": "server/domains/dtc/routes.ts",
+        "storage": "dbEquipmentStorage"
+      },
+      {
+        "file": "server/domains/health-monitoring/routes.ts",
+        "storage": "dbEquipmentStorage"
+      },
+      {
+        "file": "server/domains/health-monitoring/routes.ts",
+        "storage": "dbAlertStorage"
+      },
+      {
+        "file": "server/domains/health-monitoring/routes.ts",
+        "storage": "dbDevicesStorage"
+      },
+      {
+        "file": "server/domains/health-monitoring/routes.ts",
+        "storage": "dbSystemAdminStorage"
+      },
+      {
+        "file": "server/domains/insights/routes.ts",
+        "storage": "dbAnalyticsStorage"
+      },
+      {
+        "file": "server/domains/integrations/routes.ts",
+        "storage": "dbDevicesStorage"
+      },
+      {
+        "file": "server/domains/integrations/routes.ts",
+        "storage": "dbEquipmentStorage"
+      },
+      {
+        "file": "server/domains/inventory-optimization/routes.ts",
+        "storage": "dbInventoryStorage"
+      },
+      {
+        "file": "server/domains/llm/routes/compliance-report.ts",
+        "storage": "dbMaintenanceStorage"
+      }
+    ],
+    "crossDomainStorage": [
+      {
+        "file": "server/domains/agent/infrastructure/briefing-data-adapter.ts",
+        "storage": "dbAlertStorage",
+        "fromDomain": "agent",
+        "toDomain": "alerts"
+      },
+      {
+        "file": "server/domains/agent/infrastructure/briefing-data-adapter.ts",
+        "storage": "dbMaintenanceStorage",
+        "fromDomain": "agent",
+        "toDomain": "maintenance"
+      },
+      {
+        "file": "server/domains/agent/infrastructure/briefing-data-adapter.ts",
+        "storage": "dbCrewExtensionsStorage",
+        "fromDomain": "agent",
+        "toDomain": "crew"
+      },
+      {
+        "file": "server/domains/agent/infrastructure/briefing-data-adapter.ts",
+        "storage": "dbInventoryStorage",
+        "fromDomain": "agent",
+        "toDomain": "inventory"
+      },
+      {
+        "file": "server/domains/alerts/evaluators/crew-change-alerts.ts",
+        "storage": "dbCrewStorage",
+        "fromDomain": "alerts",
+        "toDomain": "crew"
+      },
+      {
+        "file": "server/domains/alerts/evaluators/helpers.ts",
+        "storage": "dbCrewStorage",
+        "fromDomain": "alerts",
+        "toDomain": "crew"
+      },
+      {
+        "file": "server/domains/alerts/evaluators/manning-alerts.ts",
+        "storage": "dbCrewStorage",
+        "fromDomain": "alerts",
+        "toDomain": "crew"
+      },
+      {
+        "file": "server/domains/crew-extensions/interfaces/assignments-routes.ts",
+        "storage": "dbCrewStorage",
+        "fromDomain": "crew-extensions",
+        "toDomain": "crew"
+      },
+      {
+        "file": "server/domains/crew-extensions/interfaces/certifications-routes.ts",
+        "storage": "dbCrewExtensionsStorage",
+        "fromDomain": "crew-extensions",
+        "toDomain": "crew"
+      },
+      {
+        "file": "server/domains/crew-extensions/interfaces/duty-routes.ts",
+        "storage": "dbCrewStorage",
+        "fromDomain": "crew-extensions",
+        "toDomain": "crew"
+      },
+      {
+        "file": "server/domains/crew-extensions/interfaces/leave-routes.ts",
+        "storage": "dbCrewStorage",
+        "fromDomain": "crew-extensions",
+        "toDomain": "crew"
+      },
+      {
+        "file": "server/domains/crew-extensions/interfaces/scheduler-routes.ts",
+        "storage": "dbCrewStorage",
+        "fromDomain": "crew-extensions",
+        "toDomain": "crew"
+      },
+      {
+        "file": "server/domains/crew-extensions/interfaces/shifts-routes.ts",
+        "storage": "dbCrewStorage",
+        "fromDomain": "crew-extensions",
+        "toDomain": "crew"
+      },
+      {
+        "file": "server/domains/dtc/routes.ts",
+        "storage": "dbEquipmentStorage",
+        "fromDomain": "dtc",
+        "toDomain": "equipment"
+      },
+      {
+        "file": "server/domains/equipment/repository.ts",
+        "storage": "dbSensorsStorage",
+        "fromDomain": "equipment",
+        "toDomain": "sensor-management"
+      },
+      {
+        "file": "server/domains/equipment/repository.ts",
+        "storage": "dbInventoryStorage",
+        "fromDomain": "equipment",
+        "toDomain": "inventory"
+      },
+      {
+        "file": "server/domains/health-monitoring/routes.ts",
+        "storage": "dbEquipmentStorage",
+        "fromDomain": "health-monitoring",
+        "toDomain": "equipment"
+      },
+      {
+        "file": "server/domains/health-monitoring/routes.ts",
+        "storage": "dbAlertStorage",
+        "fromDomain": "health-monitoring",
+        "toDomain": "alerts"
+      },
+      {
+        "file": "server/domains/health-monitoring/routes.ts",
+        "storage": "dbSystemAdminStorage",
+        "fromDomain": "health-monitoring",
+        "toDomain": "system-admin"
+      },
+      {
+        "file": "server/domains/hub-sync/service.ts",
+        "storage": "dbCrewStorage",
+        "fromDomain": "hub-sync",
+        "toDomain": "crew"
+      },
+      {
+        "file": "server/domains/insights/routes.ts",
+        "storage": "dbAnalyticsStorage",
+        "fromDomain": "insights",
+        "toDomain": "analytics"
+      },
+      {
+        "file": "server/domains/integrations/routes.ts",
+        "storage": "dbEquipmentStorage",
+        "fromDomain": "integrations",
+        "toDomain": "equipment"
+      },
+      {
+        "file": "server/domains/inventory/repository.ts",
+        "storage": "dbEquipmentStorage",
+        "fromDomain": "inventory",
+        "toDomain": "equipment"
+      },
+      {
+        "file": "server/domains/inventory/repository.ts",
+        "storage": "dbAnalyticsStorage",
+        "fromDomain": "inventory",
+        "toDomain": "analytics"
+      },
+      {
+        "file": "server/domains/inventory-optimization/routes.ts",
+        "storage": "dbInventoryStorage",
+        "fromDomain": "inventory-optimization",
+        "toDomain": "inventory"
+      }
+    ]
+  }
+}
