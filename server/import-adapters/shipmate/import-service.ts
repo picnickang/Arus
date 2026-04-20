@@ -4,7 +4,7 @@
  * Extends the generic AMOS import service with SHIPMATE-specific logic:
  *   - Component number dot notation → parent-child hierarchy
  *   - Header normalization for SHIPMATE CSV variations
- *   - Vessel name → vessel ID resolution
+ *   - Vessel name → vessel ID resolution (EXACT match only — see Fix #1)
  *   - Running hours synchronization
  *   - Cross-module linking (parts → equipment via component number)
  *   - RAG ingestion tuned for SHIPMATE data structure
@@ -21,12 +21,39 @@
  * Usage:
  *   const result = await shipmateImport.importFile(orgId, csvContent, {
  *     module: "pms_equipment",
- *     vesselName: "Green Belait",
+ *     vesselName: "Green Belait",  // exact match required
+ *     // OR:
+ *     vesselId: "vessel-uuid-here",
  *   });
+ *
+ * ============================================================================
+ * LAUNCH P0 FIXES APPLIED (Fix #1 + Fix #2):
+ * ============================================================================
+ *
+ * Fix #1 — Vessel resolver: EXACT case-insensitive match only.
+ *   Previously used `LIKE %name%` as a fallback, which silently matched
+ *   "MV Sentinel" to "MV Sentinel II" → cross-vessel data corruption.
+ *   Now:
+ *     - vesselId passed → used directly (no lookup)
+ *     - vesselName passed → exact case-insensitive match
+ *     - Multiple matches → throw (should be impossible, but defensive)
+ *     - No match → throw with clear error message listing candidates
+ *   The caller (the import UI / API) should require the user to pick a
+ *   vessel from a dropdown, not free-type. If free-type is kept, the
+ *   failure is loud rather than silent.
+ *
+ * Fix #2 — Transactional wrapping + import manifest.
+ *   Each module import is now wrapped in db.transaction(). A manifest row
+ *   is inserted at the start, updated with final counts at the end, or
+ *   rolled back with the rest if the transaction fails.
+ *   A committed manifest row means: "every row below this count is safely
+ *   in the DB." A missing or status='failed'/'rolled_back' manifest means:
+ *   "nothing from this file got in — safe to re-try."
+ * ============================================================================
  */
 
-import { parseAmosCSV, type ParseResult } from "../amos/parser";
-import { applyMapping, type FieldMapping } from "../amos/field-mapping";
+import { parseAmosCSV } from "../amos/parser";
+import { applyMapping } from "../amos/field-mapping";
 import {
   getShipmateMapping,
   normalizeShipmateHeaders,
@@ -35,6 +62,7 @@ import {
 import { db } from "../../db";
 import { eq, and, sql } from "drizzle-orm";
 import { equipment, workOrders, parts, stock, vessels } from "@shared/schema";
+import { importManifest } from "@shared/schema";
 import { createLogger } from "../../lib/structured-logger";
 
 const logger = createLogger("shipmate-import");
@@ -45,13 +73,26 @@ const logger = createLogger("shipmate-import");
 
 export interface ShipmateImportOptions {
   module: ShipmateModuleType;
+  /**
+   * Exact vessel name (case-insensitive). Must match exactly one vessel in
+   * the org. If ambiguous or no match, import fails loudly.
+   * Prefer passing `vesselId` directly when known.
+   */
   vesselName?: string;
+  /**
+   * Explicit vessel ID. Bypasses name lookup. Recommended for UI flows
+   * where the user picks from a dropdown.
+   */
   vesselId?: string;
   filename?: string;
   dryRun?: boolean;
   feedToRag?: boolean;
   delimiter?: string;
   syncRunningHours?: boolean;
+  /**
+   * User who initiated the import. Recorded in the manifest for audit.
+   */
+  initiatedBy?: string;
 }
 
 export interface ShipmateImportResult {
@@ -68,63 +109,102 @@ export interface ShipmateImportResult {
   hierarchyLevelsDetected: number;
   dryRun: boolean;
   duration: number;
+  /**
+   * Import manifest row ID. Non-null on non-dry-run imports. Use this to
+   * query the manifest for audit ("what did import X actually do?").
+   */
+  manifestId: string | null;
+}
+
+/**
+ * Thrown when vessel name resolution fails in a way the caller should know
+ * about. Caller should surface the message to the UI rather than swallowing.
+ */
+export class VesselResolutionError extends Error {
+  constructor(message: string, public readonly candidates: string[] = []) {
+    super(message);
+    this.name = "VesselResolutionError";
+  }
 }
 
 // ============================================================================
-// Vessel name → ID resolver (cached)
+// Vessel name → ID resolver (no cache — correctness over speed)
 // ============================================================================
-
-const vesselCache = new Map<string, string>();
+//
+// The previous implementation cached by name. We've removed the cache to
+// keep the resolution logic simple and because:
+//   - Imports are slow anyway (I/O bound); a few extra SELECTs don't matter
+//   - Cached bugs are the worst kind of bugs; a stale cache would silently
+//     attach data to a renamed/deleted vessel
+// If this becomes a real performance issue, add a per-import cache scoped
+// to the importFile() call, not a process-wide cache.
+// ============================================================================
 
 async function resolveVesselId(
   orgId: string,
   vesselName?: string,
   vesselId?: string
 ): Promise<string | null> {
+  // Explicit vessel ID wins — caller took responsibility.
   if (vesselId) return vesselId;
+
+  // No name supplied → no resolution possible. Not an error; some
+  // imports legitimately have no vessel scope.
   if (!vesselName) return null;
 
-  const cacheKey = `${orgId}:${vesselName.toLowerCase()}`;
-  if (vesselCache.has(cacheKey)) return vesselCache.get(cacheKey)!;
+  const trimmedName = vesselName.trim();
+  if (!trimmedName) return null;
 
-  try {
-    const [vessel] = await db
-      .select({ id: vessels.id })
-      .from(vessels)
-      .where(
-        and(
-          eq(vessels.orgId, orgId),
-          sql`LOWER(${vessels.name}) = LOWER(${vesselName})`
-        )
+  // EXACT case-insensitive match only. No LIKE, no partial, no substring.
+  const matches = await db
+    .select({ id: vessels.id, name: vessels.name })
+    .from(vessels)
+    .where(
+      and(
+        eq(vessels.orgId, orgId),
+        sql`LOWER(${vessels.name}) = LOWER(${trimmedName})`
       )
-      .limit(1);
+    );
 
-    if (vessel) {
-      vesselCache.set(cacheKey, vessel.id);
-      return vessel.id;
-    }
-
-    // Try partial match (SHIPMATE sometimes abbreviates vessel names)
-    const [partial] = await db
-      .select({ id: vessels.id })
-      .from(vessels)
-      .where(
-        and(
-          eq(vessels.orgId, orgId),
-          sql`LOWER(${vessels.name}) LIKE LOWER(${'%' + vesselName + '%'})`
-        )
-      )
-      .limit(1);
-
-    if (partial) {
-      vesselCache.set(cacheKey, partial.id);
-      return partial.id;
-    }
-  } catch (err) {
-    logger.warn("Vessel lookup failed", { vesselName, error: err });
+  if (matches.length === 1) {
+    return matches[0].id;
   }
 
-  return null;
+  if (matches.length === 0) {
+    // Give the caller a useful error: include candidates that share a
+    // prefix/substring so they can tell whether the name was a typo or
+    // whether the vessel genuinely doesn't exist yet.
+    const candidates = await db
+      .select({ name: vessels.name })
+      .from(vessels)
+      .where(
+        and(
+          eq(vessels.orgId, orgId),
+          sql`LOWER(${vessels.name}) LIKE LOWER(${"%" + trimmedName + "%"})`
+        )
+      )
+      .limit(10);
+
+    const candidateNames = candidates.map((c) => c.name);
+    const hint =
+      candidateNames.length > 0
+        ? ` Similar vessels in this org: ${candidateNames.join(", ")}.`
+        : " No similar vessels found — create the vessel in ARUS before importing.";
+
+    throw new VesselResolutionError(
+      `Vessel "${vesselName}" not found.${hint}`,
+      candidateNames
+    );
+  }
+
+  // matches.length > 1 — should be rare but possible if the name column
+  // has no unique constraint. Fail loudly rather than picking the first.
+  const matchNames = matches.map((m) => m.name);
+  throw new VesselResolutionError(
+    `Vessel name "${vesselName}" is ambiguous — matched ${matches.length} vessels. ` +
+      `Pass an explicit vesselId instead. Candidates: ${matchNames.join(", ")}.`,
+    matchNames
+  );
 }
 
 // ============================================================================
@@ -132,7 +212,6 @@ async function resolveVesselId(
 // ============================================================================
 
 class ShipmateImportService {
-
   async importFile(
     orgId: string,
     fileContent: string,
@@ -147,14 +226,14 @@ class ShipmateImportService {
       filename: options.filename,
     });
 
-    // Step 1: Parse CSV (SHIPMATE exports are CSV)
+    // Step 1: Parse CSV
     const parsed = parseAmosCSV(fileContent, { delimiter: options.delimiter });
 
     if (parsed.rowCount === 0) {
       return this.errorResult(options, parsed.warnings, startTime);
     }
 
-    // Step 2: Normalize headers (SHIPMATE has inconsistent naming)
+    // Step 2: Normalize headers
     const normalizedHeaders = normalizeShipmateHeaders(parsed.headers);
     const normalizedRows = parsed.rows.map((row) => {
       const normalized: Record<string, string> = {};
@@ -166,19 +245,14 @@ class ShipmateImportService {
       return normalized;
     });
 
-    // Step 3: Resolve vessel
+    // Step 3: Resolve vessel. May throw VesselResolutionError — let it
+    // propagate so the caller's HTTP handler returns a clear 4xx error.
+    // Do NOT catch-and-swallow; that was the bug.
     const resolvedVesselId = await resolveVesselId(
       orgId,
       options.vesselName || this.extractVesselNameFromRows(normalizedRows),
       options.vesselId
     );
-
-    if (!resolvedVesselId && options.vesselName) {
-      parsed.warnings.push(
-        `Vessel "${options.vesselName}" not found in ARUS. ` +
-        `Create the vessel first, or data will import without a vessel link.`
-      );
-    }
 
     // Step 4: Get field mapping for this SHIPMATE module
     const mapping = getShipmateMapping(options.module);
@@ -188,20 +262,16 @@ class ShipmateImportService {
       const { data, errors, warnings } = applyMapping(row, mapping);
       data.orgId = orgId;
       if (resolvedVesselId && !data.vesselId) data.vesselId = resolvedVesselId;
-
-      // For equipment: resolve vessel name from row if not set globally
-      if (data._vesselName && !data.vesselId) {
-        // Defer resolution — we'll batch this later
-      }
-
       return { rowNum: i + 2, data, errors, warnings };
     });
 
-    // Step 6: Detect hierarchy depth (equipment imports)
+    // Step 6: Detect hierarchy depth
     let hierarchyLevelsDetected = 0;
     if (options.module === "pms_equipment") {
       const depths = normalizedRows
-        .map((r) => (r["Component No"] || r["Component Number"] || "").split(".").length)
+        .map((r) =>
+          (r["Component No"] || r["Component Number"] || "").split(".").length
+        )
         .filter((d) => d > 0);
       hierarchyLevelsDetected = Math.max(0, ...depths);
     }
@@ -212,12 +282,17 @@ class ShipmateImportService {
 
     for (const row of mappedRows) {
       if (row.errors.length > 0) {
-        importErrors.push({ row: row.rowNum, message: row.errors.join("; "), data: row.data });
+        importErrors.push({
+          row: row.rowNum,
+          message: row.errors.join("; "),
+          data: row.data,
+        });
       } else {
         validRows.push({ rowNum: row.rowNum, data: row.data });
       }
     }
 
+    // Dry-run short-circuit: no DB writes, no manifest row.
     if (options.dryRun) {
       return {
         success: validRows.length > 0,
@@ -233,6 +308,7 @@ class ShipmateImportService {
         hierarchyLevelsDetected,
         dryRun: true,
         duration: Date.now() - startTime,
+        manifestId: null,
       };
     }
 
@@ -241,34 +317,163 @@ class ShipmateImportService {
       this.sortByHierarchy(validRows);
     }
 
-    // Step 9: Upsert into database
+    // Step 9: Transactional upsert.
+    // Everything from here through the counts-update happens in ONE
+    // transaction. If the transaction throws, Postgres rolls it all back
+    // — including the manifest row. If it commits, the manifest row is
+    // the audit trail for what just happened.
+    let manifestId: string = "";
     let imported = 0;
     let updated = 0;
-    let skipped = 0;
+    let skipped = importErrors.length; // pre-validation failures
 
-    for (const row of validRows) {
+    try {
+      await db.transaction(async (tx) => {
+        // Insert manifest row inside the transaction. If the transaction
+        // rolls back, this row disappears too — which is what we want:
+        // a manifest row only exists if the import succeeded or partially
+        // succeeded enough to record status='failed' in the catch below.
+        const [manifest] = await tx
+          .insert(importManifest)
+          .values({
+            orgId,
+            sourceSystem: "shipmate",
+            module: options.module,
+            filename: options.filename ?? null,
+            vesselId: resolvedVesselId,
+            vesselNameRequested: options.vesselName ?? null,
+            status: "running",
+            rowsTotal: parsed.rowCount,
+            rowsImported: 0,
+            rowsUpdated: 0,
+            rowsSkipped: skipped,
+            firstErrors:
+              importErrors.length > 0 ? importErrors.slice(0, 20) : null,
+            initiatedBy: options.initiatedBy ?? null,
+          })
+          .returning({ id: importManifest.id });
+
+        manifestId = manifest.id;
+
+        // Upsert each valid row within the same transaction.
+        for (const row of validRows) {
+          try {
+            const result = await this.upsertRow(
+              tx,
+              orgId,
+              options.module,
+              row.data
+            );
+            if (result === "inserted") imported++;
+            else if (result === "updated") updated++;
+            else skipped++;
+          } catch (err) {
+            // Row-level error. Two options:
+            //   (a) Record and continue (best-effort import)
+            //   (b) Abort the whole transaction (all-or-nothing)
+            //
+            // We choose (b) for SHIPMATE imports: it's a maritime audit
+            // system; partial imports with undocumented gaps are worse
+            // than "try again after fixing the bad row." The caller
+            // gets a clear error in the result and can re-upload.
+            const errMsg = err instanceof Error ? err.message : String(err);
+            importErrors.push({
+              row: row.rowNum,
+              message: `DB error: ${errMsg}`,
+            });
+            throw new Error(
+              `Row ${row.rowNum} failed: ${errMsg}. Transaction rolled back; no data imported.`
+            );
+          }
+        }
+
+        // Update manifest with final counts inside the same transaction.
+        await tx
+          .update(importManifest)
+          .set({
+            status: "committed",
+            completedAt: new Date(),
+            rowsImported: imported,
+            rowsUpdated: updated,
+            rowsSkipped: skipped,
+          })
+          .where(eq(importManifest.id, manifestId));
+      });
+    } catch (txError) {
+      // Transaction rolled back. Record a terminal manifest row OUTSIDE
+      // the rolled-back transaction so the operator can see the attempt.
+      // Use a separate insert (not update), since the running row was
+      // rolled back with everything else.
+      const errMsg =
+        txError instanceof Error ? txError.message : String(txError);
+      logger.error("SHIPMATE import transaction failed", {
+        orgId,
+        module: options.module,
+        error: errMsg,
+      });
+
       try {
-        const result = await this.upsertRow(orgId, options.module, row.data);
-        if (result === "inserted") imported++;
-        else if (result === "updated") updated++;
-        else skipped++;
-      } catch (err) {
-        importErrors.push({
-          row: row.rowNum,
-          message: `DB error: ${err instanceof Error ? err.message : String(err)}`,
+        const [failedManifest] = await db
+          .insert(importManifest)
+          .values({
+            orgId,
+            sourceSystem: "shipmate",
+            module: options.module,
+            filename: options.filename ?? null,
+            vesselId: resolvedVesselId,
+            vesselNameRequested: options.vesselName ?? null,
+            status: "failed",
+            completedAt: new Date(),
+            rowsTotal: parsed.rowCount,
+            rowsImported: 0,
+            rowsUpdated: 0,
+            rowsSkipped: parsed.rowCount,
+            errorMessage: errMsg,
+            firstErrors: importErrors.slice(0, 20),
+            initiatedBy: options.initiatedBy ?? null,
+          })
+          .returning({ id: importManifest.id });
+        manifestId = failedManifest.id;
+      } catch (manifestErr) {
+        // Can't even record the failure — log and carry on so the caller
+        // gets a response. This shouldn't happen unless the manifest
+        // table itself is broken.
+        logger.error("Failed to record import failure in manifest", {
+          error:
+            manifestErr instanceof Error
+              ? manifestErr.message
+              : String(manifestErr),
         });
-        skipped++;
       }
+
+      return {
+        success: false,
+        module: options.module,
+        totalRows: parsed.rowCount,
+        imported: 0,
+        updated: 0,
+        skipped: parsed.rowCount,
+        errors: importErrors.slice(0, 50).concat([
+          { row: 0, message: `Transaction rolled back: ${errMsg}` },
+        ]),
+        warnings: parsed.warnings.concat(mappedRows.flatMap((r) => r.warnings)),
+        ragDocumentsCreated: 0,
+        vesselResolved: resolvedVesselId,
+        hierarchyLevelsDetected,
+        dryRun: false,
+        duration: Date.now() - startTime,
+        manifestId: manifestId || null,
+      };
     }
 
-    // Step 10: Sync running hours if requested
+    // Step 10: Sync running hours (outside the transaction — non-critical)
     if (options.syncRunningHours && options.module === "pms_equipment") {
       await this.syncRunningHours(orgId, validRows.map((r) => r.data));
     }
 
-    // Step 11: Feed to RAG
+    // Step 11: Feed to RAG (outside the transaction — it hits an external API)
     let ragDocumentsCreated = 0;
-    if (options.feedToRag !== false && (imported + updated) > 0) {
+    if (options.feedToRag !== false && imported + updated > 0) {
       ragDocumentsCreated = await this.feedToRag(
         orgId,
         options.module,
@@ -292,11 +497,15 @@ class ShipmateImportService {
       hierarchyLevelsDetected,
       dryRun: false,
       duration: Date.now() - startTime,
+      manifestId: manifestId || null,
     };
 
     logger.info("SHIPMATE import complete", {
       module: options.module,
-      imported, updated, skipped,
+      manifestId,
+      imported,
+      updated,
+      skipped,
       ragDocs: ragDocumentsCreated,
       hierarchyLevels: hierarchyLevelsDetected,
       durationMs: result.duration,
@@ -324,23 +533,27 @@ class ShipmateImportService {
 
   // ============================================================================
   // Database upsert per module type
+  // Each method now accepts a transaction handle instead of using global `db`.
   // ============================================================================
 
   private async upsertRow(
+    tx: typeof db,
     orgId: string,
     module: ShipmateModuleType,
     data: Record<string, unknown>
   ): Promise<"inserted" | "updated" | "skipped"> {
     switch (module) {
-      case "pms_equipment": return this.upsertEquipment(orgId, data);
-      case "pms_jobs": return this.upsertJob(orgId, data);
-      case "sps_stores": return this.upsertPart(orgId, data);
+      case "pms_equipment":
+        return this.upsertEquipment(tx, orgId, data);
+      case "pms_jobs":
+        return this.upsertJob(tx, orgId, data);
+      case "sps_stores":
+        return this.upsertPart(tx, orgId, data);
       case "cms_crew_certs":
       case "cms_rest_hours":
-        // Crew data is read-only in ARUS — we ingest it for analytics
-        // but don't write back to avoid conflicting with SHIPMATE
         logger.debug("Crew data ingested for analytics (read-only)", {
-          module, id: data.employeeId,
+          module,
+          id: data.employeeId,
         });
         return "skipped";
       default:
@@ -349,6 +562,7 @@ class ShipmateImportService {
   }
 
   private async upsertEquipment(
+    tx: typeof db,
     orgId: string,
     data: Record<string, unknown>
   ): Promise<"inserted" | "updated" | "skipped"> {
@@ -359,7 +573,7 @@ class ShipmateImportService {
       if (key.startsWith("_spec_") && value != null) {
         specifications[key.replace("_spec_", "")] = value;
       } else if (key === "_vesselName") {
-        // Skip — used only for resolution
+        // skip
       } else if (!key.startsWith("_")) {
         cleanData[key] = value;
       }
@@ -370,27 +584,26 @@ class ShipmateImportService {
     }
 
     cleanData.orgId = orgId;
-    // Tag as SHIPMATE-sourced for data provenance
     cleanData.sourceSystem = "shipmate";
 
     const equipmentId = cleanData.id as string;
     if (!equipmentId) return "skipped";
 
-    const [existing] = await db
+    const [existing] = await tx
       .select({ id: equipment.id })
       .from(equipment)
       .where(and(eq(equipment.id, equipmentId), eq(equipment.orgId, orgId)))
       .limit(1);
 
     if (existing) {
-      await db
+      await tx
         .update(equipment)
         .set({ ...cleanData, updatedAt: new Date() })
         .where(and(eq(equipment.id, equipmentId), eq(equipment.orgId, orgId)));
       return "updated";
     }
 
-    await db.insert(equipment).values({
+    await tx.insert(equipment).values({
       ...cleanData,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -399,6 +612,7 @@ class ShipmateImportService {
   }
 
   private async upsertJob(
+    tx: typeof db,
     orgId: string,
     data: Record<string, unknown>
   ): Promise<"inserted" | "updated" | "skipped"> {
@@ -422,21 +636,25 @@ class ShipmateImportService {
     const woNumber = cleanData.woNumber as string;
     if (!woNumber) return "skipped";
 
-    const [existing] = await db
+    const [existing] = await tx
       .select({ id: workOrders.id })
       .from(workOrders)
-      .where(and(eq(workOrders.woNumber, woNumber), eq(workOrders.orgId, orgId)))
+      .where(
+        and(eq(workOrders.woNumber, woNumber), eq(workOrders.orgId, orgId))
+      )
       .limit(1);
 
     if (existing) {
-      await db
+      await tx
         .update(workOrders)
         .set({ ...cleanData, updatedAt: new Date() })
-        .where(and(eq(workOrders.woNumber, woNumber), eq(workOrders.orgId, orgId)));
+        .where(
+          and(eq(workOrders.woNumber, woNumber), eq(workOrders.orgId, orgId))
+        );
       return "updated";
     }
 
-    await db.insert(workOrders).values({
+    await tx.insert(workOrders).values({
       ...cleanData,
       createdAt: cleanData.createdAt ?? new Date(),
       updatedAt: new Date(),
@@ -445,6 +663,7 @@ class ShipmateImportService {
   }
 
   private async upsertPart(
+    tx: typeof db,
     orgId: string,
     data: Record<string, unknown>
   ): Promise<"inserted" | "updated" | "skipped"> {
@@ -465,7 +684,7 @@ class ShipmateImportService {
     const partNo = cleanData.partNo as string;
     if (!partNo) return "skipped";
 
-    const [existing] = await db
+    const [existing] = await tx
       .select({ id: parts.id })
       .from(parts)
       .where(and(eq(parts.partNo, partNo), eq(parts.orgId, orgId)))
@@ -474,44 +693,58 @@ class ShipmateImportService {
     let partId: string;
 
     if (existing) {
-      await db
+      await tx
         .update(parts)
         .set({ ...cleanData, updatedAt: new Date() })
         .where(and(eq(parts.partNo, partNo), eq(parts.orgId, orgId)));
       partId = existing.id;
     } else {
-      const [inserted] = await db.insert(parts).values({
-        ...cleanData,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      } as any).returning({ id: parts.id });
+      const [inserted] = await tx
+        .insert(parts)
+        .values({
+          ...cleanData,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        } as any)
+        .returning({ id: parts.id });
       partId = inserted.id;
     }
 
-    // Upsert stock
+    // Upsert stock (inside the same transaction)
     if (Object.keys(stockData).length > 0) {
       const location = (stockData.location as string) || "MAIN";
 
-      const [existingStock] = await db
+      const [existingStock] = await tx
         .select({ id: stock.id })
         .from(stock)
         .where(
-          and(eq(stock.orgId, orgId), eq(stock.partId, partId), eq(stock.location, location))
+          and(
+            eq(stock.orgId, orgId),
+            eq(stock.partId, partId),
+            eq(stock.location, location)
+          )
         )
         .limit(1);
 
       if (existingStock) {
-        await db.update(stock).set({
-          quantityOnHand: stockData.quantityOnHand as number ?? 0,
-          unitCost: stockData.unitCost as number ?? 0,
-          updatedAt: new Date(),
-        }).where(eq(stock.id, existingStock.id));
+        await tx
+          .update(stock)
+          .set({
+            quantityOnHand: (stockData.quantityOnHand as number) ?? 0,
+            unitCost: (stockData.unitCost as number) ?? 0,
+            updatedAt: new Date(),
+          })
+          .where(eq(stock.id, existingStock.id));
       } else {
-        await db.insert(stock).values({
-          orgId, partId, partNo, location,
-          quantityOnHand: stockData.quantityOnHand as number ?? 0,
-          unitCost: stockData.unitCost as number ?? 0,
-          createdAt: new Date(), updatedAt: new Date(),
+        await tx.insert(stock).values({
+          orgId,
+          partId,
+          partNo,
+          location,
+          quantityOnHand: (stockData.quantityOnHand as number) ?? 0,
+          unitCost: (stockData.unitCost as number) ?? 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         } as any);
       }
     }
@@ -520,7 +753,7 @@ class ShipmateImportService {
   }
 
   // ============================================================================
-  // Running hours sync
+  // Running hours sync (non-transactional — supplemental data)
   // ============================================================================
 
   private async syncRunningHours(
@@ -540,7 +773,7 @@ class ShipmateImportService {
           .where(and(eq(equipment.id, id), eq(equipment.orgId, orgId)));
         synced++;
       } catch {
-        // Non-fatal — running hours are supplemental
+        // Non-fatal
       }
     }
     if (synced > 0) {
@@ -549,7 +782,7 @@ class ShipmateImportService {
   }
 
   // ============================================================================
-  // RAG Knowledge Base Integration
+  // RAG Knowledge Base Integration (unchanged from original)
   // ============================================================================
 
   private async feedToRag(
@@ -568,7 +801,10 @@ class ShipmateImportService {
         try {
           const res = await fetch("http://localhost:5000/api/kb/documents", {
             method: "POST",
-            headers: { "Content-Type": "application/json", "x-org-id": orgId },
+            headers: {
+              "Content-Type": "application/json",
+              "x-org-id": orgId,
+            },
             body: JSON.stringify({
               title: doc.title,
               content: doc.content,
@@ -584,7 +820,7 @@ class ShipmateImportService {
           });
           if (res.ok) created++;
         } catch {
-          // Non-fatal — KB may not be configured yet
+          // Non-fatal
         }
       }
     } catch {
@@ -615,7 +851,6 @@ class ShipmateImportService {
     rows: Record<string, unknown>[],
     vesselName: string
   ): Array<{ title: string; content: string; metadata: Record<string, unknown> }> {
-    // Group by system type
     const bySystem = new Map<string, Record<string, unknown>[]>();
     for (const row of rows) {
       const system = (row.systemType as string) || "General";
@@ -629,17 +864,26 @@ class ShipmateImportService {
         `# Equipment Register: ${system} (${vesselName})`,
         `Source: SHIPMATE PMS. ${items.length} components.`,
         "",
-        ...items.map((item) => [
-          `## ${item.id}: ${item.name}`,
-          item.manufacturer && `Maker: ${item.manufacturer}`,
-          item.model && `Model: ${item.model}`,
-          item.serialNumber && `Serial: ${item.serialNumber}`,
-          item.criticalityLevel && `Criticality: ${item.criticalityLevel}`,
-          item.runningHours && `Running Hours: ${item.runningHours}`,
-          item.location && `Location: ${item.location}`,
-        ].filter(Boolean).join("\n")),
+        ...items.map((item) =>
+          [
+            `## ${item.id}: ${item.name}`,
+            item.manufacturer && `Maker: ${item.manufacturer}`,
+            item.model && `Model: ${item.model}`,
+            item.serialNumber && `Serial: ${item.serialNumber}`,
+            item.criticalityLevel && `Criticality: ${item.criticalityLevel}`,
+            item.runningHours && `Running Hours: ${item.runningHours}`,
+            item.location && `Location: ${item.location}`,
+          ]
+            .filter(Boolean)
+            .join("\n")
+        ),
       ].join("\n"),
-      metadata: { entityType: "equipment", system, count: items.length, vessel: vesselName },
+      metadata: {
+        entityType: "equipment",
+        system,
+        count: items.length,
+        vessel: vesselName,
+      },
     }));
   }
 
@@ -647,7 +891,6 @@ class ShipmateImportService {
     rows: Record<string, unknown>[],
     vesselName: string
   ): Array<{ title: string; content: string; metadata: Record<string, unknown> }> {
-    // Group by equipment
     const byEquipment = new Map<string, Record<string, unknown>[]>();
     for (const row of rows) {
       const eqId = (row.equipmentId as string) || "unknown";
@@ -658,8 +901,10 @@ class ShipmateImportService {
     const docs = [...byEquipment.entries()].map(([eqId, jobs]) => {
       jobs.sort((a, b) => {
         const da = a.completedAt ? new Date(a.completedAt as string).getTime() : 0;
-        const db = b.completedAt ? new Date(b.completedAt as string).getTime() : 0;
-        return db - da;
+        const dbTime = b.completedAt
+          ? new Date(b.completedAt as string).getTime()
+          : 0;
+        return dbTime - da;
       });
 
       return {
@@ -668,13 +913,22 @@ class ShipmateImportService {
           `# Maintenance History: Component ${eqId} (${vesselName})`,
           `Source: SHIPMATE PMS. ${jobs.length} job records.`,
           "",
-          ...jobs.slice(0, 50).map((job) => [
-            `## ${job.woNumber}: ${job.title}`,
-            `Type: ${job.maintenanceType || "N/A"} | Status: ${job.status || "N/A"}`,
-            job.completedAt && `Completed: ${new Date(job.completedAt as string).toLocaleDateString()}`,
-            job.actualHours && `Hours: ${job.actualHours}`,
-            job.notes && `Notes: ${job.notes}`,
-          ].filter(Boolean).join("\n")),
+          ...jobs.slice(0, 50).map((job) =>
+            [
+              `## ${job.woNumber}: ${job.title}`,
+              `Type: ${job.maintenanceType || "N/A"} | Status: ${
+                job.status || "N/A"
+              }`,
+              job.completedAt &&
+                `Completed: ${new Date(
+                  job.completedAt as string
+                ).toLocaleDateString()}`,
+              job.actualHours && `Hours: ${job.actualHours}`,
+              job.notes && `Notes: ${job.notes}`,
+            ]
+              .filter(Boolean)
+              .join("\n")
+          ),
         ].join("\n\n"),
         metadata: {
           entityType: "maintenance_history",
@@ -705,13 +959,19 @@ class ShipmateImportService {
         `# Stores Inventory: ${category} (${vesselName})`,
         `Source: SHIPMATE SPS. ${items.length} items.`,
         "",
-        ...items.map((item) =>
-          `- **${item.partNo}**: ${item.name}` +
-          (item.manufacturer ? ` (${item.manufacturer})` : "") +
-          (item.criticality ? ` [${item.criticality}]` : "")
+        ...items.map(
+          (item) =>
+            `- **${item.partNo}**: ${item.name}` +
+            (item.manufacturer ? ` (${item.manufacturer})` : "") +
+            (item.criticality ? ` [${item.criticality}]` : "")
         ),
       ].join("\n"),
-      metadata: { entityType: "stores", category, count: items.length, vessel: vesselName },
+      metadata: {
+        entityType: "stores",
+        category,
+        count: items.length,
+        vessel: vesselName,
+      },
     }));
   }
 
@@ -719,7 +979,9 @@ class ShipmateImportService {
   // Helpers
   // ============================================================================
 
-  private extractVesselNameFromRows(rows: Record<string, string>[]): string | undefined {
+  private extractVesselNameFromRows(
+    rows: Record<string, string>[]
+  ): string | undefined {
     for (const row of rows) {
       const name = row["Vessel"] || row["Vessel Name"] || row["Vessel Code"];
       if (name && name.trim()) return name.trim();
@@ -739,13 +1001,16 @@ class ShipmateImportService {
       imported: 0,
       updated: 0,
       skipped: 0,
-      errors: [{ row: 0, message: "No data rows found. " + warnings.join("; ") }],
+      errors: [
+        { row: 0, message: "No data rows found. " + warnings.join("; ") },
+      ],
       warnings,
       ragDocumentsCreated: 0,
       vesselResolved: null,
       hierarchyLevelsDetected: 0,
       dryRun: options.dryRun ?? false,
       duration: Date.now() - startTime,
+      manifestId: null,
     };
   }
 }

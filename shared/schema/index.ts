@@ -38,6 +38,7 @@ export * from './agent';
 export * from './external-data-cache';
 export * from './certificates';
 export * from './diagnostic-runs';
+export * from './import-manifest';
 
 import * as core from './core';
 import * as purchasing from './purchasing';
