@@ -42,6 +42,9 @@ jobs:
       - name: TypeScript error burndown
         run: npm run check:ts-burndown
 
+      - name: Boot health (dynamic-import safety net)
+        run: npm run check:boot-health
+
       - name: Route module import smoke check
         run: npx tsx scripts/check-route-imports.mjs
 
