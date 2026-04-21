@@ -1,19 +1,19 @@
 {
   "_comment": "TypeScript error burndown baseline. Total must monotonically decrease. Regenerate with: node scripts/check-ts-burndown.mjs --write-baseline",
-  "generatedAt": "2026-04-19T07:31:07.063Z",
-  "total": 3540,
+  "generatedAt": "2026-04-21T11:01:25.874Z",
+  "total": 3225,
   "summary": {
     "byCode": {
-      "TS2339": 1014,
-      "TS2322": 397,
-      "TS2345": 386,
-      "TS2769": 277,
-      "TS2551": 156,
-      "TS2802": 153,
-      "TS7006": 147,
-      "TS2724": 131,
-      "TS2554": 124,
-      "TS2304": 111
+      "TS2339": 966,
+      "TS2322": 375,
+      "TS2345": 355,
+      "TS2769": 272,
+      "TS2551": 154,
+      "TS2802": 131,
+      "TS7006": 115,
+      "TS2304": 108,
+      "TS2554": 101,
+      "TS2724": 101
     },
     "byTopFiles": {
       "server/domains/alerts/settings-service.ts": 35,
@@ -22,27 +22,27 @@
       "client/src/features/analytics/hooks/useMaintenanceModeData.ts": 28,
       "client/src/features/telemetry/hooks/useOperatingParametersData.ts": 28,
       "client/src/pages/pdm-equipment-detail.tsx": 27,
-      "server/rul-engine/degradation-analysis.ts": 27,
       "client/src/components/equipment/EquipmentFormDialog.tsx": 26,
-      "client/src/features/index.ts": 26,
       "client/src/pages/condition-monitoring-log.tsx": 25,
-      "server/db/logbooks/db-logbooks.ts": 24,
       "server/routes/sensorTemplates.ts": 24,
       "server/routes/telemetry-ingestion-routes.ts": 24,
       "server/services/domains/work-order-service.ts": 24,
-      "server/vessel-simulator/sensor-mappings.ts": 24
+      "server/vessel-simulator/sensor-mappings.ts": 24,
+      "client/src/pages/DiagnosticsDashboard.tsx": 23,
+      "client/src/features/work-orders/hooks/useWorkOrdersPageData.ts": 22,
+      "server/domains/llm/routes/llm-analysis.ts": 22
     },
     "byTopDirs": {
-      "client/src": 1098,
-      "server/domains": 719,
-      "server/services": 382,
-      "server/db": 255,
+      "client/src": 982,
+      "server/domains": 714,
+      "server/services": 331,
+      "server/db": 225,
       "server/routes": 204,
-      "server/storage": 57,
       "server/compliance": 49,
       "server/beast": 45,
       "server/vessel-intelligence": 45,
-      "server/vessel-simulator": 41
+      "server/vessel-simulator": 41,
+      "server/ml-routes": 38
     }
   }
 }
