@@ -132,8 +132,8 @@ const PG_TO_NORMALIZED = {
   numeric: "real",
   decimal: "real",
   doublePrecision: "real",
-  timestamp: "text",
-  date: "text",
+  timestamp: "timestamp",
+  date: "timestamp",
   time: "text",
   interval: "text",
   json: "text",
@@ -141,28 +141,82 @@ const PG_TO_NORMALIZED = {
   uuid: "text",
   blob: "blob",
   customType: "text",
+  // Synthetic SQLite-side type produced by extractColumnsFromSource when
+  // an `integer` column is declared with `mode: "timestamp"`. Treated as
+  // semantically equivalent to a PG `timestamp` column.
+  timestampInt: "timestamp",
 };
 
 function normalizeType(t) {
   return PG_TO_NORMALIZED[t] || t;
 }
 
+/**
+ * Given a string and the index of an opening `(`, return the substring inside
+ * the matching closing `)` (excluding both parens), respecting nested parens.
+ * Returns null if no matching `)` is found within the string.
+ */
+function sliceBalanced(src, openIdx) {
+  if (src[openIdx] !== "(") return null;
+  let depth = 0;
+  for (let i = openIdx; i < src.length; i++) {
+    const ch = src[i];
+    if (ch === "(") depth++;
+    else if (ch === ")") {
+      depth--;
+      if (depth === 0) return src.slice(openIdx + 1, i);
+    }
+  }
+  return null;
+}
+
 function extractColumnsFromSource(src) {
   const tables = {};
-  const tableBlocks = src.matchAll(
-    /(?:export\s+)?const\s+(\w+)\s*=\s*(?:pgTable|sqliteTable)\s*\(\s*["'](\w+)["']\s*,\s*(\{[\s\S]*?\})\s*(?:,|\))/gm
-  );
+  // Find each `const X = pgTable("name", ` / `sqliteTable("name", ` then
+  // brace-balance-match the column body (the non-greedy regex previously
+  // truncated mid-column at any inner `}` like `{ mode: "timestamp" }`).
+  const tableHeaderRe =
+    /(?:export\s+)?const\s+(\w+)\s*=\s*(?:pgTable|sqliteTable)\s*\(\s*["'](\w+)["']\s*,\s*\{/gm;
 
-  for (const match of tableBlocks) {
-    const varName = match[1];
-    const tableName = match[2];
-    const body = match[3];
+  let header;
+  while ((header = tableHeaderRe.exec(src)) !== null) {
+    const varName = header[1];
+    const tableName = header[2];
+    // `header[0]` ends just past the opening `{` of the column object.
+    const openBraceIdx = header.index + header[0].length - 1;
+    let depth = 0;
+    let endIdx = -1;
+    for (let i = openBraceIdx; i < src.length; i++) {
+      const ch = src[i];
+      if (ch === "{") depth++;
+      else if (ch === "}") {
+        depth--;
+        if (depth === 0) {
+          endIdx = i;
+          break;
+        }
+      }
+    }
+    if (endIdx === -1) continue;
+    const body = src.slice(openBraceIdx, endIdx + 1);
 
     const columns = new Map();
+    // Match `name: type(` (matches the opening paren only — the body string
+    // can be truncated mid-column by the non-greedy body extractor above, so
+    // we cannot require the closing `)` in the same regex).
     const colRe = new RegExp(`(\\w+)\\s*:\\s*(${ALL_TYPES})\\s*\\(`, "g");
     let cm;
     while ((cm = colRe.exec(body)) !== null) {
-      columns.set(cm[1], cm[2]);
+      const [, name, type] = cm;
+      // Balance-match the args from the opening paren so we can detect
+      // `integer(..., { mode: "timestamp" })` and normalize it to a timestamp.
+      const openIdx = cm.index + cm[0].length - 1; // position of `(`
+      const args = sliceBalanced(body, openIdx);
+      let effective = type;
+      if (type === "integer" && args !== null && /mode\s*:\s*["']timestamp["']/.test(args)) {
+        effective = "timestampInt";
+      }
+      columns.set(name, effective);
     }
     tables[varName] = { tableName, columns };
   }

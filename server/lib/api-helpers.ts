@@ -110,6 +110,34 @@ export function validateParams<T>(req: Request, schema: ZodSchema<T>): Validatio
   return schema.safeParse(req.params);
 }
 
+/**
+ * Validates a response payload against a Zod schema before sending it to the
+ * client. In non-production builds (`NODE_ENV !== "production"`), a validation
+ * failure throws so it surfaces in tests/dev. In production, the failure is
+ * logged and the original payload is sent as-is to avoid breaking live traffic
+ * if a contract drifts.
+ *
+ * Returns the parsed (and possibly stripped) data on success.
+ */
+export function validateResponse<T>(
+  schema: ZodSchema<T>,
+  payload: unknown,
+  context: string
+): T {
+  const result = schema.safeParse(payload);
+  if (result.success) return result.data;
+
+  const message = `Response contract violation in ${context}: ${result.error.issues
+    .map((i) => `${i.path.join(".") || "<root>"}: ${i.message}`)
+    .join("; ")}`;
+
+  if (process.env.NODE_ENV === "production") {
+    console.error(message);
+    return payload as T;
+  }
+  throw new Error(message);
+}
+
 export function sendValidationError(
   res: Response,
   error: ZodError,

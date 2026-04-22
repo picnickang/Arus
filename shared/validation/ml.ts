@@ -23,13 +23,13 @@ export const mlAcousticDataSchema = z.object({
   sampleRate: z.number().positive(),
   duration: z.number().positive(),
   channels: z.number().int().positive().optional().default(1),
-  data: z.array(z.number()),
-  metadata: z.record(z.any()).optional(),
+  data: z.array(z.number().finite()).max(10_000_000),
+  metadata: z.record(z.string().max(128), z.unknown()).optional(),
 });
 
 export const updateMlModelSchema = z.object({
   status: z.enum(["draft", "training", "ready", "deployed", "deprecated"]).optional(),
   accuracy: z.number().min(0).max(1).optional(),
   isActive: z.boolean().optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string().max(128), z.unknown()).optional(),
 });

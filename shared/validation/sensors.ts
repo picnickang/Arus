@@ -30,7 +30,7 @@ export const selectSensorTemplateSchema = z.object({
   kind: z.string(),
   unit: z.string(),
   equipmentTypes: z.array(z.string()).nullable(),
-  fields: z.record(z.any()),
+  fields: z.record(z.string().max(128), z.unknown()),
   notes: z.string().nullable(),
   isSystemDefault: z.boolean(),
   createdBy: z.string().nullable(),
