@@ -29,7 +29,7 @@ export async function persistSnapshot(
 
     const snapshot = await analyticsInsightsAdapter.createInsightSnapshot(orgId, insertData);
     return { id: snapshot.id, createdAt: snapshot.createdAt };
-  } catch {
+  } catch (error) {
     console.error("Failed to persist insight snapshot:", error);
     console.error(
       "Bundle data that failed:",

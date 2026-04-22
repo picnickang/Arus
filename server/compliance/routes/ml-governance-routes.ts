@@ -132,7 +132,7 @@ router.post(
           data: override,
           message: "Engineer override recorded and logged to provenance chain",
         });
-    } catch {
+    } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Validation failed", details: error.errors });
       }
@@ -204,7 +204,7 @@ router.patch(
         data: override,
         message: "Engineer override outcome updated and logged to provenance chain",
       });
-    } catch {
+    } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Validation failed", details: error.errors });
       }

@@ -145,7 +145,7 @@ router.post("/", async (req, res) => {
       .returning();
 
     res.status(201).json(newTemplate);
-  } catch {
+  } catch (error) {
     console.error("[SensorTemplates] Error creating template:", error);
     if (error instanceof z.ZodError) {
       return res.status(400).json({
@@ -216,7 +216,7 @@ router.put("/:id", async (req, res) => {
       .returning();
 
     res.json(updatedTemplate);
-  } catch {
+  } catch (error) {
     console.error(`[SensorTemplates] Error updating template ${req.params.id}:`, error);
     if (error instanceof z.ZodError) {
       return res.status(400).json({

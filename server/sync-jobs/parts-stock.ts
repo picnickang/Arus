@@ -58,7 +58,7 @@ export async function checkPartsStockAlignment(orgId: string): Promise<CheckResu
       .then((r) => r[0]?.count || 0);
 
     return { issues, entitiesChecked };
-  } catch {
+  } catch (error) {
     console.error("Parts-stock alignment check failed:", error);
     return {
       issues: [

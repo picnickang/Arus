@@ -115,7 +115,7 @@ export async function analyzeEquipmentHealth(
         new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
       criticalAlerts: analysis.criticalAlerts ?? [],
     };
-  } catch {
+  } catch (error) {
     console.error(`Equipment analysis failed for ${equipmentId}:`, error);
     console.warn(
       `Returning fallback analysis for equipment ${equipmentId} - AI service unavailable`

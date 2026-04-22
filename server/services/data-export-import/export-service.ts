@@ -154,7 +154,7 @@ export async function exportOrg(
       manifest,
       duration,
     };
-  } catch {
+  } catch (error) {
     const duration = Date.now() - startTime;
     console.error(`[DataExport] Export failed:`, error);
 
@@ -241,7 +241,7 @@ async function exportEntity(
       file: `${entityName}.jsonl`,
       anonymizationResult: anonymizationService ? totalAnonymizationResult : undefined,
     };
-  } catch {
+  } catch (error) {
     console.warn(`[DataExport] Failed to export ${entityName}:`, error);
     writeStream.end();
     return { count: 0, file: `${entityName}.jsonl` };

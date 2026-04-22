@@ -45,7 +45,7 @@ export async function checkSensorThresholdConflicts(orgId: string): Promise<Chec
       .then((r) => r[0]?.count || 0);
 
     return { issues, entitiesChecked };
-  } catch {
+  } catch (error) {
     console.error("Sensor threshold conflict check failed:", error);
     return {
       issues: [

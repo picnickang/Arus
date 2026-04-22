@@ -164,7 +164,7 @@ router.post("/", async (req, res) => {
       .returning();
 
     res.status(201).json(newBundle);
-  } catch {
+  } catch (error) {
     console.error("[SensorBundles] Error creating bundle:", error);
     if (error instanceof z.ZodError) {
       return res.status(400).json({
@@ -244,7 +244,7 @@ router.put("/:id", async (req, res) => {
       .returning();
 
     res.json(updatedBundle);
-  } catch {
+  } catch (error) {
     console.error(`[SensorBundles] Error updating bundle ${req.params.id}:`, error);
     if (error instanceof z.ZodError) {
       return res.status(400).json({

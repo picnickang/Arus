@@ -208,7 +208,7 @@ export function registerTestsRoutes(router: Router) {
       } else {
         throw new Error(`Smoke test runner not found for: ${name}`);
       }
-    } catch {
+    } catch (error) {
       testResults.set(name, {
         status: "failed",
         output: `Error: ${error instanceof Error ? error.message : String(error)}`,

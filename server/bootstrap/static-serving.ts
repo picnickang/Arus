@@ -57,7 +57,7 @@ export async function configureStaticServing(app: Express, server: any): Promise
               `[Static] Contents of staticRoot (${contents.length} items):`,
               contents.slice(0, 10).join(", ") + (contents.length > 10 ? "..." : "")
             );
-          } catch {
+          } catch (e) {
             console.error("[Static] Failed to read staticRoot contents:", e);
           }
           break;

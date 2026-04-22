@@ -53,7 +53,7 @@ export async function checkReservationOverflow(orgId: string): Promise<CheckResu
       .then((r) => r[0]?.count || 0);
 
     return { issues, entitiesChecked };
-  } catch {
+  } catch (error) {
     console.error("Reservation overflow check failed:", error);
     return {
       issues: [

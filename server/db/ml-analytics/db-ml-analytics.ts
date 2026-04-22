@@ -146,7 +146,7 @@ export class DatabaseMlAnalyticsStorage {
             },
             modelVersion: detection.modelVersionId,
           });
-      } catch {
+      } catch (e) {
         console.error(`[ML] Failed to create performance validation:`, e);
       }
     }
@@ -221,7 +221,7 @@ export class DatabaseMlAnalyticsStorage {
             },
             modelVersion: prediction.modelVersionId,
           });
-      } catch {
+      } catch (e) {
         console.error(`[ML] Failed to create performance validation:`, e);
       }
     }

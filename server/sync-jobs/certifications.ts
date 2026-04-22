@@ -63,7 +63,7 @@ export async function checkCrewCertificationExpiry(orgId: string): Promise<Check
       .then((r) => r[0]?.count || 0);
 
     return { issues, entitiesChecked };
-  } catch {
+  } catch (error) {
     console.error("Crew certification expiry check failed:", error);
     return {
       issues: [

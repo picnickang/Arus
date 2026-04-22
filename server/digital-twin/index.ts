@@ -128,7 +128,7 @@ export class DigitalTwinService extends EventEmitter {
         telemetryData,
       });
       await this.checkCriticalConditions(twinId, validatedState);
-    } catch {
+    } catch (error) {
       console.error(`[Digital Twin] Error updating state for ${twinId}:`, error);
       this.emit("twin_error", {
         twinId,

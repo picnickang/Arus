@@ -61,7 +61,7 @@ export async function checkPartsAvailability(
           if (pos.length > 0) {
             openPOsByPartNo.set(partNo, pos);
           }
-        } catch {
+        } catch (err) {
           console.warn(`[Inventory] Could not fetch POs for ${partNo}:`, err);
         }
       });

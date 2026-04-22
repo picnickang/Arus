@@ -22,7 +22,7 @@ export function useUnitPreferences() {
         if (stored) {
           return { ...defaultUnitPreferences, ...JSON.parse(stored) };
         }
-      } catch {
+      } catch (err) {
         console.error("Failed to load unit preferences from localStorage:", err);
       }
     }
@@ -34,7 +34,7 @@ export function useUnitPreferences() {
     if (typeof globalThis !== "undefined") {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences));
-      } catch {
+      } catch (err) {
         console.error("Failed to save unit preferences to localStorage:", err);
       }
     }

@@ -83,7 +83,7 @@ export async function generateMaintenanceRecommendations(
       affectedSystems: recommendation.affectedSystems || [equipmentType || "Unknown System"],
       predictedFailureRisk: Math.max(0, Math.min(100, recommendation.predictedFailureRisk || 50)),
     };
-  } catch {
+  } catch (error) {
     console.error(`Maintenance recommendation failed for ${alertType}:`, error);
 
     return {

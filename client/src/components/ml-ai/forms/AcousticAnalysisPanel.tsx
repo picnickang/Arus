@@ -156,7 +156,7 @@ export function AcousticAnalysisPanel({
     try {
       const analysisResult = await onAnalyze(acousticData);
       setResult(analysisResult);
-    } catch {
+    } catch (err) {
       setError(err instanceof Error ? err.message : "Analysis failed");
     }
   };
