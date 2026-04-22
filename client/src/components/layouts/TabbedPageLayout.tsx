@@ -93,7 +93,13 @@ export function TabbedPageLayout({
               variant="ghost"
               size="icon"
               className="h-9 w-9"
-              onClick={() => { window.history.length > 1 ? window.history.back() : setLocation("/"); }}
+              onClick={() => {
+                if (window.history.length > 1) {
+                  window.history.back();
+                } else {
+                  setLocation("/");
+                }
+              }}
               data-testid="button-back"
             >
               <ChevronLeft className="h-5 w-5" />

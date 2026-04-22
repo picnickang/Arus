@@ -2,6 +2,7 @@
  * Reusable AudioWorklet for streaming PCM16 audio playback.
  * Place in public/ folder and load via audioContext.audioWorklet.addModule()
  */
+/* global AudioWorkletProcessor, registerProcessor */
 class RingBuffer {
   constructor(initialCapacity) {
     this.capacity = initialCapacity;

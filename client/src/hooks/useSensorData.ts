@@ -204,7 +204,7 @@ export function useDeleteSensorTemplate(options?: Parameters<typeof useDeleteMut
  * @example
  * const copyTemplate = useCopySensorTemplate({
  *   successMessage: "Template copied successfully",
- *   onSuccess: (newTemplate) => console.log(newTemplate)
+ *   onSuccess: (newTemplate) => { void newTemplate; }
  * });
  * copyTemplate.mutate("source-template-id");
  */

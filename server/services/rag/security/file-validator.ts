@@ -215,7 +215,10 @@ export class FileValidator {
       warnings.push('May contain VBA macros');
     }
 
-    // Check for embedded executables
+    // Check for embedded executables (PE/Windows binary signature). Control
+    // characters in the regex are intentional — this is the binary file
+    // header pattern we're scanning for.
+    // eslint-disable-next-line no-control-regex
     if (/MZ[\x00-\xFF]{58}PE\x00\x00/i.test(content)) {
       warnings.push('Contains embedded executable');
     }

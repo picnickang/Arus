@@ -70,7 +70,7 @@ export function installFetchInterceptor(): boolean {
   window.__devPerfOriginalFetch = currentFetch;
   window.__devPerfInterceptorInstalled = true;
   
-  const wrappedFetch = async function(...args: Parameters<typeof fetch>): Promise<Response> {
+  const wrappedFetch = async (...args: Parameters<typeof fetch>): Promise<Response> => {
     const originalFetch = window.__devPerfOriginalFetch!;
     
     // Wrap ENTIRE interceptor logic in try/catch - if anything fails, just call original fetch

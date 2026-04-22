@@ -30,7 +30,8 @@ export function setDevModeOverride(enabled: boolean): void {
 }
 
 export function DevModeToggle() {
-  if (!import.meta.env.DEV) {return null;}
+  // Hooks must be called unconditionally (rules-of-hooks). The early-return
+  // for non-dev builds is performed AFTER all hook calls.
   const [isDevMode, setIsDevMode] = useState(getDevModeOverride);
 
   useEffect(() => {
@@ -50,6 +51,8 @@ export function DevModeToggle() {
       window.removeEventListener("devModeChange", handleDevModeChange as EventListener);
     };
   }, []);
+
+  if (!import.meta.env.DEV) {return null;}
 
   const toggle = () => {
     const newValue = !isDevMode;

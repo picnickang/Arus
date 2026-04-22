@@ -59,8 +59,10 @@ export class InputSanitizer {
       logger.warn("InputSanitizer", `Query truncated from ${input.length} to ${this.config.maxQueryLength} chars`);
     }
 
-    // Remove control characters except newlines and tabs
+    // Remove control characters except newlines and tabs. Control chars in
+    // the regex are intentional — the whole point is to strip them.
     const beforeControlChars = sanitized;
+    // eslint-disable-next-line no-control-regex
     sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
     if (sanitized !== beforeControlChars) {
       wasModified = true;

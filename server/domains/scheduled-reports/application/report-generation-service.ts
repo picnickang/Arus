@@ -210,7 +210,7 @@ export class ReportGenerationService {
     const sections: ReportSection[] = [];
 
     switch (reportType) {
-      case 'fleet_health':
+      case 'fleet_health': {
         const healthData = data as any;
         if (healthData.vessels) {
           sections.push({
@@ -234,6 +234,7 @@ export class ReportGenerationService {
           });
         }
         break;
+      }
 
       case 'maintenance_due':
         sections.push({
@@ -243,7 +244,7 @@ export class ReportGenerationService {
         });
         break;
 
-      case 'inventory_status':
+      case 'inventory_status': {
         const invData = data as any;
         if (invData.lowStockItems?.length > 0) {
           sections.push({
@@ -260,8 +261,9 @@ export class ReportGenerationService {
           });
         }
         break;
+      }
 
-      case 'crew_compliance':
+      case 'crew_compliance': {
         const crewData = data as any;
         if (crewData.expiringCertifications?.length > 0) {
           sections.push({
@@ -278,8 +280,9 @@ export class ReportGenerationService {
           });
         }
         break;
+      }
 
-      case 'cost_summary':
+      case 'cost_summary': {
         const costData = data as any;
         sections.push({
           title: 'Cost Overview',
@@ -297,6 +300,7 @@ export class ReportGenerationService {
           });
         }
         break;
+      }
     }
 
     return sections;
@@ -312,26 +316,29 @@ export class ReportGenerationService {
     };
 
     switch (reportType) {
-      case 'fleet_health':
+      case 'fleet_health': {
         const healthData = data as any;
         summary.totalItems = healthData.vessels?.length || 0;
         summary.criticalCount = healthData.criticalEquipment?.length || 0;
         summary.highlights.push(`Overall fleet health score: ${healthData.overallScore || 'N/A'}%`);
         break;
+      }
 
-      case 'inventory_status':
+      case 'inventory_status': {
         const invData = data as any;
         summary.totalItems = invData.lowStockItems?.length || 0;
         summary.criticalCount = invData.reorderRequired || 0;
         summary.highlights.push(`${summary.criticalCount} items require reorder`);
         break;
+      }
 
-      case 'crew_compliance':
+      case 'crew_compliance': {
         const crewData = data as any;
         summary.criticalCount = crewData.expiringCertifications?.length || 0;
         summary.warningCount = crewData.hoursOfRestViolations?.length || 0;
         summary.highlights.push(`Compliance score: ${crewData.complianceScore || 'N/A'}%`);
         break;
+      }
     }
 
     return summary;

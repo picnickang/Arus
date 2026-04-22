@@ -34,8 +34,6 @@ export function InventoryBatchActions({
   const selectedParts = parts.filter((p) => selectedItems.has(p.id));
   const count = selectedItems.size;
 
-  if (count === 0) {return null;}
-
   const suggestions: SuggestedPart[] = selectedParts.map((part) => {
     const available = part.stock
       ? Math.max(0, part.stock.quantityOnHand - part.stock.quantityReserved)
@@ -99,6 +97,10 @@ export function InventoryBatchActions({
       });
     },
   });
+
+  // Hooks above must run unconditionally (rules-of-hooks); the early
+  // return for an empty selection is performed only after every hook.
+  if (count === 0) {return null;}
 
   const handleExportSelected = () => {
     const headers = ["Part Number", "Part Name", "Category", "Current Stock", "Min Stock", "Max Stock", "Unit Cost", "Supplier"];

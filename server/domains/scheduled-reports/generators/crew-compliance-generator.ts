@@ -96,27 +96,19 @@ export class CrewComplianceGenerator implements ICrewComplianceGenerator {
   }
 
   private async getHoRViolations(
-    orgId: string,
-    vesselIds: string[] | null
+    _orgId: string,
+    _vesselIds: string[] | null
   ): Promise<HoRViolation[]> {
-    try {
-      return [];
-    } catch (error) {
-      logger.error(LOG_CTX, 'Failed to get HoR violations', String(error));
-      return [];
-    }
+    // TODO(arus-pdm): Wire to hours-of-rest tracking domain once it exposes a query.
+    return [];
   }
 
   private async getUpcomingCrewChanges(
-    orgId: string,
-    vesselIds: string[] | null
+    _orgId: string,
+    _vesselIds: string[] | null
   ): Promise<CrewChange[]> {
-    try {
-      return [];
-    } catch (error) {
-      logger.error(LOG_CTX, 'Failed to get upcoming crew changes', String(error));
-      return [];
-    }
+    // TODO(arus-pdm): Wire to crew rotation domain once it exposes a query.
+    return [];
   }
 
   private calculateComplianceScore(

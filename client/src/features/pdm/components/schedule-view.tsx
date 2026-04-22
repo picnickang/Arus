@@ -997,8 +997,10 @@ export function ScheduleView() {
     }
   };
 
-  const handleMoveConfirm = (newDate: Date, isOverride: boolean) => {
-    console.log('Move task to:', newDate, 'Override:', isOverride);
+  const handleMoveConfirm = (_newDate: Date, _isOverride: boolean) => {
+    // TODO(arus-pdm): Wire to schedule-update mutation. Currently the dialog
+    // closes without persisting the move — the persistence layer will be
+    // added when the schedule-write API is finalized.
     setMoveTask(null);
   };
 

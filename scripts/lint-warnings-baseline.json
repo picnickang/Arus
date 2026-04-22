@@ -1,20 +1,20 @@
 {
   "_comment": "ESLint warning burndown baseline. Both `errors` and `warnings` must monotonically decrease. Regenerate with: node scripts/check-lint-warnings.mjs --write-baseline",
-  "generatedAt": "2026-04-22T06:21:34.532Z",
-  "errors": 19,
-  "warnings": 3998,
+  "generatedAt": "2026-04-22T06:48:49.841Z",
+  "errors": 0,
+  "warnings": 3992,
   "summary": {
     "byTopRules": {
       "@typescript-eslint/no-explicit-any": 1659,
       "@typescript-eslint/prefer-nullish-coalescing": 1034,
       "no-nested-ternary": 400,
-      "@typescript-eslint/no-unused-vars": 252,
+      "@typescript-eslint/no-unused-vars": 248,
       "complexity": 150,
       "@typescript-eslint/explicit-function-return-type": 122,
       "max-nested-callbacks": 69,
       "no-restricted-syntax": 49,
-      "no-console": 46,
       "react-hooks/exhaustive-deps": 44,
+      "no-console": 44,
       "max-lines-per-function": 30,
       "no-empty": 28,
       "max-depth": 25,
@@ -22,7 +22,7 @@
       "sonarjs/no-same-line-conditional": 21
     },
     "byTopFiles": {
-      "/home/runner/workspace/shared/schema-runtime.ts": 77,
+      "/home/runner/workspace/shared/schema-runtime.ts": 76,
       "/home/runner/workspace/client/src/features/deck-logbook/lib/deckExport.ts": 52,
       "/home/runner/workspace/client/src/pages/pdm-platform.tsx": 44,
       "/home/runner/workspace/client/src/pages/pdm-dashboard.tsx": 41,
