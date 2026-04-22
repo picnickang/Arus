@@ -10,7 +10,19 @@ import { permissionService, compileUserPermissions } from "./service";
 import { requireOrgId, AuthenticatedRequest } from "../../middleware/auth";
 import { withErrorHandling, sendCreated, sendDeleted } from "../../lib/route-utils";
 import { validateResponse } from "../../lib/api-helpers";
-import { permissionsMeResponseSchema } from "./response-schemas";
+import {
+  permissionsMeResponseSchema,
+  permissionResourcesResponseSchema,
+  permissionActionsResponseSchema,
+  permissionRegistryResponseSchema,
+  roleListResponseSchema,
+  roleGetResponseSchema,
+  roleGrantsResponseSchema,
+  roleTemplatesResponseSchema,
+  usersWithRolesResponseSchema,
+  permissionAuditResponseSchema,
+  userRoleAssignmentsResponseSchema,
+} from "./response-schemas";
 import { mapCompiledToContract, type MapperLogger } from "./mapper";
 import { structuredLog, type LogContext } from "../../logging";
 import {
@@ -77,7 +89,13 @@ export function registerPermissionRoutes(app: Express) {
     requireOrgId,
     withErrorHandling("list permission resources", async (_req: Request, res: Response) => {
       const resources = await permissionRepository.listResources();
-      res.json(resources);
+      res.json(
+        validateResponse(
+          permissionResourcesResponseSchema,
+          resources,
+          "GET /api/permissions/resources"
+        )
+      );
     })
   );
 
@@ -86,7 +104,13 @@ export function registerPermissionRoutes(app: Express) {
     requireOrgId,
     withErrorHandling("list permission actions", async (_req: Request, res: Response) => {
       const actions = await permissionRepository.listActions();
-      res.json(actions);
+      res.json(
+        validateResponse(
+          permissionActionsResponseSchema,
+          actions,
+          "GET /api/permissions/actions"
+        )
+      );
     })
   );
 
@@ -94,11 +118,17 @@ export function registerPermissionRoutes(app: Express) {
     "/api/permissions/registry",
     requireOrgId,
     withErrorHandling("get permission registry", async (_req: Request, res: Response) => {
-      res.json({
-        resources: RESOURCES,
-        actions: ACTIONS,
-        categories: RESOURCE_CATEGORIES,
-      });
+      res.json(
+        validateResponse(
+          permissionRegistryResponseSchema,
+          {
+            resources: RESOURCES,
+            actions: ACTIONS,
+            categories: RESOURCE_CATEGORIES,
+          },
+          "GET /api/permissions/registry"
+        )
+      );
     })
   );
 
@@ -108,7 +138,7 @@ export function registerPermissionRoutes(app: Express) {
     withErrorHandling("list roles", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const roles = await permissionRepository.listRoles(orgId);
-      res.json(roles);
+      res.json(validateResponse(roleListResponseSchema, roles, "GET /api/permissions/roles"));
     })
   );
 
@@ -121,7 +151,9 @@ export function registerPermissionRoutes(app: Express) {
       if (!role) {
         return res.status(404).json({ message: "Role not found" });
       }
-      res.json(role);
+      res.json(
+        validateResponse(roleGetResponseSchema, role, "GET /api/permissions/roles/:id")
+      );
     })
   );
 
@@ -264,7 +296,13 @@ export function registerPermissionRoutes(app: Express) {
     withErrorHandling("get role permission grants", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const grants = await permissionRepository.getPermissionGrantsForRole(req.params.id, orgId);
-      res.json(grants);
+      res.json(
+        validateResponse(
+          roleGrantsResponseSchema,
+          grants,
+          "GET /api/permissions/roles/:id/grants"
+        )
+      );
     })
   );
 
@@ -310,7 +348,13 @@ export function registerPermissionRoutes(app: Express) {
     requireOrgId,
     withErrorHandling("list role templates", async (_req: Request, res: Response) => {
       const templates = await permissionRepository.listRoleTemplates();
-      res.json(templates);
+      res.json(
+        validateResponse(
+          roleTemplatesResponseSchema,
+          templates,
+          "GET /api/permissions/templates"
+        )
+      );
     })
   );
 
@@ -351,7 +395,13 @@ export function registerPermissionRoutes(app: Express) {
         req.params.userId,
         orgId
       );
-      res.json(assignments);
+      res.json(
+        validateResponse(
+          userRoleAssignmentsResponseSchema,
+          assignments,
+          "GET /api/permissions/users/:userId/assignments"
+        )
+      );
     })
   );
 
@@ -418,7 +468,13 @@ export function registerPermissionRoutes(app: Express) {
     withErrorHandling("list users with role assignments", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const usersWithRoles = await permissionRepository.listUsersWithRoles(orgId);
-      res.json(usersWithRoles);
+      res.json(
+        validateResponse(
+          usersWithRolesResponseSchema,
+          usersWithRoles,
+          "GET /api/permissions/users-with-roles"
+        )
+      );
     })
   );
 
@@ -429,7 +485,13 @@ export function registerPermissionRoutes(app: Express) {
       const orgId = (req as AuthenticatedRequest).orgId;
       const limit = Math.min(parseInt(req.query.limit as string) || 100, 500);
       const auditLog = await permissionRepository.getPermissionAuditLog(orgId, limit);
-      res.json(auditLog);
+      res.json(
+        validateResponse(
+          permissionAuditResponseSchema,
+          auditLog,
+          "GET /api/permissions/audit"
+        )
+      );
     })
   );
 

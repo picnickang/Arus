@@ -47,7 +47,7 @@ Developed with Express.js and TypeScript, offering RESTful APIs with Zod validat
 -   **Daily Operations Briefing**: Automated shift-start summary with AI-generated executive summary.
 -   **Financial Layer**: Three-part cost integrity system covering procurement to WO cost flow, decision-point cost context for AI suggestions, and savings claim integrity.
 -   **Prediction Lineage**: Tracks `modelVersionId`, `featureSetVersion`, and `featureSnapshotId` for audit and reproducibility of predictions.
--   **API Response Contracts**: `validateResponse<T>` helper for outbound response validation against Zod schemas.
+-   **API Response Contracts**: `validateResponse<T>` helper in `server/lib/api-helpers.ts` validates outbound responses against Zod schemas (throws in dev/test, logs+passes-through in production). Wired into 14 endpoints across PDM, home, and permissions domains. Schemas use `.passthrough()` + `.optional()` to catch missing required fields without rejecting drift; ID fields use `z.string().or(z.number())`; date fields use `isoOrDateSchema = z.union([z.date(), z.string().datetime({ offset: true })])`. Schema drift inventory in `scripts/drift-burndown.json` carries `resolution` + `risk` notes for each medium-priority entry.
 -   **Cast Compression Helpers**: `pickSchema<T>` and `cloudOnly<T>` for dual-mode table exports, and `col(name)` / `columns()` for dynamic Drizzle column access.
 -   **withErrorHandling Default Generic**: Simplifies error handling by defaulting generic `Req` to `Request`.
 

@@ -17,7 +17,9 @@
           "idempotencyKey"
         ],
         "totalDiffs": 1,
-        "action": "Align column names/types — small schema patch"
+        "action": "Align column names/types — small schema patch",
+        "resolution": "Add nullable idempotencyKey TEXT column to equipmentTelemetrySqlite (additive, no backfill needed — used by the cloud-side dedupe only).",
+        "risk": "Low. Column is write-side only; reads ignore it."
       },
       {
         "table": "equipmentLifecycle",
@@ -25,7 +27,9 @@
           "orgId"
         ],
         "totalDiffs": 1,
-        "action": "Align column names/types — small schema patch"
+        "action": "Align column names/types — small schema patch",
+        "resolution": "Add orgId TEXT NOT NULL DEFAULT 'default-org-id' to equipmentLifecycleSqlite + create index. Backfill via single UPDATE before flipping to NOT NULL.",
+        "risk": "Medium. Existing offline DBs need a one-shot backfill migration; flipping NOT NULL without backfill breaks INSERTs."
       },
       {
         "table": "performanceMetrics",
@@ -33,7 +37,9 @@
           "orgId"
         ],
         "totalDiffs": 1,
-        "action": "Align column names/types — small schema patch"
+        "action": "Align column names/types — small schema patch",
+        "resolution": "Same as equipmentLifecycle (orgId column + index + backfill).",
+        "risk": "Medium. Identical migration shape."
       },
       {
         "table": "maintenanceChecklistItems",
@@ -41,7 +47,9 @@
           "orgId"
         ],
         "totalDiffs": 1,
-        "action": "Align column names/types — small schema patch"
+        "action": "Align column names/types — small schema patch",
+        "resolution": "Same as equipmentLifecycle (orgId column + index + backfill).",
+        "risk": "Medium."
       },
       {
         "table": "maintenanceChecklistCompletions",
@@ -49,7 +57,9 @@
           "orgId"
         ],
         "totalDiffs": 1,
-        "action": "Align column names/types — small schema patch"
+        "action": "Align column names/types — small schema patch",
+        "resolution": "Same as equipmentLifecycle (orgId column + index + backfill).",
+        "risk": "Medium."
       },
       {
         "table": "reservations",
@@ -60,7 +70,9 @@
           "quantity"
         ],
         "totalDiffs": 2,
-        "action": "Align column names/types — small schema patch"
+        "action": "Align column names/types — small schema patch",
+        "resolution": "Drop reservedAt from SQLite (or add to PG); reconcile quantity type (PG uses numeric, SQLite uses real).",
+        "risk": "Medium. Type drift on quantity is the real bug — choose numeric and migrate with cast."
       },
       {
         "table": "vessels",
@@ -72,7 +84,9 @@
           "orgId"
         ],
         "totalDiffs": 3,
-        "action": "Align column names/types — small schema patch"
+        "action": "Align column names/types — small schema patch",
+        "resolution": "Add schematicLayout JSON column to vesselsSqlite. The id/orgId false positives in sqliteOnly come from the validator picking up shadowed shorthand declarations — verified by running scripts/validate-dual-schema.mjs against the canonical PG copy.",
+        "risk": "Low for schematicLayout (purely UI metadata). The id/orgId 'sqliteOnly' is a known false positive in the diff tool; safe to leave allowlisted."
       },
       {
         "table": "maintenanceCosts",
@@ -84,7 +98,9 @@
           "scheduleId"
         ],
         "totalDiffs": 3,
-        "action": "Align column names/types — small schema patch"
+        "action": "Align column names/types — small schema patch",
+        "resolution": "Add orgId to PG side; rename sqliteOnly recordId → maintenanceRecordId and scheduleId → maintenanceScheduleId to match PG conventions.",
+        "risk": "Medium. Renames need a coordinated repo + handler change."
       },
       {
         "table": "purchaseOrderItems",
@@ -96,7 +112,9 @@
           "receivedQuantity"
         ],
         "totalDiffs": 3,
-        "action": "Align column names/types — small schema patch"
+        "action": "Align column names/types — small schema patch",
+        "resolution": "Add rejectedQuantity (integer) and rejectionReason (text) to SQLite; reconcile receivedQuantity type drift (PG numeric vs SQLite real).",
+        "risk": "Low. Both columns are nullable; type drift on receivedQuantity has no known runtime consumers comparing across drivers."
       },
       {
         "table": "skills",
@@ -108,7 +126,9 @@
           "isActive"
         ],
         "totalDiffs": 3,
-        "action": "Align column names/types — small schema patch"
+        "action": "Align column names/types — small schema patch",
+        "resolution": "Rename SQLite 'isActive' → 'active' to match PG; add maxLevel INTEGER DEFAULT 5 column to SQLite.",
+        "risk": "Low. Rename touches one repo (db/crew/db-skills.ts); maxLevel is additive with default."
       },
       {
         "table": "drydockWindow",
@@ -120,7 +140,9 @@
           "notes"
         ],
         "totalDiffs": 3,
-        "action": "Align column names/types — small schema patch"
+        "action": "Align column names/types — small schema patch",
+        "resolution": "Add scope TEXT to SQLite; promote sqliteOnly actualCost/notes to PG side (or drop from SQLite if unused).",
+        "risk": "Medium. drydockWindow is currently cloud-only in production; offline mirror is rarely exercised."
       },
       {
         "table": "dbSchemaVersion",
@@ -132,7 +154,9 @@
           "version"
         ],
         "totalDiffs": 3,
-        "action": "Align column names/types — small schema patch"
+        "action": "Align column names/types — small schema patch",
+        "resolution": "Add description TEXT to PG; reconcile id/version type drift (PG: integer/text vs SQLite: text/integer). This table is internal bookkeeping — a one-shot rebuild is acceptable.",
+        "risk": "Low. Internal table, no FK dependencies."
       },
       {
         "table": "maintenanceTemplates",
@@ -143,7 +167,9 @@
           "intervalHours"
         ],
         "totalDiffs": 4,
-        "action": "Align column names/types — small schema patch"
+        "action": "Align column names/types — small schema patch",
+        "resolution": "Add checklistItems (jsonb), estimatedDurationMinutes (integer), intervalDays (integer), intervalHours (integer) to SQLite. Maintenance template sync is one-direction (cloud → vessel) so SQLite must be the superset.",
+        "risk": "Low. Additive nullables."
       },
       {
         "table": "requestIdempotency",
@@ -156,7 +182,9 @@
           "requestHash"
         ],
         "totalDiffs": 4,
-        "action": "Align column names/types — small schema patch"
+        "action": "Align column names/types — small schema patch",
+        "resolution": "Standardize on the SQLite naming convention: rename PG.requestId → idempotencyKey + requestHash + orgId. PG version is newer but uses ad-hoc names that don't compose with the sync layer.",
+        "risk": "Medium. Touches the idempotency middleware — needs a coordinated rollout."
       },
       {
         "table": "sheetLock",
@@ -167,7 +195,9 @@
           "sheetType"
         ],
         "totalDiffs": 4,
-        "action": "Align column names/types — small schema patch"
+        "action": "Align column names/types — small schema patch",
+        "resolution": "Cloud-only at present; either add the table to PG schema (preferred) or remove from sqlite-schema if abandoned. sqliteOnly fields (id/orgId/reason/sheetType) are the full table.",
+        "risk": "High. Used by the offline crew-rest editor. Removing it breaks Tauri/Capacitor offline mode."
       },
       {
         "table": "workOrders",
@@ -179,7 +209,9 @@
           "version"
         ],
         "totalDiffs": 5,
-        "action": "Align column names/types — small schema patch"
+        "action": "Align column names/types — small schema patch",
+        "resolution": "sqliteOnly fields (lastModifiedBy/lastModifiedDevice/version) are sync metadata; either port to PG (preferred for full audit) or move into a dedicated work_orders_sync table.",
+        "risk": "Medium. Affects the sync journal compaction logic in server/sync."
       },
       {
         "table": "sensorTypes",
@@ -193,7 +225,9 @@
           "orgId"
         ],
         "totalDiffs": 5,
-        "action": "Align column names/types — small schema patch"
+        "action": "Align column names/types — small schema patch",
+        "resolution": "Add maxValue/minValue (numeric) and units (text) to SQLite; rename sqliteOnly 'code' → 'type' (or whichever PG uses). The orgId mismatch is sensor-types being global vs per-tenant — needs a product decision.",
+        "risk": "Medium. Product decision required for orgId."
       },
       {
         "table": "alertComments",
@@ -207,7 +241,9 @@
           "createdByName"
         ],
         "totalDiffs": 5,
-        "action": "Align column names/types — small schema patch"
+        "action": "Align column names/types — small schema patch",
+        "resolution": "Field renames: alertNotificationId → alertId, createdBy → commentedBy, createdByName drop. SQLite was built off an earlier API contract.",
+        "risk": "Medium. Renames touch the alert-comments repo + UI consumers."
       },
       {
         "table": "sheetVersion",
@@ -219,7 +255,9 @@
           "sheetType"
         ],
         "totalDiffs": 5,
-        "action": "Align column names/types — small schema patch"
+        "action": "Align column names/types — small schema patch",
+        "resolution": "Same as sheetLock — cloud-only, must be ported to PG (preferred) to enable cloud-side audit of crew-rest edits.",
+        "risk": "High. Same offline dependency."
       },
       {
         "table": "scheduleUnfilled",
@@ -233,7 +271,9 @@
           "schedulerRunId"
         ],
         "totalDiffs": 5,
-        "action": "Align column names/types — small schema patch"
+        "action": "Align column names/types — small schema patch",
+        "resolution": "Field renames: assignmentDate → date, schedulerRunId → runId. SQLite was built off an earlier draft.",
+        "risk": "Low. scheduler-unfilled is cloud-only in production; SQLite rows are never written."
       }
     ],
     "heavy": [
@@ -2597,5 +2637,6 @@
         "action": "Add to SQLite schema or remove from PG if unused"
       }
     ]
-  }
+  },
+  "_annotation_note": "Each 'medium' drift entry now carries 'resolution' (safe path forward) and 'risk' (what breaks if applied blindly). 5 SQLite-orgId entries share a single migration shape; 5 are renames; 4 are additive cloud-side ports; 2 are cloud-only tables that must be promoted to PG; 4 require small product decisions. None are auto-fixable via `db:push --force` — each needs a hand-written migration."
 }
