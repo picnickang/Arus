@@ -11,6 +11,8 @@ import { requireOrgId, AuthenticatedRequest } from "../../middleware/auth";
 import { withErrorHandling, sendCreated, sendDeleted } from "../../lib/route-utils";
 import { validateResponse } from "../../lib/api-helpers";
 import { permissionsMeResponseSchema } from "./response-schemas";
+import { mapCompiledToContract, type MapperLogger } from "./mapper";
+import { structuredLog, type LogContext } from "../../logging";
 import {
   insertRoleSchema,
   insertUserRoleAssignmentSchema,
@@ -54,40 +56,16 @@ export function registerPermissionRoutes(app: Express) {
       }
 
       const compiled = await compileUserPermissions(userId, orgId);
-
-      // Map the compiled output (roles: string[] of IDs, grants: nested
-      // {allowed,conditions} matrix) into the contract shape the client
-      // (PermissionsContext) expects: roles as {id,name,displayName} objects
-      // and permissions as a flat boolean matrix.
       const orgRoles = await permissionRepository.listRoles(orgId);
-      const roleById = new Map(
-        orgRoles.map((r) => [
-          r.id,
-          { id: r.id, name: r.name, displayName: r.displayName },
-        ])
-      );
-      const roles = compiled.roles
-        .map((roleId) => roleById.get(roleId))
-        .filter((r): r is { id: string; name: string; displayName: string } => r !== undefined);
-
-      const permissions: Record<string, Record<string, boolean>> = {};
-      for (const [resource, actions] of Object.entries(compiled.grants)) {
-        permissions[resource] = {};
-        for (const [action, grant] of Object.entries(actions)) {
-          permissions[resource][action] = grant?.allowed === true;
-        }
-      }
+      const mapperLogger: MapperLogger = {
+        warn: (message, context) => structuredLog("warn", message, context as Partial<LogContext>),
+      };
+      const mapped = mapCompiledToContract(compiled, orgRoles, mapperLogger);
 
       res.json(
         validateResponse(
           permissionsMeResponseSchema,
-          {
-            userId: compiled.userId,
-            orgId: compiled.orgId,
-            roles,
-            permissions,
-            isDevMode: false,
-          },
+          { ...mapped, isDevMode: false },
           "GET /api/permissions/me"
         )
       );
