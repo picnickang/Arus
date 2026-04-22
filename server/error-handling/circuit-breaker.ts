@@ -98,7 +98,10 @@ export class CircuitBreaker {
         });
       }
 
-      if (fallback && state.state === "OPEN") {
+      // Re-read state after potential transition above to avoid stale-state
+      // behavior when the threshold is crossed during this very failure.
+      const currentState = this.getState(serviceName);
+      if (fallback && currentState.state === "OPEN") {
         structuredLog("warn", `Using fallback for failed ${serviceName}`);
         return fallback();
       }

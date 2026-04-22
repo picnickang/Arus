@@ -1,9 +1,11 @@
 import type { Express, Request, Response } from "express";
 import { withErrorHandling } from "../lib/route-utils";
+import { validateResponse } from "../lib/api-helpers";
 import { logger } from "../utils/logger";
 import { dbAlertStorage } from "../db/alerts/index.js";
 import { dbWorkOrderStorage } from "../db/workorders/index.js";
 import { dbEquipmentStorage } from "../db/equipment/index.js";
+import { homeAttentionSummaryResponseSchema } from "./home-routes.schema";
 
 function safeCall<T>(fn: (() => Promise<T>) | undefined): Promise<T | null> {
   if (typeof fn !== "function") {
@@ -87,12 +89,18 @@ export function registerHomeRoutes(
         } catch {}
       }
 
-      res.json({
-        overdueWorkOrders,
-        unacknowledgedAlerts,
-        highRiskEquipment,
-        newSinceLastVisit,
-      });
+      res.json(
+        validateResponse(
+          homeAttentionSummaryResponseSchema,
+          {
+            overdueWorkOrders,
+            unacknowledgedAlerts,
+            highRiskEquipment,
+            newSinceLastVisit,
+          },
+          "GET /api/home/attention-summary"
+        )
+      );
     })
   );
 

@@ -9,6 +9,8 @@ import { permissionRepository } from "./repository";
 import { permissionService, compileUserPermissions } from "./service";
 import { requireOrgId, AuthenticatedRequest } from "../../middleware/auth";
 import { withErrorHandling, sendCreated, sendDeleted } from "../../lib/route-utils";
+import { validateResponse } from "../../lib/api-helpers";
+import { permissionsMeResponseSchema } from "./response-schemas";
 import {
   insertRoleSchema,
   insertUserRoleAssignmentSchema,
@@ -36,20 +38,30 @@ export function registerPermissionRoutes(app: Express) {
             allPermissions[resource.code][action] = true;
           }
         }
-        return res.json({
-          userId: DEV_USER_ID,
-          orgId: DEV_ORG_ID,
-          roles: [{ id: "dev-role", name: "developer", displayName: "Developer (Dev Mode)" }],
-          permissions: allPermissions,
-          isDevMode: true,
-        });
+        return res.json(
+          validateResponse(
+            permissionsMeResponseSchema,
+            {
+              userId: DEV_USER_ID,
+              orgId: DEV_ORG_ID,
+              roles: [{ id: "dev-role", name: "developer", displayName: "Developer (Dev Mode)" }],
+              permissions: allPermissions,
+              isDevMode: true,
+            },
+            "GET /api/permissions/me (dev)"
+          )
+        );
       }
 
       const compiled = await compileUserPermissions(userId, orgId);
-      res.json({
-        ...compiled,
-        isDevMode: false,
-      });
+      // NOTE: Pre-existing shape mismatch with client expectations:
+      // compileUserPermissions() returns { roles: string[], grants: matrix },
+      // but the client (PermissionsContext) and the dev-mode payload above
+      // expect { roles: {id,name,displayName}[], permissions: boolean matrix }.
+      // Until that mapping is added (separate task — needs role-name lookup
+      // + grants→boolean-matrix flattening), we cannot validate this path
+      // against permissionsMeResponseSchema without throwing in dev/test.
+      res.json({ ...compiled, isDevMode: false });
     })
   );
 
