@@ -2,7 +2,7 @@
  * Insight Snapshot Normalizer
  */
 
-import type { InsightSnapshot } from "@shared/schema-runtime";
+import type { InsightSnapshot } from "@shared/schema";
 import { expandAnomalyType, clampToRange } from "./helpers";
 
 export function normalizeInsightSnapshot(snapshot: InsightSnapshot): InsightSnapshot {

@@ -1,4 +1,5 @@
-import type { Equipment, InsertEquipment, EquipmentHealth } from "@shared/schema-runtime";
+import type { Equipment, InsertEquipment } from "@shared/schema";
+import type { EquipmentHealth } from "../../db/equipment/types.js";
 import { dbEquipmentStorage, dbSensorsStorage, dbInventoryStorage } from "../../repositories";
 import { DEFAULT_SENSORS } from "./service/types.js";
 

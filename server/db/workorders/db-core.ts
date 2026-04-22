@@ -5,7 +5,8 @@
 import { randomUUID } from "node:crypto";
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "../../db-config";
-import { workOrders, type WorkOrder, type InsertWorkOrder } from "@shared/schema-runtime";
+import { workOrders } from "@shared/schema-runtime";
+import type { WorkOrder, InsertWorkOrder } from "@shared/schema";
 import { broadcastChange, type WorkOrderFilters, type WorkOrderPaginationResult } from "./types.js";
 
 export class DbWorkOrderCore {

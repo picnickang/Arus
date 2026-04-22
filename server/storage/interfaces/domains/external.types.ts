@@ -4,8 +4,8 @@
  */
 
 import type {
-  StormgeoSetting,
-  InsertStormgeoSetting,
+  StormgeoSettings as StormgeoSetting,
+  InsertStormgeoSettings as InsertStormgeoSetting,
   StormgeoSnapshot,
   InsertStormgeoSnapshot,
   StormgeoImportHistory,

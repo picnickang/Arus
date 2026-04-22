@@ -4,7 +4,8 @@
 
 import { eq, and, lt, sql } from "drizzle-orm";
 import { db } from "../../db-config";
-import { adminAuditEvents, adminSessions, type AdminAuditEvent, type InsertAdminAuditEvent, type AdminSession, type InsertAdminSession } from "@shared/schema-runtime";
+import { adminAuditEvents, adminSessions } from "@shared/schema-runtime";
+import type { AdminAuditEvent, InsertAdminAuditEvent, AdminSession, InsertAdminSession } from "@shared/schema";
 
 export class DbAuditStorage {
   async getAdminAuditEvents(orgId?: string, action?: string, limit?: number): Promise<AdminAuditEvent[]> { const conditions = []; if (orgId) {conditions.push(eq(adminAuditEvents.orgId, orgId));} if (action) {conditions.push(eq(adminAuditEvents.action, action));} let query = db.select().from(adminAuditEvents); if (conditions.length > 0) {query = query.where(and(...conditions));} query = query.orderBy(sql`${adminAuditEvents.timestamp} DESC`); if (limit) {query = query.limit(limit);} return query; }

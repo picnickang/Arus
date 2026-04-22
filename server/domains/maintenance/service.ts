@@ -14,7 +14,7 @@ import type {
   InsertMaintenanceSchedule,
   MaintenanceTemplate,
   InsertMaintenanceTemplate,
-} from "@shared/schema-runtime";
+} from "@shared/schema";
 import { maintenanceAppService } from "./application";
 
 /**

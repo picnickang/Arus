@@ -4,7 +4,7 @@
 
 import { eq, and, lte, asc, isNull } from "drizzle-orm";
 import { db } from "../../db";
-import { crewCertification, crewDocuments, crewNotificationSettings, portCall, drydockWindow, type SelectCrewCertification, type InsertCrewCertification, type SelectCrewDocument, type InsertCrewDocument, type CrewNotificationSettings, type SelectPortCall, type InsertPortCall, type SelectDrydockWindow, type InsertDrydockWindow } from "@shared/schema";
+import { crewCertification, crewDocuments, crewNotificationSettings, portCall, drydockWindow, type SelectCrewCertification, type InsertCrewCertification, type SelectCrewDocument, type InsertCrewDocument, type CrewNotificationSettings, type PortCall as SelectPortCall, type InsertPortCall, type DrydockWindow as SelectDrydockWindow, type InsertDrydockWindow } from "@shared/schema";
 import type { AlertScanResult, NotificationSettingsData } from "./types.js";
 
 export class DbCrewExtensionsStorage {

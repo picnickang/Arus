@@ -4,11 +4,11 @@
  */
 
 import type {
-  SelectVessel,
+  Vessel as SelectVessel,
   InsertVessel,
-  SelectPortCall,
+  PortCall as SelectPortCall,
   InsertPortCall,
-  SelectDrydockWindow,
+  DrydockWindow as SelectDrydockWindow,
   InsertDrydockWindow,
 } from "@shared/schema";
 

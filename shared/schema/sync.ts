@@ -136,4 +136,5 @@ export type RequestIdempotency = typeof requestIdempotency.$inferSelect;
 export type IdempotencyLog = typeof idempotencyLog.$inferSelect;
 export type ReplayIncoming = typeof replayIncoming.$inferSelect;
 export type SheetLock = typeof sheetLock.$inferSelect;
+export type InsertSheetLock = typeof sheetLock.$inferInsert;
 export type SheetVersion = typeof sheetVersion.$inferSelect;

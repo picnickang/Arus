@@ -4,7 +4,7 @@
  */
 
 import type { InventoryStorage } from "./storage";
-import type { Part } from "@shared/schema-runtime";
+import type { Part } from "@shared/schema";
 import { optimizeInventoryLevels } from "../inventory";
 import { cryptoRandom } from "@shared/crypto-random";
 

@@ -17,12 +17,14 @@ import {
   maintenanceCosts,
   stock,
   inventoryMovements,
-  type WorkOrder,
-  type InsertWorkOrder,
-  type WorkOrderPart,
-  type WorkOrderCompletion,
-  type InsertWorkOrderCompletion,
 } from "@shared/schema-runtime";
+import type {
+  WorkOrder,
+  InsertWorkOrder,
+  WorkOrderPart,
+  WorkOrderCompletion,
+  InsertWorkOrderCompletion,
+} from "@shared/schema";
 import { publishEvent } from "../../sync-events.js";
 import { dbWorkOrderStorage } from "../../db/workorders/index.js";
 import { dbInventoryStorage } from "../../db/inventory/index.js";

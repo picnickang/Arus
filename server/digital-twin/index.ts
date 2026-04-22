@@ -8,8 +8,8 @@ import { dbTelemetryStorage } from "../repositories.js";
 import { db } from "../db.js";
 import {
   digitalTwins, twinSimulations, visualizationAssets,
-  DigitalTwin, TwinSimulation, VisualizationAsset,
 } from "@shared/schema-runtime";
+import type { DigitalTwin, TwinSimulation, VisualizationAsset } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 
 import type { VesselSpecifications, PhysicsModel, TwinState, SimulationScenario } from "./types.js";

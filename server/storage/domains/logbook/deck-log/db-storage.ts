@@ -4,7 +4,8 @@
 
 import { eq, and, gte, lte, asc, sql } from "drizzle-orm";
 import { db } from "../../../../db-config";
-import { deckLogDaily, deckLogHourly, deckLogWatch, deckLogEvents, type DeckLogDaily, type InsertDeckLogDaily, type DeckLogHourly, type InsertDeckLogHourly, type DeckLogWatch, type InsertDeckLogWatch, type DeckLogEvent, type InsertDeckLogEvent } from "@shared/schema-runtime";
+import { deckLogDaily, deckLogHourly, deckLogWatch, deckLogEvents } from "@shared/schema-runtime";
+import type { DeckLogDaily, InsertDeckLogDaily, DeckLogHourly, InsertDeckLogHourly, DeckLogWatch, InsertDeckLogWatch, DeckLogEvent, InsertDeckLogEvent } from "@shared/schema";
 import type { DeckLogFilters, DeckLogEventFilters, SignData, LockData, DeckLogComplete } from "./types.js";
 
 export class DbDeckLogStorage {

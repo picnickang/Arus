@@ -6,7 +6,8 @@ import { randomUUID } from "node:crypto";
 import { eq, and, desc, sql, gte, lte } from "drizzle-orm";
 import { db } from "../../db-config";
 import { getCloudTableOrUndefined } from "../../utils/cloud-guards";
-import { mlModels, anomalyDetections, failurePredictions, thresholdOptimizations, featureImportances, calibrationCurves, modelPerformanceValidations, engineerOverrides, type MlModel, type InsertMlModel, type AnomalyDetection, type InsertAnomalyDetection, type FailurePrediction, type InsertFailurePrediction, type ThresholdOptimization, type InsertThresholdOptimization, type FeatureImportance, type InsertFeatureImportance, type CalibrationCurve, type InsertCalibrationCurve, type EngineerOverride, type InsertEngineerOverride } from "@shared/schema-runtime";
+import { mlModels, anomalyDetections, failurePredictions, thresholdOptimizations, featureImportances, calibrationCurves, modelPerformanceValidations, engineerOverrides } from "@shared/schema-runtime";
+import type { MlModel, InsertMlModel, AnomalyDetection, InsertAnomalyDetection, FailurePrediction, InsertFailurePrediction, ThresholdOptimization, InsertThresholdOptimization, FeatureImportance, InsertFeatureImportance, CalibrationCurve, InsertCalibrationCurve, EngineerOverride, InsertEngineerOverride } from "@shared/schema";
 import { rulModels } from "@shared/schema-runtime";
 import type { RulModel, InsertRulModel } from "@shared/schema";
 

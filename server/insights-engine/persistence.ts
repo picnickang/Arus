@@ -5,7 +5,7 @@
  */
 
 import { analyticsInsightsAdapter, dbAnalyticsStorage } from "../repositories";
-import type { InsightSnapshot, InsertInsightSnapshot } from "@shared/schema-runtime";
+import type { InsightSnapshot, InsertInsightSnapshot } from "@shared/schema";
 import type { InsightBundle } from "./types.js";
 import { computeInsights } from "./compute-fleet-kpi.js";
 

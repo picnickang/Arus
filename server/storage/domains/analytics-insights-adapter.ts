@@ -1,7 +1,16 @@
 import { eq, desc } from "drizzle-orm";
 import { db } from "../../db-config";
 import { kbDocs, type KbDoc } from "@shared/schema";
-import type { DashboardMetrics, EquipmentTelemetry, Equipment, PdmScore, WorkOrder, Device, EdgeHeartbeat, Vessel } from "@shared/schema";
+import type { EquipmentTelemetry, Equipment, PdmScoreLog as PdmScore, WorkOrder, Device, EdgeHeartbeat, Vessel } from "@shared/schema";
+
+interface TrendValue { value: number; direction: "up" | "down"; percentChange: number; }
+export interface DashboardMetrics {
+  activeDevices: number;
+  fleetHealth: number;
+  openWorkOrders: number;
+  riskAlerts: number;
+  trends: { activeDevices: TrendValue; fleetHealth: TrendValue; openWorkOrders: TrendValue; riskAlerts: TrendValue };
+}
 
 export interface AnalyticsDependencies {
   getDevices(orgId: string): Promise<Device[]>;

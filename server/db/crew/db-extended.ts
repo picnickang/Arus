@@ -5,7 +5,8 @@
 import { randomUUID } from "node:crypto";
 import { eq, and, lte, gte, or, sql, inArray } from "drizzle-orm";
 import { db } from "../../db-config";
-import { crew, crewAssignment as crewAssignmentTable, crewCertification as crewCertificationTable, crewLeave as crewLeaveTable, type Crew, type CrewAssignment, type InsertCrewAssignment, type CrewCertification, type InsertCrewCertification, type CrewLeave, type InsertCrewLeave } from "@shared/schema-runtime";
+import { crew, crewAssignment as crewAssignmentTable, crewCertification as crewCertificationTable, crewLeave as crewLeaveTable } from "@shared/schema-runtime";
+import type { Crew, CrewAssignment, InsertCrewAssignment, CrewCertification, InsertCrewCertification, CrewLeave, InsertCrewLeave } from "@shared/schema";
 import type { CrewAssignmentFilters } from "./types.js";
 
 export class DbCrewExtended {

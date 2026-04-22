@@ -4,7 +4,7 @@
  */
 
 import type { ICrewMemberRepository } from "../domain/ports.js";
-import type { SelectCrew, InsertCrew } from "@shared/schema-runtime";
+import type { SelectCrew, InsertCrew } from "@shared/schema";
 import { dbCrewStorage } from "../../../db/crew/index.js";
 
 export const crewMemberRepository: ICrewMemberRepository = {

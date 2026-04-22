@@ -8,7 +8,8 @@
 import { randomUUID } from "node:crypto";
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "../../db-config";
-import { parts, stock, type Part, type Stock, type InsertPart, type PartsInventory, type InsertPartsInventory } from "@shared/schema-runtime";
+import { parts, stock } from "@shared/schema-runtime";
+import type { Part, Stock, InsertPart, PartsInventory, InsertPartsInventory } from "@shared/schema";
 import type { PartFilters, AvailabilityResult } from "./types.js";
 
 export function partAndStockToPartsInventory(part: Part, stockRowOrRows: Stock | Stock[] | null): PartsInventory {

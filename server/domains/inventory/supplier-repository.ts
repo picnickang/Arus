@@ -1,12 +1,11 @@
 import { eq, and, inArray } from "drizzle-orm";
 import { db } from "../../db";
-import {
-  partsInventorySuppliers,
-  suppliers,
-  type PartsInventorySupplier,
-  type InsertPartsInventorySupplier,
-  type Supplier,
-} from "@shared/schema-runtime";
+import { partsInventorySuppliers, suppliers } from "@shared/schema-runtime";
+import type {
+  PartsInventorySupplier,
+  InsertPartsInventorySupplier,
+  Supplier,
+} from "@shared/schema";
 
 export interface SupplierLinkWithDetails extends PartsInventorySupplier {
   supplier?: Supplier;

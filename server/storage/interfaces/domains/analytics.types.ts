@@ -4,7 +4,6 @@
  */
 
 import type {
-  DashboardMetrics,
   InsightSnapshot,
   InsertInsightSnapshot,
   InsightReport,
@@ -23,6 +22,7 @@ import type {
   ScheduleOptimization,
   MaintenanceSchedule,
 } from "@shared/schema";
+import type { DashboardMetrics } from "../../domains/analytics-insights-adapter.js";
 
 /**
  * Analytics storage operations for insights, knowledge base, and optimization

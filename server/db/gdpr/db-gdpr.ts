@@ -4,7 +4,8 @@
 
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "../../db-config";
-import { dataSubjectRequests, engineerOverrides, type DataSubjectRequest, type InsertDataSubjectRequest, type EngineerOverride, type InsertEngineerOverride } from "@shared/schema-runtime";
+import { dataSubjectRequests, engineerOverrides } from "@shared/schema-runtime";
+import type { DataSubjectRequest, InsertDataSubjectRequest, EngineerOverride, InsertEngineerOverride } from "@shared/schema";
 
 export class DatabaseGdprStorage {
   async getDataSubjectRequests(orgId?: string, status?: string, type?: string): Promise<DataSubjectRequest[]> { const conditions = []; if (orgId) {conditions.push(eq(dataSubjectRequests.orgId, orgId));} if (status) {conditions.push(eq(dataSubjectRequests.status, status));} if (type) {conditions.push(eq(dataSubjectRequests.requestType, type));} let query = db.select().from(dataSubjectRequests); if (conditions.length > 0) {query = query.where(and(...conditions));} return query.orderBy(sql`${dataSubjectRequests.createdAt} DESC`); }

@@ -5,7 +5,7 @@ import type {
   InsertWorkOrderCompletion,
   WorkOrderTask,
   InsertWorkOrderTask,
-} from "@shared/schema-runtime";
+} from "@shared/schema";
 import { workOrderService, dbWorkOrderStorage, dbChecklistsStorage, dbInventoryStorage, dbMaintenanceStorage, dbEquipmentStorage } from "../../repositories";
 import type { WorkOrderFilters } from "../../db/workorders/types";
 

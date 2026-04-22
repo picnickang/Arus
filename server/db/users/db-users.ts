@@ -4,7 +4,8 @@
 
 import { eq, and } from "drizzle-orm";
 import { db } from "../../db-config";
-import { organizations, users, type Organization, type InsertOrganization, type User, type InsertUser } from "@shared/schema-runtime";
+import { organizations, users } from "@shared/schema-runtime";
+import type { Organization, InsertOrganization, User, InsertUser } from "@shared/schema";
 
 export class DatabaseUserStorage {
   async getOrganizations(): Promise<Organization[]> { return db.select().from(organizations).orderBy(organizations.name); }

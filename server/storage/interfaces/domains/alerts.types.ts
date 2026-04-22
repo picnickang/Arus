@@ -5,17 +5,17 @@
 
 import type {
   AlertConfiguration,
-  InsertAlertConfig,
+  InsertAlertConfiguration as InsertAlertConfig,
   AlertNotification,
   InsertAlertNotification,
   AlertSuppression,
   InsertAlertSuppression,
   AlertComment,
   InsertAlertComment,
-  NotificationSetting,
-  InsertNotificationSetting,
-  NotificationQueueItem,
-  InsertNotificationQueueItem,
+  CrewNotificationSettings as NotificationSetting,
+  InsertCrewNotificationSettings as InsertNotificationSetting,
+  NotificationQueue as NotificationQueueItem,
+  InsertNotificationQueue as InsertNotificationQueueItem,
 } from "@shared/schema";
 
 /**

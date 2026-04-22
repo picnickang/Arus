@@ -8,7 +8,7 @@ import { getWebSocketServer } from "../../websocket-server";
 import { db } from "../../db-config";
 import { crew, crewSkill, crewLeave, crewAssignment, crewCertification, crewRestSheet, crewRestDay, vessels } from "@shared/schema-runtime";
 import { eq } from "drizzle-orm";
-import type { SelectCrew, InsertCrew, CrewWithSkills, SelectCrewSkill, SelectCrewLeave, InsertCrewLeave, SelectCrewAssignment, InsertCrewAssignment } from "@shared/schema-runtime";
+import type { Crew as SelectCrew, InsertCrew, Crew as CrewWithSkills, CrewSkill as SelectCrewSkill, CrewLeave as SelectCrewLeave, InsertCrewLeave, CrewAssignment as SelectCrewAssignment, InsertCrewAssignment } from "@shared/schema";
 
 class CrewService {
   async getCrew(orgId?: string, vesselId?: string): Promise<CrewWithSkills[]> {

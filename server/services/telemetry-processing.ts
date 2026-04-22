@@ -9,7 +9,7 @@
  * - Automatic maintenance scheduling
  */
 
-import type { EquipmentTelemetry } from "@shared/schema-runtime";
+import type { EquipmentTelemetry } from "@shared/schema";
 import {
   dbEquipmentStorage, dbAlertStorage, dbSensorsStorage, dbTelemetryStorage,
   dbMaintenanceStorage, dbSystemAdminStorage, schedulingAdapter, analyticsInsightsAdapter,

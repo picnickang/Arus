@@ -5,7 +5,8 @@
 import { randomUUID } from "node:crypto";
 import { eq, and, sql, lte, or } from "drizzle-orm";
 import { db } from "../../db-config";
-import { equipment, equipmentLifecycle, sensorConfigurations, sensorStates, equipmentTelemetry as equipmentTelemetryTable, rawTelemetry, pdmScoreLogs as pdmScoreLogsTable, anomalyDetections, failurePredictions, vibrationFeatures, vibrationAnalysis, twinSimulations, conditionMonitoring, oilAnalysis, wearParticleAnalysis, dtcFaults, insightReports, insightSnapshots, vessels, alertConfigurations, type Equipment, type InsertEquipment, type EquipmentLifecycle, type InsertEquipmentLifecycle } from "@shared/schema-runtime";
+import { equipment, equipmentLifecycle, sensorConfigurations, sensorStates, equipmentTelemetry as equipmentTelemetryTable, rawTelemetry, pdmScoreLogs as pdmScoreLogsTable, anomalyDetections, failurePredictions, vibrationFeatures, vibrationAnalysis, twinSimulations, conditionMonitoring, oilAnalysis, wearParticleAnalysis, dtcFaults, insightReports, insightSnapshots, vessels, alertConfigurations } from "@shared/schema-runtime";
+import type { Equipment, InsertEquipment, EquipmentLifecycle, InsertEquipmentLifecycle } from "@shared/schema";
 import type { EquipmentHealthFilters, EquipmentHealth } from "./types.js";
 import { getWebSocketServer } from "./websocket.js";
 

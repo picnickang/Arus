@@ -5,7 +5,8 @@
 import { eq, and, desc, gte, lte, sql } from "drizzle-orm";
 import { db } from "../../db-config";
 import { recordAndPublish } from "../../sync-events";
-import { schedulerRuns, drydockWindow, scheduleAssignments, scheduleUnfilled, type SchedulerRun, type InsertSchedulerRun, type DrydockWindow, type InsertDrydockWindow } from "@shared/schema-runtime";
+import { schedulerRuns, drydockWindow, scheduleAssignments, scheduleUnfilled } from "@shared/schema-runtime";
+import type { SchedulerRun, InsertSchedulerRun, DrydockWindow, InsertDrydockWindow } from "@shared/schema";
 import { schedulingSettings, type SelectSchedulingSettings } from "@shared/schema";
 
 export class DatabaseSchedulerStorage {

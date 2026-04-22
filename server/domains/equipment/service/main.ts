@@ -2,7 +2,8 @@
  * Equipment Service - Main Service Class
  */
 
-import type { Equipment, InsertEquipment, EquipmentHealth, InsertDecommissionEvent } from '@shared/schema-runtime';
+import type { Equipment, InsertEquipment, InsertDecommissionEvent } from "@shared/schema";
+import type { EquipmentHealth } from "../../../db/equipment/types.js";
 import { DualWriteAdapter } from '../../../infrastructure/DualWriteAdapter';
 import { featureFlags } from '../../../infrastructure/feature-flags';
 import type { PaginationOptions, PaginatedResult, SensorCoverageResult, SensorSetupResult } from './types.js';

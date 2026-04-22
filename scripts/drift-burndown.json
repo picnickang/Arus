@@ -1,54 +1,89 @@
 {
   "_comment": "Drift burn-down categorization. Regenerate with: node scripts/categorize-drift.mjs",
-  "generatedAt": "2026-04-11T19:10:27.345Z",
+  "generatedAt": "2026-04-22T07:12:09.229Z",
   "summary": {
-    "quickFix": 0,
-    "expectedArchitectural": 6,
+    "quickFix": 6,
     "medium": 42,
     "heavy": 68,
     "missing": 37,
     "total": 153
   },
   "categories": {
-    "expectedArchitectural": [
+    "quickFix": [
       {
         "table": "equipmentTelemetry",
-        "typeDrift": ["ts"],
+        "typeDrift": [
+          "ts"
+        ],
         "totalDiffs": 1,
-        "reason": "PG timestamp vs SQLite integer — inherent to dual-DB architecture, not fixable"
+        "action": "Normalize timestamp/id types between PG and SQLite"
       },
       {
         "table": "workOrderParts",
-        "typeDrift": ["usedAt"],
+        "typeDrift": [
+          "usedAt"
+        ],
         "totalDiffs": 1,
-        "reason": "PG timestamp vs SQLite integer — inherent to dual-DB architecture, not fixable"
+        "action": "Normalize timestamp/id types between PG and SQLite"
       },
       {
         "table": "maintenanceSchedules",
-        "typeDrift": ["scheduledDate"],
+        "typeDrift": [
+          "scheduledDate"
+        ],
         "totalDiffs": 1,
-        "reason": "PG timestamp vs SQLite integer — inherent to dual-DB architecture, not fixable"
+        "action": "Normalize timestamp/id types between PG and SQLite"
       },
       {
         "table": "stock",
-        "typeDrift": ["lastCountDate"],
+        "typeDrift": [
+          "lastCountDate"
+        ],
         "totalDiffs": 1,
-        "reason": "PG timestamp vs SQLite integer — inherent to dual-DB architecture, not fixable"
+        "action": "Normalize timestamp/id types between PG and SQLite"
       },
       {
         "table": "partFailureHistory",
-        "typeDrift": ["failureDate"],
+        "typeDrift": [
+          "failureDate"
+        ],
         "totalDiffs": 1,
-        "reason": "PG timestamp vs SQLite integer — inherent to dual-DB architecture, not fixable"
+        "action": "Normalize timestamp/id types between PG and SQLite"
       },
       {
         "table": "dbSchemaVersion",
-        "typeDrift": ["appliedAt", "id", "version"],
+        "typeDrift": [
+          "appliedAt",
+          "id",
+          "version"
+        ],
         "totalDiffs": 3,
-        "reason": "PG serial/timestamp vs SQLite integer — inherent to dual-DB architecture, not fixable"
+        "action": "Normalize timestamp/id types between PG and SQLite"
       }
     ],
     "medium": [
+      {
+        "table": "equipmentLifecycle",
+        "pgOnly": [
+          "orgId"
+        ],
+        "typeDrift": [
+          "installationDate"
+        ],
+        "totalDiffs": 2,
+        "action": "Align column names/types — small schema patch"
+      },
+      {
+        "table": "performanceMetrics",
+        "pgOnly": [
+          "orgId"
+        ],
+        "typeDrift": [
+          "metricDate"
+        ],
+        "totalDiffs": 2,
+        "action": "Align column names/types — small schema patch"
+      },
       {
         "table": "rawTelemetry",
         "pgOnly": [
@@ -392,19 +427,6 @@
         "action": "Align column names/types — small schema patch"
       },
       {
-        "table": "operatingParameters",
-        "pgOnly": [
-          "category",
-          "optimalValue"
-        ],
-        "sqliteOnly": [
-          "normalValue",
-          "tolerance"
-        ],
-        "totalDiffs": 4,
-        "action": "Align column names/types — small schema patch"
-      },
-      {
         "table": "syncProtocolVersion",
         "pgOnly": [
           "deviceId"
@@ -498,20 +520,6 @@
           "isActive",
           "orgId",
           "settings"
-        ],
-        "totalDiffs": 5,
-        "action": "Align column names/types — small schema patch"
-      },
-      {
-        "table": "engineerOverrides",
-        "pgOnly": [
-          "equipmentId",
-          "expiresAt"
-        ],
-        "sqliteOnly": [
-          "approvedAt",
-          "targetId",
-          "targetType"
         ],
         "totalDiffs": 5,
         "action": "Align column names/types — small schema patch"
@@ -722,6 +730,34 @@
         "action": "Major schema divergence — needs dedicated migration effort"
       },
       {
+        "table": "operatingConditionAlerts",
+        "pgOnly": [
+          "acknowledgedAt",
+          "alertType",
+          "message",
+          "parameterId",
+          "thresholdValue",
+          "parameterName",
+          "parameterType",
+          "optimalMin",
+          "optimalMax",
+          "thresholdType",
+          "lifeImpact",
+          "recommendedAction",
+          "acknowledged",
+          "resolved",
+          "alertedAt"
+        ],
+        "sqliteOnly": [
+          "conditionType",
+          "description",
+          "expectedRange",
+          "isActive"
+        ],
+        "totalDiffs": 19,
+        "action": "Major schema divergence — needs dedicated migration effort"
+      },
+      {
         "table": "visualizationAssets",
         "pgOnly": [
           "boundingBox",
@@ -777,6 +813,32 @@
         "action": "Major schema divergence — needs dedicated migration effort"
       },
       {
+        "table": "operatingParameters",
+        "pgOnly": [
+          "category",
+          "optimalValue",
+          "equipmentType",
+          "manufacturer",
+          "model",
+          "parameterType",
+          "optimalMin",
+          "optimalMax",
+          "criticalMin",
+          "criticalMax",
+          "lifeImpactDescription",
+          "recommendedAction"
+        ],
+        "sqliteOnly": [
+          "normalValue",
+          "tolerance",
+          "equipmentId",
+          "minValue",
+          "maxValue"
+        ],
+        "totalDiffs": 17,
+        "action": "Major schema divergence — needs dedicated migration effort"
+      },
+      {
         "table": "immutableAuditTrail",
         "pgOnly": [
           "changedFields",
@@ -800,6 +862,31 @@
           "sequenceNumber"
         ],
         "totalDiffs": 17,
+        "action": "Major schema divergence — needs dedicated migration effort"
+      },
+      {
+        "table": "engineerOverrides",
+        "pgOnly": [
+          "equipmentId",
+          "expiresAt",
+          "predictionId",
+          "workOrderId",
+          "originalPrediction",
+          "originalRiskLevel",
+          "originalConfidence",
+          "newRiskLevel",
+          "newScheduleDate"
+        ],
+        "sqliteOnly": [
+          "approvedAt",
+          "targetId",
+          "targetType",
+          "originalValue",
+          "overrideValue",
+          "reason",
+          "approvedBy"
+        ],
+        "totalDiffs": 16,
         "action": "Major schema divergence — needs dedicated migration effort"
       },
       {
@@ -1457,24 +1544,6 @@
         "action": "Major schema divergence — needs dedicated migration effort"
       },
       {
-        "table": "operatingConditionAlerts",
-        "pgOnly": [
-          "acknowledgedAt",
-          "alertType",
-          "message",
-          "parameterId",
-          "thresholdValue"
-        ],
-        "sqliteOnly": [
-          "conditionType",
-          "description",
-          "expectedRange",
-          "isActive"
-        ],
-        "totalDiffs": 9,
-        "action": "Major schema divergence — needs dedicated migration effort"
-      },
-      {
         "table": "componentDegradation",
         "pgOnly": [
           "componentType",
@@ -1606,6 +1675,23 @@
         "action": "Major schema divergence — needs dedicated migration effort"
       },
       {
+        "table": "maintenanceChecklistCompletions",
+        "pgOnly": [
+          "actualValue",
+          "completedBy",
+          "notes",
+          "orgId",
+          "passed",
+          "photoUrls",
+          "status"
+        ],
+        "typeDrift": [
+          "completedAt"
+        ],
+        "totalDiffs": 8,
+        "action": "Major schema divergence — needs dedicated migration effort"
+      },
+      {
         "table": "inventoryMovements",
         "pgOnly": [
           "notes",
@@ -1716,38 +1802,6 @@
         "action": "Major schema divergence — needs dedicated migration effort"
       },
       {
-        "table": "equipmentLifecycle",
-        "pgOnly": [
-          "eventDate",
-          "eventType",
-          "orgId"
-        ],
-        "sqliteOnly": [
-          "installationDate",
-          "manufacturer",
-          "model",
-          "serialNumber"
-        ],
-        "totalDiffs": 7,
-        "action": "Major schema divergence — needs dedicated migration effort"
-      },
-      {
-        "table": "maintenanceChecklistItems",
-        "pgOnly": [
-          "estimatedMinutes",
-          "isRequired",
-          "sortOrder"
-        ],
-        "sqliteOnly": [
-          "category",
-          "required",
-          "stepNumber",
-          "title"
-        ],
-        "totalDiffs": 7,
-        "action": "Major schema divergence — needs dedicated migration effort"
-      },
-      {
         "table": "purchaseOrders",
         "pgOnly": [
           "expectedDate",
@@ -1844,21 +1898,6 @@
         "action": "Major schema divergence — needs dedicated migration effort"
       },
       {
-        "table": "performanceMetrics",
-        "pgOnly": [
-          "metricType",
-          "orgId",
-          "recordedAt",
-          "unit",
-          "value"
-        ],
-        "sqliteOnly": [
-          "metricDate"
-        ],
-        "totalDiffs": 6,
-        "action": "Major schema divergence — needs dedicated migration effort"
-      },
-      {
         "table": "workOrderWorklogs",
         "pgOnly": [
           "technicianName"
@@ -1876,18 +1915,14 @@
         "action": "Major schema divergence — needs dedicated migration effort"
       },
       {
-        "table": "maintenanceChecklistCompletions",
+        "table": "maintenanceChecklistItems",
         "pgOnly": [
-          "checklistItemId",
-          "completedBy",
-          "isCompleted",
-          "orgId"
-        ],
-        "sqliteOnly": [
-          "itemId"
-        ],
-        "typeDrift": [
-          "completedAt"
+          "acceptanceCriteria",
+          "estimatedMinutes",
+          "expectedResult",
+          "imageUrl",
+          "orgId",
+          "safetyWarning"
         ],
         "totalDiffs": 6,
         "action": "Major schema divergence — needs dedicated migration effort"

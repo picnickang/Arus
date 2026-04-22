@@ -4,7 +4,7 @@
 
 import { writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import type { ComplianceBundle, InsertComplianceBundle } from "@shared/schema-runtime";
+import type { ComplianceBundle, InsertComplianceBundle } from "@shared/schema";
 
 /**
  * Save compliance bundle to storage

@@ -50,20 +50,8 @@ import { eq, and, desc, gte, lte } from "drizzle-orm";
 import { db } from "../../db-config";
 import { getWebSocketServer } from "../../websocket-server";
 import { recordAndPublish, type EntityType } from "../../sync-events";
-import {
-  maintenanceTemplates,
-  maintenanceChecklistItems,
-  pdmScoreLogs,
-  maintenanceSchedules,
-  type MaintenanceTemplate,
-  type InsertMaintenanceTemplate,
-  type MaintenanceChecklistItem,
-  type InsertMaintenanceChecklistItem,
-  type PdmScoreLog,
-  type InsertPdmScoreLog,
-  type MaintenanceSchedule,
-  type InsertMaintenanceSchedule,
-} from "@shared/schema-runtime";
+import { maintenanceTemplates, maintenanceChecklistItems, pdmScoreLogs, maintenanceSchedules } from "@shared/schema-runtime";
+import type { MaintenanceTemplate, InsertMaintenanceTemplate, MaintenanceChecklistItem, InsertMaintenanceChecklistItem, PdmScoreLog, InsertPdmScoreLog, MaintenanceSchedule, InsertMaintenanceSchedule } from "@shared/schema";
 
 export class DatabaseMaintenanceTemplatesStorage {
   // ──────────────────────────────────────────────────────────────────

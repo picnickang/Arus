@@ -4,7 +4,7 @@
  * Supplier evaluation and performance scoring.
  */
 
-import type { Supplier } from "@shared/schema-runtime";
+import type { Supplier } from "@shared/schema";
 import type { SupplierPerformance, DeliveryHistoryRecord } from "./types.js";
 import {
   inventorySupplierEvaluations,

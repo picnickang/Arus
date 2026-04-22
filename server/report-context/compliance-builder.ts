@@ -5,7 +5,7 @@
  */
 
 import { vesselService, dbCrewStorage, dbEquipmentStorage, workOrderService, dbStcwStorage } from "../repositories";
-import type { SelectVessel } from "@shared/schema-runtime";
+import type { Vessel as SelectVessel } from "@shared/schema";
 import type { ReportContext, ContextBuilderOptions } from "./types.js";
 import {
   getCrewCertifications,

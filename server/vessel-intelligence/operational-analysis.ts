@@ -7,7 +7,7 @@
 import type {
   EquipmentTelemetry,
   WorkOrder,
-} from "@shared/schema-runtime";
+} from "@shared/schema";
 import type { VesselLearnings } from "./types.js";
 import {
   calculateEfficiencyTrends,

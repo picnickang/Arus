@@ -6,7 +6,7 @@
 
 import { dbVesselStorage } from "../../db/vessels/index.js";
 import { getWebSocketServer } from "../../websocket-server";
-import type { Vessel, InsertVessel, PortCall, InsertPortCall, DrydockWindow, InsertDrydockWindow } from "@shared/schema-runtime";
+import type { Vessel, InsertVessel, PortCall, InsertPortCall, DrydockWindow, InsertDrydockWindow } from "@shared/schema";
 
 class VesselService {
   async getVessels(orgId?: string): Promise<Vessel[]> {

@@ -15,7 +15,7 @@ import type {
   RulModel,
   InsertRulModel,
   PdmScoreLog,
-  InsertPdmScore,
+  InsertPdmScoreLog as InsertPdmScore,
 } from "@shared/schema";
 
 /**

@@ -1,12 +1,12 @@
 import crypto from "node:crypto";
 import { dbSchedulerStorage, dbCrewStorage, dbCrewExtensionsStorage, dbVesselStorage, vesselService } from "../repositories";
 import { planShifts, generateDays } from "../crew-scheduler";
-import {
+import type {
   InsertSchedulerRun,
   InsertScheduleAssignment,
   InsertScheduleUnfilled,
   SelectCrewAssignment,
-} from "@shared/schema-runtime";
+} from "@shared/schema";
 import {
   schedRunDuration,
   schedUnfilledTotal,

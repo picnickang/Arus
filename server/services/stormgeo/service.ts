@@ -3,7 +3,7 @@
  */
 
 import { dbStormGeoStorage } from "../../repositories";
-import type { StormgeoSetting, InsertStormgeoSetting, StormgeoSnapshot, StormgeoImportHistory, InsertStormgeoSnapshot, DeckLogHourly } from "@shared/schema";
+import type { StormgeoSettings as StormgeoSetting, InsertStormgeoSettings as InsertStormgeoSetting, StormgeoSnapshot, StormgeoImportHistory, InsertStormgeoSnapshot, DeckLogHourly } from "@shared/schema";
 import { createHash } from "node:crypto";
 import type { StormGeoJSONFormat } from "./types.js";
 import { bearingToDirection, windSpeedToBeaufort, waveHeightToSeaState } from "./converters.js";

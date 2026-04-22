@@ -17,7 +17,7 @@ import type {
   InsertCrewCertification,
   SelectCrewDocument,
   InsertCrewDocument,
-} from "@shared/schema-runtime";
+} from "@shared/schema";
 
 export type {
   SelectCrew,

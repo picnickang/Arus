@@ -467,3 +467,17 @@ export type InsertTelemetryBatchAck = z.infer<typeof insertTelemetryBatchAckSche
 
 export type TelemetrySchemaRegistry = typeof telemetrySchemaRegistry.$inferSelect;
 export type InsertTelemetrySchemaRegistry = z.infer<typeof insertTelemetrySchemaRegistrySchema>;
+
+// Convenience re-aliases used by server interfaces and OpenAI helpers.
+// Keep in sync with server/db/telemetry/types.ts.
+export type InsertTelemetry = InsertEquipmentTelemetry;
+
+export interface TelemetryTrend {
+  equipmentId: string;
+  sensorType: string;
+  avgValue: number;
+  minValue: number;
+  maxValue: number;
+  dataPoints: number;
+  lastReading: Date;
+}

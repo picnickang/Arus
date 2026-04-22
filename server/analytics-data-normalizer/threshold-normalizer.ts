@@ -2,7 +2,7 @@
  * Threshold Optimization Normalizer
  */
 
-import type { ThresholdOptimization } from "@shared/schema-runtime";
+import type { ThresholdOptimization } from "@shared/schema";
 
 export function normalizeThresholdOptimization(optimization: ThresholdOptimization): ThresholdOptimization {
   return {

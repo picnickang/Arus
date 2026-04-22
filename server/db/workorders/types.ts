@@ -2,7 +2,7 @@
  * Work Orders - Types and WebSocket Setup
  */
 
-import type { WorkOrder, WorkOrderPart, WorkOrderTask, WorkOrderChecklist, WorkOrderWorklog, WorkOrderCompletion } from "@shared/schema-runtime";
+import type { WorkOrder, WorkOrderPart, WorkOrderTask, WorkOrderChecklist, WorkOrderWorklog, WorkOrderCompletion } from "@shared/schema";
 
 export type { WorkOrder, WorkOrderPart, WorkOrderTask, WorkOrderChecklist, WorkOrderWorklog, WorkOrderCompletion };
 

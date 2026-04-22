@@ -1,6 +1,6 @@
 import type {
   AlertConfiguration,
-  InsertAlertConfig,
+  InsertAlertConfiguration as InsertAlertConfig,
   AlertNotification,
   InsertAlertNotification,
   AlertSuppression,
@@ -9,7 +9,7 @@ import type {
   InsertAlertComment,
   WorkOrder,
   InsertWorkOrder,
-} from "@shared/schema-runtime";
+} from "@shared/schema";
 import { alertsRepository } from "./repository";
 import { recordAndPublish } from "../../sync-events";
 import { mqttReliableSync } from "../../mqtt-reliable-sync";

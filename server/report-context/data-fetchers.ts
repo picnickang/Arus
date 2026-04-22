@@ -7,7 +7,7 @@
 import { dbEquipmentStorage, workOrderService, dbTelemetryStorage, dbMaintenanceStorage, dbAlertStorage, dbCrewExtensionsStorage, dbStcwStorage } from "../repositories";
 import { db } from "../db-config";
 import { sql } from "drizzle-orm";
-import type { WorkOrder, EquipmentTelemetry } from "@shared/schema-runtime";
+import type { WorkOrder, EquipmentTelemetry } from "@shared/schema";
 
 export async function getVesselEquipment(vesselId: string): Promise<any[]> {
   const allEquipment = await dbEquipmentStorage.getEquipmentRegistry();

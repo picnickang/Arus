@@ -5,20 +5,8 @@
 import { randomUUID } from "node:crypto";
 import { eq, and, or, inArray, sql } from "drizzle-orm";
 import { db } from "../../db-config";
-import {
-  suppliers,
-  stock,
-  partSubstitutions,
-  parts,
-  partsInventorySuppliers,
-  type Supplier,
-  type InsertSupplier,
-  type Stock,
-  type InsertStock,
-  type PartSubstitution,
-  type InsertPartSubstitution,
-  type Part,
-} from "@shared/schema-runtime";
+import { suppliers, stock, partSubstitutions, parts, partsInventorySuppliers } from "@shared/schema-runtime";
+import type { Supplier, InsertSupplier, Stock, InsertStock, PartSubstitution, InsertPartSubstitution, Part } from "@shared/schema";
 import type { StockFilters } from "./types.js";
 
 export class DbStockStorage {

@@ -1,4 +1,4 @@
-import type { Device, InsertDevice } from "@shared/schema-runtime";
+import type { Device, InsertDevice } from "@shared/schema";
 import { dbDevicesStorage } from "../../repositories";
 
 export class DeviceRepository {

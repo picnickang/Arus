@@ -5,7 +5,8 @@
 import { randomUUID } from "node:crypto";
 import { eq, and } from "drizzle-orm";
 import { db } from "../../db-config";
-import { workOrderCompletions, type WorkOrderCompletion, type InsertWorkOrderCompletion } from "@shared/schema-runtime";
+import { workOrderCompletions } from "@shared/schema-runtime";
+import type { WorkOrderCompletion, InsertWorkOrderCompletion } from "@shared/schema";
 
 export class DbWorkOrderCompletions {
   async createWorkOrderCompletion(completion: InsertWorkOrderCompletion): Promise<WorkOrderCompletion> {

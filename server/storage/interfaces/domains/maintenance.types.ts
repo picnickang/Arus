@@ -22,8 +22,8 @@ import type {
   InsertMaintenanceChecklistCompletion,
   WorkOrder,
   SelectCrew,
-  SelectPortCall,
-  SelectDrydockWindow,
+  PortCall as SelectPortCall,
+  DrydockWindow as SelectDrydockWindow,
 } from "@shared/schema";
 
 /**

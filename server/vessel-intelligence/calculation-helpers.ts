@@ -7,8 +7,8 @@
 import type {
   EquipmentTelemetry,
   WorkOrder,
-  SelectVessel,
-} from "@shared/schema-runtime";
+  Vessel as SelectVessel,
+} from "@shared/schema";
 import type { VesselLearnings, HistoricalContext } from "./types.js";
 
 export function calculateOperatingHours(vessel: SelectVessel): number {

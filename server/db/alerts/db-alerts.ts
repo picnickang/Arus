@@ -5,7 +5,8 @@
 import { randomUUID } from "node:crypto";
 import { eq, and, sql, gte } from "drizzle-orm";
 import { db } from "../../db-config";
-import { alertConfigurations, alertNotifications, alertSuppressions, alertComments, type AlertConfiguration, type InsertAlertConfig, type AlertNotification, type InsertAlertNotification, type AlertSuppression, type InsertAlertSuppression, type AlertComment, type InsertAlertComment } from "@shared/schema-runtime";
+import { alertConfigurations, alertNotifications, alertSuppressions, alertComments } from "@shared/schema-runtime";
+import type { AlertConfiguration, InsertAlertConfiguration as InsertAlertConfig, AlertNotification, InsertAlertNotification, AlertSuppression, InsertAlertSuppression, AlertComment, InsertAlertComment } from "@shared/schema";
 
 export class DatabaseAlertStorage {
   private validateOrgId(orgId: string | undefined, method: string): void { if (!orgId) { throw new Error(`[${method}] orgId is required`); } }

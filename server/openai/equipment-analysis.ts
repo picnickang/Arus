@@ -2,7 +2,7 @@
  * Equipment Health Analysis using OpenAI
  */
 
-import type { EquipmentTelemetry, TelemetryTrend } from "@shared/schema-runtime";
+import type { EquipmentTelemetry, TelemetryTrend } from "@shared/schema";
 import type { EquipmentAnalysis } from "./types";
 import { createOpenAIClient, callWithModelFallback, calculateDynamicTokens } from "./client";
 

@@ -2,7 +2,7 @@
  * Equipment Service - Decommission Operations
  */
 
-import type { InsertDecommissionEvent, EquipmentDecommissionEvent } from '@shared/schema-runtime';
+import type { InsertDecommissionEvent, EquipmentDecommissionEvent } from "@shared/schema";
 import { db } from '../../../db';
 import { equipment, equipmentDecommissionEvents } from '@shared/schema-runtime';
 import { eq, and, isNotNull, sql } from 'drizzle-orm';

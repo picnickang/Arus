@@ -4,13 +4,13 @@
  */
 
 import type {
-  SelectWorkOrder,
+  WorkOrder as SelectWorkOrder,
   InsertWorkOrder,
-  SelectWorkOrderPart,
-  InsertWorkOrderPart,
-  SelectWorkOrderTask,
+  WorkOrderPart as SelectWorkOrderPart,
+  InsertWorkOrderParts as InsertWorkOrderPart,
+  WorkOrderTask as SelectWorkOrderTask,
   InsertWorkOrderTask,
-} from "@shared/schema-runtime";
+} from "@shared/schema";
 
 export type {
   SelectWorkOrder,

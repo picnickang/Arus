@@ -3,9 +3,19 @@
  * Engine selection and greedy fallback
  */
 
-import { CrewWithSkills, SelectShiftTemplate, SelectCrewLeave, SelectPortCall, SelectDrydockWindow, SelectCrewCertification } from "@shared/schema-runtime";
 import { planShifts as greedyPlan } from "../crew-scheduler";
-import { ScheduleResult, ConstraintScheduleRequest, SchedulingPreferences, ENGINE_OR_TOOLS } from "./types.js";
+import {
+  ScheduleResult,
+  ConstraintScheduleRequest,
+  SchedulingPreferences,
+  ENGINE_OR_TOOLS,
+  type CrewWithSkills,
+  type SelectShiftTemplate,
+  type SelectCrewLeave,
+  type SelectPortCall,
+  type SelectDrydockWindow,
+  type SelectCrewCertification,
+} from "./types.js";
 import { isWindowAllowed } from "./helpers.js";
 import { scheduleWithConstraints } from "./constraint-scheduler.js";
 

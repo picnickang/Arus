@@ -243,7 +243,10 @@ describe("SQLite schema structural parity", () => {
     const result = execSync("node scripts/validate-dual-schema.mjs", { encoding: "utf-8", timeout: 15000 });
     const knownMatch = result.match(/Known drift \(allowed\):\s+(\d+)/);
     const knownCount = parseInt((knownMatch ?? ["", "999"])[1], 10);
-    expect(knownCount).toBeLessThanOrEqual(116);
+    // Tightened from 116 → 115 after Step 1.75 cleanup verified the new floor.
+    // If you are intentionally raising drift (e.g. a new column), update the
+    // allowlist in validate-dual-schema.mjs and bump this number deliberately.
+    expect(knownCount).toBeLessThanOrEqual(115);
   });
 });
 

@@ -8,8 +8,8 @@ import {
   sensorConfigurations,
   equipmentTelemetry,
   pdmScoreLogs,
-  InsertActionableInsight,
 } from '@shared/schema-runtime';
+import type { InsertActionableInsight } from '@shared/schema';
 import { logger } from '../../utils/logger.js';
 
 export type InsightType =

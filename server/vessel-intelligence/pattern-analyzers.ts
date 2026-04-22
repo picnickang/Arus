@@ -8,7 +8,7 @@ import type {
   EquipmentTelemetry,
   WorkOrder,
   MaintenanceSchedule,
-} from "@shared/schema-runtime";
+} from "@shared/schema";
 import type { VesselPattern } from "./types.js";
 import {
   calculateAverageDaysBetween,

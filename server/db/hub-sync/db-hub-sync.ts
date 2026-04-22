@@ -26,26 +26,9 @@
 
 import { eq, and, desc, sql } from "drizzle-orm";
 import { db } from "../../db-config";
-import {
-  syncJournal,
-  syncOutbox,
-  devices,
-  deviceRegistry,
-  replayIncoming,
-  sheetLock,
-  sheetVersion,
-  type Device,
-  type InsertDevice,
-  // Corrected type imports (no Select* prefix):
-  type DeviceRegistry,
-  type InsertDeviceRegistry,
-  type ReplayIncoming,
-  type InsertReplayIncoming,
-  type SheetLock,
-  type InsertSheetLock,
-  type SheetVersion,
-  type InsertSheetVersion,
-} from "@shared/schema-runtime";
+import { syncJournal, syncOutbox, devices, deviceRegistry, replayIncoming, sheetLock, sheetVersion, // Corrected type imports (no Select* prefix):
+  type DeviceRegistry } from "@shared/schema-runtime";
+import type { Device, InsertDevice, InsertDeviceRegistry, ReplayIncoming, InsertReplayIncoming, SheetLock, InsertSheetLock, SheetVersion, InsertSheetVersion } from "@shared/schema";
 import type { SyncJournal, InsertSyncJournal, SyncOutbox, InsertSyncOutbox } from "./types.js";
 
 export class DatabaseHubSyncStorage {

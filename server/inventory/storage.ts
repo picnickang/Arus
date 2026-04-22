@@ -14,7 +14,7 @@ import type {
   Part,
   Stock,
   PartSubstitution,
-} from "@shared/schema-runtime";
+} from "@shared/schema";
 import type { IStorage } from "../storage/interfaces/storage.types";
 
 /**

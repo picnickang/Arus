@@ -2,7 +2,7 @@
  * Fleet Benchmarks Calculator - Calculate fleet-wide metrics and comparisons
  */
 
-import type { EquipmentHealth } from "@shared/schema-runtime";
+import type { EquipmentHealth } from "../db/equipment/types.js";
 import type { FleetBenchmarks, CrossEquipmentComparison } from "./types";
 import type { EquipmentDossier } from "./dossier-builder";
 

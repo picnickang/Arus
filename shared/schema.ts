@@ -136,6 +136,14 @@ export const insertMlModelLegacySchema = createInsertSchema(mlModelsLegacy);
 export const insertShiftTemplateSchema = createInsertSchema(shiftTemplate);
 // insertMaintenanceChecklistCompletionSchema, insertMaintenanceChecklistItemSchema are exported from modular schema
 
+// Insert types for the schemas declared above (the corresponding Select types
+// are exported from the modular schema files via `* from "./schema/index"`).
+export type InsertSchedulerRun = z.infer<typeof insertSchedulerRunSchema>;
+export type InsertScheduleAssignment = z.infer<typeof insertScheduleAssignmentSchema>;
+export type InsertScheduleUnfilled = z.infer<typeof insertScheduleUnfilledSchema>;
+export type InsertReplayIncoming = z.infer<typeof insertReplayIncomingSchema>;
+export type InsertSheetVersion = z.infer<typeof insertSheetVersionSchema>;
+
 // Validation schemas are in shared/validation/ — imported directly or via schema-runtime.ts
 // Selective re-exports to avoid binding conflicts with ./schema/* (sensors, costs, ml, entities)
 export * from "./validation/admin";

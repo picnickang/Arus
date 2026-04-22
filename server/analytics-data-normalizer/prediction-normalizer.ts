@@ -2,7 +2,7 @@
  * Failure Prediction Normalizer
  */
 
-import type { FailurePrediction } from "@shared/schema-runtime";
+import type { FailurePrediction } from "@shared/schema";
 import { expandRiskLevel, expandFailureMode, clampToRange } from "./helpers";
 
 export function normalizeFailurePrediction(prediction: FailurePrediction): FailurePrediction {

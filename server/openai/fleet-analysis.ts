@@ -2,7 +2,8 @@
  * Fleet Health Analysis using OpenAI
  */
 
-import type { EquipmentTelemetry, EquipmentHealth, TelemetryTrend } from "@shared/schema-runtime";
+import type { EquipmentTelemetry, TelemetryTrend } from "@shared/schema";
+import type { EquipmentHealth } from "../db/equipment/types.js";
 import type { FleetAnalysis } from "./types";
 import { createOpenAIClient, callWithModelFallback, calculateDynamicTokens } from "./client";
 import { buildEquipmentDossiers, type EquipmentDossier } from "./dossier-builder";

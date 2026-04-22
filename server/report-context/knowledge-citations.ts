@@ -8,7 +8,7 @@ import { db } from "../db";
 import { kbDocs } from "@shared/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { searchKnowledgeBase, type SearchResult } from "../vector-search-service";
-import type { SelectVessel, WorkOrder } from "@shared/schema-runtime";
+import type { Vessel as SelectVessel, WorkOrder } from "@shared/schema";
 import type { ReportContext } from "./types.js";
 
 export async function fetchKBKnowledge(

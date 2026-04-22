@@ -3,7 +3,7 @@
  * Time window and validation utilities
  */
 
-import { CrewWithSkills, SelectCrewLeave, SelectPortCall, SelectDrydockWindow, SelectCrewCertification } from "@shared/schema-runtime";
+import type { CrewWithSkills, SelectCrewLeave, SelectPortCall, SelectDrydockWindow, SelectCrewCertification } from "./types.js";
 
 export function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date): boolean {
   return Math.max(aStart.getTime(), bStart.getTime()) < Math.min(aEnd.getTime(), bEnd.getTime());

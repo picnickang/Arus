@@ -9,11 +9,11 @@ import type {
   ItemSupplier,
   PurchaseRequestEvent,
   PurchaseOrderEvent,
-  EmailQueueItem,
+  EmailQueue as EmailQueueItem,
   InsertPurchaseRequest,
   InsertPurchaseRequestItem,
   InsertItemSupplier,
-  InsertEmailQueueItem,
+  InsertEmailQueue as InsertEmailQueueItem,
 } from "@shared/schema";
 
 export type PRStatus = "draft" | "submitted" | "approved" | "ordered" | "received" | "closed" | "cancelled";
@@ -101,9 +101,9 @@ export {
   ItemSupplier,
   PurchaseRequestEvent,
   PurchaseOrderEvent,
-  EmailQueueItem,
+  EmailQueue as EmailQueueItem,
   InsertPurchaseRequest,
   InsertPurchaseRequestItem,
   InsertItemSupplier,
-  InsertEmailQueueItem,
+  InsertEmailQueue as InsertEmailQueueItem,
 };

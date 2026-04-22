@@ -2,7 +2,7 @@
  * Digital Twin Normalizer
  */
 
-import type { DigitalTwin } from "@shared/schema-runtime";
+import type { DigitalTwin } from "@shared/schema";
 
 export function normalizeDigitalTwin(twin: DigitalTwin): DigitalTwin & { maintenanceForecast?: any } {
   const normalized = {

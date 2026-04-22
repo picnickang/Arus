@@ -8,7 +8,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { Equipment, EquipmentHealth } from "@shared/schema";
+import { Equipment } from "@shared/schema";
+
+interface EquipmentHealth { equipmentId: string; healthScore: number; status: string; [key: string]: unknown }
 import { Server, Ship, CheckCircle, Heart, Activity, AlertTriangle, Eye, Pencil, Trash2, Wrench, Plus, Search, X, TrendingUp, Clock, ChevronLeft, ChevronRight, FileText, ArchiveX, Shield, ExternalLink } from "lucide-react";
 import { CERT_TYPE_LABELS, getCertExpiryStatus } from "@/pages/certificate-registry";
 import { EquipmentCreateDialog, EquipmentEditDialog } from "@/components/equipment/EquipmentFormDialog";

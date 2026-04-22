@@ -7,7 +7,7 @@
 import PDFDocument from "pdfkit";
 import * as fs from "node:fs";
 import path from "node:path";
-import type { SelectCrewRestSheet, SelectCrewRestDay } from "@shared/schema-runtime";
+import type { SelectCrewRestSheet, SelectCrewRestDay } from "@shared/schema";
 
 export interface PdfGenerationOptions {
   outputPath: string;

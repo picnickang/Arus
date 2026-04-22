@@ -1,13 +1,13 @@
 import type {
   AlertConfiguration,
-  InsertAlertConfig,
+  InsertAlertConfiguration as InsertAlertConfig,
   AlertNotification,
   InsertAlertNotification,
   AlertSuppression,
   InsertAlertSuppression,
   AlertComment,
   InsertAlertComment,
-} from "@shared/schema-runtime";
+} from "@shared/schema";
 import { dbAlertStorage } from "../../repositories";
 
 /**

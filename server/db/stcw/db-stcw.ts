@@ -4,7 +4,8 @@
 
 import { eq, and, gte, lte, or, inArray } from "drizzle-orm";
 import { db } from "../../db-config";
-import { crewRestSheet, crewRestDay, type SelectCrewRestSheet as CrewRestSheet, type SelectCrewRestDay as CrewRestDay } from "@shared/schema-runtime";
+import { crewRestSheet, crewRestDay } from "@shared/schema-runtime";
+import type { SelectCrewRestSheet as CrewRestSheet, SelectCrewRestDay as CrewRestDay } from "@shared/schema";
 import type { InsertCrewRestSheet, InsertCrewRestDay } from "./types.js";
 
 export class DatabaseStcwStorage {

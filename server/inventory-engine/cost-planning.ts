@@ -4,7 +4,7 @@
  * Maintenance cost planning and recommendations.
  */
 
-import type { WorkOrder } from "@shared/schema-runtime";
+import type { WorkOrder } from "@shared/schema";
 import type { InventoryStorage } from "../inventory/storage.js";
 import type { CostPlanningResult } from "./types.js";
 import { toCents, toDollars } from "../../shared/money-utils.js";

@@ -10,8 +10,8 @@ import {
   anomalyDetections,
   failurePredictions,
   thresholdOptimizations,
-  AnomalyDetection,
 } from "@shared/schema-runtime";
+import type { AnomalyDetection } from "@shared/schema";
 import { eq, and, gte, sql } from "drizzle-orm";
 import type { AnomalyResult, FailurePredictionResult } from "./types";
 

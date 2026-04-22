@@ -4,7 +4,8 @@
 
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { db } from "../../db-config";
-import { dtcDefinitions, dtcFaults, type DtcDefinition, type InsertDtcDefinition, type DtcFault, type InsertDtcFault } from "@shared/schema-runtime";
+import { dtcDefinitions, dtcFaults } from "@shared/schema-runtime";
+import type { DtcDefinition, InsertDtcDefinition, DtcFault, InsertDtcFault } from "@shared/schema";
 
 export class DatabaseDtcStorage {
   async getDtcDefinitions(spn?: number, fmi?: number, manufacturer?: string): Promise<DtcDefinition[]> { const conditions = []; if (spn !== undefined) {conditions.push(eq(dtcDefinitions.spn, spn));} if (fmi !== undefined) {conditions.push(eq(dtcDefinitions.fmi, fmi));} if (manufacturer !== undefined) {conditions.push(eq(dtcDefinitions.manufacturer, manufacturer));} if (conditions.length === 0) {return db.select().from(dtcDefinitions).orderBy(dtcDefinitions.spn, dtcDefinitions.fmi);} return db.select().from(dtcDefinitions).where(and(...conditions)).orderBy(dtcDefinitions.spn, dtcDefinitions.fmi); }

@@ -1,7 +1,7 @@
 /**
  * ML Prediction Types and Utilities
  */
-import type { EquipmentTelemetry } from "@shared/schema-runtime";
+import type { EquipmentTelemetry } from "@shared/schema";
 import { logger } from "../utils/logger.js";
 
 export type MLDataStatus = "sufficient_data" | "limited_data" | "no_data" | "stale_data";

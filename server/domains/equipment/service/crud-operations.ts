@@ -2,7 +2,7 @@
  * Equipment Service - CRUD Operations
  */
 
-import type { Equipment, InsertEquipment } from '@shared/schema-runtime';
+import type { Equipment, InsertEquipment } from "@shared/schema";
 import { logger } from "../../../utils/logger.js";
 import { equipmentRepository } from '../repository';
 import { recordAndPublish } from '../../../sync-events';

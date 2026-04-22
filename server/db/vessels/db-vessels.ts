@@ -5,7 +5,8 @@
 import { randomUUID } from "node:crypto";
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "../../db-config";
-import { vessels, portCall as portCallTable, drydockWindow as drydockWindowTable, type Vessel, type InsertVessel, type PortCall, type InsertPortCall, type DrydockWindow, type InsertDrydockWindow } from "@shared/schema-runtime";
+import { vessels, portCall as portCallTable, drydockWindow as drydockWindowTable } from "@shared/schema-runtime";
+import type { Vessel, InsertVessel, PortCall, InsertPortCall, DrydockWindow, InsertDrydockWindow } from "@shared/schema";
 import type { FleetOverview } from "./types.js";
 
 export class DatabaseVesselStorage {

@@ -17,23 +17,8 @@
 import { randomUUID } from "node:crypto";
 import { eq, and, or, ilike, sql, desc, asc, type SQL } from "drizzle-orm";
 import { db, type DbTransaction } from "../../db-config";
-import {
-  workOrderParts,
-  workOrderHistory,
-  inventoryMovements,
-  workOrders,
-  stock,
-  type WorkOrderParts,
-  type WorkOrderHistory,
-  type InsertWorkOrderHistory,
-  type InventoryMovement,
-  type PartsInventory,
-  type Part,
-  type Stock,
-  type InsertStock,
-  type InsertSupplier,
-  type InsertPartSubstitution,
-} from "@shared/schema-runtime";
+import { workOrderParts, workOrderHistory, inventoryMovements, workOrders, stock } from "@shared/schema-runtime";
+import type { WorkOrderParts, WorkOrderHistory, InsertWorkOrderHistory, InventoryMovement, PartsInventory, Part, Stock, InsertStock, InsertSupplier, InsertPartSubstitution } from "@shared/schema";
 import { DbPartsStorage } from "./db-parts.js";
 import { DbStockStorage } from "./db-stock.js";
 

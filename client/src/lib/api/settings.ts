@@ -1,5 +1,12 @@
 import { apiRequest } from "../queryClient";
-import type { SystemSettings, InsertSettings, DashboardMetrics } from "@shared/schema";
+import type { SystemSettings, InsertSettings } from "@shared/schema";
+
+export interface DashboardMetrics {
+  fleetHealthScore?: number;
+  openWorkOrders?: number;
+  riskAlerts?: number;
+  [key: string]: unknown;
+}
 
 export async function fetchSettings(): Promise<SystemSettings> {
   return apiRequest("GET", "/api/settings");

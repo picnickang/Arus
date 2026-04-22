@@ -5,7 +5,8 @@
 import { randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { db } from "../../db-config";
-import { workOrderParts, workOrderTasks, workOrderChecklists, workOrderWorklogs, type WorkOrderPart, type InsertWorkOrderPart, type WorkOrderTask, type InsertWorkOrderTask, type WorkOrderChecklist, type InsertWorkOrderChecklist, type WorkOrderWorklog, type InsertWorkOrderWorklog } from "@shared/schema-runtime";
+import { workOrderParts, workOrderTasks, workOrderChecklists, workOrderWorklogs } from "@shared/schema-runtime";
+import type { WorkOrderPart, InsertWorkOrderParts as InsertWorkOrderPart, WorkOrderTask, InsertWorkOrderTask, WorkOrderChecklist, InsertWorkOrderChecklist, WorkOrderWorklog, InsertWorkOrderWorklog } from "@shared/schema";
 
 export class DbWorkOrderNested {
   async getWorkOrderParts(workOrderId: string, orgId?: string): Promise<WorkOrderPart[]> { if (orgId) { return db.select().from(workOrderParts).where(eq(workOrderParts.workOrderId, workOrderId)).then(parts => parts.filter(p => p.orgId === orgId)); } return db.select().from(workOrderParts).where(eq(workOrderParts.workOrderId, workOrderId)); }

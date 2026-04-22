@@ -2,7 +2,8 @@
  * Compliance Excel - Regulatory Compliance Report Generation
  */
 
-import type { EquipmentHealth, WorkOrder } from '@shared/schema-runtime';
+import type { WorkOrder } from "@shared/schema";
+import type { EquipmentHealth } from "../db/equipment/types.js";
 
 import type { ComplianceDeps, ReportingPeriod, RegulatoryFramework } from './types';
 import { FRAMEWORK_STANDARDS } from './types';

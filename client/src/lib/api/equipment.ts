@@ -1,5 +1,7 @@
 import { apiRequest } from "../queryClient";
-import type { EquipmentHealth, EquipmentTelemetry, InsertTelemetry, TelemetryTrend } from "@shared/schema";
+import type { EquipmentTelemetry, InsertTelemetry, TelemetryTrend } from "@shared/schema";
+
+export interface EquipmentHealth { equipmentId: string; healthScore: number; status: string; [key: string]: unknown }
 import {
   equipmentHealthResponseSchema,
   type EquipmentHealthResponse,

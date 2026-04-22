@@ -6,7 +6,8 @@
 import { Router, Response } from "express";
 import { AuthenticatedRequest } from "../middleware/auth.js";
 import { dbMlAnalyticsStorage } from "../repositories.js";
-import { mlTrainConfigSchema, type InsertMlModel } from "@shared/schema-runtime";
+import { mlTrainConfigSchema } from "@shared/schema-runtime";
+import type { InsertMlModel } from "@shared/schema";
 import { z } from "zod";
 import { structuredLog } from "../logging.js";
 import { sendSuccess, sendNotFound, sendBadRequest, handleError } from "../utils/api-response.js";

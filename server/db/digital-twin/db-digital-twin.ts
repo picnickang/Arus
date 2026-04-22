@@ -4,7 +4,8 @@
 
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { db } from "../../db-config";
-import { digitalTwins, twinSimulations, errorLogs, systemPerformanceMetrics, vessels, type DigitalTwin, type TwinSimulation, type ErrorLog, type InsertErrorLog, type SystemPerformanceMetric, type InsertSystemPerformanceMetric } from "@shared/schema-runtime";
+import { digitalTwins, twinSimulations, errorLogs, systemPerformanceMetrics, vessels } from "@shared/schema-runtime";
+import type { DigitalTwin, TwinSimulation, ErrorLog, InsertErrorLog, SystemPerformanceMetric, InsertSystemPerformanceMetric } from "@shared/schema";
 import type { ErrorLogFilters, ErrorLogStats } from "./types.js";
 
 export class DatabaseDigitalTwinStorage {

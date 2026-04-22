@@ -4,11 +4,11 @@
  */
 
 import type {
-  SelectSchedulerRun,
+  SchedulerRun as SelectSchedulerRun,
   InsertSchedulerRun,
-  SelectScheduleAssignment,
+  ScheduleAssignment as SelectScheduleAssignment,
   InsertScheduleAssignment,
-  SelectScheduleUnfilled,
+  ScheduleUnfilled as SelectScheduleUnfilled,
   InsertScheduleUnfilled,
 } from "@shared/schema";
 

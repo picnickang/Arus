@@ -11,7 +11,7 @@
  * - Docking: Very low speed, high maneuvering activity
  */
 
-import type { EquipmentTelemetry } from "@shared/schema-runtime";
+import type { EquipmentTelemetry } from "@shared/schema";
 
 export type OperatingMode =
   | "DP" // Dynamic Positioning

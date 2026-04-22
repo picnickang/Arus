@@ -207,13 +207,23 @@ function walkDir(dir) {
 const serverDir = resolve(root, "server");
 const tsFiles = walkDir(serverDir);
 
+// Match full multi-line `import type { ... } from "..."` statements so that
+// the closing brace line (which doesn't contain "import type" literally)
+// isn't flagged as a violation.
+const TYPE_IMPORT_BLOCK_RE = /import\s+type\s*\{[^}]*\}\s+from\s+["'][^"']+["']\s*;?/gs;
+
 const violations = [];
 for (const filePath of tsFiles) {
   const relPath = relative(root, filePath);
 
   if (ALLOWED_FILES.has(relPath)) continue;
 
-  const content = readFileSync(filePath, "utf8");
+  let content = readFileSync(filePath, "utf8");
+  // Strip multi-line `import type { ... } from "..."` blocks before
+  // line-by-line scanning so their internals are not flagged.
+  content = content.replace(TYPE_IMPORT_BLOCK_RE, (m) =>
+    "\n".repeat((m.match(/\n/g) || []).length)
+  );
   const fileLines = content.split("\n");
   for (let i = 0; i < fileLines.length; i++) {
     const line = fileLines[i];

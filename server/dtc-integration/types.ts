@@ -2,7 +2,7 @@
  * DTC Integration Service Types
  */
 
-import type { DtcFault, DtcDefinition } from "@shared/schema-runtime";
+import type { DtcFault, DtcDefinition } from "@shared/schema";
 
 export interface DtcWithDefinition extends DtcFault {
   definition?: DtcDefinition;

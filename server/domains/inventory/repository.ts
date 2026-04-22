@@ -3,7 +3,7 @@ import type {
   PartsInventory,
   InsertPartsInventory,
   Equipment,
-} from "@shared/schema-runtime";
+} from "@shared/schema";
 import { dbInventoryStorage, dbEquipmentStorage, dbAnalyticsStorage } from "../../repositories";
 
 export class InventoryRepository {

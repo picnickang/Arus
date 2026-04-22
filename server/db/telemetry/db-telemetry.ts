@@ -5,7 +5,8 @@
 import { randomUUID } from "node:crypto";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { db } from "../../db-config";
-import { equipmentTelemetry, pdmScoreLogs, edgeHeartbeats, type EquipmentTelemetry, type InsertTelemetry, type PdmScoreLog, type InsertPdmScore, type EdgeHeartbeat, type InsertHeartbeat } from "@shared/schema-runtime";
+import { equipmentTelemetry, pdmScoreLogs, edgeHeartbeats } from "@shared/schema-runtime";
+import type { EquipmentTelemetry, InsertTelemetry, PdmScoreLog, InsertPdmScoreLog as InsertPdmScore, EdgeHeartbeat, InsertEquipmentHeartbeat as InsertHeartbeat } from "@shared/schema";
 import type { TelemetryTrend } from "./types.js";
 
 export class DatabaseTelemetryStorage {

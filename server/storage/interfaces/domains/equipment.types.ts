@@ -3,10 +3,10 @@
  * Part of IStorage modularization for improved maintainability
  */
 
+import type { EquipmentHealth } from "../../../db/equipment/types.js";
 import type {
   Equipment,
   InsertEquipment,
-  EquipmentHealth,
   EquipmentLifecycle,
   InsertEquipmentLifecycle,
   PerformanceMetric,

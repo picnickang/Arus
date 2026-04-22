@@ -5,7 +5,7 @@
 import { dbNotificationsStorage } from "../../repositories.js";
 import type {
   ComplianceFinding,
-  NotificationSetting,
+  CrewNotificationSettings as NotificationSetting,
   Crew,
   CrewCertification,
   CrewDocument,

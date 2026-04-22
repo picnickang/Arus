@@ -5,11 +5,12 @@
 
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { db } from "../../../../db-config.js";
-import { engineLogDaily, engineLogHourly, engineLogGenerator, engineLogWatch, engineLogEvents,
-  type EngineLogDaily, type InsertEngineLogDaily, type EngineLogHourly, type InsertEngineLogHourly,
-  type EngineLogGenerator, type InsertEngineLogGenerator, type EngineLogWatch, type InsertEngineLogWatch,
-  type EngineLogEvent, type InsertEngineLogEvent,
-} from "@shared/schema-runtime";
+import { engineLogDaily, engineLogHourly, engineLogGenerator, engineLogWatch, engineLogEvents } from "@shared/schema-runtime";
+import type {
+  EngineLogDaily, InsertEngineLogDaily, EngineLogHourly, InsertEngineLogHourly,
+  EngineLogGenerator, InsertEngineLogGenerator, EngineLogWatch, InsertEngineLogWatch,
+  EngineLogEvent, InsertEngineLogEvent,
+} from "@shared/schema";
 import type { EngineLogFilters, EngineLogEventFilters, SignData, LockData, EngineLogComplete } from "./types.js";
 
 export class DbEngineLogStorage {

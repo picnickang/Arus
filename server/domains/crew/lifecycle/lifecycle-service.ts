@@ -1,7 +1,7 @@
 import type {
   SelectCrew,
   SelectCrewEmploymentHistory,
-} from "@shared/schema-runtime";
+} from "@shared/schema";
 import { crewLifecycleRepository } from "./lifecycle-repository";
 import { recordAndPublish } from "../../../sync-events";
 import { mqttReliableSync } from "../../../mqtt-reliable-sync";

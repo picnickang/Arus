@@ -4,7 +4,7 @@
  * Parts availability checking and substitution lookups.
  */
 
-import type { Stock, PartSubstitution } from "@shared/schema-runtime";
+import type { Stock, PartSubstitution } from "@shared/schema";
 import type { InventoryStorage } from "../inventory/storage.js";
 import type { PartAvailability } from "./types.js";
 import { calculateStockStatus } from "./stock-status.js";

@@ -8,7 +8,7 @@ import type {
   EquipmentTelemetry,
   WorkOrder,
   MaintenanceSchedule,
-} from "@shared/schema-runtime";
+} from "@shared/schema";
 import { dbEquipmentStorage, dbTelemetryStorage, dbMaintenanceStorage, workOrderService } from "../repositories";
 
 export async function getWorkOrdersForVessel(

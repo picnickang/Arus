@@ -18,30 +18,8 @@
 import { randomUUID } from "node:crypto";
 import { eq, and, desc, gte, inArray, sql } from "drizzle-orm";
 import { db } from "../../db-config";
-import {
-  maintenanceCosts,
-  laborRates,
-  expenses,
-  equipmentLifecycle,
-  performanceMetrics,
-  parts,
-  stock,
-  equipment,
-  metricsHistory,
-  insightSnapshots,
-  type MaintenanceCost,
-  type InsertMaintenanceCost,
-  type LaborRate,
-  type InsertLaborRate,
-  type Expense,
-  type InsertExpense,
-  type EquipmentLifecycle,
-  type InsertEquipmentLifecycle,
-  type PerformanceMetric,
-  type InsertPerformanceMetric,
-  type Part,
-  type InsightSnapshot,
-} from "@shared/schema-runtime";
+import { maintenanceCosts, laborRates, expenses, equipmentLifecycle, performanceMetrics, parts, stock, equipment, metricsHistory, insightSnapshots } from "@shared/schema-runtime";
+import type { MaintenanceCost, InsertMaintenanceCost, LaborRate, InsertLaborRate, Expense, InsertExpense, EquipmentLifecycle, InsertEquipmentLifecycle, PerformanceMetric, InsertPerformanceMetric, Part, InsightSnapshot } from "@shared/schema";
 import type {
   CostSummary,
   CostTrend,

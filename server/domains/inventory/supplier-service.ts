@@ -1,7 +1,7 @@
 import type {
   PartsInventorySupplier,
   InsertPartsInventorySupplier,
-} from "@shared/schema-runtime";
+} from "@shared/schema";
 import {
   inventorySupplierRepository,
   type SupplierLinkWithDetails,

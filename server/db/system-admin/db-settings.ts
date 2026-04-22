@@ -4,7 +4,8 @@
 
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { db } from "../../db-config";
-import { adminSystemSettings, integrationConfigs, maintenanceWindows, systemHealthChecks, systemPerformanceMetrics, type AdminSystemSetting, type InsertAdminSystemSetting, type IntegrationConfig, type InsertIntegrationConfig, type MaintenanceWindow, type InsertMaintenanceWindow, type SystemHealthCheck, type InsertSystemHealthCheck, type SystemPerformanceMetric } from "@shared/schema-runtime";
+import { adminSystemSettings, integrationConfigs, maintenanceWindows, systemHealthChecks, systemPerformanceMetrics } from "@shared/schema-runtime";
+import type { AdminSystemSetting, InsertAdminSystemSetting, IntegrationConfig, InsertIntegrationConfig, MaintenanceWindow, InsertMaintenanceWindow, SystemHealthCheck, InsertSystemHealthCheck, SystemPerformanceMetric } from "@shared/schema";
 import type { SystemHealthResult } from "./types.js";
 
 export class DbSettingsStorage {

@@ -3,11 +3,12 @@ import type {
   Device,
   InsertDevice,
   EdgeHeartbeat,
-  InsertHeartbeat,
+  InsertEquipmentHeartbeat as InsertHeartbeat,
   PdmScoreLog,
-  InsertPdmScore,
-  DeviceWithStatus,
+  InsertPdmScoreLog as InsertPdmScore,
 } from "@shared/schema";
+
+export type DeviceWithStatus = Device & { status?: string; lastHeartbeat?: string | null };
 
 export async function fetchDevices(): Promise<DeviceWithStatus[]> {
   return apiRequest("GET", "/api/devices");

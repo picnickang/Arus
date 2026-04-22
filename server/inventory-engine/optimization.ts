@@ -4,7 +4,7 @@
  * EOQ, reorder point, and inventory level optimization.
  */
 
-import type { Part } from "@shared/schema-runtime";
+import type { Part } from "@shared/schema";
 import type { InventoryOptimization, UsageHistoryRecord, CostParameters, OptimizationOptions } from "./types.js";
 import {
   inventoryOptimizationRuns,

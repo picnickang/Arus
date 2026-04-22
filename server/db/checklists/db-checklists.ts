@@ -21,28 +21,8 @@ import { eq, and, desc } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { db } from "../../db-config";
 import { recordAndPublish, publishEvent, type EntityType, type EventType } from "../../sync-events";
-import {
-  maintenanceTemplates,
-  maintenanceChecklistItems,
-  maintenanceChecklistCompletions,
-  workOrders,
-  workOrderTasks,
-  workOrderChecklists,
-  workOrderWorklogs,
-  type MaintenanceTemplate,
-  type InsertMaintenanceTemplate,
-  type MaintenanceChecklistItem,
-  type InsertMaintenanceChecklistItem,
-  type MaintenanceChecklistCompletion,
-  type InsertMaintenanceChecklistCompletion,
-  type WorkOrder,
-  type WorkOrderTask,
-  type InsertWorkOrderTask,
-  type WorkOrderChecklist,
-  type InsertWorkOrderChecklist,
-  type WorkOrderWorklog,
-  type InsertWorkOrderWorklog,
-} from "@shared/schema-runtime";
+import { maintenanceTemplates, maintenanceChecklistItems, maintenanceChecklistCompletions, workOrders, workOrderTasks, workOrderChecklists, workOrderWorklogs } from "@shared/schema-runtime";
+import type { MaintenanceTemplate, InsertMaintenanceTemplate, MaintenanceChecklistItem, InsertMaintenanceChecklistItem, MaintenanceChecklistCompletion, InsertMaintenanceChecklistCompletion, WorkOrder, WorkOrderTask, InsertWorkOrderTask, WorkOrderChecklist, InsertWorkOrderChecklist, WorkOrderWorklog, InsertWorkOrderWorklog } from "@shared/schema";
 
 export class DatabaseChecklistsStorage {
   // ──────────────────────────────────────────────────────────────────────

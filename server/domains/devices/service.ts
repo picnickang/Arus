@@ -1,4 +1,4 @@
-import type { Device, InsertDevice } from "@shared/schema-runtime";
+import type { Device, InsertDevice } from "@shared/schema";
 import { deviceRepository } from "./repository";
 import { recordAndPublish } from "../../sync-events";
 import { mqttReliableSync } from "../../mqtt-reliable-sync";

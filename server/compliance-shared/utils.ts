@@ -3,7 +3,7 @@
  * Common utility functions used by both PDF and Excel report generators
  */
 
-import type { EquipmentHealth } from '@shared/schema-runtime';
+import type { EquipmentHealth } from "../db/equipment/types.js";
 
 /**
  * Format a date to ISO date string (YYYY-MM-DD)

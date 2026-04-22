@@ -15,7 +15,7 @@ import type {
   InsertShiftTemplate,
   SelectCrewAssignment,
   InsertCrewAssignment,
-  CrewWithSkills,
+  Crew as CrewWithSkills,
   SelectCrewCertification,
   InsertCrewCertification,
   SelectCrewDocument,

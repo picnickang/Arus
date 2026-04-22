@@ -2,7 +2,7 @@ import type {
   SelectCrew,
   SelectCrewEmploymentHistory,
   InsertCrewEmploymentHistory,
-} from "@shared/schema-runtime";
+} from "@shared/schema";
 import { db } from "../../../db";
 import { crew } from "@shared/schema";
 import { crewEmploymentHistory } from "../../../../shared/schema/crew.js";

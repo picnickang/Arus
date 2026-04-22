@@ -3,7 +3,7 @@
  * Integrated multi-factor condition assessment
  */
 
-import type { OilAnalysis, WearParticleAnalysis, InsertConditionMonitoring } from "@shared/schema-runtime";
+import type { OilAnalysis, WearParticleAnalysis, InsertConditionMonitoring } from "@shared/schema";
 import type { OilConditionAssessment, WearAssessment } from "./types.js";
 import { assessOilCondition } from "./oil-assessment.js";
 import { assessWearCondition } from "./wear-assessment.js";

@@ -2,7 +2,8 @@
  * Compliance PDF - Regulatory Compliance Report Generation
  */
 
-import type { EquipmentHealth, WorkOrder } from '@shared/schema-runtime';
+import type { WorkOrder } from "@shared/schema";
+import type { EquipmentHealth } from "../db/equipment/types.js";
 
 import { MARITIME_STANDARDS } from '../compliance.js';
 import type { ComplianceDeps, ReportingPeriod, RegulatoryFramework } from './types';

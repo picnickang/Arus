@@ -5,7 +5,7 @@
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { db } from "../../db-config";
 import { stormgeoSettings, stormgeoSnapshots, stormgeoImportHistory, weatherCache } from "@shared/schema-runtime";
-import type { StormgeoSetting, InsertStormgeoSetting, StormgeoSnapshot, InsertStormgeoSnapshot, StormgeoImportHistory, InsertStormgeoImportHistory } from "@shared/schema";
+import type { StormgeoSettings as StormgeoSetting, InsertStormgeoSettings as InsertStormgeoSetting, StormgeoSnapshot, InsertStormgeoSnapshot, StormgeoImportHistory, InsertStormgeoImportHistory } from "@shared/schema";
 import type { WeatherCache, InsertWeatherCache } from "./types.js";
 
 export class DatabaseStormGeoStorage {

@@ -4,7 +4,7 @@ import { vibrationAnalysis } from "@shared/schema-runtime";
 import { eq, and, desc } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { beastModeManager } from "../beast-mode-config";
-import type { VibrationAnalysis } from "@shared/schema-runtime";
+import type { VibrationAnalysis } from "@shared/schema";
 
 import type { VibrationData } from "./types";
 import { performFFT, SAMPLE_RATE, WINDOW_SIZE } from "./fft-processor";

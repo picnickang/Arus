@@ -4,7 +4,7 @@
 
 import { dbEquipmentStorage, workOrderService } from "../repositories";
 import type { DtcWithDefinition } from "./types";
-import type { InsertWorkOrder } from "@shared/schema-runtime";
+import type { InsertWorkOrder } from "@shared/schema";
 
 export async function hasRelatedOpenWorkOrder(equipmentId: string, priority: number, excludeReason?: string): Promise<boolean> {
   const existingOrders = await workOrderService.getWorkOrdersWithDetails(equipmentId);

@@ -3,14 +3,18 @@
  * Shared type definitions for scheduling
  */
 
-import {
-  CrewWithSkills,
-  SelectShiftTemplate,
-  SelectCrewLeave,
-  SelectPortCall,
-  SelectDrydockWindow,
-  SelectCrewCertification,
-} from "@shared/schema-runtime";
+import { crew, shiftTemplate, crewLeave, crewCertification, portCall, drydockWindow } from "@shared/schema-runtime";
+
+// Locally-derived select types — these types historically lived in
+// @shared/schema-runtime as named re-exports but were never actually
+// exported there. Inferring them directly from the table objects keeps
+// the contract identical to what consumers expected.
+export type SelectShiftTemplate = typeof shiftTemplate.$inferSelect;
+export type SelectCrewLeave = typeof crewLeave.$inferSelect;
+export type SelectCrewCertification = typeof crewCertification.$inferSelect;
+export type SelectPortCall = typeof portCall.$inferSelect;
+export type SelectDrydockWindow = typeof drydockWindow.$inferSelect;
+export type CrewWithSkills = typeof crew.$inferSelect & { skills?: string[] };
 
 export const ENGINE_GREEDY = "greedy";
 export const ENGINE_OR_TOOLS = "ortools";

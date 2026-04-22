@@ -22,7 +22,7 @@ import type {
   InsertEngineLogWatch,
   EngineLogEvent,
   InsertEngineLogEvent,
-} from "@shared/schema-runtime";
+} from "@shared/schema";
 
 export interface DeckLogFilters {
   vesselId?: string;

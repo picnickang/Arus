@@ -2,7 +2,8 @@
  * Compliance PDF Types - Shared types and interfaces
  */
 
-import type { EquipmentHealth, WorkOrder } from '@shared/schema-runtime';
+import type { WorkOrder } from "@shared/schema";
+import type { EquipmentHealth } from "../db/equipment/types.js";
 
 export interface ComplianceDeps {
   getEquipmentHealth(orgId: string, filters?: { vesselId?: string; equipmentId?: string }): Promise<EquipmentHealth[]>;

@@ -3,7 +3,8 @@
  */
 
 import * as XLSX from 'xlsx';
-import type { EquipmentHealth, WorkOrder } from '@shared/schema-runtime';
+import type { WorkOrder } from "@shared/schema";
+import type { EquipmentHealth } from "../db/equipment/types.js";
 import { MARITIME_STANDARDS } from '../compliance.js';
 import { formatDate, countByStatus } from '../compliance-shared/utils';
 

@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { NotificationSetting } from "@shared/schema";
+import type { OrgNotificationSettings as NotificationSetting } from "@shared/schema";
 
 interface EmailStatus { enabled: boolean; provider: string; }
 interface NotificationFormData { notificationType: string; vesselId: string | null; enabled: boolean; minSeverity: string; recipientEmails: string[]; deliveryMethod: string; digestMode: boolean; }

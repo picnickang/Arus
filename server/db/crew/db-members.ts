@@ -5,7 +5,8 @@
 import { randomUUID } from "node:crypto";
 import { eq, and } from "drizzle-orm";
 import { db } from "../../db-config";
-import { crew, shiftTemplate, crewSkill, type Crew, type InsertCrew, type ShiftTemplate, type InsertShiftTemplate, type CrewSkill } from "@shared/schema-runtime";
+import { crew, shiftTemplate, crewSkill } from "@shared/schema-runtime";
+import type { Crew, InsertCrew, ShiftTemplate, InsertShiftTemplate, CrewSkill } from "@shared/schema";
 import type { CrewFilters } from "./types.js";
 
 export class DbCrewMembers {

@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchEquipmentHealthTyped, fetchPdmScores, fetchWorkOrders, fetchMaintenanceRecords, fetchFailurePatterns, fetchCostSavingsSummary } from "@/lib/api";
 import { differenceInHours } from "date-fns";
-import type { EquipmentHealth } from "@shared/schema";
+interface EquipmentHealth { equipmentId: string; healthScore: number; status: string; [key: string]: unknown }
 
 interface WorkOrderData { id: string; status: string; priority: number; createdAt?: string; completedAt?: string; }
 interface PdmScoreData { equipmentId: string; equipmentName?: string; failureRisk: number; healthScore?: number; timestamp: string; }

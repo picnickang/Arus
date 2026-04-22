@@ -3,7 +3,7 @@
  * Quality and maintenance scoring utilities
  */
 
-import type { OilAnalysis, WearParticleAnalysis, ConditionMonitoring } from "@shared/schema-runtime";
+import type { OilAnalysis, WearParticleAnalysis, ConditionMonitoring } from "@shared/schema";
 import { assessOilCondition } from "./oil-assessment.js";
 import { assessWearCondition } from "./wear-assessment.js";
 

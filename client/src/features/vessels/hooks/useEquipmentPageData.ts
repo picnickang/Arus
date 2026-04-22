@@ -3,7 +3,9 @@ import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useDeleteMutation } from "@/hooks/useCrudMutations";
-import { Equipment, Vessel, EquipmentHealth } from "@shared/schema";
+import { Equipment, Vessel } from "@shared/schema";
+
+interface EquipmentHealth { equipmentId: string; healthScore: number; status: string; [key: string]: unknown }
 import { equipmentKeys, vesselKeys } from "@/utils/queryKeys";
 import { useVisibilityPolling } from "@/hooks/useVisibilityPolling";
 import { useEquipmentHealth } from "@/features/vessels";

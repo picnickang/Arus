@@ -4,7 +4,8 @@
 
 import { eq, and } from "drizzle-orm";
 import { db } from "../../db-config";
-import { notificationSettings, type NotificationSettings, type InsertNotificationSettings } from "@shared/schema-runtime";
+import { notificationSettings } from "@shared/schema-runtime";
+import type { OrgNotificationSettings as NotificationSettings, InsertOrgNotificationSettings as InsertNotificationSettings } from "@shared/schema";
 import { emailQueue, type EmailQueue, type InsertEmailQueue } from "@shared/schema";
 
 export class DatabaseNotificationsStorage {

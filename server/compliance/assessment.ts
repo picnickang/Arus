@@ -6,7 +6,7 @@ import type {
   Device,
   AlertNotification,
   EquipmentTelemetry,
-} from "@shared/schema-runtime";
+} from "@shared/schema";
 import type { ComplianceStandard, ComplianceAssessment, ComplianceReport } from "./types";
 
 type Requirement = ComplianceStandard["requirements"][number];

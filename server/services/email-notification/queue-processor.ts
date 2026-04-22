@@ -3,7 +3,7 @@
  */
 
 import { dbNotificationsStorage } from "../../repositories.js";
-import type { NotificationQueueItem, InsertNotificationQueueItem } from "@shared/schema";
+import type { NotificationQueue as NotificationQueueItem, InsertNotificationQueue as InsertNotificationQueueItem } from "@shared/schema";
 import { format } from "date-fns";
 import { log, calculateBackoff } from "./logger.js";
 import { emailSender } from "./email-sender.js";

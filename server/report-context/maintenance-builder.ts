@@ -6,7 +6,7 @@
 
 import { vesselService, dbEquipmentStorage, workOrderService, dbMaintenanceStorage } from "../repositories";
 import { vesselIntelligence } from "../vessel-intelligence";
-import type { SelectVessel, WorkOrder } from "@shared/schema-runtime";
+import type { Vessel as SelectVessel, WorkOrder } from "@shared/schema";
 import type { ReportContext, ContextBuilderOptions } from "./types.js";
 import {
   getVesselEquipment,

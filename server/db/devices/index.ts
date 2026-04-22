@@ -5,7 +5,7 @@
 import { db } from "../../db-config.js";
 import { devices, edgeHeartbeats as edgeHeartbeatsTable, pdmScoreLogs as pdmScoreLogsTable } from "@shared/schema-runtime";
 import { eq, sql } from "drizzle-orm";
-import type { Device, InsertDevice, EdgeHeartbeat, InsertHeartbeat, PdmScoreLog, InsertPdmScore } from "@shared/schema-runtime";
+import type { Device, InsertDevice, EdgeHeartbeat, InsertEquipmentHeartbeat as InsertHeartbeat, PdmScoreLog, InsertPdmScoreLog as InsertPdmScore } from "@shared/schema";
 
 export class DatabaseDevicesStorage {
   private getEffectiveOrgId(orgId?: string): string { return orgId?.trim() || "default-org"; }

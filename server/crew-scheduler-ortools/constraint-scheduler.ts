@@ -3,8 +3,18 @@
  * CP-SAT style constraint satisfaction implementation
  */
 
-import { CrewWithSkills, SelectShiftTemplate, SelectCrewLeave, SelectPortCall, SelectDrydockWindow, SelectCrewCertification } from "@shared/schema-runtime";
-import { ScheduleResult, SchedulingPreferences, Assignment, UnfilledShift } from "./types.js";
+import {
+  ScheduleResult,
+  SchedulingPreferences,
+  Assignment,
+  UnfilledShift,
+  type CrewWithSkills,
+  type SelectShiftTemplate,
+  type SelectCrewLeave,
+  type SelectPortCall,
+  type SelectDrydockWindow,
+  type SelectCrewCertification,
+} from "./types.js";
 import { shiftWindow, leaveOverlaps, isWindowAllowed, isNightShift, hasValidCertification } from "./helpers.js";
 
 interface SchedulerState {

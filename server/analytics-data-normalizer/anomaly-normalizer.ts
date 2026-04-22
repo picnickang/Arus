@@ -2,7 +2,7 @@
  * Anomaly Detection Normalizer
  */
 
-import type { AnomalyDetection } from "@shared/schema-runtime";
+import type { AnomalyDetection } from "@shared/schema";
 import { expandAnomalyType, clampToRange } from "./helpers";
 
 export function normalizeAnomalyDetection(detection: AnomalyDetection): AnomalyDetection {

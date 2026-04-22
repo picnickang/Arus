@@ -5,7 +5,8 @@
 import { randomUUID } from "node:crypto";
 import { eq, and } from "drizzle-orm";
 import { db } from "../../db-config";
-import { maintenanceTemplates, type MaintenanceTemplate, type InsertMaintenanceTemplate } from "@shared/schema-runtime";
+import { maintenanceTemplates } from "@shared/schema-runtime";
+import type { MaintenanceTemplate, InsertMaintenanceTemplate } from "@shared/schema";
 
 export class DbMaintenanceTemplates {
   private validateOrgId(orgId: string | undefined, method: string): void { if (!orgId) { throw new Error(`[${method}] orgId is required`); } }

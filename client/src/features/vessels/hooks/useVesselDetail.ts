@@ -5,7 +5,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useWorkOrders } from "@/features/work-orders";
 import { useCrewList } from "@/features/crew";
 import { useMaintenanceSchedules } from "@/features/maintenance";
-import type { Vessel, Equipment, WorkOrder, Crew, MaintenanceSchedule } from "@shared/schema-runtime";
+import type { Vessel, Equipment, WorkOrder, Crew, MaintenanceSchedule } from "@shared/schema";
 
 export interface UseVesselDetailReturn {
   match: boolean;

@@ -2,7 +2,7 @@
  * Equipment Dossier Builder - Gather contextual data for equipment analysis
  */
 
-import type { EquipmentHealth } from "@shared/schema-runtime";
+import type { EquipmentHealth } from "../db/equipment/types.js";
 
 export interface EquipmentDossier {
   id: string;

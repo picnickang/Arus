@@ -3,7 +3,7 @@
  * Ferrography-based wear particle analysis
  */
 
-import type { WearParticleAnalysis } from "@shared/schema-runtime";
+import type { WearParticleAnalysis } from "@shared/schema";
 import type { WearAssessment } from "./types.js";
 
 interface WearState {

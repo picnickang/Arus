@@ -3,7 +3,7 @@
  * Oil condition analysis based on tribology
  */
 
-import type { OilAnalysis } from "@shared/schema-runtime";
+import type { OilAnalysis } from "@shared/schema";
 import type { OilConditionAssessment } from "./types.js";
 
 type AssessmentState = { scores: Record<string, number>; concerns: string[]; recs: string[]; changeNeeded: boolean };

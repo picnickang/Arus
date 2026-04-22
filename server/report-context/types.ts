@@ -4,7 +4,7 @@
  * Type definitions for report context building.
  */
 
-import type { SelectVessel, WorkOrder, EquipmentTelemetry } from "@shared/schema-runtime";
+import type { Vessel as SelectVessel, WorkOrder, EquipmentTelemetry } from "@shared/schema";
 import type { MLPredictionResult } from "../ml-prediction/index";
 
 export interface ReportContext {

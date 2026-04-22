@@ -2,7 +2,8 @@
  * Equipment Service - Health Operations
  */
 
-import type { Equipment, EquipmentHealth } from '@shared/schema-runtime';
+import type { Equipment } from "@shared/schema";
+import type { EquipmentHealth } from "../../../db/equipment/types.js";
 import { equipmentRepository } from '../repository';
 import { recordPdmScore, updateEquipmentHealthStatus } from '../../../observability';
 import { DualWriteAdapter } from '../../../infrastructure/DualWriteAdapter';
