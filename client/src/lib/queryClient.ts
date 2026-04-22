@@ -4,9 +4,9 @@ import { getCurrentOrgId } from "@/contexts/OrganizationContext";
 import { getBackendUrlSync } from "@/lib/desktopFetch";
 
 export function resolveUrl(url: string): string {
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  if (url.startsWith('http://') || url.startsWith('https://')) {return url;}
   const base = getBackendUrlSync();
-  if (!base) return url;
+  if (!base) {return url;}
   const separator = url.startsWith('/') ? '' : '/';
   return `${base}${separator}${url}`;
 }

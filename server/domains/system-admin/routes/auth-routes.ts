@@ -216,7 +216,7 @@ export function registerAuthRoutes(app: Express, deps: SystemAdminDependencies):
 
       try {
         const hash = await bcrypt.hash(password, BCRYPT_COST);
-        let envContent = await readEnvContent(envPath);
+        const envContent = await readEnvContent(envPath);
 
         const finalContent = envContent
           ? `${envContent.trimEnd()}\nADMIN_TOKEN_HASH=${quoteEnvValue(hash)}\n`

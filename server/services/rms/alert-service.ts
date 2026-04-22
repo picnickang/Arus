@@ -36,7 +36,7 @@ class RmsAlertService {
 
   async processSnapshot(snapshot: FmccSnapshot): Promise<void> {
     const configs = await this.getVesselAlertConfigs(snapshot.orgId, snapshot.vesselId);
-    if (configs.length === 0) return;
+    if (configs.length === 0) {return;}
 
     for (const config of configs) {
       try {
@@ -62,7 +62,7 @@ class RmsAlertService {
 
   private async checkFuelThreshold(snapshot: FmccSnapshot, config: AlertConfig): Promise<void> {
     const { engineKey, thresholdKgPerH, direction } = config.config as { engineKey?: string; thresholdKgPerH?: number; direction?: string };
-    if (!engineKey || thresholdKgPerH === undefined) return;
+    if (!engineKey || thresholdKgPerH === undefined) {return;}
 
     const flowMap: Record<string, number | undefined> = {
       mainEngine: snapshot.fuel.mainEngineFlowKgPerH,
@@ -74,7 +74,7 @@ class RmsAlertService {
     };
 
     const currentFlow = flowMap[engineKey];
-    if (currentFlow === undefined) return;
+    if (currentFlow === undefined) {return;}
 
     const triggered = direction === 'below'
       ? currentFlow < thresholdKgPerH
@@ -91,9 +91,9 @@ class RmsAlertService {
 
   private async checkDailyConsumption(snapshot: FmccSnapshot, config: AlertConfig): Promise<void> {
     const { maxDailyMt } = config.config as { maxDailyMt?: number };
-    if (!maxDailyMt) return;
+    if (!maxDailyMt) {return;}
 
-    const fuelEquipmentId = 'fmcc-fuel-' + snapshot.vesselId;
+    const fuelEquipmentId = `fmcc-fuel-${  snapshot.vesselId}`;
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
@@ -113,7 +113,7 @@ class RmsAlertService {
       const hoursWithData = Number(row?.hours_with_data ?? 0);
       const avgFlowKgPerH = Number(row?.avg_flow_kg_per_h ?? 0);
 
-      if (hoursWithData < 1) return;
+      if (hoursWithData < 1) {return;}
 
       const actualConsumptionKg = avgFlowKgPerH * hoursWithData;
       const projectedDailyMt = (avgFlowKgPerH * 24) / 1000;
@@ -136,7 +136,7 @@ class RmsAlertService {
       centerLat?: number; centerLon?: number; radiusNm?: number;
       polygon?: Array<{ lat: number; lon: number }>; triggerOn?: string;
     };
-    if (snapshot.navigation?.latDeg == null || snapshot.navigation?.lonDeg == null) return;
+    if (snapshot.navigation?.latDeg == null || snapshot.navigation?.lonDeg == null) {return;}
 
     const vesselLat = snapshot.navigation.latDeg;
     const vesselLon = snapshot.navigation.lonDeg;
@@ -159,7 +159,7 @@ class RmsAlertService {
     const crossed = wasInside !== undefined && wasInside !== inside;
     this.geofenceState.set(stateKey, inside);
 
-    if (!crossed) return;
+    if (!crossed) {return;}
 
     const shouldTrigger = (triggerOn === 'enter' && inside) ||
       (triggerOn === 'exit' && !inside) ||
@@ -178,7 +178,7 @@ class RmsAlertService {
 
   private async checkBunkering(snapshot: FmccSnapshot, config: AlertConfig): Promise<void> {
     const bunkerFlow = snapshot.fuel.bunkerFlowKgPerH;
-    if (bunkerFlow === undefined) return;
+    if (bunkerFlow === undefined) {return;}
 
     const { notifyOnStart, notifyOnEnd, minVolumeLitres } = config.config as {
       notifyOnStart?: boolean; notifyOnEnd?: boolean; minVolumeLitres?: number;
@@ -203,7 +203,7 @@ class RmsAlertService {
       }
     }
 
-    if (wasBunkering === undefined) return;
+    if (wasBunkering === undefined) {return;}
 
     if (!wasBunkering && isBunkering && notifyOnStart && this.canTriggerKeyed(`${stateKey}:start`, config.cooldownMinutes)) {
       this.bunkerAccumulators.set(stateKey, { startTime: new Date(), accumulatedKg: 0, lastPollTime: new Date() });
@@ -253,13 +253,13 @@ class RmsAlertService {
       const xj = polygon[j].lat, yj = polygon[j].lon;
       const intersect = ((yi > lon) !== (yj > lon)) &&
         (lat < (xj - xi) * (lon - yi) / (yj - yi) + xi);
-      if (intersect) inside = !inside;
+      if (intersect) {inside = !inside;}
     }
     return inside;
   }
 
   private canTrigger(config: AlertConfig): boolean {
-    if (!config.lastTriggeredAt) return true;
+    if (!config.lastTriggeredAt) {return true;}
     const cooldownMs = config.cooldownMinutes * 60 * 1000;
     return Date.now() - new Date(config.lastTriggeredAt).getTime() > cooldownMs;
   }

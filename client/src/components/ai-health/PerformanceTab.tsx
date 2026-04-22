@@ -469,9 +469,9 @@ function ExplainabilitySection() {
   const filteredPredictions = predictions?.filter((p) => filterEquipment === "all" || p.equipmentId === filterEquipment);
 
   const getConfidenceBadge = (confidence: number) => {
-    if (confidence >= 0.85) return <Badge className="bg-green-500">Very Confident</Badge>;
-    if (confidence >= 0.7) return <Badge className="bg-blue-500">Confident</Badge>;
-    if (confidence >= 0.5) return <Badge className="bg-yellow-500">Moderate</Badge>;
+    if (confidence >= 0.85) {return <Badge className="bg-green-500">Very Confident</Badge>;}
+    if (confidence >= 0.7) {return <Badge className="bg-blue-500">Confident</Badge>;}
+    if (confidence >= 0.5) {return <Badge className="bg-yellow-500">Moderate</Badge>;}
     return <Badge variant="destructive">Low Confidence</Badge>;
   };
 

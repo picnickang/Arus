@@ -89,7 +89,7 @@ function formatCondition(condition: string): string {
 }
 
 function calculateDepreciation(purchaseValue: number | null | undefined, purchaseDate: Date | string | null | undefined): { bookValue: number; depreciationYears: number } {
-  if (!purchaseValue || !purchaseDate) return { bookValue: 0, depreciationYears: 0 };
+  if (!purchaseValue || !purchaseDate) {return { bookValue: 0, depreciationYears: 0 };}
   
   const purchaseDateObj = typeof purchaseDate === 'string' ? new Date(purchaseDate) : purchaseDate;
   const now = new Date();
@@ -149,7 +149,7 @@ export function EquipmentDecommissionDialog({
   const showReplacementLink = selectedReason === "replaced";
 
   const handleSubmit = (data: DecommissionFormData) => {
-    if (!equipment) return;
+    if (!equipment) {return;}
 
     const submissionData: InsertDecommissionEvent = {
       orgId: equipment.orgId,
@@ -169,7 +169,7 @@ export function EquipmentDecommissionDialog({
     onSubmit(equipment.id, submissionData);
   };
 
-  if (!equipment) return null;
+  if (!equipment) {return null;}
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

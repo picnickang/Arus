@@ -3,7 +3,7 @@
  * Domain events for report lifecycle
  */
 
-import type { ReportType, ReportFormat, ReportStatus } from './types.js';
+import type { ReportType, ReportFormat } from './types.js';
 
 export interface DomainEvent {
   eventId: string;

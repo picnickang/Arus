@@ -19,9 +19,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Bot, AlertTriangle, Clock, Shield, Package, Wrench, Users,
   Lightbulb, CheckCircle, XCircle, Eye, ChevronRight,
-  FileText, Play, Filter, Inbox, BarChart3, RefreshCw,
-  Loader2, X, ExternalLink, Calendar, Terminal, PauseCircle,
-  ListTodo, ArrowRight, CircleDot,
+  FileText, Play, Filter, Inbox, BarChart3, RefreshCw, X, ExternalLink, Calendar, Terminal, PauseCircle,
+  ListTodo, ArrowRight,
 } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
@@ -186,7 +185,7 @@ const ENTITY_LABELS: Record<string, string> = {
 };
 
 function EntityLink({ entityType, entityId }: { entityType?: string | null; entityId?: string | null }) {
-  if (!entityType || !entityId) return null;
+  if (!entityType || !entityId) {return null;}
   const route = ENTITY_ROUTES[entityType];
   const label = ENTITY_LABELS[entityType] || entityType.replace(/_/g, " ");
   const shortId = entityId.length > 8 ? `${entityId.slice(0, 8)}…` : entityId;
@@ -216,7 +215,7 @@ function EntityLink({ entityType, entityId }: { entityType?: string | null; enti
 }
 
 function RunOutputDialog({ item, open, onClose }: { item: UnifiedFindingItem | null; open: boolean; onClose: () => void }) {
-  if (!item) return null;
+  if (!item) {return null;}
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-2xl max-h-[70vh] overflow-y-auto" data-testid="dialog-run-output">
@@ -342,12 +341,12 @@ function OutcomeDialog({
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) {return "just now";}
+  if (mins < 60) {return `${mins}m ago`;}
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) {return `${hours}h ago`;}
   const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
+  if (days < 7) {return `${days}d ago`;}
   return new Date(dateStr).toLocaleDateString();
 }
 
@@ -585,7 +584,7 @@ function FindingCard({
             {item.source === "suggestion" && item.context?.costImpact && (() => {
               const ci = item.context.costImpact as { revenueImpact?: number; estimatedRepairCost?: number };
               const atRisk = ci.revenueImpact ?? 0;
-              if (atRisk <= 0) return null;
+              if (atRisk <= 0) {return null;}
               const fmt = atRisk >= 1000 ? `~$${(atRisk / 1000).toFixed(0)}K` : `~$${atRisk.toFixed(0)}`;
               return (
                 <Badge
@@ -946,7 +945,7 @@ export default function FindingsPage() {
     severity: severityFilter !== "all" ? severityFilter : null,
     status: statusFilter !== "all" ? statusFilter : null,
     dateFrom: dateFromFilter ? new Date(dateFromFilter).toISOString() : null,
-    dateTo: dateToFilter ? new Date(dateToFilter + "T23:59:59").toISOString() : null,
+    dateTo: dateToFilter ? new Date(`${dateToFilter  }T23:59:59`).toISOString() : null,
   };
 
   const { data: findings, isLoading: findingsLoading } = useQuery<FindingsResponse>({
@@ -1039,7 +1038,7 @@ export default function FindingsPage() {
   }, []);
 
   const handleOutcomeSubmit = useCallback((outcome: string, reason: string) => {
-    if (!outcomeSuggestionId) return;
+    if (!outcomeSuggestionId) {return;}
     if (outcomeAction === "act") {
       actMutation.mutate({ id: outcomeSuggestionId, outcome, outcomeReason: reason || undefined });
     } else if (outcomeAction === "dismiss") {
@@ -1052,7 +1051,7 @@ export default function FindingsPage() {
   }, [outcomeSuggestionId, outcomeAction, actMutation, dismissMutation, deferMutation]);
 
   const handleOutcomeSkip = useCallback(() => {
-    if (!outcomeSuggestionId) return;
+    if (!outcomeSuggestionId) {return;}
     if (outcomeAction === "act") {
       actMutation.mutate({ id: outcomeSuggestionId });
     } else if (outcomeAction === "dismiss") {

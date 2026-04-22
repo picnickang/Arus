@@ -101,7 +101,7 @@ export async function decommissionEquipment(
 }
 
 export async function listDecommissionedEquipment(orgId: string): Promise<DecommissionedEquipmentWithEvent[]> {
-  const decommissionedEquipment = await db
+  return await db
     .select({
       equipment: {
         id: equipment.id,
@@ -127,8 +127,6 @@ export async function listDecommissionedEquipment(orgId: string): Promise<Decomm
       )
     )
     .orderBy(sql`${equipment.decommissionedAt} DESC`);
-
-  return decommissionedEquipment;
 }
 
 export async function getDecommissionEvent(

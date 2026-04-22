@@ -9,7 +9,6 @@ import { withErrorHandling } from "../lib/route-utils";
 import { logger } from "../utils/logger";
 import type { AuthenticatedRequest } from "../middleware/auth";
 import { workOrderService, dbAlertStorage, dbMlAnalyticsStorage } from "../repositories";
-import { db } from "../db-config";
 import { PredictionCalibrator } from "../services/ml/prediction-calibration";
 import { PredictionOutcomeTracker } from "../services/ml/prediction-outcome-tracker";
 import { AnomalyCorrelator } from "../services/anomaly-correlation/anomaly-correlator";
@@ -55,7 +54,7 @@ export function registerPdmGapFillRoutes(app: Express, deps: PdmGapFillDeps): vo
         improvement: {
           brierScoreReduction: (result.metrics.brierScoreBefore - result.metrics.brierScoreAfter).toFixed(4),
           percentImprovement: result.metrics.brierScoreBefore > 0
-            ? ((1 - result.metrics.brierScoreAfter / result.metrics.brierScoreBefore) * 100).toFixed(1) + "%"
+            ? `${((1 - result.metrics.brierScoreAfter / result.metrics.brierScoreBefore) * 100).toFixed(1)  }%`
             : "N/A",
         },
       });

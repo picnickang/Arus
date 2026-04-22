@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { createHash } from 'node:crypto';
 import { eq, sql, and, desc, lt } from 'drizzle-orm';
 import { db } from '../../db-config';
-import { rawTelemetryArchive, type RawTelemetryArchive, type InsertRawTelemetryArchive } from '@shared/schema/telemetry';
+import { rawTelemetryArchive, type RawTelemetryArchive } from '@shared/schema/telemetry';
 import { logger } from '../../utils/logger';
 import client from 'prom-client';
 

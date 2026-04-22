@@ -39,7 +39,7 @@ export function registerSurveyRoutes(
   app.get("/api/surveys", generalApiRateLimit,
     withErrorHandling("list surveys", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
-      if (!orgId) return res.status(401).json({ message: "Organization ID required" });
+      if (!orgId) {return res.status(401).json({ message: "Organization ID required" });}
 
       const { vesselId, status, dueBefore } = req.query;
 
@@ -78,7 +78,7 @@ export function registerSurveyRoutes(
   app.post("/api/surveys", writeOperationRateLimit,
     withErrorHandling("create survey", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
-      if (!orgId) return res.status(401).json({ message: "Organization ID required" });
+      if (!orgId) {return res.status(401).json({ message: "Organization ID required" });}
 
       const parsed = createSurveySchema.safeParse(req.body);
       if (!parsed.success) {
@@ -107,7 +107,7 @@ export function registerSurveyRoutes(
   app.get("/api/surveys/summary/upcoming", generalApiRateLimit,
     withErrorHandling("upcoming surveys summary", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
-      if (!orgId) return res.status(401).json({ message: "Organization ID required" });
+      if (!orgId) {return res.status(401).json({ message: "Organization ID required" });}
 
       const daysAhead = Math.min(Math.max(Number(req.query.days) || 90, 1), 365);
 
@@ -140,7 +140,7 @@ export function registerSurveyRoutes(
   app.get("/api/surveys/:id", generalApiRateLimit,
     withErrorHandling("get survey", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
-      if (!orgId) return res.status(401).json({ message: "Organization ID required" });
+      if (!orgId) {return res.status(401).json({ message: "Organization ID required" });}
 
       try {
         const { sql } = await import("drizzle-orm");
@@ -148,7 +148,7 @@ export function registerSurveyRoutes(
           SELECT * FROM class_surveys WHERE id = ${req.params.id} AND org_id = ${orgId}
         `);
         const survey = result?.rows?.[0];
-        if (!survey) return sendNotFound(res, "Survey");
+        if (!survey) {return sendNotFound(res, "Survey");}
         res.json(survey);
       } catch (error) {
         if (error instanceof Error && error.message.includes("does not exist")) {
@@ -162,7 +162,7 @@ export function registerSurveyRoutes(
   app.patch("/api/surveys/:id", writeOperationRateLimit,
     withErrorHandling("update survey", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
-      if (!orgId) return res.status(401).json({ message: "Organization ID required" });
+      if (!orgId) {return res.status(401).json({ message: "Organization ID required" });}
 
       const parsed = updateSurveySchema.safeParse(req.body);
       if (!parsed.success) {
@@ -185,7 +185,7 @@ export function registerSurveyRoutes(
           WHERE id = ${req.params.id} AND org_id = ${orgId} RETURNING *
         `);
         const survey = result?.rows?.[0];
-        if (!survey) return sendNotFound(res, "Survey");
+        if (!survey) {return sendNotFound(res, "Survey");}
         res.json(survey);
       } catch (error) {
         if (error instanceof Error && error.message.includes("does not exist")) {
@@ -199,14 +199,14 @@ export function registerSurveyRoutes(
   app.delete("/api/surveys/:id", writeOperationRateLimit,
     withErrorHandling("delete survey", async (req: Request, res: Response) => {
       const orgId = req.headers["x-org-id"] as string;
-      if (!orgId) return res.status(401).json({ message: "Organization ID required" });
+      if (!orgId) {return res.status(401).json({ message: "Organization ID required" });}
 
       try {
         const { sql } = await import("drizzle-orm");
         const result = await db.execute(sql`
           DELETE FROM class_surveys WHERE id = ${req.params.id} AND org_id = ${orgId} RETURNING id
         `);
-        if (!result?.rows?.length) return sendNotFound(res, "Survey");
+        if (!result?.rows?.length) {return sendNotFound(res, "Survey");}
         sendDeleted(res);
       } catch (error) {
         if (error instanceof Error && error.message.includes("does not exist")) {

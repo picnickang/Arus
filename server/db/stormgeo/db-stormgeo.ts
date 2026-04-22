@@ -2,7 +2,7 @@
  * StormGeo - Database Storage
  */
 
-import { eq, and, desc, gte, lte, sql } from "drizzle-orm";
+import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { db } from "../../db-config";
 import { stormgeoSettings, stormgeoSnapshots, stormgeoImportHistory, weatherCache } from "@shared/schema-runtime";
 import type { StormgeoSetting, InsertStormgeoSetting, StormgeoSnapshot, InsertStormgeoSnapshot, StormgeoImportHistory, InsertStormgeoImportHistory } from "@shared/schema";

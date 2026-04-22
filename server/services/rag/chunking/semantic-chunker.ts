@@ -58,9 +58,7 @@ export class SemanticChunker {
     const paragraphs = this.splitIntoParagraphs(normalizedText);
     const sections = this.groupIntoSections(paragraphs);
     const chunks = this.createChunksFromSections(sections);
-    const overlappedChunks = this.addOverlap(chunks);
-
-    return overlappedChunks;
+    return this.addOverlap(chunks);
   }
 
   private normalizeText(text: string): string {
@@ -104,7 +102,7 @@ export class SemanticChunker {
 
   private isHeading(text: string): boolean {
     const trimmed = text.trim();
-    if (trimmed.length > 100) return false;
+    if (trimmed.length > 100) {return false;}
 
     for (const pattern of HEADING_PATTERNS) {
       pattern.lastIndex = 0;
@@ -113,12 +111,9 @@ export class SemanticChunker {
       }
     }
 
-    const isShortUppercase =
-      trimmed.length < 50 &&
+    return trimmed.length < 50 &&
       trimmed === trimmed.toUpperCase() &&
       /[A-Z]/.test(trimmed);
-
-    return isShortUppercase;
   }
 
   private groupIntoSections(
@@ -178,7 +173,7 @@ export class SemanticChunker {
 
     for (const paragraph of section.content) {
       const sentences = this.splitIntoSentences(paragraph);
-      const paragraphText = paragraph + "\n\n";
+      const paragraphText = `${paragraph  }\n\n`;
 
       if (
         currentContent.length + paragraphText.length > this.config.maxChunkSize &&
@@ -220,7 +215,7 @@ export class SemanticChunker {
             chunkStartIndex = startOffset + currentContent.length;
           }
 
-          currentContent += sentence + " ";
+          currentContent += `${sentence  } `;
           currentSentences++;
         }
         currentParagraphs++;
@@ -242,7 +237,7 @@ export class SemanticChunker {
       ));
     } else if (chunks.length > 0 && currentContent.trim().length > 0) {
       const lastChunk = chunks[chunks.length - 1];
-      lastChunk.content += "\n\n" + currentContent.trim();
+      lastChunk.content += `\n\n${  currentContent.trim()}`;
       lastChunk.endIndex = chunkStartIndex + currentContent.length;
       lastChunk.metadata.sentenceCount += currentSentences;
       lastChunk.metadata.paragraphCount += currentParagraphs;
@@ -313,13 +308,13 @@ export class SemanticChunker {
   }
 
   private getEndingContext(text: string, targetLength: number): string {
-    if (targetLength <= 0) return "";
+    if (targetLength <= 0) {return "";}
 
     const sentences = this.splitIntoSentences(text);
     let context = "";
 
     for (let i = sentences.length - 1; i >= 0; i--) {
-      const potential = sentences[i] + (context ? " " + context : "");
+      const potential = sentences[i] + (context ? ` ${  context}` : "");
       if (potential.length > targetLength) {
         break;
       }

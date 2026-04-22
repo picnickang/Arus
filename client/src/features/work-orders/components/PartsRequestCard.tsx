@@ -102,7 +102,7 @@ function FulfillmentDialog({
   const items = purchaseRequest.items || [];
   const canFulfill = ["approved", "ordered", "received"].includes(purchaseRequest.status);
 
-  if (!canFulfill || items.length === 0) return null;
+  if (!canFulfill || items.length === 0) {return null;}
 
   const handleFulfill = (itemId: string) => {
     const qty = quantities[itemId];

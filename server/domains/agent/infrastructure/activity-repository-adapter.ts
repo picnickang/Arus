@@ -145,14 +145,14 @@ export class ActivityRepositoryAdapter implements ActivityPort {
       .from(agentSchedules)
       .where(eq(agentSchedules.orgId, orgId));
 
-    if (schedules.length === 0) return [];
+    if (schedules.length === 0) {return [];}
 
     const schedMap = new Map(schedules.map(s => [s.id, s.name]));
     const schedIds = schedules.map(s => s.id);
 
     const conditions = [inArray(agentScheduleRuns.scheduleId, schedIds)];
-    if (filter?.startDate) conditions.push(gte(agentScheduleRuns.startedAt, filter.startDate));
-    if (filter?.endDate) conditions.push(lte(agentScheduleRuns.startedAt, filter.endDate));
+    if (filter?.startDate) {conditions.push(gte(agentScheduleRuns.startedAt, filter.startDate));}
+    if (filter?.endDate) {conditions.push(lte(agentScheduleRuns.startedAt, filter.endDate));}
     if (filter?.status) {
       const dbStatus = filter.status === "running" ? "running" : filter.status;
       conditions.push(eq(agentScheduleRuns.status, dbStatus));
@@ -185,7 +185,7 @@ export class ActivityRepositoryAdapter implements ActivityPort {
         let inputSummary: string | null = null;
         if (tc.input) {
           const inputStr = typeof tc.input === "string" ? tc.input : JSON.stringify(tc.input);
-          inputSummary = inputStr.length > 120 ? inputStr.slice(0, 117) + "..." : inputStr;
+          inputSummary = inputStr.length > 120 ? `${inputStr.slice(0, 117)  }...` : inputStr;
         }
         return {
           toolName: typeof tc.toolName === "string" ? tc.toolName : "unknown",
@@ -230,8 +230,8 @@ export class ActivityRepositoryAdapter implements ActivityPort {
 
   private async getUserRuns(orgId: string, filter?: ActivityFilter): Promise<AgentActivityItem[]> {
     const conditions = [eq(agentConversations.orgId, orgId)];
-    if (filter?.startDate) conditions.push(gte(agentConversations.createdAt, filter.startDate));
-    if (filter?.endDate) conditions.push(lte(agentConversations.createdAt, filter.endDate));
+    if (filter?.startDate) {conditions.push(gte(agentConversations.createdAt, filter.startDate));}
+    if (filter?.endDate) {conditions.push(lte(agentConversations.createdAt, filter.endDate));}
     if (filter?.status) {
       if (filter.status === "failed") {
         conditions.push(eq(agentConversations.status, "error"));
@@ -264,7 +264,7 @@ export class ActivityRepositoryAdapter implements ActivityPort {
         let inputSummary: string | null = null;
         if (tc.input) {
           const inputStr = typeof tc.input === "string" ? tc.input : JSON.stringify(tc.input);
-          inputSummary = inputStr.length > 120 ? inputStr.slice(0, 117) + "..." : inputStr;
+          inputSummary = inputStr.length > 120 ? `${inputStr.slice(0, 117)  }...` : inputStr;
         }
         return {
           toolName: tc.toolName,

@@ -1,5 +1,4 @@
 import { useState, useCallback, useRef, useMemo } from "react";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +33,7 @@ function UploadDropZone({
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (!isOpen) return null;
+  if (!isOpen) {return null;}
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -42,7 +41,7 @@ function UploadDropZone({
     const files = Array.from(e.dataTransfer.files).filter(
       (f) => f.type === "application/pdf" || f.type.startsWith("image/")
     );
-    if (files.length > 0) onFilesSelected(files);
+    if (files.length > 0) {onFilesSelected(files);}
   };
 
   return (
@@ -58,7 +57,7 @@ function UploadDropZone({
       <div
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") fileInputRef.current?.click(); }}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") {fileInputRef.current?.click();} }}
         onDrop={handleDrop}
         onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
         onDragLeave={() => setIsDragging(false)}
@@ -80,8 +79,8 @@ function UploadDropZone({
           accept=".pdf,image/png,image/jpeg"
           onChange={(e) => {
             const files = Array.from(e.target.files ?? []);
-            if (files.length > 0) onFilesSelected(files);
-            if (fileInputRef.current) fileInputRef.current.value = "";
+            if (files.length > 0) {onFilesSelected(files);}
+            if (fileInputRef.current) {fileInputRef.current.value = "";}
           }}
           className="hidden"
           data-testid="input-file"
@@ -92,7 +91,7 @@ function UploadDropZone({
 }
 
 function UploadProgressBar({ jobs, onClear }: { jobs: UploadJob[]; onClear: () => void }) {
-  if (jobs.length === 0) return null;
+  if (jobs.length === 0) {return null;}
 
   const active = jobs.filter((j) => j.status === "uploading" || j.status === "processing").length;
   const completed = jobs.filter((j) => j.status === "completed").length;
@@ -203,7 +202,7 @@ function SemanticSearchResults({ query, searchData, searching }: {
   searching: boolean;
 }) {
   const isQuestion = query.length >= 10 && (query.includes("?") || query.split(/\s+/).length > 4);
-  if (!isQuestion || (!searching && !searchData?.results?.length)) return null;
+  if (!isQuestion || (!searching && !searchData?.results?.length)) {return null;}
 
   return (
     <div className="mb-4 border rounded-lg overflow-hidden" data-testid="semantic-results">
@@ -262,7 +261,7 @@ export default function KnowledgeBasePage() {
   }, [setSearchQuery]);
 
   const filteredDocuments = useMemo(() => {
-    if (!documentsData?.documents) return [];
+    if (!documentsData?.documents) {return [];}
     return documentsData.documents.filter((doc: DocumentWithStatus) => {
       const matchesSearch = !docSearch || doc.name.toLowerCase().includes(docSearch.toLowerCase());
       const matchesType = fileTypeFilter === "all" || doc.fileType === fileTypeFilter;
@@ -282,7 +281,7 @@ export default function KnowledgeBasePage() {
       });
     }
     const valid = files.filter((f) => f.size <= MAX_SIZE);
-    if (valid.length === 0) return;
+    if (valid.length === 0) {return;}
 
     const newJobs: UploadJob[] = valid.map((file) => ({
       id: crypto.randomUUID().slice(0, 8),
@@ -318,7 +317,7 @@ export default function KnowledgeBasePage() {
     while (polling) {
       try {
         const res = await fetch(`/api/kb/jobs/${jobId}`);
-        if (!res.ok) break;
+        if (!res.ok) {break;}
         const status = await res.json();
         if (status.status === "completed") {
           setUploadJobs((prev) => prev.map((j) => j.id === uploadId ? { ...j, status: "completed" as const, progress: 100 } : j));

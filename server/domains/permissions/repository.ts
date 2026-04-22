@@ -22,7 +22,6 @@ import {
   type PermissionResource,
   type PermissionAction,
   type PermissionGrant,
-  type InsertPermissionGrant,
   type RoleTemplate,
   type InsertRoleTemplate,
   type UserRoleAssignment,

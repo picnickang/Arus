@@ -208,7 +208,7 @@ registerTool({
               break;
             }
           }
-          if (matchingRows.length >= 50) break;
+          if (matchingRows.length >= 50) {break;}
         }
         if (matchingRows.length > 0) {
           result.matchingRows = matchingRows;

@@ -1,5 +1,5 @@
 import { db } from "../../../db";
-import { eq, desc, and, sql, count } from "drizzle-orm";
+import { eq, desc, and, count } from "drizzle-orm";
 import { agentTasks } from "@shared/schema";
 import type { AgentTask, InsertAgentTask } from "@shared/schema";
 import type { AgentTaskRepositoryPort, AgentTaskFilter } from "../domain/task-types";
@@ -18,11 +18,11 @@ export class AgentTaskRepositoryAdapter implements AgentTaskRepositoryPort {
 
   async list(orgId: string, filter?: AgentTaskFilter): Promise<AgentTask[]> {
     const conditions = [eq(agentTasks.orgId, orgId)];
-    if (filter?.status) conditions.push(eq(agentTasks.status, filter.status));
-    if (filter?.priority) conditions.push(eq(agentTasks.priority, filter.priority));
-    if (filter?.source) conditions.push(eq(agentTasks.source, filter.source));
-    if (filter?.equipmentId) conditions.push(eq(agentTasks.equipmentId, filter.equipmentId));
-    if (filter?.vesselId) conditions.push(eq(agentTasks.vesselId, filter.vesselId));
+    if (filter?.status) {conditions.push(eq(agentTasks.status, filter.status));}
+    if (filter?.priority) {conditions.push(eq(agentTasks.priority, filter.priority));}
+    if (filter?.source) {conditions.push(eq(agentTasks.source, filter.source));}
+    if (filter?.equipmentId) {conditions.push(eq(agentTasks.equipmentId, filter.equipmentId));}
+    if (filter?.vesselId) {conditions.push(eq(agentTasks.vesselId, filter.vesselId));}
 
     const limit = filter?.limit ?? 50;
     const offset = filter?.offset ?? 0;

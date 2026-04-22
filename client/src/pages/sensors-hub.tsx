@@ -22,7 +22,7 @@ function PageLoader() {
 }
 
 function getTabFromUrl(): string {
-  if (typeof window === "undefined") return "optimization";
+  if (typeof window === "undefined") {return "optimization";}
   const params = new URLSearchParams(window.location.search);
   return params.get("tab") || "optimization";
 }

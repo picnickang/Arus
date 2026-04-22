@@ -30,9 +30,9 @@ export class CertificateRepositoryAdapter implements ICertificateRepository {
     status?: string;
   }) {
     const conditions = [eq(vesselCertificates.orgId, orgId)];
-    if (filters?.vesselId) conditions.push(eq(vesselCertificates.vesselId, filters.vesselId));
-    if (filters?.type) conditions.push(eq(vesselCertificates.certificateType, filters.type));
-    if (filters?.status) conditions.push(eq(vesselCertificates.status, filters.status));
+    if (filters?.vesselId) {conditions.push(eq(vesselCertificates.vesselId, filters.vesselId));}
+    if (filters?.type) {conditions.push(eq(vesselCertificates.certificateType, filters.type));}
+    if (filters?.status) {conditions.push(eq(vesselCertificates.status, filters.status));}
 
     const rows = await db
       .select({
@@ -61,7 +61,7 @@ export class CertificateRepositoryAdapter implements ICertificateRepository {
       .where(and(eq(vesselCertificates.id, id), eq(vesselCertificates.orgId, orgId)))
       .limit(1);
 
-    if (!row) return undefined;
+    if (!row) {return undefined;}
 
     return {
       ...this.mapToEntity(row.cert),
@@ -101,7 +101,7 @@ export class CertificateRepositoryAdapter implements ICertificateRepository {
 
   async getSummary(orgId: string, vesselId?: string): Promise<CertificateSummary> {
     const conditions = [eq(vesselCertificates.orgId, orgId)];
-    if (vesselId) conditions.push(eq(vesselCertificates.vesselId, vesselId));
+    if (vesselId) {conditions.push(eq(vesselCertificates.vesselId, vesselId));}
 
     const certs = await db
       .select()
@@ -188,16 +188,16 @@ export class CertificateRepositoryAdapter implements ICertificateRepository {
       updatedBy: updatedBy ?? null,
     };
 
-    if (updates.status !== undefined) updateValues.status = updates.status;
-    if (updates.certificateNumber !== undefined) updateValues.certificateNumber = updates.certificateNumber;
-    if (updates.expiryDate !== undefined) updateValues.expiryDate = updates.expiryDate ? new Date(updates.expiryDate) : null;
-    if (updates.nextSurveyDue !== undefined) updateValues.nextSurveyDue = updates.nextSurveyDue ? new Date(updates.nextSurveyDue) : null;
-    if (updates.lastSurveyDate !== undefined) updateValues.lastSurveyDate = new Date(updates.lastSurveyDate);
-    if (updates.surveyWindowStart !== undefined) updateValues.surveyWindowStart = updates.surveyWindowStart ? new Date(updates.surveyWindowStart) : null;
-    if (updates.surveyWindowEnd !== undefined) updateValues.surveyWindowEnd = updates.surveyWindowEnd ? new Date(updates.surveyWindowEnd) : null;
-    if (updates.surveyId !== undefined) updateValues.surveyId = updates.surveyId;
-    if (updates.notes !== undefined) updateValues.notes = updates.notes;
-    if (updates.documentUrl !== undefined) updateValues.documentUrl = updates.documentUrl;
+    if (updates.status !== undefined) {updateValues.status = updates.status;}
+    if (updates.certificateNumber !== undefined) {updateValues.certificateNumber = updates.certificateNumber;}
+    if (updates.expiryDate !== undefined) {updateValues.expiryDate = updates.expiryDate ? new Date(updates.expiryDate) : null;}
+    if (updates.nextSurveyDue !== undefined) {updateValues.nextSurveyDue = updates.nextSurveyDue ? new Date(updates.nextSurveyDue) : null;}
+    if (updates.lastSurveyDate !== undefined) {updateValues.lastSurveyDate = new Date(updates.lastSurveyDate);}
+    if (updates.surveyWindowStart !== undefined) {updateValues.surveyWindowStart = updates.surveyWindowStart ? new Date(updates.surveyWindowStart) : null;}
+    if (updates.surveyWindowEnd !== undefined) {updateValues.surveyWindowEnd = updates.surveyWindowEnd ? new Date(updates.surveyWindowEnd) : null;}
+    if (updates.surveyId !== undefined) {updateValues.surveyId = updates.surveyId;}
+    if (updates.notes !== undefined) {updateValues.notes = updates.notes;}
+    if (updates.documentUrl !== undefined) {updateValues.documentUrl = updates.documentUrl;}
 
     const [updated] = await db
       .update(vesselCertificates)
@@ -275,7 +275,7 @@ export class CertificateRepositoryAdapter implements ICertificateRepository {
 export class CertificateEventRepositoryAdapter implements ICertificateEventRepository {
   async findByCertificateId(certificateId: string, orgId?: string): Promise<CertificateEventEntity[]> {
     const conditions = [eq(certificateEvents.certificateId, certificateId)];
-    if (orgId) conditions.push(eq(certificateEvents.orgId, orgId));
+    if (orgId) {conditions.push(eq(certificateEvents.orgId, orgId));}
 
     const events = await db
       .select()

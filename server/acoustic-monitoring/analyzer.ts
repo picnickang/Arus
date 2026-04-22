@@ -3,7 +3,7 @@
  * Main acoustic analysis functions
  */
 
-// @ts-ignore - fft-js lacks TypeScript declarations
+// @ts-expect-error - fft-js lacks TypeScript declarations; remove this directive when the package ships types or we migrate to a typed FFT library
 import { fft } from "fft-js";
 import { mean } from "simple-statistics";
 import type { AcousticFeatures, AcousticAnalysisResult } from "./types.js";

@@ -62,8 +62,8 @@ router.get("/connections", requireOrgId, async (req: Request, res: Response) => 
       LEFT JOIN equipment e ON ec.equipment_id = e.id
       WHERE ec.org_id = ${getOrgId(req)}
     `;
-    if (vesselId) q = sql`${q} AND ec.vessel_id = ${vesselId as string}`;
-    if (status) q = sql`${q} AND ec.status = ${status as string}`;
+    if (vesselId) {q = sql`${q} AND ec.vessel_id = ${vesselId as string}`;}
+    if (status) {q = sql`${q} AND ec.status = ${status as string}`;}
     q = sql`${q} ORDER BY v.name, e.name`;
     const result = await db.execute(q);
     res.json(getRows(result));
@@ -83,7 +83,7 @@ router.get("/connections/:id", requireOrgId, async (req: Request, res: Response)
       WHERE ec.id = ${req.params.id} AND ec.org_id = ${getOrgId(req)}
     `);
     const conn = getFirstRow(result);
-    if (!conn) return res.status(404).json({ error: "EFMS connection not found" });
+    if (!conn) {return res.status(404).json({ error: "EFMS connection not found" });}
     res.json(conn);
   } catch (err) {
     res.status(500).json({ error: "Failed to get EFMS connection" });
@@ -108,7 +108,7 @@ router.post("/connections", requireOrgId, async (req: Request, res: Response) =>
     logger.info(MODULE, "EFMS connection created", { vesselId: data.vesselId, protocol: data.protocol });
     res.status(201).json(getFirstRow(result));
   } catch (err) {
-    if (err instanceof z.ZodError) return res.status(400).json({ error: "Validation failed", details: err.flatten() });
+    if (err instanceof z.ZodError) {return res.status(400).json({ error: "Validation failed", details: err.flatten() });}
     logger.error(MODULE, "Error creating EFMS connection", { error: err });
     res.status(500).json({ error: "Failed to create EFMS connection" });
   }
@@ -121,7 +121,7 @@ router.patch("/connections/:id", requireOrgId, async (req: Request, res: Respons
     const existing = await db.execute(sql`
       SELECT id FROM efms_connections WHERE id = ${req.params.id} AND org_id = ${getOrgId(req)}
     `);
-    if (!getFirstRow(existing)) return res.status(404).json({ error: "EFMS connection not found" });
+    if (!getFirstRow(existing)) {return res.status(404).json({ error: "EFMS connection not found" });}
 
     const setClauses: string[] = [];
     const result = await db.execute(sql`
@@ -142,7 +142,7 @@ router.patch("/connections/:id", requireOrgId, async (req: Request, res: Respons
 
     res.json(getFirstRow(result));
   } catch (err) {
-    if (err instanceof z.ZodError) return res.status(400).json({ error: "Validation failed", details: err.flatten() });
+    if (err instanceof z.ZodError) {return res.status(400).json({ error: "Validation failed", details: err.flatten() });}
     res.status(500).json({ error: "Failed to update EFMS connection" });
   }
 });
@@ -155,7 +155,7 @@ router.delete("/connections/:id", requireOrgId, async (req: Request, res: Respon
       RETURNING id
     `);
     const deleted = getFirstRow(result);
-    if (!deleted) return res.status(404).json({ error: "EFMS connection not found" });
+    if (!deleted) {return res.status(404).json({ error: "EFMS connection not found" });}
     res.json({ success: true, deletedId: deleted.id });
   } catch (err) {
     res.status(500).json({ error: "Failed to delete EFMS connection" });

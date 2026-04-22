@@ -55,8 +55,7 @@ function OpenAIKeyCard() {
 
   const removeMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("PUT", "/api/settings", { openaiApiKey: "" });
-      return res;
+      return await apiRequest("PUT", "/api/settings", { openaiApiKey: "" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });

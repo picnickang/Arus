@@ -1,6 +1,6 @@
 import { db } from "../../../db-config.js";
 import { equipment, vessels, failurePredictions, actionableInsights } from "@shared/schema-runtime";
-import { eq, and, sql, desc, inArray } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { logger } from "../../../utils/logger.js";
 import type { EquipmentHubRepository } from "../domain/ports.js";
 import type {
@@ -14,26 +14,26 @@ import type {
 } from "../domain/types.js";
 
 function computeRisk(health: number): "critical" | "warning" | "low" {
-  if (health < 40) return "critical";
-  if (health < 70) return "warning";
+  if (health < 40) {return "critical";}
+  if (health < 70) {return "warning";}
   return "low";
 }
 
 function computeTrend(telemetry: number[]): "declining" | "stable" | "improving" {
-  if (telemetry.length < 2) return "stable";
+  if (telemetry.length < 2) {return "stable";}
   const first = telemetry.slice(0, Math.ceil(telemetry.length / 2));
   const second = telemetry.slice(Math.ceil(telemetry.length / 2));
   const avgFirst = first.reduce((a, b) => a + b, 0) / first.length;
   const avgSecond = second.reduce((a, b) => a + b, 0) / second.length;
   const diff = avgSecond - avgFirst;
-  if (diff < -3) return "declining";
-  if (diff > 3) return "improving";
+  if (diff < -3) {return "declining";}
+  if (diff > 3) {return "improving";}
   return "stable";
 }
 
 function recommendedActionText(risk: string, rul: number): string {
-  if (risk === "critical") return `Schedule immediate maintenance. Estimated window: ${rul} days. Create a work order and ensure spare parts are available.`;
-  if (risk === "warning") return "Monitor closely. Plan maintenance for next scheduled port call. Check parts availability.";
+  if (risk === "critical") {return `Schedule immediate maintenance. Estimated window: ${rul} days. Create a work order and ensure spare parts are available.`;}
+  if (risk === "warning") {return "Monitor closely. Plan maintenance for next scheduled port call. Check parts availability.";}
   return "No action required. Continue normal operating schedule.";
 }
 
@@ -48,7 +48,7 @@ function assessmentText(risk: string, health: number, rul: number, prediction: s
 }
 
 function parseSignalEntry(entry: unknown): string {
-  if (typeof entry === "string") return entry;
+  if (typeof entry === "string") {return entry;}
   if (typeof entry === "object" && entry !== null && "description" in entry) {
     return String((entry as { description: unknown }).description);
   }
@@ -72,7 +72,7 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
       .leftJoin(vessels, eq(equipment.vesselId, vessels.id))
       .where(and(eq(equipment.orgId, orgId), eq(equipment.id, equipmentId)));
 
-    if (!row) return null;
+    if (!row) {return null;}
 
     const [pdmScores, predictions, insights, telemetryData, workOrders, serviceOrders, diagnosticRuns, activityTimeline] = await Promise.all([
       this.fetchPdmScores(orgId, equipmentId),
@@ -96,7 +96,7 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
       if (ins.supportingSignals) {
         try {
           const parsed: unknown[] = JSON.parse(ins.supportingSignals);
-          if (Array.isArray(parsed)) signals.push(...parsed.map(parseSignalEntry));
+          if (Array.isArray(parsed)) {signals.push(...parsed.map(parseSignalEntry));}
         } catch {
           signals.push(ins.supportingSignals);
         }
@@ -152,7 +152,7 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
   async getServiceOrdersForEquipment(orgId: string, equipmentId: string): Promise<ServiceOrderSummary[]> {
     try {
       const { serviceOrders, workOrders, suppliers } = await import("@shared/schema-runtime");
-      if (!serviceOrders) return [];
+      if (!serviceOrders) {return [];}
       const rows = await db
         .select({
           soId: serviceOrders.id,
@@ -464,8 +464,8 @@ export class PostgresEquipmentHubRepository implements EquipmentHubRepository {
         { id: `na-schedule-${equipmentId}`, type: "prediction", title: "Check next scheduled maintenance", urgency: "low", link: `/pdm-dashboard?equipmentId=${equipmentId}` },
       ];
       for (const d of defaults) {
-        if (items.length >= 3) break;
-        if (!items.some((i) => i.id === d.id)) items.push(d);
+        if (items.length >= 3) {break;}
+        if (!items.some((i) => i.id === d.id)) {items.push(d);}
       }
     }
 

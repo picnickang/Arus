@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
@@ -15,32 +14,26 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { 
   ChevronLeft, ChevronRight, Calendar, Ship, Users, AlertTriangle, Sparkles, 
-  Check, CheckCircle2, Clock, Shield, Menu, RefreshCw, CloudOff, AlertCircle,
-  User, FileText, Anchor, GripHorizontal, Plus, Pencil, X, Move
+  Check, Menu, RefreshCw,
+  User, FileText, Anchor, Plus, Pencil, X
 } from "lucide-react";
-import { format, isToday, isSameDay, parseISO, addDays, differenceInDays as dateFnsDifferenceInDays } from "date-fns";
+import { format, parseISO, addDays, differenceInDays as dateFnsDifferenceInDays } from "date-fns";
 import { 
   useSchedulePlannerData, 
   type ScheduleAssignment, 
   type ConstraintResult, 
   type AiSuggestion,
-  type DateRangePreset,
-  type SyncStatus,
   type CrewMember,
   type Vessel,
-  type FatigueRiskLevel,
   type FatigueResult
 } from "@/features/crew/hooks/useSchedulePlannerData";
-import { useHoRSync, type CanAssignResult, type ProjectionViolation } from "@/features/crew/hooks/useHoRSync";
+import { useHoRSync } from "@/features/crew/hooks/useHoRSync";
 import { useOfflineSync } from "@/features/crew/hooks/useOfflineSync";
 import { OfflineSyncIndicator } from "@/components/scheduling/OfflineSyncIndicator";
 const ScheduleGeneratorPanel = lazy(() => 
@@ -54,23 +47,15 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { 
   useIsMobile, 
-  getRoleColor, 
-  getStatusBadge, 
-  ROLE_COLORS, 
-  DRAG_THRESHOLD_PX, 
-  MOBILE_LONG_PRESS_MS,
+  getRoleColor,
   type DragState,
 } from "./schedule-planner-utils";
-import { FatigueRiskBadge, DetailsTab, ConstraintsTab, SuggestionsTab } from "./schedule-planner-tabs";
 import {
-  SyncStatusIndicator,
   MobileCrewRosterDrawer,
   DateRangeSelector,
   TimelineHeader,
   DragGhostPreview,
-  ComplianceTab,
   AssignmentDrawerContent,
-  AssignmentBlock,
   VesselRow,
   type DragCompliancePreview,
 } from "./schedule-planner-components";
@@ -109,7 +94,7 @@ function AssignmentDrawer({
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  if (!assignment) return null;
+  if (!assignment) {return null;}
 
   if (isMobile) {
     return (
@@ -264,7 +249,7 @@ function CreateAssignmentSheet({
   // Handle crew selection with roster check
   const handleCrewSelect = (crewId: string) => {
     const member = crew.find(c => c.id === crewId);
-    if (!member || !prefillData) return;
+    if (!member || !prefillData) {return;}
     
     // If crew is not assigned to this vessel, show warning
     if (member.vesselId !== prefillData.vesselId) {
@@ -278,7 +263,7 @@ function CreateAssignmentSheet({
 
   // Handle roster reassignment confirmation
   const handleConfirmRosterReassign = async () => {
-    if (!pendingCrewSelection || !prefillData || !prefillData.vesselId || !onRosterReassign) return;
+    if (!pendingCrewSelection || !prefillData?.vesselId || !onRosterReassign) {return;}
     
     setIsReassigning(true);
     try {
@@ -304,13 +289,13 @@ function CreateAssignmentSheet({
   };
 
   const handleCreate = () => {
-    if (!prefillData || !prefillData.vesselId || !prefillData.startDate || !selectedCrewId || !selectedRole || !endDate) return;
+    if (!prefillData?.vesselId || !prefillData.startDate || !selectedCrewId || !selectedRole || !endDate) {return;}
     onCreate({
       vesselId: prefillData.vesselId,
       crewId: selectedCrewId,
       role: selectedRole,
       startDate: format(prefillData.startDate, "yyyy-MM-dd"),
-      endDate: endDate,
+      endDate,
     });
   };
 
@@ -538,7 +523,7 @@ export function SchedulePlanner() {
 
   // Keyboard shortcut: Ctrl+G to toggle Generator panel
   useEffect(() => {
-    if (!isFeatureEnabled('enableScheduleGenerator')) return;
+    if (!isFeatureEnabled('enableScheduleGenerator')) {return;}
     
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'g') {
@@ -586,7 +571,7 @@ export function SchedulePlanner() {
   }, []);
 
   const calculateDragTarget = useCallback((clientX: number, clientY: number): { vesselId: string; date: Date } | null => {
-    if (!gridRef.current || planner.timelineDays.length === 0) return null;
+    if (!gridRef.current || planner.timelineDays.length === 0) {return null;}
 
     const vesselRows = Array.from(gridRef.current.querySelectorAll('[data-testid^="vessel-row-"]'));
     let targetVesselId: string | null = null;
@@ -599,7 +584,7 @@ export function SchedulePlanner() {
       }
     }
 
-    if (!targetVesselId) return null;
+    if (!targetVesselId) {return null;}
 
     const cells = gridRef.current.querySelectorAll(`[data-testid^="cell-${targetVesselId}-"]`);
     let closestDate: Date | null = null;
@@ -624,7 +609,7 @@ export function SchedulePlanner() {
   }, [planner.timelineDays]);
 
   const checkComplianceForTarget = useCallback(async (targetDate: Date, targetVesselId: string) => {
-    if (!dragState) return;
+    if (!dragState) {return;}
     
     const originalStart = parseISO(dragState.originalStartDate);
     const originalEnd = parseISO(dragState.originalEndDate);
@@ -678,7 +663,7 @@ export function SchedulePlanner() {
   }, [horSync]);
 
   useEffect(() => {
-    if (!dragState) return;
+    if (!dragState) {return;}
 
     const handlePointerMove = (e: PointerEvent) => {
       setGhostPosition({ x: e.clientX, y: e.clientY });
@@ -724,7 +709,7 @@ export function SchedulePlanner() {
   }, [dragState, dragTarget, calculateDragTarget, checkComplianceForTarget, cancelDrag]);
 
   const handleDrop = useCallback(async (assignmentId: string, newStartDate: Date, targetVesselId: string) => {
-    if (!dragState) return;
+    if (!dragState) {return;}
     
     const originalStart = parseISO(dragState.originalStartDate);
     const originalEnd = parseISO(dragState.originalEndDate);

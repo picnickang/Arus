@@ -8,7 +8,6 @@
 import { db } from "../../db";
 import { eq, and, inArray } from "drizzle-orm";
 import {
-  roles,
   permissionGrants,
   userRoleAssignments,
   permissionResources,
@@ -219,7 +218,7 @@ export async function getResourcePermissions(
 ): Promise<Record<string, boolean>> {
   const permissions = await compileUserPermissions(userId, orgId);
   const resourceDef = RESOURCES.find((r) => r.code === resource);
-  if (!resourceDef) return {};
+  if (!resourceDef) {return {};}
 
   const result: Record<string, boolean> = {};
   for (const actionCode of resourceDef.actions) {

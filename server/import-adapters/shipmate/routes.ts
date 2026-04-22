@@ -109,10 +109,10 @@ router.post("/preview", requireOrgId, importLimit, async (req: Request, res: Res
       success: true,
       data: {
         ...result,
-        message: `Preview: ${result.imported} rows would be imported, ${result.skipped} skipped.` +
-          (result.hierarchyLevelsDetected > 0
+        message: `Preview: ${result.imported} rows would be imported, ${result.skipped} skipped.${ 
+          result.hierarchyLevelsDetected > 0
             ? ` Equipment hierarchy: ${result.hierarchyLevelsDetected} levels detected.`
-            : ""),
+            : ""}`,
       },
     });
   } catch (err) {

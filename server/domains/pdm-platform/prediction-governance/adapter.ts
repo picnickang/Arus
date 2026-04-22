@@ -29,7 +29,7 @@ export class PredictionGovernanceAdapter implements IPredictionGovernanceStorage
       .where(and(eq(failurePredictions.id, id), eq(failurePredictions.orgId, orgId)))
       .limit(1);
 
-    if (!prediction) return null;
+    if (!prediction) {return null;}
 
     let modelVersionInfo = null;
     if (prediction.modelVersionId) {

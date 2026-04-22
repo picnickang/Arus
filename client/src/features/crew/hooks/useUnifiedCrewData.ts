@@ -34,7 +34,7 @@ export function useUnifiedCrewData() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ level: data.level }),
       });
-      if (!response.ok) throw new Error(await response.text());
+      if (!response.ok) {throw new Error(await response.text());}
       return response.json();
     },
     invalidateKeys: ["/api/crew"],

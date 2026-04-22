@@ -59,8 +59,8 @@ export default function ServiceOrdersPage() {
   const isActionPending = sendMutation.isPending || confirmMutation.isPending || startMutation.isPending || completeMutation.isPending || cancelMutation.isPending;
 
   const filteredOrders = (orders ?? []).filter((order) => {
-    if (providerFilter !== "all" && order.serviceProviderId !== providerFilter) return false;
-    if (!search) return true;
+    if (providerFilter !== "all" && order.serviceProviderId !== providerFilter) {return false;}
+    if (!search) {return true;}
     const term = search.toLowerCase();
     return order.soNumber.toLowerCase().includes(term) || order.serviceProviderName?.toLowerCase().includes(term) || order.workOrderNumber?.toLowerCase().includes(term) || order.scope?.toLowerCase().includes(term) || order.status?.toLowerCase().includes(term);
   });
@@ -188,7 +188,7 @@ export default function ServiceOrdersPage() {
                 }))}
                 onSelect={(so) => {
                   const order = filteredOrders.find((o) => o.id === so.id);
-                  if (order) handleEdit(order);
+                  if (order) {handleEdit(order);}
                 }}
               />
             ) : filteredOrders.length === 0 ? (

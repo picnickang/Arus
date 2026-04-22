@@ -102,8 +102,8 @@ function selectBucketSize(startDate: Date, endDate: Date): BucketSize {
   const rangeMs = endDate.getTime() - startDate.getTime();
   const rangeHours = rangeMs / (1000 * 60 * 60);
 
-  if (rangeHours <= 2) return "1_minute";     // ≤2 hours: 1-minute buckets
-  if (rangeHours <= 72) return "1_hour";       // ≤3 days: 1-hour buckets
+  if (rangeHours <= 2) {return "1_minute";}     // ≤2 hours: 1-minute buckets
+  if (rangeHours <= 72) {return "1_hour";}       // ≤3 days: 1-hour buckets
   return "1_day";                               // >3 days: 1-day buckets
 }
 

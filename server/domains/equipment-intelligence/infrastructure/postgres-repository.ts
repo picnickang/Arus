@@ -13,26 +13,26 @@ import type {
 } from "../domain/types.js";
 
 function computeRisk(health: number): "critical" | "warning" | "low" {
-  if (health < 40) return "critical";
-  if (health < 70) return "warning";
+  if (health < 40) {return "critical";}
+  if (health < 70) {return "warning";}
   return "low";
 }
 
 function computeTrend(telemetry: number[]): "declining" | "stable" | "improving" {
-  if (telemetry.length < 2) return "stable";
+  if (telemetry.length < 2) {return "stable";}
   const first = telemetry.slice(0, Math.ceil(telemetry.length / 2));
   const second = telemetry.slice(Math.ceil(telemetry.length / 2));
   const avgFirst = first.reduce((a, b) => a + b, 0) / first.length;
   const avgSecond = second.reduce((a, b) => a + b, 0) / second.length;
   const diff = avgSecond - avgFirst;
-  if (diff < -3) return "declining";
-  if (diff > 3) return "improving";
+  if (diff < -3) {return "declining";}
+  if (diff > 3) {return "improving";}
   return "stable";
 }
 
 function statusFromRisk(risk: "critical" | "warning" | "low"): string {
-  if (risk === "critical") return "critical";
-  if (risk === "warning") return "warning";
+  if (risk === "critical") {return "critical";}
+  if (risk === "warning") {return "warning";}
   return "operational";
 }
 
@@ -45,8 +45,8 @@ function isSignalObject(value: unknown): value is SignalObject {
 }
 
 function parseSignalEntry(entry: unknown): string {
-  if (typeof entry === "string") return entry;
-  if (isSignalObject(entry) && typeof entry.description === "string") return entry.description;
+  if (typeof entry === "string") {return entry;}
+  if (isSignalObject(entry) && typeof entry.description === "string") {return entry.description;}
   return String(entry);
 }
 
@@ -96,9 +96,9 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
       }
       const vessel = vesselMap.get(vId)!;
       vessel.equipment++;
-      if (risk === "critical") vessel.critical++;
-      else if (risk === "warning") vessel.warning++;
-      else vessel.healthy++;
+      if (risk === "critical") {vessel.critical++;}
+      else if (risk === "warning") {vessel.warning++;}
+      else {vessel.healthy++;}
       vessel.avgHealth += healthScore;
     }
 
@@ -158,7 +158,7 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
     const insights = await this.fetchInsights(orgId);
     const insightMap = new Map<string, string[]>();
     for (const ins of insights) {
-      if (!ins.equipmentId) continue;
+      if (!ins.equipmentId) {continue;}
       const existing = insightMap.get(ins.equipmentId) || [];
       if (ins.supportingSignals) {
         try {
@@ -227,7 +227,7 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
       .leftJoin(vessels, eq(equipment.vesselId, vessels.id))
       .where(and(eq(equipment.orgId, orgId), eq(equipment.id, equipmentId)));
 
-    if (!row) return null;
+    if (!row) {return null;}
 
     const pdmScores = await this.fetchPdmScores(orgId, equipmentId);
     const healthScore = pdmScores[0]?.healthIdx ?? 100;
@@ -383,7 +383,7 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
   private async fetchPdmScores(orgId: string, equipmentId?: string) {
     const { pdmScoreLogs } = await import("@shared/schema-runtime");
     const conditions = [eq(pdmScoreLogs.orgId, orgId)];
-    if (equipmentId) conditions.push(eq(pdmScoreLogs.equipmentId, equipmentId));
+    if (equipmentId) {conditions.push(eq(pdmScoreLogs.equipmentId, equipmentId));}
     return db
       .select({
         equipmentId: pdmScoreLogs.equipmentId,
@@ -398,7 +398,7 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
 
   private async fetchPredictions(orgId: string, equipmentId?: string) {
     const conditions = [eq(failurePredictions.orgId, orgId)];
-    if (equipmentId) conditions.push(eq(failurePredictions.equipmentId, equipmentId));
+    if (equipmentId) {conditions.push(eq(failurePredictions.equipmentId, equipmentId));}
     return db
       .select()
       .from(failurePredictions)
@@ -409,7 +409,7 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
 
   private async fetchInsights(orgId: string, equipmentId?: string) {
     const conditions = [eq(actionableInsights.orgId, orgId)];
-    if (equipmentId) conditions.push(eq(actionableInsights.equipmentId, equipmentId));
+    if (equipmentId) {conditions.push(eq(actionableInsights.equipmentId, equipmentId));}
     return db
       .select()
       .from(actionableInsights)
@@ -423,7 +423,7 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
     equipmentIds: string[]
   ): Promise<Map<string, number[]>> {
     const result = new Map<string, number[]>();
-    if (equipmentIds.length === 0) return result;
+    if (equipmentIds.length === 0) {return result;}
 
     try {
       const { pdmScoreLogs } = await import("@shared/schema-runtime");
@@ -459,16 +459,16 @@ export class PostgresEquipmentIntelligenceRepository implements EquipmentIntelli
   }
 
   private recommendedActionText(risk: string, rul: number): string {
-    if (risk === "critical") return `replace within ${rul} days`;
-    if (risk === "warning") return "monitor closely";
+    if (risk === "critical") {return `replace within ${rul} days`;}
+    if (risk === "warning") {return "monitor closely";}
     return "continue normal operations";
   }
 
   private timeAgo(date: Date): string {
     const diff = Date.now() - date.getTime();
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    if (days === 0) return "today";
-    if (days === 1) return "1 day ago";
+    if (days === 0) {return "today";}
+    if (days === 1) {return "1 day ago";}
     return `${days} days ago`;
   }
 }

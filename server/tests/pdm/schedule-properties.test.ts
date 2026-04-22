@@ -30,7 +30,7 @@ describe('PdM Schedule Property-Based Tests (Tier 1)', () => {
           fc.constantFrom<'critical' | 'high' | 'medium' | 'low'>('critical', 'high', 'medium', 'low'),
           (highConf, lowConfOffset, telemetryFreshness, severity) => {
             const lowConf = Math.max(0, highConf - lowConfOffset - 1);
-            if (lowConf >= highConf) return;
+            if (lowConf >= highConf) {return;}
 
             const highBuffer = computeBufferDays({ confidence: highConf, telemetryFreshness, severity });
             const lowBuffer = computeBufferDays({ confidence: lowConf, telemetryFreshness, severity });

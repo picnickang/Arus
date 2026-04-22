@@ -55,7 +55,7 @@ export function EquipmentReinstateDialog({
   });
 
   const handleSubmit = () => {
-    if (!equipment) return;
+    if (!equipment) {return;}
     reinstateMutation.mutate({ notes });
   };
 
@@ -64,7 +64,7 @@ export function EquipmentReinstateDialog({
     onOpenChange(false);
   };
 
-  if (!equipment) return null;
+  if (!equipment) {return null;}
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>

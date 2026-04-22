@@ -32,7 +32,7 @@ const DRIFT_THRESHOLDS: Record<string, number> = {
 const DEFAULT_DRIFT_THRESHOLD = 15;
 
 function getDriftThreshold(sensorType?: string): number {
-  if (!sensorType) return DEFAULT_DRIFT_THRESHOLD;
+  if (!sensorType) {return DEFAULT_DRIFT_THRESHOLD;}
   const key = sensorType.toLowerCase().replace(/\s+/g, "_");
   return DRIFT_THRESHOLDS[key] ?? DEFAULT_DRIFT_THRESHOLD;
 }
@@ -57,7 +57,7 @@ export function useOperationsModeData() {
     const driftingSensors = telemetryTrends.filter((trend) => {
       const baseline = trend.baseline || trend.average || 0;
       const current = trend.currentValue || 0;
-      if (baseline === 0) return false;
+      if (baseline === 0) {return false;}
       const deviation = Math.abs((current - baseline) / baseline) * 100;
       const threshold = getDriftThreshold(trend.sensorType);
       return deviation > threshold;
@@ -84,7 +84,7 @@ export function useOperationsModeData() {
 
   const acknowledgedCount = useMemo(() => {
     let count = 0;
-    anomalyAckState.forEach((status) => { if (status === "acknowledged") count++; });
+    anomalyAckState.forEach((status) => { if (status === "acknowledged") {count++;} });
     return count;
   }, [anomalyAckState]);
 

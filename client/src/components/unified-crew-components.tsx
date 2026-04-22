@@ -33,10 +33,10 @@ export function EmploymentHistoryPanel({ crewId }: EmploymentHistoryPanelProps) 
   };
 
   const handleSaveEdit = () => {
-    if (!editingRecord) return;
+    if (!editingRecord) {return;}
     const data: UpdateEmploymentHistoryInput = {};
-    if (editStartDate) data.startDate = new Date(editStartDate).toISOString();
-    if (editEndDate) data.endDate = new Date(editEndDate).toISOString();
+    if (editStartDate) {data.startDate = new Date(editStartDate).toISOString();}
+    if (editEndDate) {data.endDate = new Date(editEndDate).toISOString();}
     data.terminationNotes = editNotes;
     updateMutation.mutate({ historyId: editingRecord.id, data }, { onSuccess: () => setEditingRecord(null) });
   };

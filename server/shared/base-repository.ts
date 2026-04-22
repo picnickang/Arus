@@ -243,7 +243,7 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
   }
 
   async bulkCreate(items: InsertT[]): Promise<T[]> {
-    if (items.length === 0) return [];
+    if (items.length === 0) {return [];}
 
     const result = await db
       .insert(this.table)
@@ -254,12 +254,12 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
   }
 
   async bulkDelete(ids: string[], orgId: string): Promise<number> {
-    if (ids.length === 0) return 0;
+    if (ids.length === 0) {return 0;}
 
     let deleted = 0;
     for (const id of ids) {
       const success = await this.delete(id, orgId);
-      if (success) deleted++;
+      if (success) {deleted++;}
     }
 
     return deleted;

@@ -97,7 +97,7 @@ export function SensorTemplateFormDialog({
         kind: template.kind,
         unit: template.unit || "",
         equipmentTypes: template.equipmentTypes ?? [],
-        fields: template.fields as Record<string, unknown>,
+        fields: template.fields,
         notes: template.notes || "",
       });
       setFieldsJson(JSON.stringify(template.fields, null, 2));
@@ -407,7 +407,7 @@ export function SensorTemplateFormDialog({
             variant="outline"
             onClick={() => {
               onOpenChange(false);
-              if (isCreate) resetForm();
+              if (isCreate) {resetForm();}
             }}
             data-testid={`button-cancel-${isCreate ? "create" : "edit"}`}
           >

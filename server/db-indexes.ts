@@ -86,7 +86,7 @@ async function autoCreateMissingIndexes(missing: string[]): Promise<void> {
 
   for (const indexName of missing) {
     const def = INDEX_DEFINITIONS[indexName];
-    if (!def) continue;
+    if (!def) {continue;}
 
     try {
       await db.execute(

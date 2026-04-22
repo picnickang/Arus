@@ -3,7 +3,6 @@ import { z } from "zod";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { requireOrgId, type AuthenticatedRequest } from "../../middleware/auth";
-import { logger } from "../../utils/logger";
 
 const MODULE = "vetting";
 const router = Router();
@@ -55,9 +54,9 @@ router.get("/", requireOrgId, async (req: Request, res: Response) => {
       FROM vetting_inspections vi LEFT JOIN vessels v ON vi.vessel_id = v.id
       WHERE vi.org_id = ${getOrgId(req)}
     `;
-    if (vesselId) q = sql`${q} AND vi.vessel_id = ${vesselId as string}`;
-    if (type) q = sql`${q} AND vi.inspection_type = ${type as string}`;
-    if (status) q = sql`${q} AND vi.status = ${status as string}`;
+    if (vesselId) {q = sql`${q} AND vi.vessel_id = ${vesselId as string}`;}
+    if (type) {q = sql`${q} AND vi.inspection_type = ${type as string}`;}
+    if (status) {q = sql`${q} AND vi.status = ${status as string}`;}
     q = sql`${q} ORDER BY vi.inspection_date DESC`;
     const result = await db.execute(q);
     res.json(getRows(result));
@@ -97,7 +96,7 @@ router.post("/", requireOrgId, async (req: Request, res: Response) => {
 
     res.status(201).json(inspection);
   } catch (err) {
-    if (err instanceof z.ZodError) return res.status(400).json({ error: "Validation failed", details: err.flatten() });
+    if (err instanceof z.ZodError) {return res.status(400).json({ error: "Validation failed", details: err.flatten() });}
     res.status(500).json({ error: "Failed to create inspection" });
   }
 });
@@ -135,7 +134,7 @@ router.post("/:inspectionId/findings", requireOrgId, async (req: Request, res: R
 
     res.status(201).json(getFirstRow(result));
   } catch (err) {
-    if (err instanceof z.ZodError) return res.status(400).json({ error: "Validation failed", details: err.flatten() });
+    if (err instanceof z.ZodError) {return res.status(400).json({ error: "Validation failed", details: err.flatten() });}
     res.status(500).json({ error: "Failed to add finding" });
   }
 });

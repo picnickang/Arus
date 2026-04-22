@@ -2,7 +2,7 @@
  * Sensors - Database Storage
  */
 
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { db } from "../../db";
 import { sensorConfigurations, sensorStates, j1939Configurations, type SensorConfiguration, type InsertSensorConfiguration, type SensorState, type InsertSensorState, type J1939Configuration, type InsertJ1939Configuration } from "@shared/schema";
 import { publishEvent } from "../../sync-events";

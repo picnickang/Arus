@@ -90,7 +90,7 @@ async function getDbClient() {
   }
 
   const url = process.env.TURSO_DB_URL ?? process.env.DATABASE_URL;
-  if (!url) throw new Error('DATABASE_URL or TURSO_DB_URL is required in cloud mode');
+  if (!url) {throw new Error('DATABASE_URL or TURSO_DB_URL is required in cloud mode');}
   const authToken = process.env.TURSO_AUTH_TOKEN;
   return createClient({ url, authToken });
 }

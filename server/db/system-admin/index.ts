@@ -52,13 +52,13 @@ export class DatabaseSystemAdminStorage extends DbAuditStorage {
     const { eq, and, sql: sqlFn } = await import("drizzle-orm");
     const { db: database } = await import("../../db-config");
     const conditions: any[] = [];
-    if (filters?.orgId) conditions.push(eq(errorLogs.orgId, filters.orgId));
-    if (filters?.level) conditions.push(eq(errorLogs.severity, filters.level));
-    if (filters?.source) conditions.push(eq(errorLogs.category, filters.source));
+    if (filters?.orgId) {conditions.push(eq(errorLogs.orgId, filters.orgId));}
+    if (filters?.level) {conditions.push(eq(errorLogs.severity, filters.level));}
+    if (filters?.source) {conditions.push(eq(errorLogs.category, filters.source));}
     let query = database.select().from(errorLogs);
-    if (conditions.length > 0) query = query.where(and(...conditions));
+    if (conditions.length > 0) {query = query.where(and(...conditions));}
     query = query.orderBy(sqlFn`${errorLogs.timestamp} DESC`);
-    if (filters?.limit) query = query.limit(filters.limit);
+    if (filters?.limit) {query = query.limit(filters.limit);}
     return query;
   }
 

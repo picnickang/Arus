@@ -84,7 +84,7 @@ function useAttentionItems() {
   });
 
   const attentionItems = useMemo(() => {
-    if (!summary) return [];
+    if (!summary) {return [];}
     const items: Array<{ label: string; count: number; severity: string; href: string }> = [];
 
     if (summary.overdueWorkOrders > 0) {
@@ -105,7 +105,7 @@ function useAttentionItems() {
 
 function SinceLastVisit({ data }: { data: { newAlerts: number; newWorkOrders: number; completedWorkOrders: number } }) {
   const total = data.newAlerts + data.newWorkOrders + data.completedWorkOrders;
-  if (total === 0) return null;
+  if (total === 0) {return null;}
 
   return (
     <div className="mb-6 p-4 rounded-lg border bg-card" data-testid="section-since-last-visit">
@@ -146,7 +146,7 @@ function MyTasks() {
   const [, setLocation] = useLocation();
   const tasks = Array.isArray(myWorkOrders) ? myWorkOrders.slice(0, 5) : [];
 
-  if (tasks.length === 0) return null;
+  if (tasks.length === 0) {return null;}
 
   return (
     <div className="mb-6">

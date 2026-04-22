@@ -152,7 +152,7 @@ export function configureMiddleware(app: Express): void {
         let line = `${shortId}${req.method} ${path} ${res.statusCode} in ${duration}ms`;
         if (capturedJsonResponse) {
           const jsonStr = safeStringify(capturedJsonResponse);
-          line += ` :: ${jsonStr.length > 500 ? jsonStr.slice(0, 500) + '...' : jsonStr}`;
+          line += ` :: ${jsonStr.length > 500 ? `${jsonStr.slice(0, 500)  }...` : jsonStr}`;
         }
         console.log(line);
       }
@@ -172,7 +172,7 @@ export async function configureAuthMiddleware(app: Express): Promise<void> {
   const publicPaths = new Set(["/healthz", "/readyz", "/health", "/metrics"]);
 
   const skipPublicPaths = (middleware: any) => (req: any, res: any, next: any) => {
-    if (publicPaths.has(req.path)) return next();
+    if (publicPaths.has(req.path)) {return next();}
     return middleware(req, res, next);
   };
 

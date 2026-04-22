@@ -54,7 +54,7 @@ function EquipmentLink({ equipmentId }: { equipmentId: string }) {
 }
 
 function TimestampBadge({ label, timestamp }: { label: string; timestamp?: string | Date | null }) {
-  if (!timestamp) return null;
+  if (!timestamp) {return null;}
   const d = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
   const relative = getRelativeTime(d);
   return (
@@ -69,10 +69,10 @@ function getRelativeTime(date: Date): string {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return "just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffMin < 1) {return "just now";}
+  if (diffMin < 60) {return `${diffMin}m ago`;}
   const diffHrs = Math.floor(diffMin / 60);
-  if (diffHrs < 24) return `${diffHrs}h ago`;
+  if (diffHrs < 24) {return `${diffHrs}h ago`;}
   const diffDays = Math.floor(diffHrs / 24);
   return `${diffDays}d ago`;
 }
@@ -143,7 +143,7 @@ function FeatureStoreTab() {
   const equipmentName = useEquipmentName(equipmentId);
 
   const handleCompute = async () => {
-    if (!equipmentId) return;
+    if (!equipmentId) {return;}
     try {
       await computeMutation.mutateAsync({ equipmentId });
       toast({ title: "Features computed successfully" });
@@ -345,7 +345,7 @@ function ModelRegistryTab({ highlightedVersionId }: { highlightedVersionId?: str
   const { data: deployment } = useActiveDeployment(selectedModelId ?? "");
 
   useEffect(() => {
-    if (!highlightedVersionId || highlightedVersionId === resolvedRef.current || modelsList.length === 0) return;
+    if (!highlightedVersionId || highlightedVersionId === resolvedRef.current || modelsList.length === 0) {return;}
     resolvedRef.current = highlightedVersionId;
     const resolveParentModel = async () => {
       for (const m of modelsList) {
@@ -353,7 +353,7 @@ function ModelRegistryTab({ highlightedVersionId }: { highlightedVersionId?: str
           const res = await fetch(`/api/pdm/models/${m.id}/versions`, {
             headers: { "x-org-id": currentOrgId },
           });
-          if (!res.ok) continue;
+          if (!res.ok) {continue;}
           const versionsList = await res.json();
           if (Array.isArray(versionsList) && versionsList.some((v: any) => v.id === highlightedVersionId)) {
             setSelectedModelId(m.id);
@@ -442,13 +442,13 @@ function InferenceTab() {
   const [, navigate] = useLocation();
 
   const handleInference = async () => {
-    if (!equipmentId) return;
+    if (!equipmentId) {return;}
     try {
       const result = await inferenceMutation.mutateAsync({ equipmentId });
       setLastResult(result);
       setLastInferredEquipmentId(equipmentId);
       setInferenceTime(new Date());
-      if (result.inferenceRun?.predictionId) setLastPredictionId(result.inferenceRun.predictionId);
+      if (result.inferenceRun?.predictionId) {setLastPredictionId(result.inferenceRun.predictionId);}
       toast({ title: "Inference completed" });
     } catch {
       toast({ title: "Inference failed", variant: "destructive" });
@@ -655,8 +655,8 @@ function DriftMonitoringTab() {
 function ArtifactsViewer({ modelVersionId }: { modelVersionId: string }) {
   const { data: artifacts, isLoading } = useTrainingArtifacts(modelVersionId);
 
-  if (isLoading) return <div className="flex items-center gap-2 py-2"><Loader2 className="w-4 h-4 animate-spin" /> Loading artifacts...</div>;
-  if (!Array.isArray(artifacts) || artifacts.length === 0) return <div className="text-sm text-muted-foreground py-2">No artifacts found.</div>;
+  if (isLoading) {return <div className="flex items-center gap-2 py-2"><Loader2 className="w-4 h-4 animate-spin" /> Loading artifacts...</div>;}
+  if (!Array.isArray(artifacts) || artifacts.length === 0) {return <div className="text-sm text-muted-foreground py-2">No artifacts found.</div>;}
 
   return (
     <div className="space-y-2">
@@ -1124,16 +1124,16 @@ function GovernanceTab({ onSwitchToModels }: { onSwitchToModels: (modelId: strin
   const suppressMutation = useSuppressPrediction();
 
   const statusBadgeVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
-    if (status === "approved") return "default";
-    if (status === "suppressed") return "destructive";
-    if (status === "expired") return "outline";
-    if (status === "reviewed") return "secondary";
+    if (status === "approved") {return "default";}
+    if (status === "suppressed") {return "destructive";}
+    if (status === "expired") {return "outline";}
+    if (status === "reviewed") {return "secondary";}
     return "secondary";
   };
 
   const riskBadgeVariant = (level: string): "default" | "secondary" | "destructive" | "outline" => {
-    if (level === "critical") return "destructive";
-    if (level === "high") return "secondary";
+    if (level === "critical") {return "destructive";}
+    if (level === "high") {return "secondary";}
     return "default";
   };
 
@@ -1162,7 +1162,7 @@ function GovernanceTab({ onSwitchToModels }: { onSwitchToModels: (modelId: strin
   };
 
   const handleSuppressConfirm = async () => {
-    if (!suppressTargetId || !suppressReason.trim()) return;
+    if (!suppressTargetId || !suppressReason.trim()) {return;}
     try {
       await suppressMutation.mutateAsync({ id: suppressTargetId, reason: suppressReason });
       toast({ title: "Prediction suppressed" });

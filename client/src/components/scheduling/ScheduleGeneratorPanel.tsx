@@ -87,7 +87,7 @@ export function ScheduleGeneratorPanel({ isOpen, onOpenChange }: ScheduleGenerat
 
   const applyMutation = useMutation({
     mutationFn: async (vesselIds?: string[]) => {
-      if (!simulationResult) throw new Error("No simulation result to apply");
+      if (!simulationResult) {throw new Error("No simulation result to apply");}
       return apiRequest("POST", "/api/schedule/apply-draft", { 
         simulationResult, 
         skipCollisions: true,
@@ -149,7 +149,7 @@ export function ScheduleGeneratorPanel({ isOpen, onOpenChange }: ScheduleGenerat
       const hasWarning = a.status === "warning" || !!a.warningReason;
       if (existing) {
         existing.assignments.push(a);
-        if (hasWarning) existing.warningCount++;
+        if (hasWarning) {existing.warningCount++;}
       } else {
         groups.set(a.vesselId, { 
           vesselName: a.vesselName, 
@@ -217,7 +217,7 @@ export function ScheduleGeneratorPanel({ isOpen, onOpenChange }: ScheduleGenerat
   }, [runs, selectedRunsForCompare]);
 
   const comparisonData = useMemo(() => {
-    if (selectedRunsArray.length !== 2) return null;
+    if (selectedRunsArray.length !== 2) {return null;}
     const [baseline, candidate] = selectedRunsArray;
     const statsBaseline = baseline.stats || { proposed: 0, unfilled: 0, collisions: 0 };
     const statsCandidate = candidate.stats || { proposed: 0, unfilled: 0, collisions: 0 };
@@ -242,7 +242,7 @@ export function ScheduleGeneratorPanel({ isOpen, onOpenChange }: ScheduleGenerat
       if (group) {
         totalAssignments += group.assignments.length;
         warningCount += group.warningCount;
-        if (group.hasCollisions) collisionCount++;
+        if (group.hasCollisions) {collisionCount++;}
       }
     });
     return { totalAssignments, warningCount, collisionCount };
@@ -851,7 +851,7 @@ export function ScheduleGeneratorPanel({ isOpen, onOpenChange }: ScheduleGenerat
             <div className="border rounded-md p-3 space-y-2 max-h-48 overflow-y-auto">
               {Array.from(selectedVesselsForApply).map(vesselId => {
                 const group = vesselGroups.get(vesselId);
-                if (!group) return null;
+                if (!group) {return null;}
                 return (
                   <div key={vesselId} className="flex items-center gap-2 text-sm">
                     <Check className="h-4 w-4 text-green-400" />

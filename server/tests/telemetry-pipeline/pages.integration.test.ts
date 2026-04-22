@@ -300,8 +300,8 @@ describe("Page-Level Telemetry Integration", () => {
 describe("Equipment Resolution", () => {
   it("should use custom equipment resolver when provided", () => {
     const customResolver = (source: string): string | null => {
-      if (source === "CAN0") return "engine-main";
-      if (source === "CAN1") return "engine-aux";
+      if (source === "CAN0") {return "engine-main";}
+      if (source === "CAN1") {return "engine-aux";}
       return null;
     };
 

@@ -52,10 +52,10 @@ class TelemetryHealthController {
 
   getIngestionRate(vesselId: string): number {
     const counter = this.ingestionCounters.get(vesselId);
-    if (!counter) return 0;
+    if (!counter) {return 0;}
 
     const elapsed = Date.now() - counter.windowStart;
-    if (elapsed <= 0) return 0;
+    if (elapsed <= 0) {return 0;}
 
     return (counter.count / elapsed) * 1000;
   }

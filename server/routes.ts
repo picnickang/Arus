@@ -55,7 +55,7 @@ export async function registerRoutes(
   } else {
     const publicPaths = new Set(["/healthz", "/readyz", "/health", "/metrics"]);
     app.use("/api", (req, res, next) => {
-      if (publicPaths.has(req.path)) return next();
+      if (publicPaths.has(req.path)) {return next();}
       return requireOrgId(req, res, next);
     });
     console.log("[Security] Global tenant isolation middleware registered (before all /api routes)");

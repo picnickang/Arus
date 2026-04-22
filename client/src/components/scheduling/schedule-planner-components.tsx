@@ -106,18 +106,18 @@ export function MobileCrewRosterDrawer({
 
   const filteredCrew = useMemo(() => {
     return crew.filter(c => {
-      if (searchQuery && !c.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-      if (rankFilter && c.rank !== rankFilter) return false;
+      if (searchQuery && !c.name.toLowerCase().includes(searchQuery.toLowerCase())) {return false;}
+      if (rankFilter && c.rank !== rankFilter) {return false;}
       if (availabilityFilter) {
         const status = c.availability || (c.onLeave ? "leave" : "available");
-        if (status !== availabilityFilter) return false;
+        if (status !== availabilityFilter) {return false;}
       }
       return c.active;
     });
   }, [crew, searchQuery, rankFilter, availabilityFilter]);
 
   const getVesselName = (vesselId?: string) => {
-    if (!vesselId) return "Unassigned";
+    if (!vesselId) {return "Unassigned";}
     const vessel = vessels.find(v => v.id === vesselId);
     return vessel?.name || "Unknown Vessel";
   };
@@ -366,7 +366,7 @@ export function ComplianceTab({
   fatigue?: FatigueResult;
 }) {
   const getComplianceStatus = () => {
-    if (!fatigue) return { status: "UNKNOWN", color: "text-muted-foreground", bg: "bg-muted" };
+    if (!fatigue) {return { status: "UNKNOWN", color: "text-muted-foreground", bg: "bg-muted" };}
     switch (fatigue.riskLevel) {
       case "critical":
         return { status: "NON-COMPLIANT", color: "text-red-600", bg: "bg-red-100 dark:bg-red-900/30" };
@@ -610,13 +610,13 @@ export function AssignmentBlock({
 
   useEffect(() => {
     return () => {
-      if (tooltipTimeoutRef.current) clearTimeout(tooltipTimeoutRef.current);
-      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+      if (tooltipTimeoutRef.current) {clearTimeout(tooltipTimeoutRef.current);}
+      if (longPressTimerRef.current) {clearTimeout(longPressTimerRef.current);}
     };
   }, []);
 
   const handlePointerDown = (e: React.PointerEvent) => {
-    if (isDragging) return;
+    if (isDragging) {return;}
 
     pointerDownRef.current = { x: e.clientX, y: e.clientY, time: Date.now() };
     hasDragStartedRef.current = false;
@@ -633,7 +633,7 @@ export function AssignmentBlock({
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!pointerDownRef.current || hasDragStartedRef.current || isDragging) return;
+    if (!pointerDownRef.current || hasDragStartedRef.current || isDragging) {return;}
 
     const deltaX = Math.abs(e.clientX - pointerDownRef.current.x);
     const deltaY = Math.abs(e.clientY - pointerDownRef.current.y);
@@ -641,7 +641,7 @@ export function AssignmentBlock({
 
     if (isMobile) {
       if (distance > DRAG_THRESHOLD_PX) {
-        if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+        if (longPressTimerRef.current) {clearTimeout(longPressTimerRef.current);}
         pointerDownRef.current = null;
       }
     } else {
@@ -654,7 +654,7 @@ export function AssignmentBlock({
   };
 
   const handlePointerUp = () => {
-    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    if (longPressTimerRef.current) {clearTimeout(longPressTimerRef.current);}
 
     const wasClick = pointerDownRef.current && !hasDragStartedRef.current;
     const elapsed = pointerDownRef.current ? Date.now() - pointerDownRef.current.time : 0;
@@ -664,7 +664,7 @@ export function AssignmentBlock({
     if (wasClick && elapsed < 300) {
       if (isMobile) {
         setShowMobileTooltip(!showMobileTooltip);
-        if (tooltipTimeoutRef.current) clearTimeout(tooltipTimeoutRef.current);
+        if (tooltipTimeoutRef.current) {clearTimeout(tooltipTimeoutRef.current);}
         tooltipTimeoutRef.current = setTimeout(() => setShowMobileTooltip(false), 3000);
       }
       onClick();
@@ -672,7 +672,7 @@ export function AssignmentBlock({
   };
 
   const handlePointerCancel = () => {
-    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    if (longPressTimerRef.current) {clearTimeout(longPressTimerRef.current);}
     pointerDownRef.current = null;
     hasDragStartedRef.current = false;
   };

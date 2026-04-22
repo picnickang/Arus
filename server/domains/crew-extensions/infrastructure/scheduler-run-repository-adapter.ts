@@ -42,8 +42,8 @@ export class SchedulerRunRepositoryAdapter implements ISchedulerRunRepository {
 
   async findById(id: string, orgId?: string): Promise<SchedulerRunEntity | undefined> {
     const run = await dbSchedulerStorage.getSchedulerRun(id);
-    if (!run) return undefined;
-    if (orgId && run.orgId !== orgId) return undefined;
+    if (!run) {return undefined;}
+    if (orgId && run.orgId !== orgId) {return undefined;}
     return mapToEntity(run);
   }
 

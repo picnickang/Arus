@@ -17,7 +17,7 @@ function registerJ1587Pid(pid: number, decoder: J1587Decoder): void {
 }
 
 registerJ1587Pid(190, (data, ts, equipmentId, source) => {
-  if (data.length < 3) return [];
+  if (data.length < 3) {return [];}
   
   const raw = data.readUInt16LE(1);
   const rpm = raw * 0.25;
@@ -36,7 +36,7 @@ registerJ1587Pid(190, (data, ts, equipmentId, source) => {
 });
 
 registerJ1587Pid(110, (data, ts, equipmentId, source) => {
-  if (data.length < 2) return [];
+  if (data.length < 2) {return [];}
   
   const raw = data.readUInt8(1);
   const tempC = raw - 40;
@@ -56,7 +56,7 @@ registerJ1587Pid(110, (data, ts, equipmentId, source) => {
 });
 
 registerJ1587Pid(100, (data, ts, equipmentId, source) => {
-  if (data.length < 2) return [];
+  if (data.length < 2) {return [];}
   
   const raw = data.readUInt8(1);
   const kpa = raw * 4;
@@ -76,7 +76,7 @@ registerJ1587Pid(100, (data, ts, equipmentId, source) => {
 });
 
 registerJ1587Pid(182, (data, ts, equipmentId, source) => {
-  if (data.length < 3) return [];
+  if (data.length < 3) {return [];}
   
   const raw = data.readUInt16LE(1);
   const literPerHour = raw * 0.05;
@@ -96,7 +96,7 @@ registerJ1587Pid(182, (data, ts, equipmentId, source) => {
 });
 
 registerJ1587Pid(247, (data, ts, equipmentId, source) => {
-  if (data.length < 5) return [];
+  if (data.length < 5) {return [];}
   
   const raw = data.readUInt32LE(1);
   const hours = raw * 0.05;
@@ -116,7 +116,7 @@ registerJ1587Pid(247, (data, ts, equipmentId, source) => {
 });
 
 registerJ1587Pid(168, (data, ts, equipmentId, source) => {
-  if (data.length < 3) return [];
+  if (data.length < 3) {return [];}
   
   const raw = data.readUInt16LE(1);
   const volts = raw * 0.05;
@@ -136,7 +136,7 @@ registerJ1587Pid(168, (data, ts, equipmentId, source) => {
 });
 
 registerJ1587Pid(177, (data, ts, equipmentId, source) => {
-  if (data.length < 2) return [];
+  if (data.length < 2) {return [];}
   
   const raw = data.readUInt8(1);
   const tempC = raw - 40;
@@ -156,7 +156,7 @@ registerJ1587Pid(177, (data, ts, equipmentId, source) => {
 });
 
 registerJ1587Pid(102, (data, ts, equipmentId, source) => {
-  if (data.length < 2) return [];
+  if (data.length < 2) {return [];}
   
   const raw = data.readUInt8(1);
   const kpa = raw * 2;
@@ -176,7 +176,7 @@ registerJ1587Pid(102, (data, ts, equipmentId, source) => {
 });
 
 registerJ1587Pid(92, (data, ts, equipmentId, source) => {
-  if (data.length < 2) return [];
+  if (data.length < 2) {return [];}
   
   const raw = data.readUInt8(1);
   const loadPercent = raw * 0.5;
@@ -196,7 +196,7 @@ registerJ1587Pid(92, (data, ts, equipmentId, source) => {
 });
 
 registerJ1587Pid(173, (data, ts, equipmentId, source) => {
-  if (data.length < 3) return [];
+  if (data.length < 3) {return [];}
   
   const raw = data.readUInt16LE(1);
   const tempC = raw * 0.03125 - 273;
@@ -216,7 +216,7 @@ registerJ1587Pid(173, (data, ts, equipmentId, source) => {
 });
 
 registerJ1587Pid(105, (data, ts, equipmentId, source) => {
-  if (data.length < 2) return [];
+  if (data.length < 2) {return [];}
   
   const raw = data.readUInt8(1);
   const tempC = raw - 40;
@@ -241,7 +241,7 @@ export function decodeJ1587(frame: RawFrame, ctx: DecodeContext = {}): Telemetry
   }
 
   const buf = frame.payload;
-  if (buf.length < 2) return [];
+  if (buf.length < 2) {return [];}
 
   const pid = buf.readUInt8(0);
   

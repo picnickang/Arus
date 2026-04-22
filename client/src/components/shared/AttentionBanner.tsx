@@ -27,7 +27,7 @@ interface AttentionBannerProps {
 export function AttentionBanner({ items, className }: AttentionBannerProps) {
   const [, setLocation] = useLocation();
 
-  if (items.length === 0) return null;
+  if (items.length === 0) {return null;}
 
   const hasCritical = items.some((i) => i.severity === "critical");
 

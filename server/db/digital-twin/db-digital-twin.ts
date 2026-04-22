@@ -2,7 +2,7 @@
  * Digital Twin - Database Storage
  */
 
-import { eq, and, desc, gte, lte, sql } from "drizzle-orm";
+import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { db } from "../../db-config";
 import { digitalTwins, twinSimulations, errorLogs, systemPerformanceMetrics, vessels, type DigitalTwin, type TwinSimulation, type ErrorLog, type InsertErrorLog, type SystemPerformanceMetric, type InsertSystemPerformanceMetric } from "@shared/schema-runtime";
 import type { ErrorLogFilters, ErrorLogStats } from "./types.js";

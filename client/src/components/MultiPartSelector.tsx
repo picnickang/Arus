@@ -276,7 +276,7 @@ export function MultiPartSelector({ workOrderId, vesselId, onPartsAdded }: Multi
         open={outOfStockDialogOpen}
         onOpenChange={(open) => {
           setOutOfStockDialogOpen(open);
-          if (!open) setSelectedOutOfStockPartId(null);
+          if (!open) {setSelectedOutOfStockPartId(null);}
         }}
         partInfo={outOfStockPartInfo || null}
         isLoading={isLoadingStockStatus}

@@ -21,7 +21,7 @@ registerTool({
   requiresApproval: false,
   async execute(input: { equipmentId?: string; limit?: number }, ctx) {
     const conditions = [eq(alertNotifications.orgId, ctx.orgId)];
-    if (input.equipmentId) conditions.push(eq(alertNotifications.equipmentId, input.equipmentId));
+    if (input.equipmentId) {conditions.push(eq(alertNotifications.equipmentId, input.equipmentId));}
 
     const alerts = await db.select().from(alertNotifications)
       .where(and(...conditions))

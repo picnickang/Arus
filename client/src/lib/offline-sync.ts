@@ -56,7 +56,7 @@ const DB_VERSION = 1;
 let dbInstance: IDBPDatabase<OfflineSyncDB> | null = null;
 
 async function getDB(): Promise<IDBPDatabase<OfflineSyncDB>> {
-  if (dbInstance) return dbInstance;
+  if (dbInstance) {return dbInstance;}
 
   dbInstance = await openDB<OfflineSyncDB>(DB_NAME, DB_VERSION, {
     upgrade(db) {
@@ -208,7 +208,7 @@ export async function resolveConflict(
 ): Promise<void> {
   const db = await getDB();
   const conflict = await db.get("conflicts", operationId);
-  if (!conflict) return;
+  if (!conflict) {return;}
 
   conflict.resolution = resolution;
   conflict.resolvedAt = new Date().toISOString();

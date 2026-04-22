@@ -18,7 +18,7 @@ export interface ConfidenceLabel {
 export function getSeverityVariant(
   severity: string | null | undefined
 ): "default" | "destructive" | "outline" | "secondary" {
-  if (!severity) return "secondary";
+  if (!severity) {return "secondary";}
   switch (severity.toLowerCase()) {
     case "critical":
     case "high":

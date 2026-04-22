@@ -4,7 +4,6 @@ import {
   purchaseRequests,
   purchaseRequestEvents,
   purchaseOrderEvents,
-  purchaseOrders,
   users,
 } from "@shared/schema";
 import type { IPurchaseEventRepository } from "../domain/ports";
@@ -23,7 +22,7 @@ export class PurchaseEventRepositoryAdapter implements IPurchaseEventRepository 
       .from(purchaseRequests)
       .where(and(eq(purchaseRequests.id, prId), eq(purchaseRequests.orgId, orgId)));
 
-    if (!pr) return null;
+    if (!pr) {return null;}
 
     const prEvents = await db
       .select({
@@ -44,7 +43,7 @@ export class PurchaseEventRepositoryAdapter implements IPurchaseEventRepository 
 
     const linkedPoIds = await this.findLinkedPOIds(prId, orgId);
 
-    let poEvents: RawEvent[] = [];
+    const poEvents: RawEvent[] = [];
     if (linkedPoIds.length > 0) {
       for (const poId of linkedPoIds) {
         const events = await db
@@ -94,7 +93,7 @@ export class PurchaseEventRepositoryAdapter implements IPurchaseEventRepository 
     const poIds = new Set<string>();
     for (const evt of events) {
       const details = evt.details as Record<string, unknown> | null;
-      if (!details) continue;
+      if (!details) {continue;}
 
       if (details.poId && typeof details.poId === "string") {
         poIds.add(details.poId);
@@ -103,8 +102,8 @@ export class PurchaseEventRepositoryAdapter implements IPurchaseEventRepository 
         for (const po of details.purchaseOrders) {
           if (po && typeof po === "object") {
             const poObj = po as Record<string, unknown>;
-            if (typeof poObj.poId === "string") poIds.add(poObj.poId);
-            else if (typeof poObj.id === "string") poIds.add(poObj.id);
+            if (typeof poObj.poId === "string") {poIds.add(poObj.poId);}
+            else if (typeof poObj.id === "string") {poIds.add(poObj.id);}
           }
         }
       }
@@ -134,7 +133,7 @@ export class PurchaseEventRepositoryAdapter implements IPurchaseEventRepository 
 
   async resolveUserNames(userIds: string[]): Promise<Map<string, string>> {
     const nameMap = new Map<string, string>();
-    if (userIds.length === 0) return nameMap;
+    if (userIds.length === 0) {return nameMap;}
 
     const uniqueIds = [...new Set(userIds)];
     const rows = await db

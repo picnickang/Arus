@@ -2,7 +2,7 @@
  * Optimizer - Database Storage
  */
 
-import { eq, and, desc, gte, lte, asc, sql } from "drizzle-orm";
+import { eq, and, gte, lte, asc, sql } from "drizzle-orm";
 import { db } from "../../db";
 import { optimizerConfigurations, resourceConstraints, optimizationResults, scheduleOptimizations, type OptimizerConfiguration, type InsertOptimizerConfiguration, type ResourceConstraint, type InsertResourceConstraint, type OptimizationResult, type InsertOptimizationResult, type ScheduleOptimization, type InsertScheduleOptimization } from "@shared/schema";
 

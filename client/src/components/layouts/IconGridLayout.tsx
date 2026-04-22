@@ -102,9 +102,9 @@ function GridItemCard({
 
 function useDeferredComponent(item: GridItem | undefined) {
   return useMemo(() => {
-    if (!item) return null;
+    if (!item) {return null;}
 
-    if (item.component) return item.component;
+    if (item.component) {return item.component;}
 
     if (item.load) {
       const LazyComponent = lazy(item.load);

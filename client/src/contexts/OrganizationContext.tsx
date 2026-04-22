@@ -25,7 +25,7 @@ interface StoredUser {
   organizationName?: string;
 }
 
-let devFallbackWarningShown = false;
+const devFallbackWarningShown = false;
 
 interface JWTPayload { orgId?: string; organizationName?: string; exp?: number; }
 function parseJWT(token: string): JWTPayload | null {

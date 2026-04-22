@@ -150,22 +150,22 @@ const FAILURE_SIGNATURES: FailureSignature[] = [
 
 function normalizeSensorType(sensorType: string): string {
   const type = sensorType.toLowerCase().replace(/[_-]/g, "");
-  if (type.includes("temp") || type.includes("thermal")) return "temperature";
-  if (type.includes("vib") || type.includes("accel")) return "vibration";
-  if (type.includes("press")) return "pressure";
-  if (type.includes("rpm") || type.includes("speed")) return "rpm";
-  if (type.includes("flow")) return "flow_rate";
-  if (type.includes("volt")) return "voltage";
-  if (type.includes("curr") || type.includes("amp")) return "current";
-  if (type.includes("fuel") && type.includes("cons")) return "fuel_consumption";
-  if (type.includes("exhaust")) return "exhaust_temperature";
-  if (type.includes("oil") && type.includes("press")) return "oil_pressure";
-  if (type.includes("oil")) return "oil_analysis";
-  if (type.includes("wear") || type.includes("particle")) return "wear_particles";
-  if (type.includes("acoustic") || type.includes("sound")) return "acoustic";
-  if (type.includes("cool")) return "coolant_flow";
-  if (type.includes("power")) return "power";
-  if (type.includes("insul")) return "insulation_resistance";
+  if (type.includes("temp") || type.includes("thermal")) {return "temperature";}
+  if (type.includes("vib") || type.includes("accel")) {return "vibration";}
+  if (type.includes("press")) {return "pressure";}
+  if (type.includes("rpm") || type.includes("speed")) {return "rpm";}
+  if (type.includes("flow")) {return "flow_rate";}
+  if (type.includes("volt")) {return "voltage";}
+  if (type.includes("curr") || type.includes("amp")) {return "current";}
+  if (type.includes("fuel") && type.includes("cons")) {return "fuel_consumption";}
+  if (type.includes("exhaust")) {return "exhaust_temperature";}
+  if (type.includes("oil") && type.includes("press")) {return "oil_pressure";}
+  if (type.includes("oil")) {return "oil_analysis";}
+  if (type.includes("wear") || type.includes("particle")) {return "wear_particles";}
+  if (type.includes("acoustic") || type.includes("sound")) {return "acoustic";}
+  if (type.includes("cool")) {return "coolant_flow";}
+  if (type.includes("power")) {return "power";}
+  if (type.includes("insul")) {return "insulation_resistance";}
   return sensorType.toLowerCase();
 }
 
@@ -307,7 +307,7 @@ export class AnomalyCorrelator {
     const severityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
     groups.sort((a, b) => {
       const sevDiff = (severityOrder[a.severity] ?? 4) - (severityOrder[b.severity] ?? 4);
-      if (sevDiff !== 0) return sevDiff;
+      if (sevDiff !== 0) {return sevDiff;}
       return b.anomalyCount - a.anomalyCount;
     });
 
@@ -335,7 +335,7 @@ export class AnomalyCorrelator {
    * Anomalies within correlationWindowMs of each other are grouped together.
    */
   private temporalCluster(sorted: RawAnomaly[]): RawAnomaly[][] {
-    if (sorted.length === 0) return [];
+    if (sorted.length === 0) {return [];}
 
     const clusters: RawAnomaly[][] = [[sorted[0]]];
 
@@ -377,7 +377,7 @@ export class AnomalyCorrelator {
         sensorTypes.some(st => st === req || st.includes(req))
       );
 
-      if (!hasAllRequired) continue;
+      if (!hasAllRequired) {continue;}
 
       // Count optional sensor matches
       const optionalMatches = sig.optionalSensors.filter(opt =>
@@ -397,7 +397,7 @@ export class AnomalyCorrelator {
       }
     }
 
-    if (!bestMatch) return null;
+    if (!bestMatch) {return null;}
 
     return {
       diagnosis: bestMatch.diagnosis,
@@ -413,10 +413,10 @@ export class AnomalyCorrelator {
   // ===========================================================================
 
   private computeGroupSeverity(severities: string[]): "critical" | "high" | "medium" | "low" {
-    if (severities.includes("critical")) return "critical";
-    if (severities.includes("high")) return "high";
-    if (severities.filter(s => s === "medium").length >= 3) return "high"; // 3+ medium = high
-    if (severities.includes("medium")) return "medium";
+    if (severities.includes("critical")) {return "critical";}
+    if (severities.includes("high")) {return "high";}
+    if (severities.filter(s => s === "medium").length >= 3) {return "high";} // 3+ medium = high
+    if (severities.includes("medium")) {return "medium";}
     return "low";
   }
 

@@ -49,7 +49,7 @@ export async function getPurchaseRequestWithItems(
   orgId: string
 ): Promise<PRWithItems | null> {
   const pr = await getPurchaseRequestById(id, orgId);
-  if (!pr) return null;
+  if (!pr) {return null;}
 
   const rawItems = await db
     .select()
@@ -64,11 +64,11 @@ export async function getPurchaseRequestWithItems(
 
   if (partIds.length > 0) {
     const partRows = await db.select({ id: parts.id, name: parts.name, partNumber: parts.partNumber }).from(parts).where(inArray(parts.id, partIds));
-    for (const p of partRows) partsMap.set(p.id, { name: p.name, partNumber: p.partNumber });
+    for (const p of partRows) {partsMap.set(p.id, { name: p.name, partNumber: p.partNumber });}
   }
   if (supplierIds.length > 0) {
     const supplierRows = await db.select({ id: suppliers.id, name: suppliers.name }).from(suppliers).where(inArray(suppliers.id, supplierIds));
-    for (const s of supplierRows) suppliersMap.set(s.id, s.name);
+    for (const s of supplierRows) {suppliersMap.set(s.id, s.name);}
   }
 
   const items: PRItemWithDetails[] = rawItems.map(item => {
@@ -86,12 +86,12 @@ export async function getPurchaseRequestWithItems(
 
 export async function listPurchaseRequests(filters: PRListFilters) {
   const conditions = [eq(purchaseRequests.orgId, filters.orgId)];
-  if (filters.status)      conditions.push(eq(purchaseRequests.status, filters.status));
-  if (filters.vesselId)    conditions.push(eq(purchaseRequests.vesselId, filters.vesselId));
-  if (filters.requestedBy) conditions.push(eq(purchaseRequests.requestedBy, filters.requestedBy));
-  if (filters.workOrderId) conditions.push(eq(purchaseRequests.workOrderId, filters.workOrderId));
-  if (filters.fromDate)    conditions.push(gte(purchaseRequests.createdAt, filters.fromDate));
-  if (filters.toDate)      conditions.push(lte(purchaseRequests.createdAt, filters.toDate));
+  if (filters.status)      {conditions.push(eq(purchaseRequests.status, filters.status));}
+  if (filters.vesselId)    {conditions.push(eq(purchaseRequests.vesselId, filters.vesselId));}
+  if (filters.requestedBy) {conditions.push(eq(purchaseRequests.requestedBy, filters.requestedBy));}
+  if (filters.workOrderId) {conditions.push(eq(purchaseRequests.workOrderId, filters.workOrderId));}
+  if (filters.fromDate)    {conditions.push(gte(purchaseRequests.createdAt, filters.fromDate));}
+  if (filters.toDate)      {conditions.push(lte(purchaseRequests.createdAt, filters.toDate));}
 
   return db
     .select()
@@ -236,8 +236,8 @@ export async function updateEmailStatus(
     attempts:      sql`${emailQueue.attempts} + 1`,
     lastAttemptAt: new Date(),
   };
-  if (status === "sent") updateData.sentAt = new Date();
-  if (errorMessage)      updateData.errorMessage = errorMessage;
+  if (status === "sent") {updateData.sentAt = new Date();}
+  if (errorMessage)      {updateData.errorMessage = errorMessage;}
 
   const [result] = await db.update(emailQueue).set(updateData).where(eq(emailQueue.id, id)).returning();
   return result;

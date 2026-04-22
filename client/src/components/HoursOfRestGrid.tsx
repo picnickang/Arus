@@ -98,7 +98,7 @@ interface GridRowProps {
 const GridRow = React.memo(function GridRow({
         r, actualIndex, c, isSelected, liveCheck, startDrag, onDrag, setSelectedDay,
 }: GridRowProps) {
-        if (!c) return null;
+        if (!c) {return null;}
 
 
         const dayOK              = c.dayOK;
@@ -193,7 +193,7 @@ interface MobileDayCardProps {
 const MobileDayCard = React.memo(function MobileDayCard({
         r, ri, c, isDragging, startDrag, onDrag,
 }: MobileDayCardProps) {
-if (!c) return null;
+if (!c) {return null;}
 
 
 const restChunks = chunks(r);

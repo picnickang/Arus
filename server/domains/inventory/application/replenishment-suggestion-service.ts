@@ -127,7 +127,7 @@ export class ReplenishmentSuggestionService {
     suggestions.sort((a, b) => {
       const aDemand = a.upcomingWOCount > 0 ? 1 : 0;
       const bDemand = b.upcomingWOCount > 0 ? 1 : 0;
-      if (aDemand !== bDemand) return bDemand - aDemand;
+      if (aDemand !== bDemand) {return bDemand - aDemand;}
       return b.urgencyScore - a.urgencyScore;
     });
 

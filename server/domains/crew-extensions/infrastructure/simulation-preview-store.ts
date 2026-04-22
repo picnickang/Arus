@@ -61,7 +61,7 @@ class InMemorySimulationPreviewStore implements ISimulationPreviewStore {
 
   async get(previewId: string, orgId: string): Promise<SimulationPreview | undefined> {
     const stored = this.previews.get(previewId);
-    if (!stored) return undefined;
+    if (!stored) {return undefined;}
 
     if (stored.orgId !== orgId) {
       logger.warn('[SimulationPreviewStore] Org mismatch on preview access', {
@@ -84,8 +84,8 @@ class InMemorySimulationPreviewStore implements ISimulationPreviewStore {
     let latest: StoredPreview | undefined;
 
     for (const stored of this.previews.values()) {
-      if (stored.orgId !== orgId) continue;
-      if (new Date() > stored.preview.expiresAt) continue;
+      if (stored.orgId !== orgId) {continue;}
+      if (new Date() > stored.preview.expiresAt) {continue;}
       if (!latest || stored.createdAt > latest.createdAt) {
         latest = stored;
       }
@@ -96,7 +96,7 @@ class InMemorySimulationPreviewStore implements ISimulationPreviewStore {
 
   async delete(previewId: string, orgId: string): Promise<boolean> {
     const stored = this.previews.get(previewId);
-    if (!stored || stored.orgId !== orgId) return false;
+    if (!stored || stored.orgId !== orgId) {return false;}
 
     this.previews.delete(previewId);
     logger.info('[SimulationPreviewStore] Deleted preview', { previewId, orgId });

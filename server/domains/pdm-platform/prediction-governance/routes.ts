@@ -30,10 +30,10 @@ router.get("/predictions/:id", async (req: Request, res: Response) => {
   try {
     const orgId = req.headers["x-org-id"] as string;
     const id = parseInt(req.params.id);
-    if (isNaN(id)) return res.status(400).json({ error: "Invalid prediction ID" });
+    if (isNaN(id)) {return res.status(400).json({ error: "Invalid prediction ID" });}
 
     const details = await service.getGovernanceDetails(orgId, id);
-    if (!details) return res.status(404).json({ error: "Prediction not found" });
+    if (!details) {return res.status(404).json({ error: "Prediction not found" });}
     res.json(details);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -48,11 +48,11 @@ router.patch("/predictions/:id/review", async (req: Request, res: Response) => {
   try {
     const orgId = req.headers["x-org-id"] as string;
     const id = parseInt(req.params.id);
-    if (isNaN(id)) return res.status(400).json({ error: "Invalid prediction ID" });
+    if (isNaN(id)) {return res.status(400).json({ error: "Invalid prediction ID" });}
 
     const reviewedBy = getReviewerIdentity(req);
     const result = await service.reviewPrediction(orgId, id, reviewedBy);
-    if (!result) return res.status(404).json({ error: "Prediction not found" });
+    if (!result) {return res.status(404).json({ error: "Prediction not found" });}
     res.json(result);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -63,11 +63,11 @@ router.patch("/predictions/:id/approve", async (req: Request, res: Response) => 
   try {
     const orgId = req.headers["x-org-id"] as string;
     const id = parseInt(req.params.id);
-    if (isNaN(id)) return res.status(400).json({ error: "Invalid prediction ID" });
+    if (isNaN(id)) {return res.status(400).json({ error: "Invalid prediction ID" });}
 
     const reviewedBy = getReviewerIdentity(req);
     const result = await service.approvePrediction(orgId, id, reviewedBy);
-    if (!result) return res.status(404).json({ error: "Prediction not found" });
+    if (!result) {return res.status(404).json({ error: "Prediction not found" });}
     res.json(result);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -82,14 +82,14 @@ router.patch("/predictions/:id/suppress", async (req: Request, res: Response) =>
   try {
     const orgId = req.headers["x-org-id"] as string;
     const id = parseInt(req.params.id);
-    if (isNaN(id)) return res.status(400).json({ error: "Invalid prediction ID" });
+    if (isNaN(id)) {return res.status(400).json({ error: "Invalid prediction ID" });}
 
     const parsed = suppressSchema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
+    if (!parsed.success) {return res.status(400).json({ error: parsed.error.flatten().fieldErrors });}
 
     const reviewedBy = getReviewerIdentity(req);
     const result = await service.suppressPrediction(orgId, id, reviewedBy, parsed.data.reason);
-    if (!result) return res.status(404).json({ error: "Prediction not found" });
+    if (!result) {return res.status(404).json({ error: "Prediction not found" });}
     res.json(result);
   } catch (error: any) {
     res.status(500).json({ error: error.message });

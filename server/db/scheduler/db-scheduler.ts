@@ -6,7 +6,7 @@ import { eq, and, desc, gte, lte, sql } from "drizzle-orm";
 import { db } from "../../db-config";
 import { recordAndPublish } from "../../sync-events";
 import { schedulerRuns, drydockWindow, scheduleAssignments, scheduleUnfilled, type SchedulerRun, type InsertSchedulerRun, type DrydockWindow, type InsertDrydockWindow } from "@shared/schema-runtime";
-import { schedulingSettings, type SelectSchedulingSettings, type InsertSchedulingSettings } from "@shared/schema";
+import { schedulingSettings, type SelectSchedulingSettings } from "@shared/schema";
 
 export class DatabaseSchedulerStorage {
   async getSchedulerRuns(orgId?: string, status?: string, limit?: number): Promise<SchedulerRun[]> { 
@@ -130,7 +130,7 @@ export class DatabaseSchedulerStorage {
   async deleteScheduleAssignmentsByDateRange(orgId: string, from: Date, to: Date): Promise<number> {
     const runs = await this.getSchedulerRuns(orgId);
     const runIds = runs.map(r => r.id);
-    if (runIds.length === 0) return 0;
+    if (runIds.length === 0) {return 0;}
     let deletedCount = 0;
     for (const runId of runIds) {
       const deleted = await db.delete(scheduleAssignments).where(and(eq(scheduleAssignments.runId, runId), gte(scheduleAssignments.date, from), lte(scheduleAssignments.date, to))).returning();
@@ -164,7 +164,7 @@ export class DatabaseSchedulerStorage {
   async getScheduleAssignments(orgId: string, fromDate: Date, toDate: Date): Promise<any[]> {
     const runs = await this.getSchedulerRuns(orgId);
     const runIds = runs.map(r => r.id);
-    if (runIds.length === 0) return [];
+    if (runIds.length === 0) {return [];}
     const allAssignments: any[] = [];
     for (const runId of runIds) {
       const assignments = await db.select().from(scheduleAssignments).where(and(eq(scheduleAssignments.runId, runId), gte(scheduleAssignments.date, fromDate), lte(scheduleAssignments.date, toDate))).orderBy(scheduleAssignments.date);
@@ -184,12 +184,12 @@ export class DatabaseSchedulerStorage {
   }
 
   async createBulkScheduleAssignments(assignments: any[]): Promise<any[]> {
-    if (assignments.length === 0) return [];
+    if (assignments.length === 0) {return [];}
     return db.insert(scheduleAssignments).values(assignments).returning();
   }
 
   async createBulkScheduleUnfilled(unfilled: any[]): Promise<any[]> {
-    if (unfilled.length === 0) return [];
+    if (unfilled.length === 0) {return [];}
     return db.insert(scheduleUnfilled).values(unfilled).returning();
   }
 

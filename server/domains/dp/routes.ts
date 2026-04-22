@@ -77,7 +77,7 @@ router.get("/systems", requireOrgId, async (req: Request, res: Response) => {
   try {
     const { vesselId } = req.query;
     let q = sql`SELECT ds.*, v.name as vessel_name FROM dp_systems ds LEFT JOIN vessels v ON ds.vessel_id = v.id WHERE ds.org_id = ${getOrgId(req)}`;
-    if (vesselId) q = sql`${q} AND ds.vessel_id = ${vesselId as string}`;
+    if (vesselId) {q = sql`${q} AND ds.vessel_id = ${vesselId as string}`;}
     q = sql`${q} ORDER BY v.name`;
     const result = await db.execute(q);
     res.json(getRows(result));
@@ -95,7 +95,7 @@ router.get("/systems/:id", requireOrgId, async (req: Request, res: Response) => 
       WHERE ds.id = ${req.params.id} AND ds.org_id = ${getOrgId(req)}
     `);
     const system = getFirstRow(result);
-    if (!system) return res.status(404).json({ error: "DP system not found" });
+    if (!system) {return res.status(404).json({ error: "DP system not found" });}
     res.json(system);
   } catch (err) {
     res.status(500).json({ error: "Failed to get DP system" });
@@ -134,7 +134,7 @@ router.post("/systems", requireOrgId, async (req: Request, res: Response) => {
 
     res.status(201).json(getFirstRow(result));
   } catch (err) {
-    if (err instanceof z.ZodError) return res.status(400).json({ error: "Validation failed", details: err.flatten() });
+    if (err instanceof z.ZodError) {return res.status(400).json({ error: "Validation failed", details: err.flatten() });}
     logger.error(MODULE, "Error creating DP system", { error: err });
     res.status(500).json({ error: "Failed to create DP system" });
   }
@@ -144,8 +144,8 @@ router.get("/incidents", requireOrgId, async (req: Request, res: Response) => {
   try {
     const { vesselId, status } = req.query;
     let q = sql`SELECT di.*, v.name as vessel_name FROM dp_incidents di LEFT JOIN vessels v ON di.vessel_id = v.id WHERE di.org_id = ${getOrgId(req)}`;
-    if (vesselId) q = sql`${q} AND di.vessel_id = ${vesselId as string}`;
-    if (status) q = sql`${q} AND di.status = ${status as string}`;
+    if (vesselId) {q = sql`${q} AND di.vessel_id = ${vesselId as string}`;}
+    if (status) {q = sql`${q} AND di.status = ${status as string}`;}
     q = sql`${q} ORDER BY di.incident_date DESC LIMIT 100`;
     const result = await db.execute(q);
     res.json(getRows(result));
@@ -175,7 +175,7 @@ router.post("/incidents", requireOrgId, async (req: Request, res: Response) => {
     `);
     res.status(201).json(getFirstRow(result));
   } catch (err) {
-    if (err instanceof z.ZodError) return res.status(400).json({ error: "Validation failed", details: err.flatten() });
+    if (err instanceof z.ZodError) {return res.status(400).json({ error: "Validation failed", details: err.flatten() });}
     res.status(500).json({ error: "Failed to create DP incident" });
   }
 });
@@ -196,7 +196,7 @@ router.post("/daily-checks", requireOrgId, async (req: Request, res: Response) =
     `);
     res.status(201).json(getFirstRow(result));
   } catch (err) {
-    if (err instanceof z.ZodError) return res.status(400).json({ error: "Validation failed", details: err.flatten() });
+    if (err instanceof z.ZodError) {return res.status(400).json({ error: "Validation failed", details: err.flatten() });}
     res.status(500).json({ error: "Failed to create DP check" });
   }
 });
@@ -204,7 +204,7 @@ router.post("/daily-checks", requireOrgId, async (req: Request, res: Response) =
 router.get("/daily-checks", requireOrgId, async (req: Request, res: Response) => {
   try {
     const { vesselId, from, to } = req.query;
-    if (!vesselId) return res.status(400).json({ error: "vesselId required" });
+    if (!vesselId) {return res.status(400).json({ error: "vesselId required" });}
     const fromDate = from ? new Date(from as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const toDate = to ? new Date(to as string) : new Date();
     const result = await db.execute(sql`
@@ -251,7 +251,7 @@ router.get("/summary", requireOrgId, async (req: Request, res: Response) => {
       operational: (systems as any[]).filter((s: any) => s.dp_status === "operational").length,
       degraded: (systems as any[]).filter((s: any) => s.dp_status === "degraded").length,
       trialsDueIn90Days: (systems as any[]).filter((s: any) => {
-        if (!s.next_dp_trial_due) return false;
+        if (!s.next_dp_trial_due) {return false;}
         const due = new Date(s.next_dp_trial_due);
         return due <= new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
       }).length,

@@ -90,7 +90,7 @@ function formatToolName(name: string): string {
 
 function ToolCallTimeline({ traces }: { traces: ToolCallTrace[] }) {
   const [expanded, setExpanded] = useState(false);
-  if (!traces || traces.length === 0) return null;
+  if (!traces || traces.length === 0) {return null;}
 
   return (
     <div className="mb-1.5">
@@ -241,7 +241,7 @@ async function fetchStreamWithRetry(
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const response = await fetch(url, { headers, credentials: "include" });
-      if (response.ok) return response;
+      if (response.ok) {return response;}
       const status = response.status;
       const errBody = await response.text().catch(() => "");
       if (status >= 400 && status < 500) {
@@ -249,7 +249,7 @@ async function fetchStreamWithRetry(
       }
       lastError = new Error(errBody || `HTTP ${status}`);
     } catch (err) {
-      if (err instanceof ClientError) throw err;
+      if (err instanceof ClientError) {throw err;}
       lastError = err instanceof Error ? err : new Error(String(err));
     }
     if (attempt < maxRetries) {
@@ -273,7 +273,7 @@ async function readStreamWithRetry(
   while (true) {
     try {
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done) {break;}
       disconnects = 0;
       onChunk(decoder.decode(value, { stream: true }));
     } catch (err) {
@@ -343,7 +343,7 @@ export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolea
       (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
     return serverMessages.map((msg) => {
-      if (msg.role !== "assistant") return msg;
+      if (msg.role !== "assistant") {return msg;}
       const msgTime = new Date(msg.createdAt).getTime();
       const matchingDraft = sortedDrafts.find(
         (d) => !usedDraftIds.has(d.id)
@@ -401,7 +401,7 @@ export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolea
       setStreamingMessages([]);
       setMessage(initialMessage);
       setTimeout(() => {
-        if (chatFormRef.current) chatFormRef.current.requestSubmit();
+        if (chatFormRef.current) {chatFormRef.current.requestSubmit();}
       }, 100);
     }
     if (!open) {
@@ -412,7 +412,7 @@ export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolea
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     addFiles(files);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (fileInputRef.current) {fileInputRef.current.value = "";}
   };
 
   const removeFile = (index: number) => {
@@ -465,7 +465,7 @@ export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolea
     e.stopPropagation();
     setIsDragOver(false);
     const droppedFiles = Array.from(e.dataTransfer.files);
-    if (droppedFiles.length > 0) addFiles(droppedFiles);
+    if (droppedFiles.length > 0) {addFiles(droppedFiles);}
   }, [addFiles]);
 
   const toggleVoiceInput = useCallback(() => {
@@ -507,7 +507,7 @@ export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolea
   }, [isListening, toast]);
 
   const sendMessage = useCallback(async () => {
-    if ((!message.trim() && attachedFiles.length === 0) || isStreaming) return;
+    if ((!message.trim() && attachedFiles.length === 0) || isStreaming) {return;}
     const userMsg = message.trim();
     const filesToSend = [...attachedFiles];
     setMessage("");
@@ -543,7 +543,7 @@ export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolea
       if (filesToSend.length > 0) {
         const formData = new FormData();
         formData.append("message", userMsg || "Please analyze the attached file(s).");
-        if (conversationId) formData.append("conversationId", conversationId);
+        if (conversationId) {formData.append("conversationId", conversationId);}
         filesToSend.forEach(f => formData.append("files", f));
 
         setUploadProgress(0);
@@ -582,7 +582,7 @@ export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolea
         }]);
       } else {
         const params = new URLSearchParams({ message: userMsg });
-        if (conversationId) params.set("conversationId", conversationId);
+        if (conversationId) {params.set("conversationId", conversationId);}
 
         const headers: Record<string, string> = {
           "x-org-id": getCurrentOrgId() || "default-org-id",
@@ -597,7 +597,7 @@ export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolea
         setRetryStatus(null);
 
         const reader = response.body?.getReader();
-        if (!reader) throw new Error("No response body");
+        if (!reader) {throw new Error("No response body");}
 
         let buffer = "";
         let accumulated = "";
@@ -614,7 +614,7 @@ export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolea
 
             for (const line of lines) {
               const dataMatch = line.match(/^data: (.+)$/m);
-              if (!dataMatch) continue;
+              if (!dataMatch) {continue;}
 
               try {
                 const chunk: StreamChunk = JSON.parse(dataMatch[1]);
@@ -652,7 +652,7 @@ export function AgentChatPanel({ open, onClose, initialMessage }: { open: boolea
                   throw new Error(chunk.error || "Stream error");
                 }
               } catch (parseErr) {
-                if (parseErr instanceof SyntaxError) continue;
+                if (parseErr instanceof SyntaxError) {continue;}
                 throw parseErr;
               }
             }

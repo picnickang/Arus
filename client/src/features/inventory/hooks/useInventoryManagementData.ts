@@ -48,7 +48,7 @@ export function useInventoryManagementData() {
 
     const filterQuery = serializeFiltersToUrl(filters);
     const newParams = new URLSearchParams(filterQuery);
-    if (tabParam) newParams.set("tab", tabParam);
+    if (tabParam) {newParams.set("tab", tabParam);}
 
     const newQueryString = newParams.toString();
     const newPath = newQueryString ? `${basePath}?${newQueryString}` : basePath;

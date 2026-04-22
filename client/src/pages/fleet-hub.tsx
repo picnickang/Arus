@@ -8,7 +8,7 @@ import EquipmentPage from "./equipment";
 function getTabFromSearch(search: string): "vessels" | "equipment" {
   const params = new URLSearchParams(search.startsWith("?") ? search : search);
   const tab = params.get("tab");
-  if (tab === "equipment") return "equipment";
+  if (tab === "equipment") {return "equipment";}
   return "vessels";
 }
 

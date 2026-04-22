@@ -33,8 +33,8 @@ export function useVesselDetail(): UseVesselDetailReturn {
 
   const powerSTWDateRange = useMemo(() => ({ startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), endDate: new Date() }), []);
 
-  const { data: vessel, isLoading: vesselLoading } = useQuery<Vessel>({ queryKey: ["/api/vessels", vesselId], queryFn: () => apiRequest("GET", `/api/vessels/${vesselId}`) as Promise<Vessel>, enabled: !!vesselId });
-  const { data: equipment = [], isLoading: equipmentLoading } = useQuery<Equipment[]>({ queryKey: ["/api/vessels", vesselId, "equipment"], queryFn: () => apiRequest("GET", `/api/vessels/${vesselId}/equipment`) as Promise<Equipment[]>, enabled: !!vesselId });
+  const { data: vessel, isLoading: vesselLoading } = useQuery<Vessel>({ queryKey: ["/api/vessels", vesselId], queryFn: () => apiRequest("GET", `/api/vessels/${vesselId}`), enabled: !!vesselId });
+  const { data: equipment = [], isLoading: equipmentLoading } = useQuery<Equipment[]>({ queryKey: ["/api/vessels", vesselId, "equipment"], queryFn: () => apiRequest("GET", `/api/vessels/${vesselId}/equipment`), enabled: !!vesselId });
   const { data: workOrders = [], isLoading: workOrdersLoading } = useWorkOrders();
   const { data: crew = [], isLoading: crewLoading } = useCrewList();
   const { data: maintenanceSchedules = [], isLoading: schedulesLoading } = useMaintenanceSchedules();

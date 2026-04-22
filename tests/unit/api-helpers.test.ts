@@ -5,7 +5,7 @@
  * These don't require database connectivity
  */
 
-import { describe, it, expect, jest } from "@jest/globals";
+import { describe, it, expect } from "@jest/globals";
 import {
   parsePagination,
   parsePaginationWithDefaults,

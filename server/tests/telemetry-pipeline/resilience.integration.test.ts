@@ -7,9 +7,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 import { CircuitBreaker } from "../../services/circuit-breaker/circuitBreaker";
-import type { CircuitState } from "../../services/circuit-breaker/types";
 import { DeadLetterQueue } from "../../services/dead-letter-queue";
-import type { DeadLetterEntry } from "../../services/dead-letter-queue/types";
 import type { TelemetryReading } from "../../telemetry-batch-writer";
 import {
   TEST_ORG_ID,

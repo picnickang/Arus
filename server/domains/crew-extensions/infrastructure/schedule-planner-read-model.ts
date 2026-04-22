@@ -6,12 +6,10 @@
 import type { ISchedulePlannerReadModel } from "../domain/ports";
 import type {
   SchedulePlannerView,
-  SchedulePlannerRow,
   ScheduleDayCell,
   CrewMemberSummary,
   VesselSummary,
   UnfilledShiftSummary,
-  ScheduleViolation,
   SchedulePlannerFilter,
 } from "../domain/read-models";
 import { db } from "../../../db";
@@ -33,10 +31,8 @@ import {
   mapShift,
   mapStatus,
   formatDate,
-  calculateTotalHours,
   calculateComplianceRate,
   calculateUtilization,
-  detectViolations,
   buildUnfilledShifts as buildUnfilledShiftsFn,
   buildRows as buildRowsFn,
   RefreshDebouncer,
@@ -355,15 +351,13 @@ export class SchedulePlannerReadModelAdapter implements ISchedulePlannerReadMode
 
   private async fetchCrewSkills(crewIds: string[]): Promise<{ crewId: string; skill: string }[]> {
     try {
-      const result = await db
+      return await db
         .select({
           crewId: crewSkill.crewId,
           skill: crewSkill.skill,
         })
         .from(crewSkill)
         .where(inArray(crewSkill.crewId, crewIds));
-
-      return result;
     } catch (error) {
       logger.warn("Failed to fetch crew skills", { error });
       return [];
@@ -380,7 +374,7 @@ export class SchedulePlannerReadModelAdapter implements ISchedulePlannerReadMode
       const start = startDate ? new Date(startDate) : now;
       const end = endDate ? new Date(endDate) : now;
 
-      const result = await db
+      return await db
         .select({
           crewId: crewLeave.crewId,
         })
@@ -392,8 +386,6 @@ export class SchedulePlannerReadModelAdapter implements ISchedulePlannerReadMode
             gte(crewLeave.end, start)
           )
         );
-
-      return result;
     } catch (error) {
       logger.warn("Failed to fetch crew leaves", { error });
       return [];

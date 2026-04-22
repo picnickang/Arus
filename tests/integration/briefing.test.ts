@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from "@jest/globals";
+import { describe, it, expect } from "@jest/globals";
 
 const BASE_URL = process.env.TEST_BASE_URL || "http://localhost:5000";
 
@@ -7,7 +7,7 @@ async function api(method: string, path: string, body?: Record<string, unknown>)
     method,
     headers: { "Content-Type": "application/json" },
   };
-  if (body) opts.body = JSON.stringify(body);
+  if (body) {opts.body = JSON.stringify(body);}
   const res = await fetch(`${BASE_URL}${path}`, opts);
   const data = await res.json();
   return { status: res.status, data };

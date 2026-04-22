@@ -4,7 +4,6 @@
  * AI-generated reports with multi-model support.
  */
 
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { FileText, Zap, Loader2, Sparkles, ChevronDown, CheckCircle2, TrendingUp, AlertTriangle, BarChart3 } from "lucide-react";
+import { FileText, Zap, Loader2, Sparkles, ChevronDown, CheckCircle2, TrendingUp, BarChart3 } from "lucide-react";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { ReportSummaryCards } from "@/components/ReportSummaryCards";
 import { type ReportType, type AudienceType, type ModelType, useAiInsightsData } from "@/features/ml-ai";

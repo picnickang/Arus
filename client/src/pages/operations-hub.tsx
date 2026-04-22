@@ -16,7 +16,7 @@ function FindingsBadge() {
     refetchInterval: 60000,
   });
   const pending = (summary?.pendingApprovals ?? 0) + (summary?.pendingSuggestions ?? 0);
-  if (pending === 0) return null;
+  if (pending === 0) {return null;}
   return (
     <Badge className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 text-[10px] bg-amber-500 text-white border-0" data-testid="badge-findings-count">
       {pending > 99 ? "99+" : pending}

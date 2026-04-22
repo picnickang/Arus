@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 import client from 'prom-client';
-import type { CircuitState, CircuitBreakerConfig, CircuitBreakerMetrics, CircuitBreakerEvents } from './types';
+import type { CircuitState, CircuitBreakerConfig, CircuitBreakerMetrics } from './types';
 
 const circuitStateGauge = new client.Gauge({
   name: 'arus_circuit_breaker_state',

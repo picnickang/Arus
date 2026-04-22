@@ -180,7 +180,7 @@ export default function ScheduledReports() {
 
   const pollForCompletion = useCallback((scheduleId: string, initialLastRunAt: string | null) => {
     const existingTimer = pollingTimersRef.current.get(scheduleId);
-    if (existingTimer) clearInterval(existingTimer);
+    if (existingTimer) {clearInterval(existingTimer);}
 
     let elapsed = 0;
     const interval = 5000;
@@ -246,7 +246,7 @@ export default function ScheduledReports() {
   };
 
   const formatDate = (date: string | Date | null) => {
-    if (!date) return 'Never';
+    if (!date) {return 'Never';}
     return new Date(date).toLocaleString();
   };
 
@@ -456,7 +456,7 @@ export default function ScheduledReports() {
                   </Badge>
                   <Badge variant="outline">
                     <Mail className="w-3 h-3 mr-1" />
-                    {(schedule.recipients as string[])?.length || 0}
+                    {(schedule.recipients)?.length || 0}
                   </Badge>
                 </div>
                 <div className="text-sm text-muted-foreground space-y-1">

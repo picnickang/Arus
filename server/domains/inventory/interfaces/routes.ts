@@ -211,7 +211,7 @@ export function registerInventoryRoutes(
       };
       suggestions.sort((a: any, b: any) => {
         const critDiff = (criticalityOrder[a.criticality] ?? 4) - (criticalityOrder[b.criticality] ?? 4);
-        if (critDiff !== 0) return critDiff;
+        if (critDiff !== 0) {return critDiff;}
         return (a.quantityOnHand - a.minStockLevel) - (b.quantityOnHand - b.minStockLevel);
       });
 
@@ -247,7 +247,7 @@ export function registerInventoryRoutes(
       };
 
       const validationResult = insertPartsInventorySchema.safeParse(dbData);
-      if (!validationResult.success) throw validationResult.error;
+      if (!validationResult.success) {throw validationResult.error;}
 
       const item = await inventoryService.createInventoryItem(validationResult.data, req.user?.id);
       sendCreated(res, item);
@@ -263,15 +263,15 @@ export function registerInventoryRoutes(
         "location","supplierName","supplierPartNumber","leadTimeDays","isActive",
       ];
       for (const f of fields) {
-        if (req.body[f] !== undefined) dbData[f] = req.body[f];
+        if (req.body[f] !== undefined) {dbData[f] = req.body[f];}
       }
 
       const validationResult = insertPartsInventorySchema.partial().safeParse(dbData);
-      if (!validationResult.success) throw validationResult.error;
+      if (!validationResult.success) {throw validationResult.error;}
 
       const orgId = (req as AuthenticatedRequest).orgId;
       const item  = await inventoryService.updateInventoryItem(req.params.id, validationResult.data, req.user?.id, orgId);
-      if (!item) return sendNotFound(res, "Part");
+      if (!item) {return sendNotFound(res, "Part");}
       res.json(item);
     })
   );
@@ -286,7 +286,7 @@ export function registerInventoryRoutes(
         return res.status(400).json({ message: "unitCost must be a non-negative number" });
       }
       const item = await inventoryService.updatePartCost(req.params.id, { unitCost, supplier }, req.user?.id);
-      if (!item) return sendNotFound(res, "Part");
+      if (!item) {return sendNotFound(res, "Part");}
       res.json(item);
     })
   );
@@ -295,10 +295,10 @@ export function registerInventoryRoutes(
     withErrorHandling("update part stock", async (req: Request, res: Response) => {
       const { quantityOnHand, quantityReserved, minStockLevel, maxStockLevel } = req.body;
       const updateData: any = {};
-      if (quantityOnHand   !== undefined) updateData.quantityOnHand   = quantityOnHand;
-      if (quantityReserved !== undefined) updateData.quantityReserved = quantityReserved;
-      if (minStockLevel    !== undefined) updateData.minStockLevel    = minStockLevel;
-      if (maxStockLevel    !== undefined) updateData.maxStockLevel    = maxStockLevel;
+      if (quantityOnHand   !== undefined) {updateData.quantityOnHand   = quantityOnHand;}
+      if (quantityReserved !== undefined) {updateData.quantityReserved = quantityReserved;}
+      if (minStockLevel    !== undefined) {updateData.minStockLevel    = minStockLevel;}
+      if (maxStockLevel    !== undefined) {updateData.maxStockLevel    = maxStockLevel;}
 
       if (Object.keys(updateData).length === 0) {
         return res.status(400).json({ message: "At least one stock field must be provided" });
@@ -310,7 +310,7 @@ export function registerInventoryRoutes(
       }
 
       const item = await inventoryService.updatePartStock(req.params.id, updateData, req.user?.id);
-      if (!item) return sendNotFound(res, "Part");
+      if (!item) {return sendNotFound(res, "Part");}
       res.json(item);
     })
   );

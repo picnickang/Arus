@@ -19,7 +19,7 @@ export function usePredictionExplanations(predictionId: number | null) {
     queryKey: ["/api/pdm/infer/predictions", predictionId, "explanations"],
     queryFn: async () => {
       const res = await fetch(`/api/pdm/infer/predictions/${predictionId}/explanations`, { headers: { "x-org-id": currentOrgId } });
-      if (!res.ok) throw new Error("Failed to fetch explanations");
+      if (!res.ok) {throw new Error("Failed to fetch explanations");}
       return res.json();
     },
     enabled: predictionId != null && !!currentOrgId,

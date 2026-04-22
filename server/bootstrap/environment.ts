@@ -94,7 +94,7 @@ function validateSessionSecret(
   errors: string[],
   warnings: string[]
 ): void {
-  let sessionSecret = process.env.SESSION_SECRET;
+  const sessionSecret = process.env.SESSION_SECRET;
 
   if (!sessionSecret) {
     if (isEmbedded || localMode) {

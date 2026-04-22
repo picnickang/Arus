@@ -81,7 +81,7 @@ export class BalancedScheduleGenerator implements IScheduleGeneratorStrategy {
             a => a.vesselId === vessel.id && a.shift === shift
           );
 
-          if (hasExisting) continue;
+          if (hasExisting) {continue;}
 
           const availableCrew = crewList.filter(crew => {
             const alreadyAssigned = existingForDate.some(a => a.crewId === crew.id);
@@ -143,7 +143,7 @@ export class BalancedScheduleGenerator implements IScheduleGeneratorStrategy {
     const map = new Map<string, ScheduleAssignmentEntity[]>();
     for (const a of assignments) {
       const dateStr = this.formatDate(a.date);
-      if (!map.has(dateStr)) map.set(dateStr, []);
+      if (!map.has(dateStr)) {map.set(dateStr, []);}
       map.get(dateStr)!.push(a);
     }
     return map;
@@ -178,8 +178,8 @@ export class BalancedScheduleGenerator implements IScheduleGeneratorStrategy {
     shift: 'day' | 'night'
   ): number {
     let confidence = 0.7;
-    if (crew.role) confidence += 0.1;
-    if (shift === 'day') confidence += 0.05;
+    if (crew.role) {confidence += 0.1;}
+    if (shift === 'day') {confidence += 0.05;}
     return Math.min(confidence, 0.95);
   }
 }

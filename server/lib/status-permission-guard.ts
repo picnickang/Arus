@@ -6,7 +6,7 @@
  * When a record is submitted (non-draft), only users with "approve" permission can modify it.
  */
 
-import type { Request, Response, NextFunction } from "express";
+import type { Request } from "express";
 import { permissionService } from "../domains/permissions/service";
 import type { ActionCode } from "../config/permission-registry";
 

@@ -109,7 +109,7 @@ export class TwinUpdateService implements ITwinUpdateScheduler {
   async getTwinFreshness(orgId: string, twinId: string): Promise<TwinFreshnessInfo | null> {
     const allTwins = await this.freshnessStorage.getActiveTwins(orgId);
     const twin = allTwins.find((t) => t.id === twinId);
-    if (!twin) return null;
+    if (!twin) {return null;}
 
     const now = new Date();
     const [lastStateUpdate, lastResidualUpdate] = await Promise.all([
@@ -136,9 +136,9 @@ export class TwinUpdateService implements ITwinUpdateScheduler {
   }
 
   private getLatestTimestamp(a: Date | null, b: Date | null): Date | null {
-    if (!a && !b) return null;
-    if (!a) return b;
-    if (!b) return a;
+    if (!a && !b) {return null;}
+    if (!a) {return b;}
+    if (!b) {return a;}
     return a.getTime() > b.getTime() ? a : b;
   }
 }

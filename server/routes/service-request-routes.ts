@@ -10,7 +10,7 @@ import { createServiceOrderFromWorkOrder } from "./wo-so-bridge-routes";
 
 function getOrgId(req: Request): string {
   const orgId = (req as any).orgId || req.headers["x-org-id"];
-  if (!orgId) throw new Error("Missing orgId");
+  if (!orgId) {throw new Error("Missing orgId");}
   return orgId as string;
 }
 
@@ -119,7 +119,7 @@ export function registerServiceRequestRoutes(
         WHERE sr.id = ${req.params.id} AND sr.org_id = ${orgId}
       `).then((r) => r.rows || r);
 
-      if (!row) return sendNotFound(res, "Service Request");
+      if (!row) {return sendNotFound(res, "Service Request");}
       res.json(row);
     })
   );
@@ -138,7 +138,7 @@ export function registerServiceRequestRoutes(
         WHERE id = ${req.params.id} AND org_id = ${orgId}
       `).then((r) => r.rows || r);
 
-      if (!sr) return sendNotFound(res, "Service Request");
+      if (!sr) {return sendNotFound(res, "Service Request");}
 
       if (sr.status === "converted" || sr.status === "rejected") {
         return res.status(400).json({ error: `Cannot edit a request in '${sr.status}' status` });
@@ -147,12 +147,12 @@ export function registerServiceRequestRoutes(
       const { title, description, urgency, estimatedCost, serviceDetails, specialRequirements } = req.body;
 
       const updates: Record<string, string | number | null> = {};
-      if (title !== undefined) updates.title = title;
-      if (description !== undefined) updates.description = description || null;
-      if (urgency !== undefined) updates.urgency = urgency;
-      if (estimatedCost !== undefined) updates.estimated_cost = estimatedCost ? Number(estimatedCost) : null;
-      if (serviceDetails !== undefined) updates.service_details = serviceDetails || null;
-      if (specialRequirements !== undefined) updates.special_requirements = specialRequirements || null;
+      if (title !== undefined) {updates.title = title;}
+      if (description !== undefined) {updates.description = description || null;}
+      if (urgency !== undefined) {updates.urgency = urgency;}
+      if (estimatedCost !== undefined) {updates.estimated_cost = estimatedCost ? Number(estimatedCost) : null;}
+      if (serviceDetails !== undefined) {updates.service_details = serviceDetails || null;}
+      if (specialRequirements !== undefined) {updates.special_requirements = specialRequirements || null;}
 
       if (Object.keys(updates).length === 0) {
         return res.status(400).json({ error: "No fields to update" });
@@ -193,7 +193,7 @@ export function registerServiceRequestRoutes(
         WHERE id = ${workOrderId} AND org_id = ${orgId}
       `).then((r) => r.rows || r);
 
-      if (!wo) return sendNotFound(res, "Work Order");
+      if (!wo) {return sendNotFound(res, "Work Order");}
 
       if (wo.status === "completed" || wo.status === "cancelled") {
         return res.status(400).json({ error: `Cannot create a service request for a ${wo.status} work order` });
@@ -214,7 +214,7 @@ export function registerServiceRequestRoutes(
       }
 
       const { title, description, urgency, estimatedCost, serviceDetails, specialRequirements } = req.body;
-      if (!title) return res.status(400).json({ error: "title is required" });
+      if (!title) {return res.status(400).json({ error: "title is required" });}
 
       const previousWoStatus = wo.status;
 
@@ -314,7 +314,7 @@ export function registerServiceRequestRoutes(
         WHERE id = ${req.params.id} AND org_id = ${orgId}
       `).then((r) => r.rows || r);
 
-      if (!sr) return sendNotFound(res, "Service Request");
+      if (!sr) {return sendNotFound(res, "Service Request");}
 
       if (sr.status !== "pending_review") {
         return res.status(400).json({ error: `Cannot review a request in '${sr.status}' status` });
@@ -346,7 +346,7 @@ export function registerServiceRequestRoutes(
         WHERE id = ${req.params.id} AND org_id = ${orgId}
       `).then((r) => r.rows || r);
 
-      if (!sr) return sendNotFound(res, "Service Request");
+      if (!sr) {return sendNotFound(res, "Service Request");}
 
       if (sr.status !== "pending_review" && sr.status !== "under_review") {
         return res.status(400).json({ error: `Cannot approve a request in '${sr.status}' status` });
@@ -388,7 +388,7 @@ export function registerServiceRequestRoutes(
         WHERE id = ${req.params.id} AND org_id = ${orgId}
       `).then((r) => r.rows || r);
 
-      if (!sr) return sendNotFound(res, "Service Request");
+      if (!sr) {return sendNotFound(res, "Service Request");}
 
       if (sr.status !== "pending_review" && sr.status !== "under_review") {
         return res.status(400).json({ error: `Cannot reject a request in '${sr.status}' status` });
@@ -466,7 +466,7 @@ export function registerServiceRequestRoutes(
         WHERE sr.id = ${req.params.id} AND sr.org_id = ${orgId}
       `).then((r) => r.rows || r);
 
-      if (!sr) return sendNotFound(res, "Service Request");
+      if (!sr) {return sendNotFound(res, "Service Request");}
 
       if (sr.status !== "approved") {
         return res.status(400).json({ error: `Can only convert approved requests. Current status: '${sr.status}'` });
@@ -477,7 +477,7 @@ export function registerServiceRequestRoutes(
         WHERE id = ${sr.work_order_id} AND org_id = ${orgId}
       `).then((r) => r.rows || r);
 
-      if (!wo) return sendNotFound(res, "Work Order");
+      if (!wo) {return sendNotFound(res, "Work Order");}
 
       if (wo.status === "completed" || wo.status === "cancelled") {
         return res.status(400).json({ error: `Cannot convert — the linked work order is already '${wo.status}'` });

@@ -48,9 +48,9 @@ export class SchematicLayoutService {
   async updateZone(vesselId: string, orgId: string, zoneId: string, cmd: UpdateZoneCommand): Promise<SchematicLayout> {
     const layout = await this.getVesselLayout(vesselId, orgId);
     const zone = layout.zones.find(z => z.zoneId === zoneId);
-    if (!zone) throw notFound(`Zone "${zoneId}" not found`);
-    if (cmd.label !== undefined) zone.label = cmd.label;
-    if (cmd.order !== undefined) zone.order = cmd.order;
+    if (!zone) {throw notFound(`Zone "${zoneId}" not found`);}
+    if (cmd.label !== undefined) {zone.label = cmd.label;}
+    if (cmd.order !== undefined) {zone.order = cmd.order;}
     layout.zones.sort((a, b) => a.order - b.order);
     await this.repo.saveLayout(vesselId, orgId, layout);
     return layout;
@@ -59,7 +59,7 @@ export class SchematicLayoutService {
   async removeZone(vesselId: string, orgId: string, zoneId: string): Promise<SchematicLayout> {
     const layout = await this.getVesselLayout(vesselId, orgId);
     const idx = layout.zones.findIndex(z => z.zoneId === zoneId);
-    if (idx === -1) throw notFound(`Zone "${zoneId}" not found`);
+    if (idx === -1) {throw notFound(`Zone "${zoneId}" not found`);}
     layout.zones.splice(idx, 1);
     layout.zones.forEach((z, i) => { z.order = i; });
     await this.repo.saveLayout(vesselId, orgId, layout);
@@ -69,7 +69,7 @@ export class SchematicLayoutService {
   async addSlot(vesselId: string, orgId: string, cmd: CreateSlotCommand): Promise<SchematicLayout> {
     const layout = await this.getVesselLayout(vesselId, orgId);
     const zone = layout.zones.find(z => z.zoneId === cmd.zoneId);
-    if (!zone) throw notFound(`Zone "${cmd.zoneId}" not found`);
+    if (!zone) {throw notFound(`Zone "${cmd.zoneId}" not found`);}
     const slotId = generateId("slot");
     layout.slots.push({ slotId, label: cmd.label, category: cmd.category, typeMatch: cmd.typeMatch });
     zone.slotIds.push(slotId);
@@ -80,10 +80,10 @@ export class SchematicLayoutService {
   async updateSlot(vesselId: string, orgId: string, slotId: string, cmd: UpdateSlotCommand): Promise<SchematicLayout> {
     const layout = await this.getVesselLayout(vesselId, orgId);
     const slot = layout.slots.find(s => s.slotId === slotId);
-    if (!slot) throw notFound(`Slot "${slotId}" not found`);
-    if (cmd.label !== undefined) slot.label = cmd.label;
-    if (cmd.category !== undefined) slot.category = cmd.category;
-    if (cmd.typeMatch !== undefined) slot.typeMatch = cmd.typeMatch;
+    if (!slot) {throw notFound(`Slot "${slotId}" not found`);}
+    if (cmd.label !== undefined) {slot.label = cmd.label;}
+    if (cmd.category !== undefined) {slot.category = cmd.category;}
+    if (cmd.typeMatch !== undefined) {slot.typeMatch = cmd.typeMatch;}
     await this.repo.saveLayout(vesselId, orgId, layout);
     return layout;
   }
@@ -96,7 +96,7 @@ export class SchematicLayoutService {
   ): Promise<SchematicLayout> {
     const layout = await this.getVesselLayout(vesselId, orgId);
     const slotIdx = layout.slots.findIndex(s => s.slotId === slotId);
-    if (slotIdx === -1) throw notFound(`Slot "${slotId}" not found`);
+    if (slotIdx === -1) {throw notFound(`Slot "${slotId}" not found`);}
     if (options.hasEquipment && !options.force) {
       const err = new Error(
         `Slot "${slotId}" has equipment assigned. Unassign equipment first or pass force=true.`
@@ -115,9 +115,9 @@ export class SchematicLayoutService {
   async moveSlot(vesselId: string, orgId: string, slotId: string, cmd: MoveSlotCommand): Promise<SchematicLayout> {
     const layout = await this.getVesselLayout(vesselId, orgId);
     const slot = layout.slots.find(s => s.slotId === slotId);
-    if (!slot) throw notFound(`Slot "${slotId}" not found`);
+    if (!slot) {throw notFound(`Slot "${slotId}" not found`);}
     const targetZone = layout.zones.find(z => z.zoneId === cmd.targetZoneId);
-    if (!targetZone) throw notFound(`Target zone "${cmd.targetZoneId}" not found`);
+    if (!targetZone) {throw notFound(`Target zone "${cmd.targetZoneId}" not found`);}
     for (const zone of layout.zones) {
       zone.slotIds = zone.slotIds.filter(id => id !== slotId);
     }

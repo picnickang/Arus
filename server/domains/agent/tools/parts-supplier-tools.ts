@@ -53,7 +53,7 @@ async function fetchPartAvailability(
   }
 
   const params = new URLSearchParams({ partNumber });
-  if (manufacturer) params.set("manufacturer", manufacturer);
+  if (manufacturer) {params.set("manufacturer", manufacturer);}
 
   const response = await fetch(`${PARTS_API_BASE}/parts/availability?${params}`, {
     headers: { Authorization: `Bearer ${PARTS_API_KEY}` },

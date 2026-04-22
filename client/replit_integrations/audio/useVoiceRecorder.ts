@@ -21,7 +21,7 @@ export function useVoiceRecorder() {
     chunksRef.current = [];
 
     recorder.ondataavailable = (e) => {
-      if (e.data.size > 0) chunksRef.current.push(e.data);
+      if (e.data.size > 0) {chunksRef.current.push(e.data);}
     };
 
     recorder.start(100); // Collect chunks every 100ms

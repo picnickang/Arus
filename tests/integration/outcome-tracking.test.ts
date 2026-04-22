@@ -27,12 +27,12 @@ async function createSuggestion(overrides: Record<string, unknown> = {}) {
     status: "pending",
     ...overrides,
   });
-  if (status !== 201) throw new Error(`Failed to create suggestion: ${status} ${JSON.stringify(data)}`);
+  if (status !== 201) {throw new Error(`Failed to create suggestion: ${status} ${JSON.stringify(data)}`);}
   return data;
 }
 
 describe("Outcome Tracking API", () => {
-  let suggestionIds: string[] = [];
+  const suggestionIds: string[] = [];
 
   beforeAll(async () => {
     for (let i = 0; i < 4; i++) {

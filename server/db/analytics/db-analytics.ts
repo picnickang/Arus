@@ -26,7 +26,6 @@ import {
   performanceMetrics,
   parts,
   stock,
-  crew,
   equipment,
   metricsHistory,
   insightSnapshots,
@@ -41,7 +40,6 @@ import {
   type PerformanceMetric,
   type InsertPerformanceMetric,
   type Part,
-  type SelectCrew,
   type InsightSnapshot,
 } from "@shared/schema-runtime";
 import type {
@@ -63,12 +61,12 @@ export class DatabaseAnalyticsStorage {
     dateTo?: Date
   ): Promise<MaintenanceCost[]> {
     const conditions = [];
-    if (equipmentId) conditions.push(eq(maintenanceCosts.equipmentId, equipmentId));
-    if (costType) conditions.push(eq(maintenanceCosts.costType, costType));
-    if (dateFrom) conditions.push(gte(maintenanceCosts.createdAt, dateFrom));
-    if (dateTo) conditions.push(gte(dateTo, maintenanceCosts.createdAt));
+    if (equipmentId) {conditions.push(eq(maintenanceCosts.equipmentId, equipmentId));}
+    if (costType) {conditions.push(eq(maintenanceCosts.costType, costType));}
+    if (dateFrom) {conditions.push(gte(maintenanceCosts.createdAt, dateFrom));}
+    if (dateTo) {conditions.push(gte(dateTo, maintenanceCosts.createdAt));}
     let query = db.select().from(maintenanceCosts);
-    if (conditions.length > 0) query = query.where(and(...conditions)) as typeof query;
+    if (conditions.length > 0) {query = query.where(and(...conditions)) as typeof query;}
     return query.orderBy(desc(maintenanceCosts.createdAt));
   }
 
@@ -137,7 +135,7 @@ export class DatabaseAnalyticsStorage {
       { totalCost: number; costByType: Record<string, number> }
     > = {};
     costs.forEach((cost: MaintenanceCost) => {
-      if (!cost.createdAt) return;
+      if (!cost.createdAt) {return;}
       const monthKey = `${cost.createdAt.getFullYear()}-${String(
         cost.createdAt.getMonth() + 1
       ).padStart(2, "0")}`;
@@ -162,7 +160,7 @@ export class DatabaseAnalyticsStorage {
     updateData: { unitCost: number; supplier: string },
     orgId: string
   ): Promise<Part> {
-    if (!orgId || orgId.trim() === "") throw new Error("Organization ID is required");
+    if (!orgId || orgId.trim() === "") {throw new Error("Organization ID is required");}
     await db
       .update(parts)
       .set({ standardCost: updateData.unitCost, updatedAt: new Date() })
@@ -175,7 +173,7 @@ export class DatabaseAnalyticsStorage {
       .select()
       .from(parts)
       .where(and(eq(parts.id, partId), eq(parts.orgId, orgId)));
-    if (!u) throw new Error(`Part ${partId} not found`);
+    if (!u) {throw new Error(`Part ${partId} not found`);}
     return u;
   }
 
@@ -189,7 +187,7 @@ export class DatabaseAnalyticsStorage {
     },
     orgId: string
   ): Promise<Part> {
-    if (!orgId || orgId.trim() === "") throw new Error("Organization ID is required");
+    if (!orgId || orgId.trim() === "") {throw new Error("Organization ID is required");}
     if (updateData.quantityReserved !== undefined && updateData.quantityReserved < 0) {
       throw new Error("validation: Reserved quantity cannot be negative");
     }
@@ -204,7 +202,7 @@ export class DatabaseAnalyticsStorage {
       .from(parts)
       .where(and(eq(parts.id, partId), eq(parts.orgId, orgId)))
       .limit(1);
-    if (currentPart.length === 0) throw new Error(`Part ${partId} not found`);
+    if (currentPart.length === 0) {throw new Error(`Part ${partId} not found`);}
     const part = currentPart[0];
     const [currentStockRow] = await db
       .select()
@@ -230,9 +228,9 @@ export class DatabaseAnalyticsStorage {
       updatedAt: Date;
     }> = { updatedAt: new Date() };
     if (updateData.quantityOnHand !== undefined)
-      stockUpdates.quantityOnHand = updateData.quantityOnHand;
+      {stockUpdates.quantityOnHand = updateData.quantityOnHand;}
     if (updateData.quantityReserved !== undefined)
-      stockUpdates.quantityReserved = updateData.quantityReserved;
+      {stockUpdates.quantityReserved = updateData.quantityReserved;}
     if (Object.keys(stockUpdates).length > 1) {
       if (currentStockRow) {
         await db
@@ -258,7 +256,7 @@ export class DatabaseAnalyticsStorage {
       .select()
       .from(parts)
       .where(and(eq(parts.id, partId), eq(parts.orgId, orgId)));
-    if (!u) throw new Error(`Part ${partId} not found`);
+    if (!u) {throw new Error(`Part ${partId} not found`);}
     return u;
   }
 
@@ -269,11 +267,11 @@ export class DatabaseAnalyticsStorage {
     maxStockLevel: number
   ): "critical" | "low_stock" | "adequate" | "excess_stock" | "out_of_stock" {
     const available = Math.max(0, quantityOnHand - quantityReserved);
-    if (quantityOnHand <= 0) return "out_of_stock";
-    if (available <= 0) return "critical";
-    if (available < minStockLevel * 0.5) return "critical";
-    if (available < minStockLevel) return "low_stock";
-    if (available > maxStockLevel) return "excess_stock";
+    if (quantityOnHand <= 0) {return "out_of_stock";}
+    if (available <= 0) {return "critical";}
+    if (available < minStockLevel * 0.5) {return "critical";}
+    if (available < minStockLevel) {return "low_stock";}
+    if (available > maxStockLevel) {return "excess_stock";}
     return "adequate";
   }
 
@@ -283,7 +281,7 @@ export class DatabaseAnalyticsStorage {
 
   async getLaborRates(orgId?: string): Promise<LaborRate[]> {
     const c = [];
-    if (orgId) c.push(eq(laborRates.orgId, orgId));
+    if (orgId) {c.push(eq(laborRates.orgId, orgId));}
     c.push(eq(laborRates.isActive, true));
     return db
       .select()
@@ -299,11 +297,11 @@ export class DatabaseAnalyticsStorage {
 
   async getExpenses(dateFrom?: Date, dateTo?: Date, orgId?: string): Promise<Expense[]> {
     const c = [];
-    if (orgId) c.push(eq(expenses.orgId, orgId));
-    if (dateFrom) c.push(gte(expenses.expenseDate, dateFrom));
-    if (dateTo) c.push(gte(dateTo, expenses.expenseDate));
+    if (orgId) {c.push(eq(expenses.orgId, orgId));}
+    if (dateFrom) {c.push(gte(expenses.expenseDate, dateFrom));}
+    if (dateTo) {c.push(gte(dateTo, expenses.expenseDate));}
     let query = db.select().from(expenses);
-    if (c.length > 0) query = query.where(and(...c)) as typeof query;
+    if (c.length > 0) {query = query.where(and(...c)) as typeof query;}
     return query.orderBy(desc(expenses.expenseDate));
   }
 
@@ -325,7 +323,7 @@ export class DatabaseAnalyticsStorage {
       })
       .where(eq(expenses.id, expenseId))
       .returning();
-    if (!u) throw new Error(`Expense ${expenseId} not found`);
+    if (!u) {throw new Error(`Expense ${expenseId} not found`);}
     return u;
   }
 
@@ -336,7 +334,7 @@ export class DatabaseAnalyticsStorage {
   async getEquipmentLifecycle(equipmentId?: string): Promise<EquipmentLifecycle[]> {
     let query = db.select().from(equipmentLifecycle);
     if (equipmentId)
-      query = query.where(eq(equipmentLifecycle.equipmentId, equipmentId)) as typeof query;
+      {query = query.where(eq(equipmentLifecycle.equipmentId, equipmentId)) as typeof query;}
     return query.orderBy(equipmentLifecycle.equipmentId);
   }
 
@@ -349,7 +347,7 @@ export class DatabaseAnalyticsStorage {
       .where(eq(equipmentLifecycle.equipmentId, lifecycle.equipmentId))
       .limit(1);
     if (existing.length > 0)
-      return this.updateEquipmentLifecycle(existing[0].id, lifecycle);
+      {return this.updateEquipmentLifecycle(existing[0].id, lifecycle);}
     const [n] = await db.insert(equipmentLifecycle).values(lifecycle).returning();
     return n;
   }
@@ -363,7 +361,7 @@ export class DatabaseAnalyticsStorage {
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(equipmentLifecycle.id, id))
       .returning();
-    if (!u) throw new Error(`Equipment lifecycle ${id} not found`);
+    if (!u) {throw new Error(`Equipment lifecycle ${id} not found`);}
     return u;
   }
 
@@ -393,11 +391,11 @@ export class DatabaseAnalyticsStorage {
     dateTo?: Date
   ): Promise<PerformanceMetric[]> {
     const conditions = [];
-    if (equipmentId) conditions.push(eq(performanceMetrics.equipmentId, equipmentId));
-    if (dateFrom) conditions.push(gte(performanceMetrics.metricDate, dateFrom));
-    if (dateTo) conditions.push(gte(dateTo, performanceMetrics.metricDate));
+    if (equipmentId) {conditions.push(eq(performanceMetrics.equipmentId, equipmentId));}
+    if (dateFrom) {conditions.push(gte(performanceMetrics.metricDate, dateFrom));}
+    if (dateTo) {conditions.push(gte(dateTo, performanceMetrics.metricDate));}
     let query = db.select().from(performanceMetrics);
-    if (conditions.length > 0) query = query.where(and(...conditions)) as typeof query;
+    if (conditions.length > 0) {query = query.where(and(...conditions)) as typeof query;}
     return query.orderBy(desc(performanceMetrics.metricDate));
   }
 
@@ -418,7 +416,7 @@ export class DatabaseAnalyticsStorage {
       const equipmentMetrics: Record<string, PerformanceMetric[]> = {};
       metrics.forEach((metric: PerformanceMetric) => {
         if (!equipmentMetrics[metric.equipmentId])
-          equipmentMetrics[metric.equipmentId] = [];
+          {equipmentMetrics[metric.equipmentId] = [];}
         equipmentMetrics[metric.equipmentId].push(metric);
       });
       const equipmentIds = Object.keys(equipmentMetrics);
@@ -473,7 +471,7 @@ export class DatabaseAnalyticsStorage {
     }
     if (getEquipmentHealth) {
       const healthData = await getEquipmentHealth();
-      if (healthData.length === 0) return [];
+      if (healthData.length === 0) {return [];}
       const equipmentIds = healthData.map((h) => h.id);
       const equipmentData = await db
         .select({ id: equipment.id, name: equipment.name })
@@ -523,17 +521,17 @@ export class DatabaseAnalyticsStorage {
       { scores: number[]; availability: number[]; efficiency: number[] }
     > = {};
     metrics.forEach((metric: PerformanceMetric) => {
-      if (!metric.metricDate) return;
+      if (!metric.metricDate) {return;}
       const monthKey = `${metric.metricDate.getFullYear()}-${String(
         metric.metricDate.getMonth() + 1
       ).padStart(2, "0")}`;
       if (!trends[monthKey])
-        trends[monthKey] = { scores: [], availability: [], efficiency: [] };
+        {trends[monthKey] = { scores: [], availability: [], efficiency: [] };}
       if (metric.performanceScore !== null)
-        trends[monthKey].scores.push(metric.performanceScore);
+        {trends[monthKey].scores.push(metric.performanceScore);}
       if (metric.availability !== null)
-        trends[monthKey].availability.push(metric.availability);
-      if (metric.efficiency !== null) trends[monthKey].efficiency.push(metric.efficiency);
+        {trends[monthKey].availability.push(metric.availability);}
+      if (metric.efficiency !== null) {trends[monthKey].efficiency.push(metric.efficiency);}
     });
     return Object.entries(trends)
       .map(([month, data]) => ({

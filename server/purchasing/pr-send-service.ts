@@ -31,8 +31,8 @@ export async function sendPR(prId: string, orgId: string, userId?: string): Prom
       .from(purchaseRequests)
       .where(and(eq(purchaseRequests.id, prId), eq(purchaseRequests.orgId, orgId)));
 
-    if (!pr)                  throw new Error("Purchase request not found");
-    if (pr.status !== "draft") throw new Error("Can only send draft PRs");
+    if (!pr)                  {throw new Error("Purchase request not found");}
+    if (pr.status !== "draft") {throw new Error("Can only send draft PRs");}
 
     const prItems = await tx
       .select({
@@ -55,7 +55,7 @@ export async function sendPR(prId: string, orgId: string, userId?: string): Prom
       .leftJoin(suppliers, eq(purchaseRequestItems.supplierId, suppliers.id))
       .where(eq(purchaseRequestItems.prId, prId));
 
-    if (!prItems.length) throw new Error("Cannot send PR with no items");
+    if (!prItems.length) {throw new Error("Cannot send PR with no items");}
 
     type PRItem = typeof prItems[0];
     const itemsBySupplier = new Map<string, { supplierId: string; items: PRItem[] }>();
@@ -87,7 +87,7 @@ export async function sendPR(prId: string, orgId: string, userId?: string): Prom
         .select()
         .from(suppliers)
         .where(and(eq(suppliers.id, supplierId), eq(suppliers.orgId, orgId)));
-      if (!supplier) throw new Error(`Supplier not found: ${supplierId}`);
+      if (!supplier) {throw new Error(`Supplier not found: ${supplierId}`);}
 
       // Improvement #3: sequence-based PO number — no race condition
       const poNumber = await repo.generatePONumber(orgId, tx);
@@ -172,7 +172,7 @@ export async function sendPR(prId: string, orgId: string, userId?: string): Prom
 
 export async function cancelPR(prId: string, orgId: string, userId?: string) {
   const pr = await repo.getPurchaseRequestById(prId, orgId);
-  if (!pr) throw new Error("Purchase request not found");
+  if (!pr) {throw new Error("Purchase request not found");}
   if (pr.status === "closed" || pr.status === "cancelled") {
     throw new Error("Cannot cancel a closed or already cancelled PR");
   }
@@ -183,8 +183,8 @@ export async function cancelPR(prId: string, orgId: string, userId?: string) {
 
 export async function closePR(prId: string, orgId: string, userId?: string) {
   const pr = await repo.getPurchaseRequestById(prId, orgId);
-  if (!pr)                 throw new Error("Purchase request not found");
-  if (pr.status !== "sent") throw new Error("Can only close sent PRs");
+  if (!pr)                 {throw new Error("Purchase request not found");}
+  if (pr.status !== "sent") {throw new Error("Can only close sent PRs");}
   const updated = await repo.updatePurchaseRequest(prId, orgId, { status: "closed", closedAt: new Date() });
   await repo.createPREvent(orgId, prId, "closed", userId);
   return updated;

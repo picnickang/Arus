@@ -64,7 +64,7 @@ export function mountPredictionsRoutes(router: Router) {
   router.get("/anomalies", async (req: Request, res: Response) => {
     try {
       const orgId = getOrgId(req, res);
-      if (!orgId) return;
+      if (!orgId) {return;}
       const { equipmentId, severity } = req.query;
       const cacheKey = analyticsCacheKeys.anomalies(orgId, equipmentId as string | undefined, severity as string | undefined);
       const response = await cachedAnalytics<AnomalyDetectionListResponse>(cacheKey, async () => {
@@ -88,7 +88,7 @@ export function mountPredictionsRoutes(router: Router) {
   router.get("/failure-predictions", async (req: Request, res: Response) => {
     try {
       const orgId = getOrgId(req, res);
-      if (!orgId) return;
+      if (!orgId) {return;}
       const { equipmentId, riskLevel } = req.query;
       const cacheKey = analyticsCacheKeys.failurePredictions(orgId, equipmentId as string | undefined, riskLevel as string | undefined);
       const response = await cachedAnalytics<FailurePredictionListResponse>(cacheKey, async () => {

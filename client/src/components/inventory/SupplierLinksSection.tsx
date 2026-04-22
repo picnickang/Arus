@@ -65,8 +65,8 @@ export function SupplierLinksSection({
   }
 
   const sortedLinks = [...(links || [])].sort((a, b) => {
-    if (a.isPreferred && !b.isPreferred) return -1;
-    if (!a.isPreferred && b.isPreferred) return 1;
+    if (a.isPreferred && !b.isPreferred) {return -1;}
+    if (!a.isPreferred && b.isPreferred) {return 1;}
     return 0;
   });
 

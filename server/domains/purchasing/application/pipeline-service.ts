@@ -64,7 +64,7 @@ function findEvent(
     .map(([type]) => type);
 
   for (const evt of events) {
-    if (matchingTypes.includes(evt.eventType)) return evt;
+    if (matchingTypes.includes(evt.eventType)) {return evt;}
   }
   return null;
 }
@@ -96,7 +96,7 @@ export class PurchasePipelineService {
 
   async getPipeline(prId: string, orgId: string): Promise<PurchasePipeline | null> {
     const data = await this.repo.getPipelineData(prId, orgId);
-    if (!data) return null;
+    if (!data) {return null;}
     return this.assemblePipeline(prId, data);
   }
 
@@ -106,7 +106,7 @@ export class PurchasePipelineService {
 
     const userIds = new Set<string>();
     for (const evt of [...data.prEvents, ...data.poEvents]) {
-      if (evt.userId) userIds.add(evt.userId);
+      if (evt.userId) {userIds.add(evt.userId);}
     }
     const nameMap = await this.repo.resolveUserNames([...userIds]);
 
@@ -114,8 +114,8 @@ export class PurchasePipelineService {
       const idx = stageIndex(key);
       const meta = STAGE_META[key];
       let status: PipelineStage["status"] = "upcoming";
-      if (idx < currentIdx) status = "completed";
-      else if (idx === currentIdx) status = "current";
+      if (idx < currentIdx) {status = "completed";}
+      else if (idx === currentIdx) {status = "current";}
 
       const { timestamp, actor, details } = this.resolveStageData(key, data);
       const actorName = actor ? (nameMap.get(actor) ?? actor) : null;
@@ -171,7 +171,7 @@ export class PurchasePipelineService {
       return { timestamp: data.prSentAt.toISOString(), actor: null, details: null };
     }
 
-    if (!evt) return { timestamp: null, actor: null, details: null };
+    if (!evt) {return { timestamp: null, actor: null, details: null };}
 
     return {
       timestamp: evt.createdAt?.toISOString() ?? null,

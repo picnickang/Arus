@@ -67,7 +67,7 @@ class VesselService {
 
   async exportVessel(vesselId: string, orgId: string): Promise<Record<string, unknown>> {
     const vessel = await dbVesselStorage.getVessel(vesselId, orgId);
-    if (!vessel) throw new Error(`Vessel ${vesselId} not found`);
+    if (!vessel) {throw new Error(`Vessel ${vesselId} not found`);}
     return { ...vessel };
   }
 

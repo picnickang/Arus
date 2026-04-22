@@ -35,7 +35,7 @@ export async function getCachedExternal<T = Record<string, unknown>>(
     )
     .limit(1);
 
-  if (!row) return null;
+  if (!row) {return null;}
 
   const fetchedAt = row.fetchedAt ?? new Date(0);
   const ageSec = Math.floor((Date.now() - fetchedAt.getTime()) / 1000);
@@ -199,9 +199,9 @@ async function recordFetchError(
 // ───── Helpers ─────
 
 function formatAge(seconds: number): string {
-  if (seconds < 60) return "just now";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)} hr ago`;
+  if (seconds < 60) {return "just now";}
+  if (seconds < 3600) {return `${Math.floor(seconds / 60)} min ago`;}
+  if (seconds < 86400) {return `${Math.floor(seconds / 3600)} hr ago`;}
   const days = Math.floor(seconds / 86400);
   return `${days} day${days !== 1 ? "s" : ""} ago`;
 }

@@ -5,7 +5,7 @@
 
 import type { Request, Response, NextFunction } from "express";
 import { logger } from "../../../utils/logger.js";
-import { getRagSecurityServices, type RagSecurityConfig } from "./index.js";
+import { getRagSecurityServices } from "./index.js";
 
 // Extended request type with RAG security context
 export interface RagSecuredRequest extends Request {
@@ -228,9 +228,9 @@ export function ragSecurityMiddleware(
   next: NextFunction
 ): void {
   ragAuthMiddleware(req, res, (err) => {
-    if (err) return next(err);
+    if (err) {return next(err);}
     ragRateLimitMiddleware(req, res, (err) => {
-      if (err) return next(err);
+      if (err) {return next(err);}
       ragInputSanitizationMiddleware(req, res, next);
     });
   });

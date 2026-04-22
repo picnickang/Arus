@@ -80,7 +80,7 @@ export function registerSchematicLayoutRoutes(
     withErrorHandling("save schematic layout", async (req: AuthenticatedRequest, res: Response) => {
       const parsed = saveLayoutSchema.safeParse(req.body);
       if (!parsed.success) {
-        throw domainError("Invalid layout: " + parsed.error.flatten().fieldErrors, 400);
+        throw domainError(`Invalid layout: ${  parsed.error.flatten().fieldErrors}`, 400);
       }
       const layout = await schematicLayoutService.saveVesselLayout(req.params.id, req.orgId, parsed.data);
       res.json(layout);
@@ -91,7 +91,7 @@ export function registerSchematicLayoutRoutes(
     withErrorHandling("add schematic zone", async (req: AuthenticatedRequest, res: Response) => {
       const parsed = createZoneSchema.safeParse(req.body);
       if (!parsed.success) {
-        throw domainError("Invalid zone data: " + parsed.error.flatten().fieldErrors, 400);
+        throw domainError(`Invalid zone data: ${  parsed.error.flatten().fieldErrors}`, 400);
       }
       const layout = await schematicLayoutService.addZone(req.params.id, req.orgId, parsed.data);
       res.status(201).json(layout);
@@ -102,7 +102,7 @@ export function registerSchematicLayoutRoutes(
     withErrorHandling("update schematic zone", async (req: AuthenticatedRequest, res: Response) => {
       const parsed = updateZoneSchema.safeParse(req.body);
       if (!parsed.success) {
-        throw domainError("Invalid zone data: " + parsed.error.flatten().fieldErrors, 400);
+        throw domainError(`Invalid zone data: ${  parsed.error.flatten().fieldErrors}`, 400);
       }
       const layout = await schematicLayoutService.updateZone(req.params.id, req.orgId, req.params.zoneId, parsed.data);
       res.json(layout);
@@ -120,7 +120,7 @@ export function registerSchematicLayoutRoutes(
     withErrorHandling("add schematic slot", async (req: AuthenticatedRequest, res: Response) => {
       const parsed = createSlotSchema.safeParse(req.body);
       if (!parsed.success) {
-        throw domainError("Invalid slot data: " + parsed.error.flatten().fieldErrors, 400);
+        throw domainError(`Invalid slot data: ${  parsed.error.flatten().fieldErrors}`, 400);
       }
       const layout = await schematicLayoutService.addSlot(req.params.id, req.orgId, parsed.data);
       res.status(201).json(layout);
@@ -131,7 +131,7 @@ export function registerSchematicLayoutRoutes(
     withErrorHandling("update schematic slot", async (req: AuthenticatedRequest, res: Response) => {
       const parsed = updateSlotSchema.safeParse(req.body);
       if (!parsed.success) {
-        throw domainError("Invalid slot data: " + parsed.error.flatten().fieldErrors, 400);
+        throw domainError(`Invalid slot data: ${  parsed.error.flatten().fieldErrors}`, 400);
       }
       const layout = await schematicLayoutService.updateSlot(req.params.id, req.orgId, req.params.slotId, parsed.data);
       res.json(layout);
@@ -166,7 +166,7 @@ export function registerSchematicLayoutRoutes(
     withErrorHandling("move schematic slot", async (req: AuthenticatedRequest, res: Response) => {
       const parsed = moveSlotSchema.safeParse(req.body);
       if (!parsed.success) {
-        throw domainError("Invalid move data: " + parsed.error.flatten().fieldErrors, 400);
+        throw domainError(`Invalid move data: ${  parsed.error.flatten().fieldErrors}`, 400);
       }
       const layout = await schematicLayoutService.moveSlot(req.params.id, req.orgId, req.params.slotId, parsed.data);
       res.json(layout);

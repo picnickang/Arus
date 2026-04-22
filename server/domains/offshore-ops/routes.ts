@@ -3,7 +3,6 @@ import { z } from "zod";
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import { requireOrgId, type AuthenticatedRequest } from "../../middleware/auth";
-import { logger } from "../../utils/logger";
 
 const MODULE = "offshore-ops";
 const router = Router();
@@ -77,8 +76,8 @@ router.get("/", requireOrgId, async (req: Request, res: Response) => {
       WHERE oo.org_id = ${getOrgId(req)}
         AND oo.start_time >= ${fromDate} AND oo.start_time <= ${toDate}
     `;
-    if (vesselId) q = sql`${q} AND oo.vessel_id = ${vesselId as string}`;
-    if (type) q = sql`${q} AND oo.operation_type = ${type as string}`;
+    if (vesselId) {q = sql`${q} AND oo.vessel_id = ${vesselId as string}`;}
+    if (type) {q = sql`${q} AND oo.operation_type = ${type as string}`;}
     q = sql`${q} ORDER BY oo.start_time DESC LIMIT 200`;
 
     const result = await db.execute(q);
@@ -129,7 +128,7 @@ router.post("/", requireOrgId, async (req: Request, res: Response) => {
 
     res.status(201).json(getFirstRow(result));
   } catch (err) {
-    if (err instanceof z.ZodError) return res.status(400).json({ error: "Validation failed", details: err.flatten() });
+    if (err instanceof z.ZodError) {return res.status(400).json({ error: "Validation failed", details: err.flatten() });}
     res.status(500).json({ error: "Failed to create operation" });
   }
 });
@@ -158,7 +157,7 @@ router.patch("/:id/complete", requireOrgId, async (req: Request, res: Response) 
 
     res.json(getFirstRow(result));
   } catch (err) {
-    if (err instanceof z.ZodError) return res.status(400).json({ error: "Validation failed", details: err.flatten() });
+    if (err instanceof z.ZodError) {return res.status(400).json({ error: "Validation failed", details: err.flatten() });}
     res.status(500).json({ error: "Failed to complete operation" });
   }
 });
@@ -166,7 +165,7 @@ router.patch("/:id/complete", requireOrgId, async (req: Request, res: Response) 
 router.get("/summary", requireOrgId, async (req: Request, res: Response) => {
   try {
     const { vesselId, days } = req.query;
-    if (!vesselId) return res.status(400).json({ error: "vesselId required" });
+    if (!vesselId) {return res.status(400).json({ error: "vesselId required" });}
     const d = Number(days) || 30;
     const cutoff = new Date(Date.now() - d * 24 * 60 * 60 * 1000);
 

@@ -42,8 +42,8 @@ export interface OutOfStockSuggestion {
 }
 
 function determineStockStatus(quantityOnHand: number, minStockLevel: number | null): "in_stock" | "low_stock" | "out_of_stock" {
-  if (quantityOnHand <= 0) return "out_of_stock";
-  if (minStockLevel && quantityOnHand <= minStockLevel) return "low_stock";
+  if (quantityOnHand <= 0) {return "out_of_stock";}
+  if (minStockLevel && quantityOnHand <= minStockLevel) {return "low_stock";}
   return "in_stock";
 }
 
@@ -68,7 +68,7 @@ export async function getEnrichedWorkOrderParts(workOrderId: string, orgId: stri
     .from(workOrderParts)
     .where(and(eq(workOrderParts.workOrderId, workOrderId), eq(workOrderParts.orgId, orgId)));
 
-  if (woParts.length === 0) return [];
+  if (woParts.length === 0) {return [];}
 
   const partIds = woParts.map((p) => p.partId);
 
@@ -171,7 +171,7 @@ export async function getEnrichedWorkOrderPartsWithInventoryFlag(workOrderId: st
     .from(workOrderParts)
     .where(and(eq(workOrderParts.workOrderId, workOrderId), eq(workOrderParts.orgId, orgId)));
 
-  if (woParts.length === 0) return [];
+  if (woParts.length === 0) {return [];}
 
   const partIds = woParts.map((p) => p.partId);
 

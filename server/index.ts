@@ -62,7 +62,7 @@ if (isHealthCheckMode) {
       const bcrypt = await import('bcryptjs');
       const hash = await (bcrypt as any).hash('test', 8);
       const ok = await (bcrypt as any).compare('test', hash);
-      if (!ok) throw new Error('bcryptjs hash/compare mismatch');
+      if (!ok) {throw new Error('bcryptjs hash/compare mismatch');}
       console.log('[ARUS] Health check: bcryptjs OK');
 
       console.log('[ARUS] Health check: PASSED');
@@ -99,7 +99,7 @@ app.get("/readyz", (_req, res) => {
 
 export { app };
 
-if (!isInitDbMode && !isHealthCheckMode) (async () => {
+if (!isInitDbMode && !isHealthCheckMode) {(async () => {
   let server: ReturnType<typeof import("http").createServer> | null = null;
 
   try {
@@ -236,7 +236,7 @@ if (!isInitDbMode && !isHealthCheckMode) (async () => {
       process.exit(1);
     }
   }
-})();
+})();}
 
 setupShutdownHandlers();
 

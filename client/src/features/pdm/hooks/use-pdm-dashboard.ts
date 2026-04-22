@@ -13,11 +13,11 @@ export interface DashboardFilters {
 
 export function usePdmDashboard(filters?: DashboardFilters) {
   const queryParams = new URLSearchParams();
-  if (filters?.vesselId) queryParams.set('vesselId', filters.vesselId);
-  if (filters?.equipmentType) queryParams.set('equipmentType', filters.equipmentType);
-  if (filters?.dateFrom) queryParams.set('dateFrom', filters.dateFrom);
-  if (filters?.dateTo) queryParams.set('dateTo', filters.dateTo);
-  if (filters?.search) queryParams.set('search', filters.search);
+  if (filters?.vesselId) {queryParams.set('vesselId', filters.vesselId);}
+  if (filters?.equipmentType) {queryParams.set('equipmentType', filters.equipmentType);}
+  if (filters?.dateFrom) {queryParams.set('dateFrom', filters.dateFrom);}
+  if (filters?.dateTo) {queryParams.set('dateTo', filters.dateTo);}
+  if (filters?.search) {queryParams.set('search', filters.search);}
   
   const queryString = queryParams.toString();
   const url = queryString ? `/api/pdm/dashboard?${queryString}` : '/api/pdm/dashboard';
@@ -114,9 +114,9 @@ export function useEquipmentFinancials() {
 
 export function useEquipmentTelemetry(equipmentId: string | null, options?: { limit?: number; sensorType?: string; hours?: number }) {
   const params = new URLSearchParams();
-  if (options?.limit) params.set('limit', options.limit.toString());
-  if (options?.sensorType) params.set('sensorType', options.sensorType);
-  if (options?.hours) params.set('hours', options.hours.toString());
+  if (options?.limit) {params.set('limit', options.limit.toString());}
+  if (options?.sensorType) {params.set('sensorType', options.sensorType);}
+  if (options?.hours) {params.set('hours', options.hours.toString());}
   
   const queryString = params.toString();
   const url = equipmentId ? `/api/pdm/equipment/${equipmentId}/telemetry${queryString ? `?${queryString}` : ''}` : '';
@@ -130,7 +130,7 @@ export function useEquipmentTelemetry(equipmentId: string | null, options?: { li
 
 export function useTelemetryTrends(equipmentId?: string, hours: number = 24) {
   const params = new URLSearchParams();
-  if (equipmentId) params.set('equipmentId', equipmentId);
+  if (equipmentId) {params.set('equipmentId', equipmentId);}
   params.set('hours', hours.toString());
   
   return useQuery<TelemetryTrend[]>({
@@ -162,12 +162,12 @@ export interface ScheduleFilters {
 
 export function usePdmSchedule(filters?: ScheduleFilters) {
   const params = new URLSearchParams();
-  if (filters?.vesselIds?.length) params.set('vesselIds', filters.vesselIds.join(','));
-  if (filters?.equipmentTypes?.length) params.set('equipmentTypes', filters.equipmentTypes.join(','));
-  if (filters?.startDate) params.set('startDate', filters.startDate);
-  if (filters?.endDate) params.set('endDate', filters.endDate);
-  if (filters?.maxTasksPerVesselPerDay) params.set('maxTasksPerVesselPerDay', filters.maxTasksPerVesselPerDay.toString());
-  if (filters?.autoPopulate !== undefined) params.set('autoPopulate', filters.autoPopulate.toString());
+  if (filters?.vesselIds?.length) {params.set('vesselIds', filters.vesselIds.join(','));}
+  if (filters?.equipmentTypes?.length) {params.set('equipmentTypes', filters.equipmentTypes.join(','));}
+  if (filters?.startDate) {params.set('startDate', filters.startDate);}
+  if (filters?.endDate) {params.set('endDate', filters.endDate);}
+  if (filters?.maxTasksPerVesselPerDay) {params.set('maxTasksPerVesselPerDay', filters.maxTasksPerVesselPerDay.toString());}
+  if (filters?.autoPopulate !== undefined) {params.set('autoPopulate', filters.autoPopulate.toString());}
   
   const queryString = params.toString();
   const url = queryString ? `/api/pdm/schedule?${queryString}` : '/api/pdm/schedule';
@@ -176,7 +176,7 @@ export function usePdmSchedule(filters?: ScheduleFilters) {
     queryKey: ['/api/pdm/schedule', filters],
     queryFn: async () => {
       const response = await fetch(url, { credentials: 'same-origin' });
-      if (!response.ok) throw new Error('Failed to fetch schedule');
+      if (!response.ok) {throw new Error('Failed to fetch schedule');}
       return response.json();
     },
     refetchInterval: 60000,

@@ -70,7 +70,7 @@ export class RagAuditLogger {
     sanitized?: boolean;
     blockedPatterns?: string[];
   }): void {
-    if (!this.config.enabled || !this.config.logQueries) return;
+    if (!this.config.enabled || !this.config.logQueries) {return;}
 
     this.addEvent({
       eventType: 'query',
@@ -101,7 +101,7 @@ export class RagAuditLogger {
     cached: boolean;
     duration: number;
   }): void {
-    if (!this.config.enabled || !this.config.logResponses) return;
+    if (!this.config.enabled || !this.config.logResponses) {return;}
 
     this.addEvent({
       eventType: 'query_response',
@@ -130,7 +130,7 @@ export class RagAuditLogger {
     documentName?: string;
     action: 'view' | 'download' | 'search';
   }): void {
-    if (!this.config.enabled || !this.config.logDocumentAccess) return;
+    if (!this.config.enabled || !this.config.logDocumentAccess) {return;}
 
     this.addEvent({
       eventType: 'document_access',
@@ -160,7 +160,7 @@ export class RagAuditLogger {
     errorMessage?: string;
     quarantined?: boolean;
   }): void {
-    if (!this.config.enabled) return;
+    if (!this.config.enabled) {return;}
 
     this.addEvent({
       eventType: 'document_upload',
@@ -188,7 +188,7 @@ export class RagAuditLogger {
     identifier: string;
     retryAfter: number;
   }): void {
-    if (!this.config.enabled) return;
+    if (!this.config.enabled) {return;}
 
     this.addEvent({
       eventType: 'rate_limit_exceeded',
@@ -218,7 +218,7 @@ export class RagAuditLogger {
     reason: string;
     attemptedOrgId?: string;
   }): void {
-    if (!this.config.enabled) return;
+    if (!this.config.enabled) {return;}
 
     this.addEvent({
       eventType: 'auth_failure',
@@ -248,7 +248,7 @@ export class RagAuditLogger {
     blockedPatterns: string[];
     queryPreview: string;
   }): void {
-    if (!this.config.enabled) return;
+    if (!this.config.enabled) {return;}
 
     this.addEvent({
       eventType: 'prompt_injection_attempt',
@@ -281,7 +281,7 @@ export class RagAuditLogger {
     warnings: string[];
     quarantined: boolean;
   }): void {
-    if (!this.config.enabled) return;
+    if (!this.config.enabled) {return;}
 
     this.addEvent({
       eventType: 'file_validation_failure',
@@ -315,7 +315,7 @@ export class RagAuditLogger {
   }
 
   private flushEvents(): void {
-    if (this.eventQueue.length === 0) return;
+    if (this.eventQueue.length === 0) {return;}
 
     const events = [...this.eventQueue];
     this.eventQueue = [];
@@ -389,9 +389,9 @@ export class RagAuditLogger {
 
     for (const event of events) {
       eventsByType[event.eventType] = (eventsByType[event.eventType] || 0) + 1;
-      if (!event.success) failedEvents++;
-      if (event.eventType === 'rate_limit_exceeded') rateLimitEvents++;
-      if (event.eventType === 'prompt_injection_attempt') injectionAttempts++;
+      if (!event.success) {failedEvents++;}
+      if (event.eventType === 'rate_limit_exceeded') {rateLimitEvents++;}
+      if (event.eventType === 'prompt_injection_attempt') {injectionAttempts++;}
     }
 
     return {

@@ -20,7 +20,6 @@ import type {
   RagAnswerResponse,
   FeedbackInput,
   RagServiceConfig,
-  DEFAULT_RAG_CONFIG,
 } from './types';
 import { logger } from '../../utils/logger';
 

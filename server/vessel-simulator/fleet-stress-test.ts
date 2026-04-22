@@ -192,7 +192,7 @@ export class FleetStressTest {
       });
 
       const sampleInterval = setInterval(() => {
-        if (!this.isRunning) return;
+        if (!this.isRunning) {return;}
         const elapsed = (Date.now() - startTime) / 1000;
         const currentTotal = vesselMetrics.reduce((sum, v) => sum + v.messagesGenerated, 0) + totalMessages;
         this.throughputSamples.push(currentTotal / elapsed);

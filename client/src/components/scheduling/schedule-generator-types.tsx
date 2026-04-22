@@ -93,7 +93,7 @@ export function getAvatarColor(name: string): string {
 }
 
 export function getDeltaIcon(delta: number, metric: 'proposed' | 'unfilled' | 'collisions') {
-  if (delta === 0) return <Minus className="h-3 w-3 text-muted-foreground" />;
+  if (delta === 0) {return <Minus className="h-3 w-3 text-muted-foreground" />;}
   const isPositive = delta > 0;
   
   if (metric === 'proposed') {
@@ -101,10 +101,10 @@ export function getDeltaIcon(delta: number, metric: 'proposed' | 'unfilled' | 'c
       return <ArrowUp className="h-3 w-3 text-green-400" />;
     }
     return <ArrowDown className="h-3 w-3 text-amber-400" />;
-  } else {
+  } 
     if (isPositive) {
       return <ArrowUp className="h-3 w-3 text-red-400" />;
     }
     return <ArrowDown className="h-3 w-3 text-green-400" />;
-  }
+  
 }

@@ -8,7 +8,7 @@ export interface CompletionPredictionFeedback {
 }
 
 export function mapOutcomeToValidation(outcome: PredictionOutcome): "valid" | "disputed" {
-  if (outcome === "false_alarm") return "disputed";
+  if (outcome === "false_alarm") {return "disputed";}
   return "valid";
 }
 

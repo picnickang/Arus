@@ -19,7 +19,7 @@ function TabLoader() {
 }
 
 function getTabFromUrl(): string {
-  if (typeof window === "undefined") return "preferences";
+  if (typeof window === "undefined") {return "preferences";}
   const params = new URLSearchParams(window.location.search);
   return params.get("tab") || "preferences";
 }

@@ -1,5 +1,5 @@
 import { db } from '../../db';
-import { eq, and, desc, gte, isNull, count, sql } from 'drizzle-orm';
+import { eq, and, desc, gte, isNull, count } from 'drizzle-orm';
 import { failurePredictions, mlModels, anomalyDetections, type FailurePrediction, type MlModel } from '@shared/schema/ml-analytics-core';
 import { workOrders, type WorkOrder } from '@shared/schema/work-orders';
 import { equipment } from '@shared/schema/equipment';
@@ -56,23 +56,23 @@ function formatTimeAgo(date: Date): string {
   const diffHours = Math.floor(diffMins / 60);
   const diffDays = Math.floor(diffHours / 24);
 
-  if (diffDays > 0) return `${diffDays}d ago`;
-  if (diffHours > 0) return `${diffHours}h ago`;
+  if (diffDays > 0) {return `${diffDays}d ago`;}
+  if (diffHours > 0) {return `${diffHours}h ago`;}
   return `${diffMins}m ago`;
 }
 
 function mapRiskLevel(riskLevel: string | null): RiskLevel {
-  if (!riskLevel) return 'low';
+  if (!riskLevel) {return 'low';}
   const normalized = riskLevel.toLowerCase();
-  if (normalized === 'critical') return 'critical';
-  if (normalized === 'high') return 'high';
-  if (normalized === 'medium') return 'medium';
+  if (normalized === 'critical') {return 'critical';}
+  if (normalized === 'high') {return 'high';}
+  if (normalized === 'medium') {return 'medium';}
   return 'low';
 }
 
 function mapAlertStatus(acknowledged: boolean | null, resolved: boolean | null): AlertStatus {
-  if (resolved) return 'resolved';
-  if (acknowledged) return 'acknowledged';
+  if (resolved) {return 'resolved';}
+  if (acknowledged) {return 'acknowledged';}
   return 'new';
 }
 
@@ -169,7 +169,7 @@ export class PdmPostgresRepository implements PdmRepositoryPort {
   }
 
   async getRiskQueue(orgId: string, status?: 'new' | 'active' | 'resolved'): Promise<RiskQueueItem[]> {
-    let query = db
+    const query = db
       .select({
         id: failurePredictions.id,
         equipmentId: failurePredictions.equipmentId,
@@ -214,9 +214,9 @@ export class PdmPostgresRepository implements PdmRepositoryPort {
     return results
       .filter((row: RiskQueryRow) => {
         const resolved = !!row.resolvedByWorkOrderId;
-        if (status === 'resolved') return resolved;
-        if (status === 'active') return !resolved && (row.riskLevel === 'high' || row.riskLevel === 'critical');
-        if (status === 'new') return !resolved && row.riskLevel !== 'high' && row.riskLevel !== 'critical';
+        if (status === 'resolved') {return resolved;}
+        if (status === 'active') {return !resolved && (row.riskLevel === 'high' || row.riskLevel === 'critical');}
+        if (status === 'new') {return !resolved && row.riskLevel !== 'high' && row.riskLevel !== 'critical';}
         return true;
       })
       .map((row: RiskQueryRow) => {
@@ -376,7 +376,7 @@ export class PdmPostgresRepository implements PdmRepositoryPort {
         .limit(1),
     ]);
 
-    if (!equip[0]) return null;
+    if (!equip[0]) {return null;}
 
     const e = equip[0];
     const p = latestPrediction[0];
@@ -419,7 +419,7 @@ export class PdmPostgresRepository implements PdmRepositoryPort {
       ))
       .limit(1);
 
-    if (!prediction[0]) throw new Error('Prediction not found');
+    if (!prediction[0]) {throw new Error('Prediction not found');}
 
     const p = prediction[0];
     
@@ -457,15 +457,13 @@ export class PdmPostgresRepository implements PdmRepositoryPort {
   }
 
   async getVessels(orgId: string): Promise<Array<{ id: string; name: string }>> {
-    const result = await db.select({
+    return await db.select({
       id: vessels.id,
       name: vessels.name,
     })
     .from(vessels)
     .where(eq(vessels.orgId, orgId))
     .orderBy(vessels.name);
-
-    return result;
   }
 
   async getEquipmentTypes(orgId: string): Promise<string[]> {

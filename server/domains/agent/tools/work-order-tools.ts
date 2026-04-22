@@ -30,7 +30,7 @@ async function fetchPredictionCostContext(
       )
       .orderBy(desc(failurePredictions.predictionTimestamp))
       .limit(1);
-    if (!pred) return { costImpact: null, confidence: null, failureMode: null };
+    if (!pred) {return { costImpact: null, confidence: null, failureMode: null };}
     return {
       costImpact: (pred.costImpact as CostImpactData) || null,
       confidence: pred.failureProbability,
@@ -85,8 +85,8 @@ function buildAutoJustification(
   if (costImpact.estimatedDowntime != null) {
     parts.push(`Estimated downtime: ${costImpact.estimatedDowntime}h`);
   }
-  if (parts.length === 0) return "";
-  return parts.join(". ") + ".";
+  if (parts.length === 0) {return "";}
+  return `${parts.join(". ")  }.`;
 }
 
 const draftWorkOrderInput = z.object({
@@ -144,7 +144,7 @@ registerTool({
           predContext.confidence,
           predContext.failureMode,
         );
-        if (autoJustification) costJustification = autoJustification;
+        if (autoJustification) {costJustification = autoJustification;}
         if (estimatedPartsCost == null && predContext.costImpact.estimatedRepairCost) {
           estimatedPartsCost = Math.round(predContext.costImpact.estimatedRepairCost * 0.4);
         }

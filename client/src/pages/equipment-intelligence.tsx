@@ -70,37 +70,37 @@ interface IntelligenceData {
 
 
 function riskColor(r: string) {
-  if (r === "critical") return "text-red-500";
-  if (r === "warning") return "text-yellow-500";
+  if (r === "critical") {return "text-red-500";}
+  if (r === "warning") {return "text-yellow-500";}
   return "text-green-500";
 }
 
 function riskBg(r: string) {
-  if (r === "critical") return "bg-red-500/10 border-red-500/20";
-  if (r === "warning") return "bg-yellow-500/8 border-yellow-500/15";
+  if (r === "critical") {return "bg-red-500/10 border-red-500/20";}
+  if (r === "warning") {return "bg-yellow-500/8 border-yellow-500/15";}
   return "bg-green-500/5 border-green-500/10";
 }
 
 function riskBadgeVariant(r: string) {
-  if (r === "critical") return "destructive" as const;
-  if (r === "warning") return "outline" as const;
+  if (r === "critical") {return "destructive" as const;}
+  if (r === "warning") {return "outline" as const;}
   return "secondary" as const;
 }
 
 function riskStroke(r: string) {
-  if (r === "critical") return "#ef4444";
-  if (r === "warning") return "#eab308";
+  if (r === "critical") {return "#ef4444";}
+  if (r === "warning") {return "#eab308";}
   return "#22c55e";
 }
 
 function healthStroke(v: number) {
-  if (v > 70) return "#22c55e";
-  if (v > 40) return "#eab308";
+  if (v > 70) {return "#22c55e";}
+  if (v > 40) {return "#eab308";}
   return "#ef4444";
 }
 
 function MiniSparkline({ data, color, w = 64, h = 20 }: { data: number[]; color: string; w?: number; h?: number }) {
-  if (!data || data.length < 2) return null;
+  if (!data || data.length < 2) {return null;}
   const min = Math.min(...data);
   const max = Math.max(...data);
   const range = max - min || 1;
@@ -178,8 +178,8 @@ export default function EquipmentIntelligence() {
 
   const filtered = useMemo(() => {
     let items = equipment;
-    if (vesselFilter !== "all") items = items.filter((e) => e.vesselId === vesselFilter);
-    if (riskFilter !== "all") items = items.filter((e) => e.risk === riskFilter);
+    if (vesselFilter !== "all") {items = items.filter((e) => e.vesselId === vesselFilter);}
+    if (riskFilter !== "all") {items = items.filter((e) => e.risk === riskFilter);}
     return items;
   }, [equipment, vesselFilter, riskFilter]);
 

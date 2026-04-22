@@ -11,13 +11,13 @@ export function decodeJ1939(frame: RawFrame, ctx: DecodeContext = {}): Telemetry
   }
 
   const buf = frame.payload;
-  if (buf.length < 6) return [];
+  if (buf.length < 6) {return [];}
 
   const canId = readU32LE(buf, 0);
   const dlc = buf.readUInt8(4);
   const data = buf.subarray(5, 5 + clamp(dlc, 0, 8));
   
-  if (data.length === 0) return [];
+  if (data.length === 0) {return [];}
 
   const pgn = extractPgn(canId);
   const sa = extractSa(canId);

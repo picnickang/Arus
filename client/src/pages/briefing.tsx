@@ -55,12 +55,12 @@ const SECTION_ICONS: Record<string, typeof AlertTriangle> = {
 };
 
 function getSectionIcon(iconName?: string) {
-  if (!iconName) return FileText;
+  if (!iconName) {return FileText;}
   return SECTION_ICONS[iconName] || FileText;
 }
 
 function SeverityBadge({ severity }: { severity?: string }) {
-  if (!severity || severity === "info") return null;
+  if (!severity || severity === "info") {return null;}
   return (
     <Badge
       variant={severity === "critical" ? "destructive" : "secondary"}

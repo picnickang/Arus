@@ -18,8 +18,8 @@ const PROFESSIONAL_TYPES = ["endorsement"];
 const MEDICAL_TYPES = ["medical"];
 
 function getDocCategory(type: string): "travel" | "medical" | "professional" {
-  if (TRAVEL_IDENTITY_TYPES.includes(type)) return "travel";
-  if (MEDICAL_TYPES.includes(type)) return "medical";
+  if (TRAVEL_IDENTITY_TYPES.includes(type)) {return "travel";}
+  if (MEDICAL_TYPES.includes(type)) {return "medical";}
   return "professional";
 }
 
@@ -37,7 +37,7 @@ export function CrewDocumentsTab({ crewId, crewName }: CrewDocumentsTabProps) {
   const professionalDocs = documents.filter((d: CrewDocument) => getDocCategory(d.documentType) === "professional");
 
   const renderDocTable = (docs: CrewDocument[], emptyMsg: string) => {
-    if (docs.length === 0) return <div className="py-4 text-center text-sm text-muted-foreground">{emptyMsg}</div>;
+    if (docs.length === 0) {return <div className="py-4 text-center text-sm text-muted-foreground">{emptyMsg}</div>;}
     return (
       <Table>
         <TableHeader><TableRow><TableHead>Type</TableHead><TableHead>Number</TableHead><TableHead>Country</TableHead><TableHead>Expires</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>

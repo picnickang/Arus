@@ -103,8 +103,8 @@ export class CrewExtensionsEventPublisherAdapter implements ICrewExtensionsEvent
   }
 
   private mapEventTypeToOperation(eventType: string): 'create' | 'update' | 'delete' {
-    if (eventType.includes('Created')) return 'create';
-    if (eventType.includes('Deleted') || eventType.includes('Cancelled')) return 'delete';
+    if (eventType.includes('Created')) {return 'create';}
+    if (eventType.includes('Deleted') || eventType.includes('Cancelled')) {return 'delete';}
     return 'update';
   }
 }

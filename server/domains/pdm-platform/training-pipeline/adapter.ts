@@ -34,7 +34,7 @@ export class TrainingDatasetAdapter implements ITrainingDatasetStorage {
 
   async list(orgId: string, status?: string): Promise<TrainingDataset[]> {
     const conditions = [eq(trainingDatasets.orgId, orgId)];
-    if (status) conditions.push(eq(trainingDatasets.status, status));
+    if (status) {conditions.push(eq(trainingDatasets.status, status));}
     return db
       .select()
       .from(trainingDatasets)
@@ -68,8 +68,8 @@ export class TrainingRunAdapter implements ITrainingRunStorage {
 
   async list(orgId: string, filters?: { status?: string; datasetId?: string }): Promise<TrainingRun[]> {
     const conditions = [eq(trainingRuns.orgId, orgId)];
-    if (filters?.status) conditions.push(eq(trainingRuns.status, filters.status));
-    if (filters?.datasetId) conditions.push(eq(trainingRuns.datasetId, filters.datasetId));
+    if (filters?.status) {conditions.push(eq(trainingRuns.status, filters.status));}
+    if (filters?.datasetId) {conditions.push(eq(trainingRuns.datasetId, filters.datasetId));}
     return db
       .select()
       .from(trainingRuns)

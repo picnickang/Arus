@@ -215,7 +215,7 @@ No explanation, just the JSON array.`,
     const lowerQuestion = question.toLowerCase();
 
     for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
-      if (category === "general") continue;
+      if (category === "general") {continue;}
       if (keywords.some((kw) => lowerQuestion.includes(kw))) {
         return category as Suggestion["category"];
       }

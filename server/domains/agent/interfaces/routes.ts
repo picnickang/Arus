@@ -313,7 +313,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const conversation = await agentRepo.conversations.get(req.params.id, orgId);
-      if (!conversation) return res.status(404).json({ error: "Conversation not found" });
+      if (!conversation) {return res.status(404).json({ error: "Conversation not found" });}
       res.json(conversation);
     } catch (error: unknown) {
       res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
@@ -324,7 +324,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const conversation = await agentRepo.conversations.get(req.params.id, orgId);
-      if (!conversation) return res.status(404).json({ error: "Conversation not found" });
+      if (!conversation) {return res.status(404).json({ error: "Conversation not found" });}
       const messages = await agentRepo.messages.list(req.params.id);
       const toolCalls = await agentRepo.toolCalls.list(req.params.id);
       res.json({ messages, toolCalls });
@@ -337,7 +337,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const conversation = await agentRepo.conversations.get(req.params.id, orgId);
-      if (!conversation) return res.status(404).json({ error: "Conversation not found" });
+      if (!conversation) {return res.status(404).json({ error: "Conversation not found" });}
       await agentRepo.conversations.delete(req.params.id);
       res.json({ success: true });
     } catch (error: unknown) {
@@ -361,8 +361,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       const orgId = (req as AuthenticatedRequest).orgId;
       const userId = (req as AuthenticatedRequest).user?.id;
       const draft = await agentRepo.drafts.get(req.params.id, orgId);
-      if (!draft) return res.status(404).json({ error: "Draft not found" });
-      if (draft.status !== "pending") return res.status(400).json({ error: "Draft is not pending" });
+      if (!draft) {return res.status(404).json({ error: "Draft not found" });}
+      if (draft.status !== "pending") {return res.status(400).json({ error: "Draft is not pending" });}
 
       const execResult = await executeDraftAction(
         draft.draftType,
@@ -420,8 +420,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       const orgId = (req as AuthenticatedRequest).orgId;
       const userId = (req as AuthenticatedRequest).user?.id;
       const draft = await agentRepo.drafts.get(req.params.id, orgId);
-      if (!draft) return res.status(404).json({ error: "Draft not found" });
-      if (draft.status !== "pending") return res.status(400).json({ error: "Draft is not pending" });
+      if (!draft) {return res.status(404).json({ error: "Draft not found" });}
+      if (draft.status !== "pending") {return res.status(400).json({ error: "Draft is not pending" });}
 
       const updated = await agentRepo.drafts.update(draft.id, {
         status: "rejected",
@@ -628,10 +628,10 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       const orgId = (req as AuthenticatedRequest).orgId;
       const existing = await agentRepo.suggestions.list(orgId, undefined, 1000);
       const match = existing.find(s => s.id === req.params.id);
-      if (!match) return res.status(404).json({ error: "Suggestion not found or does not belong to this organization" });
+      if (!match) {return res.status(404).json({ error: "Suggestion not found or does not belong to this organization" });}
       const allowedUpdates: Record<string, unknown> = {};
-      if (req.body.status) allowedUpdates.status = req.body.status;
-      if (req.body.actedOn !== undefined) allowedUpdates.actedOn = req.body.actedOn;
+      if (req.body.status) {allowedUpdates.status = req.body.status;}
+      if (req.body.actedOn !== undefined) {allowedUpdates.actedOn = req.body.actedOn;}
       const suggestion = await agentRepo.suggestions.update(req.params.id, allowedUpdates);
       res.json(suggestion);
     } catch (error: unknown) {
@@ -800,7 +800,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const existing = await agentRepo.schedules.get(req.params.id, orgId);
-      if (!existing) return res.status(404).json({ error: "Schedule not found" });
+      if (!existing) {return res.status(404).json({ error: "Schedule not found" });}
       const schedule = await agentRepo.schedules.update(req.params.id, req.body);
       if (schedule.enabled) {
         globalScheduler.scheduleJob(schedule);
@@ -817,7 +817,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const existing = await agentRepo.schedules.get(req.params.id, orgId);
-      if (!existing) return res.status(404).json({ error: "Schedule not found" });
+      if (!existing) {return res.status(404).json({ error: "Schedule not found" });}
       globalScheduler.cancelJob(req.params.id);
       await agentRepo.schedules.delete(req.params.id);
       res.json({ success: true });
@@ -830,7 +830,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const existing = await agentRepo.schedules.get(req.params.id, orgId);
-      if (!existing) return res.status(404).json({ error: "Schedule not found" });
+      if (!existing) {return res.status(404).json({ error: "Schedule not found" });}
       const runs = await agentRepo.schedules.getRuns(req.params.id);
       res.json(runs);
     } catch (error: unknown) {
@@ -842,7 +842,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const schedule = await agentRepo.schedules.get(req.params.id, orgId);
-      if (!schedule) return res.status(404).json({ error: "Schedule not found" });
+      if (!schedule) {return res.status(404).json({ error: "Schedule not found" });}
 
       await globalScheduler.executeSchedule(schedule);
       res.json({ success: true, message: "Schedule run triggered" });
@@ -890,8 +890,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       let truncatedConversations = 0;
       for (const conv of allConversations) {
         const messages = await agentRepo.messages.list(conv.id, MSG_LIMIT);
-        if (messages.length === 0) continue;
-        if (messages.length >= MSG_LIMIT) truncatedConversations++;
+        if (messages.length === 0) {continue;}
+        if (messages.length >= MSG_LIMIT) {truncatedConversations++;}
 
         const openaiMessages: Record<string, unknown>[] = [];
         openaiMessages.push({ role: "system", content: systemContent });
@@ -919,7 +919,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         }
 
         if (openaiMessages.length > 1) {
-          res.write(JSON.stringify({ messages: openaiMessages }) + "\n");
+          res.write(`${JSON.stringify({ messages: openaiMessages })  }\n`);
         }
       }
 
@@ -960,7 +960,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
   app.get("/api/agent/reports/:reportId/download", async (req: Request, res: Response) => {
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
-      if (!orgId) return res.status(401).json({ error: "Authentication required" });
+      if (!orgId) {return res.status(401).json({ error: "Authentication required" });}
 
       const { reportId } = req.params;
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -1010,27 +1010,27 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
 
       if (req.query.source) {
         const src = req.query.source as string;
-        if (!validSources.includes(src)) return res.status(400).json({ error: `Invalid source: ${src}` });
+        if (!validSources.includes(src)) {return res.status(400).json({ error: `Invalid source: ${src}` });}
         filter.source = src as FindingsFilter["source"];
       }
       if (req.query.severity) {
         const sev = req.query.severity as string;
-        if (!validSeverities.includes(sev)) return res.status(400).json({ error: `Invalid severity: ${sev}` });
+        if (!validSeverities.includes(sev)) {return res.status(400).json({ error: `Invalid severity: ${sev}` });}
         filter.severity = sev as FindingsFilter["severity"];
       }
       if (req.query.status) {
         const st = req.query.status as string;
-        if (!validStatuses.includes(st)) return res.status(400).json({ error: `Invalid status: ${st}` });
+        if (!validStatuses.includes(st)) {return res.status(400).json({ error: `Invalid status: ${st}` });}
         filter.status = st as FindingsFilter["status"];
       }
       if (req.query.dateFrom) {
         const d = new Date(req.query.dateFrom as string);
-        if (isNaN(d.getTime())) return res.status(400).json({ error: "Invalid dateFrom" });
+        if (isNaN(d.getTime())) {return res.status(400).json({ error: "Invalid dateFrom" });}
         filter.dateFrom = req.query.dateFrom as string;
       }
       if (req.query.dateTo) {
         const d = new Date(req.query.dateTo as string);
-        if (isNaN(d.getTime())) return res.status(400).json({ error: "Invalid dateTo" });
+        if (isNaN(d.getTime())) {return res.status(400).json({ error: "Invalid dateTo" });}
         filter.dateTo = req.query.dateTo as string;
       }
 
@@ -1183,11 +1183,11 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       }
       if (req.query.startDate) {
         const d = new Date(req.query.startDate as string);
-        if (!isNaN(d.getTime())) filter.startDate = d;
+        if (!isNaN(d.getTime())) {filter.startDate = d;}
       }
       if (req.query.endDate) {
         const d = new Date(req.query.endDate as string);
-        if (!isNaN(d.getTime())) filter.endDate = d;
+        if (!isNaN(d.getTime())) {filter.endDate = d;}
       }
       filter.limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
       filter.offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
@@ -1232,8 +1232,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       if (qSource && (TASK_SOURCES as readonly string[]).includes(qSource)) {
         filter.source = qSource as AgentTaskFilter["source"];
       }
-      if (req.query.equipmentId) filter.equipmentId = req.query.equipmentId as string;
-      if (req.query.vesselId) filter.vesselId = req.query.vesselId as string;
+      if (req.query.equipmentId) {filter.equipmentId = req.query.equipmentId as string;}
+      if (req.query.vesselId) {filter.vesselId = req.query.vesselId as string;}
       filter.limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
       filter.offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
       const tasks = await taskService.list(orgId, filter);
@@ -1271,7 +1271,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const task = await taskService.getById(req.params.id, orgId);
-      if (!task) return res.status(404).json({ error: "Task not found" });
+      if (!task) {return res.status(404).json({ error: "Task not found" });}
       res.json(task);
     } catch (error: unknown) {
       res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
@@ -1287,10 +1287,10 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
         return res.json(task);
       }
       const updateData: Record<string, unknown> = {};
-      if (title) updateData.title = title;
-      if (description !== undefined) updateData.description = description;
-      if (priority && TASK_PRIORITIES.includes(priority)) updateData.priority = priority;
-      if (outcome) updateData.outcome = outcome;
+      if (title) {updateData.title = title;}
+      if (description !== undefined) {updateData.description = description;}
+      if (priority && TASK_PRIORITIES.includes(priority)) {updateData.priority = priority;}
+      if (outcome) {updateData.outcome = outcome;}
       const task = await taskService.update(req.params.id, orgId, updateData);
       res.json(task);
     } catch (error: unknown) {
@@ -1331,8 +1331,8 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       if (qFindingStatus && (FINDING_STATUSES as readonly string[]).includes(qFindingStatus)) {
         filter.status = qFindingStatus as AgentFindingFilter["status"];
       }
-      if (req.query.taskId) filter.taskId = req.query.taskId as string;
-      if (req.query.equipmentId) filter.equipmentId = req.query.equipmentId as string;
+      if (req.query.taskId) {filter.taskId = req.query.taskId as string;}
+      if (req.query.equipmentId) {filter.equipmentId = req.query.equipmentId as string;}
       filter.limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
       filter.offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
       const findings = await findingService.list(orgId, filter);
@@ -1360,7 +1360,7 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
     try {
       const orgId = (req as AuthenticatedRequest).orgId;
       const finding = await findingService.getById(req.params.id, orgId);
-      if (!finding) return res.status(404).json({ error: "Finding not found" });
+      if (!finding) {return res.status(404).json({ error: "Finding not found" });}
       res.json(finding);
     } catch (error: unknown) {
       res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
@@ -1372,9 +1372,9 @@ export function registerAgentRoutes(app: Express, rateLimit: RateLimitMiddleware
       const orgId = (req as AuthenticatedRequest).orgId;
       const { status, severity, recommendedAction } = req.body;
       const updateData: Record<string, unknown> = {};
-      if (status && FINDING_STATUSES.includes(status)) updateData.status = status;
-      if (severity && FINDING_SEVERITIES.includes(severity)) updateData.severity = severity;
-      if (recommendedAction !== undefined) updateData.recommendedAction = recommendedAction;
+      if (status && FINDING_STATUSES.includes(status)) {updateData.status = status;}
+      if (severity && FINDING_SEVERITIES.includes(severity)) {updateData.severity = severity;}
+      if (recommendedAction !== undefined) {updateData.recommendedAction = recommendedAction;}
       const finding = await findingService.update(req.params.id, orgId, updateData);
       res.json(finding);
     } catch (error: unknown) {

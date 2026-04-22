@@ -24,11 +24,11 @@ function round(v: number): number {
 }
 
 function percentile(sorted: number[], p: number): number {
-  if (sorted.length === 0) return 0;
+  if (sorted.length === 0) {return 0;}
   const idx = (p / 100) * (sorted.length - 1);
   const lower = Math.floor(idx);
   const upper = Math.ceil(idx);
-  if (lower === upper) return sorted[lower];
+  if (lower === upper) {return sorted[lower];}
   return sorted[lower] + (idx - lower) * (sorted[upper] - sorted[lower]);
 }
 
@@ -70,7 +70,7 @@ export class FleetAnalyticsAdapter implements FleetAnalyticsPort {
         .map(extractor)
         .filter((v): v is number => v != null && !isNaN(v));
 
-      if (values.length < 3) continue;
+      if (values.length < 3) {continue;}
 
       const sorted = [...values].sort((a, b) => a - b);
       const n = values.length;
@@ -113,7 +113,7 @@ export class FleetAnalyticsAdapter implements FleetAnalyticsPort {
 
   async compareToFleet(orgId: string, equipmentId: string, equipmentType: string): Promise<FleetComparisonResult[]> {
     const baselines = await this.getBaselines(orgId, equipmentType);
-    if (baselines.length === 0) return [];
+    if (baselines.length === 0) {return [];}
 
     const [latestFeatures] = await db.select()
       .from(equipmentFeatures)
@@ -121,7 +121,7 @@ export class FleetAnalyticsAdapter implements FleetAnalyticsPort {
       .orderBy(desc(equipmentFeatures.timestamp))
       .limit(1);
 
-    if (!latestFeatures) return [];
+    if (!latestFeatures) {return [];}
 
     const featureMap: Record<string, number | null> = {};
     for (const [name, extractor] of Object.entries(FEATURE_EXTRACTORS)) {

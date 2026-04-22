@@ -1,12 +1,12 @@
 {
-  "createdAt": "2026-04-22T05:23:54.866Z",
+  "createdAt": "2026-04-22T06:09:35.340Z",
   "counts": {
     "catch-underscore": 5,
     "console-log": 623,
-    "ts-ignore": 1,
-    "ts-expect-error": 0,
+    "ts-ignore": 0,
+    "ts-expect-error": 1,
     "todo-markers": 6,
-    "dense-oneliners": 193,
+    "dense-oneliners": 192,
     "long-files": 52
   },
   "note": "Regenerate with `node scripts/hygiene-dashboard.mjs --baseline`. Commit the result."

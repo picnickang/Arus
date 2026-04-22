@@ -20,7 +20,7 @@ export class AgentTaskService {
 
   async updateStatus(id: string, orgId: string, newStatus: TaskStatus, outcome?: string): Promise<AgentTask> {
     const task = await this.repo.getById(id, orgId);
-    if (!task) throw new Error("Task not found");
+    if (!task) {throw new Error("Task not found");}
 
     const currentStatus = task.status as TaskStatus;
     if (!TASK_STATUSES.includes(currentStatus)) {
@@ -43,7 +43,7 @@ export class AgentTaskService {
 
   async update(id: string, orgId: string, data: Partial<AgentTask>): Promise<AgentTask> {
     const task = await this.repo.getById(id, orgId);
-    if (!task) throw new Error("Task not found");
+    if (!task) {throw new Error("Task not found");}
     const { id: _, orgId: __, ...safeData } = data as Record<string, unknown>;
     return this.repo.update(id, safeData as Partial<AgentTask>);
   }

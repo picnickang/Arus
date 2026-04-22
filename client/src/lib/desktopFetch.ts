@@ -11,7 +11,7 @@ function tauriImport(mod: string): Promise<any> {
 }
 
 export async function resolveBackendUrl(): Promise<string> {
-  if (_cachedUrl) return _cachedUrl;
+  if (_cachedUrl) {return _cachedUrl;}
 
   if (isDesktop()) {
     try {
@@ -42,14 +42,14 @@ export async function resolveBackendUrl(): Promise<string> {
 }
 
 export function getBackendUrlSync(): string {
-  if (_cachedUrl) return _cachedUrl;
+  if (_cachedUrl) {return _cachedUrl;}
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
       ?? localStorage.getItem(LEGACY_KEY);
-    if (stored) return stored;
+    if (stored) {return stored;}
   } catch {
   }
-  if (isDesktop()) return DEFAULT_URL;
+  if (isDesktop()) {return DEFAULT_URL;}
   return '';
 }
 
@@ -97,12 +97,12 @@ export async function testBackendConnection(url: string, timeoutMs = 5000): Prom
 }
 
 export async function isDesktopSetupComplete(): Promise<boolean> {
-  if (!isDesktop()) return true;
+  if (!isDesktop()) {return true;}
 
   const url = await resolveBackendUrl();
 
   const reachable = await testBackendConnection(url);
-  if (!reachable.ok) return false;
+  if (!reachable.ok) {return false;}
 
   try {
     const controller = new AbortController();
@@ -112,7 +112,7 @@ export async function isDesktopSetupComplete(): Promise<boolean> {
       cache: 'no-store',
     });
     clearTimeout(timer);
-    if (!res.ok) return false;
+    if (!res.ok) {return false;}
     const body = await res.json() as { complete: boolean };
     return body.complete === true;
   } catch {
@@ -121,7 +121,7 @@ export async function isDesktopSetupComplete(): Promise<boolean> {
 }
 
 export function isDesktopSetupCompleteSync(): boolean {
-  if (!isDesktop()) return true;
+  if (!isDesktop()) {return true;}
   return localStorage.getItem('arus-setup-complete') === 'true';
 }
 
@@ -130,7 +130,7 @@ export function markSetupComplete(): void {
 }
 
 export async function bootstrapDesktopBackend(): Promise<boolean> {
-  if (!isDesktop()) return true;
+  if (!isDesktop()) {return true;}
 
   if (localStorage.getItem('arus-setup-complete') === 'true') {
     const stored = localStorage.getItem(STORAGE_KEY)

@@ -11,7 +11,6 @@ import { executeDraftAction } from "./draft-executor";
 import { auditAction } from "../../../utils/audit-helpers";
 import { registerFile, listConversationFiles } from "../infrastructure/file-registry";
 import { ingestFilesToKB, buildIngestionSystemMessage } from "../infrastructure/kb-ingestion-helper";
-import { buildSystemPrompt } from "../domain/system-prompt";
 import {
   buildCompactedMessages,
   compactToolOutput,
@@ -19,7 +18,7 @@ import {
   shouldSummarize,
   type CompactionConfig,
 } from "./context-compaction";
-import type { AgentConversation, AgentMessage, AgentConfigType } from "@shared/schema";
+import type { AgentConversation, AgentConfigType } from "@shared/schema";
 
 // ---------------------------------------------------------------------------
 // Internal types
@@ -340,7 +339,7 @@ export class AgentOrchestrator {
 
       await this.completeRun(ctx, result, runStartTime, orgId, userId, "stream");
 
-      onChunk(JSON.stringify({ type: "done", conversationId: ctx.conversation.id }) + "\n");
+      onChunk(`${JSON.stringify({ type: "done", conversationId: ctx.conversation.id })  }\n`);
 
       return {
         conversationId: ctx.conversation.id,
@@ -375,7 +374,7 @@ export class AgentOrchestrator {
     modelOverride?: string,
   ): Promise<RunContext> {
     const client = await createOpenAIClient();
-    if (!client) throw new Error("OpenAI is not configured. Please set up your API key.");
+    if (!client) {throw new Error("OpenAI is not configured. Please set up your API key.");}
 
     const config = await this.repo.config.get(orgId);
     const model = modelOverride || config?.defaultModel || "gpt-4o-mini";
@@ -386,10 +385,10 @@ export class AgentOrchestrator {
     let conversation: AgentConversation;
     if (conversationId) {
       const existing = await this.repo.conversations.get(conversationId, orgId);
-      if (!existing) throw new Error("Conversation not found");
+      if (!existing) {throw new Error("Conversation not found");}
       conversation = existing;
       const budgetCheck = await this.safety.checkTokenBudget(orgId, conversationId, config || {});
-      if (!budgetCheck.allowed) throw new Error(budgetCheck.reason);
+      if (!budgetCheck.allowed) {throw new Error(budgetCheck.reason);}
     } else {
       conversation = await this.repo.conversations.create({
         orgId,
@@ -457,7 +456,7 @@ export class AgentOrchestrator {
     messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
   ): Promise<void> {
     const convFiles = await listConversationFiles(conversationId, orgId);
-    if (convFiles.length === 0) return;
+    if (convFiles.length === 0) {return;}
 
     const fileRefContext = convFiles
       .map(f => `- fileId: "${f.id}" | ${f.filename} (${f.mimetype}, ${f.size} bytes)`)
@@ -560,7 +559,7 @@ export class AgentOrchestrator {
           const parsedInput = this.parseJson(tc.function.arguments);
 
           if (mode === "stream" && onChunk) {
-            onChunk(JSON.stringify({ type: "tool_call", toolName: tc.function.name, input: parsedInput }) + "\n");
+            onChunk(`${JSON.stringify({ type: "tool_call", toolName: tc.function.name, input: parsedInput })  }\n`);
           }
 
           const { toolResult, toolStatus, toolError, durationMs } = await this.executeTool(
@@ -595,7 +594,7 @@ export class AgentOrchestrator {
           }
 
           if (mode === "stream" && onChunk) {
-            onChunk(JSON.stringify({ type: "tool_result", toolName: tc.function.name, result: toolResult }) + "\n");
+            onChunk(`${JSON.stringify({ type: "tool_result", toolName: tc.function.name, result: toolResult })  }\n`);
           }
 
           const toolMsgContent = JSON.stringify(toolResult);
@@ -642,7 +641,7 @@ export class AgentOrchestrator {
       if (mode === "stream") {
         // Stream mode: emit the text and break; caller persists
         if (onChunk) {
-          onChunk(JSON.stringify({ type: "text", content: finalResponse }) + "\n");
+          onChunk(`${JSON.stringify({ type: "text", content: finalResponse })  }\n`);
         }
       } else {
         // Sync mode: persist inside the loop
@@ -682,7 +681,7 @@ export class AgentOrchestrator {
     // Auto-title
     if (!ctx.conversation.title || ctx.conversation.title === ctx.sanitizedMessage.slice(0, 100)) {
       const title = ctx.sanitizedMessage.length > 60
-        ? ctx.sanitizedMessage.slice(0, 57) + "..."
+        ? `${ctx.sanitizedMessage.slice(0, 57)  }...`
         : ctx.sanitizedMessage;
       await this.repo.conversations.update(ctx.conversation.id, { title });
     }
@@ -828,7 +827,7 @@ export class AgentOrchestrator {
       });
     }
 
-    const displayContent = `${sanitizedMessage}${fileDescriptions.length > 0 ? "\n" + fileDescriptions.join(" ") : ""}`;
+    const displayContent = `${sanitizedMessage}${fileDescriptions.length > 0 ? `\n${  fileDescriptions.join(" ")}` : ""}`;
 
     return { contentParts, displayContent, kbIngested };
   }
@@ -883,15 +882,15 @@ export class AgentOrchestrator {
     enabledTools?: string[] | null,
   ): void {
     const categories = toolResult.categories as Record<string, { name: string }[]> | undefined;
-    if (!categories) return;
+    if (!categories) {return;}
 
     const enabledSet = Array.isArray(enabledTools) && enabledTools.length > 0 ? new Set(enabledTools) : null;
     const requestedCategory = input.category as string | undefined;
     for (const [cat, tools] of Object.entries(categories)) {
-      if (requestedCategory && cat !== requestedCategory) continue;
+      if (requestedCategory && cat !== requestedCategory) {continue;}
       for (const t of tools) {
-        if (!t.name) continue;
-        if (enabledSet && !enabledSet.has(t.name)) continue;
+        if (!t.name) {continue;}
+        if (enabledSet && !enabledSet.has(t.name)) {continue;}
         activatedTools.add(t.name);
       }
     }
@@ -900,7 +899,7 @@ export class AgentOrchestrator {
       const filtered: Record<string, { name: string }[]> = {};
       for (const [cat, tools] of Object.entries(categories)) {
         const allowed = tools.filter(t => enabledSet.has(t.name));
-        if (allowed.length > 0) filtered[cat] = allowed;
+        if (allowed.length > 0) {filtered[cat] = allowed;}
       }
       toolResult.categories = filtered;
       toolResult.totalTools = Object.values(filtered).reduce((sum, arr) => sum + arr.length, 0);
@@ -908,7 +907,7 @@ export class AgentOrchestrator {
   }
 
   private looksLikeFallbackNeeded(response: string): boolean {
-    if (!response) return true;
+    if (!response) {return true;}
     const lower = response.toLowerCase();
     const refusalPhrases = [
       "i can't", "i cannot", "i don't have", "i'm unable", "i am unable",
@@ -916,8 +915,8 @@ export class AgentOrchestrator {
       "outside my capabilities", "beyond my capabilities",
       "don't have the ability", "not equipped", "no way to",
     ];
-    if (refusalPhrases.some(p => lower.includes(p))) return true;
-    if (response.length < 40 && /\?/.test(response)) return true;
+    if (refusalPhrases.some(p => lower.includes(p))) {return true;}
+    if (response.length < 40 && /\?/.test(response)) {return true;}
     return false;
   }
 
@@ -929,7 +928,7 @@ export class AgentOrchestrator {
     compactionCfg: CompactionConfig,
     _model: string,
   ): Promise<string | null | undefined> {
-    if (!compactionCfg.enabled) return conversation.contextSummary;
+    if (!compactionCfg.enabled) {return conversation.contextSummary;}
 
     const summarizedUpTo = conversation.summarizedUpTo || 0;
     if (!shouldSummarize(conversation.messageCount, summarizedUpTo, compactionCfg.threshold)) {
@@ -943,10 +942,10 @@ export class AgentOrchestrator {
       Math.max(summarizedUpTo, allMessages.length - keepRecent),
     );
 
-    if (messagesToSummarize.length < 5) return conversation.contextSummary;
+    if (messagesToSummarize.length < 5) {return conversation.contextSummary;}
 
     const summary = await generateProgressiveSummary(client, messagesToSummarize, conversation.contextSummary);
-    if (!summary) return conversation.contextSummary;
+    if (!summary) {return conversation.contextSummary;}
 
     const newSummarizedUpTo = Math.max(0, allMessages.length - keepRecent);
     await this.repo.conversations.update(conversation.id, {
@@ -1194,7 +1193,7 @@ export class AgentOrchestrator {
           errorCode === "ECONNRESET" || errorCode === "ETIMEDOUT" || errorCode === "ENOTFOUND" ||
           lastError.message.includes("timeout") || lastError.message.includes("network");
 
-        if (!isRetryable || attempt === maxRetries) break;
+        if (!isRetryable || attempt === maxRetries) {break;}
 
         const delay = Math.min(1000 * Math.pow(2, attempt), 8000);
         console.warn(`[Agent] OpenAI attempt ${attempt + 1} failed, retrying in ${delay}ms:`, lastError.message);

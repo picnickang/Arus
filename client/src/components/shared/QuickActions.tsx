@@ -26,7 +26,7 @@ interface QuickActionsProps {
 export function QuickActions({ actions, className }: QuickActionsProps) {
   const [, setLocation] = useLocation();
 
-  if (actions.length === 0) return null;
+  if (actions.length === 0) {return null;}
 
   return (
     <div className={cn("", className)}>

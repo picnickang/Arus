@@ -16,7 +16,6 @@
 
 import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Wrench, ExternalLink, LinkIcon } from "lucide-react";
 import { useServiceOrderWorkOrder } from "@/features/work-orders/hooks/useWoSoBridge";

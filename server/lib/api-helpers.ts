@@ -101,18 +101,15 @@ export type ValidationResult<T> =
   | { success: false; error: ZodError };
 
 export function validateBody<T>(req: Request, schema: ZodSchema<T>): ValidationResult<T> {
-  const result = schema.safeParse(req.body);
-  return result;
+  return schema.safeParse(req.body);
 }
 
 export function validateQuery<T>(req: Request, schema: ZodSchema<T>): ValidationResult<T> {
-  const result = schema.safeParse(req.query);
-  return result;
+  return schema.safeParse(req.query);
 }
 
 export function validateParams<T>(req: Request, schema: ZodSchema<T>): ValidationResult<T> {
-  const result = schema.safeParse(req.params);
-  return result;
+  return schema.safeParse(req.params);
 }
 
 export function sendValidationError(res: Response, error: ZodError, message = "Validation failed"): void {
@@ -173,12 +170,12 @@ export function parseIntParam(value: unknown, defaultValue: number, max?: number
   } else {
     return defaultValue;
   }
-  if (isNaN(num) || num < 0) return defaultValue;
+  if (isNaN(num) || num < 0) {return defaultValue;}
   return max ? Math.min(num, max) : num;
 }
 
 export function parseUUID(value: unknown): string | null {
-  if (typeof value !== "string") return null;
+  if (typeof value !== "string") {return null;}
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   return uuidRegex.test(value) ? value : null;
 }

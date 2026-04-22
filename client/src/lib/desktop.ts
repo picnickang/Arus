@@ -39,7 +39,7 @@ function dynamicImport(mod: string): Promise<any> {
 
 async function tauriInvoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
   const core = await dynamicImport(TAURI_CORE);
-  if (!core) throw new Error('Tauri core not available');
+  if (!core) {throw new Error('Tauri core not available');}
   return core.invoke<T>(cmd, args);
 }
 
@@ -51,7 +51,7 @@ interface CachedUpdate {
 let _updateCache: CachedUpdate | null = null;
 
 export function getDesktopAPI(): DesktopAPI | undefined {
-  if (!isDesktop()) return undefined;
+  if (!isDesktop()) {return undefined;}
 
   return {
 
@@ -78,7 +78,7 @@ export function getDesktopAPI(): DesktopAPI | undefined {
     async checkForUpdates(): Promise<UpdateInfo | null> {
       try {
         const updater = await dynamicImport(TAURI_UPDATER);
-        if (!updater) return null;
+        if (!updater) {return null;}
 
         const update = await updater.check();
         if (!update) {
@@ -102,7 +102,7 @@ export function getDesktopAPI(): DesktopAPI | undefined {
     async installUpdate(): Promise<void> {
       try {
         const updater = await dynamicImport(TAURI_UPDATER);
-        if (!updater) return;
+        if (!updater) {return;}
 
         const update = _updateCache?.raw ?? await updater.check();
         _updateCache = null;
@@ -110,7 +110,7 @@ export function getDesktopAPI(): DesktopAPI | undefined {
         if (update) {
           await update.downloadAndInstall();
           const process = await dynamicImport(TAURI_PROCESS);
-          if (process) await process.relaunch();
+          if (process) {await process.relaunch();}
         }
       } catch (err) {
         console.warn('[Desktop] installUpdate:', err);

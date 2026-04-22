@@ -27,7 +27,6 @@ import {
   Zap,
   Database,
   ThumbsUp,
-  ThumbsDown,
   FileText,
   Clock,
   TrendingUp,

@@ -13,15 +13,15 @@ export const supplierKeys = {
 
 export function useSuppliers(filters?: SupplierFilters) {
   const queryParams = new URLSearchParams();
-  if (filters?.search) queryParams.append("search", filters.search);
-  if (filters?.isActive !== undefined) queryParams.append("isActive", String(filters.isActive));
-  if (filters?.isPreferred !== undefined) queryParams.append("isPreferred", String(filters.isPreferred));
+  if (filters?.search) {queryParams.append("search", filters.search);}
+  if (filters?.isActive !== undefined) {queryParams.append("isActive", String(filters.isActive));}
+  if (filters?.isPreferred !== undefined) {queryParams.append("isPreferred", String(filters.isPreferred));}
   if (filters?.type) {
     const types = Array.isArray(filters.type) ? filters.type.join(",") : filters.type;
     queryParams.append("type", types);
   }
-  if (filters?.limit) queryParams.append("limit", String(filters.limit));
-  if (filters?.offset) queryParams.append("offset", String(filters.offset));
+  if (filters?.limit) {queryParams.append("limit", String(filters.limit));}
+  if (filters?.offset) {queryParams.append("offset", String(filters.offset));}
 
   const queryString = queryParams.toString();
   const url = `/api/suppliers${queryString ? `?${queryString}` : ""}`;

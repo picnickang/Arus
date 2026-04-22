@@ -1,4 +1,4 @@
-import { describe, test, expect, afterAll } from "@jest/globals";
+import { describe, test, expect } from "@jest/globals";
 import { execSync } from "child_process";
 import { readFileSync, writeFileSync, unlinkSync } from "fs";
 import { join } from "path";

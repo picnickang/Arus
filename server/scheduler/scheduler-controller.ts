@@ -461,7 +461,7 @@ export async function applySimulatedSchedule({
   }
 
   // Filter out collisions if requested (from the vessel-filtered subset)
-  let toApply = skipCollisions 
+  const toApply = skipCollisions 
     ? proposedSubset.filter((p) => !p.wouldCollide)
     : proposedSubset;
 

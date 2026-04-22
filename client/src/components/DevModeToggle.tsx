@@ -17,20 +17,20 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 const DEV_MODE_KEY = "arus_dev_mode_override";
 
 export function getDevModeOverride(): boolean {
-  if (!import.meta.env.DEV) return false;
-  if (typeof window === "undefined") return false;
+  if (!import.meta.env.DEV) {return false;}
+  if (typeof window === "undefined") {return false;}
   return localStorage.getItem(DEV_MODE_KEY) === "true";
 }
 
 export function setDevModeOverride(enabled: boolean): void {
-  if (!import.meta.env.DEV) return;
-  if (typeof window === "undefined") return;
+  if (!import.meta.env.DEV) {return;}
+  if (typeof window === "undefined") {return;}
   localStorage.setItem(DEV_MODE_KEY, enabled ? "true" : "false");
   window.dispatchEvent(new CustomEvent("devModeChange", { detail: { enabled } }));
 }
 
 export function DevModeToggle() {
-  if (!import.meta.env.DEV) return null;
+  if (!import.meta.env.DEV) {return null;}
   const [isDevMode, setIsDevMode] = useState(getDevModeOverride);
 
   useEffect(() => {

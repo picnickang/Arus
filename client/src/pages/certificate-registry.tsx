@@ -75,7 +75,7 @@ export function getCertExpiryStatus(expiryDate: string | Date | null | undefined
   label: string;
   badgeClass: string;
 } | null {
-  if (!expiryDate) return null;
+  if (!expiryDate) {return null;}
   const expiry = typeof expiryDate === "string" ? parseISO(expiryDate) : expiryDate;
   const now = new Date();
   const days = differenceInDays(expiry, now);
@@ -107,7 +107,7 @@ function getStatusBadgeClass(status: string): string {
 }
 
 function formatDate(d: string | Date | null | undefined): string {
-  if (!d) return "—";
+  if (!d) {return "—";}
   try {
     const date = typeof d === "string" ? parseISO(d) : d;
     return format(date, "dd MMM yyyy");
@@ -228,19 +228,19 @@ function CertificateFormDialog({
         issuingAuthority: form.issuingAuthority,
         issueDate: form.issueDate,
       };
-      if (form.certificateNumber) payload.certificateNumber = form.certificateNumber;
-      if (form.issuingAuthorityType) payload.issuingAuthorityType = form.issuingAuthorityType;
-      if (form.expiryDate) payload.expiryDate = form.expiryDate;
-      if (form.equipmentId) payload.equipmentId = form.equipmentId;
-      if (form.notes) payload.notes = form.notes;
+      if (form.certificateNumber) {payload.certificateNumber = form.certificateNumber;}
+      if (form.issuingAuthorityType) {payload.issuingAuthorityType = form.issuingAuthorityType;}
+      if (form.expiryDate) {payload.expiryDate = form.expiryDate;}
+      if (form.equipmentId) {payload.equipmentId = form.equipmentId;}
+      if (form.notes) {payload.notes = form.notes;}
       createMutation.mutate(payload);
     } else {
       const payload: Record<string, unknown> = {};
-      if (editStatus) payload.status = editStatus;
-      if (form.certificateNumber) payload.certificateNumber = form.certificateNumber;
-      if (form.expiryDate) payload.expiryDate = form.expiryDate;
-      if (editNextSurveyDue) payload.nextSurveyDue = editNextSurveyDue;
-      if (form.notes !== undefined) payload.notes = form.notes;
+      if (editStatus) {payload.status = editStatus;}
+      if (form.certificateNumber) {payload.certificateNumber = form.certificateNumber;}
+      if (form.expiryDate) {payload.expiryDate = form.expiryDate;}
+      if (editNextSurveyDue) {payload.nextSurveyDue = editNextSurveyDue;}
+      if (form.notes !== undefined) {payload.notes = form.notes;}
       updateMutation.mutate(payload);
     }
   };
@@ -434,9 +434,9 @@ export default function CertificateRegistryPage() {
   const [selectedCert, setSelectedCert] = useState<VesselCertificate | null>(null);
 
   const queryParams: Record<string, string> = {};
-  if (vesselFilter !== "all") queryParams.vesselId = vesselFilter;
-  if (typeFilter !== "all") queryParams.type = typeFilter;
-  if (statusFilter !== "all") queryParams.status = statusFilter;
+  if (vesselFilter !== "all") {queryParams.vesselId = vesselFilter;}
+  if (typeFilter !== "all") {queryParams.type = typeFilter;}
+  if (statusFilter !== "all") {queryParams.status = statusFilter;}
 
   const { data: certificates = [], isLoading: isLoadingCerts } = useQuery<VesselCertificate[]>({
     queryKey: ["/api/certificates", queryParams],

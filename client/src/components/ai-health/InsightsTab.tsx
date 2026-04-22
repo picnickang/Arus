@@ -113,7 +113,7 @@ function VesselIntelligenceSection() {
   });
 
   const loadVesselIntelligence = async () => {
-    if (!selectedVessel) return;
+    if (!selectedVessel) {return;}
     setIsLoadingIntelligence(true);
     try {
       const response = await fetch(`/api/analytics/vessel-intelligence/${selectedVessel}`);

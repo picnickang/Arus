@@ -57,8 +57,8 @@ export class FleetHealthGenerator implements IFleetHealthGenerator {
           const health = (eq as any).healthScore || 100;
           healthSum += health;
           
-          if (health < 30) criticalCount++;
-          else if (health < 60) warningCount++;
+          if (health < 30) {criticalCount++;}
+          else if (health < 60) {warningCount++;}
         }
 
         summaries.push({
@@ -157,7 +157,7 @@ export class FleetHealthGenerator implements IFleetHealthGenerator {
   }
 
   private calculateOverallScore(vessels: VesselHealthSummary[]): number {
-    if (vessels.length === 0) return 100;
+    if (vessels.length === 0) {return 100;}
     const totalScore = vessels.reduce((sum, v) => sum + v.healthScore, 0);
     return Math.round(totalScore / vessels.length);
   }

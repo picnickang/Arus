@@ -1,8 +1,7 @@
 import React, { useState } from "react";
 import { 
-  ClipboardCheck, BookOpen, AlertTriangle, Activity,
-  Settings, Clock, AlertCircle, TrendingUp, Sun, Moon, Wrench,
-  Gauge, Anchor, ChevronRight, Menu, Bell, Search, ShieldAlert, Zap
+  ClipboardCheck, BookOpen, AlertTriangle, Activity, Clock, AlertCircle, Sun, Moon, Wrench,
+  Gauge, Anchor, ChevronRight, Menu, Bell, Search
 } from "lucide-react";
 
 // Mock Data

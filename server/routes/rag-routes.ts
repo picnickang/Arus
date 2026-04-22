@@ -15,7 +15,7 @@
  * - Audit logging for all operations
  */
 
-import { Express, Request, Response, NextFunction } from 'express';
+import { Express, Request, Response } from 'express';
 import { z } from 'zod';
 import { RateLimitRequestHandler } from 'express-rate-limit';
 import { withErrorHandling } from '../lib/route-utils';
@@ -27,7 +27,6 @@ import {
 } from '../services/rag';
 import { logger } from '../utils/logger';
 import { streamingService } from '../services/rag/streaming';
-import { createRateLimitMiddleware } from '../services/rag/rate-limiter';
 import { suggestionEngine } from '../services/rag/suggestions';
 import { exportService } from '../services/rag/export';
 import { analyticsAggregator } from '../services/rag/analytics';
@@ -43,8 +42,7 @@ import {
 } from '../services/rag/security/middleware';
 import { 
   initializeRagSecurity, 
-  getRagSecurityServices,
-  getRagSecurityConfig 
+  getRagSecurityServices 
 } from '../services/rag/security';
 
 const askRequestSchema = z.object({

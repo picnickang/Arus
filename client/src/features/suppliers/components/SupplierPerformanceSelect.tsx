@@ -63,8 +63,8 @@ export function SupplierPerformanceSelect({
   const sorted = [...(suppliers || [])]
     .filter((s) => s.isActive !== false)
     .sort((a, b) => {
-      if (a.isPreferred && !b.isPreferred) return -1;
-      if (!a.isPreferred && b.isPreferred) return 1;
+      if (a.isPreferred && !b.isPreferred) {return -1;}
+      if (!a.isPreferred && b.isPreferred) {return 1;}
       return (b.qualityRating ?? 0) - (a.qualityRating ?? 0);
     });
 

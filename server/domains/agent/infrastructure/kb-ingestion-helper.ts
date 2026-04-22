@@ -38,7 +38,7 @@ export function isKBIngestibleFile(mimetype: string, filename: string): boolean 
 }
 
 export function resolveFileType(mimetype: string, filename: string): string {
-  if (MIME_TO_TYPE[mimetype]) return MIME_TO_TYPE[mimetype];
+  if (MIME_TO_TYPE[mimetype]) {return MIME_TO_TYPE[mimetype];}
   const ext = filename.split(".").pop()?.toLowerCase() || "";
   return ext || "txt";
 }
@@ -52,7 +52,7 @@ export async function ingestFilesToKB(
   const results: KBIngestionResult[] = [];
 
   for (const file of files) {
-    if (!isKBIngestibleFile(file.mimetype, file.filename)) continue;
+    if (!isKBIngestibleFile(file.mimetype, file.filename)) {continue;}
 
     try {
       const fileBuffer = fs.readFileSync(file.path);

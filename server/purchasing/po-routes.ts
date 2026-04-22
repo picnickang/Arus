@@ -20,7 +20,6 @@ import {
   purchaseOrders,
   purchaseOrderItems,
   purchaseOrderEvents,
-  purchaseRequests,
   purchaseRequestItems,
   suppliers,
   parts,
@@ -39,7 +38,7 @@ function getOrgId(req: any): string {
 
 function parseIntSafe(val: string | undefined, def: number, max?: number): number {
   const n = Number.parseInt(val ?? "", 10);
-  if (Number.isNaN(n) || n < 0) return def;
+  if (Number.isNaN(n) || n < 0) {return def;}
   return max !== undefined ? Math.min(n, max) : n;
 }
 
@@ -53,8 +52,8 @@ router.get("/", requireOrgId, generalLimit, async (req, res) => {
     const offset     = parseIntSafe(req.query.offset as string, 0);
 
     const conditions: any[] = [eq(purchaseOrders.orgId, orgId)];
-    if (status)     conditions.push(eq(purchaseOrders.status, status));
-    if (supplierId) conditions.push(eq(purchaseOrders.supplierId, supplierId));
+    if (status)     {conditions.push(eq(purchaseOrders.status, status));}
+    if (supplierId) {conditions.push(eq(purchaseOrders.supplierId, supplierId));}
 
     const results = await db
       .select({
@@ -128,7 +127,7 @@ router.get("/:id", requireOrgId, generalLimit, async (req, res) => {
       .leftJoin(suppliers, eq(purchaseOrders.supplierId, suppliers.id))
       .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.orgId, orgId)));
 
-    if (!po) return res.status(404).json({ error: "Purchase order not found" });
+    if (!po) {return res.status(404).json({ error: "Purchase order not found" });}
 
     const items = await db
       .select({
@@ -171,14 +170,14 @@ router.post("/:id/receive", requireOrgId, writeLimit, async (req, res) => {
     });
 
     const parsed = schema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
+    if (!parsed.success) {return res.status(400).json({ error: parsed.error.message });}
 
     const [po] = await db
       .select()
       .from(purchaseOrders)
       .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.orgId, orgId)));
 
-    if (!po) return res.status(404).json({ error: "Purchase order not found" });
+    if (!po) {return res.status(404).json({ error: "Purchase order not found" });}
     if (po.status === "cancelled" || po.status === "received") {
       return res.status(400).json({ error: "Cannot update received/cancelled PO" });
     }
@@ -192,7 +191,7 @@ router.post("/:id/receive", requireOrgId, writeLimit, async (req, res) => {
 
     for (const item of parsed.data.items) {
       const existing = itemMap.get(item.itemId);
-      if (!existing) continue;
+      if (!existing) {continue;}
       const clampedQty = Math.min(item.receivedQuantity, existing.quantity);
       await db
         .update(purchaseOrderItems)
@@ -248,14 +247,14 @@ router.post("/:id/reject-items", requireOrgId, writeLimit, async (req, res) => {
     });
 
     const parsed = schema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+    if (!parsed.success) {return res.status(400).json({ error: parsed.error.flatten() });}
 
     const [po] = await db
       .select()
       .from(purchaseOrders)
       .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.orgId, orgId)));
 
-    if (!po) return res.status(404).json({ error: "Purchase order not found" });
+    if (!po) {return res.status(404).json({ error: "Purchase order not found" });}
     if (po.status === "cancelled") {
       return res.status(400).json({ error: "Cannot reject items on a cancelled PO" });
     }
@@ -268,7 +267,7 @@ router.post("/:id/reject-items", requireOrgId, writeLimit, async (req, res) => {
         .from(purchaseOrderItems)
         .where(and(eq(purchaseOrderItems.id, item.itemId), eq(purchaseOrderItems.poId, id)));
 
-      if (!existing) continue;
+      if (!existing) {continue;}
 
       // Cannot reject more than was received
       const maxRejectable = existing.receivedQuantity || 0;
@@ -314,14 +313,14 @@ router.patch("/:id/items/:itemId", requireOrgId, writeLimit, async (req, res) =>
     });
 
     const parsed = schema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+    if (!parsed.success) {return res.status(400).json({ error: parsed.error.flatten() });}
 
     const [po] = await db
       .select()
       .from(purchaseOrders)
       .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.orgId, orgId)));
 
-    if (!po) return res.status(404).json({ error: "Purchase order not found" });
+    if (!po) {return res.status(404).json({ error: "Purchase order not found" });}
     if (po.status !== "sent") {
       return res.status(400).json({
         error: `Can only update item prices on sent POs. Current status: ${po.status}`,
@@ -333,7 +332,7 @@ router.patch("/:id/items/:itemId", requireOrgId, writeLimit, async (req, res) =>
       .from(purchaseOrderItems)
       .where(and(eq(purchaseOrderItems.id, itemId), eq(purchaseOrderItems.poId, id)));
 
-    if (!existing) return res.status(404).json({ error: "PO item not found" });
+    if (!existing) {return res.status(404).json({ error: "PO item not found" });}
 
     const newTotalPrice = (existing.quantity || 0) * parsed.data.unitPrice;
 
@@ -391,7 +390,7 @@ router.post("/:id/fulfill-pr", requireOrgId, writeLimit, async (req, res) => {
       .from(purchaseOrders)
       .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.orgId, orgId)));
 
-    if (!po) return res.status(404).json({ error: "Purchase order not found" });
+    if (!po) {return res.status(404).json({ error: "Purchase order not found" });}
     if (po.status !== "received") {
       return res.status(400).json({ error: "Can only fulfill PR from a received PO" });
     }
@@ -427,7 +426,7 @@ router.post("/:id/fulfill-pr", requireOrgId, writeLimit, async (req, res) => {
 
     for (const poItem of poItems) {
       const receivedQty = (poItem.receivedQuantity || 0) - (poItem.rejectedQuantity || 0);
-      if (receivedQty <= 0) continue;
+      if (receivedQty <= 0) {continue;}
 
       // Find the matching PR item
       const [prItem] = await db

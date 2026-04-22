@@ -266,7 +266,7 @@ export class TelemetryBatchWriter extends EventEmitter {
    */
   private evictOldestFromVessel(vesselId: string): void {
     const buffer = this.vesselBuffers.get(vesselId);
-    if (!buffer || buffer.length === 0) return;
+    if (!buffer || buffer.length === 0) {return;}
 
     const perVesselMax = Math.floor(this.config.bufferSize / Math.max(this.vesselBuffers.size, 1));
     const evictCount = Math.floor(perVesselMax * this.config.evictionPercent);

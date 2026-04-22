@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Book, Wrench, FileWarning, Bell, Ship, Calendar, CheckCircle2, AlertTriangle, XCircle, ArrowRight, ClipboardCheck, BarChart3, FileText, CloudSun } from "lucide-react";
+import { Book, Wrench, FileWarning, Bell, Ship, Calendar, CheckCircle2, AlertTriangle, XCircle, ArrowRight, BarChart3, FileText, CloudSun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

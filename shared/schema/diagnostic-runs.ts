@@ -2,7 +2,6 @@ import {
   pgTable,
   text,
   varchar,
-  timestamp,
   jsonb,
   index,
   uuidPrimaryKey,

@@ -18,7 +18,7 @@ import type {
 } from "../domain/findings-types";
 
 function normalizeSeverity(val: string | null | undefined): FindingSeverity {
-  if (val === "critical" || val === "warning" || val === "info") return val;
+  if (val === "critical" || val === "warning" || val === "info") {return val;}
   return "info";
 }
 
@@ -27,7 +27,7 @@ function normalizeStatus(val: string | null | undefined): FindingStatus {
     "pending", "acted", "dismissed", "deferred", "approved", "rejected",
     "completed", "failed", "running",
   ];
-  if (val && valid.includes(val as FindingStatus)) return val as FindingStatus;
+  if (val && valid.includes(val as FindingStatus)) {return val as FindingStatus;}
   return "pending";
 }
 
@@ -47,10 +47,10 @@ export function createFindingsAdapter(): FindingsAggregatorPort {
 
       if (shouldInclude("suggestion")) {
         const conditions = [eq(agentSuggestions.orgId, orgId)];
-        if (filter?.status) conditions.push(eq(agentSuggestions.status, filter.status));
-        if (filter?.severity) conditions.push(eq(agentSuggestions.severity, filter.severity));
-        if (filter?.dateFrom) conditions.push(gte(agentSuggestions.createdAt, new Date(filter.dateFrom)));
-        if (filter?.dateTo) conditions.push(lte(agentSuggestions.createdAt, new Date(filter.dateTo)));
+        if (filter?.status) {conditions.push(eq(agentSuggestions.status, filter.status));}
+        if (filter?.severity) {conditions.push(eq(agentSuggestions.severity, filter.severity));}
+        if (filter?.dateFrom) {conditions.push(gte(agentSuggestions.createdAt, new Date(filter.dateFrom)));}
+        if (filter?.dateTo) {conditions.push(lte(agentSuggestions.createdAt, new Date(filter.dateTo)));}
 
         const suggestions = await db.select().from(agentSuggestions)
           .where(and(...conditions))
@@ -85,9 +85,9 @@ export function createFindingsAdapter(): FindingsAggregatorPort {
 
       if (shouldInclude("draft")) {
         const conditions = [eq(agentDrafts.orgId, orgId)];
-        if (filter?.status) conditions.push(eq(agentDrafts.status, filter.status));
-        if (filter?.dateFrom) conditions.push(gte(agentDrafts.createdAt, new Date(filter.dateFrom)));
-        if (filter?.dateTo) conditions.push(lte(agentDrafts.createdAt, new Date(filter.dateTo)));
+        if (filter?.status) {conditions.push(eq(agentDrafts.status, filter.status));}
+        if (filter?.dateFrom) {conditions.push(gte(agentDrafts.createdAt, new Date(filter.dateFrom)));}
+        if (filter?.dateTo) {conditions.push(lte(agentDrafts.createdAt, new Date(filter.dateTo)));}
 
         const drafts = await db.select().from(agentDrafts)
           .where(and(...conditions))
@@ -95,7 +95,7 @@ export function createFindingsAdapter(): FindingsAggregatorPort {
 
         for (const d of drafts) {
           const severity: FindingSeverity = d.status === "pending" ? "warning" : "info";
-          if (filter?.severity && severity !== filter.severity) continue;
+          if (filter?.severity && severity !== filter.severity) {continue;}
 
           items.push({
             id: `draft_${d.id}`,
@@ -129,9 +129,9 @@ export function createFindingsAdapter(): FindingsAggregatorPort {
           const runConditions = [
             sql`${agentScheduleRuns.scheduleId} IN (${sql.join(scheduleIds.map(id => sql`${id}`), sql`, `)})`,
           ];
-          if (filter?.status) runConditions.push(eq(agentScheduleRuns.status, filter.status));
-          if (filter?.dateFrom) runConditions.push(gte(agentScheduleRuns.startedAt, new Date(filter.dateFrom)));
-          if (filter?.dateTo) runConditions.push(lte(agentScheduleRuns.startedAt, new Date(filter.dateTo)));
+          if (filter?.status) {runConditions.push(eq(agentScheduleRuns.status, filter.status));}
+          if (filter?.dateFrom) {runConditions.push(gte(agentScheduleRuns.startedAt, new Date(filter.dateFrom)));}
+          if (filter?.dateTo) {runConditions.push(lte(agentScheduleRuns.startedAt, new Date(filter.dateTo)));}
 
           const runs = await db.select().from(agentScheduleRuns)
             .where(and(...runConditions))
@@ -143,7 +143,7 @@ export function createFindingsAdapter(): FindingsAggregatorPort {
 
             const severity: FindingSeverity = r.status === "failed" ? "critical"
               : r.status === "running" ? "warning" : "info";
-            if (filter?.severity && severity !== filter.severity) continue;
+            if (filter?.severity && severity !== filter.severity) {continue;}
 
             items.push({
               id: `run_${r.id}`,
@@ -174,7 +174,7 @@ export function createFindingsAdapter(): FindingsAggregatorPort {
 
       if (shouldInclude("agent_finding")) {
         const conditions = [eq(agentFindings.orgId, orgId)];
-        if (filter?.severity) conditions.push(eq(agentFindings.severity, filter.severity));
+        if (filter?.severity) {conditions.push(eq(agentFindings.severity, filter.severity));}
         if (filter?.status) {
           const statusMap: Record<string, string[]> = {
             pending: ["new"],
@@ -188,8 +188,8 @@ export function createFindingsAdapter(): FindingsAggregatorPort {
             conditions.push(sql`${agentFindings.status} IN (${sql.join(mappedStatuses.map(s => sql`${s}`), sql`, `)})`);
           }
         }
-        if (filter?.dateFrom) conditions.push(gte(agentFindings.createdAt, new Date(filter.dateFrom)));
-        if (filter?.dateTo) conditions.push(lte(agentFindings.createdAt, new Date(filter.dateTo)));
+        if (filter?.dateFrom) {conditions.push(gte(agentFindings.createdAt, new Date(filter.dateFrom)));}
+        if (filter?.dateTo) {conditions.push(lte(agentFindings.createdAt, new Date(filter.dateTo)));}
 
         const agentFindingRows = await db.select().from(agentFindings)
           .where(and(...conditions))

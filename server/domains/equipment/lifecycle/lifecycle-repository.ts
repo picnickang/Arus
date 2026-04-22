@@ -7,7 +7,7 @@ import type {
 import { db } from "../../../db";
 import { equipment } from "@shared/schema";
 import { equipmentDecommissionEvents } from "@shared/schema/equipment";
-import { eq, and, sql, ne } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 
 export class EquipmentLifecycleRepository {
   async findEquipmentById(id: string, orgId: string): Promise<Equipment | undefined> {
@@ -63,7 +63,7 @@ export class EquipmentLifecycleRepository {
       .from(equipment)
       .where(and(eq(equipment.orgId, orgId), eq(equipment.isActive, false)));
 
-    const result = await Promise.all(
+    return await Promise.all(
       decommissionedEquipment.map(async (item) => {
         const events = await db
           .select()
@@ -76,8 +76,6 @@ export class EquipmentLifecycleRepository {
         return { ...item, decommissionEvents: events };
       })
     );
-
-    return result;
   }
 
   async decommissionEquipment(

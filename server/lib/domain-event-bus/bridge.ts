@@ -1,6 +1,6 @@
 import { domainEventBus } from "./bus.js";
 import { createDomainEvent } from "./types.js";
-import type { DomainEventMap, DomainEventName, DomainEventEnvelope } from "./types.js";
+import type { DomainEventMap, DomainEventName } from "./types.js";
 import { syncEventBus, type EventType, recordJournalEntry, publishEvent } from "../../sync-events.js";
 import { schedulerEventBus } from "../../events/scheduler-bus.js";
 import { mqttReliableSync } from "../../mqtt-reliable-sync/index.js";
@@ -132,9 +132,9 @@ export function initSyncJournalSubscriber(): void {
   for (const eventType of trackedEvents) {
     domainEventBus.on(eventType, async (event) => {
       try {
-        if ((event as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) return;
+        if ((event as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) {return;}
         const entityType = SYNC_EVENT_ENTITY_MAP[eventType];
-        if (!entityType) return;
+        if (!entityType) {return;}
         const operation = mapOperationFromEventType(eventType);
         const aggregateId = event.aggregateId || "unknown";
         await recordJournalEntry(entityType, aggregateId, operation, event.payload, event.userId);
@@ -159,7 +159,7 @@ export function initMqttSubscriber(): void {
   ];
   for (const eventType of workOrderEvents) {
     domainEventBus.on(eventType, (event) => {
-      if ((event as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) return;
+      if ((event as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) {return;}
       const op = mapOperationFromEventType(eventType);
       mqttReliableSync.publishWorkOrderChange(op, { id: event.aggregateId, eventType, ...event.payload }).catch(() => {});
     });
@@ -173,7 +173,7 @@ export function initMqttSubscriber(): void {
   ];
   for (const eventType of crewEvents) {
     domainEventBus.on(eventType, (event) => {
-      if ((event as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) return;
+      if ((event as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) {return;}
       const op = mapOperationFromEventType(eventType);
       mqttReliableSync.publishCrewChange(op, event.payload).catch(() => {});
     });
@@ -186,7 +186,7 @@ export function initMqttSubscriber(): void {
   ];
   for (const eventType of maintenanceEvents) {
     domainEventBus.on(eventType, (event) => {
-      if ((event as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) return;
+      if ((event as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) {return;}
       const op = mapOperationFromEventType(eventType);
       mqttReliableSync.publishMaintenanceChange(op, { id: event.aggregateId, eventType, ...event.payload }).catch(() => {});
     });
@@ -242,7 +242,7 @@ export function initSyncEventBusBridge(): void {
 
   for (const eventType of bridgedEvents) {
     domainEventBus.on(eventType, (event) => {
-      if ((event as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) return;
+      if ((event as Record<string | symbol, unknown>)[BRIDGE_SOURCE_MARKER]) {return;}
       const syncEvent = mapDomainEventToSyncEvent(eventType);
       if (syncEvent) {
         const markedPayload = { id: event.aggregateId, data: event.payload, operation: mapOperationFromEventType(eventType), [BRIDGE_SOURCE_MARKER]: true };
@@ -286,12 +286,12 @@ export function initReverseSyncEventBusBridge(): void {
 
   for (const syncEvent of syncEventsToForward) {
     syncEventBus.on(syncEvent, (data: Record<string | symbol, unknown>) => {
-      if (data[BRIDGE_SOURCE_MARKER]) return;
+      if (data[BRIDGE_SOURCE_MARKER]) {return;}
       const domainEventType = mapSyncEventToDomainEvent(syncEvent);
-      if (!domainEventType) return;
+      if (!domainEventType) {return;}
       const nested = data.data as Record<string, unknown> | undefined;
       const orgId = (data.orgId as string) || (nested?.orgId as string);
-      if (!orgId) return;
+      if (!orgId) {return;}
       const aggregateId = (data.id as string) || "unknown";
       const envelope = createDomainEvent(domainEventType, orgId, nested ?? data, {
         aggregateId,

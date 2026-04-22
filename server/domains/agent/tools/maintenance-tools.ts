@@ -22,8 +22,8 @@ registerTool({
   requiresApproval: false,
   async execute(input: { equipmentId?: string; status?: string; limit?: number }, ctx) {
     const conditions = [eq(maintenanceSchedules.orgId, ctx.orgId)];
-    if (input.equipmentId) conditions.push(eq(maintenanceSchedules.equipmentId, input.equipmentId));
-    if (input.status) conditions.push(eq(maintenanceSchedules.status, input.status));
+    if (input.equipmentId) {conditions.push(eq(maintenanceSchedules.equipmentId, input.equipmentId));}
+    if (input.status) {conditions.push(eq(maintenanceSchedules.status, input.status));}
 
     const schedules = await db.select().from(maintenanceSchedules)
       .where(and(...conditions))

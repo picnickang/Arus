@@ -52,7 +52,7 @@ export async function updatePRDraft(
   options?: { isAutoSave?: boolean }
 ) {
   const pr = await repo.getPurchaseRequestById(id, orgId);
-  if (!pr) throw new Error("Purchase request not found");
+  if (!pr) {throw new Error("Purchase request not found");}
 
   // Improvement #14: allow auto-save to update non-draft PRs without throwing
   if (!options?.isAutoSave && pr.status !== "draft") {
@@ -87,15 +87,15 @@ export async function addItemToPR(
   userId?: string
 ): Promise<AddItemResult> {
   const pr = await repo.getPurchaseRequestById(prId, orgId);
-  if (!pr)                  throw new Error("Purchase request not found");
-  if (pr.status !== "draft") throw new Error("Can only add items to draft PRs");
+  if (!pr)                  {throw new Error("Purchase request not found");}
+  if (pr.status !== "draft") {throw new Error("Can only add items to draft PRs");}
 
   // Validate part belongs to org
   const [part] = await db
     .select()
     .from(parts)
     .where(and(eq(parts.id, data.partId), eq(parts.orgId, orgId)));
-  if (!part) throw new Error("Part not found or does not belong to organization");
+  if (!part) {throw new Error("Part not found or does not belong to organization");}
 
   const inventoryRecords = await db
     .select({
@@ -115,7 +115,7 @@ export async function addItemToPR(
       .select()
       .from(suppliers)
       .where(and(eq(suppliers.id, data.supplierId), eq(suppliers.orgId, orgId)));
-    if (!supplier) throw new Error("Supplier not found or does not belong to organization");
+    if (!supplier) {throw new Error("Supplier not found or does not belong to organization");}
   }
 
   const item = await repo.addPurchaseRequestItem({
@@ -163,7 +163,7 @@ async function findSubstitutionSuggestions(
         )
       );
 
-    if (subs.length === 0) return [];
+    if (subs.length === 0) {return [];}
 
     const substituteIds = subs.map((s) => s.substitutePartId);
 
@@ -179,7 +179,7 @@ async function findSubstitutionSuggestions(
         .from(parts)
         .where(and(eq(parts.id, substituteId), eq(parts.orgId, orgId)));
 
-      if (!subPart) continue;
+      if (!subPart) {continue;}
 
       const subInventoryRows = await db
         .select({ quantityOnHand: stock.quantityOnHand, quantityReserved: stock.quantityReserved })
@@ -214,8 +214,8 @@ export async function removeItemFromPR(
   userId?: string
 ) {
   const pr = await repo.getPurchaseRequestById(prId, orgId);
-  if (!pr)                  throw new Error("Purchase request not found");
-  if (pr.status !== "draft") throw new Error("Can only remove items from draft PRs");
+  if (!pr)                  {throw new Error("Purchase request not found");}
+  if (pr.status !== "draft") {throw new Error("Can only remove items from draft PRs");}
 
   const removed = await repo.removePurchaseRequestItem(itemId, prId, orgId);
   if (removed) {

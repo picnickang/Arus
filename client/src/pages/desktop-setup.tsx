@@ -71,7 +71,7 @@ function BackendStep({
   const [isInsecure, setIsInsecure] = useState(false);
 
   async function handleTest() {
-    if (!url.trim()) return;
+    if (!url.trim()) {return;}
 
     const validation = validateBackendUrl(url.trim());
     if (!validation.valid) {
@@ -210,14 +210,14 @@ function VesselStep({
           headers: { 'x-org-id': 'default-org-id' },
           signal: controller.signal,
         });
-        if (!res.ok) throw new Error(`Status ${res.status}`);
+        if (!res.ok) {throw new Error(`Status ${res.status}`);}
         const data = await res.json();
         const vesselList = Array.isArray(data) ? data : data.vessels || [];
         if (!controller.signal.aborted) {
           setVessels(vesselList.filter((v: Vessel) => v.active !== false));
         }
       } catch (e: unknown) {
-        if (controller.signal.aborted) return;
+        if (controller.signal.aborted) {return;}
         const msg = e instanceof Error ? e.message : 'Unknown error';
         setError(`Could not load vessels: ${msg}`);
       } finally {
@@ -410,7 +410,7 @@ function AdminStep({
   }
 
   async function handleVerify() {
-    if (!password) return;
+    if (!password) {return;}
     setStatus('testing');
     setStatusMessage('Verifying password...');
 
@@ -474,7 +474,7 @@ function AdminStep({
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);
-                    if (status !== 'idle') setStatus('idle');
+                    if (status !== 'idle') {setStatus('idle');}
                   }}
                   onKeyDown={(e) => e.key === 'Enter' && (isNewSetup ? handleSetup() : handleVerify())}
                 />
@@ -501,7 +501,7 @@ function AdminStep({
                   value={confirmPassword}
                   onChange={(e) => {
                     setConfirmPassword(e.target.value);
-                    if (status !== 'idle') setStatus('idle');
+                    if (status !== 'idle') {setStatus('idle');}
                   }}
                   onKeyDown={(e) => e.key === 'Enter' && handleSetup()}
                 />

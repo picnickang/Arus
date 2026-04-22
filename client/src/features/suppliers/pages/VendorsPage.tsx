@@ -28,7 +28,7 @@ export function VendorsPage() {
   const deleteMutation = useDeleteSupplier();
 
   const { suppliers, serviceProviders } = useMemo(() => {
-    if (!allVendors) return { suppliers: [], serviceProviders: [] };
+    if (!allVendors) {return { suppliers: [], serviceProviders: [] };}
     
     const searchLower = search.toLowerCase();
     const filtered = allVendors.filter((v) =>
@@ -59,7 +59,7 @@ export function VendorsPage() {
   };
 
   const handleUpdate = (data: SupplierFormData) => {
-    if (!editingSupplier) return;
+    if (!editingSupplier) {return;}
     updateMutation.mutate({ id: editingSupplier.id, ...data }, {
       onSuccess: () => {
         toast({ title: "Vendor updated successfully" });
@@ -70,7 +70,7 @@ export function VendorsPage() {
   };
 
   const handleDelete = () => {
-    if (!deletingSupplier) return;
+    if (!deletingSupplier) {return;}
     deleteMutation.mutate(deletingSupplier.id, {
       onSuccess: () => {
         toast({ title: "Vendor deleted successfully" });

@@ -21,7 +21,7 @@ registerTool({
   requiresApproval: false,
   async execute(input: { vesselId?: string; limit?: number }, ctx) {
     const conditions = [eq(crew.orgId, ctx.orgId)];
-    if (input.vesselId) conditions.push(eq(crew.vesselId, input.vesselId));
+    if (input.vesselId) {conditions.push(eq(crew.vesselId, input.vesselId));}
 
     const members = await db.select().from(crew)
       .where(and(...conditions))
@@ -56,8 +56,8 @@ registerTool({
   requiresApproval: false,
   async execute(input: { vesselId?: string; crewMemberId?: string; limit?: number }, ctx) {
     const crewConditions = [eq(crew.orgId, ctx.orgId)];
-    if (input.vesselId) crewConditions.push(eq(crew.vesselId, input.vesselId));
-    if (input.crewMemberId) crewConditions.push(eq(crew.id, input.crewMemberId));
+    if (input.vesselId) {crewConditions.push(eq(crew.vesselId, input.vesselId));}
+    if (input.crewMemberId) {crewConditions.push(eq(crew.id, input.crewMemberId));}
 
     const members = await db.select().from(crew)
       .where(and(...crewConditions))

@@ -48,7 +48,7 @@ export class CrewExtensionsApplicationService {
     orgId: string
   ): Promise<{ run: SchedulerRunEntity; assignments: ScheduleAssignmentEntity[] } | undefined> {
     const run = await this.deps.schedulerRunRepository.findById(id, orgId);
-    if (!run) return undefined;
+    if (!run) {return undefined;}
 
     const assignments = await this.deps.assignmentRepository.findByRunId(id);
     return { run, assignments };

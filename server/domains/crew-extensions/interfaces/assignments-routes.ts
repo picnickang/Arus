@@ -8,7 +8,7 @@ import { z } from "zod";
 import { insertCrewAssignmentSchema } from "@shared/schema";
 import { planShifts } from "../../../crew-scheduler.js";
 import type { CrewExtensionsRoutesConfig, AuthenticatedRequest } from "./types.js";
-import { withErrorHandling, sendNotFound } from "../../../lib/route-utils.js";
+import { withErrorHandling } from "../../../lib/route-utils.js";
 import { sendBadRequest } from "../../../lib/api-helpers.js";
 import { dbCrewStorage } from "../../../db/crew/index.js";
 import { vesselService } from "../../../services/domains/vessel-service.js";
@@ -63,9 +63,9 @@ export function registerAssignmentsRoutes(app: Express, config: CrewExtensionsRo
       const scheduleAssignments = allAssignments
         .filter((a: any) => {
           // Filter by org for multi-tenant isolation
-          if (a.orgId && a.orgId !== orgId) return false;
+          if (a.orgId && a.orgId !== orgId) {return false;}
           
-          if (!from || !to) return true;
+          if (!from || !to) {return true;}
           const assignmentStart = new Date(a.start || a.date);
           const assignmentEnd = new Date(a.end || a.date);
           const rangeStart = new Date(from as string);
@@ -148,9 +148,9 @@ export function registerAssignmentsRoutes(app: Express, config: CrewExtensionsRo
       if (validated.endDate) {
         storageUpdates.end = new Date(validated.endDate);
       }
-      if (validated.role) storageUpdates.role = validated.role;
-      if (validated.crewId) storageUpdates.crewId = validated.crewId;
-      if (validated.vesselId !== undefined) storageUpdates.vesselId = validated.vesselId;
+      if (validated.role) {storageUpdates.role = validated.role;}
+      if (validated.crewId) {storageUpdates.crewId = validated.crewId;}
+      if (validated.vesselId !== undefined) {storageUpdates.vesselId = validated.vesselId;}
       
       const assignment = await dbCrewStorage.updateCrewAssignment(id, storageUpdates, orgId);
       

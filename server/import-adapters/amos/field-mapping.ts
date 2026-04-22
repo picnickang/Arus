@@ -30,7 +30,7 @@ export interface FieldMapping {
 // ============================================================================
 
 const parseDate = (v: string): Date | null => {
-  if (!v || v === "" || v === "NULL") return null;
+  if (!v || v === "" || v === "NULL") {return null;}
   // AMOS uses DD/MM/YYYY, DD.MM.YYYY, or YYYY-MM-DD
   const formats = [
     /^(\d{2})[\/\.](\d{2})[\/\.](\d{4})$/, // DD/MM/YYYY or DD.MM.YYYY
@@ -50,7 +50,7 @@ const parseDate = (v: string): Date | null => {
 };
 
 const parseNumber = (v: string): number | null => {
-  if (!v || v === "" || v === "NULL") return null;
+  if (!v || v === "" || v === "NULL") {return null;}
   const n = Number(v.replace(",", "."));
   return isNaN(n) ? null : n;
 };
@@ -60,7 +60,7 @@ const parseBoolean = (v: string): boolean => {
 };
 
 const cleanString = (v: string): string | null => {
-  if (!v || v === "NULL" || v.trim() === "") return null;
+  if (!v || v === "NULL" || v.trim() === "") {return null;}
   return v.trim();
 };
 

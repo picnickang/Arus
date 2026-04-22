@@ -118,7 +118,7 @@ export async function initDb(dbPath?: string): Promise<void> {
       'CREATE INDEX IF NOT EXISTS idx_admin_audit_org         ON admin_audit_events(org_id)',
       'CREATE INDEX IF NOT EXISTS idx_admin_settings_org_cat ON admin_system_settings(org_id, category)',
     ];
-    for (const sql of indexes) await client.execute(sql);
+    for (const sql of indexes) {await client.execute(sql);}
 
     console.log('[ARUS] Database initialised successfully.');
   } finally {

@@ -18,11 +18,11 @@ export class AgentFindingRepositoryAdapter implements AgentFindingRepositoryPort
 
   async list(orgId: string, filter?: AgentFindingFilter): Promise<AgentFinding[]> {
     const conditions = [eq(agentFindings.orgId, orgId)];
-    if (filter?.findingType) conditions.push(eq(agentFindings.findingType, filter.findingType));
-    if (filter?.severity) conditions.push(eq(agentFindings.severity, filter.severity));
-    if (filter?.status) conditions.push(eq(agentFindings.status, filter.status));
-    if (filter?.taskId) conditions.push(eq(agentFindings.taskId, filter.taskId));
-    if (filter?.equipmentId) conditions.push(eq(agentFindings.equipmentId, filter.equipmentId));
+    if (filter?.findingType) {conditions.push(eq(agentFindings.findingType, filter.findingType));}
+    if (filter?.severity) {conditions.push(eq(agentFindings.severity, filter.severity));}
+    if (filter?.status) {conditions.push(eq(agentFindings.status, filter.status));}
+    if (filter?.taskId) {conditions.push(eq(agentFindings.taskId, filter.taskId));}
+    if (filter?.equipmentId) {conditions.push(eq(agentFindings.equipmentId, filter.equipmentId));}
 
     const limit = filter?.limit ?? 50;
     const offset = filter?.offset ?? 0;

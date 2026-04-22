@@ -1,11 +1,7 @@
 import { db } from "../../../db";
-import { eq, count, sql } from "drizzle-orm";
+import { eq, count } from "drizzle-orm";
 import type {
   KnowledgeBasePort,
-  KnowledgeBaseSearchResult,
-  KnowledgeBaseDocSummary,
-  KnowledgeBaseStats,
-  KnowledgeBaseIngestResult,
   KnowledgeBaseCitation,
 } from "../domain/ports";
 

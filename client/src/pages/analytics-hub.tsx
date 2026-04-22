@@ -6,11 +6,9 @@ import {
   ChevronRight, Activity, Sparkles,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PermissionGate, PagePermissionDenied } from "@/components/PermissionGate";
-import { healthColor, computeRisk } from "@/lib/health-risk";
 
 function HeadlineMetric({
   label, value, icon: Icon, color, domain, testId,
@@ -165,7 +163,7 @@ export default function AnalyticsHub() {
   const hasErrors = healthError || woError || costError || integrityError;
 
   const avgHealth = useMemo(() => {
-    if (!equipmentHealth || equipmentHealth.length === 0) return 0;
+    if (!equipmentHealth || equipmentHealth.length === 0) {return 0;}
     const sum = equipmentHealth.reduce((s: number, e: any) => s + (e.healthIndex ?? e.healthScore ?? 100), 0);
     return Math.round(sum / equipmentHealth.length);
   }, [equipmentHealth]);

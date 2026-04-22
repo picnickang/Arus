@@ -51,7 +51,7 @@ export function DesktopConnectionPanel() {
   }
 
   function handleSave() {
-    if (!lastTestedUrl) return;
+    if (!lastTestedUrl) {return;}
     setBackendUrl(lastTestedUrl);
     setActiveUrl(lastTestedUrl);
     setSaved(true);
@@ -87,7 +87,7 @@ export function DesktopConnectionPanel() {
               value={url}
               onChange={(e) => {
                 setUrl(e.target.value);
-                if (status !== "idle") setStatus("idle");
+                if (status !== "idle") {setStatus("idle");}
                 setValidationError("");
                 setSaved(false);
                 setLastTestedUrl("");

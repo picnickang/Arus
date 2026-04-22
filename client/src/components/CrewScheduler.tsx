@@ -11,7 +11,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Slider } from "@/components/ui/slider";
-import { Calendar, ChevronDown, Clock, AlertTriangle, CheckCircle, Ship, Plus, Edit, Trash2, Settings2, Filter, Users, ShieldAlert, ShieldCheck } from "lucide-react";
+import { ChevronDown, Clock, AlertTriangle, CheckCircle, Ship, Plus, Edit, Trash2, Settings2, Filter, ShieldAlert, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import FairnessViz from "./FairnessViz";
@@ -82,11 +82,11 @@ function QualificationBridge({ certRequired, crew, certifications }: { certRequi
 }
 
 function calcDuration(start: string, end: string): number {
-  if (!start || !end) return 0;
+  if (!start || !end) {return 0;}
   const [sh, sm] = start.split(":").map(Number);
   const [eh, em] = end.split(":").map(Number);
   let mins = (eh * 60 + em) - (sh * 60 + sm);
-  if (mins <= 0) mins += 24 * 60;
+  if (mins <= 0) {mins += 24 * 60;}
   return Math.round((mins / 60) * 10) / 10;
 }
 
@@ -100,7 +100,7 @@ export function CrewScheduler() {
   useEffect(() => {
     if (startVal && endVal) {
       const dur = calcDuration(startVal, endVal);
-      if (dur > 0) p.shiftForm.setValue("durationH", dur);
+      if (dur > 0) {p.shiftForm.setValue("durationH", dur);}
     }
   }, [startVal, endVal]);
 

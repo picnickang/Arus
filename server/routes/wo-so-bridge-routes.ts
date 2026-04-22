@@ -26,7 +26,7 @@ import { checkPermissionInDev } from "../domains/permissions/middleware";
 
 function getOrgId(req: any): string {
   const orgId = req.orgId || req.headers["x-org-id"];
-  if (!orgId) throw new Error("Missing orgId");
+  if (!orgId) {throw new Error("Missing orgId");}
   return orgId as string;
 }
 

@@ -6,7 +6,7 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { fetchTelemetryTrends, fetchTelemetryHistory } from "@/lib/api/equipment";
+import { fetchTelemetryTrends } from "@/lib/api/equipment";
 import { fetchAnomalyDetections } from "@/lib/api";
 
 export interface TelemetryStreamData {
@@ -80,10 +80,10 @@ export function useTelemetryStreams(options: UseTelemetryStreamsOptions = {}) {
   }
 
   const sortedStreams = [...streams].sort((a, b) => {
-    if (a.hasAnomaly && !b.hasAnomaly) return -1;
-    if (!a.hasAnomaly && b.hasAnomaly) return 1;
-    if (a.status === "critical" && b.status !== "critical") return -1;
-    if (a.status !== "critical" && b.status === "critical") return 1;
+    if (a.hasAnomaly && !b.hasAnomaly) {return -1;}
+    if (!a.hasAnomaly && b.hasAnomaly) {return 1;}
+    if (a.status === "critical" && b.status !== "critical") {return -1;}
+    if (a.status !== "critical" && b.status === "critical") {return 1;}
     return 0;
   });
 

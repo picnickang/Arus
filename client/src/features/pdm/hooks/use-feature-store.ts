@@ -8,10 +8,10 @@ export function useEquipmentFeatures(equipmentId: string, from?: string, to?: st
     queryKey: ["/api/pdm/features", currentOrgId, equipmentId, from, to],
     queryFn: async () => {
       const params = new URLSearchParams({ equipmentId });
-      if (from) params.append("from", from);
-      if (to) params.append("to", to);
+      if (from) {params.append("from", from);}
+      if (to) {params.append("to", to);}
       const res = await fetch(`/api/pdm/features?${params}`, { headers: { "x-org-id": currentOrgId } });
-      if (!res.ok) throw new Error("Failed to fetch features");
+      if (!res.ok) {throw new Error("Failed to fetch features");}
       return res.json();
     },
     enabled: !!equipmentId && !!currentOrgId,
@@ -24,7 +24,7 @@ export function useLatestFeatures(equipmentId: string) {
     queryKey: ["/api/pdm/features/latest", currentOrgId, equipmentId],
     queryFn: async () => {
       const res = await fetch(`/api/pdm/features/latest?equipmentId=${equipmentId}`, { headers: { "x-org-id": currentOrgId } });
-      if (!res.ok) throw new Error("Failed to fetch latest features");
+      if (!res.ok) {throw new Error("Failed to fetch latest features");}
       return res.json();
     },
     enabled: !!equipmentId && !!currentOrgId,

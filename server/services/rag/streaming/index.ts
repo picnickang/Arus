@@ -289,7 +289,7 @@ If the documentation doesn't contain relevant information, say so clearly and pr
     return chunks.slice(0, 5).map((chunk) => ({
       documentId: chunk.documentId,
       documentTitle: chunk.documentTitle || "Unknown Document",
-      excerpt: chunk.content.substring(0, 200) + "...",
+      excerpt: `${chunk.content.substring(0, 200)  }...`,
     }));
   }
 }

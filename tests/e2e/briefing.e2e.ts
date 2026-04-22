@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from "@jest/globals";
+import { describe, it, expect } from "@jest/globals";
 
 const BASE_URL = process.env.TEST_BASE_URL || "http://localhost:5000";
 

@@ -35,10 +35,10 @@ export function useVoiceStream(callbacks: StreamCallbacks = {}) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ audio: base64Audio }),
       });
-      if (!response.ok) throw new Error("Voice request failed");
+      if (!response.ok) {throw new Error("Voice request failed");}
 
       const streamReader = response.body?.getReader();
-      if (!streamReader) throw new Error("No response body");
+      if (!streamReader) {throw new Error("No response body");}
 
       const decoder = new TextDecoder();
       let buffer = "";
@@ -46,14 +46,14 @@ export function useVoiceStream(callbacks: StreamCallbacks = {}) {
 
       while (true) {
         const { done, value } = await streamReader.read();
-        if (done) break;
+        if (done) {break;}
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
         buffer = lines.pop() || "";
 
         for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
+          if (!line.startsWith("data: ")) {continue;}
 
           try {
             const event = JSON.parse(line.slice(6));

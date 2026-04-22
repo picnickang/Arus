@@ -3,8 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { format, formatDistanceToNow } from "date-fns";
 import {
   Fuel, Ship, Bell, BellOff, AlertTriangle, CheckCircle, Anchor,
-  Droplets, BarChart3, Gauge, Activity, Plus, Trash2, RefreshCw,
-  MapPin, Settings, TrendingUp, Clock, Navigation, Compass, Waves, Map
+  Droplets, BarChart3, Gauge, Activity, Plus, Trash2, RefreshCw, Settings, TrendingUp, Clock, Navigation, Map
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +15,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -148,7 +146,7 @@ export default function RmsMonitoringPage() {
 
   const hoursMap: Record<string, number> = { "6h": 6, "12h": 12, "24h": 24, "48h": 48, "7d": 168 };
   const hours = useCustomRange
-    ? Math.max(1, Math.round((new Date(dateTo + "T23:59:59").getTime() - new Date(dateFrom + "T00:00:00").getTime()) / 3600000))
+    ? Math.max(1, Math.round((new Date(`${dateTo  }T23:59:59`).getTime() - new Date(`${dateFrom  }T00:00:00`).getTime()) / 3600000))
     : (hoursMap[timeRange] || 24);
   const daysMap: Record<string, number> = { "24h": 1, "48h": 2, "7d": 7, "30d": 30 };
 
@@ -162,9 +160,9 @@ export default function RmsMonitoringPage() {
     queryKey: ["/api/rms/alerts", { vesselId: selectedVessel !== "all" ? selectedVessel : undefined, days: "7" }],
     queryFn: async () => {
       const params = new URLSearchParams({ days: "7" });
-      if (selectedVessel !== "all") params.set("vesselId", selectedVessel);
+      if (selectedVessel !== "all") {params.set("vesselId", selectedVessel);}
       const res = await fetch(`/api/rms/alerts?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch alerts");
+      if (!res.ok) {throw new Error("Failed to fetch alerts");}
       return res.json();
     },
   });
@@ -173,9 +171,9 @@ export default function RmsMonitoringPage() {
     queryKey: ["/api/rms/bunkering", { vesselId: selectedVessel !== "all" ? selectedVessel : undefined }],
     queryFn: async () => {
       const params = new URLSearchParams({ days: "30" });
-      if (selectedVessel !== "all") params.set("vesselId", selectedVessel);
+      if (selectedVessel !== "all") {params.set("vesselId", selectedVessel);}
       const res = await fetch(`/api/rms/bunkering?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch bunkering events");
+      if (!res.ok) {throw new Error("Failed to fetch bunkering events");}
       return res.json();
     },
   });
@@ -184,9 +182,9 @@ export default function RmsMonitoringPage() {
     queryKey: ["/api/rms/alerts/configs", { vesselId: selectedVessel !== "all" ? selectedVessel : undefined }],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (selectedVessel !== "all") params.set("vesselId", selectedVessel);
+      if (selectedVessel !== "all") {params.set("vesselId", selectedVessel);}
       const res = await fetch(`/api/rms/alerts/configs?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch alert configs");
+      if (!res.ok) {throw new Error("Failed to fetch alert configs");}
       return res.json();
     },
   });
@@ -194,9 +192,9 @@ export default function RmsMonitoringPage() {
   const { data: consumption = [], isLoading: consumptionLoading } = useQuery<HourlyConsumption[]>({
     queryKey: ["/api/rms/consumption/hourly", selectedVessel, hours],
     queryFn: async () => {
-      if (selectedVessel === "all") return [];
+      if (selectedVessel === "all") {return [];}
       const res = await fetch(`/api/rms/consumption/hourly/${selectedVessel}?hours=${hours}`);
-      if (!res.ok) throw new Error("Failed to fetch consumption");
+      if (!res.ok) {throw new Error("Failed to fetch consumption");}
       return res.json();
     },
     enabled: selectedVessel !== "all",
@@ -205,9 +203,9 @@ export default function RmsMonitoringPage() {
   const { data: dailyConsumption = [] } = useQuery<DailyConsumption[]>({
     queryKey: ["/api/rms/consumption/daily", selectedVessel],
     queryFn: async () => {
-      if (selectedVessel === "all") return [];
+      if (selectedVessel === "all") {return [];}
       const res = await fetch(`/api/rms/consumption/daily/${selectedVessel}?days=7`);
-      if (!res.ok) throw new Error("Failed to fetch daily consumption");
+      if (!res.ok) {throw new Error("Failed to fetch daily consumption");}
       return res.json();
     },
     enabled: selectedVessel !== "all",
@@ -216,9 +214,9 @@ export default function RmsMonitoringPage() {
   const { data: tanks = [] } = useQuery<TankReading[]>({
     queryKey: ["/api/rms/tanks", selectedVessel],
     queryFn: async () => {
-      if (selectedVessel === "all") return [];
+      if (selectedVessel === "all") {return [];}
       const res = await fetch(`/api/rms/tanks/${selectedVessel}`);
-      if (!res.ok) throw new Error("Failed to fetch tanks");
+      if (!res.ok) {throw new Error("Failed to fetch tanks");}
       return res.json();
     },
     enabled: selectedVessel !== "all",
@@ -227,9 +225,9 @@ export default function RmsMonitoringPage() {
   const { data: rob } = useQuery<RobEstimate>({
     queryKey: ["/api/rms/rob", selectedVessel],
     queryFn: async () => {
-      if (selectedVessel === "all") return null;
+      if (selectedVessel === "all") {return null;}
       const res = await fetch(`/api/rms/rob/${selectedVessel}`);
-      if (!res.ok) throw new Error("Failed to fetch ROB");
+      if (!res.ok) {throw new Error("Failed to fetch ROB");}
       return res.json();
     },
     enabled: selectedVessel !== "all",
@@ -243,9 +241,9 @@ export default function RmsMonitoringPage() {
   const { data: vesselTrack = [] } = useQuery<TrackPoint[]>({
     queryKey: ["/api/rms/vessel-track", selectedVessel, hours],
     queryFn: async () => {
-      if (selectedVessel === "all") return [];
+      if (selectedVessel === "all") {return [];}
       const res = await fetch(`/api/rms/vessel-track/${selectedVessel}?hours=${hours}`);
-      if (!res.ok) throw new Error("Failed to fetch vessel track");
+      if (!res.ok) {throw new Error("Failed to fetch vessel track");}
       return res.json();
     },
     enabled: selectedVessel !== "all",
@@ -917,8 +915,8 @@ export default function RmsMonitoringPage() {
 }
 
 function SeverityIcon({ severity }: { severity: string }) {
-  if (severity === "critical") return <AlertTriangle className="h-5 w-5 text-red-500" />;
-  if (severity === "warning") return <AlertTriangle className="h-5 w-5 text-amber-500" />;
+  if (severity === "critical") {return <AlertTriangle className="h-5 w-5 text-red-500" />;}
+  if (severity === "warning") {return <AlertTriangle className="h-5 w-5 text-amber-500" />;}
   return <Bell className="h-5 w-5 text-blue-500" />;
 }
 
@@ -948,7 +946,7 @@ function FleetMapCard({
   ], [validPositions, vesselTrack]);
 
   const bounds = useMemo(() => {
-    if (allPoints.length === 0) return { minLat: 0, maxLat: 10, minLon: 100, maxLon: 120 };
+    if (allPoints.length === 0) {return { minLat: 0, maxLat: 10, minLon: 100, maxLon: 120 };}
     const lats = allPoints.map(p => p.lat);
     const lons = allPoints.map(p => p.lon);
     const pad = 0.05;
@@ -1099,7 +1097,7 @@ function FleetMapCard({
 
 function ConsumptionTrendChart({ consumption, loading }: { consumption: HourlyConsumption[]; loading: boolean }) {
   const chartData = useMemo(() => {
-    if (!consumption || consumption.length === 0) return [];
+    if (!consumption || consumption.length === 0) {return [];}
     return consumption.map((c) => ({
       hour: c.hour ? format(new Date(c.hour), "HH:mm") : "",
       total: c.avg_flow_kg_per_h ? parseFloat(c.avg_flow_kg_per_h) : 0,
@@ -1183,9 +1181,9 @@ function ConsumptionTrendChart({ consumption, loading }: { consumption: HourlyCo
 
 function EngineFlowGauges({ consumption }: { consumption: HourlyConsumption[] }) {
   const latestReadings = useMemo(() => {
-    if (!consumption || consumption.length === 0) return [];
+    if (!consumption || consumption.length === 0) {return [];}
     const latest = consumption[consumption.length - 1];
-    const engines = [
+    return [
       { key: 'mainEngine', label: 'Main Engine', icon: '⚙️', flow: latest?.main_engine_flow, max: 2000 },
       { key: 'portEngine', label: 'Port Engine', icon: '◀', flow: latest?.port_engine_flow, max: 1500 },
       { key: 'stbdEngine', label: 'Stbd Engine', icon: '▶', flow: latest?.stbd_engine_flow, max: 1500 },
@@ -1193,7 +1191,6 @@ function EngineFlowGauges({ consumption }: { consumption: HourlyConsumption[] })
       { key: 'boiler', label: 'Boiler', icon: '🔥', flow: latest?.boiler_flow, max: 300 },
       { key: 'total', label: 'Total', icon: '∑', flow: latest?.avg_flow_kg_per_h, max: 5000 },
     ];
-    return engines;
   }, [consumption]);
 
   if (latestReadings.length === 0) {

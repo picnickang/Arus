@@ -110,7 +110,7 @@ function fitPlattScaling(data: CalibrationDataPoint[], maxIter = 100, lr = 0.01)
     b -= lr * gradB;
 
     // Early stopping if gradients are tiny
-    if (Math.abs(gradA) < 1e-8 && Math.abs(gradB) < 1e-8) break;
+    if (Math.abs(gradA) < 1e-8 && Math.abs(gradB) < 1e-8) {break;}
   }
 
   return { a, b };
@@ -156,7 +156,7 @@ function fitIsotonicRegression(data: CalibrationDataPoint[]): IsotonicMapping {
       sorted.splice(i + 1, 1);
 
       // Check backwards for violations
-      if (i > 0) i--;
+      if (i > 0) {i--;}
     } else {
       i++;
     }
@@ -164,24 +164,24 @@ function fitIsotonicRegression(data: CalibrationDataPoint[]): IsotonicMapping {
 
   return {
     thresholds: sorted.map(d => d.predictedProbability),
-    values: values,
+    values,
   };
 }
 
 function applyIsotonicRegression(rawProbability: number, mapping: IsotonicMapping): number {
   const { thresholds, values } = mapping;
 
-  if (thresholds.length === 0) return rawProbability;
-  if (rawProbability <= thresholds[0]) return values[0];
-  if (rawProbability >= thresholds[thresholds.length - 1]) return values[values.length - 1];
+  if (thresholds.length === 0) {return rawProbability;}
+  if (rawProbability <= thresholds[0]) {return values[0];}
+  if (rawProbability >= thresholds[thresholds.length - 1]) {return values[values.length - 1];}
 
   // Binary search for the right interval
   let lo = 0;
   let hi = thresholds.length - 1;
   while (lo < hi - 1) {
     const mid = Math.floor((lo + hi) / 2);
-    if (thresholds[mid] <= rawProbability) lo = mid;
-    else hi = mid;
+    if (thresholds[mid] <= rawProbability) {lo = mid;}
+    else {hi = mid;}
   }
 
   // Linear interpolation between the two nearest points
@@ -243,7 +243,7 @@ function computeCalibrationBins(data: CalibrationDataPoint[], numBins = 10, cali
 function computeECE(bins: CalibrationBin[], totalPoints: number): number {
   let ece = 0;
   for (const bin of bins) {
-    if (bin.count === 0) continue;
+    if (bin.count === 0) {continue;}
     ece += (bin.count / totalPoints) * bin.gap;
   }
   return ece;
@@ -357,7 +357,7 @@ export class PredictionCalibrator {
     const cacheKey = `${orgId}:${modelId || "all"}`;
     const model = calibrationCache.get(cacheKey);
 
-    if (!model) return rawProbability;
+    if (!model) {return rawProbability;}
 
     if (model.method === "platt" && model.plattParams) {
       return applyPlattScaling(rawProbability, model.plattParams);
@@ -377,7 +377,7 @@ export class PredictionCalibrator {
     const cacheKey = `${orgId}:${modelId || "all"}`;
     const model = calibrationCache.get(cacheKey);
 
-    if (!model) return null;
+    if (!model) {return null;}
 
     const data = await this.fetchCalibrationData(orgId, modelId);
     const calibrateFn = this.getCalibrateFn(model);
@@ -452,13 +452,13 @@ export class PredictionCalibrator {
 
       for (const pred of predictions) {
         // Skip predictions without a predicted failure date (can't verify outcome)
-        if (!pred.predictedFailureDate) continue;
+        if (!pred.predictedFailureDate) {continue;}
 
         const predictedDate = new Date(pred.predictedFailureDate);
         const predictionDate = new Date(pred.predictionTimestamp || pred.createdAt);
 
         // Only use predictions whose window has already passed (we know the outcome)
-        if (predictedDate > new Date()) continue;
+        if (predictedDate > new Date()) {continue;}
 
         // Check if a corrective/emergency work order was created for this equipment
         // within a window around the predicted failure date (±7 days)

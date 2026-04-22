@@ -49,7 +49,7 @@ export class CrewLifecycleRepository {
       .from(crew)
       .where(and(eq(crew.orgId, orgId), eq(crew.active, false)));
 
-    const result = await Promise.all(
+    return await Promise.all(
       formerCrewMembers.map(async (member) => {
         const periods = await db
           .select()
@@ -59,8 +59,6 @@ export class CrewLifecycleRepository {
         return { ...member, employmentPeriods: periods };
       })
     );
-
-    return result;
   }
 
   async terminateCrew(
@@ -168,7 +166,7 @@ export class CrewLifecycleRepository {
   }
 
   async bulkDeleteCrew(ids: string[], orgId: string): Promise<number> {
-    if (ids.length === 0) return 0;
+    if (ids.length === 0) {return 0;}
 
     const result = await db
       .delete(crew)

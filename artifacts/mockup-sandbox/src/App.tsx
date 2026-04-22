@@ -82,7 +82,7 @@ function PreviewRenderer({
     );
   }
 
-  if (!Component) return null;
+  if (!Component) {return null;}
 
   return <Component />;
 }

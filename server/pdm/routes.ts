@@ -40,22 +40,22 @@ const dashboardFiltersSchema = z.object({
 
 function filterRiskQueue(items: RiskQueueItem[], filters: z.infer<typeof dashboardFiltersSchema>): RiskQueueItem[] {
   return items.filter(item => {
-    if (filters.vesselId && item.vesselId !== filters.vesselId) return false;
-    if (filters.equipmentType && item.equipmentType !== filters.equipmentType) return false;
+    if (filters.vesselId && item.vesselId !== filters.vesselId) {return false;}
+    if (filters.equipmentType && item.equipmentType !== filters.equipmentType) {return false;}
     if (filters.dateFrom) {
       const detectedDate = new Date(item.detectedAt);
-      if (detectedDate < new Date(filters.dateFrom)) return false;
+      if (detectedDate < new Date(filters.dateFrom)) {return false;}
     }
     if (filters.dateTo) {
       const detectedDate = new Date(item.detectedAt);
-      if (detectedDate > new Date(filters.dateTo)) return false;
+      if (detectedDate > new Date(filters.dateTo)) {return false;}
     }
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
       const matchesName = item.equipmentName.toLowerCase().includes(searchLower);
       const matchesVessel = item.vesselName.toLowerCase().includes(searchLower);
       const matchesFailureMode = item.failureMode.toLowerCase().includes(searchLower);
-      if (!matchesName && !matchesVessel && !matchesFailureMode) return false;
+      if (!matchesName && !matchesVessel && !matchesFailureMode) {return false;}
     }
     return true;
   });
@@ -63,7 +63,7 @@ function filterRiskQueue(items: RiskQueueItem[], filters: z.infer<typeof dashboa
 
 function formatCsvRow(values: (string | number | null | undefined)[]): string {
   return values.map(v => {
-    if (v === null || v === undefined) return '';
+    if (v === null || v === undefined) {return '';}
     const str = String(v);
     if (str.includes(',') || str.includes('"') || str.includes('\n')) {
       return `"${str.replace(/"/g, '""')}"`;
@@ -479,16 +479,16 @@ router.post('/analyze/pump', async (req, res) => {
     const features: Record<string, number> = {};
 
     const analyze = (name: string, values: number[], nominal: number) => {
-      if (!values || values.length === 0) return;
+      if (!values || values.length === 0) {return;}
       const mean = values.reduce((a, b) => a + b, 0) / values.length;
       const deviation = Math.abs(mean - nominal) / nominal;
       scores[name] = deviation * 10;
       features[name] = mean;
     };
 
-    if (Array.isArray(flow)) analyze('flow', flow, 100);
-    if (Array.isArray(pressure)) analyze('pressure', pressure, 4.0);
-    if (Array.isArray(current)) analyze('current', current, 15.0);
+    if (Array.isArray(flow)) {analyze('flow', flow, 100);}
+    if (Array.isArray(pressure)) {analyze('pressure', pressure, 4.0);}
+    if (Array.isArray(current)) {analyze('current', current, 15.0);}
 
     const worstZ = Object.values(scores).length > 0 ? Math.max(...Object.values(scores).map(Math.abs)) : 0;
     const severity = worstZ > 3 ? 'high' : worstZ > 2 ? 'warn' : 'info';

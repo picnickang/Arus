@@ -61,7 +61,7 @@ export function PredictionFeedbackForm({
 
   const isPredictive = !!predictionId || predictiveCheck?.isPredictive;
 
-  if (!isPredictive) return null;
+  if (!isPredictive) {return null;}
 
   const handleSelect = (outcome: PredictionFeedback["outcome"]) => {
     setSelected(outcome);

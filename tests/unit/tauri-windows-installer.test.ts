@@ -482,7 +482,7 @@ describe('Tauri Windows Installer — WiX Service Fragment', () => {
     const guidRegex = /Guid="([A-F0-9-]+)"/gi;
     const guids: string[] = [];
     let m;
-    while ((m = guidRegex.exec(wxs)) !== null) guids.push(m[1].toUpperCase());
+    while ((m = guidRegex.exec(wxs)) !== null) {guids.push(m[1].toUpperCase());}
     expect(guids.length).toBeGreaterThanOrEqual(2);
     expect(new Set(guids).size).toBe(guids.length);
   });

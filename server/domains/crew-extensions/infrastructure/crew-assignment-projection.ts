@@ -7,7 +7,7 @@
 import type { CrewAssignmentProjection, SchedulePlannerFilter } from "../domain/read-models";
 import { db } from "../../../db";
 import { scheduleAssignments, schedulerRuns, crew, vessels } from "@shared/schema";
-import { eq, and, gte, lte, inArray, sql } from "drizzle-orm";
+import { eq, and, gte, lte, inArray } from "drizzle-orm";
 import { createLogger } from "../../../lib/structured-logger";
 import type { CrewAssignmentCreatedEvent } from "../../../lib/domain-events/types.js";
 import { domainEventBus } from "../../../lib/domain-event-bus/index.js";

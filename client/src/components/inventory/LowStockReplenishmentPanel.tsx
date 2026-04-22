@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, TrendingDown, ShoppingCart, Package, CheckCircle2, Wrench } from "lucide-react";
+import { TrendingDown, ShoppingCart, Package, CheckCircle2, Wrench } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -80,8 +80,8 @@ export function LowStockReplenishmentPanel({
   });
 
   const data = React.useMemo(() => {
-    if (smartQuery.data) return smartQuery.data;
-    if (!fallbackQuery.data) return undefined;
+    if (smartQuery.data) {return smartQuery.data;}
+    if (!fallbackQuery.data) {return undefined;}
     return {
       ...fallbackQuery.data,
       suggestions: fallbackQuery.data.suggestions.map((s) => ({
@@ -156,8 +156,8 @@ export function LowStockReplenishmentPanel({
 
   const toggle = (partId: string) => {
     const next = new Set(selected);
-    if (next.has(partId)) next.delete(partId);
-    else next.add(partId);
+    if (next.has(partId)) {next.delete(partId);}
+    else {next.add(partId);}
     setSelected(next);
   };
 
@@ -239,7 +239,7 @@ export function LowStockReplenishmentPanel({
                             Needed for {s.upcomingWOCount} WO{s.upcomingWOCount !== 1 ? "s" : ""}
                             {(() => {
                               const refs = (s.upcomingWONumbers ?? []).filter(Boolean) as string[];
-                              if (refs.length === 0) return null;
+                              if (refs.length === 0) {return null;}
                               const display = refs.length <= 2 ? refs.join(", ") : `${refs[0]}, +${refs.length - 1} more`;
                               return <span className="ml-0.5 opacity-75">({display})</span>;
                             })()}

@@ -15,7 +15,7 @@ import { useSupplierPerformance, SupplierSelectOption } from "@/features/supplie
 import { useCreateServiceOrder, useUpdateServiceOrder, useSendServiceOrder, useCancelServiceOrder } from "../hooks/useServiceOrders";
 import { useToast } from "@/hooks/use-toast";
 import { useCanModifyRecord } from "@/hooks/useUserPermissions";
-import type { ServiceOrder, SOType, SOUrgency } from "../types";
+import type { ServiceOrder } from "../types";
 import { SO_TYPE_LABELS, SO_URGENCY_LABELS } from "../types";
 
 const soFormSchema = z.object({
@@ -92,7 +92,7 @@ export function ServiceOrderFormDialog({ open, onOpenChange, mode, serviceOrder,
   const isReplacementQuote = serviceType === "replacement_quote";
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {return;}
     
     if (mode === "edit" && serviceOrder) {
       form.reset({
@@ -181,7 +181,7 @@ export function ServiceOrderFormDialog({ open, onOpenChange, mode, serviceOrder,
   };
 
   const handleSend = async () => {
-    if (!serviceOrder?.id) return;
+    if (!serviceOrder?.id) {return;}
     try {
       await sendMutation.mutateAsync(serviceOrder.id);
       toast({ title: "Service Order Sent", description: "The service order has been sent to the provider." });
@@ -193,7 +193,7 @@ export function ServiceOrderFormDialog({ open, onOpenChange, mode, serviceOrder,
   };
 
   const handleCancel = async () => {
-    if (!serviceOrder?.id) return;
+    if (!serviceOrder?.id) {return;}
     try {
       await cancelMutation.mutateAsync({ id: serviceOrder.id });
       toast({ title: "Service Order Cancelled", description: "The service order has been cancelled." });

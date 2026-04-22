@@ -54,31 +54,31 @@ interface MarineWeatherData {
 // ---------------------------------------------------------------------------
 
 function beaufortFromKnots(knots: number): number {
-  if (knots < 1) return 0;
-  if (knots <= 3) return 1;
-  if (knots <= 6) return 2;
-  if (knots <= 10) return 3;
-  if (knots <= 16) return 4;
-  if (knots <= 21) return 5;
-  if (knots <= 27) return 6;
-  if (knots <= 33) return 7;
-  if (knots <= 40) return 8;
-  if (knots <= 47) return 9;
-  if (knots <= 55) return 10;
-  if (knots <= 63) return 11;
+  if (knots < 1) {return 0;}
+  if (knots <= 3) {return 1;}
+  if (knots <= 6) {return 2;}
+  if (knots <= 10) {return 3;}
+  if (knots <= 16) {return 4;}
+  if (knots <= 21) {return 5;}
+  if (knots <= 27) {return 6;}
+  if (knots <= 33) {return 7;}
+  if (knots <= 40) {return 8;}
+  if (knots <= 47) {return 9;}
+  if (knots <= 55) {return 10;}
+  if (knots <= 63) {return 11;}
   return 12;
 }
 
 function seaStateFromWaveHeight(m: number): string {
-  if (m < 0.1) return "Calm (glassy)";
-  if (m <= 0.1) return "Calm (rippled)";
-  if (m <= 0.5) return "Smooth";
-  if (m <= 1.25) return "Slight";
-  if (m <= 2.5) return "Moderate";
-  if (m <= 4) return "Rough";
-  if (m <= 6) return "Very rough";
-  if (m <= 9) return "High";
-  if (m <= 14) return "Very high";
+  if (m < 0.1) {return "Calm (glassy)";}
+  if (m <= 0.1) {return "Calm (rippled)";}
+  if (m <= 0.5) {return "Smooth";}
+  if (m <= 1.25) {return "Slight";}
+  if (m <= 2.5) {return "Moderate";}
+  if (m <= 4) {return "Rough";}
+  if (m <= 6) {return "Very rough";}
+  if (m <= 9) {return "High";}
+  if (m <= 14) {return "Very high";}
   return "Phenomenal";
 }
 
@@ -169,7 +169,7 @@ async function fetchMarineWeather(lat: number, lng: number): Promise<MarineWeath
     if (val && typeof val === "object" && "sg" in (val as Record<string, unknown>)) {
       return (val as Record<string, number>).sg ?? null;
     }
-    if (typeof val === "number") return val;
+    if (typeof val === "number") {return val;}
     return null;
   };
 
@@ -348,14 +348,14 @@ registerTool({
   async execute(input, ctx) {
     // Reuse getMarineWeather for the data fetch
     const weatherTool = getTool("getMarineWeather");
-    if (!weatherTool) return { error: "Weather tool not available" };
+    if (!weatherTool) {return { error: "Weather tool not available" };}
 
     const weatherResult = await weatherTool.execute(
       { vesselId: input.vesselId, lat: input.lat, lng: input.lng },
       ctx,
     ) as MarineWeatherData & { error?: string; _meta?: Record<string, unknown> };
 
-    if (weatherResult.error) return weatherResult;
+    if (weatherResult.error) {return weatherResult;}
 
     const wind = weatherResult.current?.windSpeedKnots ?? 0;
     const wave = weatherResult.current?.waveHeightM ?? 0;
@@ -377,8 +377,8 @@ registerTool({
     const goNoGo = windOk && waveOk ? "GO" : "NO-GO";
 
     const reasons: string[] = [];
-    if (!windOk) reasons.push(`Wind ${wind} kts exceeds ${t.maxWind} kts limit for ${activity.replace(/_/g, " ")}`);
-    if (!waveOk) reasons.push(`Wave height ${wave}m exceeds ${t.maxWave}m limit for ${activity.replace(/_/g, " ")}`);
+    if (!windOk) {reasons.push(`Wind ${wind} kts exceeds ${t.maxWind} kts limit for ${activity.replace(/_/g, " ")}`);}
+    if (!waveOk) {reasons.push(`Wave height ${wave}m exceeds ${t.maxWave}m limit for ${activity.replace(/_/g, " ")}`);}
 
     return {
       recommendation: goNoGo,

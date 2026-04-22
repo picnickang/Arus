@@ -14,7 +14,6 @@ import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, 
 import { MaintenanceSchedule } from "@shared/schema";
 import { getPriorityColor, useMaintenanceSchedulesData } from "@/features/maintenance";
 import { PermissionGate } from "@/components/PermissionGate";
-import { usePermissions } from "@/contexts/PermissionsContext";
 
 interface CalendarViewProps { schedules: MaintenanceSchedule[]; onScheduleClick: (schedule: MaintenanceSchedule) => void; getEquipmentName: (id: string) => string; }
 

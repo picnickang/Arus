@@ -22,8 +22,8 @@ export class SchematicLayoutRepositoryAdapter implements ISchematicLayoutReposit
       .where(and(eq(vessels.id, vesselId), eq(vessels.orgId, orgId)))
       .limit(1);
 
-    if (!row) return undefined;
-    if (!row.schematicLayout) return null;
+    if (!row) {return undefined;}
+    if (!row.schematicLayout) {return null;}
     return row.schematicLayout as SchematicLayout;
   }
 

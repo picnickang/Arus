@@ -8,10 +8,10 @@ export function useTrainingDatasets(status?: string) {
     queryKey: ["/api/pdm/training/datasets", currentOrgId, status],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (status) params.append("status", status);
+      if (status) {params.append("status", status);}
       const url = `/api/pdm/training/datasets${params.toString() ? `?${params}` : ""}`;
       const res = await fetch(url, { headers: { "x-org-id": currentOrgId || "default-org-id" } });
-      if (!res.ok) throw new Error("Failed to fetch training datasets");
+      if (!res.ok) {throw new Error("Failed to fetch training datasets");}
       return res.json();
     },
     enabled: !!currentOrgId,
@@ -24,11 +24,11 @@ export function useTrainingRuns(filters?: { status?: string; datasetId?: string 
     queryKey: ["/api/pdm/training/runs", currentOrgId, filters?.status, filters?.datasetId],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (filters?.status) params.append("status", filters.status);
-      if (filters?.datasetId) params.append("datasetId", filters.datasetId);
+      if (filters?.status) {params.append("status", filters.status);}
+      if (filters?.datasetId) {params.append("datasetId", filters.datasetId);}
       const url = `/api/pdm/training/runs${params.toString() ? `?${params}` : ""}`;
       const res = await fetch(url, { headers: { "x-org-id": currentOrgId || "default-org-id" } });
-      if (!res.ok) throw new Error("Failed to fetch training runs");
+      if (!res.ok) {throw new Error("Failed to fetch training runs");}
       return res.json();
     },
     enabled: !!currentOrgId,
@@ -100,7 +100,7 @@ export function useTrainingArtifacts(modelVersionId: string) {
       const res = await fetch(`/api/pdm/training/artifacts?modelVersionId=${modelVersionId}`, {
         headers: { "x-org-id": currentOrgId || "default-org-id" },
       });
-      if (!res.ok) throw new Error("Failed to fetch artifacts");
+      if (!res.ok) {throw new Error("Failed to fetch artifacts");}
       return res.json();
     },
     enabled: !!modelVersionId && !!currentOrgId,

@@ -83,8 +83,8 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
         orgId,
         {
           vesselId: vesselId as string | undefined,
-          startDate: startDate,
-          endDate: endDate,
+          startDate,
+          endDate,
         },
       );
 
@@ -159,7 +159,7 @@ export function registerSchedulingRoutes(app: Express, config: SchedulingConfig)
           vesselId: vesselId as string | undefined,
           status: "pending",
           startDate: new Date(),
-          endDate: endDate,
+          endDate,
         },
       );
 

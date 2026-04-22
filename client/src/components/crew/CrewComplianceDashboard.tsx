@@ -30,8 +30,8 @@ function ComplianceTrendChart({ data }: { data: TrendData }) {
           <Tooltip
             contentStyle={{ backgroundColor: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }}
             formatter={(value: number, name: string) => {
-              if (name === "complianceRate") return [`${value.toFixed(1)}%`, "Compliance"];
-              if (name === "highFatigueRate") return [`${value.toFixed(1)}%`, "High Fatigue"];
+              if (name === "complianceRate") {return [`${value.toFixed(1)}%`, "Compliance"];}
+              if (name === "highFatigueRate") {return [`${value.toFixed(1)}%`, "High Fatigue"];}
               return [value, name];
             }}
           />

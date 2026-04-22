@@ -128,7 +128,7 @@ export function parseAmosXML(content: string): ParseResult {
   const rows: Record<string, string>[] = [];
 
   // Strip XML declaration and namespace prefixes
-  let text = content
+  const text = content
     .replace(/<\?xml[^?]*\?>/g, "")
     .replace(/<\/?(?:amos|ns\d+):/g, (match) => match.replace(/(?:amos|ns\d+):/, ""));
 

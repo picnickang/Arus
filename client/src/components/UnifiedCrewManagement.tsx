@@ -7,12 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { ResponsiveDialog } from "@/components/ResponsiveDialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Plus, Edit, Trash2, Search, X, Download, UserCheck, ArrowUpDown, ArrowUp, ArrowDown, ShipWheel, Eye, MoreHorizontal, UserX, UserPlus, Calendar, Power, ChevronDown, ChevronRight, User, DollarSign, Phone, FileText } from "lucide-react";
+import { Plus, Edit, Trash2, Search, X, Download, UserCheck, ArrowUpDown, ArrowUp, ArrowDown, ShipWheel, Eye, MoreHorizontal, UserX, UserPlus, Power, ChevronDown, ChevronRight, User, DollarSign, Phone, FileText } from "lucide-react";
 import { CertificationExpiryAlertBanner } from "@/components/CertificationExpiryAlerts";
 import { DocumentExpiryAlertBanner } from "@/components/DocumentExpiryAlerts";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -38,12 +37,12 @@ export function UnifiedCrewManagement() {
   const deleteMutation = useDeleteFormerCrew();
 
   const getSortIcon = (field: SortField) => {
-    if (d.sortField !== field) return <ArrowUpDown className="h-4 w-4 ml-1" />;
+    if (d.sortField !== field) {return <ArrowUpDown className="h-4 w-4 ml-1" />;}
     return d.sortDirection === "asc" ? <ArrowUp className="h-4 w-4 ml-1" /> : <ArrowDown className="h-4 w-4 ml-1" />;
   };
 
   const getAriaSort = (field: SortField): "ascending" | "descending" | "none" => {
-    if (d.sortField !== field) return "none";
+    if (d.sortField !== field) {return "none";}
     return d.sortDirection === "asc" ? "ascending" : "descending";
   };
 
@@ -66,7 +65,7 @@ export function UnifiedCrewManagement() {
   };
 
   const handleLifecycleAction = () => {
-    if (!lifecycleCrewId || !lifecycleAction) return;
+    if (!lifecycleCrewId || !lifecycleAction) {return;}
 
     switch (lifecycleAction) {
       case "retire":
@@ -396,7 +395,7 @@ export function UnifiedCrewManagement() {
 
       <ResponsiveDialog
         open={lifecycleDialogOpen}
-        onOpenChange={(open) => { if (!open) closeLifecycleDialog(); }}
+        onOpenChange={(open) => { if (!open) {closeLifecycleDialog();} }}
         title={getLifecycleDialogTitle()}
         description={getLifecycleDialogDescription()}
         footer={
@@ -766,7 +765,7 @@ export function UnifiedCrewManagement() {
 
       <ResponsiveDialog
         open={d.isAddSkillDialogOpen}
-        onOpenChange={(open) => { if (!open) d.closeSkillDialog(); }}
+        onOpenChange={(open) => { if (!open) {d.closeSkillDialog();} }}
         title="Add Skill to Crew Member"
         description="Assign a maritime skill or certification"
         footer={
@@ -869,7 +868,7 @@ export function UnifiedCrewManagement() {
 
       <ResponsiveDialog
         open={d.isViewProfileDialogOpen}
-        onOpenChange={(open) => { if (!open) d.closeProfileDialog(); }}
+        onOpenChange={(open) => { if (!open) {d.closeProfileDialog();} }}
         title={d.viewingCrew ? `${d.viewingCrew.name}` : "Crew Profile"}
         description={d.viewingCrew ? `${formatRank(d.viewingCrew.rank)} - View and manage crew member details` : ""}
         className="max-w-2xl"

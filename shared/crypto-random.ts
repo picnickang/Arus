@@ -6,7 +6,7 @@
 let cryptoModule: typeof import('crypto') | null = null;
 
 function getCrypto(): typeof import('crypto') {
-  if (cryptoModule) return cryptoModule;
+  if (cryptoModule) {return cryptoModule;}
   
   if (typeof globalThis.crypto !== 'undefined' && globalThis.crypto.getRandomValues) {
     return {

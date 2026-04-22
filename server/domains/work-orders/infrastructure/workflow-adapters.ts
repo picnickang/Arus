@@ -65,7 +65,7 @@ export class WorkOrderWorkflowRepositoryAdapter implements IWorkOrderWorkflowRep
       .where(and(eq(workOrders.id, id), eq(workOrders.orgId, orgId)))
       .limit(1);
 
-    if (!row) return null;
+    if (!row) {return null;}
 
     return {
       id: row.id,
@@ -123,7 +123,7 @@ export class WorkOrderWorkflowRepositoryAdapter implements IWorkOrderWorkflowRep
       .where(and(eq(workOrders.id, id), eq(workOrders.orgId, orgId)))
       .limit(1);
 
-    if (row?.maintenanceType === "predictive") return true;
+    if (row?.maintenanceType === "predictive") {return true;}
 
     const [pred] = await db
       .select({ id: failurePredictions.id })

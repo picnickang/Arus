@@ -51,7 +51,7 @@ const MONTH_LABELS = [
 ] as const;
 
 function toLocalMidnight(dateInput: string | Date | null): Date | null {
-  if (!dateInput) return null;
+  if (!dateInput) {return null;}
   const d = typeof dateInput === "string" ? new Date(`${dateInput}T00:00:00`) : dateInput;
   return isNaN(d.getTime()) ? null : d;
 }
@@ -63,7 +63,7 @@ function isSameDay(a: Date, b: Date): boolean {
 }
 
 function isInRange(day: Date, start: Date | null, end: Date | null): boolean {
-  if (!start) return false;
+  if (!start) {return false;}
   const s = new Date(start); s.setHours(0,0,0,0);
   const e = end ? new Date(end) : new Date(start); e.setHours(23,59,59,999);
   const d = new Date(day); d.setHours(12,0,0,0);
@@ -81,11 +81,11 @@ export function ServiceOrderCalendar({
 
   const prevMonth = () => {
     if (viewMonth === 0) { setViewYear((y) => y - 1); setViewMonth(11); }
-    else setViewMonth((m) => m - 1);
+    else {setViewMonth((m) => m - 1);}
   };
   const nextMonth = () => {
     if (viewMonth === 11) { setViewYear((y) => y + 1); setViewMonth(0); }
-    else setViewMonth((m) => m + 1);
+    else {setViewMonth((m) => m + 1);}
   };
 
   // Build calendar grid
@@ -97,7 +97,7 @@ export function ServiceOrderCalendar({
 
   const days: (Date | null)[] = Array.from({ length: rows * 7 }, (_, i) => {
     const dayNum = i - startPad + 1;
-    if (dayNum < 1 || dayNum > lastDay.getDate()) return null;
+    if (dayNum < 1 || dayNum > lastDay.getDate()) {return null;}
     return new Date(viewYear, viewMonth, dayNum);
   });
 

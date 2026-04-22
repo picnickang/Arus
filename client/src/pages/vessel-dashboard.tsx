@@ -1,19 +1,17 @@
 import { useState, useMemo, useCallback } from "react";
-import { useRoute, Link } from "wouter";
+import { Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import {
   ArrowLeft, Ship, Wrench, Users, AlertCircle, Sparkles,
   Package, Info, ChevronRight, Activity, Settings2,
   PanelLeftOpen, PanelRightOpen, X, ArrowDownUp, Trash2,
-  CheckCircle2, Clock, Fuel, Anchor, Navigation,
-  Save, RotateCcw, ShoppingCart,
+  CheckCircle2, ShoppingCart,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter,
   DialogHeader, DialogTitle,
@@ -23,14 +21,9 @@ import { formatDistanceToNow } from "date-fns";
 import { CIIBadge } from "@/components/compliance/CIIBadge";
 import { OperatingModeChip } from "@/components/context/OperatingModeChip";
 import { ActiveDtcsPanel } from "@/components/ActiveDtcsPanel";
-import { PowerSTWChart } from "@/components/analytics/PowerSTWChart";
-import { NarrativeSummaryCard } from "@/components/analytics/NarrativeSummaryCard";
 import { useVesselDetail } from "@/features/vessels";
 import type { Equipment } from "@/features/vessels/types";
 import type { Part } from "@/features/inventory/types";
-import { useWorkOrders } from "@/features/work-orders";
-import { useCrewList } from "@/features/crew";
-import { useMaintenanceSchedules } from "@/features/maintenance";
 import { useSchematicLayout } from "@/hooks/useSchematicLayout";
 import {
   VesselSchematic,
@@ -401,7 +394,7 @@ export default function VesselDashboard() {
   const equipmentSlotMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const a of slotAssignments) {
-      if (a.equipment) map.set(a.slot.slotId, a.equipment.id);
+      if (a.equipment) {map.set(a.slot.slotId, a.equipment.id);}
     }
     return map;
   }, [slotAssignments]);
@@ -427,9 +420,9 @@ export default function VesselDashboard() {
 
   // Filtered parts based on tab
   const filteredParts = useMemo(() => {
-    if (inventoryTab === "all") return allParts;
-    if (inventoryTab === "compatible") return selectedEquipment ? compatibleParts : [];
-    if (inventoryTab === "critical") return allParts.filter((p) => p.criticality === "critical" || p.criticality === "high");
+    if (inventoryTab === "all") {return allParts;}
+    if (inventoryTab === "compatible") {return selectedEquipment ? compatibleParts : [];}
+    if (inventoryTab === "critical") {return allParts.filter((p) => p.criticality === "critical" || p.criticality === "high");}
     if (inventoryTab === "installed") {
       const eqIds = equipment.map((eq) => eq.id);
       return allParts.filter((p) =>
@@ -441,7 +434,7 @@ export default function VesselDashboard() {
 
   // Health/risk computations
   const avgHealth = useMemo(() => {
-    if (equipment.length === 0) return 0;
+    if (equipment.length === 0) {return 0;}
     return Math.round(equipment.reduce((sum, eq) => sum + (eq.healthScore ?? 85), 0) / equipment.length);
   }, [equipment]);
 
@@ -478,9 +471,9 @@ export default function VesselDashboard() {
   }, [selectedSlotId]);
 
   const handleEquip = useCallback((part: Part) => {
-    if (!selectedSlotId) return;
+    if (!selectedSlotId) {return;}
     const assignment = slotAssignments.find((a) => a.slot.slotId === selectedSlotId);
-    if (!assignment) return;
+    if (!assignment) {return;}
     setConfirmAction({
       type: "equip",
       part,
@@ -489,9 +482,9 @@ export default function VesselDashboard() {
   }, [selectedSlotId, slotAssignments]);
 
   const handleSwap = useCallback((part: Part) => {
-    if (!selectedSlotId || !selectedEquipment) return;
+    if (!selectedSlotId || !selectedEquipment) {return;}
     const assignment = slotAssignments.find((a) => a.slot.slotId === selectedSlotId);
-    if (!assignment) return;
+    if (!assignment) {return;}
     setConfirmAction({
       type: "swap",
       part,
@@ -502,7 +495,7 @@ export default function VesselDashboard() {
 
   const handleUninstall = useCallback((equipmentId: string, slotLabel: string) => {
     const eq = equipment.find((e) => e.id === equipmentId);
-    if (!eq) return;
+    if (!eq) {return;}
     setConfirmAction({
       type: "uninstall",
       equipment: eq,
@@ -511,7 +504,7 @@ export default function VesselDashboard() {
   }, [equipment]);
 
   const executeConfirmAction = useCallback(async () => {
-    if (!confirmAction || !vesselId) return;
+    if (!confirmAction || !vesselId) {return;}
 
     try {
       if (confirmAction.type === "uninstall" && confirmAction.equipment) {
@@ -641,8 +634,8 @@ export default function VesselDashboard() {
         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           <div className="hidden md:flex gap-3 text-[11px]">
             {[["Healthy", "#22c55e"], ["Warning", "#f59e0b"], ["Critical", "#ef4444"], ["Empty", "#475569"]].map(([label, color]) => (
-              <span key={label as string} className="flex items-center gap-1 text-slate-400">
-                <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: color as string }} />
+              <span key={label} className="flex items-center gap-1 text-slate-400">
+                <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: color }} />
                 {label}
               </span>
             ))}
@@ -726,7 +719,7 @@ export default function VesselDashboard() {
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 text-slate-400 hover:text-sky-400"
-                onClick={() => { const next = !configPanelOpen; setConfigPanelOpen(next); if (!next) setPreviewLayout(null); }}
+                onClick={() => { const next = !configPanelOpen; setConfigPanelOpen(next); if (!next) {setPreviewLayout(null);} }}
                 data-testid="btn-config-schematic"
               >
                 <Settings2 className="h-4 w-4" />

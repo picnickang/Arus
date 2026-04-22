@@ -8,8 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Bell, Shield, Calendar, Sparkles, Send, ChevronDown, Plus, Trash2, Star, Edit, AlertTriangle, Check } from "lucide-react";
+import { Bell, Shield, Calendar, Sparkles, Send, ChevronDown, Plus, Trash2, Star, AlertTriangle, Check } from "lucide-react";
 import { useSchedulingSettingsData, type NotificationSettings, type RuleThresholds, type RuleEnforcementSettings } from "@/features/settings/hooks/useSchedulingSettingsData";
 import { cn } from "@/lib/utils";
 

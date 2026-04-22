@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
-import { amosImportService, type ImportType } from "./import-service";
+import { amosImportService } from "./import-service";
 import { createLogger } from "../../lib/structured-logger";
 import { requireOrgId } from "../../middleware/auth";
 import {

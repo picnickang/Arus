@@ -57,17 +57,17 @@ interface ActivitySummary {
 }
 
 function formatDuration(ms: number | null | undefined): string {
-  if (ms == null) return "—";
-  if (ms < 1000) return `${ms}ms`;
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  if (ms == null) {return "—";}
+  if (ms < 1000) {return `${ms}ms`;}
+  if (ms < 60000) {return `${(ms / 1000).toFixed(1)}s`;}
   return `${Math.floor(ms / 60000)}m ${Math.round((ms % 60000) / 1000)}s`;
 }
 
 function formatRelativeTime(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
-  if (diff < 60000) return "Just now";
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+  if (diff < 60000) {return "Just now";}
+  if (diff < 3600000) {return `${Math.floor(diff / 60000)}m ago`;}
+  if (diff < 86400000) {return `${Math.floor(diff / 3600000)}h ago`;}
   return new Date(dateStr).toLocaleDateString();
 }
 
@@ -94,12 +94,12 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function TriggerIcon({ type }: { type: string }) {
-  if (type === "scheduled") return <Clock className="h-3.5 w-3.5 text-blue-500" />;
+  if (type === "scheduled") {return <Clock className="h-3.5 w-3.5 text-blue-500" />;}
   return <User className="h-3.5 w-3.5 text-green-500" />;
 }
 
 function SummaryMetrics({ summary }: { summary: ActivitySummary | undefined }) {
-  if (!summary) return null;
+  if (!summary) {return null;}
 
   const metrics = [
     { label: "Runs Today", value: summary.runsToday, icon: Activity, color: "text-blue-600" },
@@ -170,7 +170,7 @@ function ActivityRow({ item }: { item: AgentActivityItem }) {
           </div>
           {item.response && (
             <p className="text-xs text-muted-foreground/70 mt-1 truncate max-w-[600px]" data-testid={`snippet-${item.id}`}>
-              {item.response.length > 120 ? item.response.slice(0, 117) + "..." : item.response}
+              {item.response.length > 120 ? `${item.response.slice(0, 117)  }...` : item.response}
             </p>
           )}
         </div>
@@ -258,10 +258,10 @@ export default function AgentActivityPage() {
   const [endDate, setEndDate] = useState<string>("");
 
   const queryParams = new URLSearchParams();
-  if (triggerFilter !== "all") queryParams.set("triggerType", triggerFilter);
-  if (statusFilter !== "all") queryParams.set("status", statusFilter);
-  if (startDate) queryParams.set("startDate", new Date(startDate).toISOString());
-  if (endDate) queryParams.set("endDate", new Date(endDate + "T23:59:59").toISOString());
+  if (triggerFilter !== "all") {queryParams.set("triggerType", triggerFilter);}
+  if (statusFilter !== "all") {queryParams.set("status", statusFilter);}
+  if (startDate) {queryParams.set("startDate", new Date(startDate).toISOString());}
+  if (endDate) {queryParams.set("endDate", new Date(`${endDate  }T23:59:59`).toISOString());}
   queryParams.set("limit", "50");
 
   const { data: summary, isLoading: summaryLoading } = useQuery<ActivitySummary>({
@@ -272,7 +272,7 @@ export default function AgentActivityPage() {
     queryKey: ["/api/agent/activity", triggerFilter, statusFilter, startDate, endDate],
     queryFn: async () => {
       const res = await fetch(`/api/agent/activity?${queryParams.toString()}`, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch activity");
+      if (!res.ok) {throw new Error("Failed to fetch activity");}
       return res.json();
     },
   });

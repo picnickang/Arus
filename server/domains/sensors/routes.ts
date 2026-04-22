@@ -91,11 +91,11 @@ router.get("/summary", requireOrgId, async (req: Request, res: Response) => {
     for (const row of rows as any[]) {
       const count = Number(row.count);
       summary.total += count;
-      if (row.calibration_status === "calibrated") summary.calibrated += count;
-      if (row.calibration_status === "due") summary.due += count;
-      if (row.calibration_status === "overdue") summary.overdue += count;
-      if (row.calibration_status === "failed") summary.failed += count;
-      if (row.calibration_status === "unknown") summary.unknown += count;
+      if (row.calibration_status === "calibrated") {summary.calibrated += count;}
+      if (row.calibration_status === "due") {summary.due += count;}
+      if (row.calibration_status === "overdue") {summary.overdue += count;}
+      if (row.calibration_status === "failed") {summary.failed += count;}
+      if (row.calibration_status === "unknown") {summary.unknown += count;}
       summary.byType[row.sensorType] = (summary.byType[row.sensorType] || 0) + count;
     }
 
@@ -147,10 +147,10 @@ router.get("/", requireOrgId, async (req: Request, res: Response) => {
       WHERE sc.org_id = ${orgId}
     `;
 
-    if (vesselId) query = sql`${query} AND sc.vessel_id = ${vesselId as string}`;
-    if (equipmentId) query = sql`${query} AND sc.equipment_id = ${equipmentId as string}`;
-    if (sensorType) query = sql`${query} AND sc.sensor_type = ${sensorType as string}`;
-    if (status) query = sql`${query} AND sc.calibration_status = ${status as string}`;
+    if (vesselId) {query = sql`${query} AND sc.vessel_id = ${vesselId as string}`;}
+    if (equipmentId) {query = sql`${query} AND sc.equipment_id = ${equipmentId as string}`;}
+    if (sensorType) {query = sql`${query} AND sc.sensor_type = ${sensorType as string}`;}
+    if (status) {query = sql`${query} AND sc.calibration_status = ${status as string}`;}
 
     query = sql`${query} ORDER BY sc.next_calibration_due ASC NULLS LAST`;
 
@@ -180,7 +180,7 @@ router.get("/:id", requireOrgId, async (req: Request, res: Response) => {
       ? sensorResult[0]
       : (sensorResult as any)?.rows?.[0];
 
-    if (!sensor) return res.status(404).json({ error: "Sensor not found" });
+    if (!sensor) {return res.status(404).json({ error: "Sensor not found" });}
 
     const historyResult = await db.execute(sql`
       SELECT * FROM sensor_calibration_events
@@ -263,7 +263,7 @@ router.post("/:id/calibrate", requireOrgId, async (req: Request, res: Response) 
       ? sensorResult[0]
       : (sensorResult as any)?.rows?.[0];
 
-    if (!sensor) return res.status(404).json({ error: "Sensor not found" });
+    if (!sensor) {return res.status(404).json({ error: "Sensor not found" });}
 
     await db.execute(sql`
       INSERT INTO sensor_calibration_events (

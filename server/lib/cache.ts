@@ -53,8 +53,8 @@ export class CacheClient {
   }
 
   private async getRedis(): Promise<Redis | null> {
-    if (!this.enabled) return null;
-    if (this.redis) return this.redis;
+    if (!this.enabled) {return null;}
+    if (this.redis) {return this.redis;}
     this.redis = await getSharedRedisClient();
     return this.redis;
   }

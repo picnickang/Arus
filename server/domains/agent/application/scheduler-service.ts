@@ -274,7 +274,7 @@ export class SchedulerService {
           orgId: schedule.orgId,
           notificationType: "agent_schedule",
           subject: `Scheduled Run: ${schedule.name}`,
-          body: response.length > 500 ? response.slice(0, 497) + "..." : response,
+          body: response.length > 500 ? `${response.slice(0, 497)  }...` : response,
           recipients: adminEmails,
           relatedEntityType: "agent_schedule",
           relatedEntityId: schedule.id,

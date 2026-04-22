@@ -78,7 +78,7 @@ export class ReplayAdapter implements ReplayPort {
         .where(and(eq(assetTwins.orgId, orgId), eq(assetTwins.id, twinId)))
         .limit(1);
 
-      if (!twin) return [];
+      if (!twin) {return [];}
 
       const telemetry = await db
         .select()

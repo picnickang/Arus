@@ -68,9 +68,9 @@ function parseRestCsv(csvText: string): RestDay[] {
 
   const rows: RestDay[] = [];
   for (const row of parsed.data) {
-    if (!row || typeof row !== "object") continue;
+    if (!row || typeof row !== "object") {continue;}
     const date = (row.date ?? row.Date ?? "").toString().trim();
-    if (!date) continue;
+    if (!date) {continue;}
 
     const restDay: any = { date };
     for (let h = 0; h < 24; h++) {

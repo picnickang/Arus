@@ -222,8 +222,8 @@ export function useFinanceModeData() {
       costSummary.reduce((acc: CostBreakdownItem[], summary: CostSummaryData) => {
         Object.entries(summary.costByType ?? {}).forEach(([type, amount]) => {
           const existing = acc.find((item) => item.name === type);
-          if (existing) existing.value += amount as number;
-          else acc.push({ name: type, value: amount as number });
+          if (existing) {existing.value += amount;}
+          else {acc.push({ name: type, value: amount });}
         });
         return acc;
       }, []),

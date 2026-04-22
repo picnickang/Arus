@@ -57,10 +57,10 @@ const RANK_DISPLAY_MAP: Record<string, string> = {
 };
 
 export function formatRank(rank: string): string {
-  if (!rank) return "Unassigned";
+  if (!rank) {return "Unassigned";}
   const mapped = RANK_DISPLAY_MAP[rank.toLowerCase()];
-  if (mapped) return mapped;
-  if (MARITIME_RANKS.includes(rank as any)) return rank;
+  if (mapped) {return mapped;}
+  if (MARITIME_RANKS.includes(rank as any)) {return rank;}
   return rank
     .replace(/_/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());

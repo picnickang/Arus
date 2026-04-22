@@ -9,7 +9,6 @@ import { describe, it, expect, beforeAll } from "@jest/globals";
 import { BridgeProcessor } from "../../services/sqlite-bridge/bridgeProcessor";
 import { decodeFrame } from "../../telemetry/decode";
 import { getRegisteredPgns } from "../../telemetry/decode/registry";
-import type { TelemetryReading } from "../../telemetry-batch-writer";
 import {
   TEST_ORG_ID,
   TEST_EQUIPMENT_ID,

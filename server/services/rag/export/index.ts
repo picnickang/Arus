@@ -4,7 +4,6 @@
  */
 
 import PDFDocument from "pdfkit";
-import { Readable } from "stream";
 
 export interface ExportMessage {
   role: "user" | "assistant";
@@ -47,9 +46,9 @@ export class ExportService {
 
     if (opts.format === "pdf") {
       return this.exportToPDF(conversation, opts);
-    } else {
+    } 
       return this.exportToMarkdown(conversation, opts);
-    }
+    
   }
 
   private async exportToMarkdown(

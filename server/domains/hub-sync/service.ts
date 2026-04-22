@@ -13,11 +13,11 @@ export const hubSyncService = {
 
   async getReplayHistory(deviceId?: string, endpoint?: string) {
     const rows = await db.select().from(replayIncoming).orderBy(desc(replayIncoming.createdAt)).limit(100);
-    if (!deviceId && !endpoint) return rows;
+    if (!deviceId && !endpoint) {return rows;}
     return rows.filter((row: Record<string, unknown>) => {
       const payload = row.payload as Record<string, unknown> | null;
-      if (deviceId && payload?.deviceId !== deviceId) return false;
-      if (endpoint && payload?.endpoint !== endpoint) return false;
+      if (deviceId && payload?.deviceId !== deviceId) {return false;}
+      if (endpoint && payload?.endpoint !== endpoint) {return false;}
       return true;
     });
   },
@@ -58,7 +58,7 @@ export const hubSyncService = {
 
   async isSheetLocked(sheetKey: string) {
     const lock = await this.getSheetLock(sheetKey);
-    if (!lock) return false;
+    if (!lock) {return false;}
     return new Date(lock.expires_at as string) > new Date();
   },
 
@@ -125,14 +125,13 @@ export const hubSyncService = {
     if (!resolvedOrgId) {
       throw new Error("Cannot determine orgId for optimization run. Provide orgId or use a valid configId.");
     }
-    const result = await dbOptimizerStorage.createOptimizationResult({
+    return await dbOptimizerStorage.createOptimizationResult({
       configurationId: configId,
       orgId: resolvedOrgId,
       runStatus: 'queued',
       equipmentScope: equipmentScope ? JSON.stringify(equipmentScope) : undefined,
       timeHorizon,
     });
-    return result;
   },
 
   async cancelOptimization(id: string) {

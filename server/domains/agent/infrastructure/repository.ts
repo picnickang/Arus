@@ -1,5 +1,5 @@
 import { db } from "../../../db";
-import { eq, desc, and, sql, count, sum, gte } from "drizzle-orm";
+import { eq, desc, and, sql, gte } from "drizzle-orm";
 import {
   agentConversations,
   agentMessages,
@@ -17,7 +17,6 @@ import type {
   InsertAgentConversation,
   AgentMessage,
   InsertAgentMessage,
-  AgentToolCall,
   AgentDraft,
   InsertAgentDraft,
   AgentApproval,
@@ -210,9 +209,9 @@ export function createAgentRepository(): AgentRepositoryPort {
         const config = await db.select().from(agentConfig)
           .where(eq(agentConfig.orgId, orgId))
           .limit(1);
-        if (!config[0]) return null;
+        if (!config[0]) {return null;}
         const allPrefs = config[0].suggestionPreferences as Record<string, unknown> | null;
-        if (!allPrefs || typeof allPrefs !== "object") return null;
+        if (!allPrefs || typeof allPrefs !== "object") {return null;}
         const key = userId || "__org_default";
         const userPrefs = allPrefs[key];
         if (userPrefs && typeof userPrefs === "object") {

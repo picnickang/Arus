@@ -42,15 +42,15 @@ export function SensorSparklineChart({
   onViewDetails,
 }: SensorSparklineChartProps) {
   const getStatusColor = () => {
-    if (hasAnomaly) return "border-destructive";
-    if (status === "critical") return "border-destructive";
-    if (status === "warning") return "border-amber-500";
+    if (hasAnomaly) {return "border-destructive";}
+    if (status === "critical") {return "border-destructive";}
+    if (status === "warning") {return "border-amber-500";}
     return "border-border";
   };
 
   const getStatusDotColor = () => {
-    if (hasAnomaly || status === "critical") return "bg-destructive";
-    if (status === "warning") return "bg-amber-500";
+    if (hasAnomaly || status === "critical") {return "bg-destructive";}
+    if (status === "warning") {return "bg-amber-500";}
     return "bg-green-500";
   };
 

@@ -32,7 +32,7 @@ export class CertificateApplicationService {
 
   async getCertificateById(id: string, orgId: string) {
     const cert = await this.certificateRepo.findById(id, orgId);
-    if (!cert) return undefined;
+    if (!cert) {return undefined;}
 
     const events = await this.eventRepo.findByCertificateId(id);
     return { ...cert, events };
@@ -73,7 +73,7 @@ export class CertificateApplicationService {
     userId?: string
   ) {
     const updated = await this.certificateRepo.update(id, orgId, updates, userId);
-    if (!updated) return undefined;
+    if (!updated) {return undefined;}
 
     if (updates.status) {
       await this.eventRepo.create({
@@ -99,7 +99,7 @@ export class CertificateApplicationService {
     userId?: string
   ) {
     const cert = await this.certificateRepo.findById(id, orgId);
-    if (!cert) return undefined;
+    if (!cert) {return undefined;}
 
     const conditions = ((cert.conditionsOfClass as ConditionOfClass[]) || []).slice();
     const newCondition: ConditionOfClass = {
@@ -132,7 +132,7 @@ export class CertificateApplicationService {
     userId?: string
   ) {
     const cert = await this.certificateRepo.findById(id, orgId);
-    if (!cert) return undefined;
+    if (!cert) {return undefined;}
 
     const conditions = ((cert.conditionsOfClass as ConditionOfClass[]) || []).map((c) => {
       if (c.id === conditionId) {
@@ -166,7 +166,7 @@ export class CertificateApplicationService {
     userId?: string
   ) {
     const cert = await this.certificateRepo.findById(id, orgId);
-    if (!cert) return undefined;
+    if (!cert) {return undefined;}
 
     const endorsements = ((cert.endorsements as FlagStateEndorsement[]) || []).slice();
     endorsements.push(endorsement);

@@ -62,7 +62,7 @@ export class TrainingPipelineService {
     initiatedBy?: string
   ): Promise<TrainingRun> {
     const dataset = await this.datasets.getById(orgId, datasetId);
-    if (!dataset) throw new Error(`Dataset ${datasetId} not found`);
+    if (!dataset) {throw new Error(`Dataset ${datasetId} not found`);}
 
     const run = await this.runs.create({
       orgId,
@@ -134,8 +134,8 @@ export class TrainingPipelineService {
     changelog?: string
   ): Promise<ModelVersion> {
     const run = await this.runs.getById(orgId, runId);
-    if (!run) throw new Error(`Training run ${runId} not found`);
-    if (run.status !== "completed") throw new Error(`Training run ${runId} is not completed (status: ${run.status})`);
+    if (!run) {throw new Error(`Training run ${runId} not found`);}
+    if (run.status !== "completed") {throw new Error(`Training run ${runId} is not completed (status: ${run.status})`);}
 
     const modelVersion = await this.registry.createVersion({
       orgId,

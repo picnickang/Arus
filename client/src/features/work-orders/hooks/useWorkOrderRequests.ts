@@ -15,7 +15,7 @@ export function useWorkOrderRequests(workOrderId: string) {
       const res = await fetch(`/api/work-orders/${workOrderId}/service-orders`, {
         headers: { "x-org-id": ORG_ID },
       });
-      if (!res.ok) throw new Error("Failed to fetch service orders");
+      if (!res.ok) {throw new Error("Failed to fetch service orders");}
       return res.json();
     },
   });
@@ -26,7 +26,7 @@ export function useWorkOrderRequests(workOrderId: string) {
       const res = await fetch(`/api/work-orders/${workOrderId}/purchase-requests`, {
         headers: { "x-org-id": ORG_ID },
       });
-      if (!res.ok) throw new Error("Failed to fetch purchase requests");
+      if (!res.ok) {throw new Error("Failed to fetch purchase requests");}
       return res.json();
     },
   });
@@ -160,13 +160,13 @@ export function useWorkOrderRequests(workOrderId: string) {
     mutationFn: async ({ soId, data }: { soId: string; data: Record<string, unknown> }) => {
       const payload: Record<string, unknown> = {};
       
-      if (data.serviceProviderId) payload.serviceProviderId = data.serviceProviderId;
-      if (data.requestedStartDate) payload.scheduledStartDate = data.requestedStartDate;
-      if (data.requestedEndDate) payload.scheduledEndDate = data.requestedEndDate;
-      if (data.symptomDescription || data.scope) payload.scope = data.symptomDescription || data.scope;
-      if (data.estimatedDurationHours) payload.estimatedDurationHours = data.estimatedDurationHours;
-      if (data.quotedAmount) payload.quotedAmount = data.quotedAmount;
-      if (data.notes) payload.specialRequirements = data.notes;
+      if (data.serviceProviderId) {payload.serviceProviderId = data.serviceProviderId;}
+      if (data.requestedStartDate) {payload.scheduledStartDate = data.requestedStartDate;}
+      if (data.requestedEndDate) {payload.scheduledEndDate = data.requestedEndDate;}
+      if (data.symptomDescription || data.scope) {payload.scope = data.symptomDescription || data.scope;}
+      if (data.estimatedDurationHours) {payload.estimatedDurationHours = data.estimatedDurationHours;}
+      if (data.quotedAmount) {payload.quotedAmount = data.quotedAmount;}
+      if (data.notes) {payload.specialRequirements = data.notes;}
       
       if (data.equipmentIds || data.severity || data.assistanceTags || data.probableCause || 
           data.actionTakenSoFar || data.isRecurringDefect !== undefined || 

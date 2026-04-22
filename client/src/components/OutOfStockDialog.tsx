@@ -34,7 +34,7 @@ export function OutOfStockDialog({ open, onOpenChange, partInfo, isLoading, work
 
   const createPRMutation = useMutation({
     mutationFn: async () => {
-      if (!partInfo) throw new Error("Part information not loaded");
+      if (!partInfo) {throw new Error("Part information not loaded");}
       const response = await apiRequest("POST", "/api/purchase-requests", {
         requestedBy: "Current User",
         vesselId,
@@ -56,7 +56,7 @@ export function OutOfStockDialog({ open, onOpenChange, partInfo, isLoading, work
 
   const extendCompletionDateMutation = useMutation({
     mutationFn: async () => {
-      if (!partInfo) throw new Error("Part information not loaded");
+      if (!partInfo) {throw new Error("Part information not loaded");}
       const additionalDays = partInfo.estimatedLeadTimeDays || 14;
       const response = await apiRequest("PATCH", `/api/work-orders/${workOrderId}/extend-completion-date`, {
         additionalDays,
@@ -70,7 +70,7 @@ export function OutOfStockDialog({ open, onOpenChange, partInfo, isLoading, work
   });
 
   const handleCreatePR = async () => {
-    if (!partInfo) return;
+    if (!partInfo) {return;}
     setIsCreatingPR(true);
     try {
       await createPRMutation.mutateAsync();

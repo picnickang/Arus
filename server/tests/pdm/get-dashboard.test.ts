@@ -72,8 +72,8 @@ describe('PdM Dashboard Use Cases', () => {
       getFleetHealthKpis: jest.fn<() => Promise<FleetHealthKpis>>().mockResolvedValue(mockKpis),
       getRiskQueue: jest.fn<(orgId: string, status?: string) => Promise<RiskQueueItem[]>>()
         .mockImplementation(async (_orgId, status) => {
-          if (status === 'active') return [mockRiskItem];
-          if (status === 'resolved') return [];
+          if (status === 'active') {return [mockRiskItem];}
+          if (status === 'resolved') {return [];}
           return [{ ...mockRiskItem, status: 'new', severity: 'medium' }];
         }),
       getTelemetryCoverage: jest.fn<() => Promise<TelemetryCoverage>>().mockResolvedValue(mockTelemetryCoverage),

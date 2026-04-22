@@ -6,14 +6,10 @@
  */
 
 import { dbStcwStorage, dbCrewStorage } from "../../repositories";
-import { checkMonthCompliance, calculateFatigueRisk } from "../../stcw-compliance";
+import { calculateFatigueRisk } from "../../stcw-compliance";
 import type { RestDay } from "../../stcw-compliance";
 import {
   projectRestHoursFromAssignments,
-  getDatesInRange,
-  initializeRestHours,
-  getWorkHoursForDate,
-  markWorkHoursForDay,
   mergeExistingRestWithProjected,
 } from "./projector";
 import type {
@@ -87,7 +83,7 @@ function calculateRestInLast24h(
     const dayFlags = daysMap.get(checkDate);
     if (dayFlags) {
       const key = `h${checkHour}` as keyof RestHourFlags;
-      if (dayFlags[key] === 1) restCount++;
+      if (dayFlags[key] === 1) {restCount++;}
     }
   }
   
@@ -110,7 +106,7 @@ function calculateWorkInLast7Days(
     if (dayFlags) {
       for (let h = 0; h < 24; h++) {
         const key = `h${h}` as keyof RestHourFlags;
-        if (dayFlags[key] === 0) workCount++;
+        if (dayFlags[key] === 0) {workCount++;}
       }
     }
   }

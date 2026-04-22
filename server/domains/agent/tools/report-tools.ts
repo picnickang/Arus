@@ -1,7 +1,7 @@
 import { db } from "../../../db";
-import { eq, desc, and, sql, gte } from "drizzle-orm";
+import { eq, desc, and, gte } from "drizzle-orm";
 import {
-  equipment, vessels, maintenanceSchedules,
+  equipment, maintenanceSchedules,
   alertNotifications, failurePredictions,
 } from "@shared/schema";
 import { z } from "zod";
@@ -29,7 +29,7 @@ registerTool({
     const lookback = new Date(Date.now() - (periodMs[input.period || "7d"] || 604800000));
 
     const eqConditions = [eq(equipment.orgId, ctx.orgId)];
-    if (input.vesselId) eqConditions.push(eq(equipment.vesselId, input.vesselId));
+    if (input.vesselId) {eqConditions.push(eq(equipment.vesselId, input.vesselId));}
 
     const [allEquipment, activeAlerts, upcomingMaint, recentPredictions] = await Promise.all([
       db.select({

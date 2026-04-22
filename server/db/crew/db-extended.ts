@@ -3,7 +3,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { eq, and, desc, lte, gte, or, sql, inArray } from "drizzle-orm";
+import { eq, and, lte, gte, or, sql, inArray } from "drizzle-orm";
 import { db } from "../../db-config";
 import { crew, crewAssignment as crewAssignmentTable, crewCertification as crewCertificationTable, crewLeave as crewLeaveTable, type Crew, type CrewAssignment, type InsertCrewAssignment, type CrewCertification, type InsertCrewCertification, type CrewLeave, type InsertCrewLeave } from "@shared/schema-runtime";
 import type { CrewAssignmentFilters } from "./types.js";
@@ -25,7 +25,7 @@ export class DbCrewExtended {
   async deleteCrewAssignment(id: string, orgId?: string): Promise<void> { this.validateOrgId(orgId, "deleteCrewAssignment"); const conditions = orgId ? and(eq(crewAssignmentTable.id, id), eq(crewAssignmentTable.orgId, orgId)) : eq(crewAssignmentTable.id, id); await db.delete(crewAssignmentTable).where(conditions); }
 
   async createBulkCrewAssignments(assignments: InsertCrewAssignment[]): Promise<CrewAssignment[]> {
-    if (assignments.length === 0) return [];
+    if (assignments.length === 0) {return [];}
     return db.insert(crewAssignmentTable).values(assignments.map(a => ({ id: randomUUID(), ...a, createdAt: new Date(), updatedAt: new Date() }))).returning();
   }
 

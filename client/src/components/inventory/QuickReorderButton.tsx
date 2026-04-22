@@ -14,7 +14,6 @@
  */
 
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useCreatePR, useAddPRItem } from "@/features/purchaseRequests/hooks/usePurchaseRequests";
 import { Button } from "@/components/ui/button";
@@ -128,7 +127,7 @@ export function QuickReorderButton({
   };
 
   const handleReorder = () => {
-    if (quantity <= 0) return;
+    if (quantity <= 0) {return;}
     handleCreatePR({
       partId: part.id,
       quantity,

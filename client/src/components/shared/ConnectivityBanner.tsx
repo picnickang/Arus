@@ -59,9 +59,9 @@ export function ConnectivityBanner({ pendingSyncCount = 0, className }: Connecti
   }, [pendingSyncCount]);
 
   const schedulePolling = useCallback(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (intervalRef.current) {clearInterval(intervalRef.current);}
 
-    if (stateRef.current === "offline") return;
+    if (stateRef.current === "offline") {return;}
 
     const interval = consecutiveSuccesses.current >= STABLE_THRESHOLD
       ? SLOW_INTERVAL_MS
@@ -83,7 +83,7 @@ export function ConnectivityBanner({ pendingSyncCount = 0, className }: Connecti
       setState("offline");
       setDismissed(false);
       consecutiveSuccesses.current = 0;
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (intervalRef.current) {clearInterval(intervalRef.current);}
     };
 
     window.addEventListener("online", handleOnline);
@@ -92,11 +92,11 @@ export function ConnectivityBanner({ pendingSyncCount = 0, className }: Connecti
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (intervalRef.current) {clearInterval(intervalRef.current);}
     };
   }, [checkConnection, schedulePolling]);
 
-  if (state === "online" || dismissed) return null;
+  if (state === "online" || dismissed) {return null;}
 
   const config = {
     offline: {
@@ -123,7 +123,7 @@ export function ConnectivityBanner({ pendingSyncCount = 0, className }: Connecti
       textColor: "text-primary",
       dismissable: true,
     },
-  }[state]!;
+  }[state];
 
   const Icon = config.icon;
 

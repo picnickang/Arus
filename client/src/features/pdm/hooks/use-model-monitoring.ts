@@ -8,7 +8,7 @@ export function useModelDrift(modelVersionId: string) {
     queryKey: ["/api/pdm/drift", currentOrgId, modelVersionId],
     queryFn: async () => {
       const res = await fetch(`/api/pdm/drift/${modelVersionId}`, { headers: { "x-org-id": currentOrgId } });
-      if (!res.ok) throw new Error("Failed to fetch drift metrics");
+      if (!res.ok) {throw new Error("Failed to fetch drift metrics");}
       return res.json();
     },
     enabled: !!modelVersionId && !!currentOrgId,
@@ -21,7 +21,7 @@ export function useDriftSummary() {
     queryKey: ["/api/pdm/drift", "summary", currentOrgId],
     queryFn: async () => {
       const res = await fetch("/api/pdm/drift", { headers: { "x-org-id": currentOrgId } });
-      if (!res.ok) throw new Error("Failed to fetch drift summary");
+      if (!res.ok) {throw new Error("Failed to fetch drift summary");}
       return res.json();
     },
     enabled: !!currentOrgId,

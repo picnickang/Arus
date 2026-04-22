@@ -284,8 +284,8 @@ export class ConfidenceDetector {
   }
 
   private scoreToLevel(score: number): ConfidenceResult["level"] {
-    if (score >= 0.7) return "high";
-    if (score >= this.config.lowConfidenceThreshold) return "medium";
+    if (score >= 0.7) {return "high";}
+    if (score >= this.config.lowConfidenceThreshold) {return "medium";}
     return "low";
   }
 
@@ -293,7 +293,7 @@ export class ConfidenceDetector {
     level: ConfidenceResult["level"],
     factors: ConfidenceFactor[]
   ): string | undefined {
-    if (level === "high") return undefined;
+    if (level === "high") {return undefined;}
 
     const weakFactors = factors.filter((f) => f.score < 0.5).map((f) => f.name);
 

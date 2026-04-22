@@ -75,8 +75,8 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
       const open = workOrders.filter((wo: any) => wo.status === "open" || wo.status === "in_progress" || wo.status === "pending").length;
       const completed = workOrders.filter((wo: any) => wo.status === "completed" || wo.status === "closed").length;
       const overdue = workOrders.filter((wo: any) => {
-        if (wo.status === "completed" || wo.status === "closed" || wo.status === "cancelled") return false;
-        if (!wo.nextScheduledDate && !wo.plannedEndDate) return false;
+        if (wo.status === "completed" || wo.status === "closed" || wo.status === "cancelled") {return false;}
+        if (!wo.nextScheduledDate && !wo.plannedEndDate) {return false;}
         const dueDate = new Date(wo.nextScheduledDate || wo.plannedEndDate);
         return dueDate < now;
       }).length;
@@ -142,7 +142,7 @@ export function registerCoreRoutes(app: Express, rateLimit: RateLimitMiddleware)
       const orderData: Record<string, any> = { ...parsed };
       const dateFields = ["plannedStartDate", "plannedEndDate", "actualStartDate", "actualEndDate"] as const;
       for (const f of dateFields) {
-        if (orderData[f] != null) orderData[f] = new Date(orderData[f]);
+        if (orderData[f] != null) {orderData[f] = new Date(orderData[f]);}
       }
       const orgId = (req as AuthenticatedRequest).orgId;
       const workOrder = await workOrderService.updateWorkOrder(

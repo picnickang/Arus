@@ -10,7 +10,7 @@
  */
 
 import OpenAI from 'openai';
-import { createOpenAIClient, analyzeErrorType, calculateDynamicTokens } from '../../openai/client';
+import { createOpenAIClient, analyzeErrorType } from '../../openai/client';
 import { searchKnowledgeBase, type SearchResult } from '../../vector-search-service';
 import type {
   RagAnswerRequest,
@@ -18,7 +18,6 @@ import type {
   Citation,
   ContextChunk,
   RagServiceConfig,
-  DEFAULT_RAG_CONFIG,
 } from './types';
 import { logger } from '../../utils/logger';
 

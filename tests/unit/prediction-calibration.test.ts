@@ -48,7 +48,7 @@ function fitPlattScaling(
 /** Brier score: mean squared error of probability predictions */
 function brierScore(data: Array<{ predicted: number; actual: 0 | 1 }>): number {
   const n = data.length;
-  if (n === 0) return 0;
+  if (n === 0) {return 0;}
   return data.reduce((sum, { predicted, actual }) =>
     sum + Math.pow(predicted - actual, 2), 0
   ) / n;
@@ -93,9 +93,9 @@ function calibrateIsotonic(
   raw: number,
   mapping: Array<{ threshold: number; value: number }>
 ): number {
-  if (mapping.length === 0) return raw;
+  if (mapping.length === 0) {return raw;}
   for (let i = 0; i < mapping.length; i++) {
-    if (raw <= mapping[i].threshold) return mapping[i].value;
+    if (raw <= mapping[i].threshold) {return mapping[i].value;}
   }
   return mapping[mapping.length - 1].value;
 }

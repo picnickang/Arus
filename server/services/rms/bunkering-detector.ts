@@ -70,28 +70,28 @@ class BunkeringDetectorService {
 
   private detectFlowReversal(snapshot: FmccSnapshot): boolean {
     const totalFlow = snapshot.fuel.totalFlowKgPerH;
-    if (totalFlow === undefined) return false;
+    if (totalFlow === undefined) {return false;}
     return totalFlow < FLOW_REVERSAL_THRESHOLD_KG_PER_H;
   }
 
   private detectSuddenIntakeSurge(snapshot: FmccSnapshot): boolean {
     const totalFlow = snapshot.fuel.totalFlowKgPerH;
-    if (totalFlow === undefined || totalFlow <= 0) return false;
+    if (totalFlow === undefined || totalFlow <= 0) {return false;}
 
     const history = this.previousFlows.get(snapshot.vesselId);
-    if (!history || history.length < 5) return false;
+    if (!history || history.length < 5) {return false;}
 
     const avgRecentFlow = history.slice(-5).reduce((s, v) => s + v, 0) / 5;
-    if (avgRecentFlow <= 0) return false;
+    if (avgRecentFlow <= 0) {return false;}
 
     return totalFlow > avgRecentFlow * SUDDEN_INTAKE_SPIKE_FACTOR && totalFlow > BUNKER_FLOW_THRESHOLD_KG_PER_H;
   }
 
   private trackFlowHistory(vesselId: string, flow: number | undefined): void {
-    if (flow === undefined) return;
+    if (flow === undefined) {return;}
     const history = this.previousFlows.get(vesselId) || [];
     history.push(flow);
-    if (history.length > 20) history.shift();
+    if (history.length > 20) {history.shift();}
     this.previousFlows.set(vesselId, history);
   }
 
@@ -104,12 +104,12 @@ class BunkeringDetectorService {
           ${snapshot.orgId}, ${snapshot.vesselId}, ${new Date(snapshot.timestamp)},
           'in_progress', 'hfo',
           ${snapshot.fuel.foDensity ?? null}, ${snapshot.fuel.foTemperature ?? null},
-          ${'auto:' + detectionMethod}
+          ${`auto:${  detectionMethod}`}
         ) RETURNING id
       `);
 
       const row = getFirstRow(result);
-      if (!row) return;
+      if (!row) {return;}
 
       const active: ActiveBunkering = {
         eventId: row.id,
@@ -145,8 +145,8 @@ class BunkeringDetectorService {
 
   private updateBunkering(active: ActiveBunkering, snapshot: FmccSnapshot, flowKgPerH: number): void {
     active.readings.push({ timestamp: new Date(snapshot.timestamp), flowKgPerH });
-    if (flowKgPerH > active.peakFlow) active.peakFlow = flowKgPerH;
-    if (active.density === undefined && snapshot.fuel.foDensity) active.density = snapshot.fuel.foDensity;
+    if (flowKgPerH > active.peakFlow) {active.peakFlow = flowKgPerH;}
+    if (active.density === undefined && snapshot.fuel.foDensity) {active.density = snapshot.fuel.foDensity;}
   }
 
   private async endBunkering(active: ActiveBunkering): Promise<void> {
@@ -222,7 +222,7 @@ class BunkeringDetectorService {
       const bunkeringHfoVal = fuelType === 'hfo' ? volumeMT : null;
       const bunkeringMdoVal = fuelType === 'mdo' || fuelType === 'do' ? volumeMT : null;
       const bunkeringMgoVal = fuelType === 'mgo' ? volumeMT : null;
-      const remarks = `Auto-detected bunkering: ${volumeMT.toFixed(2)} MT ${active.fuelType.toUpperCase()}, Duration: ${((endTime.getTime() - active.startedAt.getTime()) / 60000).toFixed(0)} min, Avg flow: ${avgFlow.toFixed(1)} kg/h, Peak: ${active.peakFlow.toFixed(1)} kg/h${active.density ? ', Density: ' + active.density.toFixed(4) + ' kg/m³' : ''}`;
+      const remarks = `Auto-detected bunkering: ${volumeMT.toFixed(2)} MT ${active.fuelType.toUpperCase()}, Duration: ${((endTime.getTime() - active.startedAt.getTime()) / 60000).toFixed(0)} min, Avg flow: ${avgFlow.toFixed(1)} kg/h, Peak: ${active.peakFlow.toFixed(1)} kg/h${active.density ? `, Density: ${  active.density.toFixed(4)  } kg/m³` : ''}`;
 
       await db.execute(sql`
         INSERT INTO engine_log_daily (

@@ -25,7 +25,6 @@ import SyncAdmin from "@/components/SyncAdmin";
 import { useSystemAdminData, useSoftwareUpdatesData, useGitHubSettingsData, useConfigurationTabData } from "@/features/settings";
 import type { SoftwarePatch } from "@shared/schema";
 import { formatDate } from "@/lib/formatters";
-import { PermissionGate } from "@/components/PermissionGate";
 
 function GitHubSettingsTab() {
   const g = useGitHubSettingsData();

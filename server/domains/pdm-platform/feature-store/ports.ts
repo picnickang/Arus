@@ -1,4 +1,4 @@
-import type { EquipmentFeature, InsertEquipmentFeature } from "@shared/schema";
+import type { EquipmentFeature } from "@shared/schema";
 
 export interface FeatureStorePort {
   computeAndStore(orgId: string, equipmentId: string, windowMinutes?: number): Promise<EquipmentFeature>;

@@ -7,7 +7,7 @@ export interface UrlValidationResult {
 
 export function validateBackendUrl(raw: string): UrlValidationResult {
   const trimmed = raw.trim();
-  if (!trimmed) return { valid: false, normalized: "", error: "URL is required" };
+  if (!trimmed) {return { valid: false, normalized: "", error: "URL is required" };}
 
   try {
     const parsed = new URL(trimmed);

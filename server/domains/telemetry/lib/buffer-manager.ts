@@ -117,7 +117,7 @@ export class TelemetryBufferManager extends EventEmitter {
 
   getVesselStats(vesselId: string): VesselBufferStats | null {
     const buffer = this.vesselBuffers.get(vesselId);
-    if (!buffer) return null;
+    if (!buffer) {return null;}
 
     return {
       vesselId,

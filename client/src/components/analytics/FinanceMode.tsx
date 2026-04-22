@@ -29,9 +29,9 @@ interface SavingsRecord {
 }
 
 function ValidationStatusBadge({ status }: { status: string }) {
-  if (status === "valid") return <Badge variant="outline" className="border-green-500 text-green-600" data-testid={`badge-status-${status}`}><CheckCircle className="h-3 w-3 mr-1" />Valid</Badge>;
-  if (status === "disputed") return <Badge variant="outline" className="border-amber-500 text-amber-600" data-testid={`badge-status-${status}`}><AlertTriangle className="h-3 w-3 mr-1" />Disputed</Badge>;
-  if (status === "voided") return <Badge variant="outline" className="border-red-500 text-red-600" data-testid={`badge-status-${status}`}><XCircle className="h-3 w-3 mr-1" />Voided</Badge>;
+  if (status === "valid") {return <Badge variant="outline" className="border-green-500 text-green-600" data-testid={`badge-status-${status}`}><CheckCircle className="h-3 w-3 mr-1" />Valid</Badge>;}
+  if (status === "disputed") {return <Badge variant="outline" className="border-amber-500 text-amber-600" data-testid={`badge-status-${status}`}><AlertTriangle className="h-3 w-3 mr-1" />Disputed</Badge>;}
+  if (status === "voided") {return <Badge variant="outline" className="border-red-500 text-red-600" data-testid={`badge-status-${status}`}><XCircle className="h-3 w-3 mr-1" />Voided</Badge>;}
   return <Badge variant="outline">{status}</Badge>;
 }
 
@@ -57,7 +57,7 @@ function SavingsClaimActions({ savingsId, currentStatus }: { savingsId: string; 
     },
   });
 
-  if (currentStatus === "voided") return null;
+  if (currentStatus === "voided") {return null;}
 
   return (
     <div className="flex flex-col gap-2">

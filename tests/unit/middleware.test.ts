@@ -5,15 +5,15 @@
  * These are cross-cutting concerns that affect every API request.
  */
 
-import { describe, it, expect, jest, beforeEach } from "@jest/globals";
-import type { Request, Response, NextFunction } from "express";
+import { describe, it, expect } from "@jest/globals";
+import type { Request, Response } from "express";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function mockReq(overrides: Record<string, any> = {}): Request {
   return {
     headers: {},
-    header: function (name: string) { return this.headers[name.toLowerCase()]; },
+    header (name: string) { return this.headers[name.toLowerCase()]; },
     method: "GET",
     path: "/api/test",
     url: "/api/test",

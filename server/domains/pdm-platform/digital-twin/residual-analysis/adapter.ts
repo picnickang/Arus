@@ -63,7 +63,7 @@ export class ResidualAnalysisAdapter implements ResidualAnalysisPort {
   }
 
   async storeResiduals(records: InsertTwinResidual[]): Promise<TwinResidual[]> {
-    if (records.length === 0) return [];
+    if (records.length === 0) {return [];}
     return db.insert(twinResiduals).values(records).returning();
   }
 }

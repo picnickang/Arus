@@ -66,7 +66,7 @@ export class ModelRegistryAdapter implements ModelRegistryPort {
     const [current] = await db.select().from(modelDeployments)
       .where(eq(modelDeployments.id, deploymentId));
 
-    if (!current) throw new Error(`Deployment ${deploymentId} not found`);
+    if (!current) {throw new Error(`Deployment ${deploymentId} not found`);}
 
     await db.update(modelDeployments)
       .set({ deploymentStatus: "deprecated", deprecatedAt: new Date() })

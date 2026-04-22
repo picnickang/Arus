@@ -9,7 +9,6 @@ import type {
   IReportScheduleRepository,
   IGeneratedReportRepository,
   IEventPublisher,
-  ReportGeneratorRegistry,
 } from '../domain/ports.js';
 import type { ReportScheduleConfig, ReportScheduleInput } from '../domain/types.js';
 import { createEvent, type ReportScheduleCreatedEvent, type ReportScheduleUpdatedEvent, type ReportScheduleDeletedEvent } from '../domain/events.js';

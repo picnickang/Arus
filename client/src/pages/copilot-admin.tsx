@@ -10,12 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
-  Bot, Settings, BarChart3, Clock, Save, RefreshCw, Loader2,
+  Bot, Settings, BarChart3, Clock, Save, Loader2,
   Trash2, Play, Pause, Zap, MessageSquare,
   Wrench, Shield, Database, Download, RotateCcw, ChevronDown,
   Activity,
 } from "lucide-react";
-import { apiRequest, queryClient as qc, resolveUrl, createHeaders } from "@/lib/queryClient";
+import { apiRequest, resolveUrl, createHeaders } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 
@@ -173,7 +173,7 @@ function EffectivenessCard({ effectiveness }: { effectiveness: EffectivenessSumm
 }
 
 function UsageOverview({ usage }: { usage: UsageStats | undefined }) {
-  if (!usage) return null;
+  if (!usage) {return null;}
 
   return (
     <div data-testid="usage-overview">
@@ -580,7 +580,7 @@ export default function CopilotAdminPage() {
             onToggle={(id, enabled) => toggleMutation.mutate({ id, enabled })}
             onRun={(id) => runMutation.mutate(id)}
             onDelete={(id) => {
-              if (window.confirm("Delete this schedule?")) deleteMutation.mutate(id);
+              if (window.confirm("Delete this schedule?")) {deleteMutation.mutate(id);}
             }}
           />
 
@@ -600,7 +600,7 @@ export default function CopilotAdminPage() {
                         headers: createHeaders(),
                         credentials: "include",
                       });
-                      if (!res.ok) throw new Error(await res.text());
+                      if (!res.ok) {throw new Error(await res.text());}
                       const blob = await res.blob();
                       const url = URL.createObjectURL(blob);
                       const a = document.createElement("a");

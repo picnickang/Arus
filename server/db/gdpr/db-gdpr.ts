@@ -2,7 +2,7 @@
  * GDPR - Database Storage
  */
 
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { db } from "../../db-config";
 import { dataSubjectRequests, engineerOverrides, type DataSubjectRequest, type InsertDataSubjectRequest, type EngineerOverride, type InsertEngineerOverride } from "@shared/schema-runtime";
 

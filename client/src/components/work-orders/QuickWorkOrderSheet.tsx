@@ -70,7 +70,7 @@ export function QuickWorkOrderSheet({
 
   const handlePhoto = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {return;}
 
     const url = URL.createObjectURL(file);
     setPhotoPreview(url);
@@ -84,7 +84,7 @@ export function QuickWorkOrderSheet({
   }, []);
 
   const handleSubmit = useCallback(() => {
-    if (!equipmentId || !description.trim()) return;
+    if (!equipmentId || !description.trim()) {return;}
 
     createMutation.mutate({
       equipmentId,

@@ -1,4 +1,4 @@
-import type { FleetBaseline, InsertFleetBaseline } from "@shared/schema";
+import type { FleetBaseline } from "@shared/schema";
 
 export interface FleetComparisonResult {
   featureName: string;

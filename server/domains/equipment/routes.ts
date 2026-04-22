@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { LRUCache } from "lru-cache";
 import { equipmentService } from "./service";
-import { insertEquipmentSchema, insertDecommissionEventSchema } from "@shared/schema-runtime";
+import { insertEquipmentSchema } from "@shared/schema-runtime";
 import { db } from "../../db";
 import {
   requireOrgId,
@@ -29,7 +29,7 @@ function setCache(key: string, data: unknown): void {
 
 function invalidateCache(pattern: string): void {
   for (const key of equipmentCache.keys()) {
-    if (key.startsWith(pattern)) equipmentCache.delete(key);
+    if (key.startsWith(pattern)) {equipmentCache.delete(key);}
   }
 }
 

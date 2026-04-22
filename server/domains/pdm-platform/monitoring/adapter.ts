@@ -45,7 +45,7 @@ export class ModelMonitoringAdapter implements ModelMonitoringPort {
       const training = trainingRef[featureName];
       const live = liveDistributions[featureName];
 
-      if (!training && !live) continue;
+      if (!training && !live) {continue;}
 
       const trainingMean = training?.mean ?? live?.mean ?? 0;
       const trainingStd = training?.std ?? live?.std ?? 1;
@@ -137,7 +137,7 @@ export class ModelMonitoringAdapter implements ModelMonitoringPort {
 
     for (const [featureName, extractor] of Object.entries(FEATURE_EXTRACTORS)) {
       const values = recentFeatures.map(extractor).filter((v): v is number => v != null && !isNaN(v));
-      if (values.length < 2) continue;
+      if (values.length < 2) {continue;}
 
       const n = values.length;
       const mean = values.reduce((a, b) => a + b, 0) / n;

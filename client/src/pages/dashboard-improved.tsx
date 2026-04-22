@@ -8,7 +8,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
 import { useDashboardData } from "@/features/analytics";
-import { healthColor } from "@/lib/health-risk";
 
 function MetricCard({
   label, value, icon: Icon, status, href, testId,

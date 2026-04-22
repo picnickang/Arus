@@ -22,7 +22,7 @@ export function useUserPermissions() {
   });
 
   const hasPermission = (resource: string, action: string): boolean => {
-    if (!data?.permissions) return false;
+    if (!data?.permissions) {return false;}
     return data.permissions[resource]?.[action] === true;
   };
 

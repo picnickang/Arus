@@ -9,7 +9,7 @@ export class TelemetryAdapter implements TelemetryPort {
     const cutoff = new Date(Date.now() - windowMinutes * 60 * 1000);
 
     try {
-      const rows = await db.select({
+      return await db.select({
         sensorType: equipmentTelemetry.sensorType,
         value: equipmentTelemetry.value,
         ts: equipmentTelemetry.ts,
@@ -23,8 +23,6 @@ export class TelemetryAdapter implements TelemetryPort {
         ))
         .orderBy(desc(equipmentTelemetry.ts))
         .limit(5000);
-
-      return rows;
     } catch (error: any) {
       logger.warn("[TelemetryAdapter] Failed to query telemetry, returning empty", { error: error.message });
       return [];

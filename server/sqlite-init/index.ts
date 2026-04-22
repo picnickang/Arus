@@ -16,10 +16,10 @@ import { getAllTablesSql, getAllIndexesSql } from "../sqlite/index.js";
 let _initialized = false;
 
 export async function isSqliteDatabaseInitialized(): Promise<boolean> {
-  if (_initialized) return true;
+  if (_initialized) {return true;}
   try {
     const { libsqlClient } = await import("../db-config.js");
-    if (!libsqlClient) return false;
+    if (!libsqlClient) {return false;}
     const result = await libsqlClient.execute(
       "SELECT name FROM sqlite_master WHERE type='table' AND name='parts_inventory'"
     );
@@ -75,7 +75,7 @@ async function safeAddColumn(client: LibsqlClient, table: string, col: string, d
     await client.execute(`ALTER TABLE ${table} ADD COLUMN ${col} ${definition}`);
     console.log(`  ✓ Added ${table}.${col}`);
   } catch (error) {
-    if (error instanceof Error && error.message.includes("duplicate column")) return;
+    if (error instanceof Error && error.message.includes("duplicate column")) {return;}
     throw error;
   }
 }
@@ -91,7 +91,7 @@ export async function applyInventoryMigrations(): Promise<void> {
 
 async function runInventoryMigrations(client: LibsqlClient): Promise<void> {
   const piCols = await getTableColumns(client, "parts_inventory");
-  if (!piCols.length) return;
+  if (!piCols.length) {return;}
 
   const migrationErrors: string[] = [];
 
@@ -155,7 +155,7 @@ async function runInventoryMigrations(client: LibsqlClient): Promise<void> {
   }
 
   const stockCols = await getTableColumns(client, "stock");
-  if (!stockCols.length) return;
+  if (!stockCols.length) {return;}
 
   try {
     if (stockCols.includes("quantity") && !stockCols.includes("quantity_on_hand")) {
@@ -246,9 +246,9 @@ async function verifyInventorySchema(client: LibsqlClient): Promise<void> {
 
   if (missingPi.length > 0 || missingStock.length > 0 || missingPoi.length > 0) {
     const details: string[] = [];
-    if (missingPi.length) details.push(`parts_inventory missing: ${missingPi.join(", ")}`);
-    if (missingStock.length) details.push(`stock missing: ${missingStock.join(", ")}`);
-    if (missingPoi.length) details.push(`purchase_order_items missing: ${missingPoi.join(", ")}`);
+    if (missingPi.length) {details.push(`parts_inventory missing: ${missingPi.join(", ")}`);}
+    if (missingStock.length) {details.push(`stock missing: ${missingStock.join(", ")}`);}
+    if (missingPoi.length) {details.push(`purchase_order_items missing: ${missingPoi.join(", ")}`);}
     const msg = `Inventory schema verification FAILED:\n  ${details.join("\n  ")}`;
     console.error(msg);
     throw new Error(msg);

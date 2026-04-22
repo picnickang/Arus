@@ -15,9 +15,8 @@ import { Label } from "@/components/ui/label";
 import { ChevronLeft, ChevronRight, Calendar, Ship, Compass, Wind, Waves, Eye, Gauge, Thermometer, Save, FileText, Clock, Users, CheckCircle2, AlertCircle, Download, FileSpreadsheet, Activity, Fuel, Lock, Plus, MapPin, CloudSun, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/navigation";
 import { format } from "date-fns";
-import { useDeckLogbookData, WIND_DIRECTIONS, BEAUFORT_SCALE, SEA_STATES, VISIBILITY_CODES, WATCH_PERIODS, MANUAL_EVENT_TYPES, getEventTypeConfig, type DeckLogbookHookReturn } from "@/features/deck-logbook";
-import { PermissionGate, PagePermissionDenied } from "@/components/PermissionGate";
-import { usePermissions } from "@/contexts/PermissionsContext";
+import { useDeckLogbookData, WIND_DIRECTIONS, BEAUFORT_SCALE, SEA_STATES, VISIBILITY_CODES, WATCH_PERIODS, MANUAL_EVENT_TYPES, getEventTypeConfig } from "@/features/deck-logbook";
+import { PermissionGate } from "@/components/PermissionGate";
 
 interface HourlyEntry { course?: string; windDirection?: string; windForce?: string; seaState?: string; visibility?: string; barometer?: number; airTemp?: number; seaTemp?: number; remarks?: string; }
 interface DeckEvent { id: string; timestamp: string; eventType: string; summary: string; source: string; details?: string; positionLat?: number; positionLon?: number; }

@@ -8,23 +8,23 @@ import { Loader2, AlertTriangle, ChevronRight, Clock, Wrench, FileText, Activity
 import { useEquipmentHub } from "@/hooks/useEquipmentHub";
 
 function riskColor(r: string) {
-  if (r === "critical") return "text-red-500";
-  if (r === "warning") return "text-yellow-500";
+  if (r === "critical") {return "text-red-500";}
+  if (r === "warning") {return "text-yellow-500";}
   return "text-green-500";
 }
 function riskBg(r: string) {
-  if (r === "critical") return "bg-red-500/10 border-red-500/20";
-  if (r === "warning") return "bg-yellow-500/8 border-yellow-500/15";
+  if (r === "critical") {return "bg-red-500/10 border-red-500/20";}
+  if (r === "warning") {return "bg-yellow-500/8 border-yellow-500/15";}
   return "bg-green-500/5 border-green-500/10";
 }
 function riskBadgeVariant(r: string) {
-  if (r === "critical") return "destructive" as const;
-  if (r === "warning") return "outline" as const;
+  if (r === "critical") {return "destructive" as const;}
+  if (r === "warning") {return "outline" as const;}
   return "secondary" as const;
 }
 function healthStroke(v: number) {
-  if (v > 70) return "#22c55e";
-  if (v > 40) return "#eab308";
+  if (v > 70) {return "#22c55e";}
+  if (v > 40) {return "#eab308";}
   return "#ef4444";
 }
 
@@ -43,7 +43,7 @@ function HealthRing({ value, size = 72, stroke = 6 }: { value: number; size?: nu
 }
 
 function MiniSparkline({ data, color, w = 120, h = 32 }: { data: number[]; color: string; w?: number; h?: number }) {
-  if (!data || data.length < 2) return null;
+  if (!data || data.length < 2) {return null;}
   const min = Math.min(...data);
   const max = Math.max(...data);
   const range = max - min || 1;

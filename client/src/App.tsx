@@ -93,11 +93,10 @@ function ConnectivityBannerWithSync() {
   const [pendingCount, setPendingCount] = useState(0);
   useEffect(() => {
     const cache = queryClient.getMutationCache();
-    const unsubscribe = cache.subscribe(() => {
+    return cache.subscribe(() => {
       const pending = cache.getAll().filter(m => m.state.status === "pending").length;
       setPendingCount(pending);
     });
-    return unsubscribe;
   }, []);
   return <ConnectivityBanner pendingSyncCount={pendingCount} />;
 }
@@ -173,7 +172,7 @@ const SETUP_TIMEOUT_MS = 10000;
 
 function App() {
   const [setupState, setSetupState] = useState<"loading" | "setup" | "ready">(() => {
-    if (!isDesktop()) return "ready";
+    if (!isDesktop()) {return "ready";}
     return isDesktopSetupCompleteSync() ? "ready" : "loading";
   });
 
@@ -182,7 +181,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (setupState !== "loading") return;
+    if (setupState !== "loading") {return;}
 
     const timeout = setTimeout(() => {
       setSetupState("setup");

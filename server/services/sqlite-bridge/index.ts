@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import { CursorStore } from './cursorStore';
 import { SqliteRawFrameSource } from './sqliteRawFrameSource';
 import { BridgeProcessor } from './bridgeProcessor';
-import { loadBridgeConfig, type BridgeConfig } from './config';
+import { type BridgeConfig } from './config';
 import { telemetryBatchWriter, type TelemetryReading } from '../../telemetry-batch-writer';
 import { logger } from '../../utils/logger';
 import client from 'prom-client';

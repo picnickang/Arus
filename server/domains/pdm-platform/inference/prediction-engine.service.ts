@@ -94,7 +94,7 @@ export class PredictionEngineService implements PredictionExplanationQuery {
       .where(and(eq(failurePredictions.id, predictionId), eq(failurePredictions.orgId, orgId)))
       .limit(1);
 
-    if (!prediction) return [];
+    if (!prediction) {return [];}
 
     return db.select()
       .from(predictionExplanations)
@@ -128,7 +128,7 @@ export class PredictionEngineService implements PredictionExplanationQuery {
       .where(and(eq(failurePredictions.id, predictionId), eq(failurePredictions.orgId, orgId)))
       .limit(1);
 
-    if (!prediction) return null;
+    if (!prediction) {return null;}
 
     let featureSnapshot = null;
     if (prediction.featureSnapshotId) {
@@ -202,18 +202,18 @@ export class PredictionEngineService implements PredictionExplanationQuery {
     const meanPress = features.meanPressure ?? 0;
     const kurtosis = features.kurtosis ?? 3;
 
-    if (meanTemp > 80) score += 0.25;
-    else if (meanTemp > 65) score += 0.1;
+    if (meanTemp > 80) {score += 0.25;}
+    else if (meanTemp > 65) {score += 0.1;}
 
-    if (rmsVib > 5) score += 0.3;
-    else if (rmsVib > 3) score += 0.15;
-    else if (rmsVib > 1.5) score += 0.05;
+    if (rmsVib > 5) {score += 0.3;}
+    else if (rmsVib > 3) {score += 0.15;}
+    else if (rmsVib > 1.5) {score += 0.05;}
 
-    if (meanPress < 80 || meanPress > 280) score += 0.2;
-    else if (meanPress < 120 || meanPress > 250) score += 0.1;
+    if (meanPress < 80 || meanPress > 280) {score += 0.2;}
+    else if (meanPress < 120 || meanPress > 250) {score += 0.1;}
 
-    if (kurtosis > 5) score += 0.15;
-    else if (kurtosis > 4) score += 0.05;
+    if (kurtosis > 5) {score += 0.15;}
+    else if (kurtosis > 4) {score += 0.05;}
 
     const failureProbability = Math.min(Math.round(score * 100) / 100, 0.99);
     const rul = Math.max(Math.floor(365 * (1 - failureProbability)), 7);
@@ -224,18 +224,18 @@ export class PredictionEngineService implements PredictionExplanationQuery {
 
   private generateRecommendations(failureProbability: number, features: any): string[] {
     const recs: string[] = [];
-    if (failureProbability > 0.5) recs.push("Schedule preventive maintenance within 2 weeks");
-    if (failureProbability > 0.3) recs.push("Increase monitoring frequency");
-    if (features?.rmsVibration && features.rmsVibration > 4) recs.push("Inspect vibration isolation mounts");
-    if (features?.meanTemp && features.meanTemp > 75) recs.push("Check cooling system efficiency");
-    if (features?.meanPressure && (features.meanPressure < 100 || features.meanPressure > 260)) recs.push("Investigate pressure anomaly");
-    if (features?.kurtosis && features.kurtosis > 5) recs.push("Vibration pattern suggests bearing wear — schedule ultrasonic inspection");
-    if (recs.length === 0) recs.push("Continue normal monitoring schedule");
+    if (failureProbability > 0.5) {recs.push("Schedule preventive maintenance within 2 weeks");}
+    if (failureProbability > 0.3) {recs.push("Increase monitoring frequency");}
+    if (features?.rmsVibration && features.rmsVibration > 4) {recs.push("Inspect vibration isolation mounts");}
+    if (features?.meanTemp && features.meanTemp > 75) {recs.push("Check cooling system efficiency");}
+    if (features?.meanPressure && (features.meanPressure < 100 || features.meanPressure > 260)) {recs.push("Investigate pressure anomaly");}
+    if (features?.kurtosis && features.kurtosis > 5) {recs.push("Vibration pattern suggests bearing wear — schedule ultrasonic inspection");}
+    if (recs.length === 0) {recs.push("Continue normal monitoring schedule");}
     return recs;
   }
 
   private generateExplanations(predictionId: number, inferenceRunId: string, features: any) {
-    if (!features) return [];
+    if (!features) {return [];}
 
     const contributions = [
       { featureName: "rmsVibration", value: features.rmsVibration, baseline: 2.0, weight: 0.30 },

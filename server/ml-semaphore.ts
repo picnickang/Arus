@@ -42,7 +42,7 @@ function createSemaphore(maxConcurrent: number): InferenceSemaphore {
   const release = (): void => {
     active -= 1;
     const next = waiters.shift();
-    if (next) next();
+    if (next) {next();}
   };
 
   return {

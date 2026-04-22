@@ -239,7 +239,7 @@ export class ReportGenerationService {
         sections.push({
           title: 'Scheduled Maintenance Tasks',
           type: 'table',
-          data: data,
+          data,
         });
         break;
 

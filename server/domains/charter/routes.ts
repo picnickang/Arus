@@ -62,9 +62,9 @@ router.get("/", requireOrgId, async (req: Request, res: Response) => {
       LEFT JOIN vessels v ON cp.vessel_id = v.id
       WHERE cp.org_id = ${getOrgId(req)}
     `;
-    if (vesselId) q = sql`${q} AND cp.vessel_id = ${vesselId as string}`;
-    if (status) q = sql`${q} AND cp.status = ${status as string}`;
-    if (charterer) q = sql`${q} AND LOWER(cp.charterer_name) LIKE LOWER(${'%' + charterer + '%'})`;
+    if (vesselId) {q = sql`${q} AND cp.vessel_id = ${vesselId as string}`;}
+    if (status) {q = sql`${q} AND cp.status = ${status as string}`;}
+    if (charterer) {q = sql`${q} AND LOWER(cp.charterer_name) LIKE LOWER(${`%${  charterer  }%`})`;}
     q = sql`${q} ORDER BY cp.commencement_date DESC`;
     const result = await db.execute(q);
     res.json(getRows(result));
@@ -103,7 +103,7 @@ router.post("/", requireOrgId, async (req: Request, res: Response) => {
 
     res.status(201).json(charter);
   } catch (err) {
-    if (err instanceof z.ZodError) return res.status(400).json({ error: "Validation failed", details: err.flatten() });
+    if (err instanceof z.ZodError) {return res.status(400).json({ error: "Validation failed", details: err.flatten() });}
     logger.error(MODULE, "Error creating charter", { error: err });
     res.status(500).json({ error: "Failed to create charter" });
   }
@@ -117,7 +117,7 @@ router.post("/kpi", requireOrgId, async (req: Request, res: Response) => {
       SELECT * FROM charter_parties WHERE id = ${data.charterId} AND org_id = ${getOrgId(req)}
     `);
     const charter = getFirstRow(charterResult);
-    if (!charter) return res.status(404).json({ error: "Charter not found" });
+    if (!charter) {return res.status(404).json({ error: "Charter not found" });}
 
     const c = charter as any;
     const availCompliant = data.availabilityPct != null
@@ -162,7 +162,7 @@ router.post("/kpi", requireOrgId, async (req: Request, res: Response) => {
 
     res.status(201).json(getFirstRow(result));
   } catch (err) {
-    if (err instanceof z.ZodError) return res.status(400).json({ error: "Validation failed", details: err.flatten() });
+    if (err instanceof z.ZodError) {return res.status(400).json({ error: "Validation failed", details: err.flatten() });}
     res.status(500).json({ error: "Failed to log KPI" });
   }
 });
@@ -178,7 +178,7 @@ router.get("/:charterId/performance", requireOrgId, async (req: Request, res: Re
       WHERE cp.id = ${charterId} AND cp.org_id = ${getOrgId(req)}
     `);
     const charter = getFirstRow(charterResult);
-    if (!charter) return res.status(404).json({ error: "Charter not found" });
+    if (!charter) {return res.status(404).json({ error: "Charter not found" });}
 
     const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
     const kpiResult = await db.execute(sql`

@@ -58,7 +58,7 @@ import { DbMaintenanceSchedulingAdapter, type MaintenanceSchedulingDeps } from "
 import { dbMaintenanceStorage } from "./db/maintenance/index.js";
 import { dbAlertStorage } from "./db/alerts/index.js";
 import { maintenanceSchedules } from "@shared/schema-runtime";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "./db-config";
 
 const schedulingDeps: MaintenanceSchedulingDeps = {

@@ -3,7 +3,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
+import { eq, and, sql, gte, lte } from "drizzle-orm";
 import { db } from "../../db-config";
 import { maintenanceSchedules, maintenanceRecords, maintenanceCosts, type MaintenanceSchedule, type InsertMaintenanceSchedule, type MaintenanceRecord, type InsertMaintenanceRecord, type MaintenanceCost, type InsertMaintenanceCost } from "@shared/schema-runtime";
 import type { MaintenanceFilters } from "./types.js";

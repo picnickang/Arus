@@ -59,7 +59,7 @@ export async function summarizeDocument(
     }
 
     const truncatedContent = content.length > maxContentLength
-      ? content.slice(0, maxContentLength) + '...[truncated]'
+      ? `${content.slice(0, maxContentLength)  }...[truncated]`
       : content;
 
     const prompt = SUMMARIZATION_PROMPT.replace('{content}', truncatedContent);

@@ -55,7 +55,7 @@ export function DesktopUpdatePanel() {
 
   const handleCheckForUpdates = useCallback(async () => {
     const api = getDesktopAPI();
-    if (!api) return;
+    if (!api) {return;}
 
     setState((prev) => ({ ...prev, status: "checking", error: undefined }));
 
@@ -86,7 +86,7 @@ export function DesktopUpdatePanel() {
 
   const handleInstall = useCallback(async () => {
     const api = getDesktopAPI();
-    if (!api) return;
+    if (!api) {return;}
 
     setState((prev) => ({ ...prev, status: "downloading" }));
 

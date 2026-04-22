@@ -42,9 +42,9 @@ export async function fetchTelemetryTrends(
   hours?: number
 ): Promise<TelemetryTrend[]> {
   const params = new URLSearchParams();
-  if (vesselId) params.set("vesselId", vesselId);
-  if (equipmentId) params.set("equipmentId", equipmentId);
-  if (hours) params.set("hours", hours.toString());
+  if (vesselId) {params.set("vesselId", vesselId);}
+  if (equipmentId) {params.set("equipmentId", equipmentId);}
+  if (hours) {params.set("hours", hours.toString());}
   const url = `/api/telemetry/trends${params.toString() ? `?${params.toString()}` : ""}`;
   return await apiRequest("GET", url);
 }

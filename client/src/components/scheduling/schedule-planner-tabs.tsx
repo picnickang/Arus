@@ -17,7 +17,7 @@ import {
   type FatigueRiskLevel
 } from "@/features/crew/hooks/useSchedulePlannerData";
 import { cn } from "@/lib/utils";
-import { getStatusBadge, ROLE_COLORS } from "./schedule-planner-utils";
+import { getStatusBadge } from "./schedule-planner-utils";
 
 export function FatigueRiskBadge({ riskLevel, compact = false }: { riskLevel: FatigueRiskLevel; compact?: boolean }) {
   const config: Record<FatigueRiskLevel, { bg: string; label: string }> = {
@@ -249,7 +249,7 @@ export function ComplianceTab({
   fatigue?: FatigueResult;
 }) {
   const getComplianceStatus = () => {
-    if (!fatigue) return { status: "UNKNOWN", color: "text-muted-foreground", bg: "bg-muted" };
+    if (!fatigue) {return { status: "UNKNOWN", color: "text-muted-foreground", bg: "bg-muted" };}
     switch (fatigue.riskLevel) {
       case "critical":
         return { status: "NON-COMPLIANT", color: "text-red-600", bg: "bg-red-100 dark:bg-red-900/30" };

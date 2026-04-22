@@ -59,7 +59,7 @@ export async function getWorkOrderProcurementCosts(
     }));
 
     result.serviceOrderCosts = sos.reduce((total, so) => {
-      if (!FINALIZED_SO_STATUSES.includes(so.status)) return total;
+      if (!FINALIZED_SO_STATUSES.includes(so.status)) {return total;}
       return total + (so.actualAmount ?? 0);
     }, 0);
   }

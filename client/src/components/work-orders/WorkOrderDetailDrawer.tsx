@@ -1,5 +1,5 @@
 import { useState as useLocalState } from "react";
-import { Clock, User, Ship, Wrench, Calendar, DollarSign, FileText, Package, ClipboardList, History, Copy, Link2, Send, Trash2, Building2 } from "lucide-react";
+import { Clock, User, Ship, Wrench, Calendar, DollarSign, FileText, Package, ClipboardList, History, Copy, Link2, Send, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";

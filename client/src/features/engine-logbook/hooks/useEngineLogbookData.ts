@@ -106,7 +106,7 @@ export function useEngineLogbookData() {
   });
 
   const notifyUnsignedMutation = useMutation({
-    mutationFn: async (): Promise<NotifyResult> => await apiRequest("POST", "/api/logbook/engine/notify-unsigned", { vesselId: selectedVesselId || undefined, daysBack: 7 }) as NotifyResult,
+    mutationFn: async (): Promise<NotifyResult> => await apiRequest("POST", "/api/logbook/engine/notify-unsigned", { vesselId: selectedVesselId || undefined, daysBack: 7 }),
     onSuccess: (result) => { toast({ title: result.sent === 0 && result.total === 0 ? "No unsigned logs" : "Notifications sent", description: result.sent === 0 && result.total === 0 ? "All engine logs are signed." : result.message }); },
     onError: () => { toast({ title: "Notification failed", description: "Could not send notifications.", variant: "destructive" }); },
   });

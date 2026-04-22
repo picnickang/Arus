@@ -43,7 +43,7 @@ export function mapStatus(status: string | null): "proposed" | "approved" | "app
 }
 
 export function formatDate(value: Date | null): string {
-  if (!value) return "";
+  if (!value) {return "";}
   return value.toISOString().split("T")[0];
 }
 
@@ -62,7 +62,7 @@ export function calculateTotalHours(assignments: ScheduleDayCell[]): number {
 }
 
 export function calculateComplianceRate(rows: SchedulePlannerRow[]): number {
-  if (rows.length === 0) return 100;
+  if (rows.length === 0) {return 100;}
   const totalScore = rows.reduce((sum, r) => sum + r.complianceScore, 0);
   return Math.round(totalScore / rows.length);
 }
@@ -72,7 +72,7 @@ export function calculateUtilization(
   startDate: string,
   endDate: string
 ): number {
-  if (rows.length === 0) return 0;
+  if (rows.length === 0) {return 0;}
 
   const start = new Date(startDate);
   const end = new Date(endDate);

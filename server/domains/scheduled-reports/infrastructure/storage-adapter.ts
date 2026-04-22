@@ -15,7 +15,7 @@ export class ReportStorageAdapter implements IReportStorageAdapter {
   private initialized = false;
 
   private async ensureDirectory(): Promise<void> {
-    if (this.initialized) return;
+    if (this.initialized) {return;}
 
     try {
       await fs.mkdir(REPORTS_DIR, { recursive: true });

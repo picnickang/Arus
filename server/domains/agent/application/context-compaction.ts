@@ -18,7 +18,7 @@ export function estimateTokens(text: string): number {
 
 export function compactToolOutput(content: string, charLimit: number = DEFAULT_TOOL_OUTPUT_CHAR_LIMIT): string {
   const TOOL_OUTPUT_CHAR_LIMIT = charLimit;
-  if (content.length <= TOOL_OUTPUT_CHAR_LIMIT) return content;
+  if (content.length <= TOOL_OUTPUT_CHAR_LIMIT) {return content;}
 
   let parsed: unknown;
   try {
@@ -63,7 +63,7 @@ export function compactToolOutput(content: string, charLimit: number = DEFAULT_T
     }
 
     const compacted = JSON.stringify(obj);
-    if (compacted.length <= TOOL_OUTPUT_CHAR_LIMIT) return compacted;
+    if (compacted.length <= TOOL_OUTPUT_CHAR_LIMIT) {return compacted;}
 
     const truncated = compacted.slice(0, TOOL_OUTPUT_CHAR_LIMIT);
     return `[Compacted: original ${content.length} chars]\n${truncated}\n[... truncated]`;
@@ -89,7 +89,7 @@ export async function generateProgressiveSummary(
   const condensed = messages.map(m => {
     const role = m.role;
     let text = m.content || "";
-    if (text.length > 500) text = text.slice(0, 500) + "...";
+    if (text.length > 500) {text = `${text.slice(0, 500)  }...`;}
     return `[${role}]: ${text}`;
   }).join("\n");
 
@@ -161,7 +161,7 @@ export function buildCompactedMessages(
     return sum + estimateTokens(content || "");
   }, 0);
 
-  let budgetRemaining = maxContextTokens - systemTokens - 4096;
+  const budgetRemaining = maxContextTokens - systemTokens - 4096;
 
   const mappedMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
 

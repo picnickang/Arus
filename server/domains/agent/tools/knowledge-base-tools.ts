@@ -56,7 +56,7 @@ registerTool({
       ref: `[${i + 1}]`,
       document: c.docName,
       relevance: `${(c.relevance * 100).toFixed(0)}%`,
-      excerpt: c.text.length > 200 ? c.text.slice(0, 200) + "..." : c.text,
+      excerpt: c.text.length > 200 ? `${c.text.slice(0, 200)  }...` : c.text,
     }));
 
     return {

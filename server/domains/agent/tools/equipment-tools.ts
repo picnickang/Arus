@@ -21,7 +21,7 @@ registerTool({
   async execute(input: { equipmentId: string }, ctx) {
     const [item] = await db.select().from(equipment)
       .where(and(eq(equipment.id, input.equipmentId), eq(equipment.orgId, ctx.orgId)));
-    if (!item) return { error: "Equipment not found" };
+    if (!item) {return { error: "Equipment not found" };}
     return {
       id: item.id,
       name: item.name,
@@ -58,7 +58,7 @@ registerTool({
     if (input.vesselId) {
       const [vessel] = await db.select().from(vessels)
         .where(and(eq(vessels.id, input.vesselId), eq(vessels.orgId, ctx.orgId)));
-      if (!vessel) return { error: "Vessel not found" };
+      if (!vessel) {return { error: "Vessel not found" };}
       const equip = await db.select({ id: equipment.id }).from(equipment)
         .where(and(eq(equipment.vesselId, input.vesselId), eq(equipment.orgId, ctx.orgId)));
       return {
@@ -94,7 +94,7 @@ registerTool({
   requiresApproval: false,
   async execute(input: { limit?: number; vesselId?: string }, ctx) {
     const conditions = [eq(equipment.orgId, ctx.orgId)];
-    if (input.vesselId) conditions.push(eq(equipment.vesselId, input.vesselId));
+    if (input.vesselId) {conditions.push(eq(equipment.vesselId, input.vesselId));}
 
     const equip = await db.select().from(equipment)
       .where(and(...conditions))

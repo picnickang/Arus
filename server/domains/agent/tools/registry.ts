@@ -72,7 +72,7 @@ export function registerListAvailableToolsMeta(): void {
 
       const grouped: Record<string, { name: string; description: string; requiresApproval: boolean }[]> = {};
       for (const t of filtered) {
-        if (!grouped[t.category]) grouped[t.category] = [];
+        if (!grouped[t.category]) {grouped[t.category] = [];}
         grouped[t.category].push({
           name: t.name,
           description: t.description,

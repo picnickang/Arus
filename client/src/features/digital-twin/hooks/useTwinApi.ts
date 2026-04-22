@@ -8,7 +8,7 @@ function orgHeaders(orgId: string) {
 
 async function fetchJson(url: string, orgId: string) {
   const res = await fetch(url, { headers: orgHeaders(orgId) });
-  if (!res.ok) throw new Error(`Failed: ${res.statusText}`);
+  if (!res.ok) {throw new Error(`Failed: ${res.statusText}`);}
   return res.json();
 }
 
@@ -144,8 +144,8 @@ export function useRunScenario() {
 export function useTwinTimeline(twinId: string, startTime?: string, endTime?: string) {
   const { currentOrgId } = useOrganization();
   const params = new URLSearchParams({ twinId });
-  if (startTime) params.set("startTime", startTime);
-  if (endTime) params.set("endTime", endTime);
+  if (startTime) {params.set("startTime", startTime);}
+  if (endTime) {params.set("endTime", endTime);}
   return useQuery({
     queryKey: ["/api/pdm/twin/replay/timeline", currentOrgId, twinId, startTime, endTime],
     queryFn: () => fetchJson(`/api/pdm/twin/replay/timeline?${params}`, currentOrgId),

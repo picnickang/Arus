@@ -42,16 +42,16 @@ export async function runPdmGapFillSmokeTests(baseUrl: string): Promise<{
 
   await runTest("GET /api/analytics/anomaly-groups", async () => {
     const res = await fetch(`${baseUrl}/api/analytics/anomaly-groups`, { headers });
-    if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
+    if (res.status !== 200) {throw new Error(`Expected 200, got ${res.status}`);}
     const data = await res.json();
-    if (typeof data.totalGroups !== "number") throw new Error("Missing totalGroups in response");
+    if (typeof data.totalGroups !== "number") {throw new Error("Missing totalGroups in response");}
   });
 
   await runTest("GET /api/ml/train/jobs", async () => {
     const res = await fetch(`${baseUrl}/api/ml/train/jobs`, { headers });
-    if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
+    if (res.status !== 200) {throw new Error(`Expected 200, got ${res.status}`);}
     const data = await res.json();
-    if (!Array.isArray(data.jobs)) throw new Error("Missing jobs array in response");
+    if (!Array.isArray(data.jobs)) {throw new Error("Missing jobs array in response");}
   });
 
   await runTest("GET /api/telemetry/aggregated/:id/:sensor", async () => {
@@ -59,7 +59,7 @@ export async function runPdmGapFillSmokeTests(baseUrl: string): Promise<{
       `${baseUrl}/api/telemetry/aggregated/test-equipment/temperature?startDate=${new Date(Date.now() - 86400000).toISOString()}&endDate=${new Date().toISOString()}`,
       { headers }
     );
-    if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
+    if (res.status !== 200) {throw new Error(`Expected 200, got ${res.status}`);}
   });
 
   await runTest("POST /api/ml/evaluate-model (validation)", async () => {
@@ -68,7 +68,7 @@ export async function runPdmGapFillSmokeTests(baseUrl: string): Promise<{
       headers,
       body: JSON.stringify({}),
     });
-    if (res.status !== 400) throw new Error(`Expected 400 for missing modelId, got ${res.status}`);
+    if (res.status !== 400) {throw new Error(`Expected 400 for missing modelId, got ${res.status}`);}
   });
 
   await runTest("POST /api/ml/outcomes/evaluate", async () => {
@@ -76,7 +76,7 @@ export async function runPdmGapFillSmokeTests(baseUrl: string): Promise<{
       method: "POST",
       headers,
     });
-    if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
+    if (res.status !== 200) {throw new Error(`Expected 200, got ${res.status}`);}
   });
 
   const duration = Date.now() - startTime;

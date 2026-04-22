@@ -120,7 +120,7 @@ function countRestHours(flags: RestHourFlags): number {
   let count = 0;
   for (let i = 0; i < 24; i++) {
     const key = `h${i}` as keyof RestHourFlags;
-    if (flags[key] === 1) count++;
+    if (flags[key] === 1) {count++;}
   }
   return count;
 }
@@ -286,7 +286,7 @@ function calculateWeeklyWorkHours(days: ProjectedRestDay[], endDate: string): nu
 
 function calculateLast24hRest(days: ProjectedRestDay[], targetDate: string): number {
   const targetDay = days.find((d) => d.date === targetDate);
-  if (!targetDay) return 24;
+  if (!targetDay) {return 24;}
   return targetDay.restHours;
 }
 

@@ -1,15 +1,15 @@
 export function readU32LE(buf: Buffer, offset: number): number {
-  if (offset + 4 > buf.length) return 0;
+  if (offset + 4 > buf.length) {return 0;}
   return buf.readUInt32LE(offset);
 }
 
 export function readU16LE(buf: Buffer, offset: number): number {
-  if (offset + 2 > buf.length) return 0;
+  if (offset + 2 > buf.length) {return 0;}
   return buf.readUInt16LE(offset);
 }
 
 export function readU8(buf: Buffer, offset: number): number {
-  if (offset >= buf.length) return 0;
+  if (offset >= buf.length) {return 0;}
   return buf.readUInt8(offset);
 }
 

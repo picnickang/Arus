@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Search, ClipboardList, AlertCircle, Clock, CheckCircle, Loader2, XCircle, ArrowRightCircle } from "lucide-react";
+import { ClipboardList, AlertCircle, CheckCircle, Loader2, XCircle, ArrowRightCircle } from "lucide-react";
 import {
   useServiceRequests,
   useReviewServiceRequest,
@@ -37,7 +37,7 @@ function ConvertToSODialog({ open, onOpenChange, srId: _srId, onSubmit, isPendin
   const { data: suppliers } = useQuery<{ id: string; name: string }[]>({ queryKey: ["/api/suppliers"], enabled: open });
 
   const handleSubmit = () => {
-    if (!serviceProviderId) return;
+    if (!serviceProviderId) {return;}
     onSubmit({
       serviceProviderId,
       scope: scope || undefined,
@@ -148,9 +148,9 @@ export function ServiceRequestsPage() {
     ? requests.filter((r) =>
         r.title.toLowerCase().includes(searchInput.toLowerCase()) ||
         r.requestNumber.toLowerCase().includes(searchInput.toLowerCase()) ||
-        (r.workOrderNumber && r.workOrderNumber.toLowerCase().includes(searchInput.toLowerCase())) ||
-        (r.vesselName && r.vesselName.toLowerCase().includes(searchInput.toLowerCase())) ||
-        (r.equipmentName && r.equipmentName.toLowerCase().includes(searchInput.toLowerCase()))
+        (r.workOrderNumber?.toLowerCase().includes(searchInput.toLowerCase())) ||
+        (r.vesselName?.toLowerCase().includes(searchInput.toLowerCase())) ||
+        (r.equipmentName?.toLowerCase().includes(searchInput.toLowerCase()))
       )
     : requests;
 
@@ -184,7 +184,7 @@ export function ServiceRequestsPage() {
   };
 
   const handleRejectSubmit = (reason: string) => {
-    if (!selectedSRId) return;
+    if (!selectedSRId) {return;}
     rejectMutation.mutate({ id: selectedSRId, reason }, {
       onSuccess: () => {
         toast({ title: "Request rejected", description: "Work order status has been restored." });
@@ -201,7 +201,7 @@ export function ServiceRequestsPage() {
   };
 
   const handleConvertSubmit = (data: { serviceProviderId: string; scope?: string; estimatedCost?: number; scheduledStartDate?: string }) => {
-    if (!selectedSRId) return;
+    if (!selectedSRId) {return;}
     convertMutation.mutate({ id: selectedSRId, data }, {
       onSuccess: () => {
         toast({ title: "Service Order created", description: "Request has been converted to a formal Service Order." });

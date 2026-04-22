@@ -42,30 +42,30 @@ const MONTH_MAP: Record<string, string> = {
  * Parse SHIPMATE dates: DD-MMM-YYYY, DD/MM/YYYY, YYYY-MM-DD
  */
 const parseShipmateDate = (v: string): Date | null => {
-  if (!v || v === "" || v.toLowerCase() === "n/a") return null;
+  if (!v || v === "" || v.toLowerCase() === "n/a") {return null;}
   const trimmed = v.trim();
 
   // DD-MMM-YYYY (e.g., "15-Jan-2024")
   const dmy = trimmed.match(/^(\d{1,2})-(\w{3})-(\d{4})$/);
   if (dmy) {
     const month = MONTH_MAP[dmy[2].toLowerCase()];
-    if (month) return new Date(`${dmy[3]}-${month}-${dmy[1].padStart(2, "0")}`);
+    if (month) {return new Date(`${dmy[3]}-${month}-${dmy[1].padStart(2, "0")}`);}
   }
 
   // DD/MM/YYYY
   const slash = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (slash) return new Date(`${slash[3]}-${slash[2].padStart(2, "0")}-${slash[1].padStart(2, "0")}`);
+  if (slash) {return new Date(`${slash[3]}-${slash[2].padStart(2, "0")}-${slash[1].padStart(2, "0")}`);}
 
   // ISO YYYY-MM-DD
   const iso = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (iso) return new Date(trimmed);
+  if (iso) {return new Date(trimmed);}
 
   const d = new Date(trimmed);
   return isNaN(d.getTime()) ? null : d;
 };
 
 const parseNum = (v: string): number | null => {
-  if (!v || v === "" || v.toLowerCase() === "n/a") return null;
+  if (!v || v === "" || v.toLowerCase() === "n/a") {return null;}
   const n = Number(v.replace(/,/g, ""));
   return isNaN(n) ? null : n;
 };
@@ -75,7 +75,7 @@ const parseBool = (v: string): boolean => {
 };
 
 const clean = (v: string): string | null => {
-  if (!v || v.trim() === "" || v.toLowerCase() === "n/a") return null;
+  if (!v || v.trim() === "" || v.toLowerCase() === "n/a") {return null;}
   return v.trim();
 };
 
@@ -146,9 +146,9 @@ const mapMaintType = (v: string): string => {
  * Extract the parent by removing the last segment
  */
 const extractParentComponentNo = (v: string): string | null => {
-  if (!v || !v.includes(".")) return null;
+  if (!v || !v.includes(".")) {return null;}
   const parts = v.split(".");
-  if (parts.length <= 1) return null;
+  if (parts.length <= 1) {return null;}
   return parts.slice(0, -1).join(".");
 };
 

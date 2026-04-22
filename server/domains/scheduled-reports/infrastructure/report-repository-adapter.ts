@@ -5,7 +5,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../../../db.js';
-import { eq, and, lte, desc, sql } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import type {
   IReportScheduleRepository,
   IGeneratedReportRepository,
@@ -129,7 +129,7 @@ export class ReportScheduleRepositoryAdapter implements IReportScheduleRepositor
       SELECT * FROM report_schedules WHERE org_id = ${orgId} ORDER BY created_at DESC
     `);
 
-    if (!result.rows) return [];
+    if (!result.rows) {return [];}
     return result.rows.map((row: unknown) => this.mapRowToConfig(row));
   }
 
@@ -140,7 +140,7 @@ export class ReportScheduleRepositoryAdapter implements IReportScheduleRepositor
       ORDER BY next_run_at ASC
     `);
 
-    if (!result.rows) return [];
+    if (!result.rows) {return [];}
     return result.rows.map((row: unknown) => this.mapRowToConfig(row));
   }
 
@@ -209,15 +209,15 @@ export class GeneratedReportRepositoryAdapter implements IGeneratedReportReposit
     const values: any[] = [];
 
     if (updates.status !== undefined) {
-      setClauses.push('status = $' + (values.length + 1));
+      setClauses.push(`status = $${  values.length + 1}`);
       values.push(updates.status);
     }
     if (updates.deliveredAt !== undefined) {
-      setClauses.push('delivered_at = $' + (values.length + 1));
+      setClauses.push(`delivered_at = $${  values.length + 1}`);
       values.push(updates.deliveredAt);
     }
     if (updates.errorMessage !== undefined) {
-      setClauses.push('error_message = $' + (values.length + 1));
+      setClauses.push(`error_message = $${  values.length + 1}`);
       values.push(updates.errorMessage);
     }
 
@@ -258,7 +258,7 @@ export class GeneratedReportRepositoryAdapter implements IGeneratedReportReposit
       LIMIT ${limit}
     `);
 
-    if (!result.rows) return [];
+    if (!result.rows) {return [];}
     return result.rows.map((row: unknown) => this.mapRowToReport(row));
   }
 
@@ -270,7 +270,7 @@ export class GeneratedReportRepositoryAdapter implements IGeneratedReportReposit
       LIMIT ${limit}
     `);
 
-    if (!result.rows) return [];
+    if (!result.rows) {return [];}
     return result.rows.map((row: unknown) => this.mapRowToReport(row));
   }
 

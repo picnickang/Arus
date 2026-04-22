@@ -230,7 +230,7 @@ export class PredictionOutcomeTracker {
         ))
         .limit(1);
 
-      if (!existing) return null;
+      if (!existing) {return null;}
 
       return {
         predictionId,
@@ -306,10 +306,10 @@ export class PredictionOutcomeTracker {
 
     // Classify outcome
     let actualOutcome: PredictionOutcome["actualOutcome"];
-    if (predicted && failureOccurred) actualOutcome = "true_positive";
-    else if (predicted && !failureOccurred) actualOutcome = "false_positive";
-    else if (!predicted && failureOccurred) actualOutcome = "false_negative";
-    else actualOutcome = "true_negative";
+    if (predicted && failureOccurred) {actualOutcome = "true_positive";}
+    else if (predicted && !failureOccurred) {actualOutcome = "false_positive";}
+    else if (!predicted && failureOccurred) {actualOutcome = "false_negative";}
+    else {actualOutcome = "true_negative";}
 
     return {
       predictionId: prediction.id,
@@ -361,7 +361,7 @@ export class PredictionOutcomeTracker {
 
     for (const outcome of outcomes) {
       const key = outcome.modelId || "unknown";
-      if (!byModel.has(key)) byModel.set(key, []);
+      if (!byModel.has(key)) {byModel.set(key, []);}
       byModel.get(key)!.push(outcome);
     }
 
@@ -391,7 +391,7 @@ export class PredictionOutcomeTracker {
       const { modelPerformanceValidations } = await import("@shared/schema");
 
       for (const [modelId, stats] of Object.entries(modelAccuracies)) {
-        if (modelId === "unknown" || stats.total < 5) continue;
+        if (modelId === "unknown" || stats.total < 5) {continue;}
 
         const precision = (cm.truePositive + cm.falsePositive) > 0
           ? cm.truePositive / (cm.truePositive + cm.falsePositive) : 0;

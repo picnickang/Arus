@@ -13,12 +13,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
-import { ChevronLeft, ChevronRight, Calendar, Ship, Gauge, Save, FileText, Clock, Users, CheckCircle2, AlertCircle, Download, FileSpreadsheet, Activity, Fuel, Bell, Lock, Plus, Settings, Zap, Droplets, CircleDot } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, Ship, Gauge, Save, FileText, Clock, Users, CheckCircle2, AlertCircle, Download, FileSpreadsheet, Activity, Fuel, Bell, Lock, Plus, Zap, Droplets, CircleDot } from "lucide-react";
 import { PageHeader } from "@/components/navigation";
 import { format } from "date-fns";
-import { useEngineLogbookData, WATCH_PERIODS, GENERATOR_NUMBERS, checkAnomaly, getAnomalyClass, MANUAL_ENGINE_EVENT_TYPES, getEngineEventTypeConfig, type EngineLogEvent, type EngineLogbookHookReturn } from "@/features/engine-logbook";
-import { PermissionGate, PagePermissionDenied } from "@/components/PermissionGate";
-import { usePermissions } from "@/contexts/PermissionsContext";
+import { useEngineLogbookData, WATCH_PERIODS, GENERATOR_NUMBERS, checkAnomaly, getAnomalyClass, MANUAL_ENGINE_EVENT_TYPES, getEngineEventTypeConfig, type EngineLogEvent } from "@/features/engine-logbook";
+import { PermissionGate } from "@/components/PermissionGate";
 
 interface HourlyEntry { meRpm?: number; meLoad?: number; meFuelRackPosition?: number; meExhaustTempPort?: number; meScavAirPress?: number; meCoolantTempIn?: number; meCoolantTempOut?: number; meLubOilPress?: number; meLubOilTemp?: number; meTurbochargerRpm?: number; meFuelOilTemp?: number; remarks?: string; }
 interface GeneratorEntry { loadKw?: number; voltage?: number; frequency?: number; exhaustTemp?: number; lubOilPress?: number; coolantTemp?: number; runningHours?: number; status?: string; }

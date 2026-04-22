@@ -37,7 +37,7 @@ router.post("/datasets", async (req: Request, res: Response) => {
   try {
     const orgId = req.headers["x-org-id"] as string;
     const parsed = createDatasetSchema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
+    if (!parsed.success) {return res.status(400).json({ error: parsed.error.flatten().fieldErrors });}
     const data = {
       ...parsed.data,
       orgId,
@@ -66,7 +66,7 @@ router.get("/datasets/:id", async (req: Request, res: Response) => {
   try {
     const orgId = req.headers["x-org-id"] as string;
     const result = await service.getDataset(orgId, req.params.id);
-    if (!result) return res.status(404).json({ error: "Dataset not found" });
+    if (!result) {return res.status(404).json({ error: "Dataset not found" });}
     res.json(result);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -77,12 +77,12 @@ router.post("/runs", async (req: Request, res: Response) => {
   try {
     const orgId = req.headers["x-org-id"] as string;
     const parsed = startRunSchema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
+    if (!parsed.success) {return res.status(400).json({ error: parsed.error.flatten().fieldErrors });}
     const { datasetId, config, hyperparameters, initiatedBy } = parsed.data;
     const result = await service.startTrainingRun(orgId, datasetId, config, hyperparameters, initiatedBy);
     res.status(201).json(result);
   } catch (error: any) {
-    if (error.message.includes("not found")) return res.status(404).json({ error: error.message });
+    if (error.message.includes("not found")) {return res.status(404).json({ error: error.message });}
     res.status(500).json({ error: error.message });
   }
 });
@@ -103,7 +103,7 @@ router.get("/runs/:id", async (req: Request, res: Response) => {
   try {
     const orgId = req.headers["x-org-id"] as string;
     const result = await service.getRunStatus(orgId, req.params.id);
-    if (!result) return res.status(404).json({ error: "Training run not found" });
+    if (!result) {return res.status(404).json({ error: "Training run not found" });}
     res.json(result);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -114,7 +114,7 @@ router.post("/runs/:id/promote", async (req: Request, res: Response) => {
   try {
     const orgId = req.headers["x-org-id"] as string;
     const parsed = promoteSchema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
+    if (!parsed.success) {return res.status(400).json({ error: parsed.error.flatten().fieldErrors });}
     const { modelId, version, changelog } = parsed.data;
     const result = await service.promoteModelVersion(orgId, req.params.id, modelId, version, changelog);
     res.status(201).json(result);
@@ -130,7 +130,7 @@ router.get("/artifacts", async (req: Request, res: Response) => {
   try {
     const orgId = req.headers["x-org-id"] as string;
     const modelVersionId = req.query.modelVersionId as string;
-    if (!modelVersionId) return res.status(400).json({ error: "modelVersionId query param required" });
+    if (!modelVersionId) {return res.status(400).json({ error: "modelVersionId query param required" });}
     const result = await service.listArtifacts(orgId, modelVersionId);
     res.json(result);
   } catch (error: any) {

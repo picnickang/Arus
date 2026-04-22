@@ -25,7 +25,7 @@ const reportArtifactRegistry = new Map<string, ReportArtifactMeta>();
 let registryLoaded = false;
 
 async function loadRegistry(): Promise<void> {
-  if (registryLoaded) return;
+  if (registryLoaded) {return;}
   registryLoaded = true;
   try {
     const { readFile } = await import("node:fs/promises");
@@ -93,7 +93,7 @@ function resolveAudience(userRole?: string, requestedAudience?: string): Audienc
 }
 
 function resolveTimeframeDays(timeRange?: string): number {
-  if (!timeRange) return 30;
+  if (!timeRange) {return 30;}
   return TIME_RANGE_DAYS[timeRange] || 30;
 }
 
@@ -111,7 +111,7 @@ function formatReportAsText(
   lines.push(`${"=".repeat(60)}`);
   lines.push(`Generated: ${new Date().toISOString()}`);
   lines.push(`Audience: ${audience}`);
-  if (vesselId) lines.push(`Vessel: ${vesselId}`);
+  if (vesselId) {lines.push(`Vessel: ${vesselId}`);}
   lines.push(`Confidence: ${((result.confidence as number) * 100).toFixed(0)}%`);
   lines.push(`${"=".repeat(60)}\n`);
   lines.push(analysis);
@@ -125,7 +125,7 @@ function formatReportAsText(
       lines.push(`  Probability: ${(s.probability * 100).toFixed(0)}% | Impact: ${s.impact}`);
       if (s.recommendations?.length) {
         lines.push(`  Recommendations:`);
-        for (const r of s.recommendations) lines.push(`    • ${r}`);
+        for (const r of s.recommendations) {lines.push(`    • ${r}`);}
       }
     }
   }
@@ -176,7 +176,7 @@ async function generatePdfBuffer(
     doc.fontSize(10).font("Helvetica").fillColor("#666666");
     doc.text(`Generated: ${new Date().toISOString()}`, { align: "center" });
     doc.text(`Audience: ${audience}`, { align: "center" });
-    if (vesselId) doc.text(`Vessel: ${vesselId}`, { align: "center" });
+    if (vesselId) {doc.text(`Vessel: ${vesselId}`, { align: "center" });}
     doc.text(`Confidence: ${((result.confidence as number) * 100).toFixed(0)}%`, { align: "center" });
 
     doc.moveDown(1);
@@ -200,7 +200,7 @@ async function generatePdfBuffer(
         doc.fontSize(11).font("Helvetica-Bold").text(`▸ ${s.scenario}`);
         doc.fontSize(10).font("Helvetica").text(`  Probability: ${(s.probability * 100).toFixed(0)}% | Impact: ${s.impact}`);
         if (s.recommendations?.length) {
-          for (const r of s.recommendations) doc.text(`    • ${r}`);
+          for (const r of s.recommendations) {doc.text(`    • ${r}`);}
         }
         doc.moveDown(0.5);
       }
@@ -240,7 +240,7 @@ function convertToCSV(data: Record<string, unknown>): string {
   rows.push(`Audience,${data.audience || ""}`);
   rows.push(`Generated At,${data.generatedAt || ""}`);
   rows.push(`Confidence,${data.confidence || ""}`);
-  if (data.vesselId) rows.push(`Vessel ID,${data.vesselId}`);
+  if (data.vesselId) {rows.push(`Vessel ID,${data.vesselId}`);}
   rows.push("");
   rows.push("Section,Content");
   const analysis = String(data.analysis || "");
@@ -445,14 +445,14 @@ registerTool({
 
       if (ctx.knowledgeBase) {
         try {
-          const kbQuery = `${reportType} ${vesselId ? "vessel " + vesselId : "fleet"} reference documentation`;
+          const kbQuery = `${reportType} ${vesselId ? `vessel ${  vesselId}` : "fleet"} reference documentation`;
           const kbResult = await ctx.knowledgeBase.search(ctx.orgId, kbQuery, { maxSources: 3 });
           if (!kbResult.error && kbResult.citations.length > 0) {
             response.referenceDocuments = kbResult.citations.map((c, i) => ({
               ref: `[${i + 1}]`,
               document: c.docName,
               relevance: `${(c.relevance * 100).toFixed(0)}%`,
-              excerpt: c.text.length > 150 ? c.text.slice(0, 150) + "..." : c.text,
+              excerpt: c.text.length > 150 ? `${c.text.slice(0, 150)  }...` : c.text,
             }));
           }
         } catch (err) {

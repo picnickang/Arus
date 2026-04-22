@@ -17,7 +17,6 @@ import {
   maintenanceCosts,
   stock,
   inventoryMovements,
-  insightSnapshots,
   type WorkOrder,
   type InsertWorkOrder,
   type WorkOrderPart,
@@ -221,7 +220,7 @@ class WorkOrderService {
           const stockRows = await tx.select().from(stock).where(and(eq(stock.partId, part.partId), eq(stock.orgId, woOrgId), sql`${stock.quantityReserved} > 0`)).orderBy(sql`${stock.quantityReserved} DESC`);
           let remaining = part.quantityUsed;
           for (const stockRow of stockRows) {
-            if (remaining <= 0) break;
+            if (remaining <= 0) {break;}
             const currentReserved = stockRow.quantityReserved ?? 0;
             const released = Math.min(currentReserved, remaining);
             await tx.update(stock).set({ quantityReserved: currentReserved - released, updatedAt: new Date() }).where(and(eq(stock.id, stockRow.id), eq(stock.orgId, woOrgId)));
@@ -294,7 +293,7 @@ class WorkOrderService {
         const stockRows = await tx.select().from(stock).where(and(eq(stock.partId, partId), eq(stock.orgId, workOrder.orgId), sql`${stock.quantityReserved} > 0`)).orderBy(sql`${stock.quantityReserved} DESC`);
         let remaining = totalQty;
         for (const row of stockRows) {
-          if (remaining <= 0) break;
+          if (remaining <= 0) {break;}
           const reserved = row.quantityReserved ?? 0;
           const toRelease = Math.min(remaining, reserved);
           await tx.update(stock).set({ quantityReserved: reserved - toRelease, updatedAt: new Date() }).where(eq(stock.id, row.id));
@@ -367,7 +366,7 @@ class WorkOrderService {
         const stockRows = await tx.select().from(stock).where(and(eq(stock.partId, partId), eq(stock.orgId, completionData.orgId))).orderBy(sql`${stock.quantityReserved} DESC`);
         let remaining = totalConsume;
         for (const row of stockRows) {
-          if (remaining <= 0) break;
+          if (remaining <= 0) {break;}
           const onHand = row.quantityOnHand ?? 0;
           const reserved = row.quantityReserved ?? 0;
           const toConsume = Math.min(remaining, onHand);

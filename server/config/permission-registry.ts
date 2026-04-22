@@ -483,6 +483,6 @@ export function getAllActions(): ActionDefinition[] {
 
 export function getActionsForResource(resourceCode: string): ActionDefinition[] {
   const resource = getResourceByCode(resourceCode);
-  if (!resource) return [];
+  if (!resource) {return [];}
   return resource.actions.map((actionCode) => ACTIONS[actionCode]);
 }

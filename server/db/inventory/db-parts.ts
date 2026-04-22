@@ -67,7 +67,7 @@ export class DbPartsStorage {
       ? await db.select().from(parts).where(eq(parts.orgId, orgId))
       : await db.select().from(parts);
 
-    if (partsRows.length === 0) return [];
+    if (partsRows.length === 0) {return [];}
 
     const partIds = partsRows.map(p => p.id);
     const partIdsArray = sql`ARRAY[${sql.join(partIds.map(id => sql`${id}`), sql`, `)}]::text[]`;
@@ -89,7 +89,7 @@ export class DbPartsStorage {
   async getPartsInventoryByPart(partId: string, orgId?: string): Promise<PartsInventory | undefined> {
     const conditions = orgId ? and(eq(parts.id, partId), eq(parts.orgId, orgId)) : eq(parts.id, partId);
     const [part] = await db.select().from(parts).where(conditions);
-    if (!part) return undefined;
+    if (!part) {return undefined;}
 
     const stockRows = await db.select().from(stock).where(
       orgId
@@ -135,16 +135,16 @@ export class DbPartsStorage {
 
   async updatePartsInventory(id: string, updates: Partial<InsertPartsInventory>): Promise<PartsInventory> {
     const partUpdates: Partial<InsertPart> = {};
-    if (updates.partNumber !== undefined) partUpdates.partNo = updates.partNumber;
-    if (updates.partName !== undefined) partUpdates.name = updates.partName;
-    if (updates.description !== undefined) partUpdates.description = updates.description;
-    if (updates.category !== undefined) partUpdates.category = updates.category;
-    if (updates.manufacturer !== undefined) partUpdates.manufacturer = updates.manufacturer;
-    if (updates.unitCost !== undefined) partUpdates.standardCost = updates.unitCost;
-    if (updates.minStockLevel !== undefined) partUpdates.minStockQty = updates.minStockLevel;
-    if (updates.maxStockLevel !== undefined) partUpdates.maxStockQty = updates.maxStockLevel;
-    if (updates.leadTimeDays !== undefined) partUpdates.leadTimeDays = updates.leadTimeDays;
-    if (updates.isActive !== undefined) partUpdates.isActive = updates.isActive;
+    if (updates.partNumber !== undefined) {partUpdates.partNo = updates.partNumber;}
+    if (updates.partName !== undefined) {partUpdates.name = updates.partName;}
+    if (updates.description !== undefined) {partUpdates.description = updates.description;}
+    if (updates.category !== undefined) {partUpdates.category = updates.category;}
+    if (updates.manufacturer !== undefined) {partUpdates.manufacturer = updates.manufacturer;}
+    if (updates.unitCost !== undefined) {partUpdates.standardCost = updates.unitCost;}
+    if (updates.minStockLevel !== undefined) {partUpdates.minStockQty = updates.minStockLevel;}
+    if (updates.maxStockLevel !== undefined) {partUpdates.maxStockQty = updates.maxStockLevel;}
+    if (updates.leadTimeDays !== undefined) {partUpdates.leadTimeDays = updates.leadTimeDays;}
+    if (updates.isActive !== undefined) {partUpdates.isActive = updates.isActive;}
 
     if (Object.keys(partUpdates).length > 0) {
       await db.update(parts).set({ ...partUpdates, updatedAt: new Date() }).where(eq(parts.id, id));
@@ -152,9 +152,9 @@ export class DbPartsStorage {
 
     if (updates.quantityOnHand !== undefined || updates.quantityReserved !== undefined || updates.location !== undefined || updates.unitCost !== undefined) {
       const stockUpdates: Partial<{ quantityOnHand: number; quantityReserved: number; unitCost: number; updatedAt: Date }> = { updatedAt: new Date() };
-      if (updates.quantityOnHand !== undefined) stockUpdates.quantityOnHand = updates.quantityOnHand;
-      if (updates.quantityReserved !== undefined) stockUpdates.quantityReserved = updates.quantityReserved;
-      if (updates.unitCost !== undefined) stockUpdates.unitCost = updates.unitCost;
+      if (updates.quantityOnHand !== undefined) {stockUpdates.quantityOnHand = updates.quantityOnHand;}
+      if (updates.quantityReserved !== undefined) {stockUpdates.quantityReserved = updates.quantityReserved;}
+      if (updates.unitCost !== undefined) {stockUpdates.unitCost = updates.unitCost;}
 
       const existingStock = await db.select().from(stock).where(eq(stock.partId, id)).limit(1);
       if (existingStock.length > 0) {
@@ -197,7 +197,7 @@ export class DbPartsStorage {
     const stockRows = await db.select().from(stock).where(and(eq(stock.partId, partId), eq(stock.orgId, orgId))).orderBy(sql`(${stock.quantityOnHand} - ${stock.quantityReserved}) DESC`);
     let remaining = quantity;
     for (const row of stockRows) {
-      if (remaining <= 0) break;
+      if (remaining <= 0) {break;}
       const rowAvailable = Math.max(0, (row.quantityOnHand ?? 0) - (row.quantityReserved ?? 0));
       const toReserve = Math.min(remaining, rowAvailable);
       if (toReserve > 0) {
@@ -215,9 +215,9 @@ export class DbPartsStorage {
     const stockRows = await db.select().from(stock).where(and(eq(stock.partId, partId), eq(stock.orgId, orgId))).orderBy(sql`${stock.quantityReserved} DESC`);
     let remaining = quantity;
     for (const row of stockRows) {
-      if (remaining <= 0) break;
+      if (remaining <= 0) {break;}
       const reserved = row.quantityReserved ?? 0;
-      if (reserved <= 0) continue;
+      if (reserved <= 0) {continue;}
       const toRelease = Math.min(remaining, reserved);
       await db.update(stock).set({
         quantityReserved: reserved - toRelease,

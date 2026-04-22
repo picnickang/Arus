@@ -284,7 +284,7 @@ export class BriefingGeneratorService {
       const openai = new OpenAI();
 
       const sectionSummaries = sections.map(s => {
-        if (s.items.length === 0) return `${s.title}: None`;
+        if (s.items.length === 0) {return `${s.title}: None`;}
         const itemLines = s.items.slice(0, 5).map(i =>
           `  - [${i.severity?.toUpperCase() || "INFO"}] ${i.title}: ${i.description}`
         ).join("\n");
@@ -315,7 +315,7 @@ export class BriefingGeneratorService {
 
   private buildFallbackSummary(sections: BriefingSection[]): string {
     const counts = sections.map(s => `${s.items.length} ${s.title.toLowerCase()}`).filter(s => !s.startsWith("0"));
-    if (counts.length === 0) return "All clear — no items requiring attention.";
+    if (counts.length === 0) {return "All clear — no items requiring attention.";}
     const criticalCount = sections.reduce((sum, s) => sum + s.items.filter(i => i.severity === "critical").length, 0);
     const prefix = criticalCount > 0 ? `${criticalCount} critical item(s) require immediate attention. ` : "";
     return `${prefix}Today's briefing includes: ${counts.join(", ")}.`;

@@ -6,8 +6,8 @@ import { registerTool } from "./registry";
 
 function classifyConfidence(probability: number | null | undefined): { level: string; label: string; warning?: string } {
   const p = Number(probability) || 0;
-  if (p >= 0.8) return { level: "high", label: "High confidence" };
-  if (p >= 0.6) return { level: "medium", label: "Medium confidence" };
+  if (p >= 0.8) {return { level: "high", label: "High confidence" };}
+  if (p >= 0.6) {return { level: "medium", label: "Medium confidence" };}
   return { level: "low", label: "Low confidence", warning: "This prediction has low confidence (below 0.6). Treat with caution and verify with additional inspections." };
 }
 

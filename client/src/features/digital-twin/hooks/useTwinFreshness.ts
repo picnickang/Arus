@@ -8,7 +8,7 @@ function orgHeaders(orgId: string) {
 
 async function fetchJson(url: string, orgId: string) {
   const res = await fetch(url, { headers: orgHeaders(orgId) });
-  if (!res.ok) throw new Error(`Failed: ${res.statusText}`);
+  if (!res.ok) {throw new Error(`Failed: ${res.statusText}`);}
   return res.json();
 }
 

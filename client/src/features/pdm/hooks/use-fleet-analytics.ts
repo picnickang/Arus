@@ -8,7 +8,7 @@ export function useFleetBaselines(equipmentType: string) {
     queryKey: ["/api/pdm/fleet/baselines", currentOrgId, equipmentType],
     queryFn: async () => {
       const res = await fetch(`/api/pdm/fleet/baselines?equipmentType=${encodeURIComponent(equipmentType)}`, { headers: { "x-org-id": currentOrgId } });
-      if (!res.ok) throw new Error("Failed to fetch baselines");
+      if (!res.ok) {throw new Error("Failed to fetch baselines");}
       return res.json();
     },
     enabled: !!equipmentType && !!currentOrgId,
@@ -22,7 +22,7 @@ export function useFleetComparison(equipmentId: string, equipmentType: string) {
     queryFn: async () => {
       const params = new URLSearchParams({ equipmentId, equipmentType });
       const res = await fetch(`/api/pdm/fleet/compare?${params}`, { headers: { "x-org-id": currentOrgId } });
-      if (!res.ok) throw new Error("Failed to fetch comparison");
+      if (!res.ok) {throw new Error("Failed to fetch comparison");}
       return res.json();
     },
     enabled: !!equipmentId && !!equipmentType && !!currentOrgId,

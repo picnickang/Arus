@@ -1,7 +1,6 @@
 import type {
   Equipment,
   EquipmentDecommissionEvent,
-  DecommissionReason,
   DecommissionStatus,
 } from "@shared/schema";
 import { equipmentLifecycleRepository } from "./lifecycle-repository";

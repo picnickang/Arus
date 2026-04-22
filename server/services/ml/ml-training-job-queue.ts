@@ -82,7 +82,7 @@ export class MlTrainingJobQueue {
    * Call this once on server startup.
    */
   async registerWorker(): Promise<void> {
-    if (this.isWorkerRegistered) return;
+    if (this.isWorkerRegistered) {return;}
 
     await this.boss.work(
       QUEUE_NAME,
@@ -119,7 +119,7 @@ export class MlTrainingJobQueue {
    */
   async getJobStatus(jobId: string): Promise<MlJobStatus | null> {
     const job = await this.boss.getJobById(jobId);
-    if (!job) return null;
+    if (!job) {return null;}
 
     return {
       jobId: job.id,
@@ -210,7 +210,7 @@ export class MlTrainingJobQueue {
       const durationMs = Date.now() - startTime;
 
       // Optionally run evaluation gate before marking as successful
-      let evaluationPassed = true;
+      const evaluationPassed = true;
       try {
         const { ModelEvaluationGate } = await import("./model-evaluation-gate");
         // Evaluation would run here if test data is available
@@ -257,7 +257,7 @@ export class MlTrainingJobQueue {
     durationMs: number,
     error?: string
   ): void {
-    if (!this.wsServer) return;
+    if (!this.wsServer) {return;}
 
     try {
       this.wsServer.broadcast?.({

@@ -9,7 +9,6 @@ import {
   purchaseRequestItems,
   purchaseRequests,
   purchaseRequestEvents,
-  parts,
   stock,
 } from "@shared/schema";
 import type {
@@ -75,7 +74,7 @@ export async function getInventoryByPartId(partId: string, orgId: string) {
     .select()
     .from(stock)
     .where(and(eq(stock.partId, partId), eq(stock.orgId, orgId)));
-  if (stockRows.length === 0) return null;
+  if (stockRows.length === 0) {return null;}
   return {
     ...stockRows[0],
     quantityOnHand: stockRows.reduce((s, r) => s + (r.quantityOnHand ?? 0), 0),
@@ -142,7 +141,7 @@ export async function fulfillItem(request: FulfillItemRequest): Promise<Fulfillm
       }
       let remaining = quantityToFulfill;
       for (const row of stockItems) {
-        if (remaining <= 0) break;
+        if (remaining <= 0) {break;}
         const onHand = Math.round(row.quantityOnHand ?? 0);
         const toDeduct = Math.min(remaining, onHand);
         if (toDeduct > 0) {

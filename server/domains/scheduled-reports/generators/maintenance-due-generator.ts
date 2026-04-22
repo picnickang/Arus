@@ -57,7 +57,7 @@ export class MaintenanceDueGenerator implements IMaintenanceDueGenerator {
           low: 3,
         };
         const priorityDiff = (priorityOrder[a.priority] || 2) - (priorityOrder[b.priority] || 2);
-        if (priorityDiff !== 0) return priorityDiff;
+        if (priorityDiff !== 0) {return priorityDiff;}
         return a.dueDate.getTime() - b.dueDate.getTime();
       });
     } catch (error) {
@@ -69,9 +69,9 @@ export class MaintenanceDueGenerator implements IMaintenanceDueGenerator {
   private calculatePriority(dueDate: Date, now: Date): string {
     const daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
 
-    if (daysUntilDue <= 0) return 'critical';
-    if (daysUntilDue <= 7) return 'high';
-    if (daysUntilDue <= 30) return 'normal';
+    if (daysUntilDue <= 0) {return 'critical';}
+    if (daysUntilDue <= 7) {return 'high';}
+    if (daysUntilDue <= 30) {return 'normal';}
     return 'low';
   }
 }

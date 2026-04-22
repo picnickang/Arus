@@ -2,7 +2,7 @@
  * System Admin - Database Storage Audit & Sessions
  */
 
-import { eq, and, desc, lt, sql } from "drizzle-orm";
+import { eq, and, lt, sql } from "drizzle-orm";
 import { db } from "../../db-config";
 import { adminAuditEvents, adminSessions, type AdminAuditEvent, type InsertAdminAuditEvent, type AdminSession, type InsertAdminSession } from "@shared/schema-runtime";
 

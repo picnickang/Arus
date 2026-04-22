@@ -5,7 +5,7 @@ import {
   crewCertification, crew, notificationQueue,
 } from "@shared/schema";
 import type { AgentRepositoryPort } from "../domain/ports";
-import type { AgentSuggestion, InsertAgentSuggestion } from "@shared/schema/agent";
+import type { AgentSuggestion } from "@shared/schema/agent";
 import type { AgentSignal } from "../domain/types";
 
 interface SuggestionPreferences {
@@ -46,8 +46,8 @@ export class SuggestionEngine {
   }
 
   startBackgroundEvaluation(orgId: string, intervalMs?: number): void {
-    if (this.intervalIds.has(orgId)) return;
-    if (intervalMs) this.evaluationIntervalMs = intervalMs;
+    if (this.intervalIds.has(orgId)) {return;}
+    if (intervalMs) {this.evaluationIntervalMs = intervalMs;}
 
     console.log(`[SuggestionEngine] Starting background evaluation every ${this.evaluationIntervalMs / 60000} minutes for org ${orgId}`);
 
@@ -159,9 +159,9 @@ export class SuggestionEngine {
     for (const pred of highRiskPredictions) {
       if (pred.failureProbability > 0.8) {
         const dedupKey = `high_risk_prediction:${pred.equipmentId}`;
-        if (pendingKeys.has(dedupKey)) continue;
+        if (pendingKeys.has(dedupKey)) {continue;}
         const severity = pred.failureProbability >= 0.9 ? "critical" : "warning";
-        if (!meetsMinSeverity(severity, minSeverity)) continue;
+        if (!meetsMinSeverity(severity, minSeverity)) {continue;}
 
         const costImpact = pred.costImpact as { estimatedRepairCost?: number; estimatedDowntime?: number; revenueImpact?: number } | null;
         let costLine = "";
@@ -229,7 +229,7 @@ export class SuggestionEngine {
   }
 
   private dispatchSignal(signal: AgentSignal): void {
-    if (!this.signalHandler) return;
+    if (!this.signalHandler) {return;}
     const handler = this.signalHandler;
     setImmediate(async () => {
       try {
@@ -245,7 +245,7 @@ export class SuggestionEngine {
 
   private async evaluateOverdueMaintenance(orgId: string, minSeverity: string, pendingKeys: Set<string>): Promise<AgentSuggestion[]> {
     const results: AgentSuggestion[] = [];
-    if (!meetsMinSeverity("warning", minSeverity)) return results;
+    if (!meetsMinSeverity("warning", minSeverity)) {return results;}
 
     const overdueMaint = await db.select({
       id: maintenanceSchedules.id,
@@ -263,10 +263,10 @@ export class SuggestionEngine {
 
     for (const maint of overdueMaint) {
       const dedupKey = `overdue_maintenance:${maint.id}`;
-      if (pendingKeys.has(dedupKey)) continue;
+      if (pendingKeys.has(dedupKey)) {continue;}
       const daysOverdue = Math.floor((Date.now() - new Date(maint.nextScheduledDate).getTime()) / (24 * 60 * 60 * 1000));
       const severity = daysOverdue > 7 ? "critical" : "warning";
-      if (!meetsMinSeverity(severity, minSeverity)) continue;
+      if (!meetsMinSeverity(severity, minSeverity)) {continue;}
       const sug = await this.repo.suggestions.create({
         orgId,
         triggerType: "overdue_maintenance",
@@ -285,7 +285,7 @@ export class SuggestionEngine {
 
   private async evaluateLowStock(orgId: string, minSeverity: string, pendingKeys: Set<string>): Promise<AgentSuggestion[]> {
     const results: AgentSuggestion[] = [];
-    if (!meetsMinSeverity("info", minSeverity)) return results;
+    if (!meetsMinSeverity("info", minSeverity)) {return results;}
 
     try {
       const lowStockResult = await db.execute(sql`
@@ -298,9 +298,9 @@ export class SuggestionEngine {
 
       for (const part of lowStockRows) {
         const dedupKey = `low_stock:${part.id as string}`;
-        if (pendingKeys.has(dedupKey)) continue;
+        if (pendingKeys.has(dedupKey)) {continue;}
         const severity = Number(part.quantity_on_hand) === 0 ? "critical" : "info";
-        if (!meetsMinSeverity(severity, minSeverity)) continue;
+        if (!meetsMinSeverity(severity, minSeverity)) {continue;}
         const sug = await this.repo.suggestions.create({
           orgId,
           triggerType: "low_stock",
@@ -322,7 +322,7 @@ export class SuggestionEngine {
 
   private async evaluateCriticalAlerts(orgId: string, minSeverity: string, pendingKeys: Set<string>): Promise<AgentSuggestion[]> {
     const results: AgentSuggestion[] = [];
-    if (!meetsMinSeverity("critical", minSeverity)) return results;
+    if (!meetsMinSeverity("critical", minSeverity)) {return results;}
 
     try {
       const recentAlerts = await db.select({
@@ -345,7 +345,7 @@ export class SuggestionEngine {
 
       for (const alert of recentAlerts) {
         const dedupKey = `critical_alert:${alert.equipmentId}`;
-        if (pendingKeys.has(dedupKey)) continue;
+        if (pendingKeys.has(dedupKey)) {continue;}
         const sug = await this.repo.suggestions.create({
           orgId,
           triggerType: "critical_alert",
@@ -367,7 +367,7 @@ export class SuggestionEngine {
 
   private async evaluateExpiringCertifications(orgId: string, minSeverity: string, pendingKeys: Set<string>): Promise<AgentSuggestion[]> {
     const results: AgentSuggestion[] = [];
-    if (!meetsMinSeverity("warning", minSeverity)) return results;
+    if (!meetsMinSeverity("warning", minSeverity)) {return results;}
 
     try {
       const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
@@ -388,10 +388,10 @@ export class SuggestionEngine {
 
       for (const cert of expiringCerts) {
         const dedupKey = `expiring_certification:${cert.crewId}`;
-        if (pendingKeys.has(dedupKey)) continue;
+        if (pendingKeys.has(dedupKey)) {continue;}
         const daysUntilExpiry = Math.ceil((new Date(cert.expiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000));
         const severity = daysUntilExpiry <= 7 ? "critical" : "warning";
-        if (!meetsMinSeverity(severity, minSeverity)) continue;
+        if (!meetsMinSeverity(severity, minSeverity)) {continue;}
         const sug = await this.repo.suggestions.create({
           orgId,
           triggerType: "expiring_certification",
@@ -465,7 +465,7 @@ export class SuggestionEngine {
   private async queueNotifications(orgId: string, suggestions: AgentSuggestion[]): Promise<void> {
     try {
       for (const sug of suggestions) {
-        if (sug.triggerType === "ai_summary") continue;
+        if (sug.triggerType === "ai_summary") {continue;}
         await db.insert(notificationQueue).values({
           orgId,
           notificationType: "ai_suggestion",

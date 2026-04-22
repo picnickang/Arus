@@ -17,7 +17,6 @@ import type {
   SimulationPreview,
   CommitSimulationCommand,
   CompliancePreviewResult,
-  SchedulerRunEntity,
 } from '../domain/types.js';
 import {
   createEventId,
@@ -313,7 +312,7 @@ export class ScheduleSimulationService {
     days: number
   ): number {
     const uniqueCrew = new Set(assignments.map(a => a.crewId)).size;
-    if (uniqueCrew === 0) return 0;
+    if (uniqueCrew === 0) {return 0;}
     
     const avgAssignmentsPerCrew = assignments.length / uniqueCrew;
     const maxPossible = days * 2;

@@ -96,8 +96,8 @@ async function fetchRegulatoryNotices(
   }
 
   const params = new URLSearchParams();
-  if (flagState) params.set("flag", flagState);
-  if (vesselType) params.set("vesselType", vesselType);
+  if (flagState) {params.set("flag", flagState);}
+  if (vesselType) {params.set("vesselType", vesselType);}
   params.set("limit", "20");
   params.set("recent", "true");
 
@@ -166,8 +166,8 @@ registerTool({
         .from(vessels)
         .where(and(eq(vessels.id, input.vesselId as string), eq(vessels.orgId, ctx.orgId)));
 
-      if (!vessel) return { error: `Vessel ${input.vesselId} not found` };
-      if (!vessel.imo) return { error: `No IMO number recorded for vessel ${vessel.name}` };
+      if (!vessel) {return { error: `Vessel ${input.vesselId} not found` };}
+      if (!vessel.imo) {return { error: `No IMO number recorded for vessel ${vessel.name}` };}
 
       imoNumber = vessel.imo;
       vesselName = vessel.name;
@@ -290,8 +290,8 @@ registerTool({
         .where(and(eq(vessels.id, input.vesselId as string), eq(vessels.orgId, ctx.orgId)));
 
       if (vessel) {
-        if (!flagState && vessel.flag) flagState = vessel.flag;
-        if (!vesselType && vessel.vesselType) vesselType = vessel.vesselType;
+        if (!flagState && vessel.flag) {flagState = vessel.flag;}
+        if (!vesselType && vessel.vesselType) {vesselType = vessel.vesselType;}
       }
     }
 
@@ -328,7 +328,7 @@ registerTool({
     const byCategory: Record<string, RegulatoryNotice[]> = {};
     for (const notice of notices) {
       const cat = notice.category || "general";
-      if (!byCategory[cat]) byCategory[cat] = [];
+      if (!byCategory[cat]) {byCategory[cat] = [];}
       byCategory[cat].push(notice);
     }
 

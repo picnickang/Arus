@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback, useRef } from "react";
-import { apiRequest, type ApiRequestOptions } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 export type FatigueRiskLevel = "low" | "medium" | "high" | "critical";
@@ -190,13 +190,13 @@ export function useHoRSync(options: UseHoRSyncOptions = {}) {
   }, [clearDebounce, cancelPendingRequest]);
 
   const getComplianceColor = useCallback((result: CanAssignResult | null): string => {
-    if (!result) return "border-transparent";
+    if (!result) {return "border-transparent";}
     
     const hasErrors = result.violations.some(v => v.severity === "error");
     const hasWarnings = result.violations.some(v => v.severity === "warning");
     
-    if (hasErrors) return "border-red-500";
-    if (hasWarnings) return "border-amber-500";
+    if (hasErrors) {return "border-red-500";}
+    if (hasWarnings) {return "border-amber-500";}
     return "border-green-500";
   }, []);
 

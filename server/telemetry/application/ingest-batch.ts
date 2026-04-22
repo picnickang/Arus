@@ -3,9 +3,9 @@ import type { TelemetryReading } from '../../telemetry-batch-writer';
 import type { ITelemetryPersistence, IDeadLetterQueue, IMetricsEmitter } from '../ports/outbound';
 import type { IngestBatchResult, IBatchProcessor } from '../ports/inbound';
 import { logger } from '../../utils/logger';
-import type { RawTelemetryArchiveAdapter, RawArchivePayload } from '../adapters/raw-archive';
+import type { RawTelemetryArchiveAdapter } from '../adapters/raw-archive';
 import type { EquipmentHeartbeatAdapter, HeartbeatUpdate } from '../adapters/equipment-heartbeat';
-import type { TelemetryBatchAckAdapter, BatchReceiveInput } from '../adapters/batch-ack';
+import type { TelemetryBatchAckAdapter } from '../adapters/batch-ack';
 
 export interface IngestTelemetryBatchConfig {
   persistence: ITelemetryPersistence;
@@ -38,7 +38,7 @@ export class IngestTelemetryBatch {
       duplicatesSkipped: 0,
       failedToDeadLetter: 0,
       archiveId: undefined,
-      batchId: batchId,
+      batchId,
     };
 
     if (frames.length === 0) {

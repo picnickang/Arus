@@ -89,7 +89,7 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
       return {
         ...defaultPermissions,
         isLoading: false,
-        error: error ? (error as Error) : null,
+        error: error ? (error) : null,
         isDevMode: effectiveDevMode,
       };
     }
@@ -106,20 +106,20 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
   }, [data, isLoading, error, effectiveDevMode, clientDevMode, isViteDev]);
 
   const hasPermission = (resource: string, action: string): boolean => {
-    if (import.meta.env.DEV && permissions.isDevMode) return true;
-    if (permissions.isLoading) return false;
+    if (import.meta.env.DEV && permissions.isDevMode) {return true;}
+    if (permissions.isLoading) {return false;}
     return permissions.permissions[resource]?.[action] === true;
   };
 
   const hasAnyPermission = (resource: string, actions: string[]): boolean => {
-    if (import.meta.env.DEV && permissions.isDevMode) return true;
-    if (permissions.isLoading) return false;
+    if (import.meta.env.DEV && permissions.isDevMode) {return true;}
+    if (permissions.isLoading) {return false;}
     return actions.some((action) => permissions.permissions[resource]?.[action] === true);
   };
 
   const hasAllPermissions = (checks: Array<{ resource: string; action: string }>): boolean => {
-    if (import.meta.env.DEV && permissions.isDevMode) return true;
-    if (permissions.isLoading) return false;
+    if (import.meta.env.DEV && permissions.isDevMode) {return true;}
+    if (permissions.isLoading) {return false;}
     return checks.every((check) => permissions.permissions[check.resource]?.[check.action] === true);
   };
 

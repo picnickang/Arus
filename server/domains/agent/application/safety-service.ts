@@ -154,9 +154,9 @@ export class SafetyService {
   }
 
   checkWriteToolAccess(toolName: string, userRole: string | undefined): boolean {
-    if (!WRITE_TOOLS.includes(toolName as typeof WRITE_TOOLS[number])) return true;
+    if (!WRITE_TOOLS.includes(toolName as typeof WRITE_TOOLS[number])) {return true;}
     const role = (userRole || "").toLowerCase();
-    if (role === "system") return true;
+    if (role === "system") {return true;}
     return MAINTENANCE_ROLES.includes(role as typeof MAINTENANCE_ROLES[number]);
   }
 
@@ -165,9 +165,9 @@ export class SafetyService {
     permissionTier: PermissionTier,
     userRole: string | undefined,
   ): boolean {
-    if (toolRiskLevel === "read") return true;
+    if (toolRiskLevel === "read") {return true;}
 
-    if (permissionTier === "strict") return false;
+    if (permissionTier === "strict") {return false;}
 
     if (permissionTier === "autonomous") {
       const role = (userRole || "").toLowerCase();
@@ -175,9 +175,9 @@ export class SafetyService {
     }
 
     if (permissionTier === "balanced") {
-      if (toolRiskLevel === "high-write") return false;
+      if (toolRiskLevel === "high-write") {return false;}
       const role = (userRole || "").toLowerCase();
-      if (role === "system") return true;
+      if (role === "system") {return true;}
       return MAINTENANCE_ROLES.includes(role as typeof MAINTENANCE_ROLES[number]);
     }
 
@@ -190,7 +190,7 @@ export class SafetyService {
   }
 
   validateToolAccess(toolName: string, enabledTools: string[] | null | undefined): boolean {
-    if (!enabledTools || !Array.isArray(enabledTools)) return true;
+    if (!enabledTools || !Array.isArray(enabledTools)) {return true;}
     return enabledTools.includes(toolName);
   }
 }

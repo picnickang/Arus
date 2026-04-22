@@ -52,18 +52,18 @@ function StageIcon({
   stageKey: string;
   status: PipelineStage["status"];
 }) {
-  if (status === "completed") return <Check className="h-4 w-4" />;
-  if (status === "current") return <Clock className="h-4 w-4" />;
+  if (status === "completed") {return <Check className="h-4 w-4" />;}
+  if (status === "current") {return <Clock className="h-4 w-4" />;}
   const Icon = STAGE_ICONS[stageKey] || Circle;
   return <Icon className="h-3.5 w-3.5" />;
 }
 
 function formatDetails(details: Record<string, unknown> | null): string[] {
-  if (!details) return [];
+  if (!details) {return [];}
   const lines: string[] = [];
   for (const [key, value] of Object.entries(details)) {
-    if (value === null || value === undefined) continue;
-    if (typeof value === "object") continue;
+    if (value === null || value === undefined) {continue;}
+    if (typeof value === "object") {continue;}
     const label = key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase());
     lines.push(`${label}: ${String(value)}`);
   }

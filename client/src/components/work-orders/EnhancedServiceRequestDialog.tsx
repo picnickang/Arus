@@ -94,8 +94,8 @@ export function EnhancedServiceRequestDialog({ open, onOpenChange, onSubmit, isP
   const [certificateItems, setCertificateItems] = useState<CertificateItem[]>([]);
   const [initialized, setInitialized] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(() => {
-    if (defaultExpanded || isEditing) return true;
-    if (sessionAdvancedState !== null) return sessionAdvancedState;
+    if (defaultExpanded || isEditing) {return true;}
+    if (sessionAdvancedState !== null) {return sessionAdvancedState;}
     return false;
   });
 
@@ -113,11 +113,11 @@ export function EnhancedServiceRequestDialog({ open, onOpenChange, onSubmit, isP
   }, [open, defaultExpanded, isEditing]);
 
   if (open && isEditing && initialData && !initialized) {
-    if (initialData.serviceProviderId) setProviderId(initialData.serviceProviderId);
-    if (initialData.scope) setSymptomDescription(initialData.scope);
-    if (initialData.scheduledStartDate) setRequestedStartDate(new Date(initialData.scheduledStartDate));
-    if (initialData.scheduledEndDate) setRequestedEndDate(new Date(initialData.scheduledEndDate));
-    if (initialData.estimatedDurationHours) setEstimatedHours(String(initialData.estimatedDurationHours));
+    if (initialData.serviceProviderId) {setProviderId(initialData.serviceProviderId);}
+    if (initialData.scope) {setSymptomDescription(initialData.scope);}
+    if (initialData.scheduledStartDate) {setRequestedStartDate(new Date(initialData.scheduledStartDate));}
+    if (initialData.scheduledEndDate) {setRequestedEndDate(new Date(initialData.scheduledEndDate));}
+    if (initialData.estimatedDurationHours) {setEstimatedHours(String(initialData.estimatedDurationHours));}
     setInitialized(true);
   }
   

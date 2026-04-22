@@ -106,7 +106,7 @@ export function registerCertificateRoutes(
     withErrorHandling("fetch certificate", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const cert = await certificateService.getCertificateById(req.params.id, orgId);
-      if (!cert) return res.status(404).json({ error: "Certificate not found" });
+      if (!cert) {return res.status(404).json({ error: "Certificate not found" });}
       res.json(cert);
     })
   );
@@ -133,7 +133,7 @@ export function registerCertificateRoutes(
         data,
         (req as AuthenticatedRequest).user?.id
       );
-      if (!updated) return res.status(404).json({ error: "Certificate not found" });
+      if (!updated) {return res.status(404).json({ error: "Certificate not found" });}
       res.json(updated);
     })
   );
@@ -148,7 +148,7 @@ export function registerCertificateRoutes(
         data,
         (req as AuthenticatedRequest).user?.id
       );
-      if (!result) return res.status(404).json({ error: "Certificate not found" });
+      if (!result) {return res.status(404).json({ error: "Certificate not found" });}
       res.status(201).json(result);
     })
   );
@@ -165,7 +165,7 @@ export function registerCertificateRoutes(
         status,
         (req as AuthenticatedRequest).user?.id
       );
-      if (!updated) return res.status(404).json({ error: "Certificate not found" });
+      if (!updated) {return res.status(404).json({ error: "Certificate not found" });}
       res.json(updated);
     })
   );
@@ -180,7 +180,7 @@ export function registerCertificateRoutes(
         data,
         (req as AuthenticatedRequest).user?.id
       );
-      if (!updated) return res.status(404).json({ error: "Certificate not found" });
+      if (!updated) {return res.status(404).json({ error: "Certificate not found" });}
       res.status(201).json(updated);
     })
   );
@@ -189,7 +189,7 @@ export function registerCertificateRoutes(
     withErrorHandling("delete certificate", async (req: Request, res: Response) => {
       const orgId = (req as AuthenticatedRequest).orgId;
       const deleted = await certificateService.deleteCertificate(req.params.id, orgId);
-      if (!deleted) return res.status(404).json({ error: "Certificate not found" });
+      if (!deleted) {return res.status(404).json({ error: "Certificate not found" });}
       res.json({ success: true });
     })
   );

@@ -74,15 +74,15 @@ export class OutcomeTrackingService implements OutcomeRecordPort {
     input: OutcomeRecordInput,
     status: "acted" | "dismissed" | "deferred",
   ): Promise<void> {
-    if (!this.predictionFeedback) return;
+    if (!this.predictionFeedback) {return;}
 
     const ctx = suggestion.context as Record<string, unknown> | null;
     const prediction = (ctx?.prediction as Record<string, unknown>) || {};
     const predictionId = prediction.id ? parseInt(String(prediction.id), 10) : 0;
-    if (!predictionId || isNaN(predictionId)) return;
+    if (!predictionId || isNaN(predictionId)) {return;}
 
     const equipmentId = (suggestion.entityId || prediction.equipmentId || "") as string;
-    if (!equipmentId) return;
+    if (!equipmentId) {return;}
 
     const isAccurate = status === "acted" && input.outcome === "useful";
 

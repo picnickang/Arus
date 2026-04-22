@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Equipment, EquipmentHealth, Vessel } from "@shared/schema";
-import { Plus, Pencil, Trash2, Ship, AlertTriangle, Eye, Wifi, WifiOff, RefreshCw, Download, Upload, Wrench, Heart, Activity, CheckCircle, Server, Search, ArchiveX, RotateCcw, History, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Ship, AlertTriangle, Eye, Wifi, WifiOff, RefreshCw, Download, Upload, Wrench, Heart, Activity, Server, Search, ArchiveX, RotateCcw, History } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { formatPercent } from "@/lib/formatters";
 import { VESSEL_CLASSES, VESSEL_CONDITIONS, calculateUtilization, useVesselManagementData } from "@/features/vessels";
@@ -105,7 +105,7 @@ function VesselEquipmentSheet({
   );
 
   const filteredEquipment = useMemo(() => {
-    if (!searchQuery) return vesselEquipment;
+    if (!searchQuery) {return vesselEquipment;}
     const q = searchQuery.toLowerCase();
     return vesselEquipment.filter((eq) =>
       eq.name?.toLowerCase().includes(q) ||
@@ -134,7 +134,7 @@ function VesselEquipmentSheet({
 
   const vessels = vessel ? [vessel] : [];
 
-  if (!vessel) return null;
+  if (!vessel) {return null;}
 
   return (
     <>

@@ -36,14 +36,14 @@ function computeStats(values: number[]): SensorStats {
 }
 
 function computeKurtosis(values: number[], mean: number, std: number): number {
-  if (values.length < 4 || std === 0) return 3.0;
+  if (values.length < 4 || std === 0) {return 3.0;}
   const n = values.length;
   const m4 = values.reduce((sum, v) => sum + ((v - mean) / std) ** 4, 0) / n;
   return round(m4);
 }
 
 function computeSkewness(values: number[], mean: number, std: number): number {
-  if (values.length < 3 || std === 0) return 0;
+  if (values.length < 3 || std === 0) {return 0;}
   const n = values.length;
   const m3 = values.reduce((sum, v) => sum + ((v - mean) / std) ** 3, 0) / n;
   return round(m3);
@@ -82,7 +82,7 @@ export class FeatureStoreAdapter implements FeatureStorePort {
     const bySensor: Record<string, number[]> = {};
     for (const r of readings) {
       const key = r.sensorType.toLowerCase();
-      if (!bySensor[key]) bySensor[key] = [];
+      if (!bySensor[key]) {bySensor[key] = [];}
       bySensor[key].push(r.value);
     }
 
@@ -119,11 +119,11 @@ export class FeatureStoreAdapter implements FeatureStorePort {
 
   private findSensorValues(bySensor: Record<string, number[]>, candidates: string[]): number[] {
     for (const candidate of candidates) {
-      if (bySensor[candidate] && bySensor[candidate].length > 0) return bySensor[candidate];
+      if (bySensor[candidate] && bySensor[candidate].length > 0) {return bySensor[candidate];}
     }
     for (const key of Object.keys(bySensor)) {
       for (const candidate of candidates) {
-        if (key.includes(candidate)) return bySensor[key];
+        if (key.includes(candidate)) {return bySensor[key];}
       }
     }
     return [];

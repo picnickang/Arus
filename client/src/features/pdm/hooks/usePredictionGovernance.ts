@@ -8,10 +8,10 @@ export function usePredictionGovernance(status?: string) {
     queryKey: ["/api/pdm/governance/predictions", { status }],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (status) params.set("status", status);
+      if (status) {params.set("status", status);}
       const url = `/api/pdm/governance/predictions${params.toString() ? `?${params}` : ""}`;
       const res = await fetch(url, { headers: { "x-org-id": currentOrgId || "" } });
-      if (!res.ok) throw new Error("Failed to fetch governance predictions");
+      if (!res.ok) {throw new Error("Failed to fetch governance predictions");}
       return res.json();
     },
     enabled: !!currentOrgId,
@@ -24,7 +24,7 @@ export function useGovernanceDetail(id: number | null) {
     queryKey: ["/api/pdm/governance/predictions", id],
     queryFn: async () => {
       const res = await fetch(`/api/pdm/governance/predictions/${id}`, { headers: { "x-org-id": currentOrgId || "" } });
-      if (!res.ok) throw new Error("Failed to fetch governance details");
+      if (!res.ok) {throw new Error("Failed to fetch governance details");}
       return res.json();
     },
     enabled: id != null && !!currentOrgId,

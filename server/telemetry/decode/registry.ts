@@ -31,7 +31,7 @@ export function getRegisteredPgns(): number[] {
 }
 
 registerPgn(0x00F004, (input) => {
-  if (input.data.length < 5) return [];
+  if (input.data.length < 5) {return [];}
   
   const raw = input.data.readUInt16LE(3);
   const rpm = raw * 0.125;
@@ -50,7 +50,7 @@ registerPgn(0x00F004, (input) => {
 });
 
 registerPgn(0x00FEEE, (input) => {
-  if (input.data.length < 2) return [];
+  if (input.data.length < 2) {return [];}
   
   const raw = input.data.readUInt8(0);
   const tempC = raw - 40;
@@ -70,7 +70,7 @@ registerPgn(0x00FEEE, (input) => {
 });
 
 registerPgn(0x00FEEF, (input) => {
-  if (input.data.length < 4) return [];
+  if (input.data.length < 4) {return [];}
   
   const raw = input.data.readUInt16LE(2);
   const kpa = raw * 0.5;
@@ -90,7 +90,7 @@ registerPgn(0x00FEEF, (input) => {
 });
 
 registerPgn(0x00FEE9, (input) => {
-  if (input.data.length < 2) return [];
+  if (input.data.length < 2) {return [];}
   
   const raw = input.data.readUInt16LE(0);
   const literPerHour = raw * 0.05;
@@ -110,7 +110,7 @@ registerPgn(0x00FEE9, (input) => {
 });
 
 registerPgn(0x00FEE5, (input) => {
-  if (input.data.length < 4) return [];
+  if (input.data.length < 4) {return [];}
   
   const raw = input.data.readUInt32LE(0);
   const hours = raw * 0.05;
@@ -130,7 +130,7 @@ registerPgn(0x00FEE5, (input) => {
 });
 
 registerPgn(0x00FEF7, (input) => {
-  if (input.data.length < 2) return [];
+  if (input.data.length < 2) {return [];}
   
   const raw = input.data.readUInt16LE(0);
   const volts = raw * 0.05;
@@ -150,7 +150,7 @@ registerPgn(0x00FEF7, (input) => {
 });
 
 registerPgn(0x00FEBD, (input) => {
-  if (input.data.length < 2) return [];
+  if (input.data.length < 2) {return [];}
   
   const raw = input.data.readUInt16LE(0);
   const tempC = raw * 0.03125 - 273;
@@ -170,7 +170,7 @@ registerPgn(0x00FEBD, (input) => {
 });
 
 registerPgn(0x00F003, (input) => {
-  if (input.data.length < 3) return [];
+  if (input.data.length < 3) {return [];}
   
   const raw = input.data.readUInt8(2);
   const loadPercent = raw * 0.4;
@@ -190,7 +190,7 @@ registerPgn(0x00F003, (input) => {
 });
 
 registerPgn(0x00FEE6, (input) => {
-  if (input.data.length < 1) return [];
+  if (input.data.length < 1) {return [];}
   
   const raw = input.data.readUInt8(0);
   const kpa = raw * 2;
@@ -210,7 +210,7 @@ registerPgn(0x00FEE6, (input) => {
 });
 
 registerPgn(0x00FED9, (input) => {
-  if (input.data.length < 2) return [];
+  if (input.data.length < 2) {return [];}
   
   const raw = input.data.readUInt16LE(0);
   const tempC = raw * 0.03125 - 273;
@@ -230,7 +230,7 @@ registerPgn(0x00FED9, (input) => {
 });
 
 registerPgn(0x00FEF6, (input) => {
-  if (input.data.length < 1) return [];
+  if (input.data.length < 1) {return [];}
   
   const raw = input.data.readUInt8(0);
   const tempC = raw - 40;

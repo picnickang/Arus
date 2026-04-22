@@ -46,7 +46,7 @@
  *   (confirmed via wave4-prep/sync-events.ts.reference)
  */
 
-import { eq, and, desc, gte, lte, sql } from "drizzle-orm";
+import { eq, and, desc, gte, lte } from "drizzle-orm";
 import { db } from "../../db-config";
 import { getWebSocketServer } from "../../websocket-server";
 import { recordAndPublish, type EntityType } from "../../sync-events";
@@ -76,11 +76,11 @@ export class DatabaseMaintenanceTemplatesStorage {
     isActive?: boolean
   ): Promise<MaintenanceTemplate[]> {
     const c = [];
-    if (orgId) c.push(eq(maintenanceTemplates.orgId, orgId));
-    if (equipmentType) c.push(eq(maintenanceTemplates.equipmentType, equipmentType));
-    if (isActive !== undefined) c.push(eq(maintenanceTemplates.isActive, isActive));
+    if (orgId) {c.push(eq(maintenanceTemplates.orgId, orgId));}
+    if (equipmentType) {c.push(eq(maintenanceTemplates.equipmentType, equipmentType));}
+    if (isActive !== undefined) {c.push(eq(maintenanceTemplates.isActive, isActive));}
     let q = db.select().from(maintenanceTemplates);
-    if (c.length > 0) q = q.where(and(...c)) as typeof q;
+    if (c.length > 0) {q = q.where(and(...c)) as typeof q;}
     return q.orderBy(maintenanceTemplates.name);
   }
 
@@ -89,7 +89,7 @@ export class DatabaseMaintenanceTemplatesStorage {
     orgId?: string
   ): Promise<MaintenanceTemplate | undefined> {
     const c = [eq(maintenanceTemplates.id, id)];
-    if (orgId) c.push(eq(maintenanceTemplates.orgId, orgId));
+    if (orgId) {c.push(eq(maintenanceTemplates.orgId, orgId));}
     const r = await db.select().from(maintenanceTemplates).where(and(...c));
     return r[0];
   }
@@ -108,22 +108,22 @@ export class DatabaseMaintenanceTemplatesStorage {
     orgId?: string
   ): Promise<MaintenanceTemplate> {
     const c = [eq(maintenanceTemplates.id, id)];
-    if (orgId) c.push(eq(maintenanceTemplates.orgId, orgId));
+    if (orgId) {c.push(eq(maintenanceTemplates.orgId, orgId));}
     const [u] = await db
       .update(maintenanceTemplates)
       .set({ ...template, updatedAt: new Date() })
       .where(and(...c))
       .returning();
-    if (!u) throw new Error(`Maintenance template ${id} not found`);
+    if (!u) {throw new Error(`Maintenance template ${id} not found`);}
     await recordAndPublish("maintenance_template" as EntityType, u.id, "update", u);
     return u;
   }
 
   async deleteMaintenanceTemplate(id: string, orgId?: string): Promise<void> {
     const c = [eq(maintenanceTemplates.id, id)];
-    if (orgId) c.push(eq(maintenanceTemplates.orgId, orgId));
+    if (orgId) {c.push(eq(maintenanceTemplates.orgId, orgId));}
     const r = await db.delete(maintenanceTemplates).where(and(...c)).returning();
-    if (r.length === 0) throw new Error(`Maintenance template ${id} not found`);
+    if (r.length === 0) {throw new Error(`Maintenance template ${id} not found`);}
     await recordAndPublish("maintenance_template" as EntityType, id, "delete", r[0]);
   }
 
@@ -134,9 +134,9 @@ export class DatabaseMaintenanceTemplatesStorage {
   ): Promise<MaintenanceTemplate> {
     return db.transaction(async (tx) => {
       const c = [eq(maintenanceTemplates.id, id)];
-      if (orgId) c.push(eq(maintenanceTemplates.orgId, orgId));
+      if (orgId) {c.push(eq(maintenanceTemplates.orgId, orgId));}
       const [original] = await tx.select().from(maintenanceTemplates).where(and(...c));
-      if (!original) throw new Error(`Maintenance template ${id} not found`);
+      if (!original) {throw new Error(`Maintenance template ${id} not found`);}
 
       // Clone the template row. Strip id so a new one is generated.
       // Drop createdAt/updatedAt from the spread and set fresh timestamps.
@@ -242,7 +242,7 @@ export class DatabaseMaintenanceTemplatesStorage {
       .set(item)
       .where(eq(maintenanceChecklistItems.id, id))
       .returning();
-    if (!u) throw new Error(`Checklist item ${id} not found`);
+    if (!u) {throw new Error(`Checklist item ${id} not found`);}
     await recordAndPublish(
       "maintenance_checklist_item" as EntityType,
       u.id,
@@ -257,7 +257,7 @@ export class DatabaseMaintenanceTemplatesStorage {
       .delete(maintenanceChecklistItems)
       .where(eq(maintenanceChecklistItems.id, id))
       .returning();
-    if (r.length === 0) throw new Error(`Checklist item ${id} not found`);
+    if (r.length === 0) {throw new Error(`Checklist item ${id} not found`);}
     await recordAndPublish(
       "maintenance_checklist_item" as EntityType,
       id,
@@ -288,7 +288,7 @@ export class DatabaseMaintenanceTemplatesStorage {
   async bulkCreateChecklistItems(
     items: InsertMaintenanceChecklistItem[]
   ): Promise<MaintenanceChecklistItem[]> {
-    if (items.length === 0) return [];
+    if (items.length === 0) {return [];}
     return db.insert(maintenanceChecklistItems).values(items).returning();
   }
 
@@ -302,7 +302,7 @@ export class DatabaseMaintenanceTemplatesStorage {
         .set(data)
         .where(eq(maintenanceChecklistItems.id, id))
         .returning();
-      if (item) u.push(item);
+      if (item) {u.push(item);}
     }
     return u;
   }
@@ -329,8 +329,8 @@ export class DatabaseMaintenanceTemplatesStorage {
     endDate?: Date
   ): Promise<PdmScoreLog[]> {
     const c = [eq(pdmScoreLogs.equipmentId, equipmentId)];
-    if (startDate) c.push(gte(pdmScoreLogs.ts, startDate));
-    if (endDate) c.push(lte(pdmScoreLogs.ts, endDate));
+    if (startDate) {c.push(gte(pdmScoreLogs.ts, startDate));}
+    if (endDate) {c.push(lte(pdmScoreLogs.ts, endDate));}
     return db
       .select()
       .from(pdmScoreLogs)
@@ -370,10 +370,10 @@ export class DatabaseMaintenanceTemplatesStorage {
     status?: string
   ): Promise<MaintenanceSchedule[]> {
     const c = [];
-    if (equipmentId) c.push(eq(maintenanceSchedules.equipmentId, equipmentId));
-    if (status) c.push(eq(maintenanceSchedules.status, status));
+    if (equipmentId) {c.push(eq(maintenanceSchedules.equipmentId, equipmentId));}
+    if (status) {c.push(eq(maintenanceSchedules.status, status));}
     let q = db.select().from(maintenanceSchedules);
-    if (c.length > 0) q = q.where(and(...c)) as typeof q;
+    if (c.length > 0) {q = q.where(and(...c)) as typeof q;}
     return q.orderBy(maintenanceSchedules.scheduledDate);
   }
 
@@ -395,7 +395,7 @@ export class DatabaseMaintenanceTemplatesStorage {
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(maintenanceSchedules.id, id))
       .returning();
-    if (!u) throw new Error(`Maintenance schedule ${id} not found`);
+    if (!u) {throw new Error(`Maintenance schedule ${id} not found`);}
     const ws = getWebSocketServer();
     ws?.broadcastMaintenanceScheduleChange("update", u);
     return u;

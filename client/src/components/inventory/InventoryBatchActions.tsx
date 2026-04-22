@@ -34,7 +34,7 @@ export function InventoryBatchActions({
   const selectedParts = parts.filter((p) => selectedItems.has(p.id));
   const count = selectedItems.size;
 
-  if (count === 0) return null;
+  if (count === 0) {return null;}
 
   const suggestions: SuggestedPart[] = selectedParts.map((part) => {
     const available = part.stock

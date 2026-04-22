@@ -13,7 +13,7 @@
 
 import { describe, it, expect } from "@jest/globals";
 import { checkMonthCompliance } from "../../server/stcw-compliance/compliance-checker";
-import { chunksFromDay, restHoursInWindow, normalizeRestDays, countRestHours } from "../../server/stcw-compliance/rest-utils";
+import { chunksFromDay, normalizeRestDays, countRestHours } from "../../server/stcw-compliance/rest-utils";
 import type { RestDay } from "../../server/stcw-compliance/types";
 import { STCW_MIN_REST_24, STCW_MIN_REST_7D } from "../../server/stcw-compliance/types";
 

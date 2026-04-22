@@ -17,8 +17,8 @@ const Z_SCORE_CRITICAL = 3;
 
 function severityFromZScore(z: number): "normal" | "warning" | "critical" {
   const abs = Math.abs(z);
-  if (abs >= Z_SCORE_CRITICAL) return "critical";
-  if (abs >= Z_SCORE_WARNING) return "warning";
+  if (abs >= Z_SCORE_CRITICAL) {return "critical";}
+  if (abs >= Z_SCORE_WARNING) {return "warning";}
   return "normal";
 }
 
@@ -37,7 +37,7 @@ export class ResidualAnalysisService {
       .select()
       .from(assetTwins)
       .where(and(eq(assetTwins.orgId, orgId), eq(assetTwins.id, twinId)));
-    if (!twin) throw new Error("Twin not found");
+    if (!twin) {throw new Error("Twin not found");}
 
     const [template] = await db
       .select()
@@ -48,7 +48,7 @@ export class ResidualAnalysisService {
           eq(assetTwinTemplates.id, twin.templateId)
         )
       );
-    if (!template) throw new Error("Twin template not found");
+    if (!template) {throw new Error("Twin template not found");}
 
     const [latestState] = await db
       .select()
@@ -99,7 +99,7 @@ export class ResidualAnalysisService {
     for (const sensorType of sensorTypes) {
       const obs = observed[sensorType];
       const exp = expected[sensorType];
-      if (obs == null || exp == null) continue;
+      if (obs == null || exp == null) {continue;}
 
       const residual = round(obs - exp);
 
@@ -139,8 +139,8 @@ export class ResidualAnalysisService {
     const sensorTypes = ["temperature", "vibration", "pressure"];
     const now = new Date();
     const records: InsertTwinResidual[] = sensorTypes.map((sensorType) => {
-      const obs = deterministicValue(twinId, sensorType + "_obs", 30, 100);
-      const exp = deterministicValue(twinId, sensorType + "_exp", 30, 100);
+      const obs = deterministicValue(twinId, `${sensorType  }_obs`, 30, 100);
+      const exp = deterministicValue(twinId, `${sensorType  }_exp`, 30, 100);
       const residual = round(obs - exp);
       const stddev = Math.abs(exp) * 0.1 || 1;
       const zScore = round(residual / stddev);

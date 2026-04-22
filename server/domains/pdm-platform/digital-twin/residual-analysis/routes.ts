@@ -14,7 +14,7 @@ router.post("/compute", async (req: Request, res: Response) => {
     const orgId = req.headers["x-org-id"] as string;
     const parsed = computeSchema.safeParse(req.body);
     if (!parsed.success)
-      return res.status(400).json({ error: parsed.error.flatten().fieldErrors });
+      {return res.status(400).json({ error: parsed.error.flatten().fieldErrors });}
     const result = await service.computeResiduals(orgId, parsed.data.twinId);
     res.json(result);
   } catch (error: any) {

@@ -4,7 +4,7 @@
  */
 import { db } from "../../db-config.js";
 import { devices, edgeHeartbeats as edgeHeartbeatsTable, pdmScoreLogs as pdmScoreLogsTable } from "@shared/schema-runtime";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { Device, InsertDevice, EdgeHeartbeat, InsertHeartbeat, PdmScoreLog, InsertPdmScore } from "@shared/schema-runtime";
 
 export class DatabaseDevicesStorage {

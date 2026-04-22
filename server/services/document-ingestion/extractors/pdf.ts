@@ -109,26 +109,26 @@ export class PdfExtractor implements TextExtractor {
   }
 
   private isLikelyTableRow(line: string): boolean {
-    if (line.length < 5) return false;
+    if (line.length < 5) {return false;}
     
     const tabCount = (line.match(/\t/g) || []).length;
-    if (tabCount >= 2) return true;
+    if (tabCount >= 2) {return true;}
     
     const pipeCount = (line.match(/\|/g) || []).length;
-    if (pipeCount >= 2) return true;
+    if (pipeCount >= 2) {return true;}
     
     const multiSpaceSegments = line.split(/\s{3,}/);
-    if (multiSpaceSegments.length >= 3) return true;
+    if (multiSpaceSegments.length >= 3) {return true;}
     
     const colonPattern = /^[A-Za-z\s]+:\s+.+/;
-    if (colonPattern.test(line)) return false;
+    if (colonPattern.test(line)) {return false;}
     
     return false;
   }
 
   private detectColumnSeparator(line: string): RegExp {
-    if (line.includes('\t')) return /\t+/;
-    if (line.includes('|')) return /\s*\|\s*/;
+    if (line.includes('\t')) {return /\t+/;}
+    if (line.includes('|')) {return /\s*\|\s*/;}
     return /\s{3,}/;
   }
 
@@ -162,7 +162,7 @@ export class PdfExtractor implements TextExtractor {
   }
 
   private enhanceTextWithTableMarkers(text: string, tables: TableData[]): string {
-    if (tables.length === 0) return text;
+    if (tables.length === 0) {return text;}
     
     let enhancedText = text;
     
@@ -190,12 +190,12 @@ export class PdfExtractor implements TextExtractor {
     const lines: string[] = [];
     
     if (table.headerRow) {
-      lines.push('| ' + table.headerRow.join(' | ') + ' |');
-      lines.push('| ' + table.headerRow.map(() => '---').join(' | ') + ' |');
+      lines.push(`| ${  table.headerRow.join(' | ')  } |`);
+      lines.push(`| ${  table.headerRow.map(() => '---').join(' | ')  } |`);
     }
     
     for (const row of table.rows.slice(table.headerRow ? 1 : 0)) {
-      lines.push('| ' + row.join(' | ') + ' |');
+      lines.push(`| ${  row.join(' | ')  } |`);
     }
     
     return lines.join('\n');

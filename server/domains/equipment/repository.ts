@@ -74,7 +74,7 @@ export class EquipmentRepository {
 
   async getCompatibleParts(equipmentId: string, orgId: string) {
     const equipment = await this.findById(equipmentId, orgId);
-    if (!equipment) return [];
+    if (!equipment) {return [];}
     const parts = await dbInventoryStorage.getParts(orgId);
     return parts.filter((p: any) => p.equipmentType === equipment.type || p.equipmentId === equipmentId);
   }

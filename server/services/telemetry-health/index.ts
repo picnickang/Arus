@@ -28,15 +28,15 @@ class TelemetryHealthAggregator {
   }
 
   private computeOverallStatus(components: ComponentHealth[]): HealthStatus {
-    if (components.length === 0) return 'unknown';
+    if (components.length === 0) {return 'unknown';}
     
     const hasUnhealthy = components.some(c => c.status === 'unhealthy');
     const hasDegraded = components.some(c => c.status === 'degraded');
     const hasUnknown = components.some(c => c.status === 'unknown');
     
-    if (hasUnhealthy) return 'unhealthy';
-    if (hasDegraded) return 'degraded';
-    if (hasUnknown) return 'unknown';
+    if (hasUnhealthy) {return 'unhealthy';}
+    if (hasDegraded) {return 'degraded';}
+    if (hasUnknown) {return 'unknown';}
     return 'healthy';
   }
 }

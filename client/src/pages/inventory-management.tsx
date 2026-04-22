@@ -58,8 +58,8 @@ export default function InventoryManagement() {
   const getTabFromSearch = (search: string): TabValue => {
     const params = new URLSearchParams(search);
     const tab = params.get("tab");
-    if (tab === "purchasing") return "purchasing";
-    if (tab === "service-requests") return "service-requests";
+    if (tab === "purchasing") {return "purchasing";}
+    if (tab === "service-requests") {return "service-requests";}
     return "inventory";
   };
 
@@ -279,8 +279,8 @@ export default function InventoryManagement() {
                     onSelectionChange={(itemId, selected) => {
                       setSelectedItems(prev => {
                         const next = new Set(prev);
-                        if (selected) next.add(itemId);
-                        else next.delete(itemId);
+                        if (selected) {next.add(itemId);}
+                        else {next.delete(itemId);}
                         return next;
                       });
                     }} />
@@ -406,10 +406,10 @@ export default function InventoryManagement() {
                       value={field.value === 0 ? "" : field.value ?? ""}
                       onChange={(e) => {
                         const val = e.target.value;
-                        if (val === "") field.onChange(undefined);
+                        if (val === "") {field.onChange(undefined);}
                         else { const n = Number.parseFloat(val); field.onChange(Number.isNaN(n) ? undefined : n); }
                       }}
-                      onBlur={(e) => { if (e.target.value === "") field.onChange(0); field.onBlur(); }}
+                      onBlur={(e) => { if (e.target.value === "") {field.onChange(0);} field.onBlur(); }}
                       name={field.name} ref={field.ref} data-testid="input-standard-cost" />
                   </FormControl>
                   <FormMessage /></FormItem>
@@ -421,12 +421,12 @@ export default function InventoryManagement() {
                       value={field.value === 0 ? "" : field.value ?? ""}
                       onChange={(e) => {
                         const val = e.target.value;
-                        if (val === "") field.onChange(undefined);
+                        if (val === "") {field.onChange(undefined);}
                         else { const n = Number.parseInt(val, 10); field.onChange(Number.isNaN(n) ? undefined : n); }
                       }}
                       onBlur={(e) => {
                         const n = Number.parseInt(e.target.value, 10);
-                        if (Number.isNaN(n) || n < 1) field.onChange(1);
+                        if (Number.isNaN(n) || n < 1) {field.onChange(1);}
                         field.onBlur();
                       }}
                       name={field.name} ref={field.ref} data-testid="input-lead-time" />

@@ -27,12 +27,12 @@ async function createSuggestion(overrides: Record<string, unknown> = {}) {
     status: "pending",
     ...overrides,
   });
-  if (status !== 201) throw new Error(`Failed to create suggestion: ${status}`);
+  if (status !== 201) {throw new Error(`Failed to create suggestion: ${status}`);}
   return data;
 }
 
 describe("Outcome Tracking E2E", () => {
-  let pendingIds: string[] = [];
+  const pendingIds: string[] = [];
 
   beforeAll(async () => {
     for (let i = 0; i < 5; i++) {

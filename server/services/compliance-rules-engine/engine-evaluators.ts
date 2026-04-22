@@ -10,7 +10,7 @@ import type { RuleContext, RuleResult } from "./types.js";
 
 async function getEngineLogByVesselAndDate(vesselId: string, logDate: string, orgId: string) {
   const daily = await engineLogStorage.getEngineLogDailyByDate(vesselId, logDate, orgId);
-  if (!daily) return undefined;
+  if (!daily) {return undefined;}
   return engineLogStorage.getEngineLogComplete(daily.id, orgId);
 }
 

@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Settings2, Plus, Trash2, RotateCcw, Save, X, Pencil, ChevronUp, ChevronDown, AlertTriangle } from "lucide-react";
+import { useState } from "react";
+import { Plus, Trash2, RotateCcw, Save, X, Pencil, ChevronUp, ChevronDown, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -55,7 +55,7 @@ const SUPER_LEFT = 155;
 const SUPER_RIGHT = 190;
 
 function hullTopAt(x: number): number {
-  if (x >= SUPER_LEFT && x <= SUPER_RIGHT) return SUPER_TOP;
+  if (x >= SUPER_LEFT && x <= SUPER_RIGHT) {return SUPER_TOP;}
   if (x > SUPER_RIGHT) {
     const t = (x - SUPER_RIGHT) / (HULL_RIGHT - SUPER_RIGHT);
     return DECK_Y + t * (DECK_Y - HULL_TOP);
@@ -78,7 +78,7 @@ function hullBottomAt(x: number): number {
 export function computeLayout(layout: SchematicLayout): { zones: ZoneRect[]; slots: PositionedSlot[] } {
   const sortedZones = [...layout.zones].sort((a, b) => a.order - b.order);
   const zoneCount = sortedZones.length;
-  if (zoneCount === 0) return { zones: [], slots: [] };
+  if (zoneCount === 0) {return { zones: [], slots: [] };}
 
   const pad = 2;
   const usableW = HULL_W - pad * 2;
@@ -101,7 +101,7 @@ export function computeLayout(layout: SchematicLayout): { zones: ZoneRect[]; slo
       .filter(Boolean) as SchematicSlot[];
 
     const count = slotDefs.length;
-    if (count === 0) return;
+    if (count === 0) {return;}
 
     const innerPad = 1.5;
     const gutter = 1.5;
@@ -111,9 +111,9 @@ export function computeLayout(layout: SchematicLayout): { zones: ZoneRect[]; slo
     const availableW = zoneW - innerPad * 2;
 
     const cols = (() => {
-      if (count <= 2) return 1;
-      if (count <= 6) return 2;
-      if (count <= 12) return 3;
+      if (count <= 2) {return 1;}
+      if (count <= 6) {return 2;}
+      if (count <= 12) {return 3;}
       return Math.min(4, Math.ceil(Math.sqrt(count)));
     })();
     const rows = Math.ceil(count / cols);
@@ -144,7 +144,7 @@ export function assignEquipmentToSlots(
     const typeLower = (eq.type || "").toLowerCase();
     const nameLower = (eq.name || "").toLowerCase();
     for (const assignment of assignments) {
-      if (assignment.equipment) continue;
+      if (assignment.equipment) {continue;}
       const matches = assignment.slot.typeMatch.some(
         t => typeLower.includes(t) || nameLower.includes(t)
       );
@@ -261,7 +261,7 @@ function SlotRect({
   const sc = eq ? statusFill(status) : "rgba(148,163,184,0.3)";
   const health = eq?.healthScore ?? 0;
   const displayName = eq
-    ? (eq.name.length > 14 ? eq.name.slice(0, 12) + "\u2026" : eq.name)
+    ? (eq.name.length > 14 ? `${eq.name.slice(0, 12)  }\u2026` : eq.name)
     : slot.label;
   const displaySub = eq
     ? [eq.manufacturer, eq.model].filter(Boolean).join(" ").slice(0, 16)
@@ -397,7 +397,7 @@ export function SchematicConfigPanel({
   };
 
   const handleAddZone = () => {
-    if (!newZoneName.trim()) return;
+    if (!newZoneName.trim()) {return;}
     updateDraft(d => {
       d.zones.push({ zoneId: generateLocalId("zone"), label: newZoneName.trim(), order: d.zones.length, slotIds: [] });
     });
@@ -439,13 +439,13 @@ export function SchematicConfigPanel({
   };
 
   const handleAddSlot = () => {
-    if (!newSlotName.trim() || !newSlotZone) return;
+    if (!newSlotName.trim() || !newSlotZone) {return;}
     const tm = newSlotTypeMatch.split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
     const slotId = generateLocalId("slot");
     updateDraft(d => {
       d.slots.push({ slotId, label: newSlotName.trim(), category: newSlotCategory.trim() || "general", typeMatch: tm.length ? tm : [newSlotName.trim().toLowerCase()] });
       const zone = d.zones.find(z => z.zoneId === newSlotZone);
-      if (zone) zone.slotIds.push(slotId);
+      if (zone) {zone.slotIds.push(slotId);}
     });
     setNewSlotName("");
     setNewSlotCategory("");
@@ -454,7 +454,7 @@ export function SchematicConfigPanel({
 
   const handleRemoveSlot = (slotId: string) => {
     const hasEquipment = equipmentSlotMap?.has(slotId);
-    if (hasEquipment) return;
+    if (hasEquipment) {return;}
     updateDraft(d => {
       d.slots = d.slots.filter(s => s.slotId !== slotId);
       for (const zone of d.zones) {
@@ -469,7 +469,7 @@ export function SchematicConfigPanel({
         zone.slotIds = zone.slotIds.filter(id => id !== slotId);
       }
       const target = d.zones.find(z => z.zoneId === targetZoneId);
-      if (target) target.slotIds.push(slotId);
+      if (target) {target.slotIds.push(slotId);}
     });
   };
 
@@ -521,7 +521,7 @@ export function SchematicConfigPanel({
                     onClick={() => {
                       updateDraft(d => {
                         const z = d.zones.find(z => z.zoneId === zone.zoneId);
-                        if (z) z.label = editZoneName;
+                        if (z) {z.label = editZoneName;}
                       });
                       setEditingZone(null);
                     }}>
@@ -573,7 +573,7 @@ export function SchematicConfigPanel({
               <div className="text-[10px] text-slate-500 font-semibold uppercase mb-1 ml-1">{zone.label}</div>
               {zone.slotIds.map(sid => {
                 const slot = draft.slots.find(s => s.slotId === sid);
-                if (!slot) return null;
+                if (!slot) {return null;}
                 const hasEq = equipmentSlotMap?.has(sid);
                 return (
                   <div key={sid} className="flex items-center gap-2 p-2 ml-3 rounded bg-slate-800/30 border border-slate-700/10 mb-1">
@@ -589,7 +589,7 @@ export function SchematicConfigPanel({
                           onClick={() => {
                             updateDraft(d => {
                               const s = d.slots.find(s => s.slotId === sid);
-                              if (s) s.label = editSlotName;
+                              if (s) {s.label = editSlotName;}
                             });
                             setEditingSlot(null);
                           }}>
@@ -772,7 +772,7 @@ export function Pulse({ color, size = 8 }: { color: string; size?: number }) {
 export function StockBadge({ part }: { part: { minStockLevel?: number | null; reorderPoint?: number | null; criticality?: string | null } }) {
   const qty = part.minStockLevel ? (part.reorderPoint || 1) : 1;
   const min = part.minStockLevel ?? 0;
-  if (qty === 0) return <Badge variant="destructive" className="text-[10px]">Out of Stock</Badge>;
-  if (min > 0 && qty <= min) return <Badge variant="secondary" className="text-[10px] bg-yellow-500/15 text-yellow-500">Low Stock</Badge>;
+  if (qty === 0) {return <Badge variant="destructive" className="text-[10px]">Out of Stock</Badge>;}
+  if (min > 0 && qty <= min) {return <Badge variant="secondary" className="text-[10px] bg-yellow-500/15 text-yellow-500">Low Stock</Badge>;}
   return <Badge variant="secondary" className="text-[10px] bg-green-500/15 text-green-500">In Stock</Badge>;
 }

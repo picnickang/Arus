@@ -41,7 +41,7 @@ export function EquipmentHistoryDialog({
     enabled: isOpen && !!equipment?.id,
   });
 
-  if (!equipment) return null;
+  if (!equipment) {return null;}
 
   const getEventColor = (eventType: string) => {
     switch (eventType) {

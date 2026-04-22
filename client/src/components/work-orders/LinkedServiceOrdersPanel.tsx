@@ -11,8 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Building2, ExternalLink, Plus, Loader2, Calendar, DollarSign,
-  CheckCircle2, Clock, Send, AlertTriangle, XCircle, TrendingUp, TrendingDown,
+  Building2, ExternalLink, Plus, Loader2, Calendar,
+  CheckCircle2, Clock, AlertTriangle, XCircle, TrendingUp, TrendingDown,
   FileText, ArrowRight,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -26,7 +26,7 @@ import {
 } from "@/features/serviceRequests/hooks/useServiceRequests";
 import { SRStatusBadge } from "@/features/serviceRequests/components/SRStatusBadge";
 import { SRPriorityBadge } from "@/features/serviceRequests/components/SRPriorityBadge";
-import type { ServiceRequest, SRStatus } from "@/features/serviceRequests/types";
+import type { ServiceRequest } from "@/features/serviceRequests/types";
 import { cn } from "@/lib/utils";
 
 function soStatusVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
@@ -127,9 +127,9 @@ function MiniTimeline({ so }: { so: LinkedServiceOrder }) {
 }
 
 function OnTrackIndicator({ so }: { so: LinkedServiceOrder }) {
-  if (so.status === "completed" || so.status === "cancelled" || so.status === "draft") return null;
+  if (so.status === "completed" || so.status === "cancelled" || so.status === "draft") {return null;}
   const scheduledEnd = so.scheduledEndDate ? new Date(so.scheduledEndDate) : null;
-  if (!scheduledEnd) return null;
+  if (!scheduledEnd) {return null;}
 
   const now = new Date();
   const daysLeft = Math.ceil((scheduledEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
@@ -160,7 +160,7 @@ function CostVariance({ so }: { so: LinkedServiceOrder }) {
   const quoted = so.quotedAmount;
   const actual = so.actualAmount;
   const currency = so.currency || "USD";
-  if (quoted == null && actual == null) return null;
+  if (quoted == null && actual == null) {return null;}
 
   const fmt = (v: number) => {
     try {
@@ -199,7 +199,7 @@ function CostVariance({ so }: { so: LinkedServiceOrder }) {
 }
 
 function DateRange({ label, start, end }: { label: string; start: string | null; end: string | null }) {
-  if (!start && !end) return null;
+  if (!start && !end) {return null;}
   const fmtDate = (d: string) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
   return (
     <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -222,7 +222,7 @@ function ServiceRequestCard({ sr }: { sr: ServiceRequest }) {
         <div className="flex items-center gap-2">
           <FileText className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="text-sm font-medium">{sr.requestNumber}</span>
-          <SRStatusBadge status={sr.status as SRStatus} />
+          <SRStatusBadge status={sr.status} />
           <SRPriorityBadge priority={sr.urgency} />
         </div>
         {sr.serviceOrderId && (

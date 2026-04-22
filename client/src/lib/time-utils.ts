@@ -45,9 +45,9 @@ export function formatDateSgt(date: Date | string): string {
  * Format time only in Singapore Time (HH:mm:ss)
  */
 export function formatTimeSgt(date: Date | string | null | undefined): string {
-  if (!date) return "N/A";
+  if (!date) {return "N/A";}
   const inputDate = typeof date === "string" ? new Date(date) : date;
-  if (isNaN(inputDate.getTime())) return "N/A";
+  if (isNaN(inputDate.getTime())) {return "N/A";}
   return formatInTimeZone(inputDate, SGT_TIMEZONE, "HH:mm:ss");
 }
 

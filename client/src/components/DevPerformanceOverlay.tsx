@@ -57,10 +57,10 @@ function addApiLatency(latency: ApiLatency) {
 export const FETCH_WRAPPER_SYMBOL = Symbol.for('__devPerfFetchWrapper');
 
 export function installFetchInterceptor(): boolean {
-  if (!import.meta.env.DEV) return false;
-  if (typeof window === 'undefined') return false;
+  if (!import.meta.env.DEV) {return false;}
+  if (typeof window === 'undefined') {return false;}
   
-  if (window.__devPerfInterceptorInstalled) return false;
+  if (window.__devPerfInterceptorInstalled) {return false;}
   
   const currentFetch = window.fetch;
   if ((currentFetch as unknown as Record<symbol, boolean>)[FETCH_WRAPPER_SYMBOL]) {
@@ -138,8 +138,8 @@ export function installFetchInterceptor(): boolean {
 }
 
 export function uninstallFetchInterceptor(): void {
-  if (!import.meta.env.DEV) return;
-  if (typeof window === 'undefined') return;
+  if (!import.meta.env.DEV) {return;}
+  if (typeof window === 'undefined') {return;}
   
   if (window.__devPerfOriginalFetch) {
     window.fetch = window.__devPerfOriginalFetch;
@@ -168,7 +168,7 @@ export function DevPerformanceOverlay() {
   const isDev = import.meta.env.DEV;
 
   useEffect(() => {
-    if (!isDev) return;
+    if (!isDev) {return;}
     
     installFetchInterceptor();
     
@@ -183,16 +183,15 @@ export function DevPerformanceOverlay() {
   }, [isDev]);
 
   useEffect(() => {
-    if (!isDev) return;
+    if (!isDev) {return;}
     if (lastLocationRef.current !== location) {
       const duration = performance.now() - navigationStartRef.current;
       
       setRouteNavigations(prev => {
-        const updated = [
+        return [
           { from: lastLocationRef.current, to: location, duration, timestamp: Date.now() },
           ...prev
         ].slice(0, ROUTE_HISTORY_LIMIT);
-        return updated;
       });
       
       lastLocationRef.current = location;
@@ -201,7 +200,7 @@ export function DevPerformanceOverlay() {
   }, [location, isDev]);
 
   useEffect(() => {
-    if (!isDev || !isVisible) return;
+    if (!isDev || !isVisible) {return;}
 
     const updateMemory = () => {
       if (performance.memory) {
@@ -230,7 +229,7 @@ export function DevPerformanceOverlay() {
   }, [isVisible]);
 
   useEffect(() => {
-    if (!isDev) return;
+    if (!isDev) {return;}
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.key === 'P') {
         e.preventDefault();
@@ -245,25 +244,25 @@ export function DevPerformanceOverlay() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isDev]);
 
-  if (!isDev) return null;
+  if (!isDev) {return null;}
 
   const formatBytes = (bytes: number) => {
-    if (bytes === 0) return '0 B';
+    if (bytes === 0) {return '0 B';}
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))  } ${  sizes[i]}`;
   };
 
   const formatDuration = (ms: number) => {
-    if (ms < 1) return '<1ms';
-    if (ms < 1000) return `${Math.round(ms)}ms`;
+    if (ms < 1) {return '<1ms';}
+    if (ms < 1000) {return `${Math.round(ms)}ms`;}
     return `${(ms / 1000).toFixed(2)}s`;
   };
 
   const getLatencyColor = (ms: number) => {
-    if (ms < 100) return 'text-green-600 dark:text-green-400';
-    if (ms < 300) return 'text-yellow-600 dark:text-yellow-400';
+    if (ms < 100) {return 'text-green-600 dark:text-green-400';}
+    if (ms < 300) {return 'text-yellow-600 dark:text-yellow-400';}
     return 'text-red-600 dark:text-red-400';
   };
 

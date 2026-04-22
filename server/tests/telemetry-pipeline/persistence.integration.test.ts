@@ -5,7 +5,7 @@
  * and data integrity verification for the telemetry pipeline.
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "@jest/globals";
+import { describe, it, expect, beforeAll, beforeEach } from "@jest/globals";
 import type { TelemetryReading } from "../../telemetry-batch-writer";
 import {
   TEST_ORG_ID,

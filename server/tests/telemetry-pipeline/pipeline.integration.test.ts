@@ -9,7 +9,7 @@
  * - Data integrity verification
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "@jest/globals";
+import { describe, it, expect, beforeAll } from "@jest/globals";
 import { BridgeProcessor } from "../../services/sqlite-bridge/bridgeProcessor";
 import { decodeFrame } from "../../telemetry/decode";
 import { validateReading, filterValidReadings } from "../../telemetry/decode/validation";
@@ -25,8 +25,6 @@ import {
   createJ1587CoolantTempFrame,
   createJ1587OilPressureFrame,
   createInvalidFrame,
-  createFutureTimestampFrame,
-  createAncientTimestampFrame,
   createInvalidPayloadVersionFrame,
   createBatchOfFrames,
   createMixedProtocolBatch,

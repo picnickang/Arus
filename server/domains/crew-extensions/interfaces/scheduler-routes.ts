@@ -9,9 +9,7 @@ import type { AuthenticatedRequest, CrewExtensionsRoutesConfig } from "./types.j
 import { withErrorHandling, sendNotFound } from "../../../lib/route-utils.js";
 import { sendBadRequest } from "../../../lib/api-helpers.js";
 import { 
-  checkAllConstraints, 
-  filterHardViolations, 
-  filterSoftViolations,
+  checkAllConstraints,
   type ConstraintCheckContext 
 } from "../../../domain/scheduling/constraints.js";
 import { 
@@ -323,8 +321,8 @@ export function registerSchedulerRoutes(app: Express, config: CrewExtensionsRout
 
           // Calculate fatigue risk based on consecutive days
           let fatigueRisk: "low" | "medium" | "high" = "low";
-          if (consecutiveDays > 21) fatigueRisk = "high";
-          else if (consecutiveDays > 14) fatigueRisk = "medium";
+          if (consecutiveDays > 21) {fatigueRisk = "high";}
+          else if (consecutiveDays > 14) {fatigueRisk = "medium";}
 
           return {
             crewId: crew.id,

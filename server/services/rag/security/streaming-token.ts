@@ -74,7 +74,7 @@ export class StreamingTokenService {
       .update(payloadStr)
       .digest('hex');
 
-    const token = Buffer.from(payloadStr).toString('base64') + '.' + signature;
+    const token = `${Buffer.from(payloadStr).toString('base64')  }.${  signature}`;
 
     // Store for validation
     tokenStore.tokens.set(token, payload);

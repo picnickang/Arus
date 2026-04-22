@@ -2,7 +2,7 @@
  * System Admin - Database Storage Settings, Integrations, Windows, Health
  */
 
-import { eq, and, desc, gte, lte, sql } from "drizzle-orm";
+import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { db } from "../../db-config";
 import { adminSystemSettings, integrationConfigs, maintenanceWindows, systemHealthChecks, systemPerformanceMetrics, type AdminSystemSetting, type InsertAdminSystemSetting, type IntegrationConfig, type InsertIntegrationConfig, type MaintenanceWindow, type InsertMaintenanceWindow, type SystemHealthCheck, type InsertSystemHealthCheck, type SystemPerformanceMetric } from "@shared/schema-runtime";
 import type { SystemHealthResult } from "./types.js";
@@ -11,7 +11,7 @@ export class DbSettingsStorage {
   async getSettings() {
     const { systemSettings } = await import("@shared/schema/core");
     const [settings] = await db.select().from(systemSettings).where(eq(systemSettings.id, "system"));
-    if (settings) return settings;
+    if (settings) {return settings;}
     const [created] = await db.insert(systemSettings).values({ id: "system" }).returning();
     return created;
   }

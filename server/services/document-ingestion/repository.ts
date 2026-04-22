@@ -1,6 +1,6 @@
 import { db } from '../../db';
 import { kbDocs, kbChunks, kbDocVersions, type InsertKbChunk, type KbDoc, type KbDocVersion } from '@shared/schema';
-import { eq, and, or, sql, arrayContains } from 'drizzle-orm';
+import { eq, and, or, sql } from 'drizzle-orm';
 import type { DocumentMetadata } from './types';
 import type { ChunkWithEmbedding } from './embedder';
 
@@ -115,7 +115,7 @@ export async function listDocumentsWithAccess(
   userRoles: string[]
 ): Promise<KbDoc[]> {
   const rolesArray = userRoles.length > 0 ? `{${userRoles.join(',')}}` : '{}';
-  const docs = await db.select().from(kbDocs)
+  return await db.select().from(kbDocs)
     .where(and(
       eq(kbDocs.orgId, orgId),
       or(
@@ -125,7 +125,6 @@ export async function listDocumentsWithAccess(
       )
     ))
     .orderBy(sql`${kbDocs.createdAt} DESC`);
-  return docs;
 }
 
 export async function canAccessDocument(
@@ -135,10 +134,10 @@ export async function canAccessDocument(
   userRoles: string[]
 ): Promise<boolean> {
   const doc = await getDocument(docId, orgId);
-  if (!doc) return false;
+  if (!doc) {return false;}
   
-  if (doc.visibility === 'org') return true;
-  if (doc.visibility === 'private' && doc.uploadedBy === userId) return true;
+  if (doc.visibility === 'org') {return true;}
+  if (doc.visibility === 'private' && doc.uploadedBy === userId) {return true;}
   if (doc.visibility === 'role-based' && doc.allowedRoles) {
     return doc.allowedRoles.some(role => userRoles.includes(role));
   }

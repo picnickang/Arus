@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { format, addDays, subDays, differenceInDays, parseISO, isWithinInterval, startOfWeek, endOfWeek } from 'date-fns';
+import { format, addDays, differenceInDays, parseISO, isWithinInterval, startOfWeek, endOfWeek } from 'date-fns';
 import { useLocation, useSearch } from 'wouter';
 import { 
   Calendar, 
@@ -70,9 +70,9 @@ function getWeekDateRange(weekOffset: number = 0) {
 }
 
 function formatWeekLabel(weekOffset: number): string {
-  if (weekOffset === 0) return 'This Week';
-  if (weekOffset === 1) return 'Next Week';
-  if (weekOffset === -1) return 'Last Week';
+  if (weekOffset === 0) {return 'This Week';}
+  if (weekOffset === 1) {return 'Next Week';}
+  if (weekOffset === -1) {return 'Last Week';}
   const { start, end } = getWeekDateRange(weekOffset);
   return `${format(start, 'MMM d')} - ${format(end, 'MMM d')}`;
 }
@@ -164,9 +164,9 @@ function RulGauge({ p10, p50, p90 }: { p10: number; p50: number; p90: number }) 
   const p90Pct = (p90 / maxDays) * 100;
   
   const getColor = (days: number) => {
-    if (days <= 7) return 'bg-red-500';
-    if (days <= 14) return 'bg-orange-500';
-    if (days <= 21) return 'bg-yellow-500';
+    if (days <= 7) {return 'bg-red-500';}
+    if (days <= 14) {return 'bg-orange-500';}
+    if (days <= 21) {return 'bg-yellow-500';}
     return 'bg-green-500';
   };
 
@@ -316,7 +316,7 @@ function FilterBar({
 }
 
 function TelemetryStaleWarning({ count }: { count: number }) {
-  if (count === 0) return null;
+  if (count === 0) {return null;}
   
   return (
     <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg text-yellow-800 dark:text-yellow-200">
@@ -612,7 +612,7 @@ function MoveTaskDialog({ task, isOpen, onClose, onConfirm }: MoveTaskDialogProp
     }
   }, [task, isOpen]);
 
-  if (!task) return null;
+  if (!task) {return null;}
 
   const earliestStart = typeof task.schedulingWindow.earliestStart === 'string'
     ? parseISO(task.schedulingWindow.earliestStart)
@@ -706,7 +706,7 @@ function TaskDetailPanel({
 }: TaskDetailPanelProps) {
   const createWoMutation = useCreateWorkOrderFromRisk();
 
-  if (!task) return null;
+  if (!task) {return null;}
 
   const handleCreateWorkOrder = async () => {
     await createWoMutation.mutateAsync(task.alertId);
@@ -918,7 +918,7 @@ export function ScheduleView() {
     startDate: format(start, 'yyyy-MM-dd'),
     endDate: format(end, 'yyyy-MM-dd'),
     maxTasksPerVesselPerDay: maxTasksPerDay,
-    autoPopulate: autoPopulate,
+    autoPopulate,
   }), [vesselId, equipmentType, start, end, maxTasksPerDay, autoPopulate]);
 
   const { data, isLoading, isError, refetch } = usePdmSchedule(filters);
@@ -926,11 +926,11 @@ export function ScheduleView() {
 
   const updateUrl = useCallback((newWeek: number, newVessel: string, newEquipType: string, newMaxTasks: number, newAutoPopulate: boolean) => {
     const newParams = new URLSearchParams();
-    if (newWeek !== 0) newParams.set('week', newWeek.toString());
-    if (newVessel !== 'all') newParams.set('vesselId', newVessel);
-    if (newEquipType !== 'all') newParams.set('equipmentType', newEquipType);
-    if (newMaxTasks !== 3) newParams.set('maxTasks', newMaxTasks.toString());
-    if (!newAutoPopulate) newParams.set('autoPopulate', 'false');
+    if (newWeek !== 0) {newParams.set('week', newWeek.toString());}
+    if (newVessel !== 'all') {newParams.set('vesselId', newVessel);}
+    if (newEquipType !== 'all') {newParams.set('equipmentType', newEquipType);}
+    if (newMaxTasks !== 3) {newParams.set('maxTasks', newMaxTasks.toString());}
+    if (!newAutoPopulate) {newParams.set('autoPopulate', 'false');}
     const queryString = newParams.toString();
     setLocation(queryString ? `?${queryString}` : '', { replace: true });
   }, [setLocation]);
@@ -973,16 +973,16 @@ export function ScheduleView() {
     try {
       const exportParams = new URLSearchParams();
       exportParams.set('format', 'csv');
-      if (filters.vesselIds?.length) exportParams.set('vesselIds', filters.vesselIds.join(','));
-      if (filters.equipmentTypes?.length) exportParams.set('equipmentTypes', filters.equipmentTypes.join(','));
-      if (filters.startDate) exportParams.set('startDate', filters.startDate);
-      if (filters.endDate) exportParams.set('endDate', filters.endDate);
+      if (filters.vesselIds?.length) {exportParams.set('vesselIds', filters.vesselIds.join(','));}
+      if (filters.equipmentTypes?.length) {exportParams.set('equipmentTypes', filters.equipmentTypes.join(','));}
+      if (filters.startDate) {exportParams.set('startDate', filters.startDate);}
+      if (filters.endDate) {exportParams.set('endDate', filters.endDate);}
 
       const response = await fetch(`/api/pdm/export/schedule?${exportParams.toString()}`, {
         credentials: 'same-origin',
         headers: { 'Accept': 'text/csv' },
       });
-      if (!response.ok) throw new Error('Export failed');
+      if (!response.ok) {throw new Error('Export failed');}
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');

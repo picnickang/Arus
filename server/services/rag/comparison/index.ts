@@ -176,7 +176,7 @@ Focus on factual, specific differences. Be concise but thorough.`;
         documents: documents.map((doc) => ({
           documentId: doc.documentId,
           documentTitle: doc.documentTitle,
-          relevantExcerpts: doc.chunks.slice(0, 2).map((c) => c.content.substring(0, 200) + "..."),
+          relevantExcerpts: doc.chunks.slice(0, 2).map((c) => `${c.content.substring(0, 200)  }...`),
         })),
         comparisonPoints: (parsed.comparisonPoints || []).map((point: any) => ({
           aspect: point.aspect,
@@ -208,7 +208,7 @@ Focus on factual, specific differences. Be concise but thorough.`;
       documents: documents.map((doc) => ({
         documentId: doc.documentId,
         documentTitle: doc.documentTitle,
-        relevantExcerpts: doc.chunks.slice(0, 2).map((c) => c.content.substring(0, 200) + "..."),
+        relevantExcerpts: doc.chunks.slice(0, 2).map((c) => `${c.content.substring(0, 200)  }...`),
       })),
       comparisonPoints: [],
       confidence: 0.4,
@@ -216,7 +216,7 @@ Focus on factual, specific differences. Be concise but thorough.`;
   }
 
   async getAvailableDocuments(orgId: string): Promise<Array<{ id: string; title: string }>> {
-    const documents = await db
+    return await db
       .select({
         id: kbDocs.id,
         title: kbDocs.title,
@@ -225,8 +225,6 @@ Focus on factual, specific differences. Be concise but thorough.`;
       .where(eq(kbDocs.orgId, orgId))
       .orderBy(sql`${kbDocs.uploadedAt} DESC`)
       .limit(100);
-
-    return documents;
   }
 }
 

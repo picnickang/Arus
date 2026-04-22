@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { addDays, addWeeks, addMonths, format, startOfWeek, eachDayOfInterval, differenceInDays, isSameDay, parseISO, isWithinInterval, startOfDay } from "date-fns";
+import { addDays, addWeeks, addMonths, format, startOfWeek, eachDayOfInterval, differenceInDays, parseISO, startOfDay } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -155,8 +155,8 @@ export function useSchedulePlannerData() {
 
   // Compute sync status from pending operations and network state
   const computedSyncStatus = useMemo((): SyncStatus => {
-    if (!navigator.onLine) return "offline";
-    if (pendingOperations.length > 0) return "syncing";
+    if (!navigator.onLine) {return "offline";}
+    if (pendingOperations.length > 0) {return "syncing";}
     return syncStatus;
   }, [syncStatus, pendingOperations.length]);
 
@@ -208,7 +208,7 @@ export function useSchedulePlannerData() {
 
   // Flush pending operations (called when coming back online)
   const flushPendingOperations = useCallback(async () => {
-    if (!navigator.onLine) return;
+    if (!navigator.onLine) {return;}
     
     // Copy current operations to flush and clear the queue atomically
     let operationsToFlush: PendingOperation[] = [];
@@ -217,7 +217,7 @@ export function useSchedulePlannerData() {
       return [];
     });
     
-    if (operationsToFlush.length === 0) return;
+    if (operationsToFlush.length === 0) {return;}
     
     const failedOps: PendingOperation[] = [];
     
@@ -305,7 +305,7 @@ export function useSchedulePlannerData() {
   });
 
   const selectedAssignment = useMemo(() => {
-    if (!selectedAssignmentId) return null;
+    if (!selectedAssignmentId) {return null;}
     return assignments.find(a => a.id === selectedAssignmentId) || null;
   }, [selectedAssignmentId, assignments]);
 
@@ -328,14 +328,14 @@ export function useSchedulePlannerData() {
   const { data: fatigueData = {} } = useQuery<Record<string, FatigueResult>>({
     queryKey: ["/api/hor/fatigue/batch", crewIdsInAssignments],
     queryFn: async () => {
-      if (crewIdsInAssignments.length === 0) return {};
+      if (crewIdsInAssignments.length === 0) {return {};}
       
       // Fetch fatigue for each crew member in parallel
       const results = await Promise.all(
         crewIdsInAssignments.map(async (crewId) => {
           try {
             const response = await fetch(`/api/hor/fatigue/${crewId}?days=14`);
-            if (!response.ok) return null;
+            if (!response.ok) {return null;}
             const data = await response.json();
             return { crewId, data };
           } catch {
@@ -347,7 +347,7 @@ export function useSchedulePlannerData() {
       // Build a map of crewId -> FatigueResult
       const fatigueMap: Record<string, FatigueResult> = {};
       for (const result of results) {
-        if (result && result.data) {
+        if (result?.data) {
           fatigueMap[result.crewId] = result.data;
         }
       }
@@ -363,7 +363,7 @@ export function useSchedulePlannerData() {
   }, [fatigueData]);
 
   const filteredVessels = useMemo(() => {
-    if (!selectedVesselId) return vessels;
+    if (!selectedVesselId) {return vessels;}
     return vessels.filter(v => v.id === selectedVesselId);
   }, [vessels, selectedVesselId]);
 

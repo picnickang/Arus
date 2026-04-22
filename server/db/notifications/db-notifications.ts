@@ -2,7 +2,7 @@
  * Notifications - Database Storage
  */
 
-import { eq, and, desc, gte, lte, isNull, sql } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db } from "../../db-config";
 import { notificationSettings, type NotificationSettings, type InsertNotificationSettings } from "@shared/schema-runtime";
 import { emailQueue, type EmailQueue, type InsertEmailQueue } from "@shared/schema";

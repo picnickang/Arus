@@ -9,7 +9,7 @@ export function createGetEquipmentHubUseCase(repo: EquipmentHubRepository) {
 
     async runDiagnostic(orgId: string, equipmentId: string, analysisType: string): Promise<DiagnosticRunSummary | null> {
       const hub = await repo.getHubAggregate(orgId, equipmentId);
-      if (!hub) return null;
+      if (!hub) {return null;}
       const summary = generateDiagnosticSummary(analysisType, hub);
       const results = generateDiagnosticResults(analysisType, hub);
       return repo.saveDiagnosticRun(orgId, equipmentId, analysisType, results, summary);

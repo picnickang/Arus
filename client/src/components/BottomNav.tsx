@@ -102,7 +102,7 @@ export function BottomNav() {
           </Link>
 
           {visibleCategories.map((cat) => {
-            if (!cat) return null;
+            if (!cat) {return null;}
             const Icon = cat.icon;
             const active = isActive(cat.hubRoute);
             return (

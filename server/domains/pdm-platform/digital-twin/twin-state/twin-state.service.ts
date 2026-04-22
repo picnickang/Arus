@@ -43,7 +43,7 @@ export class TwinStateService {
     const observedBySensor: Record<string, number[]> = {};
     for (const r of readings) {
       const key = r.sensorType.toLowerCase();
-      if (!observedBySensor[key]) observedBySensor[key] = [];
+      if (!observedBySensor[key]) {observedBySensor[key] = [];}
       observedBySensor[key].push(r.value);
     }
 
@@ -125,7 +125,7 @@ export class TwinStateService {
     envelope: OperatingEnvelope
   ): number {
     const sensors = Object.keys(expected);
-    if (sensors.length === 0) return 100;
+    if (sensors.length === 0) {return 100;}
 
     let totalWeightedDeviation = 0;
     let totalWeight = 0;
@@ -133,7 +133,7 @@ export class TwinStateService {
     for (const sensor of sensors) {
       const obs = observed[sensor];
       const exp = expected[sensor];
-      if (obs == null || exp == null || exp === 0) continue;
+      if (obs == null || exp == null || exp === 0) {continue;}
 
       const env = envelope[sensor];
       const range = env ? env.max - env.min : Math.abs(exp) * 0.5 || 1;
@@ -144,11 +144,10 @@ export class TwinStateService {
       totalWeight += weight;
     }
 
-    if (totalWeight === 0) return 100;
+    if (totalWeight === 0) {return 100;}
 
     const avgDeviation = totalWeightedDeviation / totalWeight;
-    const health = Math.max(0, Math.min(100, 100 * (1 - avgDeviation)));
-    return health;
+    return Math.max(0, Math.min(100, 100 * (1 - avgDeviation)));
   }
 
   private computeEfficiencyScore(
@@ -156,7 +155,7 @@ export class TwinStateService {
     expected: Record<string, number>
   ): number {
     const sensors = Object.keys(expected);
-    if (sensors.length === 0) return 100;
+    if (sensors.length === 0) {return 100;}
 
     let ratioSum = 0;
     let count = 0;
@@ -164,14 +163,14 @@ export class TwinStateService {
     for (const sensor of sensors) {
       const obs = observed[sensor];
       const exp = expected[sensor];
-      if (obs == null || exp == null || exp === 0) continue;
+      if (obs == null || exp == null || exp === 0) {continue;}
 
       const ratio = Math.min(obs / exp, exp / obs);
       ratioSum += ratio;
       count++;
     }
 
-    if (count === 0) return 100;
+    if (count === 0) {return 100;}
     return Math.max(0, Math.min(100, (ratioSum / count) * 100));
   }
 

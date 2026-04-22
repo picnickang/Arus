@@ -81,7 +81,7 @@ export class EquipmentHeartbeatAdapter {
   }
 
   async batchUpdateHeartbeats(updates: HeartbeatUpdate[]): Promise<void> {
-    if (updates.length === 0) return;
+    if (updates.length === 0) {return;}
 
     const uniqueUpdates = new Map<string, HeartbeatUpdate>();
     for (const update of updates) {

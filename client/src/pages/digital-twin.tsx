@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -29,8 +28,6 @@ import {
   Heart,
   Gauge,
   Timer,
-  AlertTriangle,
-  CheckCircle2,
   ArrowUp,
   ArrowDown,
   Play,
@@ -70,9 +67,9 @@ function severityColor(severity: string) {
 }
 
 function healthColor(score: number | null | undefined) {
-  if (score == null) return "text-muted-foreground";
-  if (score >= 80) return "text-green-600";
-  if (score >= 60) return "text-yellow-600";
+  if (score == null) {return "text-muted-foreground";}
+  if (score >= 80) {return "text-green-600";}
+  if (score >= 60) {return "text-yellow-600";}
   return "text-red-600";
 }
 
@@ -120,7 +117,7 @@ function OverviewTab() {
   };
 
   const handleCreateTemplate = async () => {
-    if (!templateName || !templateType) return;
+    if (!templateName || !templateType) {return;}
     try {
       await createTemplate.mutateAsync({
         name: templateName,
@@ -150,7 +147,7 @@ function OverviewTab() {
   };
 
   const handleCreateTwin = async () => {
-    if (!twinName || !twinEquipmentId || !twinTemplateId) return;
+    if (!twinName || !twinEquipmentId || !twinTemplateId) {return;}
     try {
       await createTwin.mutateAsync({
         name: twinName,
@@ -357,13 +354,13 @@ function OverviewTab() {
 }
 
 function formatTimeAgo(dateStr: string | null | undefined): string {
-  if (!dateStr) return "Never";
+  if (!dateStr) {return "Never";}
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "Just now";
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) {return "Just now";}
+  if (mins < 60) {return `${mins}m ago`;}
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) {return `${hours}h ago`;}
   return `${Math.floor(hours / 24)}d ago`;
 }
 
@@ -499,7 +496,7 @@ function StateTab() {
   const { toast } = useToast();
 
   const handleCompute = async () => {
-    if (!twinId) return;
+    if (!twinId) {return;}
     try {
       await computeMutation.mutateAsync(twinId);
       toast({ title: "State computed successfully" });
@@ -661,7 +658,7 @@ function ResidualsTab() {
   const { toast } = useToast();
 
   const handleCompute = async () => {
-    if (!twinId) return;
+    if (!twinId) {return;}
     try {
       await computeMutation.mutateAsync(twinId);
       toast({ title: "Residuals computed" });
@@ -803,7 +800,7 @@ function ScenariosTab() {
   const { toast } = useToast();
 
   const handleRun = async () => {
-    if (!twinId || !scenarioName) return;
+    if (!twinId || !scenarioName) {return;}
     try {
       await runMutation.mutateAsync({
         twinId,

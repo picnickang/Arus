@@ -11,7 +11,6 @@ import {
   subscribeToOnlineStatus,
   getPendingCount,
   hasConflicts,
-  removeOperation,
   PendingOperation,
   SyncConflict,
   EntityType,
@@ -100,7 +99,7 @@ export function useOfflineSync(): UseOfflineSyncResult {
         if (op.operationType === "create") {
           await apiRequest("POST", baseUrl, op.payload);
           return { success: true };
-        } else if (op.operationType === "update") {
+        } if (op.operationType === "update") {
           await apiRequest(
             "PATCH",
             `${baseUrl}/${op.entityId}`,
@@ -110,7 +109,7 @@ export function useOfflineSync(): UseOfflineSyncResult {
             }
           );
           return { success: true };
-        } else if (op.operationType === "delete") {
+        } if (op.operationType === "delete") {
           await apiRequest("DELETE", `${baseUrl}/${op.entityId}`);
           return { success: true };
         }
@@ -119,7 +118,7 @@ export function useOfflineSync(): UseOfflineSyncResult {
       } catch (error: unknown) {
         const errorObj = error as { status?: number; response?: Response; message?: string };
         
-        if (errorObj.status === 409 || (errorObj.message && errorObj.message.includes("409"))) {
+        if (errorObj.status === 409 || (errorObj.message?.includes("409"))) {
           let serverVersion: Record<string, unknown> = {};
           
           if (errorObj.response) {
@@ -141,7 +140,7 @@ export function useOfflineSync(): UseOfflineSyncResult {
   );
 
   const syncNow = useCallback(async () => {
-    if (!isOnline() || state.isSyncing) return;
+    if (!isOnline() || state.isSyncing) {return;}
 
     setState((prev) => ({ ...prev, isSyncing: true }));
 

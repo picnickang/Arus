@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw, Trash2, Ship, AlertCircle, History, Calendar } from "lucide-react";
-import { formatType, formatLocation, getVesselInfo } from "@/utils/equipmentHelpers";
+import { formatType, getVesselInfo } from "@/utils/equipmentHelpers";
 import { format } from "date-fns";
 
 interface DecommissionedEquipmentTableProps {

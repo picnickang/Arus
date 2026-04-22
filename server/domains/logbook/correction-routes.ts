@@ -21,8 +21,8 @@ function getUser(req: Request): { id: string; name?: string; rank?: string } {
 }
 
 function getRows(result: any): any[] {
-  if (Array.isArray(result)) return result;
-  if (result?.rows && Array.isArray(result.rows)) return result.rows;
+  if (Array.isArray(result)) {return result;}
+  if (result?.rows && Array.isArray(result.rows)) {return result.rows;}
   return [];
 }
 

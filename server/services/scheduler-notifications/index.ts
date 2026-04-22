@@ -135,7 +135,7 @@ export async function sendSchedulePublishedNotification(
       adminEmails,
     });
 
-    if (emails.length === 0) continue;
+    if (emails.length === 0) {continue;}
 
     const assignmentList = crewAssignments
       .map(a => `- ${a.vesselName || a.vesselId}: ${formatDate(a.startDate)} to ${formatDate(a.endDate)}`)
@@ -174,7 +174,7 @@ ${crewAssignments.map(a => `<li><strong>${a.vesselName || a.vesselId}:</strong> 
       html,
     });
 
-    if (result.success) sentCount++;
+    if (result.success) {sentCount++;}
   }
 
   return { success: true, sentCount };

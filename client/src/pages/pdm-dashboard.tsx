@@ -6,23 +6,16 @@ import {
   TrendingUp, 
   Wrench, 
   Brain, 
-  Wifi, 
-  WifiOff,
+  Wifi,
   ChevronRight,
-  ChevronDown,
   FileText,
   CheckCircle,
   Settings,
   Search,
   Download,
-  Ship,
-  Gauge,
-  DollarSign,
-  BarChart3,
-  Home,
-  ChevronLeft
+  Ship
 } from 'lucide-react';
-import { Link, useLocation } from 'wouter';
+import { useLocation } from 'wouter';
 import { IntelligenceLayout } from '@/components/intelligence/IntelligenceLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -47,7 +40,6 @@ import {
   ScheduleView
 } from '@/features/pdm';
 import type { RiskQueueItem, RiskLevel, TelemetryTrend, EvidenceChip, TelemetryReading } from '@/features/pdm';
-import { formatDistanceToNow, format, parseISO } from 'date-fns';
 import {
   AreaChart,
   Area,
@@ -68,8 +60,8 @@ import {
 function FleetHealthGauge({ score, change, period }: { score: number; change: number; period: string }) {
   const rotation = (score / 100) * 180 - 90;
   const getColor = () => {
-    if (score >= 80) return 'text-green-500';
-    if (score >= 60) return 'text-yellow-500';
+    if (score >= 80) {return 'text-green-500';}
+    if (score >= 60) {return 'text-yellow-500';}
     return 'text-red-500';
   };
 
@@ -182,7 +174,7 @@ function StatusBadge({ status }: { status: 'new' | 'active' | 'acknowledged' | '
 }
 
 function MiniSparkline({ data, color = 'hsl(var(--primary))' }: { data: number[]; color?: string }) {
-  if (!data || data.length < 2) return null;
+  if (!data || data.length < 2) {return null;}
   
   const min = Math.min(...data);
   const max = Math.max(...data);
@@ -772,7 +764,7 @@ function AssetDetailPanel({
   const { data: telemetryReadings, isLoading: telemetryLoading } = useEquipmentTelemetry(item?.equipmentId || null, { limit: 50, hours: 24 });
   const createWOMutation = useCreateWorkOrderFromRisk();
 
-  if (!item) return null;
+  if (!item) {return null;}
 
   return (
     <Sheet open={!!item} onOpenChange={(open) => !open && onClose()}>
@@ -872,9 +864,9 @@ function RulGauge({ rulDays, confidence, confidenceInterval }: {
   const maxDays = 60;
   const normalizedRul = Math.min(rulDays / maxDays, 1);
   const getColor = (days: number) => {
-    if (days < 7) return '#ef4444';
-    if (days < 14) return '#f97316';
-    if (days < 30) return '#eab308';
+    if (days < 7) {return '#ef4444';}
+    if (days < 14) {return '#f97316';}
+    if (days < 30) {return '#eab308';}
     return '#22c55e';
   };
 
@@ -1023,7 +1015,7 @@ function SensorTrendChart({ trends, isLoading, sensorFilter }: {
     : trends;
 
   const chartData = filteredTrends.slice(0, 10).map((t, i) => ({
-    name: t.sensorType.length > 12 ? t.sensorType.slice(0, 12) + '...' : t.sensorType,
+    name: t.sensorType.length > 12 ? `${t.sensorType.slice(0, 12)  }...` : t.sensorType,
     fullName: t.sensorType,
     avg: Math.round(t.avgValue * 10) / 10,
     min: Math.round(t.minValue * 10) / 10,
@@ -1087,7 +1079,7 @@ function SensorTimeSeriesChart({ trends, isLoading }: { trends?: TelemetryTrend[
   ).slice(0, 6);
 
   const chartData = vibrationTrends.map((t, i) => ({
-    sensor: t.sensorType.length > 15 ? t.sensorType.slice(0, 15) + '...' : t.sensorType,
+    sensor: t.sensorType.length > 15 ? `${t.sensorType.slice(0, 15)  }...` : t.sensorType,
     value: Math.round(t.avgValue * 100) / 100,
     min: Math.round(t.minValue * 100) / 100,
     max: Math.round(t.maxValue * 100) / 100,
@@ -1221,18 +1213,18 @@ export default function PdmDashboard() {
   const handleExportCSV = () => {
     const params = new URLSearchParams();
     params.set('format', 'csv');
-    if (filters.vesselId) params.set('vesselId', filters.vesselId);
-    if (filters.equipmentType) params.set('equipmentType', filters.equipmentType);
-    if (filters.search) params.set('search', filters.search);
+    if (filters.vesselId) {params.set('vesselId', filters.vesselId);}
+    if (filters.equipmentType) {params.set('equipmentType', filters.equipmentType);}
+    if (filters.search) {params.set('search', filters.search);}
     window.open(`/api/pdm/export/risk-queue?${params.toString()}`, '_blank');
   };
 
   const handleExportJSON = () => {
     const params = new URLSearchParams();
     params.set('format', 'json');
-    if (filters.vesselId) params.set('vesselId', filters.vesselId);
-    if (filters.equipmentType) params.set('equipmentType', filters.equipmentType);
-    if (filters.search) params.set('search', filters.search);
+    if (filters.vesselId) {params.set('vesselId', filters.vesselId);}
+    if (filters.equipmentType) {params.set('equipmentType', filters.equipmentType);}
+    if (filters.search) {params.set('search', filters.search);}
     window.open(`/api/pdm/export/risk-queue?${params.toString()}`, '_blank');
   };
 

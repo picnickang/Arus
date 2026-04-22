@@ -19,20 +19,18 @@ import {
 import {
   ingestDocument,
   deleteDocument,
-  listDocuments,
 } from "../document-ingestion-service";
 import { searchKnowledgeBase } from "../vector-search-service";
 import { getKnowledgeBaseStats } from "../vector-search-service";
 import { jobQueueService, type DocumentIngestionJob } from "../job-queue-service";
 import { db } from "../db";
-import { kbDocs, kbDocVersions, equipment } from "@shared/schema-runtime";
-import { eq, and, desc } from "drizzle-orm";
+import { kbDocs, equipment } from "@shared/schema-runtime";
+import { eq, and } from "drizzle-orm";
 import {
   updateDocumentVersion,
   getDocumentVersionHistory,
   updateDocumentVisibility,
   listDocumentsWithAccess,
-  recordDocumentCreation,
 } from "../services/document-ingestion/repository";
 
 // Helper to validate equipmentId belongs to org (optional field validation)

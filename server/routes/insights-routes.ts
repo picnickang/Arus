@@ -28,11 +28,11 @@ export function registerInsightsRoutes(app: Express) {
       const { vesselId, equipmentId, severity, resolved, acknowledged } = req.query;
 
       const conditions = [eq(actionableInsights.orgId, orgId)];
-      if (vesselId) conditions.push(eq(actionableInsights.vesselId, vesselId as string));
-      if (equipmentId) conditions.push(eq(actionableInsights.equipmentId, equipmentId as string));
-      if (severity) conditions.push(eq(actionableInsights.severity, severity as string));
-      if (resolved !== undefined) conditions.push(eq(actionableInsights.resolved, resolved === 'true'));
-      if (acknowledged !== undefined) conditions.push(eq(actionableInsights.acknowledged, acknowledged === 'true'));
+      if (vesselId) {conditions.push(eq(actionableInsights.vesselId, vesselId as string));}
+      if (equipmentId) {conditions.push(eq(actionableInsights.equipmentId, equipmentId as string));}
+      if (severity) {conditions.push(eq(actionableInsights.severity, severity as string));}
+      if (resolved !== undefined) {conditions.push(eq(actionableInsights.resolved, resolved === 'true'));}
+      if (acknowledged !== undefined) {conditions.push(eq(actionableInsights.acknowledged, acknowledged === 'true'));}
 
       const results = await db
         .select({
@@ -78,7 +78,7 @@ export function registerInsightsRoutes(app: Express) {
       const { scope } = req.query;
       const { insightSnapshots } = await import('@shared/schema-runtime');
       const conditions = [eq(insightSnapshots.orgId, orgId)];
-      if (scope) conditions.push(eq(insightSnapshots.scope, scope as string));
+      if (scope) {conditions.push(eq(insightSnapshots.scope, scope as string));}
       const snapshots = await db.select().from(insightSnapshots)
         .where(and(...conditions))
         .orderBy(sql`${insightSnapshots.createdAt} DESC`).limit(100);
@@ -264,7 +264,7 @@ export function registerInsightsRoutes(app: Express) {
       const { vesselId } = req.query;
 
       const conditions = [eq(actionableInsights.orgId, orgId)];
-      if (vesselId) conditions.push(eq(actionableInsights.vesselId, vesselId as string));
+      if (vesselId) {conditions.push(eq(actionableInsights.vesselId, vesselId as string));}
 
       const stats = await db
         .select({

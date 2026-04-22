@@ -1,6 +1,5 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -66,9 +65,9 @@ function formatTriggerType(type: string): string {
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 60) {return `${mins}m ago`;}
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) {return `${hours}h ago`;}
   return `${Math.floor(hours / 24)}d ago`;
 }
 
@@ -113,14 +112,14 @@ export function SuggestionBell() {
   }, []);
 
   const handleDismissSubmit = useCallback(() => {
-    if (!dismissTargetId) return;
+    if (!dismissTargetId) {return;}
     dismissMutation.mutate({ id: dismissTargetId, outcome: dismissOutcome, outcomeReason: dismissReason || undefined });
     setDismissDialogOpen(false);
     setDismissTargetId(null);
   }, [dismissTargetId, dismissOutcome, dismissReason, dismissMutation]);
 
   const handleDismissSkip = useCallback(() => {
-    if (!dismissTargetId) return;
+    if (!dismissTargetId) {return;}
     dismissMutation.mutate({ id: dismissTargetId });
     setDismissDialogOpen(false);
     setDismissTargetId(null);

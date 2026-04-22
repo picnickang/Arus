@@ -49,7 +49,7 @@ export function EquipmentSelector({
   });
 
   const getVesselName = (vId?: string): string | null => {
-    if (!vId) return null;
+    if (!vId) {return null;}
     const v = vessels?.find((vessel) => vessel.id === vId);
     return v?.name || null;
   };

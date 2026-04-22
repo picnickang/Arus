@@ -13,7 +13,7 @@ import { LoadingState } from "@/components/patterns/LoadingState";
 import { ErrorState } from "@/components/patterns/ErrorState";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { BulkSelectionBar } from "@/components/ui/bulk-selection-bar";
-import { ArrowLeft, Activity, Gauge, AlertTriangle, Wrench, FileText, Plus, Settings } from "lucide-react";
+import { Activity, Gauge, AlertTriangle, Wrench, FileText, Plus, Settings } from "lucide-react";
 import { usePdmEquipmentDetailData, useOverviewTabData, useSensorsTabData, useAnomaliesTabData, useMaintenanceHistoryTabData, type EquipmentDetail, type PdmHealthData } from "@/features/analytics";
 import { formatDate } from "@/lib/formatters";
 import { PageHeader } from "@/components/navigation";

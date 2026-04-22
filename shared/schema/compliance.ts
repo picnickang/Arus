@@ -10,7 +10,6 @@ import {
   text,
   varchar,
   integer,
-  real,
   timestamp,
   boolean,
   jsonb,

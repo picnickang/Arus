@@ -160,8 +160,8 @@ export class FileValidator {
     // Check for Office Open XML (DOCX, XLSX) - they're ZIP files
     if (buffer.subarray(0, 4).equals(MAGIC_BYTES['application/zip'])) {
       // These are actually ZIP files, we need to check content
-      if (ext === '.docx') return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-      if (ext === '.xlsx') return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      if (ext === '.docx') {return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';}
+      if (ext === '.xlsx') {return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';}
       return 'application/zip';
     }
 
@@ -170,8 +170,8 @@ export class FileValidator {
       // Check if it looks like text
       const sample = buffer.subarray(0, Math.min(1000, buffer.length));
       if (this.isLikelyText(sample)) {
-        if (ext === '.md') return 'text/markdown';
-        if (ext === '.csv') return 'text/csv';
+        if (ext === '.md') {return 'text/markdown';}
+        if (ext === '.csv') {return 'text/csv';}
         return 'text/plain';
       }
     }

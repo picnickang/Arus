@@ -6,7 +6,7 @@ import { dbWorkOrderStorage } from "../db/workorders/index.js";
 import { dbEquipmentStorage } from "../db/equipment/index.js";
 
 function safeCall<T>(fn: (() => Promise<T>) | undefined): Promise<T | null> {
-  if (typeof fn !== "function") return Promise.resolve(null);
+  if (typeof fn !== "function") {return Promise.resolve(null);}
   try {
     const result = fn();
     if (result && typeof (result as any).catch === "function") {
