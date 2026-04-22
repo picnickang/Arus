@@ -194,7 +194,7 @@ export async function computeInsights(
     );
 
     return { kpi, risks, recommendations, anomalies, compliance };
-  } catch (_error) {
+  } catch {
     console.error("Insights computation error:", error);
 
     return {

@@ -53,7 +53,7 @@ export async function computeFleetLoadBenchmarks(
       try {
         const dist = await computeEquipmentLoadDistribution(eq.id, orgId, timeRange);
         if (dist.length > 0) {allDistributions.push(dist);}
-      } catch (_err) {
+      } catch {
         console.error(`Error computing load distribution for ${eq.id}:`, err);
       }
     }
@@ -103,7 +103,7 @@ export async function computeFleetPowerSTWBenchmarks(
           allPoints.push(...calculatePowerSTWCurve(rpm, torque, stw.length > 0 ? stw : undefined));
         }
       }
-    } catch (_err) {
+    } catch {
       console.error(`Error computing power-STW for vessel ${vessel.id}:`, err);
     }
   }

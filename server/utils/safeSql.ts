@@ -71,7 +71,7 @@ export async function safeSql<T = unknown>(
     // Attempt to use db.all() for SELECT queries (SQLite)
     const result = await db.all(sqlQuery);
     return { rows: result, rowCount: result?.length || 0 };
-  } catch (_error) {
+  } catch {
     // If db.all() fails, try db.get() for single-row queries
     try {
       const result = await db.get(sqlQuery);

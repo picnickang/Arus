@@ -70,7 +70,7 @@ export class DigitalTwinService extends EventEmitter {
       this.activeTwins.set(twinId, twin);
       this.emit("twin_state_updated", { twinId, previousState: currentState, newState: validatedState, telemetryData });
       await this.checkCriticalConditions(twinId, validatedState);
-    } catch (_error) {
+    } catch {
       console.error(`[Digital Twin] Error updating state for ${twinId}:`, error);
       this.emit("twin_error", { twinId, error: error instanceof Error ? error.message : String(error) });
       throw new Error(`Failed to update digital twin state for ${twinId}: ${error instanceof Error ? error.message : String(error)}`);
@@ -107,7 +107,7 @@ export class DigitalTwinService extends EventEmitter {
       await db.update(twinSimulations).set({ status: "completed", progressPercentage: 100, endTime: new Date(), simulationResults: results, recommendedActions: analysis.recommendations, costBenefitAnalysis: analysis.costBenefit }).where(eq(twinSimulations.id, simulationId));
       this.simulationQueue.delete(simulationId);
       this.emit("simulation_completed", { simulationId, results, analysis });
-    } catch (_error) {
+    } catch {
       await db.update(twinSimulations).set({ status: "failed", endTime: new Date(), metadata: { error: error instanceof Error ? error.message : String(error), failedAt: new Date().toISOString() } }).where(eq(twinSimulations.id, simulationId));
       this.simulationQueue.delete(simulationId);
       this.emit("simulation_failed", { simulationId, error });

@@ -394,7 +394,7 @@ export function useHoursOfRestData(): UseHoursOfRestDataReturn {
       }
       toast({ title: "Month data cleared", description: `Successfully cleared ${successCount} month(s)`, variant: "default" });
       setMonthsToRemove([]);
-    } catch (_error) { toast({ title: "Clear failed", description: "Failed to clear month data", variant: "destructive" }); }
+    } catch { toast({ title: "Clear failed", description: "Failed to clear month data", variant: "destructive" }); }
   }, [monthsToRemove, isReadyForActions, meta, toast]);
 
   const upload = useCallback(async () => {
@@ -443,7 +443,7 @@ export function useHoursOfRestData(): UseHoursOfRestDataReturn {
       globalThis.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       toast({ title: "PDF exported successfully" });
-    } catch (_error) { toast({ title: "Export failed", variant: "destructive" }); }
+    } catch { toast({ title: "Export failed", variant: "destructive" }); }
   }, [meta, toast]);
 
   const loadFromProposedPlan = useCallback(() => {

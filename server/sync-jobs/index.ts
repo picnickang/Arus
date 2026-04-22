@@ -106,7 +106,7 @@ export async function reconcileAll(orgId: string): Promise<ReconciliationResult>
       },
       timestamp: new Date(),
     };
-  } catch (_error) {
+  } catch {
     console.error("Reconciliation failed:", error);
     return {
       success: false,

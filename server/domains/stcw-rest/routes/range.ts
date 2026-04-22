@@ -60,7 +60,7 @@ export function registerRangeRoutes(app: Express, deps: StcwRestDependencies): v
                 });
                 results.push(...filteredDays);
               }
-            } catch (_error) {
+            } catch {
               logger.warn("STCWRestRange", `No rest data found for crew ${crewId} in ${year}-${month}`);
             }
 

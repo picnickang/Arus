@@ -239,7 +239,7 @@ export async function planAndMaybeExecute({
     );
 
     return { runId: run.id, mode, stats, scheduled, unfilled };
-  } catch (_error) {
+  } catch {
     // Mark run as failed
     await dbSchedulerStorage.updateSchedulerRun(run.id, {
       finishedAt: new Date(),

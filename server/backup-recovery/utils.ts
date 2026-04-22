@@ -36,7 +36,7 @@ export async function getDatabaseVersion(): Promise<string> {
   try {
     const result = await db.execute(sql`SELECT version();`);
     return (result.rows[0] as any).version;
-  } catch (_error) {
+  } catch {
     return "unknown";
   }
 }

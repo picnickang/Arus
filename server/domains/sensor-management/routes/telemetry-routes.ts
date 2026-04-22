@@ -16,7 +16,7 @@ export function registerTelemetryRoutes(app: Express, config: SensorManagementCo
       const hours = req.query.hours ? Number.parseInt(req.query.hours as string) : 24;
       const history = await dbTelemetryStorage.getTelemetryHistory(equipmentId, sensorType, hours);
       res.json(history);
-    } catch (_error) {
+    } catch {
       res.status(500).json({ message: "Failed to fetch telemetry history" });
     }
   });

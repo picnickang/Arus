@@ -152,7 +152,7 @@ export function AcousticAnalysisPanel({
     try {
       const analysisResult = await onAnalyze(acousticData);
       setResult(analysisResult);
-    } catch (_err) {
+    } catch {
       setError(err instanceof Error ? err.message : 'Analysis failed');
     }
   };

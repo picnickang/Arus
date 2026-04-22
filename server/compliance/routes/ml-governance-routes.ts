@@ -60,7 +60,7 @@ router.post('/ml-governance/overrides', requireAdminAuth, auditAdminAction('engi
     await recordEngineerOverride({ overrideId: override.id, predictionId: override.predictionId || undefined, equipmentId: override.equipmentId, vesselId: undefined, workOrderId: override.workOrderId || undefined, overrideType: override.overrideType as 'defer' | 'escalate' | 'dismiss' | 'modify', originalRiskLevel: override.originalRiskLevel, newRiskLevel: override.newRiskLevel || undefined, originalConfidence: override.originalConfidence || undefined, justification: override.justification, engineerId: override.engineerId, engineerName: override.engineerName, engineerCertifications: override.engineerCertifications || undefined, originalPrediction: override.originalPrediction as Record<string, unknown>, orgId });
     await auditService.logEvent({ orgId, eventCategory: 'ml_prediction', eventType: 'engineer_override_created', entityType: 'engineer_override', entityId: override.id, newState: { equipmentId: override.equipmentId, overrideType: override.overrideType, originalRiskLevel: override.originalRiskLevel, newRiskLevel: override.newRiskLevel, engineerId: override.engineerId, engineerName: override.engineerName }, performedBy: override.engineerId, performedByType: 'user', retentionRequired: true });
     res.status(201).json({ success: true, data: override, message: 'Engineer override recorded and logged to provenance chain' });
-  } catch (_error) {
+  } catch {
     if (error instanceof z.ZodError) { return res.status(400).json({ error: 'Validation failed', details: error.errors }); }
     console.error('[Compliance] Create engineer override error:', error);
     res.status(500).json({ error: 'Failed to create engineer override' });
@@ -80,7 +80,7 @@ router.patch('/ml-governance/overrides/:id/outcome', requireAdminAuth, auditAdmi
     await recordOverrideOutcome({ overrideId: id, equipmentId: existingOverride.equipmentId, vesselId: undefined, originalOverrideType: existingOverride.overrideType as 'defer' | 'escalate' | 'dismiss' | 'modify', outcomeStatus: validatedData.outcomeStatus as 'pending' | 'validated' | 'failure_prevented' | 'failure_occurred', outcomeNotes: validatedData.outcomeNotes, outcomeRecordedBy, engineerId: existingOverride.engineerId, engineerName: existingOverride.engineerName, orgId });
     await auditService.logEvent({ orgId, eventCategory: 'ml_prediction', eventType: 'engineer_override_outcome_updated', entityType: 'engineer_override', entityId: id, previousState: { outcomeStatus: existingOverride.outcomeStatus }, newState: { outcomeStatus: validatedData.outcomeStatus, outcomeNotes: validatedData.outcomeNotes }, performedBy: outcomeRecordedBy, performedByType: 'user', retentionRequired: true });
     res.json({ success: true, data: override, message: 'Engineer override outcome updated and logged to provenance chain' });
-  } catch (_error) {
+  } catch {
     if (error instanceof z.ZodError) { return res.status(400).json({ error: 'Validation failed', details: error.errors }); }
     console.error('[Compliance] Update engineer override outcome error:', error);
     res.status(500).json({ error: 'Failed to update engineer override outcome' });

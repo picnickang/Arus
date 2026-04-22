@@ -94,7 +94,7 @@ async function atomicClaimAlertSlotSQLite(orgId: string, alertType: string, aler
     }
     const [newRow] = await db.insert(alertCooldown).values({ orgId, vesselId: vesselId || null, alertType, alertKey, entityId: entityId || null, lastAlertAt: now, lastEmailAt: null, alertCount: 1 }).returning({ id: alertCooldown.id });
     return { claimed: true, cooldownId: newRow.id, snapshot: { lastAlertAt: now, lastEmailAt: null, alertCount: 0, claimUpdatedAt: now } };
-  } catch (_err) { return { claimed: true, cooldownId: undefined, reason: "SQLite fallback" }; }
+  } catch { return { claimed: true, cooldownId: undefined, reason: "SQLite fallback" }; }
 }
 
 export async function revertCooldownClaim(cooldownId: string, snapshot: CooldownSnapshot): Promise<boolean> {

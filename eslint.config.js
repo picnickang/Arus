@@ -174,6 +174,28 @@ export default [
       }],
       '@typescript-eslint/no-explicit-any': 'warn',
       'prefer-const': 'warn',
+
+      // ============ HYGIENE ADDITIONS (Block A) ============
+      // Prefer @ts-expect-error over @ts-ignore. @ts-expect-error fails lint
+      // once the underlying error is fixed, signalling the suppression can be
+      // removed. @ts-ignore doesn't.
+      '@typescript-eslint/ban-ts-comment': ['warn', {
+        'ts-ignore': 'allow-with-description',
+        'ts-expect-error': 'allow-with-description',
+        'ts-nocheck': true,
+        'ts-check': false,
+        minimumDescriptionLength: 10,
+      }],
+
+      // ============ ASYNC-AWAIT CONSISTENCY (Block D) ============
+      // Throwing inside `new Promise((resolve, reject) => { ... })` constructors
+      // can lose the rejection — this catches the common shape where the
+      // executor itself is `async`.
+      'no-async-promise-executor': 'error',
+      // Catches the class of bug where `await` inside a loop mutates shared
+      // state and a concurrent iteration clobbers it. Occasional false
+      // positives but high signal when right.
+      'require-atomic-updates': 'warn',
       
       // React rules
       'react/prop-types': 'off',
@@ -220,6 +242,14 @@ export default [
         {
           selector: 'CallExpression[callee.object.name="Intl"][callee.property.name="DateTimeFormat"]',
           message: 'Consider using formatDate from @/lib/formatters instead of Intl.DateTimeFormat()'
+        },
+        // ============ HYGIENE ADDITION (Block A) ============
+        // After the catch-underscore codemod has run, this prevents new code
+        // from re-introducing the pattern. Use bare `catch { }` (ES2019) for
+        // intentionally-discarded errors, or handle the error explicitly.
+        {
+          selector: "CatchClause[param.type='Identifier'][param.name=/^_/]",
+          message: 'Underscore-prefixed catch bindings (catch (_error)) suggest unused errors. Use bare `catch { }` or handle the error explicitly.'
         }
       ]
     }
@@ -289,6 +319,25 @@ export default [
         varsIgnorePattern: '^_|^table$|^sql$|^index$|^unique$|^real$|^text$|^integer$|^boolean$|^timestamp$|^pgTable$|^varchar$|^json$|^jsonb$',
         caughtErrorsIgnorePattern: '^_'
       }]
+    }
+  },
+  // ============ HYGIENE ADDITIONS (Block B) — DB layer rules ============
+  // Repository methods are the API surface between the service layer and the
+  // DB. Explicit return types make schema drift loud at definition time.
+  // Console restriction is tighter than the server-wide config because the
+  // DB layer should always go through the structured logger.
+  {
+    files: ['server/db/**/*.ts', 'server/domains/*/repository.ts', 'server/repositories/**/*.ts'],
+    rules: {
+      '@typescript-eslint/explicit-function-return-type': ['warn', {
+        allowExpressions: true,
+        allowTypedFunctionExpressions: true,
+        allowHigherOrderFunctions: true,
+        allowDirectConstAssertionInArrowFunctions: true,
+      }],
+      'no-console': ['warn', {
+        allow: ['warn', 'error'],
+      }],
     }
   },
   // Phase 2: Type-aware linting for client code only (to avoid perf issues)

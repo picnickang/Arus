@@ -54,7 +54,7 @@ export async function getBackupStatus(): Promise<{
       healthStatus,
       issues,
     };
-  } catch (_error) {
+  } catch {
     return {
       totalBackups: 0,
       latestBackup: null,

@@ -154,7 +154,7 @@ export function SensorTemplateFormDialog({
           },
         });
       }
-    } catch (_error) {
+    } catch {
       toast({
         title: "Invalid JSON",
         description: "Please enter valid JSON for fields",

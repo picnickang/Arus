@@ -180,7 +180,7 @@ export const perfTime = {
       
       perfLog('Measure', `${name}: ${duration.toFixed(2)}ms`);
       return duration;
-    } catch (_e) {
+    } catch {
       return 0;
     }
   },

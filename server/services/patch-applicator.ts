@@ -276,7 +276,7 @@ export class PatchApplicator {
         fs.readFileSync(path.join(this.appDir, "package.json"), "utf-8")
       );
       return packageJson.version || "1.0";
-    } catch (_error) {
+    } catch {
       return "1.0";
     }
   }

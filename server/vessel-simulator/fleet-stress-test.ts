@@ -168,7 +168,7 @@ export class FleetStressTest {
 
               latencies.push(Date.now() - msgStart);
               msgCount++;
-            } catch (_e) {
+            } catch {
               errors++;
             }
           }

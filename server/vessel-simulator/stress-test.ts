@@ -80,7 +80,7 @@ export class TelemetryStressTest {
         try {
           batchWriter.queue(generateTelemetryMessage({ config, messageCount }));
           messageCount++;
-        } catch (_e) {
+        } catch {
           errors++;
         }
       }
@@ -111,7 +111,7 @@ export class TelemetryStressTest {
           metadata: msg.metadata,
         });
         messageCount++;
-      } catch (_e) {
+      } catch {
         errors++;
       }
       if (intervalMs > 1) {

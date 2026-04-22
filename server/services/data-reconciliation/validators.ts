@@ -28,7 +28,7 @@ export async function validateTelemetryIntegrity(orgId: string): Promise<Validat
       if (point.quality < 0.5) {
         issues.push({ type: 'data_quality', severity: point.quality < 0.3 ? 'high' : 'medium', recordId: record.id, equipmentId: record.equipmentId, orgId, message: `Low data quality score: ${point.quality.toFixed(2)}`, detectedAt: new Date(), metadata: { quality: point.quality, sensorType: record.sensorType } });
       }
-    } catch (_error) {
+    } catch {
       issues.push({ type: 'invalid_sensor', severity: 'medium', recordId: record.id, equipmentId: record.equipmentId, orgId, message: `Telemetry validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`, detectedAt: new Date() });
     }
   }

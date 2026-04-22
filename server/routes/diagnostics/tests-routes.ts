@@ -53,7 +53,7 @@ export function registerTestsRoutes(router: Router) {
       const { smokeTestSuites } = await import('../../diagnostics-smoke-tests.js'); const runner = smokeTestSuites[name];
       if (runner) { const result = await runner(); const output = formatSmokeTestOutput(result); testResults.set(name, { status: result.failed === 0 ? 'passed' : 'failed', output, startedAt: testResults.get(name)?.startedAt || new Date().toISOString(), completedAt: new Date().toISOString(), tests: result.tests }); logger.info('Diagnostics', `Smoke test '${name}' completed: ${result.passed}/${result.total} passed`); }
       else { throw new Error(`Smoke test runner not found for: ${name}`); }
-    } catch (_error) { testResults.set(name, { status: 'failed', output: `Error: ${error instanceof Error ? error.message : String(error)}`, startedAt: testResults.get(name)?.startedAt || new Date().toISOString(), completedAt: new Date().toISOString() }); logger.error('Diagnostics', `Smoke test '${name}' failed`, error instanceof Error ? error : new Error(String(error))); }
+    } catch { testResults.set(name, { status: 'failed', output: `Error: ${error instanceof Error ? error.message : String(error)}`, startedAt: testResults.get(name)?.startedAt || new Date().toISOString(), completedAt: new Date().toISOString() }); logger.error('Diagnostics', `Smoke test '${name}' failed`, error instanceof Error ? error : new Error(String(error))); }
   });
 
   router.get("/test-suites/:name/status", (req: Request, res: Response) => {

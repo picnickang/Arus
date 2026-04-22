@@ -71,7 +71,7 @@ export async function syncExternalCircuitBreakerMetrics() {
       const state = stats.state === "OPEN" ? 1 : stats.state === "HALF_OPEN" ? 2 : 0;
       setMlCircuitBreakerState(modelType, state as 0 | 1 | 2);
     }
-  } catch (_error) {
+  } catch {
     // Silently ignore if modules not loaded yet
   }
 }

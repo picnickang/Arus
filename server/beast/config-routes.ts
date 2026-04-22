@@ -34,7 +34,7 @@ router.get("/config/:feature", async (req, res) => {
     }
     const config = await beastModeManager.getFeatureConfig(orgId, feature);
     res.json({ success: true, feature, config, orgId });
-  } catch (_error) {
+  } catch {
     console.error(`[Beast Mode API] Error getting config for ${req.params.feature}:`, error);
     res.status(500).json({ success: false, error: `Failed to retrieve configuration for ${req.params.feature}` });
   }
@@ -65,7 +65,7 @@ router.post("/config/:feature/toggle", async (req, res) => {
     } else {
       res.status(500).json({ success: false, error: `Failed to ${enabled ? "enable" : "disable"} feature ${feature}` });
     }
-  } catch (_error) {
+  } catch {
     console.error(`[Beast Mode API] Error toggling ${req.params.feature}:`, error);
     res.status(500).json({ success: false, error: `Failed to toggle feature ${req.params.feature}` });
   }

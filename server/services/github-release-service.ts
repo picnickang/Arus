@@ -308,7 +308,7 @@ export class GitHubReleaseProvider implements IUpdateDistributionProvider {
         response.on("end", () => {
           try {
             resolve(JSON.parse(data));
-          } catch (_error) {
+          } catch {
             reject(new Error("Invalid JSON"));
           }
         });

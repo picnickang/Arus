@@ -229,7 +229,7 @@ export async function metricsEndpoint(req: Request, res: Response) {
     res.set("Content-Type", client.default.register.contentType);
     const metrics = await client.default.register.metrics();
     res.send(metrics);
-  } catch (_error) {
+  } catch {
     res.status(500).send("Error collecting metrics");
   }
 }

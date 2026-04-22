@@ -71,7 +71,7 @@ export class UpdateChecker {
         fs.readFileSync(path.join(process.cwd(), "package.json"), "utf-8")
       );
       return packageJson.version || "1.0";
-    } catch (_error) {
+    } catch {
       console.warn("[UpdateChecker] Could not read version from package.json, using default");
       return "1.0";
     }
@@ -152,7 +152,7 @@ export class UpdateChecker {
             try {
               const manifest = JSON.parse(data) as PatchManifest;
               resolve(manifest);
-            } catch (_error) {
+            } catch {
               reject(new Error("Invalid manifest JSON"));
             }
           });

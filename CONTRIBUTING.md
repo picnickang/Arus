@@ -18,6 +18,7 @@ The full guard chain: `npm run check:guards-full`
 | `check:domain-leaks` | Domain implementation details don't leak across boundaries | Keep types and helpers behind the barrel |
 | `check:ts-burndown` | TypeScript error count is **monotonically decreasing** | Fix the regression — or, if you reduced the count, regenerate the baseline |
 | `check:cast-burndown` | `as any` and `as unknown as` cast count is monotonically decreasing | Same as above — these are holes in the type system |
+| `check:hygiene` | 7 mechanical hygiene metrics (catch-underscore, console-log, ts-ignore, etc.) are monotonically improving | Run `npm run check:hygiene:report` to see counts; fix the regressed metric |
 | `check:boot-health` | Server boots cleanly with all 99 dynamic-import modules registered | Check the boot log for "Failed to register" lines |
 
 ---

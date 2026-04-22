@@ -31,7 +31,7 @@ export function useChartToggles(chartId: string) {
         if (stored) {
           return { ...defaultToggles, ...JSON.parse(stored) };
         }
-      } catch (_err) {
+      } catch {
         console.error(`Failed to load chart toggles for ${chartId}:`, err);
       }
     }
@@ -43,7 +43,7 @@ export function useChartToggles(chartId: string) {
     if (typeof globalThis !== "undefined") {
       try {
         localStorage.setItem(storageKey, JSON.stringify(toggles));
-      } catch (_err) {
+      } catch {
         console.error(`Failed to save chart toggles for ${chartId}:`, err);
       }
     }

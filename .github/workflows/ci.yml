@@ -45,6 +45,9 @@ jobs:
       - name: Type-cast burndown (`as any` / `as unknown as`)
         run: npm run check:cast-burndown
 
+      - name: Code-hygiene burndown (catch-underscore, console-log, ts-ignore, ...)
+        run: npm run check:hygiene
+
       - name: Boot health (dynamic-import safety net)
         run: npm run check:boot-health
 

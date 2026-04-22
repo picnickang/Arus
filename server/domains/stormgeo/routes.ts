@@ -196,7 +196,7 @@ export function registerStormGeoRoutes(app: Express, config: StormGeoConfig) {
             results[hour] = result;
             filledCount++;
           }
-        } catch (_error) {
+        } catch {
           logger.info("StormGeo", `No weather data for hour ${hour}`);
         }
       }
