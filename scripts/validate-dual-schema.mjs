@@ -48,7 +48,12 @@ for (const line of lines) {
     line.includes("isLocalMode ?") ||
     line.includes("isEmbedded ?") ||
     line.includes("IS_POSTGRES ?") ||
-    line.includes("IS_SQLITE ?");
+    line.includes("IS_SQLITE ?") ||
+    // Helper-based switched exports introduced to compress dual-mode casts:
+    //   export const X = pickSchema(isLocalMode, sqliteX.tableY, pgSchema.tableY);
+    //   export const X = cloudOnly(pgSchema.tableY);
+    line.includes("pickSchema(") ||
+    line.includes("cloudOnly(");
 
   const isDirectPgExport = line.includes("pgSchema.") && !isSwitched;
 

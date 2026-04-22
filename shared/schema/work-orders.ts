@@ -299,7 +299,10 @@ export const insertWorkOrderSchema = createInsertSchema(workOrders)
     plannedEndDate: z.coerce.date().optional(),
   });
 
-export const updateWorkOrderSchema = insertWorkOrderSchema.partial();
+// NOTE: `updateWorkOrderSchema` (the curated PATCH-body shape) lives in
+// shared/validation/entities.ts and is the version consumers use via
+// @shared/schema-runtime. The previous `insertWorkOrderSchema.partial()`
+// here was unused and clashed with the validation export.
 
 export const insertWorkOrderChecklistSchema = createInsertSchema(workOrderChecklists).omit({
   id: true,

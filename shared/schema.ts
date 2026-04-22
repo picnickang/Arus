@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { createInsertSchema } from "drizzle-zod";
 
 // Re-export all modular schema tables

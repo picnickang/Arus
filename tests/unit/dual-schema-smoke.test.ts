@@ -218,13 +218,20 @@ describe("SQLite schema structural parity", () => {
     }
   );
 
-  test("schema-runtime has sufficient ternary guards (>=40)", () => {
+  test("schema-runtime has sufficient dual-mode guards (>=40)", () => {
     const runtimeContent = readFileSync(
       join(process.cwd(), "shared", "schema-runtime.ts"),
       "utf-8"
     );
+    // Counts both the legacy ternary form (`IS_POSTGRES ?`) and the helper
+    // forms introduced when collapsing the cast pattern: `pickSchema(` and
+    // `cloudOnly(`. All three serve the same role: gating an export on the
+    // active dual-DB mode.
     const ternaryMatches = runtimeContent.match(/IS_POSTGRES\s*\?/g) ?? [];
-    expect(ternaryMatches.length).toBeGreaterThanOrEqual(40);
+    const pickMatches = runtimeContent.match(/\bpickSchema\(/g) ?? [];
+    const cloudMatches = runtimeContent.match(/\bcloudOnly\(/g) ?? [];
+    const total = ternaryMatches.length + pickMatches.length + cloudMatches.length;
+    expect(total).toBeGreaterThanOrEqual(40);
   });
 
   test("PG and SQLite schemas both export critical shared domain modules", () => {

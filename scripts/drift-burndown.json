@@ -1,6 +1,6 @@
 {
   "_comment": "Drift burn-down categorization. Regenerate with: node scripts/categorize-drift.mjs",
-  "generatedAt": "2026-04-22T20:12:39.296Z",
+  "generatedAt": "2026-04-22T21:35:53.090Z",
   "summary": {
     "quickFix": 0,
     "medium": 20,

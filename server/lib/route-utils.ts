@@ -82,7 +82,7 @@ export function handleApiError(
  * @param handler - The async handler function
  */
 export function withErrorHandling<
-  Req extends Request = AuthenticatedRequest,
+  Req extends Request = Request,
   Res extends Response = Response,
 >(
   operation: string,

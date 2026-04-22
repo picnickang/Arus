@@ -2,6 +2,20 @@ import { eq, and, sql, ilike, desc, asc, SQL } from "drizzle-orm";
 import { PgTableWithColumns } from "drizzle-orm/pg-core";
 import { db } from "../db.js";
 
+/**
+ * Hides the unavoidable Drizzle insert generic widening behind one cast.
+ * Drizzle's .values() accepts a structurally compatible shape but its
+ * generic type is invariant, so a narrowly-typed InsertT often won't
+ * unify without help. Centralising the cast here keeps all repository
+ * call sites cast-free.
+ */
+function insertValues<U>(v: U): any {
+  return v as any;
+}
+function setValues<U>(v: U): any {
+  return v as any;
+}
+
 export interface PaginationOptions {
   page?: number;
   pageSize?: number;
@@ -48,8 +62,22 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
     this.validateColumns();
   }
 
+  /**
+   * Single chokepoint for dynamic column access on a generic table.
+   * Drizzle's PgTableWithColumns<any> doesn't expose a typed column index,
+   * so this helper isolates the necessary unsafe access into one place
+   * instead of scattering `this.columns()[col]` throughout.
+   */
+  protected col(name: string): any {
+    return (this.table as Record<string, any>)[name];
+  }
+
+  private columns(): Record<string, any> {
+    return this.table as unknown as Record<string, any>;
+  }
+
   private validateColumns(): void {
-    const tableColumns = this.table as any;
+    const tableColumns = this.columns();
     if (!tableColumns[this.orgIdColumn]) {
       throw new Error(
         `BaseRepository: table missing required column '${this.orgIdColumn}' (orgId). ` +
@@ -69,15 +97,15 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
   }
 
   async list(orgId: string, filters?: FilterOptions): Promise<T[]> {
-    const conditions: SQL[] = [eq((this.table as any)[this.orgIdColumn], orgId)];
+    const conditions: SQL[] = [eq(this.columns()[this.orgIdColumn], orgId)];
 
     if (filters) {
       for (const [key, value] of Object.entries(filters)) {
-        if (value !== undefined && value !== null && (this.table as any)[key]) {
+        if (value !== undefined && value !== null && this.columns()[key]) {
           if (typeof value === "string" && key.toLowerCase().includes("search")) {
-            conditions.push(ilike((this.table as any)[key], `%${value}%`));
+            conditions.push(ilike(this.columns()[key], `%${value}%`));
           } else {
-            conditions.push(eq((this.table as any)[key], value));
+            conditions.push(eq(this.columns()[key], value));
           }
         }
       }
@@ -101,15 +129,15 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
     const pageSize = pagination.pageSize ?? pagination.limit ?? 20;
     const offset = pagination.offset ?? (page - 1) * pageSize;
 
-    const conditions: SQL[] = [eq((this.table as any)[this.orgIdColumn], orgId)];
+    const conditions: SQL[] = [eq(this.columns()[this.orgIdColumn], orgId)];
 
     if (filters) {
       for (const [key, value] of Object.entries(filters)) {
-        if (value !== undefined && value !== null && (this.table as any)[key]) {
+        if (value !== undefined && value !== null && this.columns()[key]) {
           if (typeof value === "string" && key.toLowerCase().includes("search")) {
-            conditions.push(ilike((this.table as any)[key], `%${value}%`));
+            conditions.push(ilike(this.columns()[key], `%${value}%`));
           } else {
-            conditions.push(eq((this.table as any)[key], value));
+            conditions.push(eq(this.columns()[key], value));
           }
         }
       }
@@ -126,8 +154,8 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
 
     let query = db.select().from(this.table).where(whereClause).limit(pageSize).offset(offset);
 
-    if (sort?.sortBy && (this.table as any)[sort.sortBy]) {
-      const sortColumn = (this.table as any)[sort.sortBy];
+    if (sort?.sortBy && this.columns()[sort.sortBy]) {
+      const sortColumn = this.columns()[sort.sortBy];
       query = query.orderBy(
         sort.sortOrder === "desc" ? desc(sortColumn) : asc(sortColumn)
       ) as typeof query;
@@ -150,8 +178,8 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
       .from(this.table)
       .where(
         and(
-          eq((this.table as any)[this.idColumn], id),
-          eq((this.table as any)[this.orgIdColumn], orgId)
+          eq(this.columns()[this.idColumn], id),
+          eq(this.columns()[this.orgIdColumn], orgId)
         )
       )
       .limit(1);
@@ -162,7 +190,7 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
   async create(data: InsertT): Promise<T> {
     const result = await db
       .insert(this.table)
-      .values(data as any)
+      .values(insertValues(data))
       .returning();
 
     return result[0] as T;
@@ -171,17 +199,17 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
   async update(id: string, data: Partial<InsertT>, orgId: string): Promise<T> {
     const updateData: Record<string, unknown> = { ...data };
 
-    if (this.updatedAtColumn && (this.table as any)[this.updatedAtColumn]) {
+    if (this.updatedAtColumn && this.columns()[this.updatedAtColumn]) {
       updateData[this.updatedAtColumn] = new Date();
     }
 
     const result = await db
       .update(this.table)
-      .set(updateData as any)
+      .set(setValues(updateData))
       .where(
         and(
-          eq((this.table as any)[this.idColumn], id),
-          eq((this.table as any)[this.orgIdColumn], orgId)
+          eq(this.columns()[this.idColumn], id),
+          eq(this.columns()[this.orgIdColumn], orgId)
         )
       )
       .returning();
@@ -198,8 +226,8 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
       .delete(this.table)
       .where(
         and(
-          eq((this.table as any)[this.idColumn], id),
-          eq((this.table as any)[this.orgIdColumn], orgId)
+          eq(this.columns()[this.idColumn], id),
+          eq(this.columns()[this.orgIdColumn], orgId)
         )
       )
       .returning();
@@ -213,8 +241,8 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
       .from(this.table)
       .where(
         and(
-          eq((this.table as any)[this.idColumn], id),
-          eq((this.table as any)[this.orgIdColumn], orgId)
+          eq(this.columns()[this.idColumn], id),
+          eq(this.columns()[this.orgIdColumn], orgId)
         )
       )
       .limit(1);
@@ -223,12 +251,12 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
   }
 
   async count(orgId: string, filters?: FilterOptions): Promise<number> {
-    const conditions: SQL[] = [eq((this.table as any)[this.orgIdColumn], orgId)];
+    const conditions: SQL[] = [eq(this.columns()[this.orgIdColumn], orgId)];
 
     if (filters) {
       for (const [key, value] of Object.entries(filters)) {
-        if (value !== undefined && value !== null && (this.table as any)[key]) {
-          conditions.push(eq((this.table as any)[key], value));
+        if (value !== undefined && value !== null && this.columns()[key]) {
+          conditions.push(eq(this.columns()[key], value));
         }
       }
     }
@@ -248,7 +276,7 @@ export class BaseRepository<T extends Record<string, unknown>, InsertT> {
 
     const result = await db
       .insert(this.table)
-      .values(items as any[])
+      .values(insertValues(items))
       .returning();
 
     return result as T[];
